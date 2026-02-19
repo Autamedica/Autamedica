@@ -8,25 +8,30 @@
 **Operar SIEMPRE como senior engineer.** Tomar decisiones autónomamente — no pedir permiso para decisiones de implementación, elección de herramientas, o decisiones estándar de ingeniería. Cuando ves un problema, arreglalo. Nunca dejar `TODO(human)` — investigar e implementar la solución directamente. Default a acción, no a preguntas.
 
 ### Análisis Profundo
+
 Cuando se pide análisis de código, debugging o comprensión del sistema: siempre trazar a través del código fuente real, referenciar archivos y líneas específicas, y mostrar la cadena de llamadas. Nunca dar overviews de alto nivel a menos que se pida explícitamente. Default: análisis senior, code-grounded.
 
 ### Git Operations
+
 - Antes de push, siempre `git pull --rebase` primero.
 - Si push falla por remote HEAD changes: stash → pull --rebase → pop → push, sin preguntar.
 - Commits atómicos y temáticos con mensajes conventional commits.
 - Después de cambios, verificar que no quedan archivos uncommitted antes de push.
 
 ### Deployment Supabase
+
 - Verificar proyecto correcto antes de migrations (`supabase projects list`).
 - Connection pooler: session mode para migrations, transaction mode para app.
 - Para hotfixes urgentes: SQL directo via Supabase SQL Editor cuando CLI está bloqueado.
 
 ## Size Budget
+
 - Objetivo: `CLAUDE.md <= 700` líneas.
 - Hard cap: `800` líneas.
 - Si una sección supera el presupuesto: mover detalle a docs/ y dejar aquí solo resumen + link.
 
 ## Índice Rápido
+
 1. Reglas Inquebrantables
 2. Contexto de Proyecto
 3. Stack y Arquitectura
@@ -44,21 +49,25 @@ Cuando se pide análisis de código, debugging o comprensión del sistema: siemp
 > **#0** Cero Código sin Integración · **#1** Packages Orquestan, Islands Ejecutan · **#2** Higiene de Repo · **#3** Validación Cross-Layer · **#4** Prohibido Stubs sobre Implementaciones · **#5** Todo se Hace AHORA
 
 ### REGLA #0: Cero Código sin Integración
+
 - Prohibido generar código que no tenga consumidor real en el mismo PR/commit.
 - Si al borrar ese código no se rompe nada, probablemente no debía existir.
 
 Checklist:
+
 - [ ] Hay al menos un consumidor real (página, island, API endpoint o package).
 - [ ] Flujo completo trazable: trigger → resultado visible al usuario.
 - [ ] El código nuevo no queda huérfano.
 
 ### REGLA #1: Packages Orquestan, Islands Ejecutan
+
 - `packages/*`: tipos, lógica compartida, auth, hooks — sin lógica de presentación.
 - `apps/*/src/components`: islands React o componentes Astro — sin lógica de negocio inline.
 - Prohibido que apps importen directamente de otras apps. Solo via `packages/*`.
 - CI/CD (Turborepo): orquesta builds y deployments. Apps: ejecutan.
 
 Checklist:
+
 - [ ] Apps no se importan entre sí.
 - [ ] Lógica compartida en packages, no duplicada en apps.
 - [ ] Islands React solo tienen estado local o consumen hooks de `@autamedica/hooks`.
@@ -69,17 +78,20 @@ Cada feature toca múltiples capas (DB → RPC → Supabase → Astro/Next.js AP
 Código que compila en cada capa pero no conecta entre capas = bug invisible.
 
 **ANTES de codificar:**
+
 - [ ] Trazar ruta completa: trigger → cada capa → resultado visible al usuario.
 - [ ] Verificar nombres reales de columnas en prod: `SELECT column_name FROM information_schema.columns WHERE table_name = '...'`.
 - [ ] Verificar que las types de `@autamedica/types` coinciden con el schema real de DB.
 - [ ] Si una migración existe en el repo pero no se aplicó → APLICARLA PRIMERO.
 
 **DURANTE la codificación:**
+
 - [ ] Cada write a DB usa nombres verificados contra `information_schema` (NUNCA asumir).
 - [ ] Si un island consume un endpoint, verificar que el endpoint existe y retorna el shape esperado.
 - [ ] Variables públicas en Astro: `PUBLIC_*` (no `NEXT_PUBLIC_*`). `import.meta.env` (no `process.env`).
 
 **DESPUÉS de codificar:**
+
 - [ ] Ejecutar el flujo completo: acción real → verificar en DB → verificar que UI refleja el cambio.
 - [ ] Si hubo cambio de schema: regenerar tipos con `pnpm db:sync`.
 - [ ] Si hubo deploy de migración + edge function: AMBOS aplicados antes de declarar "listo".
@@ -93,12 +105,14 @@ Código que compila en cada capa pero no conecta entre capas = bug invisible.
 3. **Post-migración: verificar que funciones y columnas existentes siguen intactas.**
 
 ### REGLA #2: Higiene de Repo (Nunca Regresivo)
+
 - Root solo para runtime/config/docs core.
 - Prohibido versionar ruido: `tmp-*`, logs, screenshots, `*.pid`, dumps, outputs ad-hoc.
 - Si aparece un nuevo patrón de ruido local, actualizar `.gitignore` en el mismo commit.
 - `dist/`, `.next/`, `.open-next/`, `.astro/` nunca se commitean.
 
 Checklist de higiene:
+
 1. `git status --short` sin archivos fuera de lugar.
 2. `pnpm lint && pnpm typecheck` limpios.
 3. Si hubo rename/move: validar referencias con `grep -r`.
@@ -106,11 +120,13 @@ Checklist de higiene:
 ### REGLA #5: Todo se Hace AHORA — Cero Deuda Diferida
 
 Prohibido:
+
 - Diferir trabajo a "futuro", "próxima sesión", "refactor posterior".
 - Dejar `TODO`, `FIXME`, `HACK`, `TEMP`, `any` sin resolver.
 - Declarar "listo" si falta migración, deploy, types actualizados o verificación.
 
 Obligatorio:
+
 - Si se detecta problema durante la tarea → corregirlo AHORA o escalar con contexto.
 - Cada tarea cierra completa: **código + tipos + build + verificación**.
 
@@ -127,6 +143,7 @@ Obligatorio:
 - **Deployment:** Cloudflare Pages (por app)
 
 URLs de producción:
+
 - `www.autamedica.com` → `apps/web` (Astro — Fase 1, migración en curso)
 - `autamedica-web-app.pages.dev` → `apps/web-app` (Next.js — legacy)
 - `autamedica-doctors.pages.dev` → `apps/doctors`
@@ -139,6 +156,7 @@ URLs de producción:
 ## 3) Stack y Arquitectura
 
 ### Monorepo Structure
+
 ```
 apps/
   web/           # Astro 5 + React 19 islands (MIGRACIÓN ACTIVA)
@@ -160,11 +178,13 @@ packages/
 ```
 
 ### Estrategia de Ramas (Trunk-Based Development)
+
 1. **`main` es Producción.** Única rama eterna. Nunca commit directo. Siempre estable.
 2. **Ramas efímeras** (`feat/...`, `fix/...`): vida < 2 días, 1 rama = 1 objetivo.
 3. Ciclo: `git checkout -b feat/x` desde `main` → Code → Test → Lint → PR → Merge → Borrar rama.
 
 ### Migración Next.js → Astro (EN CURSO)
+
 - Fase 1: `apps/web` (Astro) reemplaza `apps/web-app` (Next.js) como landing.
 - Fases 2-6: auth, doctors, patients, companies, admin.
 - **Regla:** NO migrar el siguiente app sin que el anterior esté deployado y verificado.
@@ -177,6 +197,7 @@ packages/
 ## 4) Convenciones Técnicas
 
 ### TypeScript Estricto (ZERO TOLERANCE)
+
 - **PROHIBIDO `any`:** Usar `unknown` + type guards para datos inciertos.
 - **Interfaces explícitas:** Tipar siempre respuestas de API y datos externos.
 - **Branded types:** `PatientId`, `DoctorId`, `UUID` — no mezclar IDs de entidades distintas.
@@ -184,6 +205,7 @@ packages/
 - **`APIResponse<T>`** como discriminated union en todas las respuestas de API.
 
 ### Anti-Patrones Prohibidos
+
 - `console.*` en prod → usar `logger` de `@autamedica/shared`.
 - `process.env` directo → usar `ensureClientEnv` de `@autamedica/shared`.
 - `supabase.*` directo en componentes → usar hooks de `@autamedica/auth` o `@autamedica/hooks`.
@@ -194,6 +216,7 @@ packages/
 - `useRouter` de `next/navigation` en `apps/web/*` → usar `window.location` o `<a>`.
 
 ### Astro-Specific
+
 - Variables de entorno: siempre `import.meta.env.PUBLIC_*` (nunca `process.env`).
 - Tipar siempre en `src/env.d.ts` las vars que se usen.
 - `App.Locals` en `env.d.ts` para `session` y `supabase` que pasa el middleware.
@@ -202,6 +225,7 @@ packages/
 - Componentes Astro (`.astro`) para markup estático. Islands React (`.tsx`) para interactividad.
 
 ### React Islands
+
 - `client:load` — carga inmediata (visible above-the-fold).
 - `client:visible` — lazy cuando entra al viewport.
 - `client:only="react"` — cuando el componente no puede SSR.
@@ -209,6 +233,7 @@ packages/
 - Prohibido: React Context que cruce la barrera Astro/React (no hay portal global).
 
 ### Dinero y Datos Médicos
+
 - DB en integer minor units para montos.
 - Datos de salud: cifrado en tránsito (TLS 1.3) y en reposo (AES-256).
 - Historia clínica: retención mínima 15 años (ley Argentina).
@@ -228,27 +253,32 @@ packages/
 - **Directorio:** `/supabase/` en repo
 
 **Estructura DB:**
+
 - Migrations: `supabase/migrations/` (aplicadas secuencialmente)
 - Edge Functions: `supabase/functions/` (Deno)
 - Tests RLS: `supabase/tests/`
 - Seeds: `seed_*.sql`
 
 **Antes de cualquier operación DB:**
+
 - Verificar proyecto con `supabase projects list`
 - NO usar service role en migrations, usar session mode
 - SIEMPRE regenerar types: `pnpm db:sync` después de cambios de schema
 
 ### Dos Planos (obligatorio)
+
 1. UI gating: guards, filtros, disabled, overlays, routing.
 2. DB enforcement: enum, constraints, triggers, RLS, RPC.
 
 Reglas:
+
 - Si algo "se guardó pero no se ve", investigar RLS + filtros primero.
 - No asumir schema: validar con `@autamedica/types` o `information_schema`.
 - `auth.uid()` requiere JWT de usuario reenviado en `Authorization`.
 - RLS user-scoped no evaluar con service role sin forwarded JWT.
 
 ### Roles de Usuario
+
 - `patient` → redirige `/dashboard`
 - `doctor` → redirige `/doctor/dashboard`
 - `company` → redirige `/company/dashboard`
@@ -256,6 +286,7 @@ Reglas:
 - Sin rol → redirige `/auth/select-role`
 
 ### Deploy DB Definition of Done
+
 - [ ] Migración aplicada en prod.
 - [ ] RLS/policies alineadas.
 - [ ] Types regenerados con `pnpm db:sync`.
@@ -267,6 +298,7 @@ Reglas:
 ## 6) Flujo de Trabajo del Agente
 
 ### Ciclo mínimo por tarea
+
 1. Entender alcance exacto (1 dominio por vez).
 2. Cambios atómicos y verificables.
 3. Validar local (lint/types/build según impacto).
@@ -274,12 +306,14 @@ Reglas:
 5. Documentar resultado con evidencia.
 
 ### Anti-regresión
+
 - Evitar whack-a-mole: si un fix rompe otro dominio, frenar y re-scope.
 - Commits pequeños como checkpoints.
 - No mezclar cambios de auth + UI + DB en el mismo commit sin motivo explícito.
 - Antes de migrar siguiente app a Astro: verificar que la anterior funciona en prod.
 
 ### Criterios para frenar y preguntar
+
 - Mismo archivo tocado repetidamente sin converger.
 - Cambio pequeño que deriva en múltiples dominios.
 - Hallazgo de drift severo entre tipos TypeScript y schema de DB.
@@ -290,11 +324,13 @@ Reglas:
 ## 7) Calidad y Gates
 
 ### Lint = Ley (Zero Warnings)
+
 - `pnpm lint` DEBE dar **0 errores Y 0 warnings**.
 - Si hay warnings pre-existentes en archivos que tocás, **arreglarlos en el mismo commit**.
 - `pnpm check` en `apps/web` (astro check) debe dar **0 errors**.
 
 ### Comandos base por scope
+
 ```bash
 # Packages
 pnpm build:packages:core   # Compilar packages antes de usar en apps
@@ -313,11 +349,13 @@ pnpm db:sync               # Regenerar tipos desde DB
 ```
 
 ### Pre-push obligatorio
+
 ```bash
 pnpm lint && pnpm typecheck && pnpm build:packages:core
 ```
 
 ### Checklist de entrega
+
 - [ ] `pnpm lint` con 0 errores y 0 warnings.
 - [ ] `pnpm check` (astro check) sin errores en `apps/web`.
 - [ ] `pnpm build:packages:core` exitoso.
@@ -357,11 +395,14 @@ pnpm lint && pnpm typecheck && pnpm build:packages:core
 ## 9) Referencias
 
 ### Documentos del proyecto
+
 - `docs/GLOSARIO_MAESTRO.md` — Contratos TypeScript centralizados (fuente de verdad)
 - `docs/database/_generated/` — Schema DB generado
 - `apps/web/` — App Astro en migración activa
+- `docs/FILOSOFIA_EDITORIAL.md` — **LEER ANTES de modificar `apps/web`**. Define el modelo NYT: contenido primero, CTAs como consecuencia, newsletter como canal de retención. Incluye reglas concretas sobre qué botones están prohibidos en el landing y el roadmap de implementación.
 
 ### Comandos de deployment
+
 ```bash
 # Deploy app Astro (apps/web)
 pnpm deploy:web              # build + wrangler pages deploy
@@ -375,6 +416,7 @@ pnpm deploy:admin
 ```
 
 ### Supabase
+
 - Supabase Project: `knywotiidsydsaveqkjs`
 - `pnpm db:sync` — regenerar tipos desde DB
 - `pnpm db:validate` — validar schema
@@ -383,5 +425,6 @@ pnpm deploy:admin
 ---
 
 ## Nota Operativa
+
 Si hay conflicto entre reglas aquí y reglas en apps/packages individuales, prevalece este CLAUDE.md.
 Mantener este archivo por debajo de 700 líneas. Mover detalles extensos a `docs/`.
