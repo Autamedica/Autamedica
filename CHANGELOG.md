@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- 53a0d6d feat(auth): remove role from login flow — detect role automatically post-auth
 - f35c7ab feat(web): apply NYT editorial philosophy to landing copy
 - 3367525 feat: consolidate auth into autamedica-web, remove deploy-auth job
 - 76a5483 feat(web): add portal images and fix landing page completeness
@@ -39,6 +40,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 4c5f091 📝 docs: actualizar changelog automático
 - 225aded 📝 docs: actualizar changelog automático
 - a24b6f3 docs: add editorial philosophy (NYT model) for autamedica-web
 - beccc87 📝 docs: actualizar changelog automático
@@ -80,4 +82,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 21:02:29*
+*Generado automáticamente el 2026-02-19 21:23:07*
