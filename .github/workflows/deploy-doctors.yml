@@ -45,7 +45,20 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          pnpm dlx wrangler pages deploy .open-next \
-            --project-name=autamedica-doctors \
-            --branch=main \
-            --commit-dirty=true
+          set -euo pipefail
+
+          for project_name in "autamedica-doctors" "doctors" "autamedica-doctor"; do
+            echo "Intentando deploy a Cloudflare Pages project: ${project_name}"
+            if pnpm dlx wrangler pages deploy .open-next \
+              --project-name="${project_name}" \
+              --branch=main \
+              --commit-dirty=true; then
+              echo "✅ Deploy exitoso en project: ${project_name}"
+              exit 0
+            fi
+          done
+
+          echo "❌ No se encontró un project válido para Doctors."
+          echo "📋 Proyectos disponibles en la cuenta:"
+          pnpm dlx wrangler pages project list || true
+          exit 1
