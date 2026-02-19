@@ -25,6 +25,8 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 3b37233 docs: production readiness report 2026-02-19
+- 818f80c 📝 docs: actualizar changelog automático
 - ffbb70c 📝 docs: actualizar changelog automático
 - 88a8d37 📝 docs: actualizar changelog automático
 - 9df8e35 📝 docs: actualizar changelog automático
@@ -51,4 +53,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 12:56:43*
+*Generado automáticamente el 2026-02-19 13:05:30*
