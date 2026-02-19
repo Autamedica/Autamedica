@@ -14,7 +14,9 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@autamedica/shared": "workspace:^",
     "@autamedica/tailwind-config": "workspace:^",
+    "@supabase/ssr": "^0.5.2",
     "framer-motion": "^12.23.12",
     "gsap": "^3.13.0",
     "next": "15.5.4",
@@ -25,6 +27,7 @@
   "devDependencies": {
     "@autamedica/typescript-config": "workspace:*",
     "@cloudflare/next-on-pages": "^1.13.16",
+    "@opennextjs/cloudflare": "^1.9.1",
     "@next/eslint-plugin-next": "^15.5.4",
     "@playwright/test": "^1.55.0",
     "@types/node": "^22.15.3",
