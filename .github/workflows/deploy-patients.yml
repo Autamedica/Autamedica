@@ -46,13 +46,32 @@ jobs:
 
           for project_name in "autamedica-patients" "patients" "autamedica-patient"; do
             echo "Intentando deploy a Cloudflare Pages project: ${project_name}"
-            if pnpm dlx wrangler pages deploy .open-next \
-              --project-name="${project_name}" \
-              --branch=main \
-              --commit-dirty=true; then
-              echo "✅ Deploy exitoso en project: ${project_name}"
-              exit 0
-            fi
+            for attempt in 1 2 3; do
+              set +e
+              DEPLOY_OUTPUT=$(pnpm dlx wrangler pages deploy .open-next \
+                --project-name="${project_name}" \
+                --branch=main \
+                --commit-dirty=true 2>&1)
+              DEPLOY_STATUS=$?
+              set -e
+
+              echo "$DEPLOY_OUTPUT"
+
+              if [ $DEPLOY_STATUS -eq 0 ]; then
+                echo "✅ Deploy exitoso en project: ${project_name}"
+                exit 0
+              fi
+
+              if echo "$DEPLOY_OUTPUT" | grep -q "code: 10429"; then
+                BACKOFF_SECONDS=$((attempt * 20))
+                echo "⚠️ Cloudflare rate limit detectado. Reintento ${attempt}/3 en ${BACKOFF_SECONDS}s..."
+                sleep "$BACKOFF_SECONDS"
+                continue
+              fi
+
+              # Error no recuperable para este project_name (ej. project inexistente)
+              break
+            done
           done
 
           echo "❌ No se encontró un project válido para Patients."
