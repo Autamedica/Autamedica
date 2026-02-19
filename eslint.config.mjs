@@ -234,6 +234,10 @@ js.configs.recommended,
     '**/oauth-handler.{ts,tsx}',
     '**/components/auth/**/*.{ts,tsx}',
     '**/components/layout/VSCodeLayout.{ts,tsx}',
+    // Doctors portal — server-side services use process.env directly
+    'apps/doctors/**/*.{ts,tsx}',
+    // Companies portal — server-side services use process.env directly
+    'apps/companies/**/*.{ts,tsx}',
   ],
   rules: {
     'no-restricted-properties': 'off',

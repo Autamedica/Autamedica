@@ -10,7 +10,7 @@ import { join } from 'path';
 
 // Configuración
 const DOCTORS_URL = 'http://localhost:3001/';
-const AUTH_URL = 'http://localhost:3005';
+const _AUTH_URL = 'http://localhost:3005';
 const DOCTOR_EMAIL = 'doctor.test@autamedica.test';
 const DOCTOR_PASSWORD = 'TestDoctor2025!';
 const SCREENSHOTS_DIR = '/tmp/playwright_audit';

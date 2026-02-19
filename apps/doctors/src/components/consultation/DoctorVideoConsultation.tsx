@@ -10,9 +10,7 @@ import {
   useTracks
 } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { Room, Track } from 'livekit-client';
-
-import { logger } from '@autamedica/shared';
+import { Track } from 'livekit-client';
 interface DoctorVideoConsultationProps {
   consultationId: string;
   patientId: string;

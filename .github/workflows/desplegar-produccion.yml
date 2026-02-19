@@ -97,19 +97,15 @@ jobs:
       - name: Build packages core
         run: pnpm run build:packages
 
-      - name: Build doctors with Next.js
-        run: pnpm --filter @autamedica/doctors build
+      - name: Build doctors for Cloudflare (OpenNext)
+        run: pnpm --filter @autamedica/doctors build:cloudflare
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Adapt for Cloudflare Pages
-        working-directory: apps/doctors
-        run: npx @cloudflare/next-on-pages@latest --skip-build
-
       - name: Deploy to Cloudflare Pages
         working-directory: apps/doctors
-        run: pnpm dlx wrangler pages deploy .vercel/output/static --project-name autamedica-doctors --branch production
+        run: pnpm dlx wrangler pages deploy .open-next --project-name autamedica-doctors --branch production
 
   # ============================================
   # Job 3: Companies Portal
@@ -137,16 +133,12 @@ jobs:
       - name: Build packages core
         run: pnpm run build:packages
 
-      - name: Build companies with Next.js
-        run: pnpm --filter @autamedica/companies build
+      - name: Build companies for Cloudflare (OpenNext)
+        run: pnpm --filter @autamedica/companies build:cloudflare
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Adapt for Cloudflare Pages
-        working-directory: apps/companies
-        run: npx @cloudflare/next-on-pages@latest --skip-build
-
       - name: Deploy to Cloudflare Pages
         working-directory: apps/companies
-        run: pnpm dlx wrangler pages deploy .vercel/output/static --project-name autamedica-companies --branch production
+        run: pnpm dlx wrangler pages deploy .open-next/dist --project-name autamedica-companies --branch production

@@ -2,7 +2,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-import { logger } from '@autamedica/shared';
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const access_token = requestUrl.searchParams.get('access_token')

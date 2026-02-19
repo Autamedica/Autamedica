@@ -50,7 +50,7 @@ export default function TestCallPage() {
             <div className="bg-blue-600/20 border border-blue-500/50 rounded-lg p-4 mb-6">
               <h3 className="text-blue-200 font-medium mb-2">📋 Instrucciones de Prueba:</h3>
               <ol className="text-blue-100 text-sm space-y-1">
-                <li>1. Click "Iniciar Videollamada" para comenzar</li>
+                <li>1. Click &quot;Iniciar Videollamada&quot; para comenzar</li>
                 <li>2. Permite acceso a cámara y micrófono cuando lo solicite</li>
                 <li>3. Abre otra pestaña en http://localhost:3002 (portal pacientes)</li>
                 <li>4. Usa el mismo Room ID en ambas ventanas</li>

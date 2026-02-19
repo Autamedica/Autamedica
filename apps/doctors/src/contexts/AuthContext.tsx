@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { SessionData, fetchSessionData, getLoginUrl } from '@/lib/session-sync'
 
-import { logger } from '@autamedica/shared';
 interface AuthContextType {
   session: SessionData | null
   loading: boolean

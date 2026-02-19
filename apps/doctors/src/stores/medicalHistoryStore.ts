@@ -153,7 +153,7 @@ export const useMedicalHistoryStore = create<MedicalHistoryState>()(
       if (!vitals) return 'Sin datos de signos vitales'
 
       // Análisis básico de signos vitales
-      let analysis = []
+      const analysis: string[] = []
 
       if (vitals.heartRate) {
         if (vitals.heartRate < 60) analysis.push('Bradicardia detectada')

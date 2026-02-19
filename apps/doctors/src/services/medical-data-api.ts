@@ -221,7 +221,7 @@ class MedicalDataAPI {
         ] : [] as any
 
         // Aplicar filtros
-        let filteredRecords = mockRecords
+        const filteredRecords = mockRecords
           .filter((record: any) => !filters.consultation_type || record.consultation_type === filters.consultation_type)
           .filter((record: any) => !filters.diagnosis_contains || record.diagnosis.toLowerCase().includes(filters.diagnosis_contains.toLowerCase()))
 

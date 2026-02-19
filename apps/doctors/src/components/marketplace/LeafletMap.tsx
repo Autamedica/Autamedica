@@ -77,6 +77,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters 
   const createCustomIcon = (type: 'job' | 'doctor', urgent: boolean = false) => {
     if (typeof window === 'undefined') return null
 
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const L = require('leaflet')
 
     const color = urgent ? '#ef4444' : type === 'job' ? '#3b82f6' : '#10b981'
