@@ -53,6 +53,24 @@ jobs:
         working-directory: apps/web
         run: pnpm dlx wrangler pages deploy dist --project-name autamedica-web --branch main
 
+      - name: Link custom domains (autamedica.com)
+        run: |
+          for domain in "autamedica.com" "www.autamedica.com"; do
+            http_code=$(curl -s -o /tmp/cf_domain_response.json -w "%{http_code}" \
+              -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/autamedica-web/domains" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"name\": \"$domain\"}")
+            if [ "$http_code" = "200" ]; then
+              echo "✅ $domain: vinculado exitosamente"
+            elif [ "$http_code" = "409" ]; then
+              echo "✅ $domain: ya estaba vinculado"
+            else
+              echo "⚠️  $domain: HTTP $http_code — revisa que el dominio esté en la zona de Cloudflare"
+              cat /tmp/cf_domain_response.json
+            fi
+          done
+
   # ============================================
   # Job 2: Auth Hub (Autenticación Central)
   # ============================================
