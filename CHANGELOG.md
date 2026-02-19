@@ -37,6 +37,8 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- a24b6f3 docs: add editorial philosophy (NYT model) for autamedica-web
+- beccc87 📝 docs: actualizar changelog automático
 - fec729c 📝 docs: actualizar changelog automático
 - 45a0901 📝 docs: actualizar changelog automático
 - b057a70 📝 docs: actualizar changelog automático
@@ -75,4 +77,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 20:27:05*
+*Generado automáticamente el 2026-02-19 20:35:15*
