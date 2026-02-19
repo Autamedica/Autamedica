@@ -218,6 +218,26 @@ packages/
 
 ## 5) Supabase y DB Hardening
 
+### 🔐 Proyecto Supabase AutaMedica
+
+**IMPORTANTE: NO CONFUNDIR CON OTROS PROYECTOS (ej: autorentar)**
+
+- **Project ID:** `gtyvdircfhmdjiaelqkg`
+- **URL:** https://gtyvdircfhmdjiaelqkg.supabase.co
+- **Dashboard:** https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/settings/api
+- **Directorio:** `/supabase/` en repo
+
+**Estructura DB:**
+- Migrations: `supabase/migrations/` (aplicadas secuencialmente)
+- Edge Functions: `supabase/functions/` (Deno)
+- Tests RLS: `supabase/tests/`
+- Seeds: `seed_*.sql`
+
+**Antes de cualquier operación DB:**
+- Verificar proyecto con `supabase projects list`
+- NO usar service role en migrations, usar session mode
+- SIEMPRE regenerar types: `pnpm db:sync` después de cambios de schema
+
 ### Dos Planos (obligatorio)
 1. UI gating: guards, filtros, disabled, overlays, routing.
 2. DB enforcement: enum, constraints, triggers, RLS, RPC.
