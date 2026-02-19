@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- 3906614 feat(web): replace CSS animations with GSAP ScrollTrigger across landing page
 - 677dd39 feat(telemedicine): secure rpc fallback and supabase deploy workflow
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
@@ -27,6 +28,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 090a577 📝 docs: actualizar changelog automático
 - 63fa426 📝 docs: actualizar changelog automático
 - e525dc1 📝 docs: actualizar changelog automático
 - 3b37233 docs: production readiness report 2026-02-19
@@ -57,4 +59,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 13:16:49*
+*Generado automáticamente el 2026-02-19 13:37:49*
