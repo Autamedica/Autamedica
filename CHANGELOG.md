@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- 677dd39 feat(telemedicine): secure rpc fallback and supabase deploy workflow
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
 ### 🔧 Mejoras y Optimizaciones
@@ -22,6 +23,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 9df8e35 📝 docs: actualizar changelog automático
 - c372944 📝 docs: actualizar changelog automático
 - 2eab369 📝 docs: actualizar changelog automático
 - d316b0a 📝 docs: actualizar changelog automático
@@ -44,4 +46,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 12:52:20*
+*Generado automáticamente el 2026-02-19 12:53:26*
