@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- f35c7ab feat(web): apply NYT editorial philosophy to landing copy
 - 3367525 feat: consolidate auth into autamedica-web, remove deploy-auth job
 - 76a5483 feat(web): add portal images and fix landing page completeness
 - 3906614 feat(web): replace CSS animations with GSAP ScrollTrigger across landing page
@@ -13,6 +14,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- bf2dff6 fix(ci): add --skip-next-build; remove admin roles from select-role; fix glossary exports
 - 2d5f2b5 fix(web): satisfy Astro 5 AstroCookieSetOptions strict expires type
 - 4ac9a4c fix(web): fix AstroCookieSetOptions type error in auth callback
 - 5a19494 fix(hooks): scope pre-push typecheck to changed packages only
@@ -37,6 +39,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 225aded 📝 docs: actualizar changelog automático
 - a24b6f3 docs: add editorial philosophy (NYT model) for autamedica-web
 - beccc87 📝 docs: actualizar changelog automático
 - fec729c 📝 docs: actualizar changelog automático
@@ -77,4 +80,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 20:35:15*
+*Generado automáticamente el 2026-02-19 21:02:29*
