@@ -84,20 +84,152 @@ import Footer from '../components/Footer.astro';
 </style>
 
 <script>
-  // Scroll-triggered fade-in animations
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
-  );
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-  document.querySelectorAll('.animate-on-scroll').forEach((el) => {
-    observer.observe(el);
-  });
+  gsap.registerPlugin(ScrollTrigger);
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (reduced) {
+    // Instant reveal — no animation
+    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+      (el as HTMLElement).style.opacity = '1';
+    });
+  } else {
+    // ─── Hero entrance timeline ───
+    const heroContent = document.querySelector('.hero-content');
+    if (heroContent) {
+      const tl = gsap.timeline({ delay: 0.2 });
+      tl.from('.hero-badge', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' })
+        .from('.hero-title', { opacity: 0, y: 30, duration: 0.8, ease: 'power3.out' }, '-=0.3')
+        .from('.hero-subtitle', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, '-=0.4')
+        .from('.hero-actions', { opacity: 0, y: 20, duration: 0.5, ease: 'power2.out' }, '-=0.3')
+        .from('.hero-metrics', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' }, '-=0.2')
+        .from('.hero-scroll-hint', { opacity: 0, duration: 0.4 }, '-=0.1');
+    }
+
+    // ─── Section headers ───
+    document.querySelectorAll('.showcase-header, .directory-header, .process-header, .testimonials-header').forEach((el) => {
+      gsap.fromTo(el,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1, y: 0,
+          duration: 0.8,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
+        }
+      );
+    });
+
+    // ─── Showcase rows — alternate left/right ───
+    document.querySelectorAll('.showcase-row').forEach((row, i) => {
+      const fromX = row.classList.contains('reversed') ? 50 : -50;
+      gsap.fromTo(row,
+        { opacity: 0, x: fromX },
+        {
+          opacity: 1, x: 0,
+          duration: 1,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: row, start: 'top 80%', toggleActions: 'play none none none' },
+        }
+      );
+    });
+
+    // ─── Doctor cards — stagger ───
+    const doctorGrid = document.querySelector('.doctor-grid');
+    if (doctorGrid) {
+      gsap.fromTo(
+        doctorGrid.querySelectorAll('.doctor-card'),
+        { opacity: 0, y: 30, scale: 0.96 },
+        {
+          opacity: 1, y: 0, scale: 1,
+          duration: 0.6,
+          stagger: 0.08,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: doctorGrid, start: 'top 80%', toggleActions: 'play none none none' },
+        }
+      );
+    }
+
+    // ─── Symptom checker header ───
+    const symptomHeader = document.querySelector('.symptom-header');
+    if (symptomHeader) {
+      gsap.fromTo(symptomHeader,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1, y: 0,
+          duration: 0.8,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: symptomHeader, start: 'top 85%', toggleActions: 'play none none none' },
+        }
+      );
+    }
+
+    // ─── Process steps — stagger ───
+    const processTimeline = document.querySelector('.process-timeline');
+    if (processTimeline) {
+      gsap.fromTo(
+        processTimeline.querySelectorAll('.step'),
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1, y: 0,
+          duration: 0.6,
+          stagger: 0.12,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: processTimeline, start: 'top 80%', toggleActions: 'play none none none' },
+        }
+      );
+    }
+
+    // ─── Testimonial cards — stagger ───
+    const testimonialGrid = document.querySelector('.testimonials-grid');
+    if (testimonialGrid) {
+      gsap.fromTo(
+        testimonialGrid.querySelectorAll('.testimonial-card'),
+        { opacity: 0, y: 30, scale: 0.96 },
+        {
+          opacity: 1, y: 0, scale: 1,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: testimonialGrid, start: 'top 80%', toggleActions: 'play none none none' },
+        }
+      );
+    }
+
+    // ─── CTA Final — scale up ───
+    const ctaInner = document.querySelector('.cta-inner');
+    if (ctaInner) {
+      gsap.fromTo(ctaInner,
+        { opacity: 0, y: 40, scale: 0.95 },
+        {
+          opacity: 1, y: 0, scale: 1,
+          duration: 1,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: ctaInner, start: 'top 85%', toggleActions: 'play none none none' },
+        }
+      );
+    }
+
+    // ─── Remaining .animate-on-scroll not handled above ───
+    const handled = new Set<Element>();
+    document.querySelectorAll(
+      '.showcase-header, .directory-header, .process-header, .testimonials-header, ' +
+      '.showcase-row, .doctor-card, .step, .testimonial-card, .cta-inner, .symptom-header'
+    ).forEach((el) => handled.add(el));
+
+    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+      if (handled.has(el)) return;
+      gsap.fromTo(el,
+        { opacity: 0, y: 25 },
+        {
+          opacity: 1, y: 0,
+          duration: 0.7,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
+        }
+      );
+    });
+  }
 </script>

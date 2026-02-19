@@ -114,24 +114,12 @@ a {
 }
 
 /* ═══════════════════════════════════════════
-   Scroll-triggered animations
+   GSAP ScrollTrigger animations — initial state
+   Elements start hidden; GSAP animates them in.
    ═══════════════════════════════════════════ */
 .animate-on-scroll {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
 }
-
-.animate-on-scroll.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.animate-on-scroll:nth-child(2) { transition-delay: 0.1s; }
-.animate-on-scroll:nth-child(3) { transition-delay: 0.2s; }
-.animate-on-scroll:nth-child(4) { transition-delay: 0.3s; }
-.animate-on-scroll:nth-child(5) { transition-delay: 0.15s; }
-.animate-on-scroll:nth-child(6) { transition-delay: 0.25s; }
 
 /* Desktop/Mobile toggle */
 .desktop-only { display: none; }
@@ -142,12 +130,10 @@ a {
   .mobile-only { display: none; }
 }
 
-/* Reduced motion */
+/* Reduced motion — GSAP script also checks and skips animations */
 @media (prefers-reduced-motion: reduce) {
   .animate-on-scroll {
-    opacity: 1;
-    transform: none;
-    transition: none;
+    opacity: 1 !important;
   }
   .desktop-only { display: none !important; }
   .mobile-only { display: block !important; }
