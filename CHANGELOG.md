@@ -19,6 +19,7 @@
 ### 🔒 Seguridad
 
 ### 📚 Documentación
+- 146e4e2 📝 docs: actualizar changelog automático
 - 8925c01 docs: agregar información clara de Supabase AutaMedica a CLAUDE.md
 - f3c127b 📝 docs: actualizar changelog automático
 - 1c5f76c 📝 docs: actualizar changelog automático
@@ -34,5 +35,7 @@
 
 ---
 
+### 🔄 Otros Cambios
+- 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 11:39:25*
+*Generado automáticamente el 2026-02-19 12:29:58*
