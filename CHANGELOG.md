@@ -11,6 +11,8 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- e7e25b9 fix(ci): add cloudflare project fallback for doctors and patients
+- 01c630d fix(ci): harden deploy workflows for wrangler and supabase auth
 - 3061137 fix(ci): unblock patients/doctors and supabase telemedicine deploys
 - 10b6040 fix(deploy): read env vars from system env in CI, fix branch=main
 - 5854453 fix(deploy): use --branch main for production deployment
@@ -29,6 +31,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 0017f46 📝 docs: actualizar changelog automático
 - 777443b 📝 docs: actualizar changelog automático
 - 090a577 📝 docs: actualizar changelog automático
 - 63fa426 📝 docs: actualizar changelog automático
@@ -61,4 +64,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 13:41:56*
+*Generado automáticamente el 2026-02-19 13:50:54*
