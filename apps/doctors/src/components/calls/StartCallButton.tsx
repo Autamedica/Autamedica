@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createCallService, createSignalingClient } from '@autamedica/telemedicine'
+import { logger } from '@autamedica/shared'
 
 interface StartCallButtonProps {
   doctorId: string

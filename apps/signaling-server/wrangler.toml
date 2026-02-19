@@ -5,9 +5,15 @@ compatibility_date = "2024-09-20"
 
 [env.production]
 name = "autamedica-http-signaling-server"
+[env.production.vars]
+SIGNALING_MODE = "http"
+API_VERSION = "v1"
 
 [env.staging]
 name = "autamedica-http-signaling-server-staging"
+[env.staging.vars]
+SIGNALING_MODE = "http"
+API_VERSION = "v1"
 
 # Environment variables
 [vars]

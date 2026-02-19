@@ -16,6 +16,8 @@ export interface UnifiedVideoCallProps {
   userName?: string
   onCallEnd?: () => void
   onCallStart?: () => void
+  onStatusChange?: (status: ConnectionState) => void
+  onError?: (error: unknown) => void
   className?: string
   theme?: 'doctor' | 'patient'
 }
@@ -34,6 +36,8 @@ export function UnifiedVideoCall({
   userName,
   onCallEnd,
   onCallStart,
+  onStatusChange,
+  onError,
   className = '',
   theme = userType === 'doctor' ? 'doctor' : 'patient'
 }: UnifiedVideoCallProps): JSX.Element {
@@ -86,6 +90,7 @@ export function UnifiedVideoCall({
     webrtcClient.on('connection-state', (state) => {
       logger.info(`[UnifiedVideoCall] Connection state changed:`, state)
       setConnectionState(state)
+      onStatusChange?.(state)
       if (state === 'failed') {
         setCallError('Error de conexión. Verifica tu internet.')
       } else if (state === 'connected') {
@@ -152,6 +157,7 @@ export function UnifiedVideoCall({
     webrtcClient.on('error', (error) => {
       logger.error(`[UnifiedVideoCall] WebRTC error:`, error)
       setCallError(`Error de videollamada: ${error.message}`)
+      onError?.(error)
     })
 
     setClient(webrtcClient)
@@ -160,7 +166,7 @@ export function UnifiedVideoCall({
       logger.info(`[UnifiedVideoCall] Cleaning up`)
       webrtcClient.disconnect()
     }
-  }, [userId, userType, roomId])
+  }, [userId, userType, roomId, onCallStart, onStatusChange, onError])
 
   // Start call
   const startCall = useCallback(async () => {

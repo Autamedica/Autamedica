@@ -34,7 +34,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     // logger.info('[UnifiedVideoCall][patient] start')
   }
 
-  const handleStatusChange = (status: string) => {
+  const handleStatusChange = (_status: string) => {
     // logger.info('[UnifiedVideoCall][patient] status:', status)
   }
 
