@@ -36,6 +36,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 45a0901 📝 docs: actualizar changelog automático
 - b057a70 📝 docs: actualizar changelog automático
 - ba55e50 📝 docs: actualizar changelog automático
 - 0017f46 📝 docs: actualizar changelog automático
@@ -64,6 +65,7 @@
 - 4e1b7af 📝 docs: actualizar changelog automático
 
 ### ⚙️ DevOps e Infraestructura
+- 49f4039 ci: link autamedica.com custom domain to Cloudflare Pages on deploy
 - 77e094f ci: trigger supabase telemedicine deploy on main pushes
 
 ---
@@ -71,4 +73,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 15:56:56*
+*Generado automáticamente el 2026-02-19 16:13:02*
