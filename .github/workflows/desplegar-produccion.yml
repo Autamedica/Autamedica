@@ -15,10 +15,10 @@ env:
 
 jobs:
   # ============================================
-  # Job 1: Web-App (Landing)
+  # Job 1: Web Landing (Astro) — autamedica.com
   # ============================================
-  deploy-web-app:
-    name: 'Deploy Web-App'
+  deploy-web:
+    name: 'Deploy Web (Astro)'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,19 +40,18 @@ jobs:
       - name: Build packages core
         run: pnpm run build:packages
 
-      - name: Build Next.js for Cloudflare Pages
-        working-directory: apps/web-app
-        run: npx @cloudflare/next-on-pages@latest
-
-      - name: Install Wrangler
-        run: pnpm add -g wrangler
+      - name: Build Astro app
+        working-directory: apps/web
+        run: pnpm build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Deploy to Cloudflare Pages
-        working-directory: apps/web-app
-        run: |
-          wrangler pages deploy .vercel/output/static \
-            --project-name autamedica-web-app \
-            --branch production
+        working-directory: apps/web
+        run: npx wrangler pages deploy dist --project-name autamedica-web --branch production
 
   # ============================================
   # Job 2: Auth Hub (Autenticación Central)
@@ -89,15 +88,9 @@ jobs:
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
           AUTH_HUB_SECRET: ${{ secrets.AUTH_HUB_SECRET }}
 
-      - name: Install Wrangler
-        run: pnpm add -g wrangler
-
       - name: Deploy to Cloudflare Pages
         working-directory: apps/auth
-        run: |
-          wrangler pages deploy .vercel/output/static \
-            --project-name autamedica-auth \
-            --branch production
+        run: npx wrangler pages deploy .vercel/output/static --project-name autamedica-auth --branch production
 
   # ============================================
   # Job 3: Doctors Portal
@@ -127,20 +120,17 @@ jobs:
 
       - name: Build doctors with Next.js
         run: pnpm --filter @autamedica/doctors build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Adapt for Cloudflare Pages
         working-directory: apps/doctors
         run: npx @cloudflare/next-on-pages@latest
 
-      - name: Install Wrangler
-        run: pnpm add -g wrangler
-
       - name: Deploy to Cloudflare Pages
         working-directory: apps/doctors
-        run: |
-          wrangler pages deploy .vercel/output/static \
-            --project-name autamedica-doctors \
-            --branch main
+        run: npx wrangler pages deploy .vercel/output/static --project-name autamedica-doctors --branch production
 
   # ============================================
   # Job 4: Companies Portal
@@ -170,17 +160,14 @@ jobs:
 
       - name: Build companies with Next.js
         run: pnpm --filter @autamedica/companies build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Adapt for Cloudflare Pages
         working-directory: apps/companies
         run: npx @cloudflare/next-on-pages@latest
 
-      - name: Install Wrangler
-        run: pnpm add -g wrangler
-
       - name: Deploy to Cloudflare Pages
         working-directory: apps/companies
-        run: |
-          wrangler pages deploy .vercel/output/static \
-            --project-name autamedica-companies \
-            --branch main
+        run: npx wrangler pages deploy .vercel/output/static --project-name autamedica-companies --branch production
