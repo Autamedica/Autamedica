@@ -75,7 +75,7 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
           setAll(cookiesToSet) {
             for (const { name, value, options } of cookiesToSet) {
               cookies.set(name, value, {
-                ...options as Record<string, unknown>,
+                ...options,
                 domain: isProduction() ? '.autamedica.com' : undefined,
                 path: '/',
                 sameSite: 'lax',
@@ -120,7 +120,7 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
           setAll(cookiesToSet) {
             for (const { name, value, options } of cookiesToSet) {
               cookies.set(name, value, {
-                ...options as Record<string, unknown>,
+                ...options,
                 domain: isProduction() ? '.autamedica.com' : undefined,
                 path: '/',
                 sameSite: 'lax',
