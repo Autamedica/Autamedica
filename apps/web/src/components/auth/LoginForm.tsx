@@ -1,44 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  getRoleDisplayName,
-  isValidUserRole,
-} from '@autamedica/shared';
-import type { UserRole } from '@autamedica/shared';
+import { useState } from 'react';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 
-/**
- * Redirect URL by role (browser-safe, no process.env dependency).
- * In production, the callback handles cross-domain redirect.
- * In dev/local, we redirect to the callback which resolves the final URL.
- */
-function getRedirectByRole(role: UserRole): string {
-  return `/auth/callback?role=${role}`;
-}
-
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole | null>(null);
-  const [returnTo, setReturnTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlRole = urlParams.get('role') as UserRole | null;
-    const urlReturnTo = urlParams.get('returnTo');
-
-    setRole(urlRole);
-    setReturnTo(urlReturnTo);
-
-    if (!urlRole || !isValidUserRole(urlRole)) {
-      window.location.href = '/auth/select-role';
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,29 +24,19 @@ export function LoginForm() {
       });
 
       if (signInError) {
-        setError(signInError.message === 'Invalid login credentials'
-          ? 'Credenciales incorrectas. Verifica tu email y contraseña.'
-          : signInError.message);
+        setError(
+          signInError.message === 'Invalid login credentials'
+            ? 'Credenciales incorrectas. Verifica tu email y contraseña.'
+            : signInError.message
+        );
         setIsSubmitting(false);
         return;
       }
 
-      // Update user metadata with role if needed
-      if (role) {
-        await supabase.auth.updateUser({
-          data: { role },
-        });
-      }
-
-      // Redirect to target via callback (handles cross-domain + token passing)
-      if (returnTo) {
-        window.location.href = returnTo;
-      } else if (role) {
-        window.location.href = getRedirectByRole(role);
-      } else {
-        window.location.href = '/';
-      }
-    } catch (err) {
+      // Pass session to callback — it reads role from user_metadata and redirects
+      // to the correct portal (or asks to select role if none stored yet).
+      window.location.href = '/auth/callback';
+    } catch {
       setError('Error inesperado. Intenta de nuevo.');
       setIsSubmitting(false);
     }
@@ -88,16 +49,14 @@ export function LoginForm() {
     try {
       const supabase = getBrowserSupabaseClient();
       const origin = window.location.origin;
-      const redirectTo = `${origin}/auth/callback${role ? `?role=${role}` : ''}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`;
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const redirectTo = `${origin}/auth/callback${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`;
 
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+          queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       });
 
@@ -105,19 +64,11 @@ export function LoginForm() {
         setError(oauthError.message || 'Error al conectar con Google');
         setIsSubmitting(false);
       }
-      // OAuth redirect happens automatically
     } catch {
       setError('Error inesperado con Google. Intenta de nuevo.');
       setIsSubmitting(false);
     }
   };
-
-  // Don't render until we have a valid role
-  if (!role || !isValidUserRole(role)) {
-    return null;
-  }
-
-  const roleDisplayName = getRoleDisplayName(role);
 
   return (
     <div className="space-y-6">
@@ -126,24 +77,11 @@ export function LoginForm() {
         <h1 className="text-2xl font-bold text-[var(--au-text-primary)] mb-2">
           Bienvenido de vuelta
         </h1>
-
-        {/* Role Badge */}
-        <div className="inline-flex items-center px-4 py-2 bg-[var(--au-hover)] rounded-full border-2 border-[var(--au-border)] mb-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-          <span className="text-sm font-medium text-[var(--au-text-secondary)]">
-            Acceso como {roleDisplayName}
-          </span>
-        </div>
-
-        <p className="text-[var(--au-text-secondary)] text-sm">
-          ¿No es tu rol?{' '}
-          <a href="/auth/select-role" className="text-[var(--au-accent)] hover:text-[var(--au-text-primary)] font-medium transition-colors">
-            Cambiar aquí
-          </a>
+        <p className="text-sm text-[var(--au-text-secondary)]">
+          Accedé a tu cuenta de AutaMédica
         </p>
       </div>
 
-      {/* Error Alert */}
       {error && (
         <div className="bg-red-500/10 border-2 border-red-500/30 rounded-lg p-4">
           <div className="flex items-center">
@@ -201,9 +139,14 @@ export function LoginForm() {
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-[var(--au-text-secondary)] mb-2">
-            Contraseña
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-[var(--au-text-secondary)]">
+              Contraseña
+            </label>
+            <a href="/auth/forgot-password" className="text-xs text-[var(--au-text-tertiary)] hover:text-[var(--au-accent)] transition-colors">
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
           <input
             id="password"
             type="password"
@@ -230,10 +173,10 @@ export function LoginForm() {
       {/* Footer */}
       <div className="pt-6 border-t-2 border-[var(--au-border)] text-center space-y-4">
         <p className="text-sm text-[var(--au-text-tertiary)]">
-          ¿No tienes cuenta en AutaMedica?
+          ¿No tenés cuenta en AutaMédica?
         </p>
         <a
-          href={`/auth/register?role=${role}`}
+          href="/auth/select-role"
           className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl transition-all duration-200"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,12 +184,6 @@ export function LoginForm() {
           </svg>
           Crear cuenta nueva
         </a>
-
-        <div className="flex justify-center text-xs text-[var(--au-text-tertiary)]">
-          <a href="/auth/forgot-password" className="hover:text-[var(--au-accent)] transition-colors">
-            ¿Olvidaste tu contraseña?
-          </a>
-        </div>
 
         <div className="flex items-center justify-center text-xs text-[var(--au-text-tertiary)]">
           <svg className="w-4 h-4 mr-1.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

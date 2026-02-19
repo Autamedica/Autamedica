@@ -12,9 +12,8 @@ export default function AccountMenu() {
     setDropdownOpen(!dropdownOpen);
   };
 
-  const handleSelectRole = () => {
-    // Redirigir directamente a select-role
-    window.location.href = '/auth/select-role';
+  const handleLogin = () => {
+    window.location.href = '/auth/login';
   };
 
   // Click outside to close
@@ -75,7 +74,7 @@ export default function AccountMenu() {
           {/* Primary Action */}
           <div className="p-3">
             <button
-              onClick={handleSelectRole}
+              onClick={handleLogin}
               className="group w-full flex items-center gap-4 px-5 py-4 text-left text-[var(--au-text-primary)] transition-all hover:bg-[var(--au-hover)] rounded-xl border-2 border-transparent hover:border-[var(--au-accent)]"
             >
               <div className="w-12 h-12 rounded-full bg-[var(--au-accent)]/10 border-2 border-[var(--au-border)] flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:border-[var(--au-accent)] transition-all">
