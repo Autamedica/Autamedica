@@ -51,7 +51,7 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         working-directory: apps/web
-        run: pnpm dlx wrangler pages deploy dist --project-name autamedica-web --branch production
+        run: pnpm dlx wrangler pages deploy dist --project-name autamedica-web --branch main
 
   # ============================================
   # Job 2: Auth Hub (Autenticación Central)
