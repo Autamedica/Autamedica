@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
 ### 🔧 Mejoras y Optimizaciones
 - 159ae48 chore: agregar apps/web/.env.example como referencia
@@ -21,6 +22,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- c372944 📝 docs: actualizar changelog automático
 - 2eab369 📝 docs: actualizar changelog automático
 - d316b0a 📝 docs: actualizar changelog automático
 - 146e4e2 📝 docs: actualizar changelog automático
@@ -42,4 +44,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 12:42:24*
+*Generado automáticamente el 2026-02-19 12:52:20*
