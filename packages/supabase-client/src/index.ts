@@ -16,9 +16,9 @@ export function getSupabaseBrowserClient(): AppSupabaseClient {
   }
 
   if (!browserClient) {
-    // Dynamic import to avoid bundling server code
+    // Require root export to avoid fragile subpath resolution during package builds.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createBrowserClient } = require('@autamedica/auth/client');
+    const { createBrowserClient } = require('@autamedica/auth');
     browserClient = createBrowserClient() as AppSupabaseClient;
   }
 
@@ -43,7 +43,7 @@ export async function getSupabaseServerClient(): Promise<AppSupabaseClient> {
   }
 
   // Dynamic import to avoid bundling server code in client
-  const { createServerClient } = await import('@autamedica/auth/server');
+  const { createServerClient } = await import('@autamedica/auth');
   return (await createServerClient()) as AppSupabaseClient;
 }
 

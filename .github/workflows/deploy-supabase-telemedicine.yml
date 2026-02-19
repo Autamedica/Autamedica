@@ -48,11 +48,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+
       - name: Install tooling
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client jq
-          npm i -g supabase@2
           supabase --version
           psql --version
 
