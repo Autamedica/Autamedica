@@ -51,7 +51,7 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         working-directory: apps/web
-        run: npx wrangler pages deploy dist --project-name autamedica-web --branch production
+        run: pnpm dlx wrangler pages deploy dist --project-name autamedica-web --branch production
 
   # ============================================
   # Job 2: Auth Hub (Autenticación Central)
@@ -90,7 +90,7 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         working-directory: apps/auth
-        run: npx wrangler pages deploy .vercel/output/static --project-name autamedica-auth --branch production
+        run: pnpm dlx wrangler pages deploy .vercel/output/static --project-name autamedica-auth --branch production
 
   # ============================================
   # Job 3: Doctors Portal
@@ -130,7 +130,7 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         working-directory: apps/doctors
-        run: npx wrangler pages deploy .vercel/output/static --project-name autamedica-doctors --branch production
+        run: pnpm dlx wrangler pages deploy .vercel/output/static --project-name autamedica-doctors --branch production
 
   # ============================================
   # Job 4: Companies Portal
@@ -170,4 +170,4 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         working-directory: apps/companies
-        run: npx wrangler pages deploy .vercel/output/static --project-name autamedica-companies --branch production
+        run: pnpm dlx wrangler pages deploy .vercel/output/static --project-name autamedica-companies --branch production
