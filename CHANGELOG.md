@@ -8,6 +8,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 189b5e9 fix(ci): cambiar security-scan a warning (no bloqueador)
 - da302a2 fix(ci): simplificar lógica del security-scan
 - ab55f05 fix(ci): mejorar security-scan para excluir source maps y directorios de build
 - bf83764 fix: agregar @autamedica/session a build:packages:core
@@ -18,6 +19,7 @@
 ### 🔒 Seguridad
 
 ### 📚 Documentación
+- 1c5f76c 📝 docs: actualizar changelog automático
 - e3073a7 📝 docs: actualizar changelog automático
 - fd1d4e5 📝 docs: actualizar changelog automático
 - 312c837 📝 docs: actualizar changelog automático
@@ -31,4 +33,4 @@
 ---
 
 
-*Generado automáticamente el 2026-02-19 11:29:26*
+*Generado automáticamente el 2026-02-19 11:31:29*
