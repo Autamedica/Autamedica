@@ -74,13 +74,15 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
           },
           setAll(cookiesToSet) {
             for (const { name, value, options } of cookiesToSet) {
+              // Cast required: Supabase SSR's 'expires?' is optional but
+              // Astro 5 AstroCookieSetOptions requires 'expires' to be non-optional.
               cookies.set(name, value, {
                 ...options,
                 domain: isProduction() ? '.autamedica.com' : undefined,
                 path: '/',
                 sameSite: 'lax',
                 secure: isProduction(),
-              });
+              } as Parameters<typeof cookies.set>[2]);
             }
           },
         },
@@ -119,13 +121,15 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
           },
           setAll(cookiesToSet) {
             for (const { name, value, options } of cookiesToSet) {
+              // Cast required: Supabase SSR's 'expires?' is optional but
+              // Astro 5 AstroCookieSetOptions requires 'expires' to be non-optional.
               cookies.set(name, value, {
                 ...options,
                 domain: isProduction() ? '.autamedica.com' : undefined,
                 path: '/',
                 sameSite: 'lax',
                 secure: isProduction(),
-              });
+              } as Parameters<typeof cookies.set>[2]);
             }
           },
         },
