@@ -114,7 +114,8 @@ jobs:
         run: |
           # Buscar credenciales hardcodeadas (excluir directorios de build y node_modules)
           echo "🔍 Scanning for hardcoded credentials..."
-          if grep -r "eyJ[A-Za-z0-9_-]" \
+          set +e
+          grep -r "eyJ[A-Za-z0-9_-]" \
             --exclude-dir=node_modules \
             --exclude-dir=.git \
             --exclude-dir=.next \
@@ -127,7 +128,16 @@ jobs:
             --exclude="*.map" \
             --exclude="*.js.map" \
             --exclude="*.log" \
-            . 2>/dev/null && exit 1 || echo "✅ No hardcoded credentials found"
+            .
+          RESULT=$?
+          set -e
+
+          if [ $RESULT -eq 0 ]; then
+            echo "❌ Found hardcoded JWT tokens"
+            exit 1
+          else
+            echo "✅ No hardcoded credentials found"
+          fi
 
           # Verificar configuración de cookies
           echo "🍪 Checking cookie security..."
