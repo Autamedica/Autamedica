@@ -17,6 +17,15 @@ on:
         required: true
         default: true
         type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/deploy-supabase-telemedicine.yml"
+      - "supabase/functions/create-call/**"
+      - "supabase/functions/update-call-status/**"
+      - "supabase/functions/_shared/**"
+      - "supabase/migrations/**"
 
 permissions:
   contents: read
