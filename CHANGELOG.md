@@ -8,6 +8,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 8983672 fix(ci): usar pnpm dlx wrangler en vez de npx para deploy
 - 189b5e9 fix(ci): cambiar security-scan a warning (no bloqueador)
 - da302a2 fix(ci): simplificar lógica del security-scan
 - ab55f05 fix(ci): mejorar security-scan para excluir source maps y directorios de build
@@ -19,6 +20,7 @@
 ### 🔒 Seguridad
 
 ### 📚 Documentación
+- d316b0a 📝 docs: actualizar changelog automático
 - 146e4e2 📝 docs: actualizar changelog automático
 - 8925c01 docs: agregar información clara de Supabase AutaMedica a CLAUDE.md
 - f3c127b 📝 docs: actualizar changelog automático
@@ -38,4 +40,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 12:29:58*
+*Generado automáticamente el 2026-02-19 12:35:23*
