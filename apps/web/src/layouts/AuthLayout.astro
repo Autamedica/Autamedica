@@ -1,0 +1,100 @@
+---
+import '../styles/globals.css';
+import '../styles/auth.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Acceso seguro a la plataforma AutaMedica'
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <title>{title} | AutaMedica</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  </head>
+  <body class="antialiased">
+    <div class="auth-layout">
+      <!-- Left Panel: Branding + Testimonials (desktop only) -->
+      <aside class="auth-panel-left">
+        <div class="auth-branding">
+          <img src="/logo.png" alt="AutaMedica" width="48" height="48" />
+          <h2 class="auth-branding-title">AutaMedica</h2>
+          <p class="auth-branding-tagline">Telemedicina sin fricciones</p>
+        </div>
+
+        <div class="auth-testimonials">
+          <div class="auth-testimonial-card">
+            <p class="auth-testimonial-quote">"Encontre turno con una dermatologa en 4 minutos. Me mando la receta al celular. Un domingo."</p>
+            <div class="auth-testimonial-author">
+              <div class="auth-testimonial-avatar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div>
+                <p class="auth-testimonial-name">Carlos Ruiz</p>
+                <p class="auth-testimonial-role">Paciente</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-testimonial-card">
+            <p class="auth-testimonial-quote">"La historia clinica digital me devolvio 2 horas por dia. Mis pacientes notan la diferencia."</p>
+            <div class="auth-testimonial-author">
+              <div class="auth-testimonial-avatar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+              <div>
+                <p class="auth-testimonial-name">Dra. Maria Gonzalez</p>
+                <p class="auth-testimonial-role">Clinica Medica</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-testimonial-card">
+            <p class="auth-testimonial-quote">"El primer trimestre con AutaMedica, el ausentismo bajo 40%. Los empleados consultan desde el escritorio."</p>
+            <div class="auth-testimonial-author">
+              <div class="auth-testimonial-avatar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div>
+                <p class="auth-testimonial-name">Ana Martinez</p>
+                <p class="auth-testimonial-role">Directora RRHH</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-security-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Plataforma HIPAA-compliant
+        </div>
+
+        <div class="auth-panel-ambient"></div>
+      </aside>
+
+      <!-- Right Panel: Form -->
+      <main class="auth-panel-right">
+        <div class="auth-form-container">
+          <a href="/" class="auth-back-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Volver al inicio
+          </a>
+          <slot />
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

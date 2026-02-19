@@ -27,7 +27,7 @@ export function getDomainConfig(): DomainConfig {
       cookie: process.env.AUTH_COOKIE_DOMAIN || '.autamedica.com',
       apps: {
         web: 'https://www.autamedica.com',
-        auth: 'https://auth.autamedica.com',
+        auth: 'https://www.autamedica.com',
         patients: 'https://patients.autamedica.com',
         doctors: 'https://doctors.autamedica.com',
         companies: 'https://companies.autamedica.com',
@@ -36,10 +36,10 @@ export function getDomainConfig(): DomainConfig {
     },
     staging: {
       base: 'pages.dev',
-      cookie: '.pages.dev', // Same as production for now
+      cookie: '.pages.dev',
       apps: {
         web: 'https://autamedica-web-app-staging.pages.dev',
-        auth: 'https://autamedica-auth-staging.pages.dev',
+        auth: 'https://autamedica-web-app-staging.pages.dev',
         patients: 'https://autamedica-patients-staging.pages.dev',
         doctors: 'https://autamedica-doctors-staging.pages.dev',
         companies: 'https://autamedica-companies-staging.pages.dev',
@@ -48,10 +48,10 @@ export function getDomainConfig(): DomainConfig {
     },
     development: {
       base: 'localhost',
-      cookie: 'localhost', // Cookies work across ports on localhost
+      cookie: 'localhost',
       apps: {
         web: 'http://localhost:3000',
-        auth: 'http://localhost:3005',
+        auth: 'http://localhost:3000',
         patients: 'http://localhost:3003',
         doctors: 'http://localhost:3002',
         companies: 'http://localhost:3004',

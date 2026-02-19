@@ -1,0 +1,28 @@
+{
+  "extends": "../../packages/typescript-config/base.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.astro",
+    ".astro/types.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": [
+    { "path": "../../packages/types" },
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/auth" },
+    { "path": "../../packages/hooks" }
+  ]
+}

@@ -3,6 +3,43 @@
 import { useState } from 'react';
 import { useSupabase } from '@autamedica/auth/react';
 
+interface AuthenticatedPatientContext {
+  userId: string;
+  patientId: string;
+}
+
+async function resolveAuthenticatedPatientContext(
+  supabase: ReturnType<typeof useSupabase>,
+): Promise<AuthenticatedPatientContext> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('No autenticado');
+  }
+
+  const { data: patient, error: patientError } = await supabase
+    .from('patients')
+    .select('id')
+    .eq('user_id', user.id)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (patientError) {
+    throw patientError;
+  }
+
+  if (!patient?.id) {
+    throw new Error('Perfil de paciente no encontrado');
+  }
+
+  return {
+    userId: user.id,
+    patientId: patient.id,
+  };
+}
+
 export function useVitalSigns() {
   const supabase = useSupabase();
   const [loading, setLoading] = useState(false);
@@ -13,19 +50,21 @@ export function useVitalSigns() {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No autenticado');
+      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
 
       const { error: insertError } = await supabase
         .from('vital_signs')
         .insert({
-          patient_id: user.id,
+          patient_id: patientId,
+          recorded_by_id: userId,
           type: 'blood_pressure',
-          systolic,
-          diastolic,
+          blood_pressure_systolic: systolic,
+          blood_pressure_diastolic: diastolic,
           unit: 'mmHg',
           notes,
+          measurement_context: 'patient_self_report',
           measured_at: new Date().toISOString(),
+          recorded_at: new Date().toISOString(),
         });
 
       if (insertError) throw insertError;
@@ -57,13 +96,13 @@ export function useMedicationLog() {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No autenticado');
+      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
 
       const { error: insertError } = await supabase
         .from('medication_logs')
         .insert({
-          patient_id: user.id,
+          patient_id: patientId,
+          logged_by_id: userId,
           medication_name: medicationName,
           dosage,
           notes,
@@ -104,13 +143,13 @@ export function useSymptomReport() {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No autenticado');
+      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
 
       const { error: insertError } = await supabase
         .from('symptom_reports')
         .insert({
-          patient_id: user.id,
+          patient_id: patientId,
+          reported_by_id: userId,
           symptom_name: data.symptomName,
           severity: data.severity,
           description: data.description,
@@ -153,13 +192,13 @@ export function useLabResults() {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No autenticado');
+      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
 
       const { error: insertError } = await supabase
         .from('lab_results')
         .insert({
-          patient_id: user.id,
+          patient_id: patientId,
+          uploaded_by_id: userId,
           test_type: data.testType,
           test_date: data.testDate,
           laboratory_name: data.laboratoryName,

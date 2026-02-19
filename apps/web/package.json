@@ -1,0 +1,42 @@
+{
+  "name": "@autamedica/web",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev --port 3000",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "typecheck": "astro check",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.0.0",
+    "@astrojs/react": "^4.0.0",
+    "@astrojs/tailwind": "^5.0.0",
+    "@autamedica/shared": "workspace:^",
+    "@autamedica/tailwind-config": "workspace:^",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.57.4",
+    "astro": "^5.0.0",
+    "framer-motion": "^12.23.12",
+    "geist": "^1.7.0",
+    "gsap": "^3.13.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.0",
+    "@autamedica/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "@types/react": "19.1.0",
+    "@types/react-dom": "19.1.1",
+    "autoprefixer": "^10.0.0",
+    "eslint": "^9.34.0",
+    "postcss": "^8.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.9.2"
+  }
+}

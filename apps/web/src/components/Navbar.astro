@@ -1,0 +1,95 @@
+---
+import AccountMenu from './ui/AccountMenu';
+---
+
+<nav class="navbar" aria-label="Navegacion principal">
+  <div class="navbar-inner">
+    <a href="/" class="navbar-logo" aria-label="AutaMedica - Inicio">
+      <img src="/logo.png" alt="AutaMedica" width="32" height="32" loading="eager" />
+      <span>AutaMedica</span>
+    </a>
+
+    <ul class="navbar-links" role="list">
+      <li><a href="#producto">Producto</a></li>
+      <li><a href="#profesionales">Profesionales</a></li>
+      <li><a href="#sintomas">Especialidades</a></li>
+      <li><a href="#portales">Portales</a></li>
+    </ul>
+
+    <div class="navbar-actions">
+      <AccountMenu client:load />
+    </div>
+  </div>
+</nav>
+
+<style>
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+    background: rgba(9, 9, 11, 0.85);
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .navbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 var(--section-px);
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .navbar-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .navbar-logo img {
+    border-radius: var(--radius-sm);
+  }
+
+  .navbar-links {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: var(--space-8);
+  }
+
+  .navbar-links a {
+    font-size: var(--text-sm);
+    color: var(--au-text-secondary);
+    transition: color var(--transition-base);
+    letter-spacing: 0.01em;
+  }
+
+  .navbar-links a:hover {
+    color: var(--au-text-primary);
+  }
+
+  .navbar-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  @media (min-width: 768px) {
+    .navbar-links {
+      display: flex;
+    }
+
+    .navbar-inner {
+      height: 4.5rem;
+    }
+  }
+</style>

@@ -1,0 +1,189 @@
+---
+const articles = [
+  {
+    tagIcon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
+    tag: "Prevencion",
+    title: "5 senales de alerta cardiaca que no debes ignorar",
+    excerpt: "El dolor de pecho no es la unica senal. Conoce los sintomas sutiles que pueden indicar un problema cardiovascular y cuando consultar.",
+    author: "Dra. Carolina Vega",
+    authorRole: "Cardiologia",
+    date: "Feb 2026",
+  },
+  {
+    tagIcon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><circle cx="12" cy="10" r="2"/></svg>`,
+    tag: "Telemedicina",
+    title: "Consulta virtual vs presencial: cuando elegir cada una",
+    excerpt: "No todas las consultas requieren presencia fisica. Aprende a identificar cuando una videoconsulta es igual o mas efectiva.",
+    author: "Dr. Martin Alvarez",
+    authorRole: "Medicina General",
+    date: "Feb 2026",
+  },
+  {
+    tagIcon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+    tag: "Bienestar",
+    title: "Ansiedad post-pandemia: herramientas de manejo diario",
+    excerpt: "Estrategias basadas en evidencia para gestionar la ansiedad cronica. Tecnicas que podes aplicar hoy, sin medicacion.",
+    author: "Dr. Pablo Gutierrez",
+    authorRole: "Psiquiatria",
+    date: "Ene 2026",
+  },
+];
+---
+
+<section class="health-content" aria-label="Recursos de salud">
+  <div class="content-inner">
+    <div class="content-header animate-on-scroll">
+      <h2 class="content-title">Recursos de salud</h2>
+      <p class="content-subtitle">Informacion verificada por nuestro equipo medico</p>
+    </div>
+
+    <div class="content-grid">
+      {articles.map((a) => (
+        <article class="content-card animate-on-scroll">
+          <span class="content-tag">
+            <span class="content-tag-icon" set:html={a.tagIcon} />
+            {a.tag}
+          </span>
+          <h3 class="content-card-title">{a.title}</h3>
+          <p class="content-excerpt">{a.excerpt}</p>
+          <div class="content-author">
+            <span class="content-author-name">{a.author}</span>
+            <span class="content-author-dot" aria-hidden="true" />
+            <span class="content-date">{a.date}</span>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div class="content-coming animate-on-scroll">
+      <p>Blog completo proximamente</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .health-content {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-surface);
+  }
+
+  .content-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .content-header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .content-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .content-subtitle {
+    font-size: var(--text-lg);
+    color: var(--au-text-secondary);
+    margin: 0;
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+
+  .content-card {
+    padding: var(--space-6);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-bg);
+    display: flex;
+    flex-direction: column;
+    transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  }
+
+  .content-card:hover {
+    border-color: var(--au-border-hover);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .content-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: fit-content;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-tertiary);
+    background: var(--au-accent-soft);
+    border-radius: var(--radius-full);
+    padding: var(--space-1) var(--space-3);
+    margin-bottom: var(--space-4);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .content-tag-icon {
+    display: flex;
+    align-items: center;
+    opacity: 0.7;
+  }
+
+  .content-card-title {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    line-height: 1.35;
+  }
+
+  .content-excerpt {
+    font-size: var(--text-sm);
+    color: var(--au-text-secondary);
+    line-height: 1.7;
+    margin: 0 0 var(--space-6);
+    flex-grow: 1;
+  }
+
+  .content-author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--au-text-tertiary);
+  }
+
+  .content-author-name {
+    font-weight: var(--font-medium);
+  }
+
+  .content-author-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--au-text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .content-coming {
+    text-align: center;
+    margin-top: var(--space-8);
+  }
+
+  .content-coming p {
+    font-size: var(--text-sm);
+    color: var(--au-text-tertiary);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .content-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

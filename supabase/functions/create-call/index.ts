@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
-logger.info("Create Call function started")
+console.info('Create Call function started')
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    logger.info('Creating call for:', { doctorId, patientId })
+    console.info('Creating call for:', { doctorId, patientId })
 
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     )
 
     if (authError || !user) {
-      logger.error('Auth error:', authError)
+      console.error('Auth error:', authError)
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
         {
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    logger.info('Authenticated user:', user.id)
+    console.info('Authenticated user:', user.id)
 
     // Optional: Verify user has permission to create calls as this doctor
     // For now, we'll trust the frontend sends the correct doctorId
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       })
 
     if (callError) {
-      logger.error('Error creating call:', callError)
+      console.error('Error creating call:', callError)
       return new Response(
         JSON.stringify({
           error: 'Failed to create call',
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    logger.info('Call created successfully:', callData)
+    console.info('Call created successfully:', callData)
 
     // Return the call data
     return new Response(
@@ -115,11 +115,12 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    logger.error('Unexpected error:', error)
+    console.error('Unexpected error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: error.message
+        details: message
       }),
       {
         status: 500,

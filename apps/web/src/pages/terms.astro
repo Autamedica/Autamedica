@@ -1,0 +1,134 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const lastUpdated = '1 de enero de 2025';
+---
+
+<Layout
+  title="Términos de Servicio - AutaMedica"
+  description="Términos y condiciones de uso de la plataforma de telemedicina AutaMedica. Conocé tus derechos y responsabilidades."
+  canonical="https://autamedica.com/terms"
+>
+  <main class="max-w-4xl mx-auto px-6 py-16 text-white">
+    <header class="mb-12">
+      <a href="/" class="text-gray-400 hover:text-white transition-colors text-sm mb-8 inline-block">
+        ← Volver al inicio
+      </a>
+      <h1 class="text-4xl font-light tracking-wide mb-4">Términos de Servicio</h1>
+      <p class="text-gray-400">Última actualización: {lastUpdated}</p>
+    </header>
+
+    <div class="space-y-10 text-gray-300 leading-relaxed">
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">1. Aceptación de los Términos</h2>
+        <p>
+          Al acceder y utilizar la plataforma AutaMedica, aceptás estos Términos de Servicio en su totalidad.
+          Si no estás de acuerdo con alguno de estos términos, no debés utilizar nuestros servicios.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">2. Descripción del Servicio</h2>
+        <p class="mb-4">
+          AutaMedica es una plataforma de telemedicina que conecta a pacientes con profesionales de la salud
+          certificados para la realización de consultas médicas virtuales. Nuestros servicios incluyen:
+        </p>
+        <ul class="list-disc list-inside space-y-2 ml-4">
+          <li>Consultas médicas por videollamada</li>
+          <li>Emisión de recetas digitales</li>
+          <li>Gestión de historia clínica digital</li>
+          <li>Coordinación de turnos y citas médicas</li>
+          <li>Acceso a resultados de estudios médicos</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">3. Elegibilidad y Registro</h2>
+        <p class="mb-4">
+          Para utilizar AutaMedica debés:
+        </p>
+        <ul class="list-disc list-inside space-y-2 ml-4">
+          <li>Tener al menos 18 años de edad, o contar con autorización de un tutor legal</li>
+          <li>Proporcionar información veraz y actualizada durante el registro</li>
+          <li>Mantener la confidencialidad de tus credenciales de acceso</li>
+          <li>Notificarnos inmediatamente ante cualquier uso no autorizado de tu cuenta</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">4. Profesionales de la Salud</h2>
+        <p>
+          Los médicos y profesionales de la salud que utilizan AutaMedica son profesionales independientes
+          certificados y registrados ante las autoridades sanitarias correspondientes. AutaMedica actúa
+          como plataforma intermediaria y no ejerce la medicina. Los diagnósticos, tratamientos y
+          prescripciones son responsabilidad exclusiva de los profesionales intervinientes.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">5. Uso Aceptable</h2>
+        <p class="mb-4">
+          Queda prohibido:
+        </p>
+        <ul class="list-disc list-inside space-y-2 ml-4">
+          <li>Utilizar la plataforma para fines ilegales o no autorizados</li>
+          <li>Suplantar la identidad de otra persona</li>
+          <li>Intentar acceder sin autorización a sistemas o datos de otros usuarios</li>
+          <li>Interferir con el funcionamiento normal de la plataforma</li>
+          <li>Compartir o revender acceso a la plataforma</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">6. Privacidad y Datos de Salud</h2>
+        <p>
+          El tratamiento de tus datos personales y de salud se rige por nuestra{' '}
+          <a href="/privacy" class="text-white underline hover:text-gray-300 transition-colors">
+            Política de Privacidad
+          </a>.
+          AutaMedica cumple con la Ley N° 25.326 de Protección de Datos Personales (Argentina)
+          y los estándares internacionales HIPAA para datos de salud.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">7. Limitación de Responsabilidad</h2>
+        <p>
+          AutaMedica no será responsable por daños indirectos, incidentales, especiales o consecuentes
+          derivados del uso o imposibilidad de uso de la plataforma. En ningún caso nuestra responsabilidad
+          total superará el importe pagado por el usuario en los 12 meses anteriores al evento que originó
+          el reclamo.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">8. Modificaciones</h2>
+        <p>
+          Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios
+          serán notificados por correo electrónico y/o mediante aviso en la plataforma con al menos
+          30 días de anticipación. El uso continuado del servicio implica la aceptación de los
+          términos modificados.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">9. Legislación Aplicable</h2>
+        <p>
+          Estos términos se rigen por las leyes de la República Argentina. Cualquier controversia
+          será sometida a la jurisdicción de los tribunales ordinarios de la Ciudad Autónoma de
+          Buenos Aires.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-2xl font-light text-white mb-4">10. Contacto</h2>
+        <p>
+          Para consultas sobre estos términos, podés contactarnos en:
+          <a href="mailto:legal@autamedica.com" class="text-white underline hover:text-gray-300 transition-colors ml-1">
+            legal@autamedica.com
+          </a>
+        </p>
+      </section>
+    </div>
+  </main>
+</Layout>

@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════
+   Geist Variable Font
+   ═══════════════════════════════════════════ */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+/* ═══════════════════════════════════════════
+   Design Tokens
+   ═══════════════════════════════════════════ */
+:root {
+  /* Typography */
+  --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: clamp(1.75rem, 3vw, 2.25rem);
+  --text-4xl: clamp(2.5rem, 5vw, 3.5rem);
+  --text-5xl: clamp(3rem, 7vw, 5rem);
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+
+  /* Colors — refined dark palette */
+  --au-bg: #09090b;
+  --au-surface: #141416;
+  --au-surface-hover: #1c1c20;
+
+  --au-border: rgba(255, 255, 255, 0.08);
+  --au-border-hover: rgba(255, 255, 255, 0.15);
+
+  --au-text-primary: #f4f4f5;
+  --au-text-secondary: #a1a1aa;
+  --au-text-tertiary: #71717a;
+
+  --au-accent: #e4e4e7;
+  --au-accent-soft: rgba(228, 228, 231, 0.08);
+
+  /* Portal colors */
+  --portal-patients: #10b981;
+  --portal-doctors: #3b82f6;
+  --portal-companies: #f59e0b;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+
+  --section-py: clamp(6rem, 12vh, 8rem);
+  --section-px: clamp(1.5rem, 5vw, 4rem);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Effects */
+  --blur-sm: blur(8px);
+  --blur-md: blur(16px);
+  --blur-lg: blur(24px);
+  --shadow-glow: 0 0 60px rgba(255, 255, 255, 0.04);
+}
+
+/* ═══════════════════════════════════════════
+   Base
+   ═══════════════════════════════════════════ */
+html {
+  background: var(--au-bg);
+  scrollbar-gutter: stable;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--au-bg);
+  color: var(--au-text-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: var(--font-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ═══════════════════════════════════════════
+   Scroll-triggered animations
+   ═══════════════════════════════════════════ */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.animate-on-scroll:nth-child(2) { transition-delay: 0.1s; }
+.animate-on-scroll:nth-child(3) { transition-delay: 0.2s; }
+.animate-on-scroll:nth-child(4) { transition-delay: 0.3s; }
+.animate-on-scroll:nth-child(5) { transition-delay: 0.15s; }
+.animate-on-scroll:nth-child(6) { transition-delay: 0.25s; }
+
+/* Desktop/Mobile toggle */
+.desktop-only { display: none; }
+.mobile-only { display: block; }
+
+@media (min-width: 1025px) {
+  .desktop-only { display: block; }
+  .mobile-only { display: none; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-on-scroll {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .desktop-only { display: none !important; }
+  .mobile-only { display: block !important; }
+}

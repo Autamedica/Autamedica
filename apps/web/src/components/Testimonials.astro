@@ -1,0 +1,186 @@
+---
+const testimonials = [
+  {
+    name: "Carlos Ruiz",
+    role: "Paciente",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    context: "Reaccion alergica un domingo a las 3pm",
+    quote: "Con la cara hinchada, encontre turno con una dermatologa en 4 minutos. Me mando la receta al celular y a las 5 ya tenia el antihistaminico. Un domingo.",
+    result: "Resuelto en 2 horas",
+  },
+  {
+    name: "Dra. Maria Gonzalez",
+    role: "Clinica Medica",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+    context: "Consultorio con 40+ pacientes semanales",
+    quote: "Antes perdia 2 horas por dia en papeleria. La historia clinica digital me devolvio ese tiempo para atender. Mis pacientes notan la diferencia en la calidad de la consulta.",
+    result: "2 horas/dia recuperadas",
+  },
+  {
+    name: "Ana Martinez",
+    role: "Directora de RRHH, 200 empleados",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    context: "Alto ausentismo por consultas medicas presenciales",
+    quote: "Implementamos AutaMedica para el equipo. Los empleados agendan consultas en horario de almuerzo, desde el escritorio. El primer trimestre el ausentismo bajo 40%.",
+    result: "-40% ausentismo en 3 meses",
+  },
+  {
+    name: "Federico Torres",
+    role: "Paciente, viajero frecuente",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+    context: "Necesitaba seguimiento de su cardiologo estando en Mendoza",
+    quote: "Mi cardiologo esta en Buenos Aires. Estando en Mendoza por trabajo, tuve una consulta de control por videollamada. Vio mis ultimos estudios en la plataforma y ajusto la medicacion en el momento.",
+    result: "Continuidad de atencion sin fronteras",
+  },
+];
+---
+
+<section id="testimonios" class="testimonials" aria-label="Testimonios">
+  <div class="testimonials-inner">
+    <div class="testimonials-header animate-on-scroll">
+      <h2 class="testimonials-title">Historias reales</h2>
+      <p class="testimonials-subtitle">Como AutaMedica resuelve problemas concretos</p>
+    </div>
+
+    <div class="testimonials-grid">
+      {testimonials.map((t) => (
+        <article class="testimonial-card animate-on-scroll">
+          <span class="testimonial-context">{t.context}</span>
+          <blockquote class="testimonial-quote">{t.quote}</blockquote>
+          <span class="testimonial-result">{t.result}</span>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar" set:html={t.icon} />
+            <div>
+              <p class="testimonial-name">{t.name}</p>
+              <p class="testimonial-role">{t.role}</p>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .testimonials {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-bg);
+  }
+
+  .testimonials-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .testimonials-header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .testimonials-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .testimonials-subtitle {
+    font-size: var(--text-lg);
+    color: var(--au-text-secondary);
+    margin: 0;
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+
+  .testimonial-card {
+    padding: var(--space-8);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    display: flex;
+    flex-direction: column;
+    transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  }
+
+  .testimonial-card:hover {
+    border-color: var(--au-border-hover);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .testimonial-context {
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-tertiary);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: var(--space-4);
+  }
+
+  .testimonial-quote {
+    font-size: var(--text-base);
+    line-height: 1.7;
+    color: var(--au-text-secondary);
+    margin: 0 0 var(--space-4);
+    font-style: normal;
+    flex-grow: 1;
+  }
+
+  .testimonial-result {
+    display: inline-block;
+    width: fit-content;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--portal-patients);
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: var(--radius-full);
+    padding: var(--space-1) var(--space-3);
+    margin-bottom: var(--space-6);
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--au-border);
+  }
+
+  .testimonial-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-full);
+    background: var(--au-surface-hover);
+    border: 1px solid var(--au-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-secondary);
+    flex-shrink: 0;
+  }
+
+  .testimonial-name {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    margin: 0;
+  }
+
+  .testimonial-role {
+    font-size: var(--text-xs);
+    color: var(--au-text-tertiary);
+    margin: var(--space-1) 0 0;
+  }
+
+  @media (max-width: 768px) {
+    .testimonials-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

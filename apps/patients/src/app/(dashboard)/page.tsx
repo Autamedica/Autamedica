@@ -4,82 +4,74 @@ import dynamic from 'next/dynamic';
 import { DynamicRightPanel } from '@/components/layout/DynamicRightPanel';
 import { usePatientSession } from '@/hooks/usePatientSession';
 
-// Lazy load video call component (no SSR needed for WebRTC)
 const RealVideoCall = dynamic(
   () => import('@/components/telemedicine/RealVideoCall').then(mod => ({ default: mod.RealVideoCall })),
   {
     ssr: false,
     loading: () => (
       <div className="flex h-full items-center justify-center bg-stone-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-white"></div>
       </div>
     ),
   }
 );
 
-export default function DashboardPage() {
-  // Obtener datos de la sesión del paciente
-  const { user, profile, patient } = usePatientSession();
-
-  // TODO: Implementar lógica para obtener próxima cita desde Supabase
-  const nextAppointment = null;
-  const computedName = [profile?.firstName, profile?.lastName]
-    .filter(Boolean)
-    .join(' ')
-    .trim();
-  const metaName = (user?.user_metadata as any)?.full_name as string | undefined;
+function getPatientName(
+  profile: ReturnType<typeof usePatientSession>['profile'],
+  user: ReturnType<typeof usePatientSession>['user']
+): string {
+  const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
+  const metadata = user?.user_metadata as Record<string, unknown> | undefined;
+  const metadataName = typeof metadata?.full_name === 'string' ? metadata.full_name : undefined;
   const emailLocal = user?.email?.split('@')[0];
-  const userName = computedName || metaName || emailLocal || 'Paciente';
 
-  // Room ID único para esta sesión
+  return profileName || metadataName || emailLocal || 'Paciente';
+}
+
+export default function DashboardPage() {
+  const { user, profile } = usePatientSession();
+  const userName = getPatientName(profile, user);
+  const nextAppointment: string | null = null;
   const roomId = `patient-room-${user?.id || 'demo'}`;
+  const todayLabel = new Intl.DateTimeFormat('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date());
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-ivory-base">
-      {/*
-        Layout de 3 columnas:
-        - Sidebar: 12% (ya está en DashboardLayout)
-        - Centro (Video): 58%
-        - Panel dinámico: 30%
-      */}
-
-      {/* Centro: Área de Video (58%) */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header superior */}
-        <div className="bg-white border-b border-stone-200 px-6 py-4">
-          <div className="flex items-center justify-between">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="border-b border-stone-200 bg-white px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-stone-900">¡Hola, {userName}! 👋</h1>
-              <p className="text-sm text-stone-600 mt-1">
-                Tu centro de telemedicina está listo
+              <p className="editorial-kicker">Panel de paciente</p>
+              <h1 className="editorial-title mt-2 text-3xl text-stone-900">Resumen de salud de {userName}</h1>
+              <p className="editorial-lede mt-2 text-sm text-stone-600">
+                {todayLabel}. Entregamos contexto clinico para decisiones informadas, sin presion comercial.
               </p>
             </div>
 
-            {/* Quick status badges */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
-                <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span className="text-xs font-medium text-green-700">Disponible</span>
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-600"></span>
+                <span className="text-xs font-medium text-emerald-700">Sesion segura activa</span>
               </div>
               {nextAppointment && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
-                  <span className="text-xs font-medium text-blue-700">Próxima cita: {nextAppointment}</span>
+                <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5">
+                  <span className="text-xs font-medium text-blue-700">Proxima cita: {nextAppointment}</span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Área central de video - protagonista */}
         <div className="flex-1 overflow-hidden">
-          <RealVideoCall
-            roomId={roomId}
-            className="w-full h-full"
-          />
+          <RealVideoCall roomId={roomId} className="h-full w-full" />
         </div>
       </div>
 
-      {/* Panel Derecho Dinámico (30%) */}
       <DynamicRightPanel context="dashboard" />
     </div>
   );

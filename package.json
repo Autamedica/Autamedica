@@ -96,6 +96,7 @@
     "visual:health": "node scripts/visual-analyzer.js health",
     "dev:watch": "concurrently \"pnpm dev\" \"pnpm watch:types\" \"pnpm watch:lint\"",
     "deploy:setup": "./scripts/deploy-setup.sh",
+    "deploy:web": "cd apps/web && pnpm build && wrangler pages deploy dist --project-name autamedica-web",
     "deploy:web-app": "cd apps/web-app && pnpm deploy:cloudflare",
     "deploy:doctors": "cd apps/doctors && pnpm deploy:cloudflare",
     "deploy:patients": "cd apps/patients && pnpm deploy:cloudflare",

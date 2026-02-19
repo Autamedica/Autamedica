@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 
-logger.info("Update Call Status function started")
+console.info('Update Call Status function started')
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    logger.info('Updating call status:', { callId, status, reason })
+    console.info('Updating call status:', { callId, status, reason })
 
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     )
 
     if (authError || !user) {
-      logger.error('Auth error:', authError)
+      console.error('Auth error:', authError)
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
         {
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    logger.info('Authenticated user:', user.id)
+    console.info('Authenticated user:', user.id)
 
     // Call the update_call_status function using admin privileges
     const { data: updated, error: updateError } = await supabaseAdmin
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
       })
 
     if (updateError) {
-      logger.error('Error updating call status:', updateError)
+      console.error('Error updating call status:', updateError)
       return new Response(
         JSON.stringify({
           error: 'Failed to update call status',
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    logger.info('Call status updated successfully:', updated)
+    console.info('Call status updated successfully:', updated)
 
     // Return success
     return new Response(
@@ -112,11 +112,12 @@ Deno.serve(async (req) => {
     )
 
   } catch (error) {
-    logger.error('Unexpected error:', error)
+    console.error('Unexpected error:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: error.message
+        details: message
       }),
       {
         status: 500,

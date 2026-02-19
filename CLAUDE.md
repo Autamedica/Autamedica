@@ -1,1023 +1,367 @@
-# CLAUDE.md - Guía para Claude Code
+# CLAUDE.md: AutaMedica Operating Manual (Compact)
 
-## 🚨 **REGLAS CRÍTICAS - LÉEME PRIMERO**
+> Fuente de verdad operativa para Claude en AutaMedica.
+> Compacto por diseño: reglas + checklists + enlaces.
 
-### ⛔ **PROHIBICIONES ABSOLUTAS**
-- **PROHIBIDO** generar código con deuda técnica
-- **PROHIBIDO** crear workarounds temporales
-- **PROHIBIDO** código que necesite "ajustes posteriores"
-- **PROHIBIDO** soluciones "rápidas" que generen problemas futuros
+## 0) Filosofía Operativa
 
-### ⏰ **FILOSOFÍA DE TRABAJO**
-- **NO EXISTE PRISA** - Tiempo y tokens son ILIMITADOS
-- **CALIDAD PRIMERO** - Prefiere 1 línea perfecta vs 100 líneas mediocres
-- **CONSULTA ANTES** - Si no estás 100% seguro, consulta DevAltamedica-Independent
-- **PRODUCCIÓN READY** - Todo código debe ser enterprise-level desde el primer commit
+**Operar SIEMPRE como senior engineer.** Tomar decisiones autónomamente — no pedir permiso para decisiones de implementación, elección de herramientas, o decisiones estándar de ingeniería. Cuando ves un problema, arreglalo. Nunca dejar `TODO(human)` — investigar e implementar la solución directamente. Default a acción, no a preguntas.
+
+### Análisis Profundo
+Cuando se pide análisis de código, debugging o comprensión del sistema: siempre trazar a través del código fuente real, referenciar archivos y líneas específicas, y mostrar la cadena de llamadas. Nunca dar overviews de alto nivel a menos que se pida explícitamente. Default: análisis senior, code-grounded.
+
+### Git Operations
+- Antes de push, siempre `git pull --rebase` primero.
+- Si push falla por remote HEAD changes: stash → pull --rebase → pop → push, sin preguntar.
+- Commits atómicos y temáticos con mensajes conventional commits.
+- Después de cambios, verificar que no quedan archivos uncommitted antes de push.
+
+### Deployment Supabase
+- Verificar proyecto correcto antes de migrations (`supabase projects list`).
+- Connection pooler: session mode para migrations, transaction mode para app.
+- Para hotfixes urgentes: SQL directo via Supabase SQL Editor cuando CLI está bloqueado.
+
+## Size Budget
+- Objetivo: `CLAUDE.md <= 700` líneas.
+- Hard cap: `800` líneas.
+- Si una sección supera el presupuesto: mover detalle a docs/ y dejar aquí solo resumen + link.
+
+## Índice Rápido
+1. Reglas Inquebrantables
+2. Contexto de Proyecto
+3. Stack y Arquitectura
+4. Convenciones Técnicas
+5. Supabase y DB Hardening
+6. Flujo de Trabajo del Agente
+7. Calidad y Gates
+8. Insights Operativos
+9. Referencias
 
 ---
 
-Esta guía ayuda a futuras instancias de Claude Code a trabajar efectivamente en el monorepo de AltaMedica-Reboot.
-
-## 🗺️ **METODOLOGÍA CLAVE: DevAltamedica como Mapa de Navegación**
-
-**REGLA ORO**: Cuando no sepas qué hacer o cómo implementar algo, consulta **DevAltamedica-Independent** como tu mapa de navegación:
-- **📍 Ubicación**: `/home/edu/Devaltamedica-Independent/`
-- **🎯 Propósito**: Ver cómo está implementado en producción
-- **🧭 Consulta**: `DEVALTAMEDICA_GUIDE.md` para metodología completa
-
-### 📋 **Packages Críticos para Migrar (Tier 1)**
-1. **@altamedica/types** - 190+ tipos médicos (DevAltamedica/packages/types)
-2. **@altamedica/auth** - Sistema autenticación + MFA (DevAltamedica/packages/auth)
-3. **@altamedica/database** - HIPAA + Prisma + audit (DevAltamedica/packages/database)
-4. **@altamedica/medical** - Lógica médica core (DevAltamedica/packages/medical)
-5. **@altamedica/telemedicine-core** - WebRTC engine (DevAltamedica/packages/telemedicine-core)
-6. **@altamedica/alta-agent** - ⭐ IA médica 3D (DevAltamedica/packages/alta-agent)
-7. **@altamedica/hooks** - 50+ hooks médicos (DevAltamedica/packages/hooks)
-
-## 🏥 Arquitectura del Proyecto
-
-**AutaMedica** es una plataforma médica moderna construida como monorepo con Turborepo.
-
-### 🎯 **ESTADO ACTUAL (Septiembre 2025 - COMPLETAMENTE OPERATIVO)**
-- ✅ **CI/CD ENTERPRISE** - 7 workflows en español con deployments automáticos
-- ✅ **TOKEN PERMANENTE** - Cloudflare configurado sin expiración
-- ✅ **DEPLOYMENTS ACTIVOS** - Preview/Staging/Producción automáticos
-- ✅ **SMOKE TESTS EXITOSOS** - Todos los workflows validados en vivo
-- ✅ **Autenticación completa** - Sistema Supabase con roles y redirección
-- ✅ **Páginas faltantes creadas** - forgot-password, terms, privacy
-- ✅ **Errores 404 resueltos** - Todas las rutas funcionando
-- ✅ **UI/UX AutaMedica** - Colores, contraste y branding consistentes
-- ✅ **Arquitectura Multi-App COMPLETADA** - 6 aplicaciones especializadas
-- ✅ **Marketplace Médico** - Sistema completo de contratación integrado
-- ✅ **DevOps Pipeline** - Git hooks + docs sync + validación automática
-- ✅ **DEPLOYMENT COMPLETADO** - Aplicaciones principales desplegadas exitosamente en producción
-- ✅ **Metodología Documentada** - Guías de despliegue seguro y programación guardadas
-- ✅ **CÓDIGO ACTUALIZADO** - Commit 5cac123 con token permanente configurado
-- ✅ **LIMPIEZA COMPLETA** - Una sola fuente de verdad en sistema (/root/altamedica-reboot-fresh)
-- ✅ **SERVIDORES ACTIVOS** - 5 aplicaciones en desarrollo simultáneo con Turborepo
-- 🚀 **Estado**: ENTERPRISE PRODUCTION READY - Sistema CI/CD operativo al 100%
-
-### 🚀 **INFRAESTRUCTURA CI/CD ENTERPRISE (OPERATIVA)**
-
-**🎯 URLs de Producción:**
-- ✅ `autamedica-web-app.pages.dev` + `www.autamedica.com`
-- ✅ `autamedica-patients.pages.dev`
-- ✅ `autamedica-doctors.pages.dev`
-- ✅ `autamedica-companies.pages.dev`
-- ✅ `autamedica-admin.pages.dev`
-
-**🔧 Workflows Activos (7 en español):**
-- ✅ `verificacion-basica.yml` - Lint + TypeCheck + Build + Tests
-- ✅ `seguridad.yml` - Auditorías + SAST + Secretos
-- ✅ `validate-contracts.yml` - Validación contratos TypeScript
-- ✅ `desplegar-preview.yml` - Deploy automático de PRs
-- ✅ `desplegar-staging.yml` - Deploy a staging
-- ✅ `desplegar-produccion.yml` - Deploy a producción
-- ✅ `desplegar-workers.yml` - Deploy Workers/DO/KV
-
-### 🤖 **WORKFLOW AGÉNTICO PRINCIPAL** ⭐
-
-**`autamedica-agentic.yml`** - Sistema Agentic OS Multi-Agente (REFERENCIA PRINCIPAL)
-
-Este es el **workflow maestro** que Claude Code debe seguir para operaciones complejas:
-
-**🎯 Agentes Especializados:**
-1. **`agent_code`** (180min) - Lint, typecheck, build, tests, Router validation
-2. **`agent_db`** (180min) - MCP credentials, DB snapshot, migrations, RLS
-3. **`agent_security`** (120min) - Headers, CORS, fetch checks, screenshots
-4. **`agent_dns_deploy`** (90min) - Build, deploy Cloudflare, validation
-5. **`agent_qa`** (60min) - Tests finales, validación completa
-6. **`agent_docs`** (20min) - Auto-commit docs, README, logs
-
-**🎨 Impact Pack (Validación Avanzada):**
-- **`visual_regression`** - Playwright para detección de cambios visuales
-- **`db_drift`** - Detección de drift + SQL lint (sqlfluff)
-- **`lighthouse_ci`** - Performance ≥85%, Accessibility ≥90%
-- **`k6_smoke`** - Load testing con k6
-- **`slo_budget_guard`** - Guardián de presupuesto SLO
-- **`canary_release`** - Deploy 10% → 50% → 100% con health gates
-- **`rollback_on_fail`** - Rollback REAL automático (Cloudflare + DB)
-
-**📋 Configuración Global:**
-- Ver: `/root/.claude/agentic-config.json`
-- Agente.md: `/root/Autamedica/agente.md`
-- Local execution: `bash scripts/run-agentic-local.sh`
-
-**🚀 Comandos de Ejecución:**
-```bash
-# Ejecutar workflow completo localmente
-bash scripts/run-agentic-local.sh
-
-# Ejecutar agente específico
-bash scripts/run-agent.sh agent_code
-
-# Validar sistema antes de workflow
-pnpm run health && node scripts/node_fetch_check.mjs
-
-# Generar documentación post-tarea
-python3 scripts/post_task_report.py
-```
-
-**🔐 Secrets Configurados:**
-- ✅ `CLOUDFLARE_API_TOKEN` (permanente)
-- ✅ `CLOUDFLARE_ACCOUNT_ID`
-- ✅ `PAGES_PROJECTS`
-
-### 🏢️ **ESTADO DE SERVIDORES DESARROLLO**
-```
-✅ Web-App:     http://localhost:3000  - Landing + Auth
-✅ Doctors:     http://localhost:3001  - Portal médicos
-✅ Patients:    http://localhost:3002  - Portal pacientes (✅ AUDITADO - Funcional)
-✅ Companies:   http://localhost:3003  - Portal empresarial
-✅ Admin:       http://localhost:3004  - Panel administrativo (✅ AUDITADO - Funcional)
-```
-
-**Nota**: Todas las apps están configuradas y construyen correctamente. Los servidores dev no están corriendo actualmente.
-
-**16 packages** ejecutándose en paralelo con **concurrencia 15** via Turborepo.
-**🚀 Deployments automáticos** activos para todas las ramas principales.
-
-### 📐 **Arquitectura Actual (Multi-App Completada)**
-```
-autamedica-reboot/
-├── apps/
-│   ├── web-app/               # 🌐 Landing + Auth (completado)
-│   │   ├── app/auth/          # Sistema autenticación completo
-│   │   │   ├── login/         # ✅ Login con OAuth + email
-│   │   │   ├── register/      # ✅ Registro multi-rol
-│   │   │   ├── callback/      # ✅ Manejo callback OAuth
-│   │   │   ├── select-role/   # ✅ Selección rol post-auth
-│   │   │   └── forgot-password/ # ✅ Recuperación contraseña
-│   │   ├── terms/             # ✅ Términos médicos HIPAA
-│   │   └── privacy/           # ✅ Política privacidad detallada
-│   ├── doctors/               # 👨‍⚕️ Portal médicos (completado)
-│   │   ├── layout.tsx         # VSCode-style layout para médicos
-│   │   └── page.tsx           # Dashboard médico con video calling
-│   ├── patients/              # 👤 Portal pacientes (completado)
-│   │   ├── layout.tsx         # Layout modular para pacientes
-│   │   └── page.tsx           # Portal personal con temas
-│   └── companies/             # 🏢 Portal empresarial (completado)
-│       ├── layout.tsx         # Crisis management layout
-│       ├── page.tsx           # Centro control crisis + Marketplace
-│       └── components/
-│           └── marketplace/   # 💼 Sistema marketplace médico
-│               └── MarketplaceDashboard.tsx
-├── packages/
-│   ├── @autamedica/types      # Contratos TypeScript centralizados
-│   ├── @autamedica/shared     # Utilidades compartidas
-│   ├── @autamedica/auth       # React Context + hooks auth
-│   ├── @autamedica/hooks      # React hooks médicos
-│   └── @autamedica/tailwind-config # Configuración compartida Tailwind
-├── docs/
-│   └── GLOSARIO_MAESTRO.md    # FUENTE DE VERDAD para contratos
-└── scripts/
-    ├── validate-exports.mjs   # Validación contratos vs exports
-    ├── health-check.mjs       # Health check completo
-    └── visual-analyzer.js     # Análisis visual de las 4 apps
-```
-
-### 🎯 **Apps Especializadas Implementadas**
-Cada aplicación con su tema y funcionalidad específica:
-
-#### 🌐 **Web-App** (puerto 3000)
-- **Landing page + autenticación central**
-- Sistema Supabase completo con roles
-- Redirección automática según rol del usuario
-
-#### 👨‍⚕️ **Doctors** (puerto 3001)
-- **Layout estilo VSCode** para profesionales médicos
-- Dashboard con interfaz de video calling
-- Controles de cámara y micrófono
-- Panel de información de pacientes en tiempo real
-
-#### 👤 **Patients** (puerto 3002)
-- **Layout modular** con sistema de temas
-- Portal personal del paciente
-- Interfaz amigable y accesible
-- Selector de temas visuales
-
-#### 🏢 **Companies** (puerto 3003)
-- **Crisis management center** con tema de emergencia
-- **Marketplace médico integrado** con toggle
-- Centro de control de crisis sanitarias
-- Sistema de contratación de profesionales médicos
-
-## 🗺️ **Mapa de DevAltamedica para Migración**
-
-### 📊 **Análisis de Apps Existentes en DevAltamedica**
-
-DevAltamedica tiene **7 apps especializadas** con funcionalidades únicas:
-
-#### 👨‍⚕️ **Doctors App** (`/apps/doctors/`)
-**Layouts avanzados:**
-- `DoctorLayout.tsx` - Layout médico estándar
-- `ResponsiveDoctorLayout.tsx` - Layout responsive profesional
-- `VSCodeLayout.tsx` - **Layout estilo IDE** para médicos avanzados
-
-**Componentes médicos especializados:**
-- `PrescriptionForm.tsx` - Formularios de prescripción
-- `MedicalNotesSystem.tsx` - Sistema de notas médicas
-- `DoctorPatientsList.tsx` - Gestión de pacientes
-- `NotificationCenter.tsx` - Centro de notificaciones médicas
-
-#### 👤 **Patients App** (`/apps/patients/`)
-**Layouts modulares:**
-- `PatientLayoutModular.tsx` + `PatientHeaderModular.tsx` + `PatientSidebarModular.tsx`
-- `PatientFooterModular.tsx` - Footer específico para pacientes
-
-**Componentes centrados en el paciente:**
-- **Lab Results**: `LabResultCard.tsx`, `LabResultDetailCard.tsx`, `LabResultFilters.tsx`
-- **Prescriptions**: `PrescriptionCard.tsx`, `PrescriptionDetailCard.tsx`, `PrescriptionFilters.tsx`
-- **Data Export**: `PatientDataExportModal.tsx`, `ExportDataButton.tsx`
-
-#### 🏢 **Companies App** (`/apps/companies/`)
-**Layout empresarial:**
-- `CompanyLayoutProvider.tsx` - Provider de contexto empresarial
-- `ErrorBoundary.tsx` - Manejo profesional de errores
-- `Navigation.tsx` + `Header.tsx` - Navegación corporativa
-
-**Componentes de gestión empresarial:**
-- **Crisis Management**: `CrisisControlCenter.tsx`, `CrisisMapPanel.tsx`, `CommandPalette.tsx`
-- **Performance**: `PerformanceDashboard.tsx`, `CrisisMetrics.tsx`
-- **Mapping**: `MainMap.tsx`, `NetworkMinimap.tsx`
-
-#### ⚙️ **Admin App** (`/apps/admin/`)
-**Layout administrativo global para gestión de plataforma**
-
-#### 🔧 **Infraestructura Técnica**
-- `api-server/` - API centralizada
-- `signaling-server/` - WebRTC para telemedicina
-- `web-app/` - Landing y autenticación central
-
-### 🚀 **Plan de Migración Multi-App (COMPLETADO)**
-
-#### **FASE 1: Preparación Base** ✅ (Completado)
-1. **✅ Estructura de directorios creada** para apps específicas
-2. **✅ Layouts base migrados** de DevAltamedica como templates
-3. **✅ Colores AutaMedica aplicados** en todos los layouts
-4. **✅ Turborepo configurado** para multi-app builds
-5. **✅ Tailwind config compartido** entre todas las apps
-
-#### **FASE 2: Portal Médicos** ✅ (Completado)
-**Componentes migrados:**
-- **✅ Layout VSCode** estilo IDE profesional para médicos
-- **✅ Dashboard médico** con interfaz de video calling
-- **✅ Controles multimedia** cámara y micrófono
-- **✅ Panel de pacientes** en tiempo real
-- **✅ Tema oscuro profesional** Gray 800/900
-
-#### **FASE 3: Portal Pacientes** ✅ (Completado)
-**Componentes migrados:**
-- **✅ Layout modular** con componentes separados
-- **✅ Sistema de temas** para personalización
-- **✅ Portal personal** con interfaz amigable
-- **✅ Responsive design** adaptativo
-- **✅ Colores AutaMedica** integrados
-
-#### **FASE 4: Portal Empresarial** ✅ (Completado)
-**Componentes migrados:**
-- **✅ Crisis management layout** con tema de emergencia
-- **✅ Dashboard corporativo** de control de crisis
-- **✅ Marketplace médico** completamente integrado
-- **✅ Sistema de navegación** entre crisis y marketplace
-- **✅ Métricas en tiempo real** y alertas
-
-#### **FASE 5: Próximos Pasos** 🚀 (Siguientes tareas)
-**Migración de packages críticos desde DevAltamedica:**
-- **@altamedica/types** (190+ tipos médicos)
-- **@altamedica/auth** (Sistema MFA avanzado)
-- **@altamedica/database** (HIPAA + audit)
-- **@altamedica/medical** (Lógica médica core)
-- **@altamedica/telemedicine-core** (WebRTC engine)
-- **@altamedica/alta-agent** (IA médica 3D)
-
-## 💼 **Marketplace Médico - Implementación Completada**
-
-### 🎯 **Funcionalidades del Marketplace**
-- **📊 Dashboard con estadísticas** - Jobs activos, aplicaciones, visualizaciones
-- **🔍 Búsqueda avanzada** - Por especialidad, hospital, ubicación
-- **💼 Gestión de ofertas** - Cardiología, pediatría, oncología, etc.
-- **📈 Métricas de conversión** - Tasa de aplicaciones vs visualizaciones
-- **🚨 Indicadores de urgencia** - Ofertas prioritarias destacadas
-- **💰 Rangos salariales** - Sistema de compensación transparente
-
-### 🏗️ **Arquitectura del Marketplace**
-```typescript
-// apps/companies/src/components/marketplace/MarketplaceDashboard.tsx
-interface JobListing {
-  title: string;
-  specialty: 'Cardiología' | 'Pediatría' | 'Oncología' | 'Enfermería';
-  type: 'full-time' | 'part-time' | 'contract' | 'locum';
-  salary: { min: number; max: number; currency: string };
-  urgent?: boolean;
-  status: 'active' | 'paused' | 'filled';
-}
-```
-
-### 🎨 **Integración Visual**
-- **Toggle navigation** entre Crisis Control y Marketplace
-- **Tema consistente** con crisis management (grays/reds/oranges)
-- **Badge "HOT"** en el marketplace como solicitado
-- **Responsive design** adaptativo para móvil/tablet/desktop
-
-### 🔄 **Navegación Implementada**
-- **Crisis Control**: Centro de control de emergencias sanitarias
-- **Marketplace**: Sistema de contratación de profesionales médicos
-- **Preservación total** de funcionalidades existentes
-- **Transición fluida** entre secciones sin recargas
-
-### 🛠️ **Comandos de Migración Práctica**
-
-**Paso 1: Crear estructura básica**
-```bash
-# Crear directorios para cada app
-mkdir -p apps/{doctors,patients,companies,admin}/src/components/layout
-mkdir -p apps/{doctors,patients,companies,admin}/src/app
-
-# Copiar package.json base de web-app como template
-cp apps/web-app/package.json apps/doctors/package.json
-cp apps/web-app/package.json apps/patients/package.json
-cp apps/web-app/package.json apps/companies/package.json
-```
-
-**Paso 2: Migrar layouts específicos**
-```bash
-# Doctors
-cp /home/edu/Devaltamedica-Independent/apps/doctors/src/components/layout/* \
-   apps/doctors/src/components/layout/
-
-# Patients
-cp /home/edu/Devaltamedica-Independent/apps/patients/src/components/layout/* \
-   apps/patients/src/components/layout/
-
-# Companies
-cp /home/edu/Devaltamedica-Independent/apps/companies/src/components/layout/* \
-   apps/companies/src/components/layout/
-```
-
-**Paso 3: Adaptar para AutaMedica**
-- 🎨 Cambiar paleta de colores a AutaMedica
-- 🏷️ Actualizar branding y logos
-- 📱 Asegurar responsive design
-- 🔒 Integrar con sistema auth existente
-
-## 📚 **Investigación: Mejores Prácticas Oficiales 2024**
-
-### 🏛️ **Estándares GitHub + Turborepo + Cloudflare Pages**
-
-**Fuentes consultadas:**
-- ✅ Documentación oficial Turborepo
-- ✅ Cloudflare Pages Solutions para Turborepo
-- ✅ GitHub monorepo examples (belgattitude/nextjs-monorepo-example)
-- ✅ Next.js 15 + Turborepo integration guides
-
-#### 🏗️ **Estructura de Directorios OFICIAL**
-```bash
-# REGLA ORO: Separación clara apps/ vs packages/
-├── apps/                      # ✅ Aplicaciones y servicios
-│   ├── web-app/              # Landing + Auth
-│   ├── doctors/              # Portal médicos
-│   ├── patients/             # Portal pacientes
-│   └── companies/            # Portal empresarial
-└── packages/                 # ✅ Librerías, tooling, shared code
-    ├── @autamedica/types     # Tipos TypeScript
-    ├── @autamedica/auth      # Sistema autenticación
-    ├── @autamedica/ui        # Componentes compartidos
-    └── @autamedica/shared    # Utilidades
-```
-
-#### 🚨 **Regla Fundamental: "Apps NO dependen de Apps"**
-```typescript
-// ✅ CORRECTO: Apps pueden depender de packages
-import { Patient } from "@autamedica/types";
-import { useAuth } from "@autamedica/auth";
-
-// ❌ INCORRECTO: Apps no deben depender de otras apps
-import { DoctorComponent } from "../../doctors/src/components";
-```
-
-#### 📦 **Configuración Package.json RECOMENDADA**
-```json
-{
-  "name": "@autamedica/doctors",
-  "private": true,
-  "dependencies": {
-    "@autamedica/types": "workspace:^",
-    "@autamedica/auth": "workspace:^",
-    "@autamedica/ui": "workspace:^"
-  }
-}
-```
-
-#### ⚡ **Turborepo Performance Features**
-
-**1. Remote Caching (Cloudflare Pages)**
-- Cache compartido entre team y CI/CD
-- Reduce builds de 25 minutos a 5 segundos (caso Chick-fil-A)
-- Configuración automática con Cloudflare Pages
-
-**2. Parallel Execution**
-- Builds paralelos por dependencias
-- Solo construye lo que cambió
-- Máximo aprovechamiento de recursos
-
-**3. Next.js 15 Integration**
-```javascript
-// next.config.js recomendado
-const nextConfig = {
-  transpilePackages: ['@autamedica/**'],
-  experimental: {
-    externalDir: true  // Para transpile de packages
-  }
-}
-```
-
-#### 🛠️ **Scripts Globales ESTÁNDAR**
-```json
-{
-  "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint",
-    "type-check": "turbo type-check",
-    "test": "turbo test"
-  }
-}
-```
-
-#### 🚀 **Deployment Cloudflare Pages OFICIAL**
-- One-click deployment para monorepos
-- Auto-detection de frameworks (Next.js, etc.)
-- Build only affected projects
-- Remote caching automático
-
-### 🎯 **Aplicación a AutaMedica-Reboot**
-
-**CONCLUSIONES de la investigación:**
-
-1. **✅ Estructura actual CORRECTA** - Ya seguimos el patrón apps/packages
-2. **🔄 Namespace requerido** - Cambiar a `@autamedica/` en todos los packages
-3. **⚡ Workspace protocol** - Usar `"workspace:^"` para dependencias internas
-4. **📦 TypeScript transpiling** - Configurar `transpilePackages` en Next.js
-5. **🚀 Remote caching** - Aprovechar Cloudflare Pages cache automático
-
-**SIGUIENTE PASO VALIDADO:** Crear apps específicas siguiendo estos estándares oficiales.
-
-## 🚨 Reglas Críticas
-
-### 0. **CÓDIGO PARA PRODUCCIÓN - NO DEMOS NI HARDCODE**
-
-**🎯 PRINCIPIO FUNDAMENTAL**:
-- **TODO código generado es para PRODUCCIÓN**
-- **NO generar usuarios hardcodeados** o datos ficticios
-- **Utilizar archivos como guía** (glosarios, docs, referencias)
-- **En caso de duda, CONSULTAR por información precisa**
-- **NO generar código muerto que necesite ajustes posteriores**
-- **ZERO deuda técnica** - cada línea debe ser production-ready
-
-**✅ PERMITIDO**:
-```typescript
-// Usar tipos del glosario
-import { Patient, Doctor } from "@autamedica/types";
-// Consultar DevAltamedica para patterns
-const session = await requireSession("/auth/login");
-```
-
-**❌ PROHIBIDO**:
-```typescript
-// Usuarios hardcodeados
-const testUser = { id: "123", name: "John Doe" };
-// Datos demo sin validación
-const demoPatients = [{ id: "demo-1" }];
-// Código que necesita "ajustes posteriores"
-```
-
-### 1. DevAltamedica First - Consulta el Mapa
-
-- **ANTES de implementar**: Consulta cómo está hecho en `/home/edu/Devaltamedica-Independent/`
-- **Migración progresiva**: Tomar esencia, limpiar implementación
-- **Preservar expertise médico**: Mantener lógica validada por profesionales
-- **Arquitectura guiada**: DevAltamedica como referencia, AltaMedica-Reboot como destino limpio
-
-### 2. Contract-First Development
-
-- **TODO export DEBE estar en `docs/GLOSARIO_MAESTRO.md` PRIMERO**
-- Ejecutar `pnpm docs:validate` para validar contratos vs exports
-- Usar `ISODateString` en lugar de `Date` para APIs
-- `APIResponse<T>` como discriminated union obligatorio
-
-### 3. Zero Technical Debt - Reglas ESLint Estrictas
-
-- El usuario enfatizó: **"no generes deuda tecnica por favor"**
-- **TODO código es PRODUCTION-READY desde el primer commit**
-- **NO generar código demo, hardcoded o temporal**
-- **Strict TypeScript, ESLint sin warnings (`--max-warnings=0`)**
-- **Tests obligatorios con Vitest para funcionalidad nueva**
-- **Pre-commit hooks con husky + lint-staged**
-- **Consultar por datos reales en lugar de generar mocks**
-
-#### 🚫 **Prohibiciones Anti-Deuda Técnica (Implementadas)**
-
-**Logging:**
-- `console.*` → usar `LoggerService` de `@autamedica/shared`
-
-**Imports restrictivos:**
-- Deep imports: `@autamedica/*/src/**`
-- Cross-app imports: `apps/web-app/**` ↔ `apps/patients/**` (usar `packages/**`)
-- Node APIs en client/edge: `fs`, `crypto`, `path`, `http`, `https`, `zlib`, `stream`, `child_process`
-- `firebase-admin` fuera de server/api routes
-- CSS suelto fuera de `app/globals.css` por app
-
-**Patrones prohibidos:**
-- `fetch` directo → usar `BaseAPIClient` de `@autamedica/shared`
-- Literales de rol (`'patient'|'doctor'`) → usar `UserRole` de `@autamedica/types`
-- `next/server` en componentes cliente
-
-**Zones de aislamiento:**
-- Apps NO pueden importar entre sí
-- Solo `packages/**` como interfaz compartida
-- Violaciones detectadas automáticamente por ESLint
-
-### 4. Import Rules Estrictas
-
-```typescript
-// ✅ PERMITIDO
-import { Patient } from "@altamedica/types";
-import { ensureEnv } from "@altamedica/shared";
-
-// ❌ PROHIBIDO - Deep imports
-import { Patient } from "@altamedica/types/src/entities";
-const env = process.env.API_URL; // Direct process.env access
-```
-
-### 5. Migración Methodology
-
-```bash
-# 1. EXPLORAR - ¿Cómo lo hace DevAltamedica?
-find /home/edu/Devaltamedica-Independent -name "*auth*" -type f
-
-# 2. ADAPTAR - ¿Por qué lo hace así?
-# Documentar patterns, constrains médicos, regulaciones
-
-# 3. IMPLEMENTAR - Version limpia en AltaMedica-Reboot
-# Mantener esencia médica, modernizar implementación
-```
-
-## 🛠 Comandos Principales
-
-### 🚀 Comando Principal para Claude
-
-```bash
-pnpm claude                  # Inicia sesión completa de desarrollo con Claude
-# o
-pnpm start-claude           # Alias del comando anterior
-# o
-./start-claude              # Script directo ejecutable
-```
-
-**Este comando único ejecuta automáticamente:**
-
-- ✅ Validación inicial de políticas del monorepo
-- 🔄 TypeScript watch mode para todos los packages
-- 🚀 Dev server con hot reload (Turbo)
-- 🔍 ESLint watch mode (si está disponible)
-- 📊 Monitoring en tiempo real de errores
-
-### Desarrollo Manual
-
-```bash
-pnpm dev                                # Todos los packages en watch mode
-pnpm dev --filter @autamedica/web-app   # Solo la app web (puerto 3000)
-pnpm dev --filter @autamedica/doctors   # Solo la app de médicos (puerto 3001)
-pnpm dev --filter @autamedica/patients  # Solo la app de pacientes (puerto 3002)
-pnpm dev --filter @autamedica/companies # Solo la app empresarial (puerto 3003)
-
-# Ejecutar múltiples apps simultáneamente
-pnpm dev --filter @autamedica/web-app --filter @autamedica/doctors
-```
-
-### Build y Validación
-
-```bash
-pnpm build:packages         # Solo packages (@autamedica/*)
-pnpm build:apps            # Solo apps (./apps/*)
-pnpm type-check            # TypeScript check
-pnpm lint                  # ESLint check (strict, no warnings)
-pnpm docs:validate         # Validar exports vs GLOSARIO_MAESTRO
-pnpm health               # Health check completo
-```
-
-### Deployment y Validación
-
-```bash
-pnpm pre-deploy               # Validar configuración de deployment
-pnpm pre-deploy            # Validación completa pre-deployment
-pnpm security:check        # Validaciones de seguridad
-pnpm security:full         # Audit + security check completo
-```
-
-### Testing y Monitoreo Visual
-
-```bash
-pnpm test:unit                    # Vitest con coverage
-pnpm test                         # Run all tests
-
-# Análisis visual de las 4 apps funcionando
-node scripts/visual-analyzer.js health    # Health check rápido
-node scripts/visual-analyzer.js analyze   # Análisis detallado visual
-node scripts/visual-analyzer.js full      # Health check + análisis completo
-```
-
-## 📦 Package Architecture
-
-### Dependencias Estrictas
-
-```
-@autamedica/types (base - branded types, contratos)
-    ↓
-@autamedica/shared (utilities, validations, ensureEnv)
-    ↓
-@autamedica/auth + @autamedica/hooks
-    ↓
-apps/web-app
-```
-
-## 🔐 Sistema de Autenticación
-
-### Implementación Completa de Supabase Auth
-
-**✅ IMPLEMENTADO** - Sistema de autenticación robusto con magic links:
-
-- **@autamedica/auth**: Package completo con Supabase wrapper
-- **Magic Links**: Autenticación sin contraseña via email
-- **Roles**: `patient`, `doctor`, `company_admin`, `platform_admin`
-- **Portales**: Redirección automática basada en rol
-- **Middleware**: Protección automática de rutas
-- **Session Management**: Funciones `getSession`, `requireSession`, `signOut`
-
-### Archivos Clave de Autenticación
-
-```typescript
-// @autamedica/auth package
-packages/auth/src/
-├── client.ts          // Browser client
-├── server.ts          // Server clients (middleware, route handlers)
-├── session.ts         // Session management
-├── email.ts           // Magic link authentication
-└── index.ts           // Exports centralizados
-
-// App routes
-apps/web-app/src/app/
-├── auth/login/page.tsx       // Login form con portal params
-├── auth/callback/route.ts    // OAuth callback handler
-└── middleware.ts             // Route protection
-```
-
-### Uso de Autenticación
-
-```typescript
-// Client-side
-import { createBrowserClient } from "@autamedica/auth";
-const supabase = createBrowserClient();
-
-// Server actions
-import { getSession, requireSession } from "@autamedica/auth";
-const session = await getSession();
-const user = await requireSession("/auth/login");
-
-// Portal access control
-import { requirePortalAccess } from "@autamedica/auth";
-const session = await requirePortalAccess("medico");
-```
-
-### @autamedica/types
-
-- Branded types: `PatientId`, `DoctorId`, `UUID`
-- `ISODateString` para fechas
-- `APIResponse<T>` discriminated union
-- **Ubicación**: `packages/types/src/index.ts`
-
-### @autamedica/shared
-
-- `ensureEnv()` para variables de entorno
-- `validateEmail()`, `validatePhone()`
-- **Único package que puede usar `process.env`**
-
-### @autamedica/auth
-
-- React Context + useAuth hook
-- AuthProvider para apps
-
-### @autamedica/hooks
-
-- Hooks médicos: `usePatients`, `useAppointments`
-- Hooks utilidad: `useAsync`, `useDebounce`
-
-## 🔧 Configuración Técnica
-
-### ESLint Configuration
-
-- ESLint 9.x con configuración estricta (`--max-warnings=0`)
-- Reglas personalizadas para monorepo:
-  - `no-restricted-imports`: Prohibe deep imports de packages
-  - `no-restricted-globals`: Prohibe `process.env` directo (solo en @autamedica/shared)
-- Auto-validación que previene problemas de deployment
-
-### TypeScript
-
-- Version: 5.9.2
-- Strict mode enabled
-- `moduleResolution: "Bundler"`
-- Paths apuntan a `dist/` files
-
-### Build System
-
-- **Turborepo 2.5.6** con cache distribuido
-- **Next.js 15.5.0** con Turbopack beta
-- **PNPM** como package manager
-- Builds paralelos con dependencias
-
-### CI/CD
-
-- **GitHub Actions** con jobs separados:
-  - lint (ESLint strict)
-  - typecheck (TypeScript)
-  - build (packages → apps)
-  - contracts (validar exports)
-  - test (Vitest con coverage)
-- **Pre-commit**: ESLint auto-fix + Prettier
-
-## 🚀 Comandos de Despliegue
-
-### ✅ **DEPLOYMENT COMPLETADO EXITOSAMENTE**
-
-**Estado**: Las 4 aplicaciones están desplegadas y funcionando en producción.
-
-**URLs de Producción Activas:**
-- **Web-App**: https://autamedica-web-app.pages.dev
-- **Companies**: https://autamedica-companies.pages.dev ✅ 
-- **Doctors**: https://autamedica-doctors.pages.dev ✅
-- **Patients**: https://autamedica-patients.pages.dev ✅
-
-### 🎯 **Configuración Cloudflare Pages Multi-App (2025 Best Practices)**
-
-**🔑 REGLA ORO**: **1 Proyecto Cloudflare Pages = 1 App** con configuración específica
-
-#### **📋 Configuración por App (Cloudflare Pages Dashboard)**
-
-**1. Web-App Principal (Landing + Auth)**
-```
-Root Directory: apps/web-app
-Build Command: pnpm turbo run build --filter=@autamedica/web-app
-Install Command: pnpm install
-Framework: Next.js
-☑ Include files outside Root Directory: ENABLED
-☑ Skip deployments for unaffected apps: ENABLED
-```
-
-**2. Portal Médicos**
-```
-Root Directory: apps/doctors
-Build Command: pnpm turbo run build --filter=@autamedica/doctors
-Install Command: pnpm install
-Framework: Next.js
-☑ Include files outside Root Directory: ENABLED
-☑ Skip deployments for unaffected apps: ENABLED
-```
-
-**3. Portal Pacientes**
-```
-Root Directory: apps/patients
-Build Command: pnpm turbo run build --filter=@autamedica/patients
-Install Command: pnpm install
-Framework: Next.js
-☑ Include files outside Root Directory: ENABLED
-☑ Skip deployments for unaffected apps: ENABLED
-```
-
-**4. Portal Empresarial**
-```
-Root Directory: apps/companies
-Build Command: pnpm turbo run build --filter=@autamedica/companies
-Install Command: pnpm install
-Framework: Next.js
-☑ Include files outside Root Directory: ENABLED
-☑ Skip deployments for unaffected apps: ENABLED
-```
-
-#### **⚡ Remote Cache (Turborepo)**
-
-```bash
-# Habilitar Remote Cache (desde monorepo root)
-npx turbo login
-npx turbo link
-
-# Cloudflare Pages lo usa automáticamente en builds
-```
-
-#### **🔗 CLI Link (Opcional)**
-
-```bash
-# Desde monorepo root - vincula todos los proyectos
-wrangler pages project list
-
-# O desde cada app individualmente
-cd apps/web-app && wrangler pages project create autamedica-web-app --production-branch main
-cd apps/doctors && wrangler pages project create autamedica-doctors --production-branch main
-cd apps/patients && wrangler pages project create autamedica-patients --production-branch main
-cd apps/companies && wrangler pages project create autamedica-companies --production-branch main
-```
-
-#### **🌐 Dominio Único (Gateway Pattern)**
-
-Si quieres un solo dominio para todas las apps:
-
-```json
-# Configuración Cloudflare Pages (wrangler.toml)
-{
-  "rewrites": [
-    { "source": "/doctors/(.*)", "destination": "https://doctors.autamedica.com/$1" },
-    { "source": "/patients/(.*)", "destination": "https://patients.autamedica.com/$1" },
-    { "source": "/companies/(.*)", "destination": "https://companies.autamedica.com/$1" }
-  ]
-}
-```
-
-### Variables de Entorno
-
-**🚨 CRÍTICO**: Variables por proyecto en Cloudflare Pages Dashboard
-- **NO** usar .env en root del monorepo
-- Usar .env específico por app/package
-- Evita contaminación entre apps y problemas de cache
-
-```bash
-# ✅ CORRECTO - Por app
-apps/web-app/.env.local
-apps/doctors/.env.local
-packages/auth/.env
-
-# ❌ INCORRECTO - Global
-.env (root)
-```
-
-### Checklist de Verificación Deployment
-
-- [ ] **4 proyectos Cloudflare Pages** creados (web-app, doctors, patients, companies)
-- [ ] **Root Directory** correcto en cada proyecto
-- [ ] **"Include files outside Root Directory"** activado en todos
-- [ ] **Build Command** con filtro específico: `pnpm turbo run build --filter=@autamedica/<app>`
-- [ ] **Remote Cache** enlazado y activo (`turbo login && turbo link`)
-- [ ] **Variables de entorno** definidas por proyecto
-- [ ] **Skip deployments** habilitado para PRs no afectados
-
-## 🧪 Testing Standards
-
-### Vitest Configuration
-
-- Coverage con V8
-- Tests en `*.test.ts` files
-- Ejemplo: `packages/shared/src/validators.test.ts`
-
-### Test Structure
-
-```typescript
-import { describe, it, expect } from "vitest";
-
-describe("validateEmail", () => {
-  it("should accept valid email", () => {
-    expect(validateEmail("user@example.com")).toBe(true);
-  });
-});
-```
-
-## 🐛 Troubleshooting Common Issues
-
-### Build Errors
-
-```bash
-# Limpiar cache completo
-rm -rf node_modules dist .next .turbo
-pnpm install
-pnpm build
-```
-
-### TypeScript Errors
-
-```bash
-# Check específico por package
-pnpm --filter @autamedica/types typecheck
-
-# Global check
-pnpm type-check
-```
-
-### Import/Export Errors
-
-```bash
-# Validar contratos vs exports
-pnpm docs:validate
-
-# Health check completo
-pnpm health
-```
-
-### Deployment Errors
-
-```bash
-# Validar configuración de Cloudflare Pages
-pnpm pre-deploy
-
-# Diagnóstico completo de deployment
-wrangler pages deployments list autamedica-web-app
-
-# Validación pre-deployment
-pnpm pre-deploy
-```
-
-## ⚠️ Cosas que NUNCA hacer
-
-1. **Generar código demo o hardcodeado** - TODO para producción
-2. **Usuarios o datos ficticios** - consultar por datos reales
-3. **Código que necesite "ajustes posteriores"** - production-ready desde commit 1
-4. **Deep imports** de packages internos
-5. **process.env** directo (usar `ensureEnv`)
-6. **Exports sin documentar** en GLOSARIO_MAESTRO
-7. **Date objects** en APIs (usar `ISODateString`)
-8. **Warnings en ESLint** (configurado con `--max-warnings=0`)
-9. **Commits sin tests** para nueva funcionalidad
-10. **Breaking changes** sin actualizar GLOSARIO_MAESTRO
-11. **Deuda técnica** de cualquier tipo
-
-## 🎯 Flujo de Trabajo Recomendado
-
-1. **Consultar**: ¿Cómo lo hace DevAltamedica? ¿Qué datos necesito?
-2. **Planificar**: Definir contratos en `GLOSARIO_MAESTRO.md` con datos REALES
-3. **Implementar**: Crear types en `@autamedica/types` (production-ready)
-4. **Validar**: `pnpm docs:validate`
-5. **Desarrollar**: Usar types en packages/apps (NO hardcode)
-6. **Testing**: Escribir tests con Vitest (con datos válidos)
-7. **Quality**: `pnpm lint && pnpm type-check` (0 warnings)
-8. **Build**: `pnpm build`
-9. **Deploy**: Cloudflare Pages automático en merge
-
-## 📚 Referencias Clave
-
-### 🗺️ **Documentos de Navegación**
-- **Mapa de Desarrollo**: `DEVALTAMEDICA_GUIDE.md` - Metodología completa
-- **Plan de Desarrollo**: `DEVELOPMENT_PLAN.md` - Roadmap 7 semanas
-- **Arquitectura Multi-App**: `MULTI_APP_ARCHITECTURE.md` - Estrategia portales
-- **Próximos Pasos**: `NEXT_STEPS.md` - Hoja de ruta inmediata
-
-### 🚀 **Documentos de Deployment (NUEVOS)**
-- **Despliegue Seguro**: `docs/SECURE_DEPLOYMENT_GUIDE.md` - Metodología de deployment probada
-- **Programación Avanzada**: `docs/PROGRAMMING_METHODOLOGY.md` - Comandos largos y automatización
-
-### 🏗️ **Referencias Técnicas**
-- **Contratos**: `docs/GLOSARIO_MAESTRO.md`
-- **Package.json**: Scripts y dependencias root
-- **Turbo.json**: Task definitions y cache config
-- **ESLint config**: `.eslintrc.json` (strict rules)
-
-### 🗺️ **Mapa DevAltamedica** (Consulta constante)
-- **Ubicación**: `/home/edu/Devaltamedica-Independent/`
-- **Packages**: `/home/edu/Devaltamedica-Independent/packages/`
-- **Apps**: `/home/edu/Devaltamedica-Independent/apps/`
-- **Config**: `/home/edu/Devaltamedica-Independent/package.json`
-
-## 🤝 Principios del Proyecto
-
-1. **Contract-First**: Types definidos antes que implementación
-2. **Zero Circular Dependencies**: Arquitectura unidireccional
-3. **Export Validation**: Solo exports documentados
-4. **Environment Safety**: Variables validadas centralmente
-5. **Quality Gates**: CI/CD estricto sin warnings
-6. **Performance**: Cache distribuido y builds paralelos
+## 1) Reglas Inquebrantables
+
+> **#0** Cero Código sin Integración · **#1** Packages Orquestan, Islands Ejecutan · **#2** Higiene de Repo · **#3** Validación Cross-Layer · **#4** Prohibido Stubs sobre Implementaciones · **#5** Todo se Hace AHORA
+
+### REGLA #0: Cero Código sin Integración
+- Prohibido generar código que no tenga consumidor real en el mismo PR/commit.
+- Si al borrar ese código no se rompe nada, probablemente no debía existir.
+
+Checklist:
+- [ ] Hay al menos un consumidor real (página, island, API endpoint o package).
+- [ ] Flujo completo trazable: trigger → resultado visible al usuario.
+- [ ] El código nuevo no queda huérfano.
+
+### REGLA #1: Packages Orquestan, Islands Ejecutan
+- `packages/*`: tipos, lógica compartida, auth, hooks — sin lógica de presentación.
+- `apps/*/src/components`: islands React o componentes Astro — sin lógica de negocio inline.
+- Prohibido que apps importen directamente de otras apps. Solo via `packages/*`.
+- CI/CD (Turborepo): orquesta builds y deployments. Apps: ejecutan.
+
+Checklist:
+- [ ] Apps no se importan entre sí.
+- [ ] Lógica compartida en packages, no duplicada en apps.
+- [ ] Islands React solo tienen estado local o consumen hooks de `@autamedica/hooks`.
+
+### REGLA #3: Validación Cross-Layer (Antes / Durante / Después)
+
+Cada feature toca múltiples capas (DB → RPC → Supabase → Astro/Next.js API → Island → UI).
+Código que compila en cada capa pero no conecta entre capas = bug invisible.
+
+**ANTES de codificar:**
+- [ ] Trazar ruta completa: trigger → cada capa → resultado visible al usuario.
+- [ ] Verificar nombres reales de columnas en prod: `SELECT column_name FROM information_schema.columns WHERE table_name = '...'`.
+- [ ] Verificar que las types de `@autamedica/types` coinciden con el schema real de DB.
+- [ ] Si una migración existe en el repo pero no se aplicó → APLICARLA PRIMERO.
+
+**DURANTE la codificación:**
+- [ ] Cada write a DB usa nombres verificados contra `information_schema` (NUNCA asumir).
+- [ ] Si un island consume un endpoint, verificar que el endpoint existe y retorna el shape esperado.
+- [ ] Variables públicas en Astro: `PUBLIC_*` (no `NEXT_PUBLIC_*`). `import.meta.env` (no `process.env`).
+
+**DESPUÉS de codificar:**
+- [ ] Ejecutar el flujo completo: acción real → verificar en DB → verificar que UI refleja el cambio.
+- [ ] Si hubo cambio de schema: regenerar tipos con `pnpm db:sync`.
+- [ ] Si hubo deploy de migración + edge function: AMBOS aplicados antes de declarar "listo".
+
+> Si algún paso falla, NO avanzar al siguiente. Corregir la capa rota primero.
+
+### REGLA #4: Prohibido Stubs que Sobrescriben Implementaciones Reales
+
+1. **NUNCA `CREATE OR REPLACE` para funciones que ya existen con lógica real.** Verificar antes: `SELECT proname, LEFT(prosrc, 100) FROM pg_proc WHERE proname = '...'`.
+2. **Migraciones que recrean tablas DEBEN incluir TODAS las columnas** de migraciones anteriores.
+3. **Post-migración: verificar que funciones y columnas existentes siguen intactas.**
+
+### REGLA #2: Higiene de Repo (Nunca Regresivo)
+- Root solo para runtime/config/docs core.
+- Prohibido versionar ruido: `tmp-*`, logs, screenshots, `*.pid`, dumps, outputs ad-hoc.
+- Si aparece un nuevo patrón de ruido local, actualizar `.gitignore` en el mismo commit.
+- `dist/`, `.next/`, `.open-next/`, `.astro/` nunca se commitean.
+
+Checklist de higiene:
+1. `git status --short` sin archivos fuera de lugar.
+2. `pnpm lint && pnpm typecheck` limpios.
+3. Si hubo rename/move: validar referencias con `grep -r`.
+
+### REGLA #5: Todo se Hace AHORA — Cero Deuda Diferida
+
+Prohibido:
+- Diferir trabajo a "futuro", "próxima sesión", "refactor posterior".
+- Dejar `TODO`, `FIXME`, `HACK`, `TEMP`, `any` sin resolver.
+- Declarar "listo" si falta migración, deploy, types actualizados o verificación.
+
+Obligatorio:
+- Si se detecta problema durante la tarea → corregirlo AHORA o escalar con contexto.
+- Cada tarea cierra completa: **código + tipos + build + verificación**.
 
 ---
 
-## 🚀 **Metodología de Comandos Largos**
+## 2) Contexto de Proyecto
 
-### **Principio Fundamental**
-> **"Un comando largo bien construido vale más que 20 pasos manuales propensos a error"**
+- **Proyecto:** AutaMedica — plataforma de telemedicina
+- **Path:** `/home/edu/Autamedica`
+- **Repo:** `ecucondorSA/Autamedica` (GitHub)
+- **Package Manager:** `pnpm` ONLY
+- **Build Orchestrator:** Turborepo 2.x
+- **Supabase Project:** `gtyvdircfhmdjiaelqkg`
+- **Deployment:** Cloudflare Pages (por app)
 
-**Ejemplo del deployment exitoso:**
-```bash
-cd /root/altamedica-reboot-deploy && \
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co \
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... \
-NODE_ENV=production \
-HUSKY=0 \
-wrangler pages deploy .open-next/dist --project-name autamedica-web-app --branch main
-```
-
-### **Ventajas Probadas:**
-- ✅ **Atomic Operations**: Todo o nada
-- ✅ **Environment Isolation**: Variables efímeras
-- ✅ **Reproducible**: Copy-paste funciona siempre
-- ✅ **Self-Documenting**: El comando ES la documentación
-
-**Ver**: `docs/PROGRAMMING_METHODOLOGY.md` para metodología completa.
+URLs de producción:
+- `www.autamedica.com` → `apps/web` (Astro — Fase 1, migración en curso)
+- `autamedica-web-app.pages.dev` → `apps/web-app` (Next.js — legacy)
+- `autamedica-doctors.pages.dev` → `apps/doctors`
+- `autamedica-patients.pages.dev` → `apps/patients`
+- `autamedica-companies.pages.dev` → `apps/companies`
+- `autamedica-admin.pages.dev` → `apps/admin`
 
 ---
 
-**Nota para Claude**: Este proyecto prioriza calidad sobre velocidad. Siempre validar contratos, ejecutar tests, y mantener architecture clean. **Usar comandos largos para operations críticas** siguiendo la metodología documentada.
+## 3) Stack y Arquitectura
+
+### Monorepo Structure
+```
+apps/
+  web/           # Astro 5 + React 19 islands (MIGRACIÓN ACTIVA)
+  web-app/       # Next.js 15 (legacy — mantener hasta migración completa)
+  auth/          # Next.js — portal de autenticación central
+  doctors/       # Next.js — portal médicos
+  patients/      # Next.js — portal pacientes
+  companies/     # Next.js — portal empresas
+  admin/         # Next.js — panel administrativo
+  signaling-server/ # WebRTC signaling
+packages/
+  types/         # @autamedica/types — 190+ tipos TypeScript
+  shared/        # @autamedica/shared — utils, env validation, logger
+  auth/          # @autamedica/auth — Supabase SSR client + hooks
+  hooks/         # @autamedica/hooks — React hooks médicos
+  ui/            # @autamedica/ui — componentes compartidos
+  tailwind-config/ # @autamedica/tailwind-config — preset Tailwind
+  telemedicine/  # @autamedica/telemedicine — WebRTC engine
+```
+
+### Estrategia de Ramas (Trunk-Based Development)
+1. **`main` es Producción.** Única rama eterna. Nunca commit directo. Siempre estable.
+2. **Ramas efímeras** (`feat/...`, `fix/...`): vida < 2 días, 1 rama = 1 objetivo.
+3. Ciclo: `git checkout -b feat/x` desde `main` → Code → Test → Lint → PR → Merge → Borrar rama.
+
+### Migración Next.js → Astro (EN CURSO)
+- Fase 1: `apps/web` (Astro) reemplaza `apps/web-app` (Next.js) como landing.
+- Fases 2-6: auth, doctors, patients, companies, admin.
+- **Regla:** NO migrar el siguiente app sin que el anterior esté deployado y verificado.
+- Islands React: `client:load` para interactividad inmediata, `client:visible` para lazy.
+- Reemplazar `next/dynamic` → imports estáticos (Astro gestiona lazy natively).
+- `NEXT_PUBLIC_*` → `PUBLIC_*`, `process.env` → `import.meta.env`.
+
+---
+
+## 4) Convenciones Técnicas
+
+### TypeScript Estricto (ZERO TOLERANCE)
+- **PROHIBIDO `any`:** Usar `unknown` + type guards para datos inciertos.
+- **Interfaces explícitas:** Tipar siempre respuestas de API y datos externos.
+- **Branded types:** `PatientId`, `DoctorId`, `UUID` — no mezclar IDs de entidades distintas.
+- **`ISODateString`** en lugar de `Date` en APIs y tipos de DB.
+- **`APIResponse<T>`** como discriminated union en todas las respuestas de API.
+
+### Anti-Patrones Prohibidos
+- `console.*` en prod → usar `logger` de `@autamedica/shared`.
+- `process.env` directo → usar `ensureClientEnv` de `@autamedica/shared`.
+- `supabase.*` directo en componentes → usar hooks de `@autamedica/auth` o `@autamedica/hooks`.
+- Deep imports: `@autamedica/types/src/foo` → usar solo el index público.
+- Cross-app imports: `apps/doctors/src/...` desde `apps/patients/` → PROHIBIDO.
+- `next/dynamic` en `apps/web/*` (Astro) → usar `client:*` directives.
+- `styled-jsx` (`<style jsx>`) → usar `<style>` regular o Tailwind.
+- `useRouter` de `next/navigation` en `apps/web/*` → usar `window.location` o `<a>`.
+
+### Astro-Specific
+- Variables de entorno: siempre `import.meta.env.PUBLIC_*` (nunca `process.env`).
+- Tipar siempre en `src/env.d.ts` las vars que se usen.
+- `App.Locals` en `env.d.ts` para `session` y `supabase` que pasa el middleware.
+- Middleware Astro: `defineMiddleware` de `astro:middleware`.
+- API endpoints Astro: `APIRoute` type, `export const POST: APIRoute = async ({ request }) => {}`.
+- Componentes Astro (`.astro`) para markup estático. Islands React (`.tsx`) para interactividad.
+
+### React Islands
+- `client:load` — carga inmediata (visible above-the-fold).
+- `client:visible` — lazy cuando entra al viewport.
+- `client:only="react"` — cuando el componente no puede SSR.
+- Estado global: React Context dentro del island o `localStorage` para cross-island.
+- Prohibido: React Context que cruce la barrera Astro/React (no hay portal global).
+
+### Dinero y Datos Médicos
+- DB en integer minor units para montos.
+- Datos de salud: cifrado en tránsito (TLS 1.3) y en reposo (AES-256).
+- Historia clínica: retención mínima 15 años (ley Argentina).
+- UI formatea, no define reglas médicas o financieras — el backend es la autoridad.
+
+---
+
+## 5) Supabase y DB Hardening
+
+### Dos Planos (obligatorio)
+1. UI gating: guards, filtros, disabled, overlays, routing.
+2. DB enforcement: enum, constraints, triggers, RLS, RPC.
+
+Reglas:
+- Si algo "se guardó pero no se ve", investigar RLS + filtros primero.
+- No asumir schema: validar con `@autamedica/types` o `information_schema`.
+- `auth.uid()` requiere JWT de usuario reenviado en `Authorization`.
+- RLS user-scoped no evaluar con service role sin forwarded JWT.
+
+### Roles de Usuario
+- `patient` → redirige `/dashboard`
+- `doctor` → redirige `/doctor/dashboard`
+- `company` → redirige `/company/dashboard`
+- `admin` → redirige `/admin/dashboard`
+- Sin rol → redirige `/auth/select-role`
+
+### Deploy DB Definition of Done
+- [ ] Migración aplicada en prod.
+- [ ] RLS/policies alineadas.
+- [ ] Types regenerados con `pnpm db:sync`.
+- [ ] Queries/UI reflejan nuevos estados.
+- [ ] Verificación SQL post-deploy ejecutada.
+
+---
+
+## 6) Flujo de Trabajo del Agente
+
+### Ciclo mínimo por tarea
+1. Entender alcance exacto (1 dominio por vez).
+2. Cambios atómicos y verificables.
+3. Validar local (lint/types/build según impacto).
+4. Confirmar no-regresión (incluye higiene de repo).
+5. Documentar resultado con evidencia.
+
+### Anti-regresión
+- Evitar whack-a-mole: si un fix rompe otro dominio, frenar y re-scope.
+- Commits pequeños como checkpoints.
+- No mezclar cambios de auth + UI + DB en el mismo commit sin motivo explícito.
+- Antes de migrar siguiente app a Astro: verificar que la anterior funciona en prod.
+
+### Criterios para frenar y preguntar
+- Mismo archivo tocado repetidamente sin converger.
+- Cambio pequeño que deriva en múltiples dominios.
+- Hallazgo de drift severo entre tipos TypeScript y schema de DB.
+- Necesidad de credenciales o accesos que no están disponibles.
+
+---
+
+## 7) Calidad y Gates
+
+### Lint = Ley (Zero Warnings)
+- `pnpm lint` DEBE dar **0 errores Y 0 warnings**.
+- Si hay warnings pre-existentes en archivos que tocás, **arreglarlos en el mismo commit**.
+- `pnpm check` en `apps/web` (astro check) debe dar **0 errors**.
+
+### Comandos base por scope
+```bash
+# Packages
+pnpm build:packages:core   # Compilar packages antes de usar en apps
+
+# App específica
+pnpm --filter @autamedica/web dev       # Astro dev server (port 3000)
+pnpm --filter @autamedica/web check     # astro check (TypeScript)
+pnpm --filter @autamedica/web build     # Astro build → dist/
+
+# Monorepo
+pnpm lint                  # ESLint en todo el monorepo
+pnpm typecheck             # TypeScript check
+pnpm build                 # Turbo build (todos los packages + apps)
+pnpm test:unit             # Tests unitarios
+pnpm db:sync               # Regenerar tipos desde DB
+```
+
+### Pre-push obligatorio
+```bash
+pnpm lint && pnpm typecheck && pnpm build:packages:core
+```
+
+### Checklist de entrega
+- [ ] `pnpm lint` con 0 errores y 0 warnings.
+- [ ] `pnpm check` (astro check) sin errores en `apps/web`.
+- [ ] `pnpm build:packages:core` exitoso.
+- [ ] Sin `any`, `TODO`, `FIXME`, `HACK`, `TEMP` nuevos.
+- [ ] Sin archivos fuera de lugar en `git status`.
+- [ ] Si hubo cambio de schema: `pnpm db:sync` ejecutado.
+- [ ] Si hubo cambio de comportamiento: verificación end-to-end ejecutada.
+
+---
+
+## 8) Insights Operativos
+
+- **`@autamedica/shared` requiere build previo:** Si aparece `Cannot find module '@autamedica/shared'` al correr `astro check`, ejecutar `pnpm build:packages:core` primero. Los packages deben compilarse antes de que las apps puedan importarlos.
+
+- **Cookies en Astro middleware:** `AstroCookies` no tiene `getAll()`. Parsear el Cookie header directamente: `request.headers.get('cookie').split('; ')`. `AstroCookies.set()` acepta `AstroCookieSetOptions` — castear con `as any` si Supabase SSR pasa `Partial<CookieSerializeOptions>`.
+
+- **`styled-jsx` es Next.js only:** Al migrar componentes a `apps/web` (Astro), reemplazar `<style jsx>` y `<style jsx global>` con `<style>` regular. Astro no tiene styled-jsx.
+
+- **Imports con extensión `.tsx` en archivos Astro:** TypeScript en Astro rechaza `import Foo from './Foo.tsx'`. Omitir la extensión: `import Foo from './Foo'`.
+
+- **`next/dynamic` → imports estáticos en Astro:** Las directivas `client:*` de Astro reemplazan el lazy loading de `dynamic()`. Usar imports estáticos + `client:visible` para lazy load.
+
+- **Variables de entorno Astro vs Next.js:** `PUBLIC_SUPABASE_URL` (Astro) ≠ `NEXT_PUBLIC_SUPABASE_URL` (Next.js). En `apps/web` siempre usar `PUBLIC_*` y `import.meta.env`.
+
+- **PL/pgSQL lazy validation:** PostgreSQL NO valida nombres de columnas al crear funciones — solo al ejecutarlas. Una función con `INSERT INTO ... (metadata)` compila OK pero falla en runtime si la columna real es `provider_metadata`.
+
+- **Supabase UPDATE sin WHERE:** Supabase bloquea `UPDATE tabla SET ...` sin `WHERE`. Agregar `WHERE true` si el UPDATE es intencional sobre toda la tabla.
+
+- **Baseline desde prod (OBLIGATORIO para consolidación):** NUNCA consolidar migraciones concatenando archivos SQL manualmente. Usar `pg_dump --schema-only` o Supabase Management API para obtener schema real de prod como baseline.
+
+- **Limitación de RLS (Objeto OLD):** Las cláusulas `WITH CHECK` de políticas RLS para `UPDATE` NO tienen acceso a `OLD`. Solo Triggers tienen acceso a `OLD`. Validar cambios de campos específicos requiere Triggers procedurales.
+
+- **Turbo cache invalidation:** Si Turbo usa cache obsoleta y los builds parecen no reflejar cambios, usar `--force` o limpiar `.turbo/` local.
+
+---
+
+## 9) Referencias
+
+### Documentos del proyecto
+- `docs/GLOSARIO_MAESTRO.md` — Contratos TypeScript centralizados (fuente de verdad)
+- `docs/database/_generated/` — Schema DB generado
+- `apps/web/` — App Astro en migración activa
+
+### Comandos de deployment
+```bash
+# Deploy app Astro (apps/web)
+pnpm deploy:web              # build + wrangler pages deploy
+
+# Deploy apps Next.js (legacy)
+pnpm deploy:web-app
+pnpm deploy:doctors
+pnpm deploy:patients
+pnpm deploy:companies
+pnpm deploy:admin
+```
+
+### Supabase
+- Supabase Project: `gtyvdircfhmdjiaelqkg`
+- `pnpm db:sync` — regenerar tipos desde DB
+- `pnpm db:validate` — validar schema
+- `pnpm docs:db` — actualizar glosario DB
+
+---
+
+## Nota Operativa
+Si hay conflicto entre reglas aquí y reglas en apps/packages individuales, prevalece este CLAUDE.md.
+Mantener este archivo por debajo de 700 líneas. Mover detalles extensos a `docs/`.

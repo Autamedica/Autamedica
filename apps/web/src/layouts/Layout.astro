@@ -1,0 +1,86 @@
+---
+import '../styles/globals.css';
+import StructuredData from '../components/seo/StructuredData.astro';
+import ScrollProgress from '../components/ui/ScrollProgress.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  ogImage?: string;
+}
+
+const {
+  title = 'AutaMedica - Telemedicina sin fricciones',
+  description = 'Plataforma de telemedicina innovadora. Conecta con profesionales de la salud, agenda consultas inmediatas y recibe atencion medica de calidad. Tecnologia segura HIPAA-compliant.',
+  canonical = 'https://autamedica.com',
+  ogImage = '/og-image.jpg'
+} = Astro.props;
+
+const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
+---
+
+<!doctype html>
+<html lang="es" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={canonical} />
+
+    <!-- Robots -->
+    <meta name="robots" content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1" />
+
+    <!-- Autores -->
+    <meta name="author" content="E.M Medicina - UBA" />
+    <meta name="creator" content="E.M Medicina - UBA" />
+    <meta name="publisher" content="AutaMedica" />
+
+    <!-- Keywords -->
+    <meta name="keywords" content="telemedicina, consulta virtual, medico online, salud digital, consultas online, HIPAA, AutaMedica, receta digital, historia clinica digital, inteligencia artificial medica, telemedicina Argentina, consulta medica virtual" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="AutaMedica" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`https://autamedica.com${ogImage}`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={fullTitle} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@autamedica" />
+    <meta name="twitter:creator" content="@autamedica" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="https://autamedica.com/twitter-image.jpg" />
+
+    <!-- hreflang -->
+    <link rel="alternate" hreflang="es-AR" href="https://autamedica.com" />
+    <link rel="alternate" hreflang="es" href="https://autamedica.com" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AutaMedica" />
+
+    <!-- Structured Data -->
+    <StructuredData />
+  </head>
+  <body class="antialiased">
+    <ScrollProgress />
+    <slot />
+  </body>
+</html>

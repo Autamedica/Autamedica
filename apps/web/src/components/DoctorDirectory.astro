@@ -1,0 +1,260 @@
+---
+const doctors = [
+  {
+    name: "Dr. Martin Alvarez",
+    initials: "MA",
+    specialty: "Medicina General",
+    experience: 12,
+    languages: ["Espanol"],
+    available: true,
+    gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+  },
+  {
+    name: "Dra. Carolina Vega",
+    initials: "CV",
+    specialty: "Cardiologia",
+    experience: 8,
+    languages: ["Espanol", "Ingles"],
+    available: true,
+    gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  },
+  {
+    name: "Dr. Lucas Fernandez",
+    initials: "LF",
+    specialty: "Dermatologia",
+    experience: 15,
+    languages: ["Espanol"],
+    available: false,
+    gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
+  },
+  {
+    name: "Dra. Sofia Ramirez",
+    initials: "SR",
+    specialty: "Pediatria",
+    experience: 10,
+    languages: ["Espanol", "Portugues"],
+    available: true,
+    gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>`,
+  },
+  {
+    name: "Dr. Nicolas Herrera",
+    initials: "NH",
+    specialty: "Neurologia",
+    experience: 20,
+    languages: ["Espanol", "Ingles"],
+    available: false,
+    gradient: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 1 4.9 4H17a4 4 0 0 1 1 7.9V15a4 4 0 0 1-4 4h-1v3h-2v-3H10a4 4 0 0 1-4-4v-1.1A4 4 0 0 1 7 6h.1A5 5 0 0 1 12 2z"/></svg>`,
+  },
+  {
+    name: "Dra. Valentina Lopez",
+    initials: "VL",
+    specialty: "Ginecologia y Obstetricia",
+    experience: 7,
+    languages: ["Espanol"],
+    available: true,
+    gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  },
+];
+---
+
+<section id="profesionales" class="directory" aria-label="Nuestros profesionales">
+  <div class="directory-inner">
+    <div class="directory-header animate-on-scroll">
+      <h2 class="directory-title">Nuestros profesionales</h2>
+      <p class="directory-subtitle">Medicos verificados, disponibles para tu consulta</p>
+    </div>
+
+    <div class="doctor-grid">
+      {doctors.map((d) => (
+        <article class="doctor-card animate-on-scroll">
+          <div class="doctor-avatar" style={`background: ${d.gradient}`} set:html={d.icon} />
+          <div class="doctor-info">
+            <h3 class="doctor-name">{d.name}</h3>
+            <p class="doctor-specialty">{d.specialty}</p>
+            <div class="doctor-meta">
+              <span>{d.experience} anios exp.</span>
+              <span class="doctor-meta-dot" aria-hidden="true" />
+              <span>{d.languages.join(', ')}</span>
+            </div>
+            <div class="doctor-availability">
+              <span class={`status-dot ${d.available ? 'available' : ''}`} aria-hidden="true" />
+              <span>{d.available ? 'Disponible hoy' : 'Disponible manana'}</span>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <div class="directory-cta animate-on-scroll">
+      <p class="directory-cta-text">Mas de 150 profesionales en la plataforma</p>
+      <a href="#sintomas" class="directory-cta-link">
+        Ver todas las especialidades
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .directory {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-surface);
+  }
+
+  .directory-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .directory-header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .directory-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .directory-subtitle {
+    font-size: var(--text-lg);
+    color: var(--au-text-secondary);
+    margin: 0;
+  }
+
+  .doctor-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+
+  .doctor-card {
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-bg);
+    transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  }
+
+  .doctor-card:hover {
+    border-color: var(--au-border-hover);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .doctor-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .doctor-info {
+    min-width: 0;
+  }
+
+  .doctor-name {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-1);
+  }
+
+  .doctor-specialty {
+    font-size: var(--text-sm);
+    color: var(--au-text-secondary);
+    margin: 0 0 var(--space-2);
+  }
+
+  .doctor-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--au-text-tertiary);
+    margin-bottom: var(--space-3);
+  }
+
+  .doctor-meta-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--au-text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .doctor-availability {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--au-text-tertiary);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--au-text-tertiary);
+    flex-shrink: 0;
+  }
+
+  .status-dot.available {
+    background: var(--portal-patients);
+  }
+
+  .directory-cta {
+    text-align: center;
+    margin-top: var(--space-12);
+    padding-top: var(--space-8);
+    border-top: 1px solid var(--au-border);
+  }
+
+  .directory-cta-text {
+    font-size: var(--text-sm);
+    color: var(--au-text-tertiary);
+    margin: 0 0 var(--space-4);
+  }
+
+  .directory-cta-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3) var(--space-6);
+    transition: border-color var(--transition-base);
+  }
+
+  .directory-cta-link:hover {
+    border-color: var(--au-border-hover);
+  }
+
+  @media (max-width: 1024px) {
+    .doctor-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .doctor-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

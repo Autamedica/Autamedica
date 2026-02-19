@@ -1,0 +1,88 @@
+---
+
+---
+
+<section class="cta-final" aria-label="Llamada a la accion">
+  <div class="cta-glow" aria-hidden="true"></div>
+  <div class="cta-inner animate-on-scroll">
+    <h2 class="cta-title">Empieza a cuidar tu salud hoy</h2>
+    <p class="cta-subtitle">Unite a miles de profesionales y pacientes que ya confian en AutaMedica</p>
+    <div class="cta-actions">
+      <a href="/auth/select-role" class="cta-btn-primary">
+        Crear cuenta gratis
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+    <p class="cta-note">Sin tarjeta de credito. Setup en 30 segundos.</p>
+  </div>
+</section>
+
+<style>
+  .cta-final {
+    position: relative;
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-surface);
+    border-top: 1px solid var(--au-border);
+    border-bottom: 1px solid var(--au-border);
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.02), transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-inner {
+    position: relative;
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .cta-title {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-4);
+    letter-spacing: -0.03em;
+  }
+
+  .cta-subtitle {
+    font-size: var(--text-xl);
+    color: var(--au-text-secondary);
+    margin: 0 0 var(--space-8);
+    line-height: 1.6;
+  }
+
+  .cta-actions {
+    margin-bottom: var(--space-4);
+  }
+
+  .cta-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--au-bg);
+    background: var(--au-accent);
+    border-radius: var(--radius-sm);
+    transition: transform var(--transition-base), box-shadow var(--transition-base), opacity var(--transition-base);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .cta-btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.1);
+  }
+
+  .cta-note {
+    font-size: var(--text-xs);
+    color: var(--au-text-tertiary);
+    margin: 0;
+  }
+</style>

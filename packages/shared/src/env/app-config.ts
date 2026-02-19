@@ -31,8 +31,8 @@ export interface LoginUrlBuilder {
  */
 function getAuthHubOrigin(): string {
   return isDevelopment()
-    ? getClientEnvOrDefault('NEXT_PUBLIC_AUTH_HUB_DEV_URL', 'http://localhost:3005')
-    : getClientEnvOrDefault('NEXT_PUBLIC_AUTH_HUB_URL', 'https://auth.autamedica.com');
+    ? getClientEnvOrDefault('NEXT_PUBLIC_AUTH_HUB_DEV_URL', 'http://localhost:3000')
+    : getClientEnvOrDefault('NEXT_PUBLIC_AUTH_HUB_URL', 'https://www.autamedica.com');
 }
 
 /**

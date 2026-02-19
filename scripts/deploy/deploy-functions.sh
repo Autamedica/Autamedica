@@ -69,6 +69,11 @@ if [ ! -d "supabase/functions/update-call-status" ]; then
     exit 1
 fi
 
+if [ ! -d "supabase/functions/ingest-patient-observation" ]; then
+    echo "❌ Error: ingest-patient-observation function not found"
+    exit 1
+fi
+
 echo "✅ Functions found"
 echo ""
 
@@ -94,6 +99,15 @@ else
 fi
 
 echo ""
+echo "🔄 Deploying ingest-patient-observation..."
+if npx supabase functions deploy ingest-patient-observation --project-ref "$PROJECT_REF"; then
+    echo "✅ ingest-patient-observation deployed successfully"
+else
+    echo "❌ Failed to deploy ingest-patient-observation"
+    exit 1
+fi
+
+echo ""
 echo "🎉 All functions deployed successfully!"
 echo ""
 
@@ -104,6 +118,7 @@ echo "--------------------"
 echo "📍 Function URLs:"
 echo "  • Create Call: https://$PROJECT_REF.supabase.co/functions/v1/create-call"
 echo "  • Update Status: https://$PROJECT_REF.supabase.co/functions/v1/update-call-status"
+echo "  • Ingest Observation: https://$PROJECT_REF.supabase.co/functions/v1/ingest-patient-observation"
 echo ""
 
 echo "🔍 Basic connectivity test..."
@@ -111,6 +126,7 @@ echo "🔍 Basic connectivity test..."
 # Test if functions are responding
 CREATE_CALL_URL="https://$PROJECT_REF.supabase.co/functions/v1/create-call"
 UPDATE_STATUS_URL="https://$PROJECT_REF.supabase.co/functions/v1/update-call-status"
+INGEST_OBSERVATION_URL="https://$PROJECT_REF.supabase.co/functions/v1/ingest-patient-observation"
 
 # Test CORS/OPTIONS request
 echo "Testing CORS..."
@@ -124,6 +140,12 @@ if curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$UPDATE_STATUS_URL" | grep
     echo "✅ update-call-status is responding"
 else
     echo "⚠️  update-call-status may not be responding correctly"
+fi
+
+if curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$INGEST_OBSERVATION_URL" | grep -q "200"; then
+    echo "✅ ingest-patient-observation is responding"
+else
+    echo "⚠️  ingest-patient-observation may not be responding correctly"
 fi
 
 echo ""

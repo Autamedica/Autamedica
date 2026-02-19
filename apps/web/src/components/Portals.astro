@@ -1,0 +1,209 @@
+---
+const portals = [
+  {
+    name: "Pacientes",
+    color: "var(--portal-patients)",
+    hex: "#10b981",
+    description: "Gestiona tu salud desde cualquier lugar, en cualquier momento.",
+    features: [
+      "Consultas virtuales en HD",
+      "Historia clinica digital",
+      "Agendamiento inteligente",
+      "Receta digital al instante"
+    ],
+    cta: "Acceder como paciente",
+    href: "/auth/select-role",
+    icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+  },
+  {
+    name: "Medicos",
+    color: "var(--portal-doctors)",
+    hex: "#3b82f6",
+    description: "Herramientas profesionales para una practica medica moderna.",
+    features: [
+      "Consultorio virtual integrado",
+      "Gestion avanzada de pacientes",
+      "IA para diagnostico asistido",
+      "Teleconsultas HD profesionales"
+    ],
+    cta: "Portal medico",
+    href: "/auth/select-role",
+    icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`
+  },
+  {
+    name: "Empresas",
+    color: "var(--portal-companies)",
+    hex: "#f59e0b",
+    description: "Soluciones integrales de salud corporativa para tu equipo.",
+    features: [
+      "Dashboard empresarial completo",
+      "Medicina ocupacional digital",
+      "Reportes de salud corporativa",
+      "Programas de bienestar"
+    ],
+    cta: "Soluciones empresariales",
+    href: "/auth/select-role",
+    icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg>`
+  }
+];
+---
+
+<section id="portales" class="portals" aria-label="Portales de acceso">
+  <div class="portals-inner">
+    <div class="portals-header animate-on-scroll">
+      <h2 class="portals-title">Una plataforma, tres portales</h2>
+      <p class="portals-subtitle">Soluciones especializadas para cada necesidad del ecosistema de salud</p>
+    </div>
+
+    <div class="portals-grid">
+      {portals.map((portal) => (
+        <article class="portal-card animate-on-scroll">
+          <div class="portal-icon" style={`color: ${portal.hex}`} set:html={portal.icon} />
+          <h3 class="portal-name">{portal.name}</h3>
+          <p class="portal-desc">{portal.description}</p>
+          <ul class="portal-features">
+            {portal.features.map((f) => (
+              <li>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={portal.hex} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                {f}
+              </li>
+            ))}
+          </ul>
+          <a href={portal.href} class="portal-cta" style={`border-color: ${portal.hex}; color: ${portal.hex}`}>
+            {portal.cta}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .portals {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-bg);
+  }
+
+  .portals-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .portals-header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .portals-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .portals-subtitle {
+    font-size: var(--text-lg);
+    color: var(--au-text-secondary);
+    margin: 0;
+  }
+
+  .portals-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+  }
+
+  .portal-card {
+    padding: var(--space-8);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    display: flex;
+    flex-direction: column;
+    transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  }
+
+  .portal-card:hover {
+    border-color: var(--au-border-hover);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .portal-icon {
+    margin-bottom: var(--space-4);
+  }
+
+  .portal-name {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-2);
+  }
+
+  .portal-desc {
+    font-size: var(--text-base);
+    color: var(--au-text-secondary);
+    line-height: 1.6;
+    margin: 0 0 var(--space-6);
+  }
+
+  .portal-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    flex-grow: 1;
+  }
+
+  .portal-features li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--au-text-secondary);
+  }
+
+  .portal-features li svg {
+    flex-shrink: 0;
+  }
+
+  .portal-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    border: 1px solid;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-base), transform var(--transition-base);
+    text-align: center;
+  }
+
+  .portal-cta:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 768px) {
+    .portals-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .portals-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .portal-card:last-child {
+      grid-column: 1 / -1;
+      max-width: 50%;
+      justify-self: center;
+    }
+  }
+</style>

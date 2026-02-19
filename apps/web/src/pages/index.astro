@@ -1,0 +1,103 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Hero from '../components/Hero.astro';
+import ProductShowcase from '../components/ProductShowcase.astro';
+import DoctorDirectory from '../components/DoctorDirectory.astro';
+import SymptomChecker from '../components/SymptomChecker';
+import Portals from '../components/Portals.astro';
+import HorizontalScroll from '../components/HorizontalScroll';
+import Process from '../components/Process.astro';
+import Testimonials from '../components/Testimonials.astro';
+import HealthContent from '../components/HealthContent.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="AutaMedica - Telemedicina sin fricciones"
+  description="Agenda inmediata, receta digital al finalizar y resultados en tu movil. Plataforma de telemedicina HIPAA-compliant."
+  canonical="https://autamedica.com"
+>
+  <Navbar />
+  <main>
+    <Hero />
+    <ProductShowcase />
+    <DoctorDirectory />
+
+    <!-- Symptom Checker: herramienta interactiva sin login -->
+    <section id="sintomas" class="symptom-section">
+      <div class="symptom-inner">
+        <div class="symptom-header animate-on-scroll">
+          <h2 class="symptom-title">Que necesitas hoy?</h2>
+          <p class="symptom-subtitle">Selecciona un sintoma y te recomendamos la especialidad adecuada</p>
+        </div>
+        <SymptomChecker client:visible />
+      </div>
+    </section>
+
+    <!-- Desktop: scroll horizontal con GSAP. Mobile: fallback a cards estaticas -->
+    <div class="desktop-only">
+      <HorizontalScroll client:only="react" />
+    </div>
+    <div class="mobile-only">
+      <Portals />
+    </div>
+
+    <Process />
+    <Testimonials />
+    <HealthContent />
+    <CTAFinal />
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .symptom-section {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-bg);
+  }
+
+  .symptom-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .symptom-header {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .symptom-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .symptom-subtitle {
+    font-size: var(--text-lg);
+    color: var(--au-text-secondary);
+    margin: 0;
+  }
+</style>
+
+<script>
+  // Scroll-triggered fade-in animations
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+  );
+
+  document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+    observer.observe(el);
+  });
+</script>
