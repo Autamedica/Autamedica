@@ -10,6 +10,8 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 713636e fix(deploy): update compatibility_date + nodejs_compat_v2
+- 0d316e1 fix(ci): repair supabase deploy workflow yaml
 - 8983672 fix(ci): usar pnpm dlx wrangler en vez de npx para deploy
 - 189b5e9 fix(ci): cambiar security-scan a warning (no bloqueador)
 - da302a2 fix(ci): simplificar lógica del security-scan
@@ -23,6 +25,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- ffbb70c 📝 docs: actualizar changelog automático
 - 88a8d37 📝 docs: actualizar changelog automático
 - 9df8e35 📝 docs: actualizar changelog automático
 - c372944 📝 docs: actualizar changelog automático
@@ -48,4 +51,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 12:54:24*
+*Generado automáticamente el 2026-02-19 12:56:43*
