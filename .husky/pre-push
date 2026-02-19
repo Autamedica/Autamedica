@@ -42,9 +42,9 @@ else
   echo "✅ No hay archivos TS/JS para validar"
 fi
 
-# 4. TypeCheck rápido
+# 4. TypeCheck rápido — solo paquetes con cambios respecto a origin/main
 echo "🔍 TypeCheck..."
-pnpm turbo run typecheck || {
+pnpm turbo run typecheck --filter=...[origin/main] || {
   echo "❌ TypeCheck falló"
   exit 1
 }
