@@ -13,71 +13,28 @@ Documentación de todos los exports públicos de cada package de Autamedica.
 ```typescript
 // Primitivos: Fechas
 export type { ISODateString } from "./primitives/date";
-export {
-  toISODateString,
-  fromISODateString,
-  nowAsISODateString,
-} from "./primitives/date";
+export { toISODateString, fromISODateString, nowAsISODateString } from "./primitives/date";
 
 // Primitivos: API
-export type {
-  APIResponse,
-  APIError,
-  APISuccessResponse,
-  APIErrorResponse,
-} from "./primitives/api";
+export type { APIResponse, APIError, APISuccessResponse, APIErrorResponse } from "./primitives/api";
 export { createSuccessResponse, createErrorResponse } from "./primitives/api";
 
 // Primitivos: IDs
-export type {
-  UUID,
-  PatientId,
-  DoctorId,
-  CompanyId,
-  AppointmentId,
-  FacilityId,
-  SpecialtyId,
-} from "./primitives/id";
-export {
-  createUUID,
-  createPatientId,
-  createDoctorId,
-  createCompanyId,
-} from "./primitives/id";
+export type { UUID, PatientId, DoctorId, CompanyId, AppointmentId, FacilityId, SpecialtyId } from "./primitives/id";
+export { createUUID, createPatientId, createDoctorId, createCompanyId } from "./primitives/id";
 
 // Auth
-export type {
-  UserRole,
-  Portal,
-  User,
-  UserProfile,
-  UserSession,
-} from "./auth/user";
+export type { UserRole, Portal, User, UserProfile, UserSession } from "./auth/user";
 export { ROLE_TO_PORTALS, canAccessPortal } from "./auth/user";
 
 // Entidades
-export type {
-  Patient,
-  PatientAddress,
-  EmergencyContact,
-} from "./entities/patient";
+export type { Patient, PatientAddress, EmergencyContact } from "./entities/patient";
 
-export type {
-  Doctor,
-  DoctorEducation,
-  DoctorExperience,
-} from "./entities/doctor";
+export type { Doctor, DoctorEducation, DoctorExperience } from "./entities/doctor";
 
-export type {
-  Company,
-  CompanySize,
-  CompanyAddress,
-  CompanyContact,
-} from "./entities/company";
+export type { Company, CompanySize, CompanyAddress, CompanyContact } from "./entities/company";
 
-export type {
-  Appointment,
-} from "./entities/appointment";
+export type { Appointment } from "./entities/appointment";
 ```
 
 ---
@@ -88,38 +45,16 @@ export type {
 
 ```typescript
 // Utilidades de entorno
-export {
-  ensureEnv,
-  ensureClientEnv,
-  ensureServerEnv,
-  validateEnvironment,
-  validateEnvironmentSecurity,
-  validateProductionEnvironment,
-  validateStagingEnvironment,
-  validateEnvironmentByType,
-  isProduction,
-  isDevelopment,
-} from "./env";
+export { ensureEnv, ensureClientEnv, ensureServerEnv, validateEnvironment, validateEnvironmentSecurity, validateProductionEnvironment, validateStagingEnvironment, validateEnvironmentByType, isProduction, isDevelopment } from "./env";
 
 // Configuración de aplicaciones (migrado de @autamedica/config)
-export {
-  getAppEnv,
-  getLoginUrlBuilder,
-  type AppName,
-  type AppEnvironmentConfig,
-  type LoginUrlBuilder,
-} from "./env/app-config";
+export { getAppEnv, getLoginUrlBuilder, type AppName, type AppEnvironmentConfig, type LoginUrlBuilder } from "./env/app-config";
 
 // UI utilities (migrado de @autamedica/utils)
 export { cn } from "./ui-utils";
 
 // Type guards y async utilities (migrado de @autamedica/utils)
-export {
-  isString,
-  isNumber,
-  isBoolean,
-  delay,
-} from "./type-guards";
+export { isString, isNumber, isBoolean, delay } from "./type-guards";
 export type { EnvironmentConfig, EnvironmentValidation } from "./env";
 
 // Validaciones
@@ -130,29 +65,16 @@ export { logger } from "./services/logger.service";
 export type { Logger, LogLevel } from "./services/logger.service";
 
 // Role-based routing
-export {
-  BASE_URL_BY_ROLE,
-  HOME_BY_ROLE,
-  AUTH_URLS,
-  PORTAL_TO_ROLE,
-  getTargetUrlByRole,
-  getCookieDomain,
-  getPortalForRole,
-  getRoleForPortal,
-  getLoginUrl,
-} from "./role-routing";
+export { BASE_URL_BY_ROLE, HOME_BY_ROLE, AUTH_URLS, PORTAL_TO_ROLE, getTargetUrlByRole, getCookieDomain, getPortalForRole, getRoleForPortal, getLoginUrl } from "./role-routing";
 
 // Session management
 export { getSession, hasRole } from "./session";
 
 // Security helpers
-export {
-  isAllowedRedirect,
-  safeRedirectOrFallback,
-  buildSafeLoginUrl,
-  isSameOrigin,
-  sanitizeReturnUrl,
-} from "./security/redirects";
+export { isAllowedRedirect, safeRedirectOrFallback, buildSafeLoginUrl, isSameOrigin, sanitizeReturnUrl } from "./security/redirects";
+
+// Role types (re-exported from types package)
+export type { UserRole } from "./auth/portals";
 ```
 
 ---
@@ -163,86 +85,32 @@ export {
 
 ```typescript
 // Tipos compartidos de autenticación
-export type {
-  UserRole,
-  AppName,
-  UserProfile,
-  UserMetadata,
-  AuthState,
-  Environment,
-  DomainConfig,
-  RedirectConfig,
-  SessionConfig,
-  AuthErrorType,
-} from "./types";
+export type { UserRole, AppName, UserProfile, UserMetadata, AuthState, Environment, DomainConfig, RedirectConfig, SessionConfig, AuthErrorType } from "./types";
 
-export {
-  ROLE_APP_MAPPING,
-  APP_ALLOWED_ROLES,
-  AuthError,
-} from "./types";
+export { ROLE_APP_MAPPING, APP_ALLOWED_ROLES, AuthError } from "./types";
 
-export {
-  APP_NAMES,
-} from "./constants";
+export { APP_NAMES } from "./constants";
 
-export type {
-  AppNameConstant,
-} from "./constants";
+export type { AppNameConstant } from "./constants";
 
 // Clientes Supabase (browser)
-export {
-  createBrowserClient,
-  getSupabaseClient,
-  signOutGlobally,
-} from "./client/supabase";
+export { createBrowserClient, getSupabaseClient, signOutGlobally } from "./client/supabase";
 
 // Clientes Supabase (server-side)
-export {
-  createServerClient,
-  createMiddlewareClient,
-  createRouteHandlerClient,
-} from "./server";
+export { createServerClient, createMiddlewareClient, createRouteHandlerClient } from "./server";
 
 // Manejo de sesiones
-export {
-  getSession,
-  requireSession,
-  requirePortalAccess,
-  signOut,
-  getCurrentUser,
-  hasRole,
-  hasPortalAccess,
-} from "./session";
+export { getSession, requireSession, requirePortalAccess, signOut, getCurrentUser, hasRole, hasPortalAccess } from "./session";
 
 // Middleware y hooks de aplicación
-export {
-  AuthProvider,
-  useAuth,
-  useRequireAuth,
-  useRequireRole,
-} from "./hooks/useAuth";
+export { AuthProvider, useAuth, useRequireAuth, useRequireRole } from "./hooks/useAuth";
 
-export {
-  useSupabase,
-} from "./hooks/useSupabase";
+export { useSupabase } from "./hooks/useSupabase";
 
-export {
-  authMiddleware,
-  createAppMiddleware,
-} from "./middleware/auth";
+export { authMiddleware, createAppMiddleware } from "./middleware/auth";
 
 // Utilidades de configuración y redirección
-export {
-  getEnvironment,
-  getDomainConfig,
-  getSessionConfig,
-  getSupabaseConfig,
-  isSameOrigin,
-  sanitizeReturnUrl,
-  getRedirectUrl,
-  getLoginUrl,
-} from "./utils";
+export { getEnvironment, getDomainConfig, getSessionConfig, getSupabaseConfig, isSameOrigin, sanitizeReturnUrl, getRedirectUrl, getLoginUrl } from "./utils";
 ```
 
 ---
@@ -259,6 +127,11 @@ export { useAppointments } from "./useAppointments";
 // React hooks de utilidad
 export { useAsync } from "./useAsync";
 export { useDebounce } from "./useDebounce";
+
+// Telemedicine hooks (re-exported from @autamedica/telemedicine)
+export { useTelemedicineClient, useMediaControls, useRtcStats } from "@autamedica/telemedicine";
+
+export type { TelemedicineClientState, TelemedicineClientActions, TelemedicineClientHook, MediaControlsState, MediaControlsActions, MediaControlsHook, RtcStatsData, RtcStatsState, RtcStatsActions, RtcStatsHook } from "@autamedica/telemedicine";
 ```
 
 ---

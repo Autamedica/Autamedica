@@ -49,7 +49,7 @@ export function getPortalForRole(
   isDev: boolean = typeof window !== 'undefined' && window.location.hostname === 'localhost'
 ): string {
   const portals = isDev ? roleToPortalDev : roleToPortal;
-  return portals[role]!; // Safe: all UserRole keys are defined in roleToPortal/Dev
+  return portals[role] as string;
 }
 
 /**
@@ -113,7 +113,7 @@ export function getRoleDisplayName(role: UserRole): string {
     platform_admin: 'Administrador de Plataforma'
   };
 
-  return roleNames[role]!; // Safe: all UserRole keys are defined
+  return roleNames[role] as string;
 }
 
 /**
@@ -131,7 +131,7 @@ export function getRoleDescription(role: UserRole): string {
     platform_admin: 'Control total de la plataforma y todas sus funcionalidades'
   };
 
-  return descriptions[role]!; // Safe: all UserRole keys are defined
+  return descriptions[role] as string;
 }
 
 // ==========================================
@@ -158,8 +158,6 @@ export const AVAILABLE_ROLES: readonly UserRole[] = [
   'doctor',
   'patient',
   'company_admin',
-  'organization_admin',
-  'platform_admin'
 ] as const;
 
 /**
