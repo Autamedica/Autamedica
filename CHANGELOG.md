@@ -18,8 +18,10 @@
 - 6c76619 fix(ci): corregir workflow CI/CD Monorepo y dependencias ESLint
 
 ### 🔒 Seguridad
+- 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 2eab369 📝 docs: actualizar changelog automático
 - d316b0a 📝 docs: actualizar changelog automático
 - 146e4e2 📝 docs: actualizar changelog automático
 - 8925c01 docs: agregar información clara de Supabase AutaMedica a CLAUDE.md
@@ -40,4 +42,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 12:35:23*
+*Generado automáticamente el 2026-02-19 12:42:24*
