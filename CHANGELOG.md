@@ -15,6 +15,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 7248b9f fix(ci): resolve all remaining build failures in CI/CD
 - 5c781fa fix(web-app): declare missing deps — @autamedica/shared, @supabase/ssr, @opennextjs/cloudflare
 - 4c05b39 fix(ci): resolve 4 workflow failures — lint, secrets-scan, agentic-os, next-on-pages
 - bf2dff6 fix(ci): add --skip-next-build; remove admin roles from select-role; fix glossary exports
@@ -42,6 +43,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- eeafb62 📝 docs: actualizar changelog automático
 - 5be4e22 📝 docs: actualizar changelog automático
 - 4c5f091 📝 docs: actualizar changelog automático
 - 225aded 📝 docs: actualizar changelog automático
@@ -85,4 +87,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 21:50:39*
+*Generado automáticamente el 2026-02-19 22:11:30*
