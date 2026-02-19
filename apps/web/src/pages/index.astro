@@ -12,6 +12,7 @@ import Testimonials from '../components/Testimonials.astro';
 import HealthContent from '../components/HealthContent.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
+import ValueProps from '../components/ValueProps.astro';
 ---
 
 <Layout
@@ -22,6 +23,7 @@ import Footer from '../components/Footer.astro';
   <Navbar />
   <main>
     <Hero />
+    <ValueProps />
     <ProductShowcase />
     <DoctorDirectory />
 
@@ -107,6 +109,22 @@ import Footer from '../components/Footer.astro';
         .from('.hero-actions', { opacity: 0, y: 20, duration: 0.5, ease: 'power2.out' }, '-=0.3')
         .from('.hero-metrics', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' }, '-=0.2')
         .from('.hero-scroll-hint', { opacity: 0, duration: 0.4 }, '-=0.1');
+    }
+
+    // ─── Value props — stagger ───
+    const valuePropsInner = document.querySelector('.value-props-inner');
+    if (valuePropsInner) {
+      gsap.fromTo(
+        valuePropsInner.querySelectorAll('.value-card'),
+        { opacity: 0, y: 30, scale: 0.97 },
+        {
+          opacity: 1, y: 0, scale: 1,
+          duration: 0.6,
+          stagger: 0.12,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: valuePropsInner, start: 'top 85%', toggleActions: 'play none none none' },
+        }
+      );
     }
 
     // ─── Section headers ───
@@ -216,7 +234,7 @@ import Footer from '../components/Footer.astro';
     const handled = new Set<Element>();
     document.querySelectorAll(
       '.showcase-header, .directory-header, .process-header, .testimonials-header, ' +
-      '.showcase-row, .doctor-card, .step, .testimonial-card, .cta-inner, .symptom-header'
+      '.showcase-row, .doctor-card, .value-card, .step, .testimonial-card, .cta-inner, .symptom-header'
     ).forEach((el) => handled.add(el));
 
     document.querySelectorAll('.animate-on-scroll').forEach((el) => {

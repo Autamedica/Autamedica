@@ -16,6 +16,7 @@ interface Portal {
   features: string[];
   cta: string;
   href: string;
+  image: string;
 }
 
 const portals: Portal[] = [
@@ -31,6 +32,7 @@ const portals: Portal[] = [
     ],
     cta: 'Acceder como paciente',
     href: '/auth/select-role',
+    image: '/portals/portal-pacientes.webp',
   },
   {
     name: 'Medicos',
@@ -44,6 +46,7 @@ const portals: Portal[] = [
     ],
     cta: 'Portal medico',
     href: '/auth/select-role',
+    image: '/portals/portal-medicos.webp',
   },
   {
     name: 'Empresas',
@@ -57,10 +60,11 @@ const portals: Portal[] = [
     ],
     cta: 'Soluciones empresariales',
     href: '/auth/select-role',
+    image: '/portals/portal-empresas.webp',
   },
 ];
 
-// Raw hex values for computed styles (CSS vars don't work in some inline contexts)
+// Raw hex values for computed styles
 const portalHex: Record<string, string> = {
   Pacientes: '#10b981',
   Medicos: '#3b82f6',
@@ -100,7 +104,6 @@ export default function HorizontalScroll() {
 
     if (reduced || !isDesktop) return;
 
-    // Small delay to ensure DOM layout is complete after island hydration
     const raf = requestAnimationFrame(() => {
       const total = portals.length;
       const scrollDistance = total * window.innerHeight * 1.5;
@@ -126,7 +129,6 @@ export default function HorizontalScroll() {
         },
       });
 
-      // Force recalculation of all ScrollTrigger instances
       ScrollTrigger.refresh();
     });
 
@@ -161,12 +163,12 @@ export default function HorizontalScroll() {
     >
       {/* Header */}
       <div style={{
-        position: 'absolute', top: 'clamp(1.5rem, 4vh, 3rem)', left: 0, right: 0,
+        position: 'absolute', top: 'clamp(1.2rem, 3vh, 2.5rem)', left: 0, right: 0,
         textAlign: 'center', zIndex: 10, padding: '0 var(--section-px)',
       }}>
         <h2 style={{
           fontSize: 'var(--text-3xl)', fontWeight: 500, color: 'var(--au-text-primary)',
-          margin: '0 0 0.5rem', letterSpacing: '-0.02em',
+          margin: '0 0 0.35rem', letterSpacing: '-0.02em',
         }}>
           Una plataforma, tres portales
         </h2>
@@ -190,26 +192,16 @@ export default function HorizontalScroll() {
               key={portal.name}
               style={{
                 flex: '0 0 100vw', width: '100vw', height: '100vh',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'clamp(5rem, 10vh, 8rem) var(--section-px) clamp(2rem, 5vh, 4rem)',
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                alignItems: 'center',
+                gap: '0',
+                padding: 'clamp(5rem, 10vh, 8rem) clamp(2rem, 6vw, 5rem) clamp(2rem, 5vh, 4rem)',
                 position: 'relative',
               }}
             >
-              {/* Decorative gradient blob */}
-              <div style={{
-                position: 'absolute',
-                right: '10%',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '400px',
-                height: '400px',
-                borderRadius: '50%',
-                background: `radial-gradient(circle, ${hex}08 0%, transparent 70%)`,
-                filter: 'blur(60px)',
-                pointerEvents: 'none',
-              }} />
-
-              <div style={{ maxWidth: '560px', width: '100%', position: 'relative', zIndex: 1 }}>
+              {/* Left: text content */}
+              <div style={{ maxWidth: '520px', width: '100%', position: 'relative', zIndex: 1, paddingRight: '2rem' }}>
                 {/* Portal icon */}
                 <div style={{
                   width: '3.5rem', height: '3.5rem', borderRadius: 'var(--radius-md)',
@@ -261,6 +253,47 @@ export default function HorizontalScroll() {
                   <ArrowIcon />
                 </a>
               </div>
+
+              {/* Right: image */}
+              <div style={{
+                position: 'relative',
+                height: 'clamp(300px, 60vh, 520px)',
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                border: `1px solid ${hex}25`,
+                boxShadow: `0 0 60px ${hex}10, 0 24px 48px rgba(0,0,0,0.4)`,
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- Astro island, next/image unavailable */}
+                <img
+                  src={portal.image}
+                  alt={`Portal ${portal.name}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center',
+                    display: 'block',
+                  }}
+                  loading="lazy"
+                />
+                {/* Color tint overlay matching portal color */}
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(135deg, ${hex}18 0%, transparent 60%, rgba(9,9,11,0.4) 100%)`,
+                  pointerEvents: 'none',
+                }} />
+                {/* Bottom fade into bg */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '40%',
+                  background: 'linear-gradient(to top, rgba(9,9,11,0.5) 0%, transparent 100%)',
+                  pointerEvents: 'none',
+                }} />
+              </div>
             </div>
           );
         })}
@@ -291,7 +324,7 @@ export default function HorizontalScroll() {
         ))}
       </div>
 
-      {/* Navigation hints */}
+      {/* Next portal hint */}
       {activeIndex < portals.length - 1 && (
         <div style={{
           position: 'absolute', right: 'var(--space-8)', top: '50%', transform: 'translateY(-50%)',

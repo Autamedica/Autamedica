@@ -33,7 +33,6 @@ function log(msg, color = "reset") {
 
 // Regexes para validación
 const PASCAL_CASE_REGEX = /^[A-Z][a-zA-Z0-9]*$/;
-const CAMEL_CASE_REGEX = /^[a-z][a-zA-Z0-9]*$/;
 const SNAKE_CASE_REGEX = /^[a-z][a-z0-9_]*$/;
 const KEBAB_CASE_REGEX = /^[a-z][a-z0-9-]*$/;
 
@@ -57,8 +56,11 @@ class ConventionValidator {
     for (const file of typeFiles) {
       const content = await fs.readFile(path.join(PROJECT_ROOT, file), "utf-8");
 
-      // Buscar type/interface declarations
-      const typeMatches = content.matchAll(/(?:type|interface)\s+([A-Za-z0-9_]+)/g);
+      // Buscar type/interface declarations (excluir líneas de comentario)
+      const contentWithoutComments = content
+        .replace(/\/\/[^\n]*/g, '')        // Strip // single-line comments
+        .replace(/\/\*[\s\S]*?\*\//g, ''); // Strip /* */ block comments
+      const typeMatches = contentWithoutComments.matchAll(/(?:type|interface)\s+([A-Za-z0-9_]+)/g);
 
       for (const match of typeMatches) {
         const typeName = match[1];
@@ -107,8 +109,43 @@ class ConventionValidator {
       for (const match of columnMatches) {
         const columnName = match[1];
 
-        // Ignorar palabras clave SQL
-        if (["CREATE", "ALTER", "DROP", "TABLE", "INDEX"].includes(columnName.toUpperCase())) {
+        // Ignorar palabras clave SQL (lista exhaustiva)
+        const SQL_KEYWORDS = new Set([
+          'CREATE', 'ALTER', 'DROP', 'TABLE', 'INDEX', 'SELECT', 'INSERT',
+          'UPDATE', 'DELETE', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'IN',
+          'IS', 'NULL', 'TRUE', 'FALSE', 'JOIN', 'LEFT', 'RIGHT', 'INNER',
+          'OUTER', 'ON', 'CROSS', 'GROUP', 'ORDER', 'BY', 'HAVING', 'LIMIT',
+          'OFFSET', 'FOR', 'IF', 'ELSE', 'ELSIF', 'END', 'BEGIN', 'THEN',
+          'WHEN', 'CASE', 'RETURN', 'RETURNS', 'EXECUTE', 'PERFORM', 'CALL',
+          'DECLARE', 'RAISE', 'EXCEPTION', 'LOOP', 'FOREACH', 'EXIT',
+          'CONTINUE', 'LANGUAGE', 'SECURITY', 'DEFINER', 'OWNER', 'GRANT',
+          'REVOKE', 'POLICY', 'USING', 'CHECK', 'WITH', 'AS', 'DO',
+          'BEFORE', 'AFTER', 'INSTEAD', 'EACH', 'ROW', 'COMMENT', 'TRIGGER',
+          'FUNCTION', 'PROCEDURE', 'TYPE', 'UNIQUE', 'PRIMARY', 'KEY',
+          'FOREIGN', 'REFERENCES', 'CONSTRAINT', 'DEFAULT', 'CASCADE',
+          'RESTRICT', 'SET', 'COLUMN', 'ADD', 'RENAME', 'EXTENSION',
+          'SCHEMA', 'SEQUENCE', 'VIEW', 'MATERIALIZED', 'CONCURRENTLY',
+          'EXISTS', 'REPLACE', 'TEMPORARY', 'TEMP', 'TRUNCATE', 'PARTITION',
+          'ATTACH', 'DETACH', 'COMMIT', 'ROLLBACK', 'TRANSACTION',
+          'SAVEPOINT', 'RELEASE', 'EXCEPT', 'INTERSECT', 'UNION', 'ALL',
+          'DISTINCT', 'INTO', 'VALUES', 'RETURNING', 'LATERAL', 'NATURAL',
+          'FULL', 'ANY', 'SOME', 'BETWEEN', 'LIKE', 'ILIKE', 'SIMILAR',
+          'TO', 'AT', 'ZONE', 'INTERVAL', 'ARRAY', 'CAST', 'NEXT', 'VALUE',
+          'ENABLE', 'DISABLE', 'NOTICE', 'WARNING', 'INFO', 'DEBUG', 'LOG',
+          'ERROR', 'OPEN', 'CLOSE', 'FETCH', 'MOVE', 'CURSOR', 'SCROLL',
+          'BTREE', 'HASH', 'GIN', 'GIST', 'BRIN', 'SPGIST', 'TABLESPACE',
+          'INCLUDE', 'NULLS', 'FIRST', 'LAST', 'ASC', 'DESC', 'STRICT',
+          'VOLATILE', 'STABLE', 'IMMUTABLE', 'COST', 'ROWS', 'PARALLEL',
+          'SAFE', 'UNSAFE', 'NO', 'PUBLIC', 'OWNED', 'LEVEL', 'ONLY',
+          'OPERATOR', 'COPY', 'RULE', 'INHERIT', 'NONINHERIT', 'PERMISSIVE',
+          'RESTRICTIVE', 'USAGE', 'IMPORT', 'SERVER', 'WRAPPER', 'OPTIONS',
+          'MAPPING', 'USER', 'ROLE', 'SUPERUSER', 'NOSUPERUSER', 'LOGIN',
+          'NOLOGIN', 'GET', 'POST', 'PUT', 'PATCH', 'HEAD', 'OPTIONS',
+          'START', 'INCREMENT', 'MINVALUE', 'MAXVALUE', 'CACHE', 'CYCLE',
+          'NOCYCLE', 'OWNED', 'INCREMENT', 'MAXVALUE', 'MINVALUE',
+          'CALLED', 'INPUT', 'EXTERNAL', 'SECURITY', 'DEFINER',
+        ]);
+        if (SQL_KEYWORDS.has(columnName.toUpperCase())) {
           continue;
         }
 
@@ -135,10 +172,14 @@ class ConventionValidator {
     for (const dir of allDirs) {
       const folderName = path.basename(dir);
 
-      // Excepciones permitidas
+      // Excepciones: nombres de carpeta estándar
       if (["app", "src", "components", "lib", "utils", "api", "public"].includes(folderName)) {
         continue;
       }
+      // Excepciones: convenciones de frameworks (Next.js App Router, testing)
+      if (folderName === '__tests__') continue;           // Jest/Vitest test dirs
+      if (/^\(.*\)$/.test(folderName)) continue;         // Next.js route groups: (group)
+      if (/^\[.*\]$/.test(folderName)) continue;         // Next.js dynamic segments: [id]
 
       if (!KEBAB_CASE_REGEX.test(folderName)) {
         this.addViolation(
@@ -159,8 +200,14 @@ class ConventionValidator {
       ignore: ["**/node_modules/**", "**/.next/**"],
     });
 
+    // Sufijos que indican archivos de utilidad, no componentes React
+    const HELPER_SUFFIXES = ['-helpers', '-utils', '-types', '-config', '-constants', '-hooks', '-context'];
+
     for (const file of componentFiles) {
       const fileName = path.basename(file, ".tsx");
+
+      // Archivos de utilidad dentro de /components no requieren PascalCase
+      if (HELPER_SUFFIXES.some((suffix) => fileName.endsWith(suffix))) continue;
 
       if (!PASCAL_CASE_REGEX.test(fileName)) {
         this.addViolation(

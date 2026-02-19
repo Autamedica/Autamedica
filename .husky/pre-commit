@@ -29,9 +29,15 @@ else
   echo "✅ No hay cambios en base de datos, omitiendo validación DB"
 fi
 
-# 4. Export validation (puede ser lento con muchos exports)
-echo "📝 Validando exports vs glosario..."
-pnpm docs:validate || exit 1
+# 4. Export validation — solo cuando cambian archivos de packages
+PACKAGE_FILES=$(git diff --cached --name-only | grep -E "^packages/" || true)
+
+if [ -n "$PACKAGE_FILES" ]; then
+  echo "📝 Validando exports vs glosario (cambios en packages detectados)..."
+  pnpm docs:validate || exit 1
+else
+  echo "✅ Sin cambios en packages, omitiendo validación de exports"
+fi
 
 # 5. Lint staged files
 echo "🧹 Ejecutando lint en archivos staged..."
