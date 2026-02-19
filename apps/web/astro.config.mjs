@@ -6,6 +6,7 @@ import { defineConfig } from 'astro/config';
 
 // Bridge: @autamedica/shared usa process.env.NEXT_PUBLIC_* a nivel de módulo.
 // Vite/Astro no inyecta .env en process.env para esas keys, así que las definimos via vite.define.
+// Lee de .env file (local) o system env vars (CI).
 function readEnvFile() {
   try {
     const content = readFileSync(new URL('.env', import.meta.url), 'utf-8');
@@ -22,6 +23,11 @@ function readEnvFile() {
 }
 const dotenv = readEnvFile();
 
+// Fallback: system env vars (CI) override .env file values
+function getEnv(key) {
+  return dotenv[key] || process.env[key] || '';
+}
+
 export default defineConfig({
   output: 'server',
   adapter: cloudflare(),
@@ -34,8 +40,8 @@ export default defineConfig({
       alias: { '@': '/src' }
     },
     define: {
-      'process.env.NEXT_PUBLIC_SUPABASE_URL': JSON.stringify(dotenv.NEXT_PUBLIC_SUPABASE_URL || dotenv.PUBLIC_SUPABASE_URL || ''),
-      'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(dotenv.NEXT_PUBLIC_SUPABASE_ANON_KEY || dotenv.PUBLIC_SUPABASE_ANON_KEY || ''),
+      'process.env.NEXT_PUBLIC_SUPABASE_URL': JSON.stringify(getEnv('NEXT_PUBLIC_SUPABASE_URL') || getEnv('PUBLIC_SUPABASE_URL')),
+      'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || getEnv('PUBLIC_SUPABASE_ANON_KEY')),
     },
     optimizeDeps: {
       include: ['gsap', 'gsap/ScrollTrigger', 'gsap/ScrollToPlugin']
