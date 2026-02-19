@@ -19,6 +19,8 @@
 ### 🔒 Seguridad
 
 ### 📚 Documentación
+- 8925c01 docs: agregar información clara de Supabase AutaMedica a CLAUDE.md
+- f3c127b 📝 docs: actualizar changelog automático
 - 1c5f76c 📝 docs: actualizar changelog automático
 - e3073a7 📝 docs: actualizar changelog automático
 - fd1d4e5 📝 docs: actualizar changelog automático
@@ -33,4 +35,4 @@
 ---
 
 
-*Generado automáticamente el 2026-02-19 11:31:29*
+*Generado automáticamente el 2026-02-19 11:39:25*
