@@ -105,11 +105,7 @@ jobs:
               echo "❌ Missing SUPABASE_DB_URL and SUPABASE_DB_PASSWORD"
               exit 1
             fi
-            ENC_PASS=$(python3 - <<'PY'
-import os, urllib.parse
-print(urllib.parse.quote(os.environ["SECRET_DB_PASSWORD"], safe=''))
-PY
-)
+            ENC_PASS=$(python3 -c "import os, urllib.parse; print(urllib.parse.quote(os.environ['SECRET_DB_PASSWORD'], safe=''))")
             DB_URL="postgresql://postgres.${PROJECT_REF}:${ENC_PASS}@aws-1-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require"
           fi
 
