@@ -5,7 +5,7 @@ import hooks from "eslint-plugin-react-hooks";
 import next from "@next/eslint-plugin-next";
 
 export default tseslint.config(
-  { ignores: ["**/node_modules/**", ".next/**", "out/**", "dist/**"] },
+  { ignores: ["**/node_modules/**", ".next/**", "out/**", "dist/**", "next-env.d.ts"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -14,7 +14,15 @@ export default tseslint.config(
     rules: {
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }]
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    }
+  },
+  {
+    files: ["e2e/**/*.ts", "e2e/**/*.spec.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     }
   }
 );

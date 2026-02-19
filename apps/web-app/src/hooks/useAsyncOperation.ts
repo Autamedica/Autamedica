@@ -10,7 +10,7 @@ interface UseAsyncOperationOptions {
   autoStart?: boolean;
 }
 
-export function useAsyncOperation<T = any>(
+export function useAsyncOperation<T = unknown>(
   operation: () => Promise<T>,
   options: UseAsyncOperationOptions = {}
 ) {
@@ -82,7 +82,7 @@ export function useAsyncOperation<T = any>(
 }
 
 // Hook for API calls with automatic error handling
-export function useApiCall<T = any>(
+export function useApiCall<T = unknown>(
   apiCall: () => Promise<T>,
   options: UseAsyncOperationOptions = {}
 ) {
@@ -93,7 +93,7 @@ export function useApiCall<T = any>(
 }
 
 // Hook for form submissions
-export function useFormSubmission<T = any>(
+export function useFormSubmission<T = unknown>(
   submitFn: () => Promise<T>,
   options: UseAsyncOperationOptions = {}
 ) {

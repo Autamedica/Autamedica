@@ -4,7 +4,7 @@ import react from "eslint-plugin-react";
 import hooks from "eslint-plugin-react-hooks";
 
 export default tseslint.config(
-  { ignores: ["**/node_modules/**", "dist/**", ".astro/**"] },
+  { ignores: ["**/node_modules/**", "dist/**", ".astro/**", "astro.config.mjs", "**/*.d.ts"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -13,7 +13,8 @@ export default tseslint.config(
     rules: {
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }]
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
     }
   }
 );

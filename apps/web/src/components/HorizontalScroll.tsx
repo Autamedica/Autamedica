@@ -263,7 +263,6 @@ export default function HorizontalScroll() {
                 border: `1px solid ${hex}25`,
                 boxShadow: `0 0 60px ${hex}10, 0 24px 48px rgba(0,0,0,0.4)`,
               }}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- Astro island, next/image unavailable */}
                 <img
                   src={portal.image}
                   alt={`Portal ${portal.name}`}

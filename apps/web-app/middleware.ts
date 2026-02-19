@@ -68,14 +68,14 @@ export async function middleware(request: NextRequest) {
           get(name: string) {
             return request.cookies.get(name)?.value;
           },
-          set(name: string, value: string, options: any) {
+          set(name: string, value: string, options: Record<string, unknown>) {
             response.cookies.set({
               name,
               value,
               ...options,
             });
           },
-          remove(name: string, options: any) {
+          remove(name: string, options: Record<string, unknown>) {
             response.cookies.set({
               name,
               value: '',

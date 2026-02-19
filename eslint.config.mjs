@@ -14,7 +14,7 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-export default [...compat.extends("next/core-web-vitals", "next/typescript"), {
+const eslintConfig = [...compat.extends("next/core-web-vitals", "next/typescript"), {
   ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"]
 }, // Global ignores - replaces .eslintignore
 {
@@ -180,6 +180,13 @@ js.configs.recommended,
     // '@typescript-eslint/prefer-nullish-coalescing': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
   },
+}, // Astro app — Next.js image/link rules don't apply (no next/image available)
+{
+  files: ['apps/web/**/*.{ts,tsx}'],
+  rules: {
+    '@next/next/no-img-element': 'off',
+    '@next/next/no-html-link-for-pages': 'off',
+  },
 }, // Package-specific parser configuration overrides
 {
   files: ['packages/telemedicine/**/*.{ts,tsx}'],
@@ -323,3 +330,5 @@ js.configs.recommended,
     'unused-imports/no-unused-vars': 'warn',
   },
 }];
+
+export default eslintConfig;

@@ -105,7 +105,7 @@ jobs:
 
       - name: Adapt for Cloudflare Pages
         working-directory: apps/doctors
-        run: npx @cloudflare/next-on-pages@latest --skip-next-build
+        run: npx @cloudflare/next-on-pages@latest --skip-build
 
       - name: Deploy to Cloudflare Pages
         working-directory: apps/doctors
@@ -145,7 +145,7 @@ jobs:
 
       - name: Adapt for Cloudflare Pages
         working-directory: apps/companies
-        run: npx @cloudflare/next-on-pages@latest --skip-next-build
+        run: npx @cloudflare/next-on-pages@latest --skip-build
 
       - name: Deploy to Cloudflare Pages
         working-directory: apps/companies

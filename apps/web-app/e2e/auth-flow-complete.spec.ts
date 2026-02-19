@@ -10,7 +10,7 @@ test.describe('Complete Auth Flow - E2E Integration', () => {
 
     if (await doctorsLoginLink.count() > 0) {
       // Click the link and expect redirect to Auth Hub
-      const [response] = await Promise.all([
+      await Promise.all([
         page.waitForResponse('**/login*'),
         doctorsLoginLink.click()
       ]);
@@ -121,7 +121,7 @@ test.describe('Portal Routing Integration', () => {
       { portal: 'companies', expectedDomain: 'companies.autamedica.com' }
     ];
 
-    for (const { portal, expectedDomain } of portals) {
+    for (const { expectedDomain } of portals) {
       // This simulates what Auth Hub would do after successful login
       const targetUrl = `https://${expectedDomain}/`;
 

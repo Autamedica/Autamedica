@@ -35,6 +35,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: "pnpm" }
       - run: pnpm -w install --frozen-lockfile
+        env:
+          NODE_ENV: development
+          HUSKY: '0'
 
       # Hooks obligatorios (no skip)
       - name: Verify Husky hooks
