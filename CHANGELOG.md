@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- 76a5483 feat(web): add portal images and fix landing page completeness
 - 3906614 feat(web): replace CSS animations with GSAP ScrollTrigger across landing page
 - 677dd39 feat(telemedicine): secure rpc fallback and supabase deploy workflow
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
@@ -11,6 +12,9 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 2d5f2b5 fix(web): satisfy Astro 5 AstroCookieSetOptions strict expires type
+- 4ac9a4c fix(web): fix AstroCookieSetOptions type error in auth callback
+- 5a19494 fix(hooks): scope pre-push typecheck to changed packages only
 - b02b301 fix(ci): retry cloudflare deploy on api rate limits
 - e7e25b9 fix(ci): add cloudflare project fallback for doctors and patients
 - 01c630d fix(ci): harden deploy workflows for wrangler and supabase auth
@@ -32,6 +36,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- b057a70 📝 docs: actualizar changelog automático
 - ba55e50 📝 docs: actualizar changelog automático
 - 0017f46 📝 docs: actualizar changelog automático
 - 777443b 📝 docs: actualizar changelog automático
@@ -66,4 +71,4 @@
 ### 🔄 Otros Cambios
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-19 13:54:32*
+*Generado automáticamente el 2026-02-19 15:56:56*
