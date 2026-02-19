@@ -72,46 +72,7 @@ jobs:
           done
 
   # ============================================
-  # Job 2: Auth Hub (Autenticación Central)
-  # ============================================
-  deploy-auth:
-    name: 'Deploy Auth'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.2
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages core
-        run: pnpm run build:packages
-
-      - name: Build auth for Cloudflare Pages
-        working-directory: apps/auth
-        run: npx @cloudflare/next-on-pages@latest
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
-          AUTH_HUB_SECRET: ${{ secrets.AUTH_HUB_SECRET }}
-
-      - name: Deploy to Cloudflare Pages
-        working-directory: apps/auth
-        run: pnpm dlx wrangler pages deploy .vercel/output/static --project-name autamedica-auth --branch production
-
-  # ============================================
-  # Job 3: Doctors Portal
+  # Job 2: Doctors Portal
   # ============================================
   deploy-doctors:
     name: 'Deploy Doctors'
@@ -151,7 +112,7 @@ jobs:
         run: pnpm dlx wrangler pages deploy .vercel/output/static --project-name autamedica-doctors --branch production
 
   # ============================================
-  # Job 4: Companies Portal
+  # Job 3: Companies Portal
   # ============================================
   deploy-companies:
     name: 'Deploy Companies'
