@@ -45,6 +45,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- be32ee1 📝 docs: actualizar changelog automático
 - bc66adc 📝 docs: actualizar changelog automático
 - d7317da 📝 docs: actualizar changelog automático
 - eeafb62 📝 docs: actualizar changelog automático
@@ -89,6 +90,7 @@
 ---
 
 ### 🔄 Otros Cambios
+- 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-21 22:34:48*
+*Generado automáticamente el 2026-02-21 22:39:04*
