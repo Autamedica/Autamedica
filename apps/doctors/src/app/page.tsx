@@ -40,11 +40,29 @@ type ControlButtonProps = {
   onClick: () => void
 }
 
-type QuickActionProps = {
-  label: string
-  emoji: string
-  intent?: 'default' | 'primary' | 'success'
-  onClick?: () => void
+type PatientNameCandidate = {
+  full_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  firstName?: string | null
+  lastName?: string | null
+}
+
+function getPatientDisplayName(patient: unknown): string {
+  if (!patient || typeof patient !== 'object') {
+    return 'Paciente'
+  }
+
+  const candidate = patient as PatientNameCandidate
+  const fullName = candidate.full_name?.trim()
+    || [candidate.firstName, candidate.lastName].filter(Boolean).join(' ').trim()
+
+  if (fullName) {
+    return fullName
+  }
+
+  const snakeName = [candidate.first_name, candidate.last_name].filter(Boolean).join(' ').trim()
+  return snakeName || 'Paciente'
 }
 
 export default function DoctorsHomePage(): JSX.Element {
@@ -61,7 +79,7 @@ export default function DoctorsHomePage(): JSX.Element {
   )
 
   // Store centralizado de historial médico
-  const { addEntry, suggestPrescriptions, analyzeVitals } = useMedicalHistoryStore()
+  const { addEntry } = useMedicalHistoryStore()
 
   const { isFocusMode, setFocusMode } = useDoctorsPortal()
 
@@ -128,7 +146,7 @@ export default function DoctorsHomePage(): JSX.Element {
     } else {
       setFocusMode(false)
     }
-  }, [callStatus])
+  }, [callStatus, setFocusMode])
 
   // Auto-ocultar controles después de 3 segundos sin movimiento del mouse
   useEffect(() => {
@@ -391,7 +409,7 @@ export default function DoctorsHomePage(): JSX.Element {
                     <StartCallButton
                       doctorId={user.id}
                       patientId={session?.patientId || 'demo-patient-1'}
-                      patientName={patient ? (patient as any).full_name : 'Paciente'}
+                      patientName={getPatientDisplayName(patient)}
                       className="rounded-lg bg-green-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-green-500"
                     />
                   ) : (
@@ -764,7 +782,7 @@ export default function DoctorsHomePage(): JSX.Element {
 
       {showNotesModal && (
         <QuickNotesModal
-          patientName={(patient as any)?.full_name || 'Paciente'}
+          patientName={getPatientDisplayName(patient)}
           patientId={session?.patientId || 'guest-patient'}
           onClose={() => setShowNotesModal(false)}
         />
@@ -772,7 +790,7 @@ export default function DoctorsHomePage(): JSX.Element {
 
       {showPrescriptionModal && (
         <PrescriptionModal
-          patientName={(patient as any)?.full_name || 'Paciente'}
+          patientName={getPatientDisplayName(patient)}
           patientId={session?.patientId || 'guest-patient'}
           onClose={() => setShowPrescriptionModal(false)}
         />
@@ -816,30 +834,6 @@ function ControlButton({ active, iconActive, iconInactive, label, onClick }: Con
       title={label}
     >
       {active ? iconActive : iconInactive}
-    </button>
-  )
-}
-
-function QuickAction({ label, emoji, intent = 'default', onClick }: QuickActionProps): JSX.Element {
-  const intentStyles = {
-    default: 'border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-900',
-    primary: 'border-blue-500/60 bg-blue-600/20 text-blue-100 hover:bg-blue-600/30',
-    success: 'border-emerald-500/60 bg-emerald-600/20 text-emerald-100 hover:bg-emerald-600/30',
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm font-medium transition ${intentStyles[intent]}`}
-    >
-      <span className="flex items-center gap-3">
-        <span className="text-lg" aria-hidden>
-          {emoji}
-        </span>
-        {label}
-      </span>
-      <MonitorUp className="h-4 w-4 text-slate-500" aria-hidden />
     </button>
   )
 }

@@ -13,11 +13,11 @@ import { parseSessionFromCookie, validateKVSession } from '../utils/cloudflare-s
  */
 export async function onRequest(context: {
   request: Request
-  env: any
+  env: Record<string, unknown>
   next: (request?: Request) => Promise<Response>
-  params: any
+  params: Record<string, string>
 }) {
-  const { request, env, next } = context
+  const { request, next } = context
   const url = new URL(request.url)
 
   // Skip auth for public paths

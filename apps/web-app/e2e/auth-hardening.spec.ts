@@ -15,7 +15,7 @@ test.describe('Auth Hardening - SSO Redirects', () => {
       expect(response?.status()).toBe(301);
 
       // Should redirect to Auth Hub
-      expect(response?.url()).toContain('auth.autamedica.com');
+      expect(response?.url()).toContain('www.autamedica.com/auth');
 
       // Should preserve the path
       const expectedPath = route.replace('/auth', '');
@@ -38,7 +38,7 @@ test.describe('Auth Hardening - SSO Redirects', () => {
       const response = await page.goto(route, { waitUntil: 'commit' });
 
       expect(response?.status()).toBe(301);
-      expect(response?.url()).toContain('auth.autamedica.com');
+      expect(response?.url()).toContain('www.autamedica.com/auth');
       expect(response?.url()).toContain(expected);
     }
   });
@@ -74,7 +74,7 @@ test.describe('Auth Hardening - Protected Routes', () => {
 
       // Should redirect to login
       expect(response?.status()).toBe(302);
-      expect(response?.url()).toContain('auth.autamedica.com/login');
+      expect(response?.url()).toContain('www.autamedica.com/auth/login');
       expect(response?.url()).toContain('returnTo=');
 
       // Should have auth required header
@@ -94,7 +94,7 @@ test.describe('Auth Hardening - Protected Routes', () => {
     const response = await page.goto('/dashboard', { waitUntil: 'commit' });
 
     expect(response?.status()).toBe(302);
-    expect(response?.url()).toContain('auth.autamedica.com/login');
+    expect(response?.url()).toContain('www.autamedica.com/auth/login');
     expect(response?.url()).toContain('reason=invalid_session');
     expect(response?.headers()['x-auth-invalid']).toBe('true');
   });
@@ -115,7 +115,7 @@ test.describe('Auth Hardening - Protected Routes', () => {
 
     // Should not redirect to auth (status could be 404 if route doesn't exist, but not 301/302)
     expect([200, 404].includes(response?.status() || 0)).toBe(true);
-    expect(response?.url()).not.toContain('auth.autamedica.com');
+    expect(response?.url()).not.toContain('www.autamedica.com/auth');
   });
 });
 
@@ -124,7 +124,7 @@ test.describe('Auth Hardening - Landing Page Integration', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     // Check mobile experience auth links
-    const mobileLinks = page.locator('a[href*="auth.autamedica.com"]');
+    const mobileLinks = page.locator('a[href*="www.autamedica.com/auth"]');
     const linkCount = await mobileLinks.count();
 
     // Should have multiple auth links pointing to Auth Hub
@@ -134,7 +134,7 @@ test.describe('Auth Hardening - Landing Page Integration', () => {
     if (linkCount > 0) {
       const firstLink = mobileLinks.first();
       const href = await firstLink.getAttribute('href');
-      expect(href).toContain('auth.autamedica.com');
+      expect(href).toContain('www.autamedica.com/auth');
       expect(href).toMatch(/\/(login|register)/);
     }
   });
@@ -154,19 +154,19 @@ test.describe('Auth Hardening - Landing Page Integration', () => {
       // Verify portal links exist and point to Auth Hub
       if (await doctorsLink.count() > 0) {
         const href = await doctorsLink.getAttribute('href');
-        expect(href).toContain('auth.autamedica.com');
+        expect(href).toContain('www.autamedica.com/auth');
         expect(href).toContain('portal=doctors');
       }
 
       if (await patientsLink.count() > 0) {
         const href = await patientsLink.getAttribute('href');
-        expect(href).toContain('auth.autamedica.com');
+        expect(href).toContain('www.autamedica.com/auth');
         expect(href).toContain('portal=patients');
       }
 
       if (await companiesLink.count() > 0) {
         const href = await companiesLink.getAttribute('href');
-        expect(href).toContain('auth.autamedica.com');
+        expect(href).toContain('www.autamedica.com/auth');
         expect(href).toContain('portal=companies');
       }
     }
@@ -192,7 +192,7 @@ test.describe('Auth Hardening - Performance & Monitoring', () => {
     expect(response?.status()).toBe(301);
 
     // Should redirect to Auth Hub
-    expect(response?.url()).toContain('auth.autamedica.com');
+    expect(response?.url()).toContain('www.autamedica.com/auth');
 
     // Should preserve safe parameters but URL shouldn't expose actual secrets
     // (this test mainly ensures we're not accidentally logging sensitive data)

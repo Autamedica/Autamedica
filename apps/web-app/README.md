@@ -42,11 +42,11 @@ pnpm build --filter @autamedica/web-app
 ```typescript
 // Redirección a apps especializadas
 APPS = {
-  'auth' → https://autamedica-auth.pages.dev (login/register)
-  'patients' → https://autamedica-patients.pages.dev
-  'doctors' → https://autamedica-doctors.pages.dev
-  'companies' → https://autamedica-companies.pages.dev
-  'admin' → https://autamedica-admin.pages.dev
+  'auth' → https://www.autamedica.com/auth (login/register)
+  'patients' → https://patients.autamedica.com
+  'doctors' → https://doctors.autamedica.com
+  'companies' → https://companies.autamedica.com
+  'admin' → https://admin.autamedica.com
 }
 ```
 
@@ -76,7 +76,7 @@ APPS = {
 ### **Configuración Cloudflare**
 ```bash
 # Variables de entorno en Cloudflare Pages
-NEXT_PUBLIC_AUTH_APP_URL=https://autamedica-auth.pages.dev
+NEXT_PUBLIC_APP_URL=https://www.autamedica.com
 NODE_ENV=production
 HUSKY=0
 ```
@@ -114,7 +114,7 @@ Esta app es el **punto de entrada de marketing** del ecosystem multi-app:
 graph TD
   A[web-app:3000] --> B[Landing Page]
   B --> C{Usuario quiere...}
-  C -->|Iniciar Sesión| D[auth.autamedica.com]
+  C -->|Iniciar Sesión| D[www.autamedica.com/auth]
   C -->|Registrarse| D
   D -->|patient| E[patients.autamedica.com]
   D -->|doctor| F[doctors.autamedica.com]

@@ -43,7 +43,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     .filter(Boolean)
     .join(' ')
     .trim();
-  const metaName = (user?.user_metadata as any)?.full_name as string | undefined;
+  const rawMetadata = user?.user_metadata;
+  const metadata = rawMetadata && typeof rawMetadata === 'object'
+    ? (rawMetadata as Record<string, unknown>)
+    : null;
+  const metaName = typeof metadata?.full_name === 'string'
+    ? metadata.full_name
+    : undefined;
   const emailLocal = user?.email?.split('@')[0];
   const userName = computedName || metaName || emailLocal || 'Paciente';
   const userEmail = user?.email || '';
