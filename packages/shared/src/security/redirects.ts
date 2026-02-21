@@ -26,6 +26,13 @@ function getAllowedPatterns(): string[] {
   return [...patterns, ...defaultPatterns];
 }
 
+function buildWildcardRegex(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  // Wildcards are limited to a single host/path segment to avoid open-redirect overreach.
+  const wildcardSafe = escaped.replace(/\\\*/g, '[^./?#]+');
+  return new RegExp(`^${wildcardSafe}$`, 'i');
+}
+
 /**
  * Check if a URL is allowed for redirect
  * Prevents open redirect vulnerabilities
@@ -49,10 +56,7 @@ export function isAllowedRedirect(urlStr?: string | null): boolean {
 
       // Wildcard pattern match (e.g., https://autamedica-*.pages.dev)
       if (pattern.includes('*')) {
-        const regexPattern = pattern
-          .replace(/\./g, '\\.')
-          .replace(/\*/g, '.*');
-        const regex = new RegExp(`^${regexPattern}`);
+        const regex = buildWildcardRegex(pattern);
         return regex.test(url.origin) || regex.test(url.href);
       }
 
@@ -72,7 +76,11 @@ export function safeRedirectOrFallback(
   urlStr: string | null | undefined,
   fallback: string
 ): string {
-  return isAllowedRedirect(urlStr) ? urlStr! : fallback;
+  if (!urlStr) {
+    return fallback;
+  }
+
+  return isAllowedRedirect(urlStr) ? urlStr : fallback;
 }
 
 /**
@@ -84,8 +92,17 @@ export function buildSafeLoginUrl(
   returnTo?: string | null,
   error?: string
 ): string {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL_WEB_APP || 'http://localhost:3000';
-  const loginUrl = new URL('/auth/login', baseUrl);
+  const fallbackAuthOrigin = process.env.NODE_ENV === 'production'
+    ? 'https://www.autamedica.com'
+    : 'http://localhost:3000';
+
+  const baseOrigin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL_WEB_APP ||
+    fallbackAuthOrigin;
+
+  const loginUrl = new URL('/auth/login', baseOrigin);
 
   loginUrl.searchParams.set('portal', portal);
 

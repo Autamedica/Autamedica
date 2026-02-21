@@ -12,39 +12,13 @@
 
 import type { APIRoute } from 'astro';
 import { createServerClient } from '@supabase/ssr';
+import {
+  getTargetUrlByRole,
+  isValidRole,
+  resolveRoleFromPortal,
+  type UserRole
+} from '@autamedica/shared';
 import { validateRedirectUrl, isProduction } from '../../lib/auth-utils';
-
-/** Role → portal base URL mapping (server-side) */
-const ROLE_BASE_URLS: Record<string, string> = isProduction()
-  ? {
-      patient: 'https://patients.autamedica.com',
-      doctor: 'https://doctors.autamedica.com',
-      company: 'https://companies.autamedica.com',
-      company_admin: 'https://companies.autamedica.com',
-      organization_admin: 'https://admin.autamedica.com',
-      platform_admin: 'https://www.autamedica.com',
-    }
-  : {
-      patient: 'http://localhost:3002',
-      doctor: 'http://localhost:3001',
-      company: 'http://localhost:3003',
-      company_admin: 'http://localhost:3003',
-      organization_admin: 'http://localhost:3004',
-      platform_admin: 'http://localhost:3000',
-    };
-
-const PORTAL_TO_ROLE: Record<string, string> = {
-  patients: 'patient',
-  doctors: 'doctor',
-  companies: 'company_admin',
-  admin: 'organization_admin',
-};
-
-const VALID_ROLES = new Set(Object.keys(ROLE_BASE_URLS));
-
-function isValidRole(role: string): boolean {
-  return VALID_ROLES.has(role);
-}
 
 function buildSupabaseClient(request: Request, cookies: Parameters<APIRoute>[0]['cookies']) {
   return createServerClient(
@@ -79,12 +53,34 @@ function buildSupabaseClient(request: Request, cookies: Parameters<APIRoute>[0][
   );
 }
 
+function parseReturnToParam(
+  returnTo: string | null
+): { absolute: URL | null; relativePath: string | null } {
+  if (!returnTo) {
+    return { absolute: null, relativePath: null };
+  }
+
+  if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+    return { absolute: null, relativePath: returnTo };
+  }
+
+  if (!validateRedirectUrl(returnTo)) {
+    return { absolute: null, relativePath: null };
+  }
+
+  try {
+    return { absolute: new URL(returnTo), relativePath: null };
+  } catch {
+    return { absolute: null, relativePath: null };
+  }
+}
+
 /** Redirect to the correct portal, passing session tokens cross-domain */
 function buildPortalRedirect(
   portalBase: string,
   accessToken: string,
   refreshToken: string,
-  returnTo?: string | null
+  returnTo?: string
 ): string {
   const params = new URLSearchParams({
     access_token: accessToken,
@@ -98,17 +94,44 @@ function buildPortalRedirect(
 function resolveRole(
   roleHint: string | null,
   userMetadata: Record<string, unknown>
-): string | undefined {
-  const fromHint = roleHint && isValidRole(roleHint) ? roleHint : undefined;
+): UserRole | undefined {
+  const fromHint = roleHint && isValidRole(roleHint) ? roleHint as UserRole : undefined;
   const fromMeta =
     typeof userMetadata.role === 'string' && isValidRole(userMetadata.role)
-      ? userMetadata.role
+      ? userMetadata.role as UserRole
       : undefined;
   const fromPortal =
     typeof userMetadata.portal === 'string'
-      ? PORTAL_TO_ROLE[userMetadata.portal]
+      ? resolveRoleFromPortal(userMetadata.portal)
       : undefined;
   return fromHint ?? fromMeta ?? fromPortal;
+}
+
+function getRoleBaseOrigin(role: UserRole | undefined): string | undefined {
+  if (!role) {
+    return undefined;
+  }
+
+  try {
+    return new URL(getTargetUrlByRole(role)).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveReturnToForDestination(
+  parsedReturnTo: { absolute: URL | null; relativePath: string | null },
+  destinationBase: string
+): string | undefined {
+  if (parsedReturnTo.absolute) {
+    return parsedReturnTo.absolute.toString();
+  }
+
+  if (parsedReturnTo.relativePath) {
+    return new URL(parsedReturnTo.relativePath, destinationBase).toString();
+  }
+
+  return undefined;
 }
 
 export const GET: APIRoute = async ({ request, cookies, redirect }) => {
@@ -118,29 +141,35 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
   const roleHint = requestUrl.searchParams.get('role');
   const accessToken = requestUrl.searchParams.get('access_token');
   const refreshToken = requestUrl.searchParams.get('refresh_token');
+  const parsedReturnTo = parseReturnToParam(returnTo);
 
   const supabase = buildSupabaseClient(request, cookies);
 
   // ── Case 2: Token-passing (portal receiving tokens from auth hub) ──
   if (accessToken && refreshToken) {
-    await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    const { error: setSessionError } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
 
-    if (returnTo && validateRedirectUrl(returnTo)) {
-      return redirect(returnTo);
+    if (setSessionError) {
+      return redirect(`/auth/login?error=${encodeURIComponent(setSessionError.message)}`);
     }
 
-    // Resolve role from the freshly-set session
     const { data: { user } } = await supabase.auth.getUser();
     const userMeta = (user?.user_metadata ?? {}) as Record<string, unknown>;
-    const resolved = resolveRole(roleHint, userMeta);
+    const resolvedRole = resolveRole(roleHint, userMeta);
+    const destinationBase = parsedReturnTo.absolute?.origin ?? getRoleBaseOrigin(resolvedRole);
 
-    if (resolved && ROLE_BASE_URLS[resolved]) {
-      const portalBase = ROLE_BASE_URLS[resolved];
-      const currentOrigin = new URL(request.url).origin;
-      if (new URL(portalBase).origin === currentOrigin) {
-        return redirect('/');
+    if (destinationBase) {
+      const resolvedReturnTo = resolveReturnToForDestination(parsedReturnTo, destinationBase);
+      if (new URL(destinationBase).origin === requestUrl.origin) {
+        return redirect(resolvedReturnTo || '/');
       }
-      return redirect(buildPortalRedirect(portalBase, accessToken, refreshToken, returnTo));
+
+      return redirect(
+        buildPortalRedirect(destinationBase, accessToken, refreshToken, resolvedReturnTo)
+      );
     }
 
     return redirect('/auth/select-role');
@@ -152,16 +181,22 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
 
     if (session?.access_token && session?.refresh_token) {
       const userMeta = (session.user?.user_metadata ?? {}) as Record<string, unknown>;
-      const resolved = resolveRole(roleHint, userMeta);
+      const resolvedRole = resolveRole(roleHint, userMeta);
+      const destinationBase = parsedReturnTo.absolute?.origin ?? getRoleBaseOrigin(resolvedRole);
 
-      if (resolved && ROLE_BASE_URLS[resolved]) {
-        const portalBase = ROLE_BASE_URLS[resolved];
-        const currentOrigin = new URL(request.url).origin;
-        if (new URL(portalBase).origin === currentOrigin) {
-          return redirect(returnTo || '/');
+      if (destinationBase) {
+        const resolvedReturnTo = resolveReturnToForDestination(parsedReturnTo, destinationBase);
+        if (new URL(destinationBase).origin === requestUrl.origin) {
+          return redirect(resolvedReturnTo || '/');
         }
+
         return redirect(
-          buildPortalRedirect(portalBase, session.access_token, session.refresh_token, returnTo)
+          buildPortalRedirect(
+            destinationBase,
+            session.access_token,
+            session.refresh_token,
+            resolvedReturnTo
+          )
         );
       }
 
@@ -179,8 +214,7 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
     }
 
-    // Persist role to user_metadata if provided via query param
-    if (roleHint && data.user) {
+    if (roleHint && isValidRole(roleHint) && data.user) {
       await supabase.auth.updateUser({ data: { role: roleHint } });
     }
 
@@ -191,21 +225,23 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
       return redirect('/auth/login?error=session_tokens_missing');
     }
 
-    const safeReturnTo =
-      returnTo && validateRedirectUrl(returnTo) ? new URL(returnTo) : null;
-
     const userMetadata = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
     const resolvedRole = resolveRole(roleHint, userMetadata);
-
-    const destinationBase = safeReturnTo
-      ? `${safeReturnTo.protocol}//${safeReturnTo.host}`
-      : resolvedRole && ROLE_BASE_URLS[resolvedRole]
-        ? new URL('/', ROLE_BASE_URLS[resolvedRole]).origin
-        : undefined;
+    const destinationBase = parsedReturnTo.absolute?.origin ?? getRoleBaseOrigin(resolvedRole);
 
     if (destinationBase) {
+      const resolvedReturnTo = resolveReturnToForDestination(parsedReturnTo, destinationBase);
+      if (new URL(destinationBase).origin === requestUrl.origin) {
+        return redirect(resolvedReturnTo || '/');
+      }
+
       return redirect(
-        buildPortalRedirect(destinationBase, sessionAccessToken, sessionRefreshToken, returnTo)
+        buildPortalRedirect(
+          destinationBase,
+          sessionAccessToken,
+          sessionRefreshToken,
+          resolvedReturnTo
+        )
       );
     }
 

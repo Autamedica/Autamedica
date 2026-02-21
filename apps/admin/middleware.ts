@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { buildSafeLoginUrl } from '@autamedica/shared';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -14,6 +15,8 @@ const PUBLIC_ROUTES = [
   '/api/health',
   '/manifest.webmanifest',
 ];
+
+const ALLOWED_ADMIN_ROLES = new Set(['admin', 'organization_admin', 'platform_admin']);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -65,15 +68,14 @@ export async function middleware(request: NextRequest) {
 
   // If no session, redirect to auth
   if (!session || error) {
-    const redirectUrl = new URL('/auth/login', request.url);
-    redirectUrl.searchParams.set('returnTo', pathname);
-    return NextResponse.redirect(redirectUrl);
+    const loginUrl = buildSafeLoginUrl('admin', request.url, 'session_expired');
+    return NextResponse.redirect(loginUrl);
   }
 
   // Verify admin role
   const userRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
 
-  if (userRole !== 'platform_admin') {
+  if (!userRole || !ALLOWED_ADMIN_ROLES.has(userRole)) {
     // Not an admin - redirect to unauthorized or their portal
     const unauthorizedUrl = new URL('/unauthorized', request.url);
     return NextResponse.redirect(unauthorizedUrl);

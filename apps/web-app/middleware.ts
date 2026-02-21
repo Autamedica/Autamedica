@@ -44,13 +44,23 @@ const PUBLIC_ROUTES = [
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.nextUrl.hostname.toLowerCase();
+  const isStaticAssetPath = /\/[^/]+\.[a-z0-9]+$/i.test(pathname);
+
+  // Canonical host redirect for production SEO consistency.
+  if (hostname === "autamedica.com") {
+    const canonicalUrl = request.nextUrl.clone();
+    canonicalUrl.hostname = "www.autamedica.com";
+    canonicalUrl.protocol = "https:";
+    return NextResponse.redirect(canonicalUrl, 308);
+  }
 
   // Saltear verificación para archivos estáticos y APIs públicas
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/api/") ||
-    pathname.includes(".") ||
-    PUBLIC_ROUTES.some(route => pathname.startsWith(route))
+    isStaticAssetPath ||
+    PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))
   ) {
     return NextResponse.next();
   }
@@ -120,6 +130,9 @@ export async function middleware(request: NextRequest) {
         patient: "/dashboard",
         doctor: "/doctor/dashboard",
         company: "/company/dashboard",
+        company_admin: "/company/dashboard",
+        organization_admin: "/admin/dashboard",
+        platform_admin: "/admin/dashboard",
         admin: "/admin/dashboard",
       };
 
@@ -159,15 +172,15 @@ export async function middleware(request: NextRequest) {
       }
 
       // Verificar acceso a rutas específicas por rol
-      if (pathname.startsWith("/admin") && userRole !== "admin") {
+      if (pathname.startsWith("/admin") && !["organization_admin", "platform_admin", "admin"].includes(userRole)) {
         return NextResponse.redirect(new URL("/", request.url));
       }
 
-      if (pathname.startsWith("/doctor") && !["doctor", "admin"].includes(userRole)) {
+      if (pathname.startsWith("/doctor") && !["doctor", "organization_admin", "platform_admin", "admin"].includes(userRole)) {
         return NextResponse.redirect(new URL("/", request.url));
       }
 
-      if (pathname.startsWith("/company") && !["company", "admin"].includes(userRole)) {
+      if (pathname.startsWith("/company") && !["company", "company_admin", "organization_admin", "platform_admin", "admin"].includes(userRole)) {
         return NextResponse.redirect(new URL("/", request.url));
       }
     }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ensureEnv } from "@autamedica/shared";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
@@ -21,7 +22,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://auth.autamedica.com'),
+  metadataBase: new URL('https://www.autamedica.com'),
   title: {
     default: "AutaMedica Auth Hub - Acceso Seguro",
     template: "%s | AutaMedica Auth"
@@ -41,19 +42,24 @@ export const metadata: Metadata = {
   creator: "E.M Medicina - UBA",
   publisher: "AutaMedica",
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
   },
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: "https://auth.autamedica.com",
+    url: "https://www.autamedica.com/auth/login",
     siteName: "AutaMedica Auth Hub",
     title: "AutaMedica Auth Hub - Acceso Seguro",
     description: "Centro de autenticación segura para el ecosistema AutaMedica",
   },
   alternates: {
-    canonical: "https://auth.autamedica.com",
+    canonical: "https://www.autamedica.com/auth/login",
   },
 };
 
@@ -62,6 +68,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const enableDebug = ensureEnv('NODE_ENV') === 'development';
+
   return (
     <html lang="es" dir="ltr">
       <head>
@@ -75,7 +83,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ErrorBoundary>
-          <AuthProvider enableDebug={process.env.NODE_ENV === 'development'}>
+          <AuthProvider enableDebug={enableDebug}>
             {children}
           </AuthProvider>
         </ErrorBoundary>

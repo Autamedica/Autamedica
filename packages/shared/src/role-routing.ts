@@ -26,16 +26,33 @@ const ROLES = {
  * SEGURIDAD: Cada rol solo tiene acceso a su aplicación específica
  */
 function getBaseUrlByRole(): Record<UserRole, string> {
+  const env = typeof process !== 'undefined' ? process.env : undefined;
+  const readEnv = (...keys: string[]): string | undefined => {
+    for (const key of keys) {
+      const value = env?.[key];
+      if (value) {
+        return value;
+      }
+    }
+    return undefined;
+  };
+
   const isProduction = typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
 
   if (isProduction) {
     return {
-      'patient': 'https://patients.autamedica.com',
-      'doctor': 'https://doctors.autamedica.com',
-      'company': 'https://companies.autamedica.com',
-      'company_admin': 'https://companies.autamedica.com',
-      'organization_admin': 'https://admin.autamedica.com',
-      'platform_admin': 'https://www.autamedica.com',
+      'patient': readEnv('NEXT_PUBLIC_BASE_URL_PATIENTS', 'NEXT_PUBLIC_PATIENTS_URL')
+        || 'https://patients.autamedica.com',
+      'doctor': readEnv('NEXT_PUBLIC_BASE_URL_DOCTORS', 'NEXT_PUBLIC_DOCTORS_URL')
+        || 'https://doctors.autamedica.com',
+      'company': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
+        || 'https://companies.autamedica.com',
+      'company_admin': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
+        || 'https://companies.autamedica.com',
+      'organization_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
+        || 'https://admin.autamedica.com',
+      'platform_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
+        || 'https://admin.autamedica.com',
     };
   }
 
@@ -46,7 +63,7 @@ function getBaseUrlByRole(): Record<UserRole, string> {
     'company': 'http://localhost:3003',
     'company_admin': 'http://localhost:3003',
     'organization_admin': 'http://localhost:3004',
-    'platform_admin': 'http://localhost:3000',
+    'platform_admin': 'http://localhost:3004',
   };
 }
 
@@ -144,6 +161,16 @@ export const PORTAL_TO_ROLE: Record<string, UserRole> = {
   admin: 'organization_admin',
 };
 
+const PORTAL_ALIASES: Record<string, keyof typeof PORTAL_TO_ROLE> = {
+  medico: 'doctors',
+  medicos: 'doctors',
+  paciente: 'patients',
+  pacientes: 'patients',
+  company: 'companies',
+  empresa: 'companies',
+  empresas: 'companies',
+};
+
 /**
  * Obtiene el rol basado en el portal
  * @param portal - Nombre del portal
@@ -151,6 +178,20 @@ export const PORTAL_TO_ROLE: Record<string, UserRole> = {
  */
 export function getRoleForPortal(portal: string): UserRole | undefined {
   return PORTAL_TO_ROLE[portal];
+}
+
+/**
+ * Resuelve un rol desde un portal usando aliases comunes.
+ * Acepta portales canónicos y variantes históricas/español.
+ */
+export function resolveRoleFromPortal(portal?: string | null): UserRole | undefined {
+  if (!portal) {
+    return undefined;
+  }
+
+  const normalized = portal.toLowerCase();
+  const canonicalPortal = PORTAL_ALIASES[normalized] ?? normalized;
+  return PORTAL_TO_ROLE[canonicalPortal];
 }
 
 /**
@@ -175,7 +216,7 @@ export function getLoginUrl(returnTo?: string, portal?: string): string {
   try {
     webAppUrl = ensureServerEnv('NEXT_PUBLIC_APP_URL');
   } catch {
-    webAppUrl = BASE_URL_BY_ROLE[ROLES.PLATFORM_ADMIN]!; // Safe: all roles are defined
+    webAppUrl = BASE_URL_BY_ROLE[ROLES.PLATFORM_ADMIN] || 'https://www.autamedica.com';
   }
   const loginUrl = new URL(AUTH_URLS.LOGIN, webAppUrl);
 

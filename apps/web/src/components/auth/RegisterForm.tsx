@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getRoleDisplayName, isValidUserRole } from '@autamedica/shared';
+import { getRoleDisplayName, isValidUserRole, resolveRoleFromPortal } from '@autamedica/shared';
 import type { UserRole } from '@autamedica/shared';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
@@ -12,16 +12,23 @@ export function RegisterForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole | null>(null);
+  const [returnTo, setReturnTo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const urlRole = urlParams.get('role') as UserRole | null;
-    setRole(urlRole);
+    const urlRole = urlParams.get('role');
+    const urlPortal = urlParams.get('portal')?.toLowerCase();
+    const roleFromPortal = resolveRoleFromPortal(urlPortal);
+    const resolvedRole = urlRole && isValidUserRole(urlRole)
+      ? urlRole
+      : roleFromPortal ?? null;
+    setRole(resolvedRole);
+    setReturnTo(urlParams.get('returnTo'));
 
-    if (!urlRole || !isValidUserRole(urlRole)) {
+    if (!resolvedRole || !isValidUserRole(resolvedRole)) {
       window.location.href = '/auth/select-role';
     }
   }, []);
@@ -31,6 +38,12 @@ export function RegisterForm() {
     setIsLoading(true);
     setError(null);
     setMessage(null);
+
+    if (!role) {
+      setError('Debes seleccionar un rol antes de registrarte');
+      setIsLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
@@ -46,11 +59,16 @@ export function RegisterForm() {
 
     try {
       const supabase = getBrowserSupabaseClient();
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      callbackUrl.searchParams.set('role', role);
+      if (returnTo) {
+        callbackUrl.searchParams.set('returnTo', returnTo);
+      }
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?role=${role}`,
+          emailRedirectTo: callbackUrl.toString(),
           data: { role },
         },
       });
@@ -212,7 +230,7 @@ export function RegisterForm() {
           ¿Ya tienes cuenta en AutaMedica?
         </p>
         <a
-          href={`/auth/login?role=${role}`}
+          href={`/auth/login?role=${role}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
           className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl transition-all duration-200"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

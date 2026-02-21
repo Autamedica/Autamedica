@@ -13,6 +13,7 @@ import {
   BookOpen,
   ShieldCheck,
 } from 'lucide-react';
+import { getClientEnvOrDefault } from '@autamedica/shared';
 import { TourHub } from '@/components/tours/TourHub';
 import { AutaFloatingButton } from '@/components/chat/AutaFloatingButton';
 import { usePatientSession } from '@/hooks/usePatientSession';
@@ -49,8 +50,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleSignOut = async () => {
     await signOut();
-    // Redirigir al login después de cerrar sesión
-    window.location.href = '/auth/login';
+    // Redirigir al auth centralizado después de cerrar sesión
+    const defaultAuthOrigin = window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://www.autamedica.com';
+    const authOrigin = getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', defaultAuthOrigin);
+    const loginUrl = new URL('/auth/login', authOrigin);
+    loginUrl.searchParams.set('portal', 'patients');
+    window.location.href = loginUrl.toString();
   };
 
   return (

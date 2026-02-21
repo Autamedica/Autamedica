@@ -144,7 +144,14 @@ export function getRoleDescription(role: UserRole): string {
  * @returns True if the string is a valid UserRole
  */
 export function isValidUserRole(role: string): role is UserRole {
-  return ['doctor', 'patient', 'company_admin', 'organization_admin', 'platform_admin'].includes(role);
+  return [
+    'doctor',
+    'patient',
+    'company',
+    'company_admin',
+    'organization_admin',
+    'platform_admin'
+  ].includes(role);
 }
 
 // ==========================================

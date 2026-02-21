@@ -14,8 +14,13 @@ const PUBLIC_ROUTES = [
   '/public',
   '/api/health',
   '/manifest.webmanifest',
+  '/auth/callback',
   '/consultation', // Allow direct access to video consultation
 ];
+
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`));
+}
 
 // Allowed roles for doctors portal
 const ALLOWED_ROLES = ['doctor', 'organization_admin', 'platform_admin'] as const;
@@ -25,7 +30,7 @@ export async function middleware(request: NextRequest) {
   const origin = request.nextUrl.origin;
 
   // Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 

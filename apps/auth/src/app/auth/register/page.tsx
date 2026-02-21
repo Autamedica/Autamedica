@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { useSearchParams } from 'next/navigation';
-import { getRoleDisplayName, isValidUserRole } from '@autamedica/shared';
+import { getRoleDisplayName, isValidUserRole, resolveRoleFromPortal } from '@autamedica/shared';
 import type { UserRole } from '@autamedica/types';
 import { SearchParamsWrapper } from '../../../components/SearchParamsWrapper';
 import { AuthLogo } from '@/components/AuthLogo';
 import { logger } from '@autamedica/shared';
+import { getBrowserSupabaseClient } from '@/lib/supabase';
 
 function RegisterForm() {
   const [email, setEmail] = useState('');
@@ -17,7 +17,13 @@ function RegisterForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const role = searchParams.get('role') as UserRole | null;
+  const roleParam = searchParams.get('role');
+  const portalParam = searchParams.get('portal')?.toLowerCase();
+  const returnTo = searchParams.get('returnTo');
+  const roleFromPortal = resolveRoleFromPortal(portalParam);
+  const role: UserRole | null = isValidUserRole(roleParam ?? '')
+    ? roleParam as UserRole
+    : roleFromPortal ?? null;
 
   useEffect(() => {
     // Si no hay rol preseleccionado, redirigir a select-role
@@ -32,6 +38,12 @@ function RegisterForm() {
     setError(null);
     setMessage(null);
 
+    if (!role) {
+      setError('Debes seleccionar un rol antes de registrarte');
+      setIsLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
       setIsLoading(false);
@@ -45,16 +57,18 @@ function RegisterForm() {
     }
 
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      const supabase = getBrowserSupabaseClient();
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      callbackUrl.searchParams.set('role', role);
+      if (returnTo) {
+        callbackUrl.searchParams.set('returnTo', returnTo);
+      }
 
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?role=${role}`,
+          emailRedirectTo: callbackUrl.toString(),
           data: {
             role: role
           }
@@ -66,12 +80,13 @@ function RegisterForm() {
       }
 
       setMessage('Te hemos enviado un enlace de confirmación a tu email. Revisa tu bandeja de entrada para activar tu cuenta.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Registration error:', error);
-      if (error.message?.includes('User already registered')) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear la cuenta';
+      if (errorMessage.includes('User already registered')) {
         setError('Este email ya está registrado. ¿Quieres iniciar sesión?');
       } else {
-        setError(error.message || 'Error al crear la cuenta');
+        setError(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -213,7 +228,7 @@ function RegisterForm() {
               ¿Ya tienes cuenta en AutaMedica?
             </p>
             <a
-              href={`/auth/login?role=${role}`}
+              href={`/auth/login?role=${role}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
               className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl transition-all duration-200"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

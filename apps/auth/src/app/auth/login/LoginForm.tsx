@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getRoleDisplayName, isValidUserRole } from '@autamedica/shared';
+import { getRoleDisplayName, isValidUserRole, resolveRoleFromPortal } from '@autamedica/shared';
 import type { UserRole } from '@autamedica/types';
 import { AuthLogo } from '@/components/AuthLogo';
 import { useAuthContext } from '@/providers/AuthProvider';
@@ -22,21 +22,31 @@ export function LoginForm() {
 
   // Get auth service singleton (solo en el cliente)
   const authService = useMemo(() => {
-    if (typeof window === 'undefined') return null as any;
-    return getAuthService();
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    try {
+      return getAuthService();
+    } catch {
+      return null;
+    }
   }, []);
 
   useEffect(() => {
     // Parse URL parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const urlRole = urlParams.get('role') as UserRole | null;
+    const urlRole = urlParams.get('role');
+    const urlPortal = urlParams.get('portal')?.toLowerCase();
     const urlReturnTo = urlParams.get('returnTo');
 
-    setRole(urlRole);
+    const roleFromPortal = resolveRoleFromPortal(urlPortal);
+    const resolvedRole = isValidUserRole(urlRole ?? '') ? (urlRole as UserRole) : roleFromPortal ?? null;
+
+    setRole(resolvedRole);
     setReturnTo(urlReturnTo);
 
     // Redirect to role selection if no valid role
-    if (!urlRole || !isValidUserRole(urlRole)) {
+    if (!resolvedRole || !isValidUserRole(resolvedRole)) {
       router.push('/auth/select-role');
     }
   }, [router]);
@@ -53,6 +63,12 @@ export function LoginForm() {
     e.preventDefault();
     setIsSubmitting(true);
     setLocalError(null);
+
+    if (!authService) {
+      setLocalError('No se pudo inicializar el servicio de autenticación');
+      setIsSubmitting(false);
+      return;
+    }
 
     const result = await authService.signIn({
       email,
@@ -76,6 +92,12 @@ export function LoginForm() {
   const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
     setLocalError(null);
+
+    if (!authService) {
+      setLocalError('No se pudo inicializar el servicio de autenticación');
+      setIsSubmitting(false);
+      return;
+    }
 
     const result = await authService.signInWithOAuth({
       provider: 'google',
@@ -214,7 +236,7 @@ export function LoginForm() {
               ¿No tienes cuenta en AutaMedica?
             </p>
             <a
-              href={`/auth/register?role=${role}`}
+              href={`/auth/register?role=${role}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
               className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl transition-all duration-200"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

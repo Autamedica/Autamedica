@@ -1,10 +1,12 @@
+import { isProduction } from '@autamedica/shared';
+
 export const sessionCookieOptions = {
   name: 'am_session',
   domain: '.autamedica.com',
   path: '/',
   httpOnly: true,
   secure: true,
-  sameSite: 'none' as const,
+  sameSite: 'lax' as const,
   maxAge: 60 * 60 * 8, // 8 hours
 };
 
@@ -17,26 +19,40 @@ export const PORTAL_MAPPING = {
 
 export const ALLOWED_PORTALS = new Set(Object.keys(PORTAL_MAPPING));
 
-// Allowed redirect domains for security
-export const ALLOWED_REDIRECT_DOMAINS = [
+const ALLOWED_LOCAL_PORTS = new Set(['3000', '3001', '3002', '3003', '3004', '3005']);
+
+const ALLOWED_REDIRECT_HOSTS = new Set([
   'autamedica.com',
-  '*.autamedica.com',
-  'localhost:3000',      // Development only
-  'localhost:3001',      // Development only
-  'localhost:3002',      // Development only
-  'localhost:3003',      // Development only
-  'localhost:3004',      // Development only
-  'localhost:3005',      // Development only - Auth Hub
-];
+  'www.autamedica.com',
+  'doctors.autamedica.com',
+  'patients.autamedica.com',
+  'companies.autamedica.com',
+  'admin.autamedica.com',
+  'localhost',
+  '127.0.0.1',
+]);
+
+function isAllowedByPattern(hostname: string): boolean {
+  if (hostname.endsWith('.autamedica.com')) return true;
+  if (isProduction()) return false;
+  return /^autamedica-[a-z0-9-]+\.pages\.dev$/i.test(hostname);
+}
 
 export function validateRedirectUrl(returnTo: string): boolean {
   try {
     const url = new URL(returnTo);
-    return ALLOWED_REDIRECT_DOMAINS.some(domain =>
-      domain.startsWith('*')
-        ? url.hostname.endsWith(domain.slice(2))
-        : url.hostname === domain || url.hostname === `${domain.split(':')[0]}`
-    );
+    if (!['https:', 'http:'].includes(url.protocol)) {
+      return false;
+    }
+
+    if (ALLOWED_REDIRECT_HOSTS.has(url.hostname) || isAllowedByPattern(url.hostname)) {
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return url.port === '' || ALLOWED_LOCAL_PORTS.has(url.port);
+      }
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }

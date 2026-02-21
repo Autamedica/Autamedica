@@ -61,7 +61,17 @@ function PatientCallContent({ roomId }: { roomId: string }) {
 
     if (!session) {
       if (REQUIRE_AUTH) {
-        router.push('/auth/login?redirect=/call/' + roomId)
+        const defaultAuthOrigin = window.location.hostname === 'localhost'
+          ? 'http://localhost:3000'
+          : 'https://www.autamedica.com'
+        const authOrigin = getClientEnvOrDefault(
+          'NEXT_PUBLIC_APP_URL',
+          defaultAuthOrigin
+        )
+        const loginUrl = new URL('/auth/login', authOrigin)
+        loginUrl.searchParams.set('portal', 'patients')
+        loginUrl.searchParams.set('returnTo', `${window.location.origin}/call/${roomId}`)
+        window.location.href = loginUrl.toString()
       } else {
         logger.warn('[UnifiedVideoCall][patient] sin sesión; usando identidad de desarrollo')
         setIsReady(true)

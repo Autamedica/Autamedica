@@ -18,6 +18,12 @@ const PUBLIC_ROUTES = [
 
 // Allowed roles for companies portal
 const ALLOWED_ROLES = ['company', 'organization_admin', 'platform_admin'] as const;
+const ROBOTS_TAG_VALUE = 'noindex, nofollow, noarchive, nosnippet, noimageindex';
+
+function withNoIndex(response: NextResponse): NextResponse {
+  response.headers.set('X-Robots-Tag', ROBOTS_TAG_VALUE);
+  return response;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -25,7 +31,7 @@ export async function middleware(request: NextRequest) {
 
   // Allow public routes
   if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
-    return NextResponse.next();
+    return withNoIndex(NextResponse.next());
   }
 
   try {
@@ -52,7 +58,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // All checks passed
-    return NextResponse.next();
+    return withNoIndex(NextResponse.next());
   } catch (error) {
     logger.error('Middleware error:', error);
 

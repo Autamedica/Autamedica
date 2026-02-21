@@ -22,16 +22,14 @@ function isPublicRoute(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const url = new URL(req.url);
 
-  // 1. Enforce canonical hostname for auth hub
-  if (url.hostname !== 'auth.autamedica.com' && url.hostname !== 'localhost') {
-    if (isProduction()) {
-      url.hostname = 'auth.autamedica.com';
-      return NextResponse.redirect(url, 301);
-    }
+  // 1. Enforce canonical hostname for auth hub on www domain.
+  if (isProduction() && url.hostname === 'auth.autamedica.com') {
+    url.hostname = 'www.autamedica.com';
+    return NextResponse.redirect(url, 301);
   }
 
   // 2. Create response (will be modified with headers and cookies)
-  let response = NextResponse.next();
+  const response = NextResponse.next();
 
   // 3. Session validation for protected routes
   if (!isPublicRoute(url.pathname)) {

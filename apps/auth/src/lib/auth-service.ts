@@ -1,7 +1,7 @@
-import type { Database } from '@autamedica/types';
 import type { UserRole } from '@autamedica/types';
-import { logger, getTargetUrlByRole } from '@autamedica/shared';
+import { logger, getTargetUrlByRole, resolveRoleFromPortal } from '@autamedica/shared';
 import { getBrowserSupabaseClient, type SupabaseClientType } from './supabase';
+import { validateRedirectUrl } from './cookies';
 
 /**
  * Auth Service - Centralized authentication logic
@@ -39,6 +39,57 @@ export interface AuthServiceResult<T = void> {
   };
 }
 
+function isUserRole(value: unknown): value is UserRole {
+  return (
+    value === 'patient' ||
+    value === 'doctor' ||
+    value === 'company' ||
+    value === 'company_admin' ||
+    value === 'organization_admin' ||
+    value === 'platform_admin'
+  );
+}
+
+function getRoleFromMetadata(userMetadata: unknown): UserRole | undefined {
+  if (!userMetadata || typeof userMetadata !== 'object') {
+    return undefined;
+  }
+
+  const metadata = userMetadata as Record<string, unknown>;
+  if (isUserRole(metadata.role)) {
+    return metadata.role;
+  }
+
+  const portal = metadata.portal;
+  if (typeof portal !== 'string') {
+    return undefined;
+  }
+  return resolveRoleFromPortal(portal);
+}
+
+function resolveSafeReturnTo(
+  rawReturnTo: string | undefined,
+  fallbackOrigin: string
+): string | undefined {
+  if (!rawReturnTo) {
+    return undefined;
+  }
+
+  if (rawReturnTo.startsWith('/') && !rawReturnTo.startsWith('//')) {
+    return new URL(rawReturnTo, fallbackOrigin).toString();
+  }
+
+  if (!validateRedirectUrl(rawReturnTo)) {
+    return undefined;
+  }
+
+  try {
+    return new URL(rawReturnTo).toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export class AuthService {
   private client: SupabaseClientType;
 
@@ -74,22 +125,38 @@ export class AuthService {
         };
       }
 
-      // Determine redirect URL
-      let redirectUrl = returnTo || (role ? getTargetUrlByRole(role) : '/auth/select-role');
+      const roleFromMetadata = getRoleFromMetadata(data.user?.user_metadata);
+      const resolvedRole = role ?? roleFromMetadata;
+      const roleTargetUrl = resolvedRole ? getTargetUrlByRole(resolvedRole) : undefined;
+      const roleOrigin = roleTargetUrl ? new URL(roleTargetUrl).origin : window.location.origin;
 
-      // In development (localhost with different ports), pass session via URL
-      // because cookies don't work cross-port
-      const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-      if (isDevelopment && data.session) {
-        const url = new URL(redirectUrl, window.location.origin);
-        url.searchParams.set('access_token', data.session.access_token);
-        url.searchParams.set('refresh_token', data.session.refresh_token);
-        redirectUrl = url.toString();
+      const safeReturnTo = resolveSafeReturnTo(returnTo, roleOrigin);
+      const destinationOrigin = safeReturnTo
+        ? new URL(safeReturnTo).origin
+        : roleOrigin;
+
+      if (data.session) {
+        const callbackUrl = new URL('/auth/callback', destinationOrigin);
+        callbackUrl.searchParams.set('access_token', data.session.access_token);
+        callbackUrl.searchParams.set('refresh_token', data.session.refresh_token);
+
+        if (safeReturnTo) {
+          callbackUrl.searchParams.set('returnTo', safeReturnTo);
+        }
+
+        if (resolvedRole) {
+          callbackUrl.searchParams.set('role', resolvedRole);
+        }
+
+        return {
+          success: true,
+          data: { redirectUrl: callbackUrl.toString() },
+        };
       }
 
       return {
         success: true,
-        data: { redirectUrl },
+        data: { redirectUrl: safeReturnTo || roleTargetUrl || '/auth/select-role' },
       };
     } catch (error) {
       logger.error('AuthService.signIn error:', error);
@@ -114,7 +181,7 @@ export class AuthService {
     returnTo,
   }: SignUpParams): Promise<AuthServiceResult<{ redirectUrl: string }>> {
     try {
-      const { data, error } = await this.client.auth.signUp({
+      const { data: _data, error } = await this.client.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {

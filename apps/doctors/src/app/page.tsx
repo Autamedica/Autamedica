@@ -30,6 +30,7 @@ import { useMedicalHistoryStore } from '@/stores/medicalHistoryStore'
 import { QuickNotesModal } from '@/components/medical/QuickNotesModal'
 import { PrescriptionModal } from '@/components/medical/PrescriptionModal'
 import { StartCallButton } from '@/components/calls/StartCallButton'
+import { getClientEnvOrDefault } from '@autamedica/shared'
 
 type ControlButtonProps = {
   active: boolean
@@ -54,6 +55,10 @@ export default function DoctorsHomePage(): JSX.Element {
   const { user, loading: authLoading } = useAuthenticatedUser()
   const { session } = useActiveSession()
   const { patient } = usePatientData(session?.patientId ?? null)
+  const authBaseUrl = useMemo(
+    () => getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', 'https://www.autamedica.com'),
+    []
+  )
 
   // Store centralizado de historial médico
   const { addEntry, suggestPrescriptions, analyzeVitals } = useMedicalHistoryStore()
@@ -396,7 +401,7 @@ export default function DoctorsHomePage(): JSX.Element {
                         <p className="text-yellow-300/80 text-xs">Inicia sesión para poder realizar llamadas</p>
                       </div>
                       <a
-                        href={`${typeof window !== 'undefined' && process.env.NEXT_PUBLIC_WEB_APP_URL ? process.env.NEXT_PUBLIC_WEB_APP_URL : 'http://localhost:3000'}/auth/login?portal=medico`}
+                        href={`${authBaseUrl}/auth/login?portal=doctors`}
                         className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-500"
                         target="_blank"
                         rel="noopener noreferrer"

@@ -1,18 +1,41 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import {
+  ensureClientEnv,
   logger,
   isProduction,
   isValidRole,
+  resolveRoleFromPortal,
   getTargetUrlByRole,
-  getRoleForPortal,
   type UserRole,
 } from '@autamedica/shared';
 import { validateRedirectUrl } from '@/lib/cookies';
 
 // Configure for Cloudflare Pages (Edge Runtime)
 export const runtime = 'edge';
+
+function parseReturnToParam(
+  returnTo: string | null
+): { absolute: URL | null; relativePath: string | null } {
+  if (!returnTo) {
+    return { absolute: null, relativePath: null };
+  }
+
+  if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+    return { absolute: null, relativePath: returnTo };
+  }
+
+  if (!validateRedirectUrl(returnTo)) {
+    return { absolute: null, relativePath: null };
+  }
+
+  try {
+    return { absolute: new URL(returnTo), relativePath: null };
+  } catch {
+    return { absolute: null, relativePath: null };
+  }
+}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -29,14 +52,14 @@ export async function GET(request: Request) {
 
     // Create Supabase client with cookie configuration for cross-subdomain sharing
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL'),
+      ensureClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
       {
         cookies: {
           get(name: string) {
             return cookieStore.get(name)?.value;
           },
-          set(name: string, value: string, options: any) {
+          set(name: string, value: string, options: CookieOptions) {
             // Set domain to .autamedica.com for cross-subdomain cookie sharing
             const cookieOptions = {
               ...options,
@@ -47,7 +70,7 @@ export async function GET(request: Request) {
             };
             cookieStore.set({ name, value, ...cookieOptions });
           },
-          remove(name: string, options: any) {
+          remove(name: string, options: CookieOptions) {
             const cookieOptions = {
               ...options,
               domain: isProduction() ? '.autamedica.com' : undefined,
@@ -71,17 +94,18 @@ export async function GET(request: Request) {
 
     // logger.info('Session created successfully for user:', data.user?.email);
 
-    // Persist role to user_metadata if provided
+    // Persist role to user_metadata only if role is validated.
     if (role && data.user) {
-      // logger.info('Persisting role to user_metadata:', role);
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { role }
-      });
-
-      if (updateError) {
-        logger.error('Error updating user metadata with role:', updateError);
+      if (!isValidRole(role)) {
+        logger.warn('Ignoring invalid role received in callback query:', role);
       } else {
-        // logger.info('Role successfully saved to user_metadata');
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { role }
+        });
+
+        if (updateError) {
+          logger.error('Error updating user metadata with role:', updateError);
+        }
       }
     }
 
@@ -96,7 +120,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const safeReturnTo = returnTo && validateRedirectUrl(returnTo) ? new URL(returnTo) : null;
+    const parsedReturnTo = parseReturnToParam(returnTo);
     const userMetadata = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
 
     const roleFromQuery = role && isValidRole(role) ? role as UserRole : undefined;
@@ -105,29 +129,34 @@ export async function GET(request: Request) {
       ? metadataRoleValue as UserRole
       : undefined;
     const metadataPortalValue = typeof userMetadata.portal === 'string' ? userMetadata.portal : undefined;
-    const roleFromPortal = metadataPortalValue ? getRoleForPortal(metadataPortalValue) : undefined;
+    const roleFromPortal = resolveRoleFromPortal(metadataPortalValue);
 
     const resolvedRole = roleFromQuery ?? roleFromMetadata ?? roleFromPortal;
 
-    const destinationBase = safeReturnTo
-      ? `${safeReturnTo.protocol}//${safeReturnTo.host}`
+    const destinationBase = parsedReturnTo.absolute
+      ? parsedReturnTo.absolute.origin
       : resolvedRole
-        ? new URL('/', getTargetUrlByRole(resolvedRole)).origin
+        ? new URL(getTargetUrlByRole(resolvedRole)).origin
         : undefined;
 
-    let destination: string;
-
     if (destinationBase) {
-      const tokenParams = new URLSearchParams({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      }).toString();
-      destination = `${destinationBase}/auth/callback?${tokenParams}`;
-    } else {
-      destination = '/auth/select-role';
+      const destination = new URL('/auth/callback', destinationBase);
+      destination.searchParams.set('access_token', accessToken);
+      destination.searchParams.set('refresh_token', refreshToken);
+
+      if (parsedReturnTo.absolute) {
+        destination.searchParams.set('returnTo', parsedReturnTo.absolute.toString());
+      } else if (parsedReturnTo.relativePath) {
+        destination.searchParams.set(
+          'returnTo',
+          new URL(parsedReturnTo.relativePath, destinationBase).toString()
+        );
+      }
+
+      return NextResponse.redirect(destination);
     }
 
-    return NextResponse.redirect(destination);
+    return NextResponse.redirect(new URL('/auth/select-role', requestUrl.origin));
   } catch (error) {
     logger.error('Callback error:', error);
     return NextResponse.redirect(

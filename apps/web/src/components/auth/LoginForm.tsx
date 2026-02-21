@@ -1,15 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { isValidUserRole, resolveRoleFromPortal } from '@autamedica/shared';
+import type { UserRole } from '@autamedica/shared';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
+
+function resolveRoleFromQuery(params: URLSearchParams): UserRole | undefined {
+  const role = params.get('role');
+  if (role && isValidUserRole(role)) {
+    return role;
+  }
+
+  const portal = params.get('portal')?.toLowerCase();
+  return resolveRoleFromPortal(portal);
+}
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registerHref, setRegisterHref] = useState('/auth/register');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const role = resolveRoleFromQuery(params);
+    const returnTo = params.get('returnTo');
+    const registerParams = new URLSearchParams();
+    if (role) {
+      registerParams.set('role', role);
+    }
+    if (returnTo) {
+      registerParams.set('returnTo', returnTo);
+    }
+    const query = registerParams.toString();
+    setRegisterHref(query ? `/auth/register?${query}` : '/auth/register');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +61,19 @@ export function LoginForm() {
         return;
       }
 
-      // Pass session to callback — it reads role from user_metadata and redirects
-      // to the correct portal (or asks to select role if none stored yet).
-      window.location.href = '/auth/callback';
+      const params = new URLSearchParams(window.location.search);
+      const role = resolveRoleFromQuery(params);
+      const returnTo = params.get('returnTo');
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      if (role) {
+        callbackUrl.searchParams.set('role', role);
+      }
+      if (returnTo) {
+        callbackUrl.searchParams.set('returnTo', returnTo);
+      }
+
+      // Callback resolves role + returnTo and redirects to the correct portal.
+      window.location.href = callbackUrl.toString();
     } catch {
       setError('Error inesperado. Intenta de nuevo.');
       setIsSubmitting(false);
@@ -48,14 +86,21 @@ export function LoginForm() {
 
     try {
       const supabase = getBrowserSupabaseClient();
-      const origin = window.location.origin;
-      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
-      const redirectTo = `${origin}/auth/callback${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`;
+      const params = new URLSearchParams(window.location.search);
+      const role = resolveRoleFromQuery(params);
+      const returnTo = params.get('returnTo');
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      if (role) {
+        callbackUrl.searchParams.set('role', role);
+      }
+      if (returnTo) {
+        callbackUrl.searchParams.set('returnTo', returnTo);
+      }
 
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
+          redirectTo: callbackUrl.toString(),
           queryParams: { access_type: 'offline', prompt: 'consent' },
         },
       });
@@ -176,7 +221,7 @@ export function LoginForm() {
           ¿No tenés cuenta en AutaMédica?
         </p>
         <a
-          href="/auth/select-role"
+          href={registerHref}
           className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl transition-all duration-200"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

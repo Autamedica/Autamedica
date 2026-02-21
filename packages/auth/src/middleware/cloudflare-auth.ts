@@ -14,7 +14,7 @@ import { parseSessionFromCookie, validateKVSession } from '../utils/cloudflare-s
 export async function onRequest(context: {
   request: Request
   env: any
-  next: () => Promise<Response>
+  next: (request?: Request) => Promise<Response>
   params: any
 }) {
   const { request, env, next } = context
@@ -50,7 +50,7 @@ export async function onRequest(context: {
       return next() // Allow access to web-app landing
     }
 
-    const loginUrl = `https://autamedica-web-app.pages.dev/auth/login?returnUrl=${encodeURIComponent(url.toString())}`
+    const loginUrl = `https://www.autamedica.com/auth/login?returnTo=${encodeURIComponent(url.toString())}`
     return Response.redirect(loginUrl, 302)
   }
 
@@ -59,7 +59,7 @@ export async function onRequest(context: {
 
   if (!profile) {
     // Invalid session, redirect to login
-    const loginUrl = `https://autamedica-web-app.pages.dev/auth/login?returnUrl=${encodeURIComponent(url.toString())}`
+    const loginUrl = `https://www.autamedica.com/auth/login?returnTo=${encodeURIComponent(url.toString())}`
     return Response.redirect(loginUrl, 302)
   }
 
@@ -72,18 +72,17 @@ export async function onRequest(context: {
     return Response.redirect(correctUrl, 302)
   }
 
-  // Add user info to headers for the application
-  const response = await next()
-  const newHeaders = new Headers(response.headers)
-  newHeaders.set('x-user-id', profile.id)
-  newHeaders.set('x-user-role', profile.role)
-  newHeaders.set('x-user-email', profile.email)
+  // Forward auth context in request headers so downstream handlers can read it.
+  const forwardedHeaders = new Headers(request.headers)
+  forwardedHeaders.set('x-user-id', profile.id)
+  forwardedHeaders.set('x-user-role', profile.role)
+  forwardedHeaders.set('x-user-email', profile.email)
 
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: newHeaders
+  const authenticatedRequest = new Request(request, {
+    headers: forwardedHeaders
   })
+
+  return next(authenticatedRequest)
 }
 
 /**
@@ -91,12 +90,12 @@ export async function onRequest(context: {
  */
 function getAppUrl(app: AppName, path: string = '/'): string {
   const appUrls: Record<AppName, string> = {
-    'web-app': 'https://autamedica-web-app.pages.dev',
-    'auth': 'https://autamedica-auth.pages.dev',
-    'patients': 'https://autamedica-patients.pages.dev',
-    'doctors': 'https://autamedica-doctors.pages.dev',
-    'companies': 'https://autamedica-companies.pages.dev',
-    'admin': 'https://autamedica-admin.pages.dev'
+    'web-app': 'https://www.autamedica.com',
+    'auth': 'https://www.autamedica.com',
+    'patients': 'https://patients.autamedica.com',
+    'doctors': 'https://doctors.autamedica.com',
+    'companies': 'https://companies.autamedica.com',
+    'admin': 'https://admin.autamedica.com'
   }
 
   return `${appUrls[app]}${path}`

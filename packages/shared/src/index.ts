@@ -33,6 +33,7 @@ export {
   getCookieDomain,
   isValidRole,
   PORTAL_TO_ROLE,
+  resolveRoleFromPortal,
   AUTH_URLS,
   getLoginUrl
 } from "./role-routing";
@@ -73,7 +74,12 @@ export type { AppRole } from "./env/getAppUrl";
 export { WebRTCDiagnostics, ICE_SERVERS } from "./webrtc-diagnostics";
 
 // Tenant-based roles and permissions
-export * from "./tenant/roles";
+export {
+  canManageBilling as canManageTenantBilling,
+  canManageCompany as canManageTenantCompany,
+  canInviteMembers as canInviteTenantMembers,
+  type MemberRole,
+} from "./tenant/roles";
 
 // Simplified role system utilities
 export {
