@@ -30,7 +30,7 @@ const CONFIG = {
     admin: 'http://localhost:3005'
   },
   production: {
-    auth: 'https://auth.autamedica.com',
+    auth: 'https://www.autamedica.com',
     patients: 'https://patients.autamedica.com',
     doctors: 'https://doctors.autamedica.com',
     companies: 'https://companies.autamedica.com',
@@ -261,7 +261,7 @@ async function testReturnUrl() {
 
   const targetPath = '/profile'
   const returnUrl = encodeURIComponent(`${URLS.patients}${targetPath}`)
-  const loginUrl = `${URLS.auth}/auth/login?returnUrl=${returnUrl}`
+  const loginUrl = `${URLS.auth}/auth/login?returnTo=${returnUrl}`
 
   log(`📍 Navegando a: ${loginUrl}`, 'info')
   log(`🎯 Después del login, deberías ser redirigido a: ${URLS.patients}${targetPath}`, 'warning')
@@ -395,6 +395,7 @@ function showHelp() {
   log('  testCompanyRedirect()    - Test de empresa', 'info')
   log('  testAdminRedirect()      - Test de admin', 'info')
   log('  testMiddlewareProtection() - Test de middleware', 'info')
+  log('  testRedirectWithSupabase(role) - Test automático con Supabase', 'info')
   log('  testReturnUrl()          - Test de returnUrl', 'info')
   log('  testRoleSelection()      - Test de selección de rol', 'info')
   log('  cleanupTests()           - Limpiar datos de tests', 'info')
@@ -435,6 +436,7 @@ window.testDoctorRedirect = testDoctorRedirect
 window.testCompanyRedirect = testCompanyRedirect
 window.testAdminRedirect = testAdminRedirect
 window.testMiddlewareProtection = testMiddlewareProtection
+window.testRedirectWithSupabase = testRedirectWithSupabase
 window.testReturnUrl = testReturnUrl
 window.testRoleSelection = testRoleSelection
 window.cleanupTests = cleanupTests

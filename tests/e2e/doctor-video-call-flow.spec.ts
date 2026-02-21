@@ -64,7 +64,7 @@ test.describe('Doctor Portal – Login + Video Call', () => {
       const doctorConsole: string[] = [];
       doctorPage.on('console', (message) => doctorConsole.push(message.text()));
 
-      await doctorPage.goto('https://auth.autamedica.com/auth/login?role=doctor', { waitUntil: 'networkidle' });
+      await doctorPage.goto('https://www.autamedica.com/auth/login?role=doctor', { waitUntil: 'networkidle' });
 
     await doctorPage.getByLabel('Correo electrónico').fill(DOCTOR_EMAIL);
     await doctorPage.getByLabel('Contraseña').fill(DOCTOR_PASSWORD);
@@ -273,8 +273,8 @@ test.describe('Doctor Portal – Login + Video Call', () => {
         muted: video.muted,
         readyState: video.readyState,
         currentSrc: video.currentSrc,
-        hasVideoTrack: Boolean(video.srcObject && video.srcObject.getVideoTracks().some((track) => track.readyState === 'live')),
-        hasAudioTrack: Boolean(video.srcObject && video.srcObject.getAudioTracks().some((track) => track.readyState === 'live')),
+        hasVideoTrack: Boolean(video.srcObject?.getVideoTracks().some((track) => track.readyState === 'live')),
+        hasAudioTrack: Boolean(video.srcObject?.getAudioTracks().some((track) => track.readyState === 'live')),
       }));
     });
 
@@ -283,8 +283,8 @@ test.describe('Doctor Portal – Login + Video Call', () => {
         muted: video.muted,
         readyState: video.readyState,
         currentSrc: video.currentSrc,
-        hasVideoTrack: Boolean(video.srcObject && video.srcObject.getVideoTracks().some((track) => track.readyState === 'live')),
-        hasAudioTrack: Boolean(video.srcObject && video.srcObject.getAudioTracks().some((track) => track.readyState === 'live')),
+        hasVideoTrack: Boolean(video.srcObject?.getVideoTracks().some((track) => track.readyState === 'live')),
+        hasAudioTrack: Boolean(video.srcObject?.getAudioTracks().some((track) => track.readyState === 'live')),
       }));
     });
 
