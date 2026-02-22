@@ -12,6 +12,7 @@
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
 ### 🔧 Mejoras y Optimizaciones
+- e4579f6 chore(auth): add workflow to seed QA login users
 - d629ad5 chore: remove explicit-any warnings in shared db wrapper
 - 880e183 chore(ci): add staged debt and db drift guards to pre-commit
 - 159ae48 chore: agregar apps/web/.env.example como referencia
@@ -54,6 +55,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- bb3ecf5 📝 docs: actualizar changelog automático
 - 9c186b5 📝 docs: actualizar changelog automático
 - 9d99dab 📝 docs: actualizar changelog automático
 - 5cac51b 📝 docs: actualizar changelog automático
@@ -109,4 +111,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 02:31:43*
+*Generado automáticamente el 2026-02-22 02:35:12*
