@@ -9,7 +9,6 @@
     { "path": "./packages/utils" },
     { "path": "./packages/telemedicine" },
     { "path": "./packages/tailwind-config" },
-    { "path": "./apps/web-app" },
     { "path": "./apps/doctors" },
     { "path": "./apps/patients" },
     { "path": "./apps/companies" },

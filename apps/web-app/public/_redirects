@@ -1,4 +1,0 @@
-https://autamedica.com/* https://www.autamedica.com/:splat 301
-/login  https://www.autamedica.com/auth/login 302
-/logout https://www.autamedica.com/auth/logout 302
-/auth/* https://www.autamedica.com/auth/:splat 302
