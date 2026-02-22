@@ -1,29 +1,28 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTelemedicineClient } from './useTelemedicineClient'
 
-// Mock WebRTCClient
-vi.mock('../webrtc-client', () => {
-  const mockClient = {
-    on: vi.fn(),
-    off: vi.fn(),
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    startLocalStream: vi.fn(),
-    stopLocalStream: vi.fn(),
-    getConnectionState: vi.fn(() => 'disconnected'),
-    getPeerConnections: vi.fn(() => new Map()),
-    getLocalStream: vi.fn(() => null),
-    isAudioEnabled: vi.fn(() => false),
-    isVideoEnabled: vi.fn(() => false),
-    toggleAudio: vi.fn(() => true),
-    toggleVideo: vi.fn(() => true)
-  }
+// Declare mockClient — initialized before vi.mock so the factory can close over it
+const mockClient = {
+  on: vi.fn(),
+  off: vi.fn(),
+  connect: vi.fn().mockResolvedValue(undefined),
+  disconnect: vi.fn().mockResolvedValue(undefined),
+  startLocalStream: vi.fn(),
+  stopLocalStream: vi.fn(),
+  getConnectionState: vi.fn(() => 'disconnected'),
+  getPeerConnections: vi.fn(() => new Map()),
+  getLocalStream: vi.fn(() => null),
+  isAudioEnabled: vi.fn(() => false),
+  isVideoEnabled: vi.fn(() => false),
+  toggleAudio: vi.fn(() => true),
+  toggleVideo: vi.fn(() => true)
+}
 
-  return {
-    WebRTCClient: vi.fn(() => mockClient)
-  }
-})
+// Mock WebRTCClient — always returns the same mockClient instance
+vi.mock('../webrtc-client', () => ({
+  WebRTCClient: vi.fn(() => mockClient)
+}))
 
 // Mock MediaStream
 Object.defineProperty(global, 'MediaStream', {
@@ -37,11 +36,19 @@ Object.defineProperty(global, 'MediaStream', {
 
 describe('useTelemedicineClient', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Reset call counts, but keep mockResolvedValue on connect/disconnect
+    Object.values(mockClient).forEach((fn) => {
+      if (typeof (fn as ReturnType<typeof vi.fn>).mockClear === 'function') {
+        (fn as ReturnType<typeof vi.fn>).mockClear()
+      }
+    })
+    // Re-apply resolved value after clear
+    mockClient.connect.mockResolvedValue(undefined)
+    mockClient.disconnect.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
+    // nothing
   })
 
   it('should initialize with default state', () => {

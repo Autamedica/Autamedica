@@ -2,8 +2,8 @@ import {
   getClientEnvOrDefault,
   getOptionalClientEnv,
   getServerEnvOrDefault,
-  logger,
   isProduction,
+  logger,
 } from '@autamedica/shared'
 
 /** Lee ICE desde env (cliente o server) */
@@ -75,4 +75,89 @@ export function loadSignalingUrl(): string {
     'NEXT_PUBLIC_SIGNALING_URL',
     'wss://autamedica-signaling-server.ecucondor.workers.dev/connect'
   )
+}
+
+/** Default Google STUN servers */
+const DEFAULT_STUN_SERVERS: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun4.l.google.com:19302' },
+]
+
+/**
+ * Returns ICE servers config from environment variables.
+ * Priority: NEXT_PUBLIC_ICE_SERVERS JSON → TURN_SERVER_URL vars → defaults
+ */
+export function getIceServersConfig(): RTCIceServer[] {
+  // Try JSON env var first
+  const raw =
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_ICE_SERVERS) || ''
+
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as RTCIceServer[]
+      const valid = parsed.filter((s) => {
+        const url = Array.isArray(s.urls) ? s.urls[0] : s.urls
+        return typeof url === 'string' && (url.startsWith('stun:') || url.startsWith('turn:') || url.startsWith('turns:'))
+      })
+      if (valid.length > 0) return valid
+    } catch {
+      // fall through to defaults
+    }
+  }
+
+  // Try separate TURN env vars
+  const turnUrl =
+    typeof process !== 'undefined' && process.env?.TURN_SERVER_URL
+  const turnUsername =
+    typeof process !== 'undefined' && process.env?.TURN_USERNAME
+  const turnPassword =
+    typeof process !== 'undefined' && process.env?.TURN_PASSWORD
+
+  if (turnUrl) {
+    return [
+      {
+        urls: turnUrl,
+        ...(turnUsername ? { username: turnUsername } : {}),
+        ...(turnPassword ? { credential: turnPassword } : {}),
+      },
+      ...DEFAULT_STUN_SERVERS,
+    ]
+  }
+
+  return [...DEFAULT_STUN_SERVERS]
+}
+
+/**
+ * Validates an ICE servers config array.
+ * Returns true if valid (has at least one server with a valid url).
+ */
+export function validateIceServersConfig(servers: RTCIceServer[]): boolean {
+  if (!Array.isArray(servers) || servers.length === 0) return false
+
+  const hasStun = servers.some((s) => {
+    const url = Array.isArray(s.urls) ? s.urls[0] : s.urls
+    return typeof url === 'string' && url.startsWith('stun:')
+  })
+  const hasTurn = servers.some((s) => {
+    const url = Array.isArray(s.urls) ? s.urls[0] : s.urls
+    return typeof url === 'string' && (url.startsWith('turn:') || url.startsWith('turns:'))
+  })
+
+  if (!hasStun) console.warn('No STUN servers configured. ICE may fail in some networks.')
+  if (!hasTurn) console.warn('No TURN servers configured. Connections behind strict NAT may fail.')
+
+  return true
+}
+
+/**
+ * Returns a JSON example string for ICE servers configuration.
+ */
+export function getExampleIceServersConfig(): string {
+  return JSON.stringify([
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'turn:turn.example.com:3478', username: 'user', credential: 'pass' },
+  ], null, 2)
 }
