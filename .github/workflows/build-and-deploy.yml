@@ -108,11 +108,25 @@ jobs:
         run: pnpm build:packages:core
 
       - name: Build App (${{ matrix.app }})
-        run: pnpm --filter @autamedica/${{ matrix.app }} build
+        run: |
+          if [ "${{ matrix.app }}" = "web" ]; then
+            pnpm --filter @autamedica/${{ matrix.app }} build
+          else
+            pnpm --filter @autamedica/${{ matrix.app }} run build:cloudflare
+          fi
         env:
           NODE_ENV: production
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Determine Deploy Directory
+        id: deploy_dir
+        run: |
+          if [ "${{ matrix.app }}" = "web" ]; then
+            echo "DIR=apps/${{ matrix.app }}/dist" >> $GITHUB_OUTPUT
+          else
+            echo "DIR=apps/${{ matrix.app }}/.open-next" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install Wrangler
         run: npm install -g wrangler
@@ -122,7 +136,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy apps/${{ matrix.app }}/dist --project-name=autamedica-${{ matrix.app }} --branch=${{ github.ref_name }}
+          command: pages deploy ${{ steps.deploy_dir.outputs.DIR }} --project-name=autamedica-${{ matrix.app }} --branch=${{ github.ref_name }}
 
   smoke-tests:
     name: 🧪 Smoke Tests
