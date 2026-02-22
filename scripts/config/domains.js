@@ -36,7 +36,7 @@ const PAGES_TARGETS = Object.freeze({
   web: 'autamedica-web.pages.dev',
   webApp: 'autamedica-web-app.pages.dev',
   doctors: 'autamedica-doctors-az6.pages.dev',
-  patients: 'autamedica-patients.pages.dev',
+  patients: 'autamedica-patients-82t.pages.dev',
   companies: 'autamedica-companies-drl.pages.dev',
   admin: 'autamedica-admin-5r9.pages.dev',
 });

@@ -28,6 +28,26 @@
 
 ---
 
+## 🧠 Insights Operativos (Sesión 2026-02-22)
+
+- **Root cause de redirección rota (doctors/companies)**: se estaban usando slugs de portal (`doctors`, `companies`) como base URL en middleware, lo que rompía redirecciones cross-portal.
+- **Root cause adicional de `localhost` en producción**: cuando `NODE_ENV` no estaba disponible en runtime/browser, `isDevelopment()` devolvía `true` y forzaba fallbacks a `http://localhost:3000`.
+- **Fix aplicado en main**:
+  - `fix(auth): normalize cross-portal redirects to absolute role URLs`
+  - `fix(auth): avoid localhost fallback for login redirects in edge`
+  - `fix(env): treat non-local browser hosts as production by default`
+- **Regla de oro para redirects**: para cambio de portal usar siempre `getTargetUrlByRole(...)` (URL absoluta) y nunca un slug como base de `new URL(...)`.
+- **Patchright + Supergravity (CDP) estable**:
+  - Si `curl http://127.0.0.1:9222/json/version` falla, Chrome no quedó con CDP activo.
+  - Cerrar Chrome completo y reabrir con `--remote-debugging-port=9222`.
+  - Compartir `webSocketDebuggerUrl` exacto para conectar la sesión desde Patchright Streaming.
+- **Checklist rápido post-deploy auth**:
+  - `https://www.autamedica.com/auth/login?portal=patients|doctors|companies` carga formulario.
+  - `patients/doctors/companies.autamedica.com` no debe redirigir a `localhost`.
+  - `node scripts/monitor-auth.mjs` y `node scripts/node_fetch_check.mjs` en verde.
+
+---
+
 ## 🚀 Inicio Rápido
 
 ```bash

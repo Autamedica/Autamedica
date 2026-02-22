@@ -283,22 +283,27 @@ jobs:
       - name: Setup Lighthouse CI
         run: npm install -g @lhci/cli@0.13.x
 
-      - name: Run Lighthouse (Patients)
+      - name: Run Lighthouse (Astro public routes)
         run: |
-          lhci autorun \
-            --collect.url=https://patients.autamedica.com \
-            --assert.preset=lighthouse:recommended \
-            --assert.assertions.performance=">=0.85" \
-            --assert.assertions.accessibility=">=0.9" \
-            --assert.assertions.best-practices=">=0.9" \
-            --assert.assertions.seo=">=0.9" || echo "⚠️ Lighthouse warnings"
+          set -e
+          ROUTES=(
+            "https://www.autamedica.com/"
+            "https://www.autamedica.com/patients"
+            "https://www.autamedica.com/doctors"
+            "https://www.autamedica.com/companies"
+            "https://www.autamedica.com/platform"
+          )
 
-      - name: Run Lighthouse (Doctors)
-        run: |
-          lhci autorun \
-            --collect.url=https://doctors.autamedica.com \
-            --assert.preset=lighthouse:recommended \
-            --assert.assertions.performance=">=0.85" || echo "⚠️ Lighthouse warnings"
+          for URL in "${ROUTES[@]}"; do
+            echo "🔎 Lighthouse => ${URL}"
+            lhci autorun \
+              --collect.url="${URL}" \
+              --assert.preset=lighthouse:recommended \
+              --assert.assertions.performance=">=0.85" \
+              --assert.assertions.accessibility=">=0.90" \
+              --assert.assertions.best-practices=">=0.90" \
+              --assert.assertions.seo=">=0.90" || echo "⚠️ Lighthouse warnings at ${URL}"
+          done
 
   k6_smoke:
     needs: [agent_dns_deploy]

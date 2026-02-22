@@ -6,6 +6,7 @@ import type { UserRole } from '@autamedica/shared';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
+import { AuthAlert } from './AuthAlert';
 
 function resolveRoleFromQuery(params: URLSearchParams): UserRole | undefined {
   const role = params.get('role');
@@ -127,19 +128,11 @@ export function LoginForm() {
         </p>
       </div>
 
-      {error && (
-        <div className="bg-red-500/10 border-2 border-red-500/30 rounded-lg p-4">
-          <div className="flex items-center">
-            <svg className="w-5 h-5 text-red-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-red-300">{error}</p>
-          </div>
-        </div>
-      )}
+      {error && <AuthAlert tone="error">{error}</AuthAlert>}
 
       {/* Google Sign In */}
       <button
+        type="button"
         onClick={handleGoogleSignIn}
         disabled={isSubmitting}
         className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl text-[var(--au-text-primary)] font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -166,7 +159,7 @@ export function LoginForm() {
       </div>
 
       {/* Email/Password Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isSubmitting}>
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-[var(--au-text-secondary)] mb-2">
             Correo electrónico
@@ -177,7 +170,10 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
+            inputMode="email"
             disabled={isSubmitting}
+            aria-invalid={Boolean(error)}
             className="w-full px-4 py-3 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
             placeholder="tu@email.com"
           />
@@ -198,14 +194,15 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
             disabled={isSubmitting}
+            aria-invalid={Boolean(error)}
             className="w-full px-4 py-3 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
             placeholder="••••••••"
           />
         </div>
 
         <AuthButton
-          onClick={() => {}}
           disabled={isSubmitting}
           variant="primary"
           fullWidth

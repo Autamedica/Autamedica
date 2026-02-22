@@ -1,0 +1,211 @@
+---
+interface StatItem {
+  label: string;
+  value: string;
+}
+
+interface PillarItem {
+  title: string;
+  description: string;
+}
+
+interface Props {
+  badge: string;
+  title: string;
+  subtitle: string;
+  accent?: string;
+  stats: StatItem[];
+  pillars: PillarItem[];
+  primaryCta: {
+    href: string;
+    label: string;
+  };
+  secondaryCta?: {
+    href: string;
+    label: string;
+  };
+}
+
+const {
+  badge,
+  title,
+  subtitle,
+  accent = 'var(--au-accent)',
+  stats,
+  pillars,
+  primaryCta,
+  secondaryCta,
+} = Astro.props;
+---
+
+<section class="portal-shell" style={`--portal-accent: ${accent};`}>
+  <div class="portal-inner">
+    <header class="portal-header">
+      <p class="portal-badge">{badge}</p>
+      <h1>{title}</h1>
+      <p class="portal-subtitle">{subtitle}</p>
+
+      <div class="portal-actions">
+        <a class="cta primary" href={primaryCta.href}>{primaryCta.label}</a>
+        {secondaryCta && <a class="cta secondary" href={secondaryCta.href}>{secondaryCta.label}</a>}
+      </div>
+    </header>
+
+    <section class="stats" aria-label="Indicadores del portal">
+      {stats.map((item) => (
+        <article class="stat-card">
+          <p class="stat-value">{item.value}</p>
+          <p class="stat-label">{item.label}</p>
+        </article>
+      ))}
+    </section>
+
+    <section class="pillars" aria-label="Pilares del portal">
+      {pillars.map((pillar) => (
+        <article class="pillar-card">
+          <h2>{pillar.title}</h2>
+          <p>{pillar.description}</p>
+        </article>
+      ))}
+    </section>
+  </div>
+</section>
+
+<style>
+  .portal-shell {
+    min-height: 100vh;
+    padding: clamp(5rem, 8vh, 7rem) var(--section-px) var(--space-16);
+    background:
+      radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--portal-accent) 18%, transparent), transparent 40%),
+      radial-gradient(circle at 100% 10%, color-mix(in srgb, var(--portal-accent) 10%, transparent), transparent 35%),
+      var(--au-bg);
+  }
+
+  .portal-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    gap: var(--space-8);
+  }
+
+  .portal-header {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-lg);
+    background: rgba(20, 20, 22, 0.94);
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .portal-badge {
+    margin: 0;
+    display: inline-flex;
+    border: 1px solid color-mix(in srgb, var(--portal-accent) 45%, var(--au-border-hover));
+    border-radius: var(--radius-full);
+    padding: 0.35rem 0.85rem;
+    font-size: var(--text-xs);
+    color: color-mix(in srgb, var(--portal-accent) 70%, #fff);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  h1 {
+    margin: var(--space-4) 0 var(--space-3);
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    letter-spacing: -0.03em;
+  }
+
+  .portal-subtitle {
+    margin: 0;
+    color: var(--au-text-secondary);
+    max-width: 72ch;
+  }
+
+  .portal-actions {
+    margin-top: var(--space-6);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    border-radius: var(--radius-sm);
+    padding: 0.7rem 1rem;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .cta:hover {
+    transform: translateY(-1px);
+  }
+
+  .cta.primary {
+    background: color-mix(in srgb, var(--portal-accent) 88%, white);
+    color: #101010;
+    border: 1px solid transparent;
+  }
+
+  .cta.secondary {
+    border: 1px solid var(--au-border-hover);
+    color: var(--au-text-primary);
+  }
+
+  .cta.secondary:hover {
+    border-color: var(--portal-accent);
+    background: color-mix(in srgb, var(--portal-accent) 16%, transparent);
+  }
+
+  .stats {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  .stat-card {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    padding: var(--space-4);
+  }
+
+  .stat-value {
+    margin: 0;
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    font-weight: var(--font-semibold);
+    color: var(--portal-accent);
+  }
+
+  .stat-label {
+    margin: var(--space-2) 0 0;
+    color: var(--au-text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .pillars {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .pillar-card {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    padding: var(--space-5);
+  }
+
+  .pillar-card h2 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-lg);
+  }
+
+  .pillar-card p {
+    margin: 0;
+    color: var(--au-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+  }
+</style>

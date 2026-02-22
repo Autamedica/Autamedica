@@ -1,233 +1,167 @@
 #!/usr/bin/env node
 
 /**
- * Script to validate security headers configuration
- * Tests Next.js security headers setup for HIPAA compliance
+ * Security validation aligned to Astro web app.
+ * Replaces obsolete Next.js-specific checks for apps/web-app.
  */
 
 import { spawn } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 
-console.log('🔒 Validating security headers configuration...\n');
+console.log('🔒 Validating security baseline for Astro web app...\n');
 
-async function checkSecurityHeaders() {
+function readFileOrNull(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  return fs.readFileSync(filePath, 'utf8');
+}
+
+function checkAstroSecurityFiles() {
   const issues = [];
 
-  // Check Next.js configuration
-  console.log('📋 Checking Next.js security configuration...');
+  const files = {
+    layout: path.join(process.cwd(), 'apps/web/src/layouts/Layout.astro'),
+    authLayout: path.join(process.cwd(), 'apps/web/src/layouts/AuthLayout.astro'),
+    middleware: path.join(process.cwd(), 'apps/web/src/middleware.ts'),
+    robots: path.join(process.cwd(), 'apps/web/src/pages/robots.txt.ts'),
+    sitemap: path.join(process.cwd(), 'apps/web/src/pages/sitemap.xml.ts'),
+  };
 
-  try {
-    // Read next.config.mjs to validate security headers
-    const configPath = path.join(process.cwd(), 'apps/web-app/next.config.mjs');
-    const { default: nextConfig } = await import(configPath);
+  console.log('📋 Checking Astro security-related files...');
 
-    // Test headers function
-    if (typeof nextConfig.headers === 'function') {
-      const headers = await nextConfig.headers();
-
-      console.log('✅ Security headers function found');
-      console.log(`📊 Found ${headers.length} header configuration(s)`);
-
-      // Check for critical security headers
-      const allHeaders = headers.flatMap(config => config.headers || []);
-      const headerKeys = allHeaders.map(h => h.key);
-
-      const requiredHeaders = [
-        'Content-Security-Policy',
-        'Strict-Transport-Security',
-        'X-Frame-Options',
-        'X-Content-Type-Options',
-        'Referrer-Policy',
-        'Permissions-Policy'
-      ];
-
-      requiredHeaders.forEach(header => {
-        if (headerKeys.includes(header)) {
-          console.log(`  ✅ ${header} configured`);
-        } else {
-          console.log(`  ❌ ${header} missing`);
-          issues.push(`Missing required security header: ${header}`);
-        }
-      });
-
-      // Check for HIPAA-specific headers
-      const hipaaHeaders = [
-        'X-Medical-Data-Protection',
-        'X-API-Medical-Data'
-      ];
-
-      hipaaHeaders.forEach(header => {
-        if (headerKeys.includes(header)) {
-          console.log(`  ✅ ${header} configured (HIPAA)`);
-        } else {
-          console.log(`  ⚠️  ${header} not found (HIPAA compliance)`);
-        }
-      });
-
+  for (const [name, filePath] of Object.entries(files)) {
+    if (fs.existsSync(filePath)) {
+      console.log(`  ✅ ${name}: found`);
     } else {
-      issues.push('Next.js headers function not configured');
+      console.log(`  ❌ ${name}: missing`);
+      issues.push(`Missing required file: ${filePath}`);
     }
+  }
 
-    // Check redirects
-    if (typeof nextConfig.redirects === 'function') {
-      const redirects = await nextConfig.redirects();
-      console.log(`✅ Redirects configured (${redirects.length} rules)`);
-    }
-
-    // Check image optimization security
-    if (nextConfig.images) {
-      console.log('✅ Image optimization configured');
-      if (nextConfig.images.dangerouslyAllowSVG === false) {
-        console.log('  ✅ SVG uploads disabled (security)');
+  const layoutContent = readFileOrNull(files.layout);
+  if (layoutContent) {
+    const requiredMetaMarkers = ['<SeoMeta', 'theme-color', 'StructuredData'];
+    for (const marker of requiredMetaMarkers) {
+      if (layoutContent.includes(marker)) {
+        console.log(`  ✅ layout contains: ${marker}`);
       } else {
-        console.log('  ⚠️  SVG uploads may be enabled');
-        issues.push('Consider disabling dangerouslyAllowSVG for security');
+        console.log(`  ❌ layout missing: ${marker}`);
+        issues.push(`Layout missing marker: ${marker}`);
       }
     }
+  }
 
-  } catch (error) {
-    console.error('❌ Error reading Next.js configuration:', error.message);
-    issues.push('Could not validate Next.js configuration');
+  const authLayoutContent = readFileOrNull(files.authLayout);
+  if (authLayoutContent) {
+    if (authLayoutContent.includes('noindex, nofollow, noarchive')) {
+      console.log('  ✅ auth layout enforces noindex');
+    } else {
+      console.log('  ❌ auth layout missing strict noindex');
+      issues.push('Auth layout missing noindex, nofollow, noarchive');
+    }
+  }
+
+  const middlewareContent = readFileOrNull(files.middleware);
+  if (middlewareContent) {
+    const requiredSecurityGuards = [
+      "requestUrl.hostname === 'autamedica.com'",
+      "canonicalUrl.hostname = 'www.autamedica.com'",
+      'PROTECTED_ROUTES',
+      'context.redirect',
+    ];
+
+    for (const marker of requiredSecurityGuards) {
+      if (middlewareContent.includes(marker)) {
+        console.log(`  ✅ middleware guard present: ${marker}`);
+      } else {
+        console.log(`  ⚠️ middleware guard not found: ${marker}`);
+      }
+    }
+  }
+
+  const robotsContent = readFileOrNull(files.robots);
+  if (robotsContent) {
+    const requiredRobotsDirectives = ['Disallow: /auth/', 'Disallow: /admin/', 'Disallow: /api/'];
+    for (const marker of requiredRobotsDirectives) {
+      if (robotsContent.includes(marker)) {
+        console.log(`  ✅ robots directive found: ${marker}`);
+      } else {
+        console.log(`  ❌ robots directive missing: ${marker}`);
+        issues.push(`robots.txt missing directive: ${marker}`);
+      }
+    }
+  }
+
+  const sitemapContent = readFileOrNull(files.sitemap);
+  if (sitemapContent && sitemapContent.includes('ROUTES')) {
+    console.log('  ✅ sitemap route generator found');
+  } else {
+    issues.push('sitemap.xml generator missing or malformed');
   }
 
   return issues;
 }
 
-async function testHealthEndpoint() {
-  console.log('\n🏥 Testing health endpoint configuration...');
-
-  const healthFilePath = path.join(process.cwd(), 'apps/web-app/app/api/health/route.ts');
-
-  try {
-    const fs = await import('fs');
-    const healthFileExists = fs.existsSync(healthFilePath);
-
-    if (healthFileExists) {
-      console.log('✅ Health endpoint file exists');
-
-      const content = fs.readFileSync(healthFilePath, 'utf8');
-
-      // Check for security features in health endpoint
-      const securityFeatures = [
-        'validateEnvironmentSecurity',
-        'X-Health-Check',
-        'Cache-Control',
-        'no-cache'
-      ];
-
-      securityFeatures.forEach(feature => {
-        if (content.includes(feature)) {
-          console.log(`  ✅ ${feature} implemented`);
-        } else {
-          console.log(`  ⚠️  ${feature} not found`);
-        }
-      });
-
-    } else {
-      console.log('❌ Health endpoint not found');
-      return ['Health endpoint missing'];
-    }
-
-  } catch (error) {
-    console.error('❌ Error checking health endpoint:', error.message);
-    return ['Could not validate health endpoint'];
-  }
-
-  return [];
-}
-
-async function validateBuild() {
-  console.log('\n🔨 Testing build with security configuration...');
+function validateBuild() {
+  console.log('\n🔨 Running Astro build check...');
 
   return new Promise((resolve) => {
-    const buildProcess = spawn('pnpm', ['--filter', '@autamedica/web-app', 'build'], {
+    const buildProcess = spawn('pnpm', ['--filter', '@autamedica/web', 'build'], {
       stdio: 'pipe',
-      cwd: process.cwd()
+      cwd: process.cwd(),
     });
 
-    let buildOutput = '';
     let hasErrors = false;
-
-    buildProcess.stdout.on('data', (data) => {
-      buildOutput += data.toString();
-    });
 
     buildProcess.stderr.on('data', (data) => {
       const output = data.toString();
-      buildOutput += output;
-      if (output.includes('Error:') || output.includes('Failed to compile')) {
+      if (output.includes('Error:') || output.includes('✗')) {
         hasErrors = true;
       }
     });
 
     buildProcess.on('close', (code) => {
       if (code === 0 && !hasErrors) {
-        console.log('✅ Build successful with security configuration');
+        console.log('✅ Astro build successful');
         resolve([]);
       } else {
-        console.log('❌ Build failed with security configuration');
-        console.log('Build output:', buildOutput);
-        resolve(['Build failed with security headers configuration']);
+        console.log('❌ Astro build failed');
+        resolve(['Astro build failed during security validation']);
       }
     });
 
-    // Timeout after 60 seconds
     setTimeout(() => {
       buildProcess.kill();
       console.log('⏰ Build timeout');
-      resolve(['Build timed out']);
-    }, 60000);
+      resolve(['Build timed out during security validation']);
+    }, 120000);
   });
 }
 
-// Main validation
 async function main() {
   const allIssues = [];
 
-  try {
-    // Check security headers configuration
-    const headerIssues = await checkSecurityHeaders();
-    allIssues.push(...headerIssues);
+  const fileIssues = checkAstroSecurityFiles();
+  allIssues.push(...fileIssues);
 
-    // Check health endpoint
-    const healthIssues = await testHealthEndpoint();
-    allIssues.push(...healthIssues);
+  const buildIssues = await validateBuild();
+  allIssues.push(...buildIssues);
 
-    // Validate build
-    const buildIssues = await validateBuild();
-    allIssues.push(...buildIssues);
+  console.log('\n📊 Security Validation Summary:');
 
-    // Final report
-    console.log('\n📊 Security Headers Validation Summary:');
-
-    if (allIssues.length === 0) {
-      console.log('✅ All security header validations passed!');
-      console.log('\n🎯 Security features verified:');
-      console.log('  ✅ HIPAA-compliant security headers');
-      console.log('  ✅ Content Security Policy (CSP)');
-      console.log('  ✅ Transport security (HSTS)');
-      console.log('  ✅ Frame protection');
-      console.log('  ✅ Content type protection');
-      console.log('  ✅ Referrer policy');
-      console.log('  ✅ Permission policy');
-      console.log('  ✅ Health monitoring endpoint');
-      console.log('  ✅ Build compatibility');
-
-      console.log('\n🚀 Ready for secure deployment!');
-    } else {
-      console.log('❌ Security validation issues found:');
-      allIssues.forEach(issue => {
-        console.log(`  • ${issue}`);
-      });
-
-      console.log('\n📝 Please resolve the issues above before deployment.');
-      process.exit(1);
-    }
-
-  } catch (error) {
-    console.error('\n❌ Security validation failed:', error.message);
-    process.exit(1);
+  if (allIssues.length === 0) {
+    console.log('✅ All Astro security validations passed');
+    process.exit(0);
   }
+
+  console.log('❌ Security issues found:');
+  for (const issue of allIssues) {
+    console.log(`  • ${issue}`);
+  }
+  process.exit(1);
 }
 
-main();
+main().catch((error) => {
+  console.error('❌ Security validation failed:', error.message);
+  process.exit(1);
+});

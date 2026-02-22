@@ -1,0 +1,165 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getAppBaseUrl } from '../../lib/env';
+
+const externalBase = getAppBaseUrl('doctors').replace(/\/$/, '');
+const externalConsultationsUrl = `${externalBase}/consultations`;
+
+const queue = [
+  { patient: 'Paula N.', reason: 'Dolor toracico leve', priority: 'Media', room: 'Video 2' },
+  { patient: 'Javier C.', reason: 'Control postoperatorio', priority: 'Alta', room: 'Video 1' },
+  { patient: 'Elena V.', reason: 'Consulta pediatrica', priority: 'Media', room: 'Video 3' },
+];
+---
+
+<Layout
+  title="Consultas medicas"
+  description="Panel de consultas activas para medicos con prioridad clinica y estado de sala."
+  canonical="https://www.autamedica.com/doctors/consultations"
+  robots="noindex, nofollow, noarchive"
+>
+  <main class="page-shell">
+    <section class="page-card">
+      <p class="page-badge">Doctors Live Consultations</p>
+      <h1>Consultas en curso</h1>
+      <p class="page-lead">
+        Organiza atencion en tiempo real con prioridad clinica visible y acceso inmediato a sala.
+      </p>
+
+      <ul class="list">
+        {queue.map((item) => (
+          <li>
+            <div>
+              <h2>{item.patient}</h2>
+              <p>{item.reason}</p>
+            </div>
+            <div class="meta">
+              <span>{item.priority}</span>
+              <span>{item.room}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div class="actions">
+        <a class="primary" href="/doctors">Volver al portal doctors</a>
+        <a class="secondary" href={externalConsultationsUrl}>Abrir consultas legacy completas</a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .page-shell {
+    min-height: 100vh;
+    padding: clamp(4.5rem, 9vh, 6.5rem) var(--section-px) var(--space-16);
+    background:
+      radial-gradient(circle at 15% -10%, rgba(59, 130, 246, 0.2), transparent 40%),
+      radial-gradient(circle at 88% 0%, rgba(16, 185, 129, 0.1), transparent 38%),
+      var(--au-bg);
+  }
+
+  .page-card {
+    max-width: 980px;
+    margin: 0 auto;
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-lg);
+    background: rgba(20, 20, 22, 0.94);
+    box-shadow: var(--shadow-glow);
+    padding: clamp(1.5rem, 3vw, 2.2rem);
+  }
+
+  .page-badge {
+    display: inline-flex;
+    margin: 0 0 var(--space-4);
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--au-border-hover);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--au-text-secondary);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 4vw, 2.5rem);
+    letter-spacing: -0.02em;
+  }
+
+  .page-lead {
+    margin: var(--space-3) 0 var(--space-7);
+    color: var(--au-text-secondary);
+    max-width: 70ch;
+  }
+
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .list li {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-sm);
+    background: var(--au-surface);
+    padding: var(--space-3);
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .list h2 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-sm);
+  }
+
+  .list p {
+    margin: 0;
+    color: var(--au-text-secondary);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+  }
+
+  .meta {
+    display: grid;
+    align-content: center;
+    gap: var(--space-1);
+    justify-items: end;
+  }
+
+  .meta span {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--au-border-hover);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.55rem;
+    font-size: var(--text-xs);
+    white-space: nowrap;
+  }
+
+  .actions {
+    margin-top: var(--space-7);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .actions a:hover { transform: translateY(-1px); }
+  .actions .primary { background: var(--au-accent); color: #111; border: 1px solid transparent; }
+  .actions .secondary { border: 1px solid var(--au-border-hover); color: var(--au-text-primary); background: transparent; }
+</style>
+

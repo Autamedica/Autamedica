@@ -1,0 +1,223 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getAppBaseUrl } from '../../lib/env';
+
+const externalBase = getAppBaseUrl('companies').replace(/\/$/, '');
+const externalMarketplaceUrl = `${externalBase}/marketplace`;
+
+const specialties = [
+  { label: 'Clinica medica', providers: 42, availability: 'Alta' },
+  { label: 'Traumatologia', providers: 18, availability: 'Media' },
+  { label: 'Salud ocupacional', providers: 26, availability: 'Alta' },
+  { label: 'Psicologia', providers: 31, availability: 'Alta' },
+];
+
+const featured = [
+  {
+    name: 'Red Andina Salud',
+    service: 'Cobertura nacional en emergencias y guardias',
+    sla: 'SLA 15 min',
+  },
+  {
+    name: 'TeleCare Pro',
+    service: 'Teleconsulta corporativa 24/7',
+    sla: 'SLA 8 min',
+  },
+  {
+    name: 'Prevencion Integral',
+    service: 'Programas de chequeo y seguimiento preventivo',
+    sla: 'SLA 24 h',
+  },
+];
+---
+
+<Layout
+  title="Marketplace medico corporativo"
+  description="Gestion de proveedores y especialidades para empresas con foco en cobertura, SLA y continuidad operativa."
+  canonical="https://www.autamedica.com/companies/marketplace"
+  robots="noindex, nofollow, noarchive"
+>
+  <main class="market-shell">
+    <section class="market-card">
+      <p class="market-badge">Companies Marketplace</p>
+      <h1>Marketplace medico</h1>
+      <p class="market-lead">
+        Contratacion y seguimiento de servicios de salud corporativa en un solo tablero.
+      </p>
+
+      <div class="market-grid">
+        <section class="panel">
+          <h2>Especialidades activas</h2>
+          <ul>
+            {specialties.map((item) => (
+              <li>
+                <div>
+                  <h3>{item.label}</h3>
+                  <p>{item.providers} proveedores disponibles</p>
+                </div>
+                <span>{item.availability}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="panel">
+          <h2>Proveedores destacados</h2>
+          <ul>
+            {featured.map((provider) => (
+              <li>
+                <h3>{provider.name}</h3>
+                <p>{provider.service}</p>
+                <span>{provider.sla}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <div class="market-actions">
+        <a class="primary" href="/companies">Volver al portal empresas</a>
+        <a class="secondary" href={externalMarketplaceUrl}>Abrir marketplace legacy completo</a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .market-shell {
+    min-height: 100vh;
+    padding: clamp(4.5rem, 9vh, 6.5rem) var(--section-px) var(--space-16);
+    background:
+      radial-gradient(circle at 12% -10%, rgba(59, 130, 246, 0.18), transparent 45%),
+      radial-gradient(circle at 88% 0%, rgba(16, 185, 129, 0.14), transparent 38%),
+      var(--au-bg);
+  }
+
+  .market-card {
+    max-width: 1100px;
+    margin: 0 auto;
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-lg);
+    background: rgba(20, 20, 22, 0.94);
+    box-shadow: var(--shadow-glow);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  .market-badge {
+    display: inline-flex;
+    margin: 0 0 var(--space-4);
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--au-border-hover);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--au-text-secondary);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    letter-spacing: -0.02em;
+  }
+
+  .market-lead {
+    margin: var(--space-3) 0 var(--space-8);
+    color: var(--au-text-secondary);
+    max-width: 72ch;
+  }
+
+  .market-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-4);
+  }
+
+  .panel {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    padding: var(--space-4);
+  }
+
+  .panel h2 {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-lg);
+  }
+
+  .panel ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .panel li {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.01);
+    padding: var(--space-3);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .panel h3 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-sm);
+  }
+
+  .panel p {
+    margin: 0;
+    color: var(--au-text-secondary);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+  }
+
+  .panel span {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--au-border-hover);
+    border-radius: var(--radius-full);
+    padding: 0.15rem 0.55rem;
+    font-size: var(--text-xs);
+    color: var(--au-text-primary);
+    white-space: nowrap;
+  }
+
+  .market-actions {
+    margin-top: var(--space-8);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .market-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .market-actions a:hover {
+    transform: translateY(-1px);
+  }
+
+  .market-actions .primary {
+    background: var(--au-accent);
+    color: #111;
+    border: 1px solid transparent;
+  }
+
+  .market-actions .secondary {
+    border: 1px solid var(--au-border-hover);
+    color: var(--au-text-primary);
+    background: transparent;
+  }
+</style>

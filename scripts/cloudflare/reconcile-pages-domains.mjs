@@ -23,6 +23,11 @@ const PAGES_PROJECTS = [
     target: domainsConfig.PAGES_TARGETS.doctors,
   },
   {
+    project: 'autamedica-patients',
+    host: domainsConfig.DOMAINS.patients,
+    target: domainsConfig.PAGES_TARGETS.patients,
+  },
+  {
     project: 'autamedica-companies',
     host: domainsConfig.DOMAINS.companies,
     target: domainsConfig.PAGES_TARGETS.companies,

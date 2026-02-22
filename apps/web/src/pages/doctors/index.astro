@@ -1,0 +1,107 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PortalLanding from '../../components/portal/PortalLanding.astro';
+import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
+
+const pageTitle = 'Portal para Medicos';
+const pageDescription = 'Agenda clinica, teleconsulta y herramientas de productividad medica en el portal de profesionales AutaMedica.';
+---
+
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  canonical="https://www.autamedica.com/doctors"
+>
+  <VerticalStructuredData
+    vertical="doctors"
+    pathname="/doctors"
+    title={pageTitle}
+    description={pageDescription}
+  />
+
+  <PortalLanding
+    badge="Doctors Slice"
+    title="Portal Medico en Astro"
+    subtitle="Optimizado para acciones frecuentes de consulta y seguimiento, con foco en densidad informativa equilibrada."
+    accent="var(--portal-doctors)"
+    stats={[
+      { value: 'HD', label: 'Teleconsulta integrada' },
+      { value: '1-2', label: 'Clics para acciones clave' },
+      { value: '<200ms', label: 'Meta de INP p75' },
+    ]}
+    pillars={[
+      {
+        title: 'Flujo clinico principal',
+        description: 'Acceso directo a agenda, videollamada y notas sin navegar multiples pantallas.',
+      },
+      {
+        title: 'Contexto del paciente',
+        description: 'Informacion relevante priorizada para reducir tiempos de decision durante la consulta.',
+      },
+      {
+        title: 'Rendimiento controlado',
+        description: 'Islands React solo en widgets interactivos; resto server-rendered para reducir JS inicial.',
+      },
+    ]}
+    primaryCta={{
+      href: '/auth/register?role=doctor',
+      label: 'Crear cuenta medica',
+    }}
+    secondaryCta={{
+      href: '/auth/login?portal=doctors',
+      label: 'Ingresar como medico',
+    }}
+  />
+
+  <section class="quick-links" aria-label="Accesos rapidos doctors">
+    <div class="quick-links-inner">
+      <h2>Accesos rapidos del portal</h2>
+      <div class="quick-links-grid">
+        <a href="/doctors/agenda">Agenda de consultas</a>
+        <a href="/doctors/consultations">Consultas en curso</a>
+        <a href="/doctors/patients">Panel de pacientes</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .quick-links {
+    padding: 0 var(--section-px) var(--space-16);
+    background: var(--au-bg);
+  }
+
+  .quick-links-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    padding: var(--space-6);
+  }
+
+  .quick-links h2 {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-lg);
+  }
+
+  .quick-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .quick-links-grid a {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    color: var(--au-text-secondary);
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .quick-links-grid a:hover {
+    border-color: var(--portal-doctors);
+    color: var(--au-text-primary);
+    background: rgba(59, 130, 246, 0.08);
+  }
+</style>

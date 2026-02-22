@@ -1,15 +1,17 @@
 ---
+const baseUrl = 'https://www.autamedica.com';
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': 'https://autamedica.com/#organization',
+      '@id': `${baseUrl}/#organization`,
       name: 'AutaMedica',
-      url: 'https://autamedica.com',
+      url: `${baseUrl}/`,
       logo: {
         '@type': 'ImageObject',
-        url: 'https://autamedica.com/logo.png',
+        url: `${baseUrl}/logo.png`,
         width: 512,
         height: 512
       },
@@ -21,38 +23,22 @@ const jsonLd = {
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://autamedica.com/#website',
-      url: 'https://autamedica.com',
+      '@id': `${baseUrl}/#website`,
+      url: `${baseUrl}/`,
       name: 'AutaMedica',
       description: 'Telemedicina sin fricciones',
       publisher: {
-        '@id': 'https://autamedica.com/#organization'
+        '@id': `${baseUrl}/#organization`
       },
       inLanguage: 'es-AR'
     },
     {
-      '@type': 'MedicalBusiness',
-      '@id': 'https://autamedica.com/#business',
-      name: 'AutaMedica',
-      image: 'https://autamedica.com/og-image.jpg',
-      url: 'https://autamedica.com',
-      priceRange: '$$',
-      address: {
-        '@type': 'PostalAddress',
-        addressLocality: 'Buenos Aires',
-        addressCountry: 'AR'
-      },
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: '4.8',
-        reviewCount: '250'
-      }
-    },
-    {
       '@type': 'SoftwareApplication',
+      '@id': `${baseUrl}/#application`,
       name: 'AutaMedica',
       operatingSystem: 'Web, iOS, Android',
       applicationCategory: 'HealthApplication',
+      url: `${baseUrl}/`,
       offers: {
         '@type': 'Offer',
         price: '0',

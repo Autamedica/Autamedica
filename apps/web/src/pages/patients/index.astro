@@ -1,0 +1,107 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PortalLanding from '../../components/portal/PortalLanding.astro';
+import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
+
+const pageTitle = 'Portal de Pacientes';
+const pageDescription = 'Consulta medica digital, seguimiento de historial y turnos en una sola experiencia para pacientes AutaMedica.';
+---
+
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  canonical="https://www.autamedica.com/patients"
+>
+  <VerticalStructuredData
+    vertical="patients"
+    pathname="/patients"
+    title={pageTitle}
+    description={pageDescription}
+  />
+
+  <PortalLanding
+    badge="Patients Slice"
+    title="Portal de Pacientes en Astro"
+    subtitle="Acceso mas rapido a turnos, historia clinica y seguimiento preventivo con experiencia mobile-first y menos friccion."
+    accent="var(--portal-patients)"
+    stats={[
+      { value: '24/7', label: 'Acceso al portal' },
+      { value: '1-2', label: 'Clics para reservar' },
+      { value: 'AA', label: 'Objetivo de accesibilidad' },
+    ]}
+    pillars={[
+      {
+        title: 'Busqueda y descubrimiento',
+        description: 'Entrada clara para especialidades y profesionales con SEO orientado a consultas reales.',
+      },
+      {
+        title: 'Reservas sin friccion',
+        description: 'Formularios simplificados, feedback inmediato y estados de carga visibles en todo el flujo.',
+      },
+      {
+        title: 'Continuidad de atencion',
+        description: 'Historial y resultados con diseno legible para mobile y desktop, sin pasos redundantes.',
+      },
+    ]}
+    primaryCta={{
+      href: '/auth/register?role=patient',
+      label: 'Crear cuenta paciente',
+    }}
+    secondaryCta={{
+      href: '/auth/login?portal=patients',
+      label: 'Ingresar al portal',
+    }}
+  />
+
+  <section class="quick-links" aria-label="Accesos rapidos patients">
+    <div class="quick-links-inner">
+      <h2>Accesos rapidos del portal</h2>
+      <div class="quick-links-grid">
+        <a href="/patients/appointments">Turnos y reservas</a>
+        <a href="/patients/history">Historial medico</a>
+        <a href="/patients/prevention">Prevencion y seguimiento</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .quick-links {
+    padding: 0 var(--section-px) var(--space-16);
+    background: var(--au-bg);
+  }
+
+  .quick-links-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    padding: var(--space-6);
+  }
+
+  .quick-links h2 {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-lg);
+  }
+
+  .quick-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .quick-links-grid a {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    color: var(--au-text-secondary);
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .quick-links-grid a:hover {
+    border-color: var(--portal-patients);
+    color: var(--au-text-primary);
+    background: rgba(16, 185, 129, 0.08);
+  }
+</style>

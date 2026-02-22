@@ -76,3 +76,6 @@ generated-docs/*.production.local.txt
 # Generated run outputs
 /generated-docs/*.json
 /monitoring-results/*.json
+
+# Astro build cache
+**/.astro/

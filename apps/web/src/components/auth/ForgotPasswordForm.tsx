@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
+import { AuthAlert } from './AuthAlert';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -49,32 +50,14 @@ export function ForgotPasswordForm() {
       </div>
 
       {/* Error Alert */}
-      {error && (
-        <div className="bg-red-500/10 border-2 border-red-500/30 rounded-lg p-4">
-          <div className="flex items-center">
-            <svg className="w-5 h-5 text-red-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-red-300">{error}</p>
-          </div>
-        </div>
-      )}
+      {error && <AuthAlert tone="error">{error}</AuthAlert>}
 
       {/* Success Message */}
-      {message && (
-        <div className="bg-green-500/10 border-2 border-green-500/30 rounded-lg p-4">
-          <div className="flex items-center">
-            <svg className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-green-300">{message}</p>
-          </div>
-        </div>
-      )}
+      {message && <AuthAlert tone="success">{message}</AuthAlert>}
 
       {/* Form */}
       {!message && (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading}>
           <div>
             <label htmlFor="forgot-email" className="block text-sm font-medium text-[var(--au-text-secondary)] mb-2">
               Correo electrónico registrado
@@ -86,7 +69,10 @@ export function ForgotPasswordForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="email"
+                inputMode="email"
                 disabled={isLoading}
+                aria-invalid={Boolean(error)}
                 className="w-full px-4 py-3 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
                 placeholder="tu@email.com"
               />
@@ -101,7 +87,6 @@ export function ForgotPasswordForm() {
           </div>
 
           <AuthButton
-            onClick={() => {}}
             disabled={isLoading || !email}
             loading={isLoading}
             variant="primary"

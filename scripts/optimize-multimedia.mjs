@@ -1,18 +1,25 @@
 #!/usr/bin/env node
 
 /**
- * Script to optimize multimedia assets for AltaMedica web-app
- * Handles video compression, image optimization, and preload configuration
+ * Script to optimize multimedia assets for AutaMedica.
+ * Handles video compression, metadata and preload configuration.
+ * Prioritizes Astro public assets and falls back to legacy Next public assets.
  */
 
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 
-console.log('🎬 Optimizing multimedia assets for AltaMedica...\n');
+console.log('🎬 Optimizing multimedia assets for AutaMedica...\n');
 
-const VIDEOS_DIR = '/root/altamedica-reboot/apps/web-app/public/videos';
-const IMAGES_DIR = '/root/altamedica-reboot/apps/web-app/public/images';
+const PUBLIC_DIR_CANDIDATES = [
+  path.join(process.cwd(), 'apps/web/public'),
+  path.join(process.cwd(), 'apps/web-app/public'),
+];
+
+const PUBLIC_DIR = PUBLIC_DIR_CANDIDATES.find((dir) => fs.existsSync(dir))
+  ?? PUBLIC_DIR_CANDIDATES[0];
+const VIDEOS_DIR = path.join(PUBLIC_DIR, 'videos');
 
 // Video configurations for different qualities
 const VIDEO_CONFIGS = {
@@ -66,7 +73,7 @@ async function checkFFmpegAvailability() {
     execSync('ffmpeg -version', { stdio: 'pipe' });
     console.log('✅ FFmpeg is available for video optimization');
     return true;
-  } catch (error) {
+  } catch {
     console.log('⚠️  FFmpeg not available - skipping video optimization');
     console.log('   Install FFmpeg with: sudo apt install ffmpeg');
     return false;
@@ -261,9 +268,9 @@ async function generateOptimizationReport(videoFiles, metadata, issues) {
     console.log('   ✅ Add video preload hints for hero videos');
     console.log('   ✅ Consider WebM format for better compression');
 
-    console.log('\n💡 Next.js Implementation:');
+    console.log('\n💡 Astro/Frontend Implementation:');
     console.log('   • Add preload links in layout for critical videos');
-    console.log('   • Use next/dynamic for video components');
+    console.log('   • Use islands only where interaction is required');
     console.log('   • Implement intersection observer for lazy loading');
   }
 
@@ -273,6 +280,8 @@ async function generateOptimizationReport(videoFiles, metadata, issues) {
 // Main execution
 async function main() {
   try {
+    console.log(`📂 Using public directory: ${PUBLIC_DIR}`);
+
     // Create directories if they don't exist
     if (!fs.existsSync(VIDEOS_DIR)) {
       fs.mkdirSync(VIDEOS_DIR, { recursive: true });
@@ -291,7 +300,7 @@ async function main() {
     await optimizeVideos(videoFiles);
 
     // Generate configuration files
-    const preloadConfig = await generatePreloadConfig();
+    await generatePreloadConfig();
     const metadata = await generateVideoMetadata();
 
     // Validate formats

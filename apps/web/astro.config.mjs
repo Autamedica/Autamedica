@@ -29,6 +29,7 @@ function getEnv(key) {
 }
 
 export default defineConfig({
+  site: 'https://www.autamedica.com',
   output: 'server',
   adapter: cloudflare(),
   integrations: [

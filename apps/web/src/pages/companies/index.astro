@@ -1,0 +1,174 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
+import { getAppBaseUrl } from '../../lib/env';
+
+const companiesExternalUrl = getAppBaseUrl('companies');
+const pageTitle = 'Portal de Empresas - AutaMedica';
+const pageDescription = 'Entrada operativa para empresas con continuidad hacia el portal corporativo legacy durante la migracion.';
+---
+
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  canonical="https://www.autamedica.com/companies"
+  robots="noindex, nofollow, noarchive"
+>
+  <VerticalStructuredData
+    vertical="companies"
+    pathname="/companies"
+    title={pageTitle}
+    description={pageDescription}
+  />
+
+  <main class="companies-shell">
+    <section class="companies-card">
+      <p class="companies-badge">Bridge Temporal</p>
+      <h1>Portal de Empresas</h1>
+      <p class="companies-lead">
+        Esta ruta ya corre sobre Astro y sirve como punto de entrada mientras mantenemos la operacion
+        del portal corporativo en paralelo.
+      </p>
+
+      <div class="companies-grid">
+        <article>
+          <h2>Control de crisis</h2>
+          <p>Monitoreo de incidentes, estado operativo y respuesta coordinada.</p>
+          <a href="/companies/crisis">Ir a control de crisis</a>
+        </article>
+
+        <article>
+          <h2>Marketplace medico</h2>
+          <p>Acceso a profesionales, contrataciones y disponibilidad de servicios.</p>
+          <a href="/companies/marketplace">Ir a marketplace</a>
+        </article>
+
+        <article>
+          <h2>Metricas y reportes</h2>
+          <p>Indicadores de salud corporativa, ausentismo y cumplimiento operativo.</p>
+          <a href="/companies/reports">Ir a reportes</a>
+        </article>
+      </div>
+
+      <div class="companies-actions">
+        <a class="primary" href="/auth/login?portal=companies&returnTo=%2Fcompanies">
+          Revalidar acceso empresarial
+        </a>
+        <a class="secondary" href={companiesExternalUrl}>
+          Abrir portal corporativo directo
+        </a>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .companies-shell {
+    min-height: 100vh;
+    padding: clamp(4.5rem, 9vh, 6.5rem) var(--section-px) var(--space-16);
+    background:
+      radial-gradient(circle at 10% -8%, rgba(245, 158, 11, 0.2), transparent 48%),
+      radial-gradient(circle at 90% 0%, rgba(239, 68, 68, 0.14), transparent 42%),
+      var(--au-bg);
+  }
+
+  .companies-card {
+    max-width: 1020px;
+    margin: 0 auto;
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-lg);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    background: rgba(20, 20, 22, 0.94);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .companies-badge {
+    display: inline-flex;
+    margin: 0 0 var(--space-4);
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--au-border-hover);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--au-text-secondary);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    letter-spacing: -0.02em;
+  }
+
+  .companies-lead {
+    margin: var(--space-3) 0 var(--space-8);
+    color: var(--au-text-secondary);
+    max-width: 70ch;
+  }
+
+  .companies-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .companies-grid article {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    background: var(--au-surface);
+  }
+
+  .companies-grid h2 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-base);
+  }
+
+  .companies-grid p {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--au-text-secondary);
+    line-height: 1.55;
+  }
+
+  .companies-grid a {
+    display: inline-flex;
+    font-size: var(--text-sm);
+    color: var(--au-accent);
+    font-weight: var(--font-semibold);
+  }
+
+  .companies-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+  }
+
+  .companies-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .companies-actions a:hover {
+    transform: translateY(-1px);
+  }
+
+  .companies-actions .primary {
+    background: var(--au-accent);
+    color: #111;
+    border: 1px solid transparent;
+  }
+
+  .companies-actions .secondary {
+    border: 1px solid var(--au-border-hover);
+    color: var(--au-text-primary);
+    background: transparent;
+  }
+</style>

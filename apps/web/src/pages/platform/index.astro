@@ -1,0 +1,44 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import PortalLanding from '../../components/portal/PortalLanding.astro';
+---
+
+<Layout
+  title="AutaMedica Platform"
+  description="Experiencia transversal de producto con entrada unificada a pacientes, médicos y empresas."
+  canonical="https://www.autamedica.com/platform"
+>
+  <PortalLanding
+    badge="Web-App Pilot"
+    title="Experience Hub en Astro"
+    subtitle="Migración incremental de la web-app legacy a una capa Astro con SEO fuerte y carga inicial más liviana."
+    accent="var(--au-accent)"
+    stats={[
+      { value: '-40%', label: 'Meta JS inicial' },
+      { value: 'SEO +15', label: 'Objetivo Lighthouse' },
+      { value: 'SSR', label: 'Solo donde aporta valor' },
+    ]}
+    pillars={[
+      {
+        title: 'Entrada por rol',
+        description: 'Selección de perfil y login centralizado sin duplicar flujos de autenticación.',
+      },
+      {
+        title: 'Diseño unificado',
+        description: 'Tokens, componentes base y patrones de feedback consistentes entre portales.',
+      },
+      {
+        title: 'Monitoreo de calidad',
+        description: 'Lighthouse y Web Vitals instrumentados para release por slices sin regresiones.',
+      },
+    ]}
+    primaryCta={{
+      href: '/auth/select-role',
+      label: 'Elegir perfil e ingresar',
+    }}
+    secondaryCta={{
+      href: '/',
+      label: 'Volver a la home pública',
+    }}
+  />
+</Layout>

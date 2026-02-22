@@ -1,23 +1,21 @@
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-interface AuthButtonProps {
+interface AuthButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   children: ReactNode;
-  onClick?: () => void;
-  type?: 'button' | 'submit' | 'reset';
   variant?: 'primary' | 'secondary' | 'ghost';
-  disabled?: boolean;
   fullWidth?: boolean;
   loading?: boolean;
 }
 
 export function AuthButton({
   children,
-  onClick,
   type = 'button',
   variant = 'primary',
   disabled = false,
   fullWidth = false,
   loading = false,
+  className,
+  ...rest
 }: AuthButtonProps) {
   const baseStyles = `
     px-6 py-3 rounded-xl font-medium transition-all duration-200
@@ -44,9 +42,10 @@ export function AuthButton({
   return (
     <button
       type={type}
-      onClick={onClick}
+      aria-busy={loading || undefined}
       disabled={disabled || loading}
-      className={`${baseStyles} ${variants[variant]}`}
+      className={`${baseStyles} ${variants[variant]} ${className ?? ''}`.trim()}
+      {...rest}
     >
       {loading && (
         <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
