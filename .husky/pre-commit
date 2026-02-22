@@ -17,19 +17,35 @@ if ls -d apps/**/pages 2>/dev/null | grep -v node_modules | grep .; then
   exit 1
 fi
 
-# 3. Check if database-related files are being committed
-DB_FILES=$(git diff --cached --name-only | grep -E "(supabase|database|schema|migration|sql)" || true)
+# 3. Bloquear etiquetas de deuda técnica sin referencia en líneas staged
+echo "🧾 Validando debt tags en staged..."
+node scripts/ci/check-staged-debt.mjs || exit 1
+
+# 4. Check if database-related files are being committed
+DB_FILES=$(
+  git diff --cached --name-only --diff-filter=ACMRTUXB -- \
+    'supabase/**' \
+    'docs/database/**' \
+    'packages/types/src/supabase/database.types.ts' \
+    'scripts/database-glossary/**' \
+    2>/dev/null || true
+)
 
 if [ -n "$DB_FILES" ]; then
   echo "📊 Archivos de base de datos detectados, ejecutando validación..."
   # DB Glossary check (rápido)
   pnpm docs:db:ci || exit 1
   pnpm docs:db:check-diff || exit 1
+  # Migration lint (solo staged)
+  node scripts/ci/lint-migrations.mjs || exit 1
 else
   echo "✅ No hay cambios en base de datos, omitiendo validación DB"
 fi
 
-# 4. Export validation — solo cuando cambian archivos de packages
+# 5. Guard de drift tipos DB (migraciones + cambios apps/packages sin types)
+node scripts/ci/check-db-type-drift.mjs || exit 1
+
+# 6. Export validation — solo cuando cambian archivos de packages
 PACKAGE_FILES=$(git diff --cached --name-only | grep -E "^packages/" || true)
 
 if [ -n "$PACKAGE_FILES" ]; then
@@ -39,7 +55,7 @@ else
   echo "✅ Sin cambios en packages, omitiendo validación de exports"
 fi
 
-# 5. Lint staged files
+# 7. Lint staged files
 echo "🧹 Ejecutando lint en archivos staged..."
 pnpm lint-staged || exit 1
 
