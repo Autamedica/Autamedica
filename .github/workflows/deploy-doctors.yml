@@ -81,3 +81,32 @@ jobs:
           echo "📋 Proyectos disponibles en la cuenta:"
           pnpm dlx wrangler pages project list || true
           exit 1
+
+      - name: Link custom domain (doctors.autamedica.com)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+
+          domain="doctors.autamedica.com"
+          project="autamedica-doctors"
+          http_code=$(curl -s -o /tmp/cf_domain_response.json -w "%{http_code}" \
+            -X POST "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}/domains" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"name\": \"${domain}\"}")
+
+          if [ "${http_code}" = "200" ]; then
+            echo "✅ ${domain}: vinculado exitosamente a ${project}"
+            exit 0
+          fi
+
+          if [ "${http_code}" = "409" ]; then
+            echo "✅ ${domain}: ya estaba vinculado"
+            exit 0
+          fi
+
+          echo "⚠️ ${domain}: HTTP ${http_code}"
+          cat /tmp/cf_domain_response.json || true
+          exit 1
