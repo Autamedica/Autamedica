@@ -73,6 +73,11 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260222213000_fix_profiles_rls_recursion.sql
 
+      - name: Apply non-blocking signup hardening migration
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260222234000_harden_handle_new_user_non_blocking.sql
+
       - name: Verify auth trigger and profiles policies
         run: |
           set -euo pipefail
