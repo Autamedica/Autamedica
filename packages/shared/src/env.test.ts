@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  ensureEnv,
   ensureClientEnv,
+  ensureEnv,
   ensureServerEnv,
   validateEnvironment,
   validateEnvironmentSecurity
 } from './env.js';
+import { logger } from './services/logger.service.js';
 
 describe('Environment Validation', () => {
   const originalEnv = process.env;
@@ -45,7 +46,7 @@ describe('Environment Validation', () => {
 
     it('should throw error for non-NEXT_PUBLIC_ variable', () => {
       expect(() => ensureClientEnv('API_URL')).toThrow(
-        'Invalid client environment variable: API_URL. Only NEXT_PUBLIC_* variables are allowed on client side.'
+        'Invalid client environment variable: API_URL. Only approved NEXT_PUBLIC_* variables are allowed on client side.'
       );
     });
 
@@ -143,10 +144,10 @@ describe('Environment Validation', () => {
       process.env.SUPABASE_URL = 'https://server.supabase.com';
       process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://client.supabase.com';
 
-      // Mock console.warn to capture the warning
-      const originalWarn = console.warn;
+      // Mock logger.warn to capture the warning
+      const originalWarn = logger.warn;
       const warnMock = vi.fn();
-      console.warn = warnMock;
+      logger.warn = warnMock;
 
       validateEnvironmentSecurity();
 
@@ -154,8 +155,8 @@ describe('Environment Validation', () => {
         'Warning: SUPABASE_URL and NEXT_PUBLIC_SUPABASE_URL have different values. This may cause confusion.'
       );
 
-      // Restore console.warn
-      console.warn = originalWarn;
+      // Restore logger.warn
+      logger.warn = originalWarn;
     });
 
     it('should throw error when truly sensitive variable is exposed', () => {

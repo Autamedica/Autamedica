@@ -19,5 +19,8 @@
     "**/.next": true,
     "**/.turbo": true
   },
-  "typescript.preferences.useLabelDetailsInCompletionEntries": true
+  "typescript.preferences.useLabelDetailsInCompletionEntries": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  }
 }
