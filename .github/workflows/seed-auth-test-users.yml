@@ -1,0 +1,137 @@
+name: Seed Auth Test Users
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: "Supabase project ref"
+        required: true
+        default: "knywotiidsydsaveqkjs"
+        type: string
+      password:
+        description: "Password for created QA users"
+        required: true
+        default: "AutaMedica#2026"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  seed-users:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROJECT_REF: ${{ github.event.inputs.project_ref }}
+      QA_PASSWORD: ${{ github.event.inputs.password }}
+      SECRET_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SECRET_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Resolve API base URL
+        run: |
+          set -euo pipefail
+          if [ -n "${SECRET_SUPABASE_URL:-}" ]; then
+            BASE_URL="$SECRET_SUPABASE_URL"
+          else
+            BASE_URL="https://${PROJECT_REF}.supabase.co"
+          fi
+          echo "BASE_URL=$BASE_URL" >> "$GITHUB_ENV"
+          echo "✅ Using base URL: $BASE_URL"
+
+      - name: Validate service role key
+        run: |
+          set -euo pipefail
+          if [ -z "${SECRET_SERVICE_ROLE_KEY:-}" ]; then
+            echo "❌ Missing secret SUPABASE_SERVICE_ROLE_KEY"
+            exit 1
+          fi
+          echo "::add-mask::$SECRET_SERVICE_ROLE_KEY"
+
+      - name: Create QA users (patient/doctor/company_admin)
+        run: |
+          set -euo pipefail
+
+          create_user () {
+            local role="$1"
+            local email="$2"
+            local portal="$3"
+
+            local payload
+            payload=$(jq -n \
+              --arg email "$email" \
+              --arg password "$QA_PASSWORD" \
+              --arg role "$role" \
+              --arg portal "$portal" \
+              '{
+                email: $email,
+                password: $password,
+                email_confirm: true,
+                user_metadata: { role: $role, portal: $portal },
+                app_metadata: { provider: "email", providers: ["email"] }
+              }')
+
+            local response
+            response=$(curl -sS -X POST "${BASE_URL}/auth/v1/admin/users" \
+              -H "apikey: ${SECRET_SERVICE_ROLE_KEY}" \
+              -H "Authorization: Bearer ${SECRET_SERVICE_ROLE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "$payload")
+
+            if echo "$response" | jq -e '.id // .user.id' >/dev/null 2>&1; then
+              local id
+              id=$(echo "$response" | jq -r '.id // .user.id')
+              echo "✅ Created ${role}: ${email} (${id})"
+            else
+              echo "❌ Failed creating ${role}: ${email}"
+              echo "$response"
+              exit 1
+            fi
+          }
+
+          seed_id="${GITHUB_RUN_ID}"
+          patient_email="qa.patient.${seed_id}@autamedica.com"
+          doctor_email="qa.doctor.${seed_id}@autamedica.com"
+          company_email="qa.company.${seed_id}@autamedica.com"
+
+          create_user "patient" "$patient_email" "patients"
+          create_user "doctor" "$doctor_email" "doctors"
+          create_user "company_admin" "$company_email" "companies"
+
+          echo "PATIENT_EMAIL=$patient_email" >> "$GITHUB_ENV"
+          echo "DOCTOR_EMAIL=$doctor_email" >> "$GITHUB_ENV"
+          echo "COMPANY_EMAIL=$company_email" >> "$GITHUB_ENV"
+
+      - name: Verify password login for created users
+        run: |
+          set -euo pipefail
+
+          verify_login () {
+            local email="$1"
+            local response
+            response=$(curl -sS -X POST "${BASE_URL}/auth/v1/token?grant_type=password" \
+              -H "apikey: ${SECRET_SERVICE_ROLE_KEY}" \
+              -H "Authorization: Bearer ${SECRET_SERVICE_ROLE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{\"email\":\"${email}\",\"password\":\"${QA_PASSWORD}\"}")
+
+            if echo "$response" | jq -e '.access_token' >/dev/null 2>&1; then
+              echo "✅ Login OK: ${email}"
+            else
+              echo "❌ Login failed: ${email}"
+              echo "$response"
+              exit 1
+            fi
+          }
+
+          verify_login "$PATIENT_EMAIL"
+          verify_login "$DOCTOR_EMAIL"
+          verify_login "$COMPANY_EMAIL"
+
+      - name: Print credentials
+        run: |
+          echo "================ QA USERS ================"
+          echo "PATIENT_EMAIL=$PATIENT_EMAIL"
+          echo "DOCTOR_EMAIL=$DOCTOR_EMAIL"
+          echo "COMPANY_EMAIL=$COMPANY_EMAIL"
+          echo "PASSWORD=$QA_PASSWORD"
+          echo "=========================================="
