@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
+import { buildRoleAuthPath } from '../../lib/auth-flow';
 
 const pageTitle = 'Portal para Medicos';
 const pageDescription = 'Agenda clinica, teleconsulta y herramientas de productividad medica en el portal de profesionales AutaMedica.';
@@ -44,12 +45,12 @@ const pageDescription = 'Agenda clinica, teleconsulta y herramientas de producti
       },
     ]}
     primaryCta={{
-      href: '/auth/register?role=doctor',
-      label: 'Crear cuenta medica',
+      href: buildRoleAuthPath('login', 'doctor'),
+      label: 'Entrar como medico',
     }}
     secondaryCta={{
-      href: '/auth/login?portal=doctors',
-      label: 'Ingresar como medico',
+      href: buildRoleAuthPath('register', 'doctor'),
+      label: 'Crear cuenta medica',
     }}
   />
 

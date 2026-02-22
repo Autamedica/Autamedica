@@ -1,21 +1,29 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 interface AuthCardProps {
   children: ReactNode;
   onClick?: () => void;
   selected?: boolean;
   icon?: ReactNode;
+  accentColor?: string;
 }
 
-export function AuthCard({ children, onClick, selected = false, icon }: AuthCardProps) {
+export function AuthCard({
+  children,
+  onClick,
+  selected = false,
+  icon,
+  accentColor = 'var(--au-accent)',
+}: AuthCardProps) {
   return (
     <button
       onClick={onClick}
+      style={{ '--auth-card-accent': accentColor } as CSSProperties}
       className={`
         w-full p-6 bg-[var(--au-surface)] border-2 rounded-xl
         transition-all duration-200 text-left flex items-start gap-4
         ${selected
-          ? 'border-[var(--au-accent)] shadow-lg shadow-[var(--au-accent)]/20'
+          ? 'border-[var(--auth-card-accent)] shadow-lg shadow-[var(--auth-card-accent)]/20'
           : 'border-[var(--au-border)] hover:border-[var(--au-hover-border)] hover:bg-[var(--au-hover)]'
         }
       `}

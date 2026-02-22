@@ -189,6 +189,15 @@ js.configs.recommended,
   },
 }, // Package-specific parser configuration overrides
 {
+  files: ['packages/shared/**/*.{ts,tsx}'],
+  languageOptions: {
+    parserOptions: {
+      project: ['./packages/shared/tsconfig.eslint.json'],
+    },
+  },
+},
+// Package-specific parser configuration overrides
+{
   files: ['packages/telemedicine/**/*.{ts,tsx}'],
   languageOptions: {
     parserOptions: {

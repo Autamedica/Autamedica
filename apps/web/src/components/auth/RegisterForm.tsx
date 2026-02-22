@@ -1,8 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getRoleDisplayName, isValidUserRole, resolveRoleFromPortal } from '@autamedica/shared';
-import type { UserRole } from '@autamedica/shared';
+import type { EntryRole } from '../../lib/auth-flow';
+import {
+  ROLE_ENTRIES,
+  buildAuthPath,
+  getRoleEntry,
+  resolveEntryRoleFromParams,
+} from '../../lib/auth-flow';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
@@ -12,7 +17,7 @@ export function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState<EntryRole | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -20,17 +25,12 @@ export function RegisterForm() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const urlRole = urlParams.get('role');
-    const urlPortal = urlParams.get('portal')?.toLowerCase();
-    const roleFromPortal = resolveRoleFromPortal(urlPortal);
-    const resolvedRole = urlRole && isValidUserRole(urlRole)
-      ? urlRole
-      : roleFromPortal ?? null;
+    const resolvedRole = resolveEntryRoleFromParams(urlParams) ?? null;
     setRole(resolvedRole);
     setReturnTo(urlParams.get('returnTo'));
 
-    if (!resolvedRole || !isValidUserRole(resolvedRole)) {
-      window.location.href = '/auth/select-role';
+    if (!resolvedRole) {
+      window.location.href = buildAuthPath('select-role', { returnTo: urlParams.get('returnTo') });
     }
   }, []);
 
@@ -91,11 +91,13 @@ export function RegisterForm() {
     }
   };
 
-  if (!role || !isValidUserRole(role)) {
+  if (!role) {
     return null;
   }
 
-  const roleDisplayName = getRoleDisplayName(role);
+  const roleDisplayName = getRoleEntry(role).label;
+  const loginHref = buildAuthPath('login', { role, returnTo });
+  const selectRoleHref = buildAuthPath('select-role', { returnTo });
 
   return (
     <div className="space-y-6">
@@ -115,10 +117,29 @@ export function RegisterForm() {
 
         <p className="text-[var(--au-text-secondary)] text-sm">
           ¿No es tu rol?{' '}
-          <a href="/auth/select-role" className="text-[var(--au-accent)] hover:text-[var(--au-text-primary)] font-medium transition-colors">
+          <a href={selectRoleHref} className="text-[var(--au-accent)] hover:text-[var(--au-text-primary)] font-medium transition-colors">
             Cambiar aquí
           </a>
         </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {ROLE_ENTRIES.map((entry) => {
+          const isCurrent = role === entry.role;
+          return (
+            <a
+              key={`register-role-${entry.role}`}
+              href={buildAuthPath('register', { role: entry.role, returnTo })}
+              className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-semibold transition-colors ${
+                isCurrent
+                  ? 'border-[var(--au-accent)] text-[var(--au-text-primary)]'
+                  : 'border-[var(--au-border)] text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)]'
+              }`}
+            >
+              {entry.shortLabel}
+            </a>
+          );
+        })}
       </div>
 
       {/* Error Alert */}
@@ -221,7 +242,7 @@ export function RegisterForm() {
           ¿Ya tienes cuenta en AutaMedica?
         </p>
         <a
-          href={`/auth/login?role=${role}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+          href={loginHref}
           className="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] bg-[var(--au-hover)] hover:bg-[var(--au-hover-border)] border-2 border-[var(--au-border)] hover:border-[var(--au-accent)] rounded-xl transition-all duration-200"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
+import { buildRoleAuthPath } from '../../lib/auth-flow';
 
 const pageTitle = 'Portal de Pacientes';
 const pageDescription = 'Consulta medica digital, seguimiento de historial y turnos en una sola experiencia para pacientes AutaMedica.';
@@ -44,12 +45,12 @@ const pageDescription = 'Consulta medica digital, seguimiento de historial y tur
       },
     ]}
     primaryCta={{
-      href: '/auth/register?role=patient',
-      label: 'Crear cuenta paciente',
+      href: buildRoleAuthPath('login', 'patient'),
+      label: 'Entrar como paciente',
     }}
     secondaryCta={{
-      href: '/auth/login?portal=patients',
-      label: 'Ingresar al portal',
+      href: buildRoleAuthPath('register', 'patient'),
+      label: 'Crear cuenta paciente',
     }}
   />
 

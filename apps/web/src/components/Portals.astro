@@ -1,7 +1,11 @@
 ---
+import type { EntryRole } from '../lib/auth-flow';
+import { buildRoleAuthPath } from '../lib/auth-flow';
+
 const portals = [
   {
     name: "Pacientes",
+    role: 'patient' as EntryRole,
     color: "var(--portal-patients)",
     hex: "#10b981",
     description: "Gestiona tu salud desde cualquier lugar, en cualquier momento.",
@@ -11,12 +15,12 @@ const portals = [
       "Agendamiento inteligente",
       "Receta digital al instante"
     ],
-    cta: "Explorar portal de pacientes",
     href: "/patients",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
   },
   {
     name: "Medicos",
+    role: 'doctor' as EntryRole,
     color: "var(--portal-doctors)",
     hex: "#3b82f6",
     description: "Herramientas profesionales para una practica medica moderna.",
@@ -26,12 +30,12 @@ const portals = [
       "IA para diagnostico asistido",
       "Teleconsultas HD profesionales"
     ],
-    cta: "Explorar portal de medicos",
     href: "/doctors",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`
   },
   {
     name: "Empresas",
+    role: 'company_admin' as EntryRole,
     color: "var(--portal-companies)",
     hex: "#f59e0b",
     description: "Soluciones integrales de salud corporativa para tu equipo.",
@@ -41,11 +45,16 @@ const portals = [
       "Reportes de salud corporativa",
       "Programas de bienestar"
     ],
-    cta: "Explorar portal de empresas",
     href: "/companies",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg>`
   }
 ];
+
+const enrichedPortals = portals.map((portal) => ({
+  ...portal,
+  loginHref: buildRoleAuthPath('login', portal.role),
+  registerHref: buildRoleAuthPath('register', portal.role),
+}));
 ---
 
 <section id="portales" class="portals" aria-label="Portales de acceso">
@@ -56,7 +65,7 @@ const portals = [
     </div>
 
     <div class="portals-grid">
-      {portals.map((portal) => (
+      {enrichedPortals.map((portal) => (
         <article class="portal-card animate-on-scroll">
           <div class="portal-icon" style={`color: ${portal.hex}`} set:html={portal.icon} />
           <h3 class="portal-name">{portal.name}</h3>
@@ -69,10 +78,16 @@ const portals = [
               </li>
             ))}
           </ul>
-          <a href={portal.href} class="portal-cta" style={`border-color: ${portal.hex}; color: ${portal.hex}`}>
-            {portal.cta}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </a>
+          <div class="portal-actions">
+            <a href={portal.loginHref} class="portal-cta portal-cta-primary" style={`--portal-card-accent:${portal.hex};`}>
+              Ingresar ahora
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <div class="portal-subactions">
+              <a href={portal.registerHref}>Crear cuenta</a>
+              <a href={portal.href}>Ver portal</a>
+            </div>
+          </div>
         </article>
       ))}
     </div>
@@ -170,6 +185,12 @@ const portals = [
     flex-shrink: 0;
   }
 
+  .portal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
   .portal-cta {
     display: inline-flex;
     align-items: center;
@@ -187,6 +208,30 @@ const portals = [
   .portal-cta:hover {
     background: rgba(255, 255, 255, 0.05);
     transform: translateY(-1px);
+  }
+
+  .portal-cta-primary {
+    border-color: transparent;
+    color: #121212;
+    background: color-mix(in srgb, var(--portal-card-accent) 84%, white);
+  }
+
+  .portal-subactions {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .portal-subactions a {
+    font-size: var(--text-xs);
+    color: var(--au-text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color var(--transition-fast);
+  }
+
+  .portal-subactions a:hover {
+    color: var(--au-text-primary);
   }
 
   @media (max-width: 768px) {

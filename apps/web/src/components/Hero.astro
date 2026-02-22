@@ -1,10 +1,18 @@
 ---
+import { buildAuthPath, buildRoleAuthPath } from '../lib/auth-flow';
+
 const title = "Tu médico, en minutos.\nDesde donde estés.";
 const subtitle = "Agenda inmediata, receta digital al finalizar y resultados en tu móvil.";
 const metrics = [
   { value: '4 min', label: 'espera promedio' },
   { value: '98%', label: 'receta en la consulta' },
   { value: '24/7', label: 'disponibilidad' },
+];
+
+const roleQuickAccess = [
+  { label: 'Paciente', href: buildRoleAuthPath('login', 'patient'), accent: 'var(--portal-patients)' },
+  { label: 'Médico', href: buildRoleAuthPath('login', 'doctor'), accent: 'var(--portal-doctors)' },
+  { label: 'Empresa', href: buildRoleAuthPath('login', 'company_admin'), accent: 'var(--portal-companies)' },
 ];
 ---
 
@@ -28,12 +36,25 @@ const metrics = [
     <h1 class="hero-title" style="white-space: pre-line">{title}</h1>
     <p class="hero-subtitle">{subtitle}</p>
     <div class="hero-actions">
-      <a href="#producto" class="btn-primary">
-        Explorar la plataforma
+      <a href={buildAuthPath('select-role', { returnTo: '/platform' })} class="btn-primary">
+        Entrar con mi perfil
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7" />
+        </svg>
+      </a>
+      <a href="#portales" class="btn-secondary">
+        Ver flujos por perfil
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 5v14M19 12l-7 7-7-7" />
         </svg>
       </a>
+    </div>
+    <div class="hero-role-shortcuts" aria-label="Acceso rápido por perfil">
+      {roleQuickAccess.map((item) => (
+        <a href={item.href} class="role-shortcut" style={`--shortcut-accent: ${item.accent};`}>
+          {item.label}
+        </a>
+      ))}
     </div>
 
     <div class="hero-metrics" aria-label="Metricas de la plataforma">
@@ -131,6 +152,14 @@ const metrics = [
     flex-wrap: wrap;
   }
 
+  .hero-role-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+  }
+
   .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -152,6 +181,7 @@ const metrics = [
   .btn-secondary {
     display: inline-flex;
     align-items: center;
+    gap: var(--space-2);
     padding: var(--space-3) var(--space-6);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
@@ -163,6 +193,27 @@ const metrics = [
 
   .btn-secondary:hover {
     border-color: var(--au-border-hover);
+  }
+
+  .role-shortcut {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    border-radius: var(--radius-full);
+    padding: 0.4rem 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--shortcut-accent) 58%, var(--au-border-hover));
+    background: color-mix(in srgb, var(--shortcut-accent) 12%, transparent);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: color-mix(in srgb, var(--shortcut-accent) 82%, #fff);
+    transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .role-shortcut:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--shortcut-accent) 78%, white);
+    background: color-mix(in srgb, var(--shortcut-accent) 19%, transparent);
   }
 
   .hero-metrics {
@@ -246,6 +297,10 @@ const metrics = [
 
     .hero-metrics-dot {
       display: none;
+    }
+
+    .hero-role-shortcuts {
+      justify-content: center;
     }
   }
 </style>

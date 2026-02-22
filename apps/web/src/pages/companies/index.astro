@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
 import { getAppBaseUrl } from '../../lib/env';
+import { buildRoleAuthPath } from '../../lib/auth-flow';
 
 const companiesExternalUrl = getAppBaseUrl('companies');
 const pageTitle = 'Portal de Empresas - AutaMedica';
@@ -51,10 +52,13 @@ const pageDescription = 'Entrada operativa para empresas con continuidad hacia e
       </div>
 
       <div class="companies-actions">
-        <a class="primary" href="/auth/login?portal=companies&returnTo=%2Fcompanies">
-          Revalidar acceso empresarial
+        <a class="primary" href={buildRoleAuthPath('login', 'company_admin')}>
+          Entrar como empresa
         </a>
-        <a class="secondary" href={companiesExternalUrl}>
+        <a class="secondary" href={buildRoleAuthPath('register', 'company_admin')}>
+          Crear cuenta empresarial
+        </a>
+        <a class="tertiary" href={companiesExternalUrl}>
           Abrir portal corporativo directo
         </a>
       </div>
@@ -169,6 +173,12 @@ const pageDescription = 'Entrada operativa para empresas con continuidad hacia e
   .companies-actions .secondary {
     border: 1px solid var(--au-border-hover);
     color: var(--au-text-primary);
+    background: transparent;
+  }
+
+  .companies-actions .tertiary {
+    border: 1px solid var(--au-border-hover);
+    color: var(--au-text-secondary);
     background: transparent;
   }
 </style>
