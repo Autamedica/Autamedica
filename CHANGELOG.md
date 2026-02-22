@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- 815d6d0 feat(seo): harden parity checks and social metadata assets
 - 2053d6d feat: update auth flow and portal entrypoints
 - cd4cbaa feat: ship astro migration slices with seo and routing hardening
 - 53a0d6d feat(auth): remove role from login flow — detect role automatically post-auth
@@ -68,6 +69,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 2979710 📝 docs: actualizar changelog automático
 - a86a7e6 📝 docs: actualizar changelog automático
 - 2961e7e docs: add seo benchmark and 100-point senior roadmap
 - 34d0df6 📝 docs: actualizar changelog automático
@@ -134,4 +136,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 05:45:17*
+*Generado automáticamente el 2026-02-22 06:00:16*
