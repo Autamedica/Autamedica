@@ -191,7 +191,7 @@ NEXT_PUBLIC_BASE_URL=https://www.autamedica.com
    - Permite cookies compartidas entre subdominios
    - Crítico para SSO (Single Sign-On)
 
-3. **Variables NEXT_PUBLIC_**
+3. **Variables NEXT*PUBLIC***
    - Expuestas al cliente
    - Solo para URLs públicas y anon key
    - NUNCA incluir service role key
