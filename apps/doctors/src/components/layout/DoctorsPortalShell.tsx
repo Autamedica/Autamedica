@@ -86,7 +86,7 @@ function getInitials(name: string): string {
   )
 }
 
-function TabPlaceholder({ label }: { label: string }): JSX.Element {
+function _TabPlaceholder({ label }: { label: string }): JSX.Element {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#111b2e] text-center text-slate-300">
       <span className="text-4xl">🛠️</span>
@@ -124,12 +124,12 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
-  const [isHydrated, setIsHydrated] = useState(false)
+  const [_isHydrated, setIsHydrated] = useState(false)
   const [isFocusMode, setIsFocusMode] = useState(false)
 
   // Production-ready hooks for real data
-  const { user, loading: authLoading } = useAuthenticatedUser()
-  const { doctor, loading: doctorLoading } = useCurrentDoctor(user?.id)
+  const { user, loading: _authLoading } = useAuthenticatedUser()
+  const { doctor, loading: _doctorLoading } = useCurrentDoctor(user?.id)
   const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
 
   useEffect(() => {
@@ -159,6 +159,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const userName = doctor?.profile?.full_name ||
                    user?.profile?.full_name ||
                    `Dr. ${user?.email?.split('@')[0] || 'Médico'}`
+  const doctorSpecialty = doctor?.specialty || 'Medicina General'
+  const doctorLicense = doctor?.license_number || 'No registrado'
 
   // Contadores reales (se actualizarán con stats cuando estén disponibles)
   const patients = { length: 0 } // TODO: Conectar con patients stats
@@ -246,11 +248,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
       { id: 'records', icon: FileText, label: 'Historiales', count: history.length },
       { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
       { id: 'chat', icon: MessageSquare, label: 'Chat', count: 0 },
-      { id: 'diagnosis', icon: Brain, label: 'IA Diagnosis', badge: 'NEW' },
+      { id: 'diagnosis', icon: Brain, label: 'Asistente Clínico' },
       { id: 'history', icon: History, label: 'Historial IA', count: 0 },
       { id: 'ranking', icon: Star, label: 'Ranking', badge: 'GOLD' },
       { id: 'subscription', icon: CreditCard, label: 'Suscripción', badge: 'PRO' },
-      { id: 'marketplace', icon: MapPin, label: 'Trabajo Médico', badge: 'HOT' },
+      { id: 'marketplace', icon: MapPin, label: 'Trabajo Médico' },
       { id: 'settings', icon: Settings, label: 'Configuración' },
     ],
     [patients.length, appointments.length, history.length],
@@ -296,7 +298,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
         <span className="text-slate-200">{label}</span>
       </span>
       <span className="flex items-center gap-2">
-        {typeof count === 'number' && (
+        {typeof count === 'number' && count > 0 && (
           <span className="rounded-full bg-[#ee58a6] px-2 py-0.5 text-xs font-semibold text-white">{count}</span>
         )}
         {badge && (
@@ -324,13 +326,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="flex gap-1">
-              <span className="h-3 w-3 rounded-full bg-red-500" />
-              <span className="h-3 w-3 rounded-full bg-yellow-400" />
-              <span className="h-3 w-3 rounded-full bg-green-500" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-300">
+              <Activity className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-200">AutaMedica Doctor Portal</p>
+              <p className="text-sm font-medium text-slate-200">AutaMedica</p>
               <p className="text-xs text-slate-400">{userName}</p>
             </div>
           </div>
@@ -462,7 +462,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 <button
                   key={id}
                   type="button"
-                  className={`sidebar-button flex w-full items-center justify-between rounded-lg border border-transparent px-2 py-2 text-left text-xs transition hover:border-slate-700 hover:bg-slate-800/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible-outline-blue-500 ${
+                  className={`sidebar-button flex w-full items-center justify-between rounded-lg border border-transparent px-2 py-2 text-left text-xs transition hover:border-slate-700 hover:bg-slate-800/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
                     activeSection === id ? 'border-slate-600 bg-slate-800/60' : ''
                   } ${isSidebarCollapsed ? 'flex-col gap-1 text-center' : 'gap-2'}`}
                   onClick={(event) => {
@@ -477,7 +477,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   </span>
                   {!isSidebarCollapsed && (
                     <span className="flex items-center gap-2">
-                      {typeof count === 'number' && (
+                      {typeof count === 'number' && count > 0 && (
                         <span className="rounded-full bg-[#ee58a6] px-2 py-0.5 text-[10px] font-semibold text-white">{count}</span>
                       )}
                       {badge && (
@@ -514,16 +514,15 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 role="main"
                 aria-label="Panel de contenido médico principal"
               >
-                {activeSection === 'settings' && <SettingsPanel />}
-                {activeSection === 'subscription' && <SubscriptionPanel />}
-                {activeSection === 'marketplace' && <MarketplacePanel />}
-                {activeSection === 'ranking' && (
-                  <SectionPlaceholder
-                    title="Sistema de Ranking Médico"
-                    icon="⭐"
-                    description="Visualiza tu ranking profesional basado en evaluaciones de pacientes, volumen de consultas y reconocimientos AutaMedica"
+                {activeSection === 'settings' && (
+                  <SettingsPanel
+                    doctorName={userName}
+                    specialty={doctorSpecialty}
+                    licenseNumber={String(doctorLicense)}
                   />
                 )}
+                {activeSection === 'subscription' && <SubscriptionPanel />}
+                {activeSection === 'marketplace' && <MarketplacePanel />}
                 {activeSection === 'patients' && <PatientsPanel />}
                 {activeSection === 'appointments' && <AppointmentsPanel />}
                 {activeSection === 'records' && <RecordsPanel />}
@@ -597,12 +596,12 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   <span role="img" aria-label="energía">
                     ⚡
                   </span>
-                  <span>AutaMedica Medical</span>
+                  <span>AutaMedica Clínica</span>
                 </span>
                 <span className="hidden text-slate-600 sm:inline">|</span>
                 <span className="flex items-center gap-1 text-emerald-400">
                   <span>●</span>
-                  API Online
+                  Sincronización segura
                 </span>
               </div>
             </footer>

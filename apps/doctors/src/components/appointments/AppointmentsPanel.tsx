@@ -1,13 +1,22 @@
 "use client"
 
+import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
+import { createBrowserClient } from '@autamedica/auth/client'
 import { useAppointments } from '@autamedica/hooks'
 
 export function AppointmentsPanel(): JSX.Element {
-  const { appointments, loading, error } = useAppointments()
+  const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createBrowserClient> | null>(null)
+  const isClientInitializing = supabaseClient === null
 
-  if (loading) {
+  useEffect(() => {
+    setSupabaseClient(createBrowserClient())
+  }, [])
+
+  const { appointments, loading, error } = useAppointments(supabaseClient)
+
+  if (isClientInitializing || loading) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">

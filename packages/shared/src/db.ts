@@ -24,7 +24,6 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // import type { Database } from '@autamedica/types';
 type Database = any; // Temporary type until @autamedica/types is created
 import { toCamel, toSnake } from './casing';
-import { logger } from './services/logger.service';
 
 type PublicSchema = Database extends { public: infer Schema }
   ? Schema extends Record<string, unknown>
@@ -53,13 +52,42 @@ type TableInsert<Table extends TableName> = TableDefinition<Table>['Insert'];
 type TableUpdate<Table extends TableName> = TableDefinition<Table>['Update'];
 
 /**
- * Cliente Supabase singleton
- * IMPORTANTE: Requiere variables de entorno configuradas
+ * Cliente Supabase singleton (lazy).
+ * Evita evaluar variables de entorno al importar el módulo.
  */
-export const supabase: SupabaseClient<Database> = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+let supabaseClient: SupabaseClient<Database> | null = null;
+
+function getSupabaseClient(): SupabaseClient<Database> {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error('Supabase configuration is missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+
+  supabaseClient = createClient<Database>(url, anonKey);
+  return supabaseClient;
+}
+
+/**
+ * Proxy para mantener compatibilidad con imports existentes (`supabase.from(...)`).
+ * El cliente real se crea bajo demanda en el primer acceso.
+ */
+export const supabase = new Proxy({} as SupabaseClient<Database>, {
+  get(_target, prop, receiver) {
+    const client = getSupabaseClient() as unknown as Record<PropertyKey, unknown>;
+    const value = Reflect.get(client, prop, receiver);
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+  set(_target, prop, value, receiver) {
+    const client = getSupabaseClient() as unknown as Record<PropertyKey, unknown>;
+    return Reflect.set(client, prop, value, receiver);
+  },
+}) as SupabaseClient<Database>;
 
 /**
  * Opciones para queries de lectura
