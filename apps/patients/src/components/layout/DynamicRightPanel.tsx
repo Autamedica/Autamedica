@@ -1,31 +1,31 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
 import {
-  Activity,
-  AlertTriangle,
-  Clock,
-  Eye,
-  FileText,
-  Heart,
-  MessageSquare,
-  Pill,
-  Shield,
-  TrendingUp,
-  Zap,
-} from 'lucide-react'
+    BloodPressureModal,
+    CommunityPostModal,
+    LabResultModal,
+    MedicationModal,
+    SymptomModal,
+} from '@/components/quick-actions/QuickActionModals'
+import { type CommunityPost, useCommunityPosts } from '@/hooks/useCommunity'
 import { usePatientScreenings } from '@/hooks/usePatientScreenings'
 import { usePatientSession } from '@/hooks/usePatientSession'
-import { type CommunityPost, useCommunityPosts } from '@/hooks/useCommunity'
 import { computeAgeFromIso, normalizeGender } from '@/lib/demographics'
 import {
-  BloodPressureModal,
-  CommunityPostModal,
-  LabResultModal,
-  MedicationModal,
-  SymptomModal,
-} from '@/components/quick-actions/QuickActionModals'
+    Activity,
+    AlertTriangle,
+    Clock,
+    Eye,
+    FileText,
+    Heart,
+    MessageSquare,
+    Pill,
+    Shield,
+    TrendingUp,
+    Zap,
+} from 'lucide-react'
+import type { ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type PanelTab = 'brief' | 'community' | 'actions' | 'medical' | 'chat'
 
@@ -118,15 +118,15 @@ export function DynamicRightPanel({ context = 'dashboard' }: DynamicRightPanelPr
   }, [context])
 
   return (
-    <aside className="flex w-[30%] min-w-[320px] max-w-[400px] flex-col border-l border-stone-300 bg-white shadow-sm">
-      <div className="border-b border-stone-200 px-4 py-3">
-        <p className="editorial-kicker">Panel de contexto</p>
-        <p className="mt-1 text-xs text-stone-600">
-          Informacion priorizada para decidir con criterio junto al equipo medico.
+    <aside className="relative flex w-[30%] min-w-[320px] max-w-[400px] flex-col border-l border-slate-200/50 bg-white/40 shadow-xl shadow-indigo-900/5 backdrop-blur-2xl">
+      <div className="border-b border-indigo-100/50 bg-white/60 px-5 py-4 backdrop-blur-md">
+        <p className="inline-flex rounded-full bg-indigo-100/50 px-2.5 py-1 text-[10px] font-bold tracking-wider text-indigo-700 uppercase">Panel de contexto</p>
+        <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+          Información priorizada para decidir con criterio junto al equipo médico.
         </p>
       </div>
 
-      <div className="flex border-b border-stone-200">
+      <div className="flex border-b border-slate-200/60 bg-white/40 backdrop-blur-sm">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -136,15 +136,15 @@ export function DynamicRightPanel({ context = 'dashboard' }: DynamicRightPanelPr
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex flex-1 items-center justify-center gap-2 px-4 py-3 text-xs font-semibold transition-all
+                group flex flex-1 items-center justify-center gap-2 px-3 py-3.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-300
                 ${
                   isActive
-                    ? 'border-b-2 border-stone-900 bg-stone-50 text-stone-900'
-                    : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
+                    ? 'border-b-2 border-indigo-600 bg-indigo-50/50 text-indigo-700 shadow-[inset_0_-1px_0_0_rgba(79,70,229,0.1)]'
+                    : 'border-b-2 border-transparent text-slate-500 hover:bg-slate-50/50 hover:text-slate-700'
                 }
               `}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={`h-4 w-4 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           )
@@ -197,14 +197,17 @@ function DailyBriefPanel() {
 
   return (
     <div className="space-y-5">
-      <section className="editorial-card bg-stone-50">
-        <p className="editorial-kicker">Brief diario</p>
-        <h3 className="editorial-title mt-2 text-[1.25rem] text-stone-900">
-          {preferredName}, aqui tienes lo importante del dia
-        </h3>
-        <p className="editorial-lede mt-2 text-sm text-stone-700">
-          {dateLabel}. Esta vista prioriza evidencia y contexto. La decision final siempre es tuya.
-        </p>
+      <section className="relative overflow-hidden rounded-2xl border border-indigo-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/20" />
+        <div className="relative">
+          <p className="inline-flex rounded-full bg-indigo-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-indigo-700 uppercase">Brief diario</p>
+          <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">
+            {preferredName}, aquí tienes lo importante del día
+          </h3>
+          <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+            {dateLabel}. Esta vista prioriza evidencia y contexto. La decisión final siempre es tuya.
+          </p>
+        </div>
       </section>
 
       <section className="grid grid-cols-3 gap-2">
@@ -214,11 +217,12 @@ function DailyBriefPanel() {
       </section>
 
       <section>
-        <p className="editorial-kicker mb-2">Prioridades clinicas</p>
-        <div className="space-y-2">
+        <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Prioridades clínicas</p>
+        <div className="space-y-3">
           {pendingScreenings.length === 0 && (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-              No hay alertas pendientes. Mantene tu seguimiento con la misma frecuencia.
+            <div className="rounded-xl border border-emerald-200/50 bg-emerald-50/50 p-4 text-xs font-medium text-emerald-800 backdrop-blur-sm shadow-sm flex gap-3 items-center">
+              <div className="flex bg-emerald-100/50 h-8 w-8 rounded-full items-center justify-center shrink-0 text-emerald-600"><Heart className="h-4 w-4" /></div>
+              No hay alertas pendientes. Mantené tu seguimiento con la misma frecuencia.
             </div>
           )}
 
@@ -238,16 +242,16 @@ function DailyBriefPanel() {
         </div>
       </section>
 
-      <section>
-        <p className="editorial-kicker mb-2">Lectura recomendada</p>
-        <div className="space-y-2">
+      <section className="pt-2">
+        <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Lectura recomendada</p>
+        <div className="space-y-3">
           {editorialReading.map((item) => (
-            <article key={item.title} className="rounded-lg border border-stone-200 bg-white p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500">
+            <article key={item.title} className="group cursor-pointer rounded-xl border border-blue-100/50 bg-white/40 p-4 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-blue-200 hover:bg-white/60 hover:shadow-md hover:shadow-blue-500/5">
+              <p className="inline-flex items-center text-[10px] font-bold uppercase tracking-widest text-blue-500">
                 {item.section}
               </p>
-              <h4 className="mt-1 text-sm font-semibold text-stone-900">{item.title}</h4>
-              <p className="mt-1 text-xs leading-relaxed text-stone-600">{item.summary}</p>
+              <h4 className="mt-1.5 text-sm font-bold text-slate-900 leading-snug group-hover:text-blue-700 transition-colors">{item.title}</h4>
+              <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-600">{item.summary}</p>
             </article>
           ))}
         </div>
@@ -267,15 +271,18 @@ function CommunityPanel() {
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-          <p className="editorial-kicker">Comunidad</p>
-          <h3 className="editorial-title mt-2 text-[1.1rem] text-stone-900">
-            Conversaciones entre pacientes
-          </h3>
-          <p className="mt-2 text-xs leading-relaxed text-stone-600">
-            Espacio para compartir experiencias y preparar mejores preguntas para tu consulta.
-          </p>
+      <div className="space-y-5">
+        <div className="relative overflow-hidden rounded-2xl border border-pink-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 to-white/20" />
+          <div className="relative">
+            <p className="inline-flex rounded-full bg-pink-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-pink-700 uppercase">Comunidad</p>
+            <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">
+              Conversaciones entre pacientes
+            </h3>
+            <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+              Espacio para compartir experiencias y preparar mejores preguntas para tu consulta.
+            </p>
+          </div>
         </div>
 
         {loading && (
@@ -323,11 +330,14 @@ function ClinicalLogPanel() {
   return (
     <>
       <div className="space-y-3">
-        <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-          <p className="editorial-kicker">Registro clinico</p>
-          <h3 className="editorial-title mt-2 text-[1.05rem] text-stone-900">
-            Captura datos utiles para tu proxima consulta
-          </h3>
+        <div className="relative overflow-hidden rounded-2xl border border-amber-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-white/20" />
+          <div className="relative">
+            <p className="inline-flex rounded-full bg-amber-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-amber-700 uppercase">Registro clínico</p>
+            <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">
+              Captura datos útiles para tu próxima consulta
+            </h3>
+          </div>
         </div>
 
         <ActionButton
@@ -378,17 +388,20 @@ function ClinicalLogPanel() {
 
 function MedicalContextPanel() {
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-        <p className="editorial-kicker">Contexto clinico</p>
-        <h3 className="editorial-title mt-2 text-[1.1rem] text-stone-900">Resumen operativo del paciente</h3>
+    <div className="space-y-5">
+      <div className="relative overflow-hidden rounded-2xl border border-teal-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-50/50 to-white/20" />
+        <div className="relative">
+          <p className="inline-flex rounded-full bg-teal-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-teal-700 uppercase">Contexto clínico</p>
+          <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">Resumen operativo del paciente</h3>
+        </div>
       </div>
 
       <section>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Signos vitales</p>
+        <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Signos vitales</p>
         <div className="space-y-3">
           <VitalSign
-            icon={<Heart className="h-5 w-5 text-red-500" />}
+            icon={<Heart className="h-5 w-5 text-rose-500" />}
             label="Presion arterial"
             value="120/80"
             status="Dentro de rango esperado"
@@ -441,9 +454,12 @@ function MedicalContextPanel() {
 function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
-      <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-        <p className="editorial-kicker">Consulta activa</p>
-        <h3 className="editorial-title mt-2 text-[1.05rem] text-stone-900">Canal de conversacion clinica</h3>
+      <div className="relative overflow-hidden rounded-2xl border border-sky-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-50/50 to-white/20" />
+        <div className="relative">
+          <p className="inline-flex rounded-full bg-sky-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-sky-700 uppercase">Consulta activa</p>
+          <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">Canal de conversación clínica</h3>
+        </div>
       </div>
 
       <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
@@ -489,12 +505,17 @@ function SummaryMetric({
 }) {
   return (
     <div
-      className={`rounded-lg border p-3 text-center ${
-        highlight ? 'border-amber-300 bg-amber-50' : 'border-stone-200 bg-white'
+      className={`relative overflow-hidden flex flex-col items-center rounded-2xl border p-4 shadow-sm backdrop-blur-sm transition-all duration-300 ${
+        highlight
+          ? 'border-rose-200/50 bg-rose-50/40 text-rose-900'
+          : 'border-slate-200/50 bg-white/40 text-slate-900 hover:bg-white/60'
       }`}
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-stone-900">{value}</p>
+      <div className={`absolute inset-0 bg-gradient-to-br ${highlight ? 'from-rose-100/30' : 'from-slate-50/30'} to-transparent`} />
+      <span className="relative text-2xl font-extrabold tracking-tight">{value}</span>
+      <span className="relative mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        {label}
+      </span>
     </div>
   )
 }
