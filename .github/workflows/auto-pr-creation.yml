@@ -33,7 +33,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH=${GITHUB_REF##*/}
+          BRANCH="${GITHUB_REF_NAME}"
 
           # Buscar PR existente
           EXISTING_PR=$(gh pr list \
@@ -145,8 +145,13 @@ jobs:
             --title "$TITLE" \
             --body-file /tmp/pr-body.md \
             --base main \
-            --head "$BRANCH" \
-            --label "$LABEL,auto-generated"
+            --head "$BRANCH"
+
+          PR_NUMBER=$(gh pr view --head "$BRANCH" --json number --jq '.number')
+
+          # Try to add labels, but don't fail if label doesn't exist
+          gh pr edit "$PR_NUMBER" --add-label "$LABEL" || true
+          gh pr edit "$PR_NUMBER" --add-label "auto-generated" || true
 
           echo "✅ PR creado exitosamente"
 

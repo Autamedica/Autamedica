@@ -1,116 +1,124 @@
 # Auto-labeler configuration for Autamedica
-# https://github.com/actions/labeler
+# Compatible with actions/labeler@v5
 
-# Frontend/UI related
 frontend:
-  - "apps/**"
-  - "**/*.tsx"
-  - "**/*.css"
-  - "**/*.scss"
-  - "**/components/**"
-  - "**/ui/**"
-
-# Backend/API related
+- changed-files:
+  - any-glob-to-any-file:
+    - apps/**
+    - '**/*.tsx'
+    - '**/*.css'
+    - '**/*.scss'
+    - '**/components/**'
+    - '**/ui/**'
 backend:
-  - "packages/**"
-  - "**/*.api.ts"
-  - "**/server/**"
-  - "**/api/**"
-  - "workers/**"
-
-# Infrastructure and DevOps
+- changed-files:
+  - any-glob-to-any-file:
+    - packages/**
+    - '**/*.api.ts'
+    - '**/server/**'
+    - '**/api/**'
+    - workers/**
 infra:
-  - ".github/**"
-  - "wrangler.toml"
-  - "turbo.json"
-  - "**/deployment/**"
-  - "**/*deploy*"
-  - "**/*ci*"
-  - "**/*cd*"
-
-# Documentation
+- changed-files:
+  - any-glob-to-any-file:
+    - .github/**
+    - wrangler.toml
+    - turbo.json
+    - '**/deployment/**'
+    - '**/*deploy*'
+    - '**/*ci*'
+    - '**/*cd*'
 docs:
-  - "docs/**"
-  - "**/*.md"
-  - "**/*.mdx"
-  - "**/README*"
-
-# Testing
+- changed-files:
+  - any-glob-to-any-file:
+    - docs/**
+    - '**/*.md'
+    - '**/*.mdx'
+    - '**/README*'
 testing:
-  - "**/*.test.*"
-  - "**/*.spec.*"
-  - "tests/**"
-  - "**/test/**"
-  - "playwright.config.*"
-  - "vitest.config.*"
-
-# Security related
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/*.test.*'
+    - '**/*.spec.*'
+    - tests/**
+    - '**/test/**'
+    - playwright.config.*
+    - vitest.config.*
 security:
-  - "**/*.env*"
-  - "**/auth/**"
-  - "**/security/**"
-  - "SECURITY.md"
-  - "**/*security*"
-  - "**/*auth*"
-
-# Medical/Healthcare specific
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/*.env*'
+    - '**/auth/**'
+    - '**/security/**'
+    - SECURITY.md
+    - '**/*security*'
+    - '**/*auth*'
 medical:
-  - "**/medical/**"
-  - "**/patient/**"
-  - "**/doctor/**"
-  - "**/hipaa/**"
-  - "**/*medical*"
-  - "**/*patient*"
-  - "**/*doctor*"
-
-# Configuration
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/medical/**'
+    - '**/patient/**'
+    - '**/doctor/**'
+    - '**/hipaa/**'
+    - '**/*medical*'
+    - '**/*patient*'
+    - '**/*doctor*'
 config:
-  - "**/*.config.*"
-  - "**/*.json"
-  - "**/*.toml"
-  - "**/*.yaml"
-  - "**/*.yml"
-  - ".gitignore"
-  - ".env*"
-
-# Dependencies
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/*.config.*'
+    - '**/*.json'
+    - '**/*.toml'
+    - '**/*.yaml'
+    - '**/*.yml'
+    - .gitignore
+    - .env*
 dependencies:
-  - "package.json"
-  - "pnpm-lock.yaml"
-  - "**/package.json"
-
-# Types and contracts
+- changed-files:
+  - any-glob-to-any-file:
+    - package.json
+    - pnpm-lock.yaml
+    - '**/package.json'
 types:
-  - "packages/types/**"
-  - "**/*.types.ts"
-  - "**/*.d.ts"
-  - "**/types/**"
-
-# Specific apps
+- changed-files:
+  - any-glob-to-any-file:
+    - packages/types/**
+    - '**/*.types.ts'
+    - '**/*.d.ts'
+    - '**/types/**'
 web-app:
-  - "apps/web-app/**"
-
+- changed-files:
+  - any-glob-to-any-file:
+    - apps/web-app/**
 doctors-app:
-  - "apps/doctors/**"
-
+- changed-files:
+  - any-glob-to-any-file:
+    - apps/doctors/**
 patients-app:
-  - "apps/patients/**"
-
+- changed-files:
+  - any-glob-to-any-file:
+    - apps/patients/**
 companies-app:
-  - "apps/companies/**"
-
+- changed-files:
+  - any-glob-to-any-file:
+    - apps/companies/**
 admin-app:
-  - "apps/admin/**"
-
-# Packages
+- changed-files:
+  - any-glob-to-any-file:
+    - apps/admin/**
 auth-package:
-  - "packages/auth/**"
-
+- changed-files:
+  - any-glob-to-any-file:
+    - packages/auth/**
 shared-package:
-  - "packages/shared/**"
-
+- changed-files:
+  - any-glob-to-any-file:
+    - packages/shared/**
 hooks-package:
-  - "packages/hooks/**"
-
+- changed-files:
+  - any-glob-to-any-file:
+    - packages/hooks/**
 ui-package:
-  - "packages/ui/**"
+- changed-files:
+  - any-glob-to-any-file:
+    - packages/ui/**
