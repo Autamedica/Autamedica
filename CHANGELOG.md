@@ -12,10 +12,13 @@
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
 ### 🔧 Mejoras y Optimizaciones
+- d629ad5 chore: remove explicit-any warnings in shared db wrapper
 - 880e183 chore(ci): add staged debt and db drift guards to pre-commit
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 43500c5 fix(auth): harden signup trigger to be non-blocking
+- fb9e77c fix: stabilize patients/doctors UI and unblock builds
 - 6d44849 fix(env): treat non-local browser hosts as production by default
 - dee926d fix(auth): avoid localhost fallback for login redirects in edge
 - 13aab50 fix(auth): normalize cross-portal redirects to absolute role URLs
@@ -51,6 +54,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 9c186b5 📝 docs: actualizar changelog automático
 - 9d99dab 📝 docs: actualizar changelog automático
 - 5cac51b 📝 docs: actualizar changelog automático
 - 25a0dbf 📝 docs: actualizar changelog automático
@@ -105,4 +109,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 02:01:14*
+*Generado automáticamente el 2026-02-22 02:31:43*
