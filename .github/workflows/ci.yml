@@ -139,6 +139,9 @@ jobs:
           node scripts/seo/validate-parity.mjs
           node scripts/seo/validate-social-assets.mjs
 
+      - name: Build Core Packages
+        run: pnpm build:packages:core
+
       - name: Build Web for Lighthouse
         run: pnpm --filter @autamedica/web build
 
