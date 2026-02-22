@@ -18,6 +18,21 @@ fi
 # Aumentar memoria de Node para ESLint
 export NODE_OPTIONS="--max-old-space-size=8192"
 
+# Guardrail: validar permisos de directorios .turbo para evitar fallos opacos en hooks
+echo "🧰 Verificando permisos de Turbo..."
+TURBO_DIRS=$(find . -maxdepth 3 -type d -name ".turbo" \
+  -not -path "./node_modules/*" \
+  -not -path "./apps/*/node_modules/*" \
+  -not -path "./packages/*/node_modules/*")
+
+for TURBO_DIR in $TURBO_DIRS; do
+  if [ ! -w "$TURBO_DIR" ]; then
+    echo "❌ Turbo no tiene permisos de escritura en: $TURBO_DIR"
+    echo "💡 Fix: sudo chown -R $(id -un):$(id -gn) $TURBO_DIR"
+    exit 1
+  fi
+done
+
 # 1. Validar convenciones
 echo "📋 Validando convenciones..."
 node scripts/validate-conventions.mjs || exit 1

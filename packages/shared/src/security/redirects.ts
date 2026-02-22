@@ -110,6 +110,56 @@ export function safeRedirectOrFallback(
   return isAllowedRedirect(urlStr) ? urlStr : fallback;
 }
 
+function normalizeOrigin(urlValue: string): string | null {
+  try {
+    const parsed = new URL(urlValue);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return null;
+    }
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function inferFallbackAuthOrigin(returnTo?: string | null): string {
+  if (returnTo) {
+    try {
+      const returnToUrl = new URL(returnTo);
+      if (returnToUrl.hostname === 'localhost' || returnToUrl.hostname === '127.0.0.1') {
+        // Auth hub local por convención en este monorepo.
+        return 'http://localhost:3005';
+      }
+    } catch {
+      // Ignore invalid returnTo and use production-safe default.
+    }
+  }
+
+  return 'https://www.autamedica.com';
+}
+
+function resolveAuthBaseOrigin(returnTo?: string | null): string {
+  const candidates = [
+    process.env.NEXT_PUBLIC_BASE_URL_AUTH,
+    process.env.NEXT_PUBLIC_AUTH_URL,
+    process.env.NEXT_PUBLIC_BASE_URL_WEB,
+    process.env.NEXT_PUBLIC_SITE_URL,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    const origin = normalizeOrigin(candidate);
+    if (origin) {
+      return origin;
+    }
+  }
+
+  return inferFallbackAuthOrigin(returnTo);
+}
+
 /**
  * Build safe login redirect URL
  * Ensures returnTo parameter is validated
@@ -119,27 +169,7 @@ export function buildSafeLoginUrl(
   returnTo?: string | null,
   error?: string
 ): string {
-  const inferFallbackAuthOrigin = (): string => {
-    // Prefer localhost only when returnTo explicitly points to a local dev URL.
-    if (returnTo) {
-      try {
-        const returnToUrl = new URL(returnTo);
-        if (returnToUrl.hostname === 'localhost' || returnToUrl.hostname === '127.0.0.1') {
-          return 'http://localhost:3000';
-        }
-      } catch {
-        // Ignore invalid returnTo and use production-safe default.
-      }
-    }
-    return 'https://www.autamedica.com';
-  };
-
-  const baseOrigin =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL_WEB_APP ||
-    inferFallbackAuthOrigin();
-
+  const baseOrigin = resolveAuthBaseOrigin(returnTo);
   const loginUrl = new URL('/auth/login', baseOrigin);
 
   loginUrl.searchParams.set('portal', portal);
