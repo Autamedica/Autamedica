@@ -27,6 +27,8 @@ export type AnamnesisCategory =
   | 'antecedentes_familiares'
   | 'revision_sistemas';
 
+export type AnamnesisFieldValue = string | number | boolean | string[] | null | undefined;
+
 export interface AnamnesisField {
   id: string;
   type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'textarea' | 'boolean' | 'scale';
@@ -43,7 +45,7 @@ export interface AnamnesisField {
   };
   dependsOn?: {
     fieldId: string;
-    value: any;
+    value: AnamnesisFieldValue;
   };
 }
 

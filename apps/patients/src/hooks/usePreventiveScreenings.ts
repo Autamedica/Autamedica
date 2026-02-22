@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import type {
-  PreventiveScreening,
-  PatientScreeningWithDetails,
-  ScreeningRecommendation,
-  ScreeningStatusType,
-  PatientScreeningInsert
-} from '@autamedica/types';
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
+import type {
+  PatientScreeningInsert,
+  PatientScreeningWithDetails,
+  PreventiveScreening,
+  ScreeningRecommendation,
+  ScreeningStatusType
+} from '@autamedica/types';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UsePreventiveScreeningsOptions {
   patientId?: string;
@@ -29,9 +29,9 @@ interface UsePreventiveScreeningsResult {
   error: string | null;
 
   // Acciones
-  scheduleScreening: (screeningId: string, scheduledDate: Date) => Promise<{ success: boolean; error?: any }>;
-  markAsCompleted: (patientScreeningId: string, resultSummary?: string) => Promise<{ success: boolean; error?: any }>;
-  cancelScreening: (patientScreeningId: string) => Promise<{ success: boolean; error?: any }>;
+  scheduleScreening: (screeningId: string, scheduledDate: Date) => Promise<{ success: boolean; error?: unknown }>;
+  markAsCompleted: (patientScreeningId: string, resultSummary?: string) => Promise<{ success: boolean; error?: unknown }>;
+  cancelScreening: (patientScreeningId: string) => Promise<{ success: boolean; error?: unknown }>;
   refetch: () => Promise<void>;
 }
 
@@ -106,27 +106,35 @@ export function usePreventiveScreenings(
       if (fetchError) throw fetchError;
 
       // Transform data
-      const transformedData: PatientScreeningWithDetails[] = (data || []).map((item: any) => ({
-        id: item.id,
-        patient_id: item.patient_id,
-        screening_id: item.screening_id,
-        status: item.status,
-        scheduled_date: item.scheduled_date,
-        completed_date: item.completed_date,
-        next_due_date: item.next_due_date,
-        assigned_doctor_id: item.assigned_doctor_id,
-        notes: item.notes,
-        result_summary: item.result_summary,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        screening: item.screening,
-        assigned_doctor: item.assigned_doctor ? {
-          id: item.assigned_doctor.id,
-          first_name: item.assigned_doctor.first_name,
-          last_name: item.assigned_doctor.last_name,
-          specialty: '' // TODO: Add specialty when available
-        } : null
-      }));
+      const transformedData: PatientScreeningWithDetails[] = (data || []).map((dbItem) => {
+        const item = dbItem as unknown as Record<string, unknown> & {
+          id: string; patient_id: string; screening_id: string; status: string; scheduled_date?: string;
+          completed_date?: string; next_due_date?: string; assigned_doctor_id?: string; notes?: string;
+          result_summary?: string; created_at: string; updated_at: string; screening: PreventiveScreening;
+          assigned_doctor?: { id: string; first_name: string; last_name: string; };
+        };
+        return {
+          id: item.id,
+          patient_id: item.patient_id,
+          screening_id: item.screening_id,
+          status: item.status,
+          scheduled_date: item.scheduled_date || null,
+          completed_date: item.completed_date || null,
+          next_due_date: item.next_due_date || null,
+          assigned_doctor_id: item.assigned_doctor_id || null,
+          notes: item.notes || null,
+          result_summary: item.result_summary || null,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          screening: item.screening,
+          assigned_doctor: item.assigned_doctor ? {
+            id: item.assigned_doctor.id,
+            first_name: item.assigned_doctor.first_name,
+            last_name: item.assigned_doctor.last_name,
+            specialty: '' // TODO: Add specialty when available
+          } : null
+        } as unknown as PatientScreeningWithDetails;
+      });
 
       setMyScreenings(transformedData);
     } catch (err) {
@@ -158,7 +166,7 @@ export function usePreventiveScreenings(
 
       // Transform to ScreeningRecommendation format
       const transformedRecommendations: ScreeningRecommendation[] = await Promise.all(
-        (data || []).map(async (item: any) => {
+        (data || []).map(async (item: { screening_id: string; status: string; urgency: string; reason: string; next_due_date: string }) => {
           // Fetch full screening details
           const { data: screeningData } = await supabase
             .from('preventive_screenings')

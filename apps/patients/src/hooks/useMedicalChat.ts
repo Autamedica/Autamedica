@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type {
-  MedicalMessage,
-  MedicalChatInsert,
-  MedicalMessageInsert,
-  MedicalChatWithLastMessage,
-  ChatStatusType
-} from '@autamedica/types';
 import { useSupabase } from '@autamedica/auth/react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
+import type {
+  ChatStatusType,
+  MedicalChatInsert,
+  MedicalChatWithLastMessage,
+  MedicalMessage,
+  MedicalMessageInsert
+} from '@autamedica/types';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseMedicalChatsOptions {
   patientId?: string;
@@ -20,8 +20,8 @@ interface UseMedicalChatsResult {
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  createChat: (data: MedicalChatInsert) => Promise<{ success: boolean; chatId?: string; error?: any }>;
-  updateChatStatus: (chatId: string, status: ChatStatusType) => Promise<{ success: boolean; error?: any }>;
+  createChat: (data: MedicalChatInsert) => Promise<{ success: boolean; chatId?: string; error?: unknown }>;
+  updateChatStatus: (chatId: string, status: ChatStatusType) => Promise<{ success: boolean; error?: unknown }>;
 }
 
 export function useMedicalChats(
@@ -73,16 +73,23 @@ export function useMedicalChats(
       if (fetchError) throw fetchError;
 
       // Transform data
-      const transformedData: MedicalChatWithLastMessage[] = (data || []).map((item: any) => {
+      const transformedData: MedicalChatWithLastMessage[] = (data || []).map((dbItem) => {
+        const item = dbItem as unknown as Record<string, unknown> & {
+          id: string; patient_id: string; specialist_id: string; appointment_id?: string;
+          status: string; subject: string; is_urgent: boolean; last_message_at: string;
+          created_at: string; updated_at: string;
+          messages?: Array<{ content: string; author_type: string; is_read: boolean; created_at: string }>;
+          specialist?: { doctor?: { first_name?: string; last_name?: string } };
+        };
         const messages = item.messages || [];
         const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-        const unreadCount = messages.filter((m: any) => !m.is_read && m.author_type !== 'patient').length;
+        const unreadCount = messages.filter((m) => !m.is_read && m.author_type !== 'patient').length;
 
         return {
           id: item.id,
           patient_id: item.patient_id,
           specialist_id: item.specialist_id,
-          appointment_id: item.appointment_id,
+          appointment_id: item.appointment_id || null,
           status: item.status,
           subject: item.subject,
           is_urgent: item.is_urgent,
@@ -93,7 +100,7 @@ export function useMedicalChats(
           last_message_author: lastMessage?.author_type || 'system',
           unread_count: unreadCount,
           specialist_name: `Dr. ${item.specialist?.doctor?.first_name || ''} ${item.specialist?.doctor?.last_name || ''}`.trim()
-        };
+        } as unknown as MedicalChatWithLastMessage;
       });
 
       setChats(transformedData);
@@ -191,7 +198,7 @@ interface UseChatMessagesResult {
   messages: MedicalMessage[];
   isLoading: boolean;
   error: string | null;
-  sendMessage: (content: string, contentType?: 'text' | 'image' | 'document') => Promise<{ success: boolean; error?: any }>;
+  sendMessage: (content: string, contentType?: 'text' | 'image' | 'document') => Promise<{ success: boolean; error?: unknown }>;
   markAsRead: (messageId: string) => Promise<void>;
 }
 

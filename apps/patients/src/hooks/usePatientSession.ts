@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { User } from '@supabase/supabase-js';
-import { logger } from '@autamedica/shared';
-import { useSupabase } from '@autamedica/auth/react';
-import { safeParseProfile, type Profile } from '@/lib/zod/profiles';
 import { parsePatient, type Patient } from '@/lib/zod/patients';
+import { safeParseProfile, type Profile } from '@/lib/zod/profiles';
+import { useSupabase } from '@autamedica/auth/react';
+import { logger } from '@autamedica/shared';
+import type { User } from '@supabase/supabase-js';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface PatientSessionState {
   user: User | null;
@@ -72,24 +72,24 @@ export function usePatientSession(): UsePatientSessionResult {
           .select('*')
           .eq('id', user.id)
           .maybeSingle();
-        data = tryLegacy.data as any;
-        error = tryLegacy.error as any;
+        data = tryLegacy.data as Record<string, unknown> | null;
+        error = tryLegacy.error;
       }
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      let profileRow: any = data ?? null;
+      let profileRow: Record<string, unknown> | null = (data as Record<string, unknown> | null) ?? null;
       // Normalizar id -> user_id si fuese legacy
-      if (profileRow && !profileRow.user_id && profileRow.id) {
-        profileRow = { ...profileRow, user_id: profileRow.id };
+      if (profileRow && !profileRow['user_id'] && profileRow['id']) {
+        profileRow = { ...profileRow, user_id: profileRow['id'] };
       }
 
       if (!profileRow) {
         // Intentar insertar con user_id; si falla por columna, probar con id
-        let inserted: any = null;
-        let insertError: any = null;
+        let inserted: Record<string, unknown> | null = null;
+        let insertError: Error | null = null;
         const insert = await supabase
           .from('profiles')
           .insert({
@@ -100,7 +100,7 @@ export function usePatientSession(): UsePatientSessionResult {
           })
           .select('*')
           .single();
-        inserted = insert.data;
+        inserted = insert.data as Record<string, unknown> | null;
         insertError = insert.error;
 
         if (insertError) {
@@ -115,7 +115,7 @@ export function usePatientSession(): UsePatientSessionResult {
             })
             .select('*')
             .single();
-          inserted = legacy.data;
+          inserted = legacy.data as Record<string, unknown> | null;
           insertError = legacy.error;
         }
 
@@ -138,11 +138,11 @@ export function usePatientSession(): UsePatientSessionResult {
           const updateTry = await supabase
             .from('profiles')
             .update(updates)
-            .eq(profileRow.user_id ? 'user_id' : 'id', user.id)
+            .eq(profileRow['user_id'] ? 'user_id' : 'id', user.id)
             .select('*')
             .single();
-          const updated = updateTry.data as any;
-          const updateError = updateTry.error as any;
+          const updated = updateTry.data as Record<string, unknown> | null;
+          const updateError = updateTry.error;
 
           if (updateError) {
             throw updateError;
@@ -155,14 +155,14 @@ export function usePatientSession(): UsePatientSessionResult {
       const parsed = safeParseProfile(profileRow);
       if (parsed) return parsed;
       return {
-        userId: profileRow.user_id ?? profileRow.id,
-        email: profileRow.email ?? email,
-        role: (profileRow.role as any) ?? 'patient',
-        firstName: (profileRow.first_name as any) ?? null,
-        lastName: (profileRow.last_name as any) ?? null,
-        phone: (profileRow.phone as any) ?? null,
-        avatarUrl: (profileRow.avatar_url as any) ?? null,
-        active: (profileRow.active as any) ?? null,
+        userId: (profileRow['user_id'] ?? profileRow['id']) as string,
+        email: (profileRow['email'] ?? email) as string,
+        role: (typeof profileRow['role'] === 'string' ? profileRow['role'] : 'patient') as 'patient' | 'admin',
+        firstName: typeof profileRow['first_name'] === 'string' ? profileRow['first_name'] : null,
+        lastName: typeof profileRow['last_name'] === 'string' ? profileRow['last_name'] : null,
+        phone: typeof profileRow['phone'] === 'string' ? profileRow['phone'] : null,
+        avatarUrl: typeof profileRow['avatar_url'] === 'string' ? profileRow['avatar_url'] : null,
+        active: typeof profileRow['active'] === 'boolean' ? profileRow['active'] : null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         deletedAt: null,

@@ -3,16 +3,17 @@
 // Disable SSG for this page since it uses auth and client-side data fetching
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import { StoryCard } from '@/components/anamnesis/StoryCard';
 import { AnamnesisField } from '@/components/anamnesis/AnamnesisField';
 import { MediaEducativa } from '@/components/anamnesis/MediaEducativa';
 import { PausaCognitiva } from '@/components/anamnesis/PausaCognitiva';
+import { StoryCard } from '@/components/anamnesis/StoryCard';
 import { anamnesisSteps } from '@/data/anamnesis-steps';
-import { BookOpen, ArrowRight, ArrowLeft, CheckCircle, Play, Save } from 'lucide-react';
 import { useAnamnesis } from '@/hooks';
-import type { AnamnesisSection } from '@autamedica/types';
+import type { AnamnesisFieldValue } from '@/types/anamnesis';
 import { logger } from '@autamedica/shared';
+import type { AnamnesisSection } from '@autamedica/types';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle, Play, Save } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function AnamnesisPage() {
   // Hook de Supabase para anamnesis
@@ -28,7 +29,7 @@ export default function AnamnesisPage() {
   } = useAnamnesis();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [anamnesisData, setAnamnesisData] = useState<Record<string, any>>({});
+  const [anamnesisData, setAnamnesisData] = useState<Record<string, AnamnesisFieldValue>>({});
   const [started, setStarted] = useState(false);
   const [showPause, setShowPause] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -90,7 +91,7 @@ export default function AnamnesisPage() {
     }
   };
 
-  const handleFieldChange = (fieldId: string, value: any) => {
+  const handleFieldChange = (fieldId: string, value: AnamnesisFieldValue) => {
     setAnamnesisData((prev) => ({
       ...prev,
       [fieldId]: value,

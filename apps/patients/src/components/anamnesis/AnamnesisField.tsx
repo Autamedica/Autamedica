@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import type { AnamnesisField as FieldType } from '../../types/anamnesis';
 import { CheckCircle, HelpCircle } from 'lucide-react';
+import { useState } from 'react';
+import type { AnamnesisFieldValue, AnamnesisField as FieldType } from '../../types/anamnesis';
 
 interface AnamnesisFieldProps {
   field: FieldType;
-  value: any;
-  onChange: (value: any) => void;
+  value: AnamnesisFieldValue;
+  onChange: (value: AnamnesisFieldValue) => void;
   onComplete?: () => void;
 }
 
@@ -15,7 +15,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
   const [showEducationalNote, setShowEducationalNote] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const handleChange = (newValue: any) => {
+  const handleChange = (newValue: AnamnesisFieldValue) => {
     onChange(newValue);
     if (field.educationalNote && newValue) {
       setShowEducationalNote(true);

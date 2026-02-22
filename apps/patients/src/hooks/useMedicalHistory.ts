@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import type {
+  MedicalHistorySummary,
+  MedicalHistoryTimeline,
+} from '@/types/medical-history'
 import { useSupabase } from '@autamedica/auth/react'
 import { logger } from '@autamedica/shared'
-import type {
-  MedicalHistoryTimeline,
-  MedicalHistorySummary,
-  PatientId
-} from '@autamedica/types'
+import type { PatientId } from '@autamedica/types'
+import { useCallback, useEffect, useState } from 'react'
 
 export function useMedicalHistory(patientId?: PatientId) {
   const supabase = useSupabase()
@@ -60,20 +60,9 @@ export function useMedicalHistory(patientId?: PatientId) {
         active_medications_count: activeMedications.length,
         known_allergies_count: 0, // Will be populated from anamnesis if available
         last_encounter_date: medicalRecords?.[0]?.created_at || new Date().toISOString(),
-        chronic_conditions: recentDiagnoses.map(d => ({
-          condition: d.title,
-          diagnosed_date: d.created_at,
-          icd10_code: d.icd10_code || undefined,
-          status: 'active' as const
-        })),
+        chronic_conditions: recentDiagnoses.map(d => d.title),
         critical_allergies: [],
-        current_medications: activeMedications.map(m => ({
-          medication_name: m.title,
-          dosage: m.dosage || 'No especificado',
-          frequency: m.frequency || 'Según indicación médica',
-          start_date: m.created_at,
-          route: m.route || 'oral'
-        }))
+        current_medications: activeMedications.map(m => `${m.title} ${m.dosage || ''}`.trim())
       }
 
       // Build timeline
@@ -82,40 +71,34 @@ export function useMedicalHistory(patientId?: PatientId) {
         sections: {
           conditions: recentDiagnoses.map(r => ({
             id: r.id,
-            condition: r.title,
-            diagnosed_date: r.created_at,
-            icd10_code: r.icd10_code || undefined,
-            status: 'active' as const,
+            name: r.title,
+            onset_date: r.created_at,
+            created_at: r.created_at,
+            status: 'active',
+            severity: 'moderate',
             notes: r.notes || undefined
           })),
           allergies: [],
           medications: activeMedications.map(m => ({
             id: m.id,
-            medication_name: m.title,
+            name: m.title,
+            start_date: m.created_at,
             dosage: m.dosage || 'No especificado',
             frequency: m.frequency || 'Según indicación médica',
-            route: m.route || 'oral',
-            start_date: m.created_at,
-            end_date: m.end_date || null,
-            prescribing_doctor: m.doctor_id || undefined,
-            reason: m.notes || 'No especificado'
+            status: 'active'
           })),
           procedures: medicalRecords?.filter(r => r.record_type === 'procedure').map(p => ({
             id: p.id,
-            procedure_name: p.title,
-            date: p.created_at,
-            provider: p.doctor_id || undefined,
-            facility: p.facility || undefined,
+            name: p.title,
+            performed_date: p.created_at,
+            indication: p.notes || undefined,
             outcome: p.outcome || undefined
           })) || [],
           encounters: medicalRecords?.filter(r => r.record_type === 'encounter' || r.record_type === 'note').map(e => ({
             id: e.id,
-            date: e.created_at,
-            type: 'consultation' as const,
-            provider: e.doctor_id || undefined,
+            created_at: e.created_at,
             reason: e.title,
-            diagnosis: e.diagnosis || undefined,
-            notes: e.notes || undefined
+            location: e.facility || undefined
           })) || [],
           immunizations: []
         }
@@ -136,7 +119,7 @@ export function useMedicalHistory(patientId?: PatientId) {
     fetchMedicalHistory()
   }, [fetchMedicalHistory])
 
-  const addCondition = async (condition: any) => {
+  const addCondition = async (condition: { condition: string; icd10_code?: string; notes?: string }) => {
     try {
       const res = await fetch('/api/medical-history/conditions', {
         method: 'POST',
@@ -155,7 +138,7 @@ export function useMedicalHistory(patientId?: PatientId) {
     }
   }
 
-  const addMedication = async (medication: any) => {
+  const addMedication = async (medication: { medication_name: string; dosage?: string; frequency?: string; route?: string; reason?: string; end_date?: string | null }) => {
     try {
       const res = await fetch('/api/medical-history/medications', {
         method: 'POST',
@@ -177,7 +160,7 @@ export function useMedicalHistory(patientId?: PatientId) {
     }
   }
 
-  const addAllergy = async (allergy: any) => {
+  const addAllergy = async (allergy: { allergen: string; type?: string; severity?: string; reaction?: string; notes?: string }) => {
     try {
       const res = await fetch('/api/medical-history/allergies', {
         method: 'POST',

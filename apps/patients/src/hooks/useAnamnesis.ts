@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { AnamnesisSection } from '@autamedica/types';
+import type { AnamnesisFieldValue } from '@/types/anamnesis';
 import { logger } from '@autamedica/shared';
+import type { AnamnesisSection } from '@autamedica/types';
+import { useCallback, useEffect, useState } from 'react';
 
 type ApiAnamnesis = {
   id: string;
@@ -13,6 +14,9 @@ type ApiAnamnesis = {
   created_at: string;
   updated_at: string;
   completed_at?: string | null;
+  privacy_accepted?: boolean;
+  terms_accepted?: boolean;
+  locked?: boolean;
 };
 
 type ApiSection = {
@@ -52,7 +56,7 @@ interface UseAnamnesisReturn {
   error: string | null;
   createAnamnesis: (initial?: Partial<ApiAnamnesis>) => Promise<ApiAnamnesis | null>;
   updateAnamnesis: (update: Partial<ApiAnamnesis>) => Promise<boolean>;
-  updateSection: (section: AnamnesisSection, data: any) => Promise<boolean>;
+  updateSection: (section: AnamnesisSection, data: Record<string, AnamnesisFieldValue>) => Promise<boolean>;
   refreshAnamnesis: () => Promise<void>;
 }
 
@@ -148,7 +152,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
   // Update section
   const updateSection = useCallback(async (
     section: AnamnesisSection,
-    data: any
+    data: Record<string, AnamnesisFieldValue>
   ): Promise<boolean> => {
     try {
       const res = await fetch('/api/anamnesis', {

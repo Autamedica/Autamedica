@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useSupabase } from '@autamedica/auth/react';
+import { logger } from '@autamedica/shared';
 import type {
+  DoctorId,
+  PhoneE164,
+  ReproductiveHealthSpecialistId,
   ReproductiveHealthSpecialistWithProfile,
   ReproductiveHealthSpecialtyType,
   SpecialistAvailabilityStatus
 } from '@autamedica/types';
-import { useSupabase } from '@autamedica/auth/react';
-import { logger } from '@autamedica/shared';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UseSpecialistsOptions {
   specialty?: ReproductiveHealthSpecialtyType;
@@ -70,26 +73,29 @@ export function useReproductiveHealthSpecialists(
       if (fetchError) throw fetchError;
 
       // Transform data to match interface
-      const transformedData: ReproductiveHealthSpecialistWithProfile[] = (data || []).map((item: any) => ({
-        id: item.id,
-        doctor_id: item.doctor_id,
-        specialty: item.specialty,
-        is_certified_ive_ile: item.is_certified_ive_ile,
-        availability_status: item.availability_status,
-        accepts_emergency_consultations: item.accepts_emergency_consultations,
-        rating: item.rating,
-        total_consultations: item.total_consultations,
-        years_of_experience: item.years_of_experience,
-        languages: item.languages || ['es'],
-        bio: item.bio || '',
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        first_name: item.doctor?.first_name || '',
-        last_name: item.doctor?.last_name || '',
-        email: item.doctor?.email || '',
-        phone: item.doctor?.phone,
-        profile_image_url: item.doctor?.profile_image_url
-      }));
+      const transformedData: ReproductiveHealthSpecialistWithProfile[] = (data || []).map((item) => {
+        const doc = (item as unknown as { doctor?: Record<string, string> }).doctor;
+        return {
+          id: item.id as unknown as ReproductiveHealthSpecialistId,
+          doctor_id: item.doctor_id as unknown as DoctorId,
+          specialty: item.specialty,
+          is_certified_ive_ile: item.is_certified_ive_ile,
+          availability_status: item.availability_status,
+          accepts_emergency_consultations: item.accepts_emergency_consultations,
+          rating: item.rating,
+          total_consultations: item.total_consultations,
+          years_of_experience: item.years_of_experience,
+          languages: item.languages || ['es'],
+          bio: item.bio || '',
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          first_name: doc?.first_name || '',
+          last_name: doc?.last_name || '',
+          email: doc?.email || '',
+          phone: doc?.phone as unknown as PhoneE164 | undefined,
+          profile_image_url: doc?.profile_image_url
+        };
+      });
 
       setSpecialists(transformedData);
     } catch (err) {
@@ -150,9 +156,10 @@ export function useSpecialistById(specialistId: string | null) {
         if (fetchError) throw fetchError;
 
         if (data) {
+          const doc = (data as unknown as { doctor?: Record<string, string> }).doctor;
           const transformedData: ReproductiveHealthSpecialistWithProfile = {
-            id: data.id,
-            doctor_id: data.doctor_id,
+            id: data.id as unknown as ReproductiveHealthSpecialistId,
+            doctor_id: data.doctor_id as unknown as DoctorId,
             specialty: data.specialty,
             is_certified_ive_ile: data.is_certified_ive_ile,
             availability_status: data.availability_status,
@@ -164,11 +171,11 @@ export function useSpecialistById(specialistId: string | null) {
             bio: data.bio || '',
             created_at: data.created_at,
             updated_at: data.updated_at,
-            first_name: (data as any).doctor?.first_name || '',
-            last_name: (data as any).doctor?.last_name || '',
-            email: (data as any).doctor?.email || '',
-            phone: (data as any).doctor?.phone,
-            profile_image_url: (data as any).doctor?.profile_image_url
+            first_name: doc?.first_name || '',
+            last_name: doc?.last_name || '',
+            email: doc?.email || '',
+            phone: doc?.phone as unknown as PhoneE164 | undefined,
+            profile_image_url: doc?.profile_image_url
           };
 
           setSpecialist(transformedData);

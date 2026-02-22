@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import type {
-  ReproductiveHealthAppointmentInsert,
-  ReproductiveHealthAppointmentUpdate,
-  ReproductiveHealthAppointmentWithDetails,
-  AppointmentStatusType
-} from '@autamedica/types';
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
+import type {
+  AppointmentStatusType,
+  ReproductiveHealthAppointmentInsert,
+  ReproductiveHealthAppointmentUpdate,
+  ReproductiveHealthAppointmentWithDetails
+} from '@autamedica/types';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UseAppointmentsOptions {
   patientId?: string;
@@ -19,9 +19,9 @@ interface UseAppointmentsResult {
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  createAppointment: (data: ReproductiveHealthAppointmentInsert) => Promise<{ success: boolean; appointmentId?: string; error?: any }>;
-  updateAppointment: (id: string, data: ReproductiveHealthAppointmentUpdate) => Promise<{ success: boolean; error?: any }>;
-  cancelAppointment: (id: string) => Promise<{ success: boolean; error?: any }>;
+  createAppointment: (data: ReproductiveHealthAppointmentInsert) => Promise<{ success: boolean; appointmentId?: string; error?: unknown }>;
+  updateAppointment: (id: string, data: ReproductiveHealthAppointmentUpdate) => Promise<{ success: boolean; error?: unknown }>;
+  cancelAppointment: (id: string) => Promise<{ success: boolean; error?: unknown }>;
 }
 
 export function useReproductiveHealthAppointments(
@@ -80,26 +80,37 @@ export function useReproductiveHealthAppointments(
       if (fetchError) throw fetchError;
 
       // Transform data
-      const transformedData: ReproductiveHealthAppointmentWithDetails[] = (data || []).map((item: any) => ({
-        id: item.id,
-        patient_id: item.patient_id,
-        specialist_id: item.specialist_id,
-        consultation_type: item.consultation_type,
-        modality: item.modality,
-        status: item.status,
-        scheduled_at: item.scheduled_at,
-        duration_minutes: item.duration_minutes,
-        meeting_url: item.meeting_url,
-        notes_for_doctor: item.notes_for_doctor,
-        is_first_consultation: item.is_first_consultation,
-        requires_interpreter: item.requires_interpreter,
-        preferred_language: item.preferred_language,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        specialist_name: `${item.specialist?.doctor?.first_name || ''} ${item.specialist?.doctor?.last_name || ''}`.trim(),
-        specialist_specialty: item.specialist?.specialty || 'gynecology',
-        patient_name: `${item.patient?.first_name || ''} ${item.patient?.last_name || ''}`.trim()
-      }));
+      const transformedData: ReproductiveHealthAppointmentWithDetails[] = (data || []).map((dbItem) => {
+        const item = dbItem as unknown as Record<string, unknown> & {
+          id: string; patient_id: string; specialist_id: string; consultation_type: string;
+          modality: string; status: string; scheduled_at: string; duration_minutes: number;
+          meeting_url?: string; notes_for_doctor?: string; is_first_consultation: boolean;
+          requires_interpreter: boolean; preferred_language: string; created_at: string;
+          updated_at: string;
+          specialist?: { specialty?: string; doctor?: { first_name?: string; last_name?: string } };
+          patient?: { first_name?: string; last_name?: string };
+        };
+        return {
+          id: item.id,
+          patient_id: item.patient_id,
+          specialist_id: item.specialist_id,
+          consultation_type: item.consultation_type,
+          modality: item.modality,
+          status: item.status,
+          scheduled_at: item.scheduled_at,
+          duration_minutes: item.duration_minutes,
+          meeting_url: item.meeting_url || null,
+          notes_for_doctor: item.notes_for_doctor || null,
+          is_first_consultation: item.is_first_consultation,
+          requires_interpreter: item.requires_interpreter,
+          preferred_language: item.preferred_language,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          specialist_name: `${item.specialist?.doctor?.first_name || ''} ${item.specialist?.doctor?.last_name || ''}`.trim(),
+          specialist_specialty: item.specialist?.specialty || 'gynecology',
+          patient_name: `${item.patient?.first_name || ''} ${item.patient?.last_name || ''}`.trim()
+        } as ReproductiveHealthAppointmentWithDetails;
+      });
 
       setAppointments(transformedData);
     } catch (err) {
@@ -201,9 +212,16 @@ export function useReproductiveHealthAppointments(
   };
 }
 
+interface AvailableSlot {
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  modality: string;
+}
+
 // Hook para obtener slots disponibles de un especialista
 export function useSpecialistAvailableSlots(specialistId: string | null) {
-  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
