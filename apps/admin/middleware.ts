@@ -1,12 +1,12 @@
-import { ensureServerEnv, ensureClientEnv } from '@autamedica/shared';
+import { ensureClientEnv } from '@autamedica/shared';
 /**
  * Secure middleware for Admin portal
  * Implements session validation and admin role verification
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { buildSafeLoginUrl } from '@autamedica/shared';
+import { createServerClient } from '@supabase/ssr';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -34,56 +34,62 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const supabase = createServerClient(
-    ensureServerEnv("SUPABASE_URL"),
-    ensureClientEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+  try {
+    const supabase = createServerClient(
+      ensureClientEnv("NEXT_PUBLIC_SUPABASE_URL"),
+      ensureClientEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            request.cookies.set({ name, value, ...options });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            request.cookies.set({ name, value: '', ...options });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.set({ name, value: '', ...options });
+          },
         },
-        set(name: string, value: string, options: any) {
-          request.cookies.set({ name, value, ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: any) {
-          request.cookies.set({ name, value: '', ...options });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({ name, value: '', ...options });
-        },
-      },
+      }
+    );
+
+    // Get session
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    // If no session, redirect to auth
+    if (!session || error) {
+      const loginUrl = buildSafeLoginUrl('admin', request.url, 'session_expired');
+      return NextResponse.redirect(new URL(loginUrl));
     }
-  );
 
-  // Get session
-  const { data: { session }, error } = await supabase.auth.getSession();
+    // Verify admin role
+    const userRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
 
-  // If no session, redirect to auth
-  if (!session || error) {
-    const loginUrl = buildSafeLoginUrl('admin', request.url, 'session_expired');
-    return NextResponse.redirect(loginUrl);
+    if (!userRole || !ALLOWED_ADMIN_ROLES.has(userRole)) {
+      // Not an admin - redirect to unauthorized or their portal
+      const unauthorizedUrl = new URL('/unauthorized', request.url);
+      return NextResponse.redirect(unauthorizedUrl);
+    }
+
+    // Admin verified - allow access
+    return response;
+  } catch (error) {
+    // If anything fails (like environment vars missing), fallback to login
+    const loginUrl = buildSafeLoginUrl('admin', request.url, 'auth_error');
+    return NextResponse.redirect(new URL(loginUrl));
   }
-
-  // Verify admin role
-  const userRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
-
-  if (!userRole || !ALLOWED_ADMIN_ROLES.has(userRole)) {
-    // Not an admin - redirect to unauthorized or their portal
-    const unauthorizedUrl = new URL('/unauthorized', request.url);
-    return NextResponse.redirect(unauthorizedUrl);
-  }
-
-  // Admin verified - allow access
-  return response;
 }
 
 export const config = {

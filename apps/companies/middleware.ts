@@ -3,9 +3,8 @@
  * Uses JWT verification instead of Supabase client
  */
 
+import { buildSafeLoginUrl, getSession, getTargetUrlByRole, hasRole, isValidRole, logger } from '@autamedica/shared';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, hasRole, buildSafeLoginUrl, getTargetUrlByRole, isValidRole } from '@autamedica/shared';
-import { logger } from '@autamedica/shared';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -17,7 +16,7 @@ const PUBLIC_ROUTES = [
 ];
 
 // Allowed roles for companies portal
-const ALLOWED_ROLES = ['company', 'organization_admin', 'platform_admin'] as const;
+const ALLOWED_ROLES = ['company_admin', 'organization_admin', 'platform_admin'] as const;
 const ROBOTS_TAG_VALUE = 'noindex, nofollow, noarchive, nosnippet, noimageindex';
 
 function withNoIndex(response: NextResponse): NextResponse {
@@ -42,7 +41,7 @@ export async function middleware(request: NextRequest) {
     // No session - redirect to login
     if (!session) {
       const loginUrl = buildSafeLoginUrl('companies', request.url, 'session_expired');
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL(loginUrl));
     }
 
     // Check if user has allowed role for companies portal
@@ -51,16 +50,16 @@ export async function middleware(request: NextRequest) {
       const role = session.user.role;
       if (!role || !isValidRole(role)) {
         const loginUrl = buildSafeLoginUrl('companies', request.url, 'wrong_role');
-        return NextResponse.redirect(loginUrl);
+        return NextResponse.redirect(new URL(loginUrl));
       }
-      return NextResponse.redirect(getTargetUrlByRole(role));
+      return NextResponse.redirect(new URL(getTargetUrlByRole(role)));
     }
 
     // Verify user is on correct portal for their role
     const role = session.user.role;
     if (!role || !isValidRole(role)) {
       const loginUrl = buildSafeLoginUrl('companies', request.url, 'wrong_role');
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL(loginUrl));
     }
 
     const expectedOrigin = new URL(getTargetUrlByRole(role)).origin;
@@ -75,7 +74,7 @@ export async function middleware(request: NextRequest) {
 
     // On error, redirect to login
     const loginUrl = buildSafeLoginUrl('companies', request.url, 'auth_error');
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL(loginUrl));
   }
 }
 

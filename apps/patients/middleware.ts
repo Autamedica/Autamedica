@@ -3,9 +3,8 @@
  * Uses JWT verification via @autamedica/shared
  */
 
+import { buildSafeLoginUrl, getSession, hasRole, logger } from '@autamedica/shared';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, hasRole, buildSafeLoginUrl } from '@autamedica/shared';
-import { logger } from '@autamedica/shared';
 
 // Public routes that don't require authentication
 const PUBLIC_ROUTES = [
@@ -38,14 +37,14 @@ export async function middleware(request: NextRequest) {
     // No session - redirect to login
     if (!session) {
       const loginUrl = buildSafeLoginUrl('patients', request.url, 'session_expired');
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL(loginUrl));
     }
 
     // Check if user has allowed role for patients portal
     if (!hasRole(session, [...ALLOWED_ROLES])) {
       // User has wrong role - redirect to auth hub to select correct portal
       const loginUrl = buildSafeLoginUrl('patients', undefined, 'wrong_role');
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL(loginUrl));
     }
 
     // All checks passed
@@ -55,7 +54,7 @@ export async function middleware(request: NextRequest) {
 
     // On error, redirect to login
     const loginUrl = buildSafeLoginUrl('patients', request.url, 'auth_error');
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL(loginUrl));
   }
 }
 
