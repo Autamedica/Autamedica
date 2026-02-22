@@ -24,8 +24,8 @@ export interface AnalysisRequest {
   patientId: string;
   data: {
     symptoms?: string[];
-    vitals?: Record<string, any>;
-    labResults?: any[];
+    vitals?: Record<string, unknown>;
+    labResults?: unknown[];
     medicalHistory?: string;
     currentMedications?: string[];
   };
@@ -79,11 +79,12 @@ export class AIAnalysisService {
    */
   private getMockAnalysis(request: AnalysisRequest): MedicalAnalysis {
     const { symptoms = [], vitals = {} } = request.data;
+    const vitalsCount = Object.keys(vitals).length;
 
     return {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
-      summary: `[MOCK] Análisis simulado de ${symptoms.length} síntomas reportados. Signos vitales dentro de parámetros normales.`,
+      summary: `[MOCK] Análisis simulado de ${symptoms.length} síntomas reportados. ${vitalsCount} signos vitales registrados.`,
       recommendations: [
         'Monitorear evolución en las próximas 24-48 horas',
         'Mantener hidratación adecuada',

@@ -135,7 +135,7 @@ class MedicalDataAPI {
             created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
             updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
           }
-        ] : [] as any
+        ] as unknown as VitalSigns[] : [] as VitalSigns[]
         resolve(mockData)
       }, 100) // Simular latencia de red
     })
@@ -225,12 +225,12 @@ class MedicalDataAPI {
             created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
             updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
           }
-        ] : [] as any
+        ] as unknown as MedicalRecord[] : [] as MedicalRecord[]
 
         // Aplicar filtros
         const filteredRecords = mockRecords
-          .filter((record: any) => !filters.consultation_type || record.consultation_type === filters.consultation_type)
-          .filter((record: any) => !filters.diagnosis_contains || record.diagnosis.toLowerCase().includes(filters.diagnosis_contains.toLowerCase()))
+          .filter((record: MedicalRecord) => !filters.consultation_type || record.consultation_type === filters.consultation_type)
+          .filter((record: MedicalRecord) => !filters.diagnosis_contains || (record.diagnosis && record.diagnosis.toLowerCase().includes(filters.diagnosis_contains.toLowerCase())))
 
         const startIndex = page * pageSize
         const paginatedRecords = filteredRecords.slice(startIndex, startIndex + pageSize)
@@ -288,25 +288,25 @@ class MedicalDataAPI {
             created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
             updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
           }
-        ] : [] as any
+        ] as unknown as Prescription[] : [] as Prescription[]
 
         // Aplicar filtros
         let filteredPrescriptions = mockPrescriptions
 
         if (filters.status) {
-          filteredPrescriptions = filteredPrescriptions.filter((p: any) => p.status === filters.status)
+          filteredPrescriptions = filteredPrescriptions.filter((p: Prescription) => p.status === filters.status)
         }
 
         if (filters.medication_name) {
           const searchTerm = filters.medication_name.toLowerCase()
-          filteredPrescriptions = filteredPrescriptions.filter((p: any) =>
+          filteredPrescriptions = filteredPrescriptions.filter((p: Prescription) =>
             p.medication_name.toLowerCase().includes(searchTerm)
           )
         }
 
         if (filters.active_only) {
           const today = new Date()
-          filteredPrescriptions = filteredPrescriptions.filter((p: any) =>
+          filteredPrescriptions = filteredPrescriptions.filter((p: Prescription) =>
             p.status === 'activa' &&
             new Date(p.start_date) <= today &&
             (!p.end_date || new Date(p.end_date) >= today)
@@ -363,7 +363,7 @@ class MedicalDataAPI {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
-        ] : [] as any
+        ] as unknown as AIAnalysis[] : [] as AIAnalysis[]
         resolve(mockAnalyses)
       }, 200) // Simular latencia de red
     })

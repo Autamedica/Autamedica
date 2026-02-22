@@ -341,6 +341,7 @@ export function useWebRTCCall(config: WebRTCCallConfig): [WebRTCCallState, WebRT
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: {
+            // @ts-expect-error - cursor es parte de la API pero no de los tipos actuales
             cursor: 'always',
           },
           audio: false,
