@@ -1,12 +1,14 @@
 ---
 import { buildAuthPath, buildRoleAuthPath } from '../lib/auth-flow';
+import { TextReveal } from './ui/TextReveal';
+import { MagneticButton } from './ui/MagneticButton';
 
-const title = "Tu médico, en minutos.\nDesde donde estés.";
-const subtitle = "Agenda inmediata, receta digital al finalizar y resultados en tu móvil.";
+const title = "Atención médica,\nsin salas de espera.";
+const subtitle = "Una consulta de guardia puede tomar 3 horas entre traslados. Una videoconsulta, 15 minutos.";
 const metrics = [
-  { value: '4 min', label: 'espera promedio' },
-  { value: '98%', label: 'receta en la consulta' },
-  { value: '24/7', label: 'disponibilidad' },
+  { value: '15 min', label: 'tiempo promedio' },
+  { value: '0', label: 'salas de espera' },
+  { value: '94%', label: 'casos resueltos' },
 ];
 
 const roleQuickAccess = [
@@ -33,21 +35,25 @@ const roleQuickAccess = [
 
   <div class="hero-content">
     <p class="hero-badge">Plataforma HIPAA-compliant</p>
-    <h1 class="hero-title" style="white-space: pre-line">{title}</h1>
+    <TextReveal text={title} className="hero-title" client:load delay={0.4} />
     <p class="hero-subtitle">{subtitle}</p>
     <div class="hero-actions">
-      <a href={buildAuthPath('select-role', { returnTo: '/platform' })} class="btn-primary">
-        Entrar con mi perfil
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
-      </a>
-      <a href="#portales" class="btn-secondary">
-        Ver flujos por perfil
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 5v14M19 12l-7 7-7-7" />
-        </svg>
-      </a>
+      <MagneticButton client:load>
+        <a href="#portales" class="btn-primary">
+          Descubrir la plataforma
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M19 12l-7 7-7-7" />
+          </svg>
+        </a>
+      </MagneticButton>
+      <MagneticButton client:load>
+        <a href={buildAuthPath('select-role', { returnTo: '/platform' })} class="btn-secondary">
+          Acceder a mi perfil
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </MagneticButton>
     </div>
     <div class="hero-role-shortcuts" aria-label="Acceso rápido por perfil">
       {roleQuickAccess.map((item) => (
@@ -79,7 +85,8 @@ const roleQuickAccess = [
 <style>
   .hero {
     position: relative;
-    min-height: 100vh;
+    min-height: 100vh; /* Fallback for older browsers */
+    min-height: 100svh;
     display: flex;
     align-items: center;
     justify-content: flex-start;

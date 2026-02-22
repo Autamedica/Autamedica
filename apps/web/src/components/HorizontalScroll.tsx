@@ -1,12 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import { ScrollToPlugin } from 'gsap/dist/ScrollToPlugin';
+import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
+import { useEffect, useRef, useState } from 'react';
+import { MagneticButton } from './ui/MagneticButton';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+  // ── GSAP Mobile Best Practices (from GSAP forums) ──
+  // Prevents ScrollTrigger from recalculating on iOS address bar show/hide
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  // Normalizes scroll behavior on touch devices (fixes iOS Safari jittering)
+  if ('ontouchstart' in window) {
+    ScrollTrigger.normalizeScroll({ allowNestedScroll: true });
+  }
 }
 
 interface Portal {
@@ -16,64 +26,63 @@ interface Portal {
   features: string[];
   cta: string;
   href: string;
-  image: string;
+  video: string;
 }
 
 const portals: Portal[] = [
   {
     name: 'Pacientes',
     color: 'var(--portal-patients)',
-    description: 'Gestiona tu salud desde cualquier lugar, en cualquier momento.',
+    description: 'Portal clínico personal con acceso a recetas, historial propio y triage virtual.',
     features: [
-      'Consultas virtuales en HD',
-      'Historia clinica digital',
-      'Agendamiento inteligente',
-      'Receta digital al instante',
+      'Videoconsultas P2P',
+      'Historia clínica unificada',
+      'Gestor de turnos',
+      'Emisión de recetas digitales'
     ],
     cta: 'Acceder como paciente',
     href: '/auth/select-role',
-    image: '/portals/portal-pacientes.webp',
+    video: '/videos/video1.mp4',
   },
   {
-    name: 'Medicos',
+    name: 'Profesionales',
     color: 'var(--portal-doctors)',
-    description: 'Herramientas profesionales para una practica medica moderna.',
+    description: 'Infraestructura para telemedicina y gestión electrónica de pacientes.',
     features: [
-      'Consultorio virtual integrado',
-      'Gestion avanzada de pacientes',
-      'IA para diagnostico asistido',
-      'Teleconsultas HD profesionales',
+      'Consultorio virtual seguro',
+      'Vademécum integrado',
+      'Transcripción clínica por IA',
+      'Firma digital de documentos'
     ],
-    cta: 'Portal medico',
+    cta: 'Portal médico',
     href: '/auth/select-role',
-    image: '/portals/portal-medicos.webp',
+    video: '/videos/video2.mp4',
   },
   {
     name: 'Empresas',
     color: 'var(--portal-companies)',
-    description: 'Soluciones integrales de salud corporativa para tu equipo.',
+    description: 'Panel de control para seguimiento de ausentismo y medicina ocupacional.',
     features: [
-      'Dashboard empresarial completo',
-      'Medicina ocupacional digital',
-      'Reportes de salud corporativa',
-      'Programas de bienestar',
+      'Dashboard de métricas agregadas',
+      'Subida de aptos físicos',
+      'Validación de certificados',
+      'Asignación de coberturas'
     ],
-    cta: 'Soluciones empresariales',
+    cta: 'Portal corporativo',
     href: '/auth/select-role',
-    image: '/portals/portal-empresas.webp',
+    video: '/videos/video3.mp4',
   },
 ];
 
-// Raw hex values for computed styles
 const portalHex: Record<string, string> = {
   Pacientes: '#10b981',
-  Medicos: '#3b82f6',
+  Profesionales: '#3b82f6',
   Empresas: '#f59e0b',
 };
 
-function CheckIcon({ portalName }: { portalName: string }) {
+function CheckIcon({ hex }: { hex: string }) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={portalHex[portalName]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hex} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );
@@ -91,6 +100,7 @@ export default function HorizontalScroll() {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const activeRef = useRef(0);
   const stRef = useRef<ScrollTrigger | null>(null);
 
@@ -102,7 +112,34 @@ export default function HorizontalScroll() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isDesktop = window.innerWidth >= 1025;
 
-    if (reduced || !isDesktop) return;
+    setIsMobile(!isDesktop);
+
+    // ── Mobile: CSS scroll-snap + IntersectionObserver ──
+    if (!isDesktop) {
+      const slides = track.querySelectorAll<HTMLDivElement>('[data-slide]');
+      if (!slides.length) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const idx = Number(entry.target.getAttribute('data-slide-index'));
+              if (!isNaN(idx)) {
+                activeRef.current = idx;
+                setActiveIndex(idx);
+              }
+            }
+          });
+        },
+        { root: track, threshold: 0.6 }
+      );
+
+      slides.forEach((slide) => observer.observe(slide));
+      return () => observer.disconnect();
+    }
+
+    // ── Desktop: GSAP ScrollTrigger (unchanged) ──
+    if (reduced) return;
 
     const raf = requestAnimationFrame(() => {
       const total = portals.length;
@@ -140,169 +177,187 @@ export default function HorizontalScroll() {
   }, []);
 
   const goToSlide = (target: number) => {
-    const st = stRef.current;
-    if (!st) return;
+    const track = trackRef.current;
+    if (!track) return;
+
     const total = portals.length;
     const clamped = Math.max(0, Math.min(target, total - 1));
+
+    // Mobile: native scroll-snap navigation
+    if (isMobile) {
+      const slideWidth = track.offsetWidth;
+      track.scrollTo({ left: clamped * slideWidth, behavior: 'smooth' });
+      return;
+    }
+
+    // Desktop: GSAP scroll navigation
+    const st = stRef.current;
+    if (!st) return;
     const scrollDistance = total * window.innerHeight * 1.5;
     const targetY = st.start + (clamped / (total - 1)) * scrollDistance;
     gsap.to(window, {
-      duration: 0.6,
+      duration: 0.8,
       scrollTo: { y: targetY, autoKill: false },
-      ease: 'power2.inOut',
+      ease: 'power3.inOut',
       onUpdate: () => ScrollTrigger.update(),
     });
   };
 
+  // ── Styles: conditional on mobile vs desktop ──
+  const containerStyle: React.CSSProperties = isMobile
+    ? { position: 'relative', width: '100vw', minHeight: '100svh', overflow: 'visible', background: '#0A0A0A' }
+    : { position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#0A0A0A' };
+
+  const trackStyle: React.CSSProperties = isMobile
+    ? {
+        display: 'flex',
+        overflowX: 'auto',
+        scrollSnapType: 'x mandatory',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        width: '100vw',
+        height: '100svh',
+      }
+    : {
+        display: 'flex',
+        height: '100vh',
+        width: `${portals.length * 100}vw`,
+        willChange: 'transform',
+      };
+
   return (
     <section
-      id="portales"
       ref={containerRef}
       aria-label="Portales de acceso"
-      style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: 'var(--au-bg)' }}
+      style={containerStyle}
     >
-      {/* Header */}
-      <div style={{
-        position: 'absolute', top: 'clamp(1.2rem, 3vh, 2.5rem)', left: 0, right: 0,
-        textAlign: 'center', zIndex: 10, padding: '0 var(--section-px)',
-      }}>
-        <h2 style={{
-          fontSize: 'var(--text-3xl)', fontWeight: 500, color: 'var(--au-text-primary)',
-          margin: '0 0 0.35rem', letterSpacing: '-0.02em',
-        }}>
-          Una plataforma, tres portales
-        </h2>
-        <p style={{ fontSize: 'var(--text-base)', color: 'var(--au-text-secondary)', margin: 0 }}>
-          Desliza para explorar cada solucion
-        </p>
-      </div>
+      <h2 className="sr-only">Nuestros Portales</h2>
 
       {/* Track */}
       <div
         ref={trackRef}
-        style={{
-          display: 'flex', height: '100vh',
-          width: `${portals.length * 100}vw`, willChange: 'transform',
-        }}
+        style={trackStyle}
+        className={isMobile ? 'hide-scrollbar' : ''}
       >
-        {portals.map((portal) => {
-          const hex = portalHex[portal.name] || '#e4e4e7';
+        {portals.map((portal, index) => {
+          const hex = portalHex[portal.name] || '#ffffff';
+          const isFocused = isMobile ? true : activeIndex === index;
+
           return (
             <div
               key={portal.name}
+              data-slide
+              data-slide-index={index}
               style={{
-                flex: '0 0 100vw', width: '100vw', height: '100vh',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                alignItems: 'center',
-                gap: '0',
-                padding: 'clamp(5rem, 10vh, 8rem) clamp(2rem, 6vw, 5rem) clamp(2rem, 5vh, 4rem)',
+                flex: '0 0 100vw',
+                width: '100vw',
+                height: '100svh',
                 position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: isMobile ? 'clamp(1.5rem, 4vw, 4rem)' : 'clamp(2rem, 5vw, 6rem)',
+                scrollSnapAlign: isMobile ? 'start' : undefined,
               }}
             >
-              {/* Left: text content */}
-              <div style={{ maxWidth: '520px', width: '100%', position: 'relative', zIndex: 1, paddingRight: '2rem' }}>
-                {/* Portal icon */}
-                <div style={{
-                  width: '3.5rem', height: '3.5rem', borderRadius: 'var(--radius-md)',
-                  background: `${hex}15`, border: `1px solid ${hex}30`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 'var(--space-6)',
-                }}>
-                  <span style={{ fontSize: '1.5rem', color: hex, fontWeight: 500 }}>
-                    {portal.name.charAt(0)}
-                  </span>
+              {/* Cinematic Card */}
+              <div
+                className="relative w-full h-full rounded-[2rem] md:rounded-[2.5rem] overflow-hidden flex items-end p-6 md:p-16 transition-all duration-1000 ease-out"
+                style={{
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  boxShadow: '0 30px 60px -15px rgba(0,0,0,0.8), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
+                  transform: isFocused ? 'scale(1)' : 'scale(0.95)',
+                  opacity: isFocused ? 1 : 0.5,
+                }}
+              >
+                {/* Background Video */}
+                <div className="absolute inset-0 z-0">
+                  <video
+                    src={portal.video}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ opacity: 0.4 }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/70 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/80 via-transparent to-transparent" />
                 </div>
 
-                <h3 style={{
-                  fontSize: 'var(--text-4xl)', fontWeight: 500, color: 'var(--au-text-primary)',
-                  margin: '0 0 var(--space-3)', letterSpacing: '-0.03em', lineHeight: 1.1,
-                }}>
-                  {portal.name}
-                </h3>
-
-                <p style={{
-                  fontSize: 'var(--text-lg)', color: 'var(--au-text-secondary)',
-                  lineHeight: 1.6, margin: '0 0 var(--space-8)',
-                }}>
-                  {portal.description}
-                </p>
-
-                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--space-8)', display: 'flex', flexDirection: 'column' as const, gap: 'var(--space-3)' }}>
-                  {portal.features.map((f) => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--au-text-secondary)' }}>
-                      <CheckIcon portalName={portal.name} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                <a
-                  href={portal.href}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
-                    padding: 'var(--space-3) var(--space-6)', fontSize: 'var(--text-sm)', fontWeight: 600,
-                    color: hex, border: `1px solid ${hex}`,
-                    borderRadius: 'var(--radius-sm)', transition: 'background 200ms ease',
-                    textDecoration: 'none',
-                  }}
-                  onMouseEnter={(e) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
-                  onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent'; }}
+                {/* Watermark Number */}
+                <div
+                  className="absolute top-4 right-6 md:top-8 md:right-12 z-0 tracking-tighter mix-blend-overlay font-bold select-none"
+                  style={{ fontSize: isMobile ? '25vw' : '15vw', lineHeight: 0.8, color: 'rgba(255,255,255,0.05)' }}
                 >
-                  {portal.cta}
-                  <ArrowIcon />
-                </a>
-              </div>
+                  0{index + 1}
+                </div>
 
-              {/* Right: image */}
-              <div style={{
-                position: 'relative',
-                height: 'clamp(300px, 60vh, 520px)',
-                borderRadius: 'var(--radius-md)',
-                overflow: 'hidden',
-                border: `1px solid ${hex}25`,
-                boxShadow: `0 0 60px ${hex}10, 0 24px 48px rgba(0,0,0,0.4)`,
-              }}>
-                <img
-                  src={portal.image}
-                  alt={`Portal ${portal.name}`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    objectPosition: 'center',
-                    display: 'block',
-                  }}
-                  loading="lazy"
-                />
-                {/* Color tint overlay matching portal color */}
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: `linear-gradient(135deg, ${hex}18 0%, transparent 60%, rgba(9,9,11,0.4) 100%)`,
-                  pointerEvents: 'none',
-                }} />
-                {/* Bottom fade into bg */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: '40%',
-                  background: 'linear-gradient(to top, rgba(9,9,11,0.5) 0%, transparent 100%)',
-                  pointerEvents: 'none',
-                }} />
+                {/* Content */}
+                <div className="relative z-10 max-w-2xl w-full">
+                  <h3
+                    className="text-4xl md:text-7xl font-bold tracking-tight text-white mb-4 md:mb-6 transition-all duration-700 delay-100"
+                    style={{
+                      transform: isFocused ? 'translateY(0)' : 'translateY(30px)',
+                      opacity: isFocused ? 1 : 0,
+                    }}
+                  >
+                    {portal.name}
+                  </h3>
+
+                  <p
+                    className="text-base md:text-2xl text-[var(--au-text-secondary)] mb-6 md:mb-10 transition-all duration-700 delay-200"
+                    style={{
+                      transform: isFocused ? 'translateY(0)' : 'translateY(20px)',
+                      opacity: isFocused ? 1 : 0,
+                    }}
+                  >
+                    {portal.description}
+                  </p>
+
+                  <div
+                    className="grid grid-cols-2 gap-2 md:gap-4 mb-8 md:mb-12 transition-all duration-700 delay-300"
+                    style={{
+                      transform: isFocused ? 'translateY(0)' : 'translateY(20px)',
+                      opacity: isFocused ? 1 : 0,
+                    }}
+                  >
+                    {portal.features.map((f) => (
+                      <div key={f} className="flex items-center gap-2 md:gap-3 bg-white/5 backdrop-blur-md border border-white/5 py-2 px-3 md:py-3 md:px-4 rounded-xl">
+                        <CheckIcon hex={hex} />
+                        <span className="text-xs md:text-sm font-medium text-white/90">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div
+                    className="transition-all duration-700"
+                    style={{
+                      transform: isFocused ? 'translateY(0)' : 'translateY(20px)',
+                      opacity: isFocused ? 1 : 0,
+                    }}
+                  >
+                    <MagneticButton>
+                      <a
+                        href={portal.href}
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 md:px-8 md:py-4 text-sm font-semibold text-white rounded-full bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                      >
+                        <span style={{ color: hex }}>{portal.cta}</span>
+                        <ArrowIcon />
+                      </a>
+                    </MagneticButton>
+                  </div>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Dots */}
-      <div style={{
-        position: 'absolute', bottom: 'var(--space-8)', left: '50%', transform: 'translateX(-50%)',
-        display: 'flex', alignItems: 'center', gap: 'var(--space-3)', zIndex: 10,
-      }}>
+      {/* Tracker Dots */}
+      <div
+        className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-3 z-50 px-6 py-3 rounded-full bg-black/40 backdrop-blur-xl border border-white/5 ${isMobile ? 'bottom-4' : 'bottom-8'}`}
+      >
         {portals.map((p, i) => (
           <button
             key={p.name}
@@ -310,32 +365,24 @@ export default function HorizontalScroll() {
             onClick={() => goToSlide(i)}
             aria-label={`Ir a ${p.name}`}
             style={{
-              width: i === activeIndex ? '2rem' : '0.5rem',
-              height: '0.5rem',
-              borderRadius: 'var(--radius-full)',
+              width: i === activeIndex ? '2.5rem' : '0.5rem',
+              height: '0.35rem',
+              borderRadius: '999px',
               border: 'none',
-              background: i === activeIndex ? 'var(--au-text-primary)' : 'rgba(255,255,255,0.3)',
+              background: i === activeIndex ? 'white' : 'rgba(255,255,255,0.2)',
               cursor: 'pointer',
-              transition: 'all 200ms ease',
+              transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
               padding: 0,
             }}
           />
         ))}
       </div>
 
-      {/* Next portal hint */}
-      {activeIndex < portals.length - 1 && (
-        <div style={{
-          position: 'absolute', right: 'var(--space-8)', top: '50%', transform: 'translateY(-50%)',
-          display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
-          padding: 'var(--space-3) var(--space-4)', background: 'rgba(0,0,0,0.5)', backdropFilter: 'var(--blur-sm)',
-          borderRadius: 'var(--radius-sm)', color: 'var(--au-text-tertiary)', fontSize: 'var(--text-xs)', zIndex: 10,
-          border: '1px solid var(--au-border)',
-        }}>
-          <span>{portals[activeIndex + 1]?.name}</span>
-          <span style={{ fontSize: '1.2rem' }}>&rarr;</span>
-        </div>
-      )}
+      {/* Hide scrollbar on mobile */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </section>
   );
 }
