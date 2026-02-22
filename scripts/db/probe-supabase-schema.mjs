@@ -44,7 +44,7 @@ async function hasColumns(admin, table, columns) {
 async function main() {
   // Load envs from app files
   loadDotEnv(resolve('apps/patients/.env.local'));
-  loadDotEnv(resolve('apps/auth/.env.local'));
+  loadDotEnv(resolve('apps/web/.env'));
 
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

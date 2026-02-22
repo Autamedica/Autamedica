@@ -55,9 +55,14 @@ export const useAuth = (): UseAuthReturn => {
   const supabase = useMemo(() => {
     if (typeof window === 'undefined') {
       // Durante SSR, retornar null - el efecto lo inicializará en el cliente
-      return null as any;
+      return null as unknown as SupabaseClientType;
     }
-    return getBrowserSupabaseClient();
+    try {
+      return getBrowserSupabaseClient();
+    } catch (error) {
+      logger.error('Failed to initialize Supabase browser client', error);
+      return null as unknown as SupabaseClientType;
+    }
   }, []);
 
   // Helper to create auth errors
@@ -75,7 +80,18 @@ export const useAuth = (): UseAuthReturn => {
   // Initialize auth state
   useEffect(() => {
     // Solo ejecutar en el browser
-    if (typeof window === 'undefined' || !supabase) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!supabase) {
+      updateState({
+        loading: false,
+        initialized: true,
+        error: createAuthError(
+          'No se pudo inicializar la autenticación. Verifica la configuración del entorno.'
+        ),
+      });
       return;
     }
 
@@ -158,6 +174,14 @@ export const useAuth = (): UseAuthReturn => {
   const signIn = useCallback(async (email: string, password: string) => {
     updateState({ loading: true, error: null });
 
+    if (!supabase) {
+      const authError = createAuthError(
+        'No se pudo inicializar la autenticación. Verifica la configuración del entorno.'
+      );
+      updateState({ loading: false, error: authError, initialized: true });
+      return { success: false, error: authError };
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
@@ -194,6 +218,14 @@ export const useAuth = (): UseAuthReturn => {
   const signInWithOAuth = useCallback(async (provider: 'google') => {
     updateState({ loading: true, error: null });
 
+    if (!supabase) {
+      const authError = createAuthError(
+        'No se pudo inicializar la autenticación. Verifica la configuración del entorno.'
+      );
+      updateState({ loading: false, error: authError, initialized: true });
+      return { success: false, error: authError };
+    }
+
     try {
       const { data: _data, error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -224,6 +256,14 @@ export const useAuth = (): UseAuthReturn => {
   // Sign out
   const signOut = useCallback(async () => {
     updateState({ loading: true, error: null });
+
+    if (!supabase) {
+      const authError = createAuthError(
+        'No se pudo inicializar la autenticación. Verifica la configuración del entorno.'
+      );
+      updateState({ loading: false, error: authError, initialized: true });
+      return { success: false, error: authError };
+    }
 
     try {
       const { error } = await supabase.auth.signOut();
@@ -256,6 +296,14 @@ export const useAuth = (): UseAuthReturn => {
     options?: { data?: Record<string, unknown>; redirectTo?: string }
   ) => {
     updateState({ loading: true, error: null });
+
+    if (!supabase) {
+      const authError = createAuthError(
+        'No se pudo inicializar la autenticación. Verifica la configuración del entorno.'
+      );
+      updateState({ loading: false, error: authError, initialized: true });
+      return { success: false, error: authError };
+    }
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -297,6 +345,14 @@ export const useAuth = (): UseAuthReturn => {
   const resetPassword = useCallback(async (email: string) => {
     updateState({ loading: true, error: null });
 
+    if (!supabase) {
+      const authError = createAuthError(
+        'No se pudo inicializar la autenticación. Verifica la configuración del entorno.'
+      );
+      updateState({ loading: false, error: authError, initialized: true });
+      return { success: false, error: authError };
+    }
+
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/auth/reset-password`,
@@ -320,6 +376,14 @@ export const useAuth = (): UseAuthReturn => {
   // Refresh session
   const refreshSession = useCallback(async () => {
     updateState({ loading: true, error: null });
+
+    if (!supabase) {
+      const authError = createAuthError(
+        'No se pudo inicializar la autenticación. Verifica la configuración del entorno.'
+      );
+      updateState({ loading: false, error: authError, initialized: true });
+      return { success: false, error: authError };
+    }
 
     try {
       const { data, error } = await supabase.auth.refreshSession();

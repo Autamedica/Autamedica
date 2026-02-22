@@ -1,0 +1,18 @@
+{
+  "name": "cf_dns_open_autamedica_records",
+  "description": "Abre la zona DNS de autamedica.com en Cloudflare con la sesion CDP actual",
+  "variables": {},
+  "steps": [
+    {
+      "id": "open_dns",
+      "action": "navigate",
+      "description": "Abrir DNS records de autamedica",
+      "args": {
+        "url": "https://dash.cloudflare.com/5b448192fe4b369642b68ad8f53a7603/autamedica.com/dns/records",
+        "waitUntil": "domcontentloaded"
+      }
+    }
+  ],
+  "createdAt": "2026-02-21T13:29:23.476Z",
+  "updatedAt": "2026-02-21T13:29:23.476Z"
+}

@@ -4,6 +4,18 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'AutaMedica Admin',
   description: 'Panel de administración de AutaMedica',
+  alternates: {
+    canonical: 'https://admin.autamedica.com',
+  },
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
 };
 
 export default function AdminLayout({

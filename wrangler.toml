@@ -7,9 +7,9 @@ compatibility_date = "2024-11-21"
 # Account details - NEEDS TO BE CONFIGURED
 account_id = "" # Add your Cloudflare account ID here
 
-# Pages configuration for auth app
+# Pages configuration for root web app
 [pages]
-pages_build_output_dir = "apps/auth/.open-next/dist"
+pages_build_output_dir = "apps/web/dist"
 
 # Workers/Pages shared configuration
 # IMPORTANT: DO NOT hardcode production credentials here

@@ -195,6 +195,17 @@ node scripts/generate-glossary.mjs
 
 Genera: `generated-docs/database-glossary-YYYY-MM-DD.md`
 
+### Cloudflare + Patchright Streaming
+
+Flujo recomendado para DNS en browser automation:
+
+- `scripts/cloudflare/browser-cdp-session.sh`
+- `scripts/cloudflare/PATCHRIGHT_STREAMING.md`
+- `scripts/cloudflare/*.workflow.json`
+- `scripts/cloudflare/reconcile-pages-domains.mjs` (API, requiere `CLOUDFLARE_API_TOKEN` con `zone:edit`)
+- `scripts/cloudflare/subdomain-fallback-worker.mjs` + `scripts/cloudflare/wrangler.subdomain-fallback.toml` (mitigación 302 si DNS sigue pendiente)
+- `scripts/config/domains.js` (fuente única de dominios/scripts)
+
 ---
 
 ## 🔗 Links útiles

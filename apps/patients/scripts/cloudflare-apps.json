@@ -18,7 +18,7 @@
         "apps/patients/.env.production"
       ],
       "dns": [
-        { "type": "CNAME", "name": "patients", "target": "pages.cloudflare.com" }
+        { "type": "CNAME", "name": "patients", "target": "autamedica-patients.pages.dev" }
       ]
     },
     {
@@ -26,7 +26,7 @@
       "package": "@autamedica/auth",
       "directory": "apps/auth",
       "projectName": "autamedica-auth",
-      "domain": "auth.autamedica.com",
+      "domain": "www.autamedica.com",
       "buildCommand": "pnpm --filter @autamedica/auth build",
       "deployCommand": "pnpm deploy:auth",
       "outputDir": "apps/auth/.vercel/output/static",
@@ -35,7 +35,7 @@
         "apps/auth/.env.production"
       ],
       "dns": [
-        { "type": "CNAME", "name": "auth", "target": "pages.cloudflare.com" }
+        { "type": "CNAME", "name": "www", "target": "autamedica-web.pages.dev" }
       ]
     }
   ]

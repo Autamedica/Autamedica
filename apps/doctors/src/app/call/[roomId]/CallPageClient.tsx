@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { UnifiedVideoCall } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
+import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 
 interface CallPageClientProps {
   roomId: string
@@ -33,7 +34,16 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
     if (!session) {
       if (REQUIRE_AUTH) {
-        router.push('/auth/login?redirect=/call/' + roomId)
+        const authOrigin = getClientEnvOrDefault(
+          'NEXT_PUBLIC_APP_URL',
+          process.env.NODE_ENV === 'production'
+            ? 'https://www.autamedica.com'
+            : 'http://localhost:3000'
+        )
+        const loginUrl = new URL('/auth/login', authOrigin)
+        loginUrl.searchParams.set('portal', 'doctors')
+        loginUrl.searchParams.set('returnTo', `${window.location.origin}/call/${roomId}`)
+        window.location.href = loginUrl.toString()
       } else {
         logger.warn('[UnifiedVideoCall][doctor] sin sesión; usando identidad de desarrollo')
         setIsReady(true)

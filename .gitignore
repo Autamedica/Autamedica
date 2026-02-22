@@ -65,3 +65,14 @@ apps/*/pnpm-lock.yaml
 
 # Generated local secrets
 generated-docs/*.production.local.txt
+
+# Root transient artifacts (cleanup policy)
+/build.log
+/pr.diff
+/archivo.txt
+/main
+/*.zip
+
+# Generated run outputs
+/generated-docs/*.json
+/monitoring-results/*.json

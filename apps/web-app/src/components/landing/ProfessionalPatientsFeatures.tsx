@@ -193,10 +193,10 @@ export default function ProfessionalPatientsFeatures() {
         </div>
 
         <div className="actions">
-          <a className="cta primary" href={getAppUrl('/auth/login?portal=patients', 'patients')}>
+          <a className="cta primary" href={getAppUrl('/auth/login?portal=patients', 'auth')}>
             Acceder al Portal Pacientes
           </a>
-          <a className="cta secondary" href={getAppUrl('/auth/register?portal=patients', 'patients')}>
+          <a className="cta secondary" href={getAppUrl('/auth/register?portal=patients', 'auth')}>
             Crear mi cuenta gratuita
           </a>
         </div>

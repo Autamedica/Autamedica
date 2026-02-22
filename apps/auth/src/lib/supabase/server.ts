@@ -59,7 +59,7 @@ export const checkSupabaseServerConnection = async (
 ): Promise<{ healthy: boolean; latency?: number; error?: string }> => {
   try {
     const start = Date.now();
-    await client.from('profiles').select('id').limit(1).single();
+    await client.from('profiles').select('user_id').limit(1);
     const latency = Date.now() - start;
 
     return { healthy: true, latency };

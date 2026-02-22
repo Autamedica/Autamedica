@@ -5,46 +5,54 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import domainsConfig from "./config/domains.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "..");
+const { URLS, getAuthLoginUrl } = domainsConfig;
 
 // URLs a verificar (producción real)
 const URLS_TO_CHECK = [
   {
     name: "Patients App",
-    url: "https://patients.autamedica.com",
+    url: URLS.patients,
     expectedStatus: [200, 301, 302, 307],
     checkHeaders: true,
   },
   {
     name: "Doctors App",
-    url: "https://doctors.autamedica.com",
+    url: URLS.doctors,
     expectedStatus: [200, 301, 302, 307],
     checkHeaders: true,
   },
   {
     name: "Auth Login (Patient)",
-    url: "https://auth.autamedica.com/auth/login/?role=patient",
+    url: getAuthLoginUrl("patient"),
     expectedStatus: [200, 301, 302, 307, 308],
     checkHeaders: false,
   },
   {
     name: "Web App Landing",
-    url: "https://autamedica.com",
+    url: URLS.apex,
     expectedStatus: [200, 301, 302, 307, 308],
     checkHeaders: true,
   },
   {
     name: "Web App Landing (www)",
-    url: "https://www.autamedica.com",
+    url: URLS.web,
     expectedStatus: [200, 301, 302, 307, 308],
     checkHeaders: false,
   },
   {
     name: "Companies App",
-    url: "https://companies.autamedica.com",
+    url: URLS.companies,
+    expectedStatus: [200, 301, 302, 307],
+    checkHeaders: false,
+  },
+  {
+    name: "Admin App",
+    url: URLS.admin,
     expectedStatus: [200, 301, 302, 307],
     checkHeaders: false,
   },

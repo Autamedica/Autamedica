@@ -2521,6 +2521,20 @@ pnpm docs:validate
 - **Descripción:** Hook de React para gestión de telemedicineclient en la aplicación médica.
 - **Contrato:** Pendiente de documentación detallada
 
+## 📋 Exports Auto-generados
+
+### resolveRoleFromPortal
+- **Tipo:** unknown
+- **Package:** @autamedica/shared
+- **Descripción:** Utilidad del sistema AutaMedica para resolverolefromportal.
+- **Contrato:** Pendiente de documentación detallada
+
+### type MemberRole
+- **Tipo:** unknown
+- **Package:** @autamedica/shared
+- **Descripción:** Utilidad del sistema AutaMedica para type memberrole.
+- **Contrato:** Pendiente de documentación detallada
+
 ## 🔗 Referencias Relacionadas
 
 - **[CLAUDE.md](../CLAUDE.md)** - Guía para Claude Code

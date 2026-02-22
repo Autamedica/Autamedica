@@ -37,6 +37,26 @@ function normalizeRole(role: unknown): UserRole {
   return ROLES.PATIENT;
 }
 
+function getCentralAuthOrigin(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+
+  return process.env.NODE_ENV === 'production'
+    ? 'https://www.autamedica.com'
+    : 'http://localhost:3000';
+}
+
+function buildCentralLoginUrl(returnTo?: string): string {
+  const loginUrl = new URL('/auth/login', getCentralAuthOrigin());
+
+  if (returnTo && !returnTo.startsWith('/auth/')) {
+    loginUrl.searchParams.set('returnTo', returnTo);
+  }
+
+  return loginUrl.toString();
+}
+
 /**
  * Obtiene la sesión actual del usuario
  * @returns La sesión del usuario o null si no está autenticado
@@ -87,10 +107,7 @@ export async function requireSession(
   const session = await getSession();
 
   if (!session) {
-    const loginUrl = `/auth/login${
-      redirectTo ? `?from=${encodeURIComponent(redirectTo)}` : ""
-    }`;
-    redirect(loginUrl);
+    redirect(buildCentralLoginUrl(redirectTo));
   }
 
   return session!;

@@ -15,7 +15,7 @@ async function main() {
 
     // 1. Ir directamente a login con rol de doctor
     console.log('📍 Paso 1: Navegando a login de médicos...');
-    await page.goto('http://localhost:3005/auth/login?role=doctor');
+    await page.goto('http://localhost:3000/auth/login?portal=doctors');
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: '/tmp/doctors-1-pre-login.png' });
 

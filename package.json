@@ -105,6 +105,9 @@
     "deploy:all": "pnpm deploy:web-app && pnpm deploy:doctors && pnpm deploy:patients && pnpm deploy:companies && pnpm deploy:admin",
     "watch:types": "node scripts/watch-types.mjs",
     "check:all": "pnpm run lint && pnpm run type-check && pnpm run policies:validate && pnpm run docs:validate",
+    "check:staged:debt": "node scripts/ci/check-staged-debt.mjs",
+    "lint:migrations:staged": "node scripts/ci/lint-migrations.mjs",
+    "check:db:type-drift": "node scripts/ci/check-db-type-drift.mjs",
     "lint-staged": "lint-staged",
     "prepare": "husky && husky install",
     "changed:ts": "git diff --name-only --cached --diff-filter=ACMRTUXB | grep -E '\\.(ts|tsx)$' || true",
@@ -116,7 +119,8 @@
     "smoke:all": "bash scripts/smoke-all.sh",
     "db:apply:ai": "bash scripts/db/apply-ai-personalization.sh",
     "db:probe": "node scripts/db/probe-supabase-schema.mjs",
-    "dev:patients+auth": "concurrently -k -n AUTH,PATIENTS \"pnpm -C apps/auth dev\" \"pnpm -C apps/patients dev\"",
+    "dev:patients+web": "concurrently -k -n WEB,PATIENTS \"pnpm -C apps/web dev\" \"pnpm -C apps/patients dev\"",
+    "dev:patients+auth": "pnpm run dev:patients+web",
     "e2e:patients": "node scripts/e2e/patients-login.mjs"
   },
   "devDependencies": {

@@ -11,18 +11,18 @@ export function getBaseUrlForRole(portal: AppRole): string {
       'patients': 'http://localhost:3002',
       'doctors': 'http://localhost:3001',
       'companies': 'http://localhost:3003',
-      'admin': 'http://localhost:3005',
+      'admin': 'http://localhost:3004',
       'web-app': 'http://localhost:3000'
     };
     return urls[portal];
   }
 
   const urls: Record<AppRole, string> = {
-    'patients': 'https://autamedica-patients.pages.dev',
-    'doctors': 'https://autamedica-doctors.pages.dev',
-    'companies': 'https://autamedica-companies.pages.dev',
-    'admin': 'https://autamedica-admin.pages.dev',
-    'web-app': 'https://autamedica-web-app.pages.dev'
+    'patients': 'https://patients.autamedica.com',
+    'doctors': 'https://doctors.autamedica.com',
+    'companies': 'https://companies.autamedica.com',
+    'admin': 'https://admin.autamedica.com',
+    'web-app': 'https://www.autamedica.com'
   };
 
   return urls[portal];

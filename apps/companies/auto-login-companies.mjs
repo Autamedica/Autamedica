@@ -15,7 +15,7 @@ async function main() {
 
     // 1. Ir a la página de login
     console.log('📍 Paso 1: Navegando a login de empresas...');
-    await page.goto('http://localhost:3005/auth/login?portal=empresa');
+    await page.goto('http://localhost:3000/auth/login?portal=companies');
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: '/tmp/companies-1-pre-login.png' });
 

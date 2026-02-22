@@ -10,7 +10,7 @@ import { join } from 'path';
 
 // Configuración
 const DOCTORS_URL = 'http://localhost:3001/';
-const _AUTH_URL = 'http://localhost:3005';
+const _AUTH_URL = 'http://localhost:3000';
 const DOCTOR_EMAIL = 'doctor.test@autamedica.test';
 const DOCTOR_PASSWORD = 'TestDoctor2025!';
 const SCREENSHOTS_DIR = '/tmp/playwright_audit';
@@ -168,7 +168,7 @@ async function main() {
     await takeScreenshotAndAnalyze(page, '01_initial_load');
 
     // Paso 2: Verificar redirección a auth
-    if (page.url().includes('localhost:3005') || page.url().includes('/auth/login')) {
+    if (page.url().includes('localhost:3000') || page.url().includes('/auth/login')) {
       console.log('\n✅ Redirigido a autenticación');
       await takeScreenshotAndAnalyze(page, '02_auth_redirect');
 

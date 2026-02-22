@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://autamedica.com'),
+  metadataBase: new URL('https://www.autamedica.com'),
   title: {
     default: "AutaMedica - Telemedicina sin fricciones",
     template: "%s | AutaMedica"
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     "telemedicina Argentina",
     "consulta médica virtual"
   ],
-  authors: [{ name: "E.M Medicina - UBA", url: "https://autamedica.com" }],
+  authors: [{ name: "E.M Medicina - UBA", url: "https://www.autamedica.com" }],
   creator: "E.M Medicina - UBA",
   publisher: "AutaMedica",
   formatDetection: {
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: "https://autamedica.com",
+    url: "https://www.autamedica.com",
     siteName: "AutaMedica",
     title: "AutaMedica - Telemedicina sin fricciones",
     description: "Agenda inmediata, receta digital al finalizar y resultados en tu móvil. Plataforma de telemedicina HIPAA-compliant.",
@@ -79,10 +79,10 @@ export const metadata: Metadata = {
     images: ["/twitter-image.jpg"],
   },
   alternates: {
-    canonical: "https://autamedica.com",
+    canonical: "https://www.autamedica.com",
     languages: {
-      'es-AR': 'https://autamedica.com',
-      'es': 'https://autamedica.com',
+      'es-AR': 'https://www.autamedica.com',
+      'es': 'https://www.autamedica.com',
     },
   },
   category: 'health',

@@ -156,7 +156,7 @@ export default function ProfessionalCompaniesFeatures() {
         </div>
 
         <div className="cta-row">
-          <a className="cta primary" href={getAppUrl('/auth/login?portal=companies', 'companies')}>
+          <a className="cta primary" href={getAppUrl('/auth/login?portal=companies', 'auth')}>
             Acceso Portal Empresas
           </a>
           <a className="cta secondary" href={getAppUrl('/contact/demo', 'companies')}>

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 
 /**
  * AutaMedica Auth SSO Monitoring Script
@@ -8,15 +9,23 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const domainsConfig = require('./config/domains.js');
+
+const { URLS, PAGES_TARGETS, DOMAINS } = domainsConfig;
 
 const MONITORING_CONFIG = {
   // URLs a monitorear (con soporte para BASE_URL de environment)
   endpoints: {
-    webApp: process.env.BASE_URL || 'https://autamedica-web-app.pages.dev',
-    authHub: process.env.AUTH_HUB_URL || 'https://auth.autamedica.com',
-    doctors: process.env.DOCTORS_URL || 'https://autamedica-doctors.pages.dev',
-    patients: process.env.PATIENTS_URL || 'https://autamedica-patients.pages.dev',
-    companies: process.env.COMPANIES_URL || 'https://autamedica-companies.pages.dev'
+    webApp: process.env.BASE_URL || URLS.web,
+    authHub: process.env.AUTH_HUB_URL || URLS.authHub,
+    doctors: process.env.DOCTORS_URL || URLS.doctors,
+    patients: process.env.PATIENTS_URL || URLS.patients,
+    companies: process.env.COMPANIES_URL || URLS.companies,
+    admin: process.env.ADMIN_URL || URLS.admin,
+    doctorsPages: `https://${PAGES_TARGETS.doctors}`,
+    patientsPages: `https://${PAGES_TARGETS.patients}`,
+    companiesPages: `https://${PAGES_TARGETS.companies}`,
+    adminPages: `https://${PAGES_TARGETS.admin}`,
   },
 
   // Rutas críticas para verificar redirects
@@ -71,7 +80,7 @@ class AuthMonitor {
   }
 
   async checkAuthRedirects() {
-    console.log('📍 Verificando redirects de auth...');
+    console.log('📍 Verificando disponibilidad de rutas de auth...');
 
     for (const path of MONITORING_CONFIG.criticalPaths) {
       const check = {
@@ -82,32 +91,24 @@ class AuthMonitor {
       };
 
       try {
-        const result = await this.makeRequest(MONITORING_CONFIG.endpoints.webApp + path, {
+        const result = await this.makeRequest(MONITORING_CONFIG.endpoints.authHub + path, {
           followRedirects: false
         });
 
-        const expectedTarget = 'auth.autamedica.com';
+        const expectedTarget = `${DOMAINS.authHub}/auth`;
         const actualLocation = result.headers.location || '';
 
-        if (result.statusCode === 301 && actualLocation.includes(expectedTarget)) {
+        if (
+          [200, 301, 302, 307, 308].includes(result.statusCode) &&
+          (!actualLocation || actualLocation.includes(expectedTarget))
+        ) {
           check.status = 'passed';
-          check.message = `✅ ${path} → 301 → ${actualLocation}`;
+          check.message = `✅ ${path} → ${result.statusCode} ${actualLocation ? `→ ${actualLocation}` : ''}`;
           this.results.summary.passed++;
         } else {
           check.status = 'failed';
           check.message = `❌ ${path} → ${result.statusCode} → ${actualLocation}`;
           this.results.summary.failed++;
-        }
-
-        // Verificar headers de monitoreo
-        const sourceHeader = result.headers['x-auth-redirect-source'];
-        const targetHeader = result.headers['x-auth-redirect-target'];
-
-        if (sourceHeader === 'web-app' && targetHeader === 'auth-hub') {
-          check.monitoring = '✅ Headers de monitoreo presentes';
-        } else {
-          check.monitoring = '⚠️ Headers de monitoreo faltantes';
-          this.results.summary.warnings++;
         }
 
       } catch (error) {
@@ -186,7 +187,7 @@ class AuthMonitor {
   async checkPortalConnectivity() {
     console.log('\n🌐 Verificando conectividad de portales...');
 
-    const portals = ['doctors', 'patients', 'companies'];
+    const portals = ['doctors', 'patients', 'companies', 'admin'];
 
     for (const portal of portals) {
       const check = {

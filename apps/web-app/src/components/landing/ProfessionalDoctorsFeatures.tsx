@@ -215,10 +215,10 @@ export default function ProfessionalDoctorsFeatures() {
         </div>
 
         <div className="cta-row">
-          <a className="cta primary" href={getAppUrl('/auth/login?portal=doctors', 'doctors')}>
+          <a className="cta primary" href={getAppUrl('/auth/login?portal=doctors', 'auth')}>
             Acceder como Médico
           </a>
-          <a className="cta secondary" href={getAppUrl('/auth/register?portal=doctors', 'doctors')}>
+          <a className="cta secondary" href={getAppUrl('/auth/register?portal=doctors', 'auth')}>
             Solicitar demostración técnica
           </a>
         </div>

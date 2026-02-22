@@ -4,12 +4,12 @@ export default function StructuredData() {
     '@graph': [
       {
         '@type': 'Organization',
-        '@id': 'https://autamedica.com/#organization',
+        '@id': 'https://www.autamedica.com/#organization',
         name: 'AutaMedica',
-        url: 'https://autamedica.com',
+        url: 'https://www.autamedica.com',
         logo: {
           '@type': 'ImageObject',
-          url: 'https://autamedica.com/logo.png',
+          url: 'https://www.autamedica.com/logo.png',
           width: 512,
           height: 512
         },
@@ -21,21 +21,21 @@ export default function StructuredData() {
       },
       {
         '@type': 'WebSite',
-        '@id': 'https://autamedica.com/#website',
-        url: 'https://autamedica.com',
+        '@id': 'https://www.autamedica.com/#website',
+        url: 'https://www.autamedica.com',
         name: 'AutaMedica',
         description: 'Telemedicina sin fricciones',
         publisher: {
-          '@id': 'https://autamedica.com/#organization'
+          '@id': 'https://www.autamedica.com/#organization'
         },
         inLanguage: 'es-AR'
       },
       {
         '@type': 'MedicalBusiness',
-        '@id': 'https://autamedica.com/#business',
+        '@id': 'https://www.autamedica.com/#business',
         name: 'AutaMedica',
-        image: 'https://autamedica.com/og-image.jpg',
-        url: 'https://autamedica.com',
+        image: 'https://www.autamedica.com/og-image.jpg',
+        url: 'https://www.autamedica.com',
         priceRange: '$$',
         address: {
           '@type': 'PostalAddress',

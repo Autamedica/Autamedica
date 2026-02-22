@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   getRoleDisplayName,
   getRoleDescription,
@@ -45,10 +45,19 @@ function getRoleIcon(role: UserRole) {
 export function RoleSelectionForm() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginHref, setLoginHref] = useState('/auth/login');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('returnTo');
+    setLoginHref(returnTo ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}` : '/auth/login');
+  }, []);
 
   const handleContinue = async () => {
     if (!selectedRole) return;
     setIsLoading(true);
+    const currentParams = new URLSearchParams(window.location.search);
+    const returnTo = currentParams.get('returnTo');
 
     const supabase = getBrowserSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
@@ -64,13 +73,20 @@ export function RoleSelectionForm() {
           refresh_token: fresh.refresh_token,
           role: selectedRole,
         });
+        if (returnTo) {
+          params.set('returnTo', returnTo);
+        }
         window.location.href = `/auth/callback?${params.toString()}`;
         return;
       }
     }
 
     // Not authenticated yet — go to login with role pre-selected
-    window.location.href = `/auth/login?role=${selectedRole}`;
+    const loginParams = new URLSearchParams({ role: selectedRole });
+    if (returnTo) {
+      loginParams.set('returnTo', returnTo);
+    }
+    window.location.href = `/auth/login?${loginParams.toString()}`;
   };
 
   return (
@@ -139,7 +155,7 @@ export function RoleSelectionForm() {
       <div className="text-center pt-2">
         <p className="text-sm text-[var(--au-text-tertiary)]">
           ¿Ya tenés cuenta?{' '}
-          <a href="/auth/login" className="text-[var(--au-accent)] hover:text-[var(--au-text-primary)] font-medium transition-colors">
+          <a href={loginHref} className="text-[var(--au-accent)] hover:text-[var(--au-text-primary)] font-medium transition-colors">
             Iniciar sesión
           </a>
         </p>

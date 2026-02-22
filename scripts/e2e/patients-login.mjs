@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-// End-to-end login for Patients app using Auth Hub (dev):
+// End-to-end login for Patients app using root auth app (dev):
 // - Seeds a test patient user in Supabase (service role)
-// - Opens Auth Hub login on :3005 and logs in
+// - Opens root auth login on :3000 and logs in
 // - Verifies redirect to Patients (:3002)
 
 import { chromium } from 'playwright';
@@ -79,9 +79,9 @@ async function ensureTestUser({ email, password }) {
 }
 
 async function run() {
-  // Load envs from Patients and Auth apps
+  // Load envs from Patients and root Web app
   loadDotEnv(resolve('apps/patients/.env.local'));
-  loadDotEnv(resolve('apps/auth/.env.local'));
+  loadDotEnv(resolve('apps/web/.env'));
 
   const creds = { email: 'test-patient@autamedica.com', password: 'password123' };
   await ensureTestUser(creds);
@@ -92,7 +92,7 @@ async function run() {
   page.on('console', msg => console.log('[BROWSER]', msg.type(), msg.text()));
   page.on('pageerror', err => console.error('[BROWSER][error]', err.message));
 
-  const authUrl = 'http://localhost:3005/auth/login?role=patient&returnTo=http://localhost:3002/';
+  const authUrl = 'http://localhost:3000/auth/login?portal=patients&returnTo=http://localhost:3002/';
   await page.goto(authUrl, { waitUntil: 'networkidle', timeout: 45000 });
   await page.waitForURL(/\/auth\/login/, { timeout: 30000 }).catch(() => {});
   await page.waitForSelector('#email', { timeout: 30000 });

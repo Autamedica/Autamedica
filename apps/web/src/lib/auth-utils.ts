@@ -3,25 +3,47 @@
  * Migrated from apps/auth/src/lib/cookies.ts
  */
 
-const ALLOWED_REDIRECT_DOMAINS = [
+const ALLOWED_LOCAL_PORTS = new Set(['3000', '3001', '3002', '3003', '3004', '3005']);
+
+const ALLOWED_REDIRECT_HOSTS = new Set([
   'autamedica.com',
-  '*.autamedica.com',
-  'localhost:3000',
-  'localhost:3001',
-  'localhost:3002',
-  'localhost:3003',
-  'localhost:3004',
-  'localhost:3005',
-];
+  'www.autamedica.com',
+  'doctors.autamedica.com',
+  'patients.autamedica.com',
+  'companies.autamedica.com',
+  'admin.autamedica.com',
+  'autamedica-doctors.pages.dev',
+  'autamedica-patients.pages.dev',
+  'autamedica-companies.pages.dev',
+  'autamedica-admin.pages.dev',
+  'autamedica-web-app.pages.dev',
+  'localhost',
+  '127.0.0.1',
+]);
+
+function isAllowedByPattern(hostname: string): boolean {
+  if (hostname.endsWith('.autamedica.com')) {
+    return true;
+  }
+  return /^autamedica-[a-z0-9-]+\.pages\.dev$/i.test(hostname);
+}
 
 export function validateRedirectUrl(returnTo: string): boolean {
   try {
     const url = new URL(returnTo);
-    return ALLOWED_REDIRECT_DOMAINS.some(domain =>
-      domain.startsWith('*')
-        ? url.hostname.endsWith(domain.slice(2))
-        : url.hostname === domain || url.hostname === domain.split(':')[0]
-    );
+    if (!['https:', 'http:'].includes(url.protocol)) {
+      return false;
+    }
+
+    if (!(ALLOWED_REDIRECT_HOSTS.has(url.hostname) || isAllowedByPattern(url.hostname))) {
+      return false;
+    }
+
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+      return url.port === '' || ALLOWED_LOCAL_PORTS.has(url.port);
+    }
+
+    return true;
   } catch {
     return false;
   }

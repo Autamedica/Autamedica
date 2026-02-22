@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 // URLs de la app de autenticación
-const AUTH_APP_URL = process.env.NEXT_PUBLIC_AUTH_APP_URL ||
+const AUTH_APP_URL = process.env.NEXT_PUBLIC_APP_URL ||
   (process.env.NODE_ENV === 'production'
-    ? 'https://auth.autamedica.com'
-    : 'http://localhost:3010');
+    ? 'https://www.autamedica.com'
+    : 'http://localhost:3000');
 
 export default function AccountMenu() {
   const [dropdownOpen, setDropdownOpen] = useState(false);

@@ -117,7 +117,11 @@ echo ""
 echo "🌐 AGENTE 4: DNS, SSL/TLS y Routing"
 echo "---------------------------------------"
 
-for domain in "auth.autamedica.com" "doctors.autamedica.com" "patients.autamedica.com"; do
+readarray -t HEADER_DOMAINS < <(
+  node -e "const c=require('./scripts/config/domains.js'); c.HEADER_AUDIT_DOMAINS.forEach((d)=>console.log(d));"
+)
+
+for domain in "${HEADER_DOMAINS[@]}"; do
   run_step "Headers de $domain" \
     "curl -sI https://$domain || echo 'Dominio no accesible'" \
     "$OUTPUT_DIR/headers-${domain//./-}.txt"

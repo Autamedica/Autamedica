@@ -1,0 +1,10 @@
+name = "autamedica-subdomain-fallback"
+account_id = "5b448192fe4b369642b68ad8f53a7603"
+compatibility_date = "2026-02-21"
+main = "./subdomain-fallback-worker.mjs"
+
+routes = [
+  { pattern = "doctors.autamedica.com/*", zone_name = "autamedica.com" },
+  { pattern = "companies.autamedica.com/*", zone_name = "autamedica.com" },
+  { pattern = "admin.autamedica.com/*", zone_name = "autamedica.com" }
+]

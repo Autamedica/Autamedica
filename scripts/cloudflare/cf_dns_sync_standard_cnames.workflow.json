@@ -1,0 +1,26 @@
+{
+  "name": "cf_dns_sync_standard_cnames",
+  "description": "Verifica CNAMEs estandar de autamedica.com en Cloudflare (admin, companies, doctors, patients)",
+  "variables": {},
+  "steps": [
+    {
+      "id": "open_dns",
+      "action": "navigate",
+      "description": "Abrir tabla DNS",
+      "args": {
+        "url": "https://dash.cloudflare.com/5b448192fe4b369642b68ad8f53a7603/autamedica.com/dns/records",
+        "waitUntil": "domcontentloaded"
+      }
+    },
+    {
+      "id": "assert_all_standard_cnames",
+      "action": "evaluate",
+      "description": "Validar admin, companies, doctors y patients con sus targets pages.dev",
+      "args": {
+        "script": "(async () => { const required = ['admin','autamedica-admin.pages.dev','companies','autamedica-companies.pages.dev','doctors','autamedica-doctors.pages.dev','patients','autamedica-patients.pages.dev']; const start = Date.now(); while (Date.now() - start < 20000) { const t = document.body.innerText.toLowerCase(); const missing = required.filter(x => !t.includes(x)); if (!missing.length) { return 'all standard cnames present'; } await new Promise(r => setTimeout(r, 500)); } throw new Error('Missing required DNS entries in visible page text'); })()"
+      }
+    }
+  ],
+  "createdAt": "2026-02-21T13:29:41.556Z",
+  "updatedAt": "2026-02-21T13:29:41.556Z"
+}

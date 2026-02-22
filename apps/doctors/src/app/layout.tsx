@@ -12,6 +12,18 @@ import { SessionSync } from '@/components/SessionSync'
 export const metadata: Metadata = {
   title: 'AutaMedica Doctor Portal',
   description: 'Portal profesional para médicos AutaMedica con experiencia de videollamadas y herramientas clínicas.',
+  alternates: {
+    canonical: 'https://doctors.autamedica.com',
+  },
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
 }
 
 interface RootLayoutProps {

@@ -1,60 +1,97 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { isProduction, ensureClientEnv, logger, getClientEnvOrDefault } from '@autamedica/shared';
 
-export async function GET(request: Request) {
-  const requestUrl = new URL(request.url)
-  const access_token = requestUrl.searchParams.get('access_token')
-  const refresh_token = requestUrl.searchParams.get('refresh_token')
-
-  if (!access_token || !refresh_token) {
-    // No tokens, redirect to auth
-    return NextResponse.redirect(
-      `http://localhost:3005/auth/login?role=doctor&returnTo=${encodeURIComponent('http://localhost:3001/')}`
-    )
+function getSafeReturnTo(returnTo: string | null, currentOrigin: string): URL | null {
+  if (!returnTo) {
+    return null;
   }
 
   try {
-    const cookieStore = await cookies()
+    const candidate = returnTo.startsWith('/') && !returnTo.startsWith('//')
+      ? new URL(returnTo, currentOrigin)
+      : new URL(returnTo);
 
-    // Create Supabase client
+    return candidate.origin === currentOrigin ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
+  const access_token = requestUrl.searchParams.get('access_token');
+  const refresh_token = requestUrl.searchParams.get('refresh_token');
+  const returnTo = requestUrl.searchParams.get('returnTo');
+
+  // Determinar URL de auth centralizada en app raiz segun entorno
+  const authBaseUrl = isProduction()
+    ? getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', 'https://www.autamedica.com')
+    : getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', 'http://localhost:3000');
+
+  if (!access_token || !refresh_token) {
+    // Si no hay tokens, redirigir al hub de autenticacion
+    return NextResponse.redirect(
+      new URL(`${authBaseUrl}/auth/select-role`, requestUrl.origin)
+    );
+  }
+
+  try {
+    const cookieStore = await cookies();
+
+    // Crear cliente de Supabase con configuracion de cookies
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL'),
+      ensureClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
       {
         cookies: {
           get(name: string) {
-            return cookieStore.get(name)?.value
+            return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options })
+            const cookieOptions = {
+              ...options,
+              domain: isProduction() ? '.autamedica.com' : undefined,
+              path: '/',
+              sameSite: 'lax' as const,
+              secure: isProduction(),
+            };
+            cookieStore.set({ name, value, ...cookieOptions });
           },
           remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options, maxAge: 0 })
+            const cookieOptions = {
+              ...options,
+              domain: isProduction() ? '.autamedica.com' : undefined,
+              path: '/',
+            };
+            cookieStore.set({ name, value: '', ...cookieOptions, maxAge: 0 });
           },
         },
       }
-    )
+    );
 
-    // Set the session from the tokens
+    // Establecer la sesion con los tokens recibidos
     const { error } = await supabase.auth.setSession({
       access_token,
       refresh_token,
-    })
+    });
 
     if (error) {
-      console.error('Error setting session:', error)
+      logger.error('Error setting session in doctors callback:', error);
       return NextResponse.redirect(
-        `http://localhost:3005/auth/login?role=doctor&returnTo=${encodeURIComponent('http://localhost:3001/')}`
-      )
+        new URL(`${authBaseUrl}/auth/login?error=${encodeURIComponent(error.message)}&role=doctor`, requestUrl.origin)
+      );
     }
 
-    // Session set successfully, redirect to home
-    return NextResponse.redirect('http://localhost:3001/')
+    const safeReturnTo = getSafeReturnTo(returnTo, requestUrl.origin);
+
+    // Sesion establecida exitosamente, redirigir a returnTo seguro o home
+    return NextResponse.redirect(safeReturnTo ?? new URL('/', requestUrl.origin));
   } catch (error) {
-    console.error('Callback error:', error)
+    logger.error('Doctors callback error:', error);
     return NextResponse.redirect(
-      `http://localhost:3005/auth/login?role=doctor&returnTo=${encodeURIComponent('http://localhost:3001/')}`
-    )
+      new URL(`${authBaseUrl}/auth/login?error=callback_error&role=doctor`, requestUrl.origin)
+    );
   }
 }

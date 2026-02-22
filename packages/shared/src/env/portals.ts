@@ -17,20 +17,20 @@ export function getPortalUrlWithPath(portal: string, path: string): string {
       patients: 'http://localhost:3002',
       doctors: 'http://localhost:3001',
       companies: 'http://localhost:3003',
-      admin: 'http://localhost:3005'
+      admin: 'http://localhost:3004'
     };
     const baseUrl = portMap[portal] || 'http://localhost:3000';
     return baseUrl + path;
   }
 
   const prodMap: Record<string, string> = {
-    patients: 'https://autamedica-patients.pages.dev',
-    doctors: 'https://autamedica-doctors.pages.dev',
-    companies: 'https://autamedica-companies.pages.dev',
-    admin: 'https://autamedica-admin.pages.dev'
+    patients: 'https://patients.autamedica.com',
+    doctors: 'https://doctors.autamedica.com',
+    companies: 'https://companies.autamedica.com',
+    admin: 'https://admin.autamedica.com'
   };
 
-  const baseUrl = prodMap[portal] || 'https://autamedica-web-app.pages.dev';
+  const baseUrl = prodMap[portal] || 'https://www.autamedica.com';
   return baseUrl + path;
 }
 

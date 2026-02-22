@@ -27,7 +27,7 @@ const SCREENSHOT_TARGETS = [
   },
   {
     name: "auth-login-patient",
-    url: "https://auth.autamedica.com/auth/login/?role=patient",
+    url: "https://www.autamedica.com/auth/login/?role=patient",
     waitFor: "domcontentloaded",
     fullPage: false,
   },

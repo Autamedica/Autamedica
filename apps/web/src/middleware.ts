@@ -44,11 +44,22 @@ const ROLE_REDIRECTS: Record<string, string> = {
   patient: '/dashboard',
   doctor: '/doctor/dashboard',
   company: '/company/dashboard',
+  company_admin: '/company/dashboard',
+  organization_admin: '/admin/dashboard',
+  platform_admin: '/admin/dashboard',
   admin: '/admin/dashboard',
 };
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { pathname } = new URL(context.request.url);
+  const requestUrl = new URL(context.request.url);
+  const { pathname } = requestUrl;
+
+  // SEO canonical host enforcement: autamedica.com -> www.autamedica.com
+  if (import.meta.env.PROD && requestUrl.hostname === 'autamedica.com') {
+    const canonicalUrl = new URL(requestUrl.toString());
+    canonicalUrl.hostname = 'www.autamedica.com';
+    return context.redirect(canonicalUrl.toString(), 308);
+  }
 
   // Saltear verificación para archivos estáticos y rutas públicas
   if (
@@ -78,7 +89,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
           },
           setAll(cookiesToSet) {
             for (const { name, value, options } of cookiesToSet) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               context.cookies.set(name, value, options as any);
             }
           }
@@ -133,15 +143,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect('/auth/select-role');
       }
 
-      if (pathname.startsWith('/admin') && userRole !== 'admin') {
+      if (pathname.startsWith('/admin') && !['organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
         return context.redirect('/');
       }
 
-      if (pathname.startsWith('/doctor') && !['doctor', 'admin'].includes(userRole)) {
+      if (pathname.startsWith('/doctor') && !['doctor', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
         return context.redirect('/');
       }
 
-      if (pathname.startsWith('/company') && !['company', 'admin'].includes(userRole)) {
+      if (pathname.startsWith('/company') && !['company', 'company_admin', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
         return context.redirect('/');
       }
     }

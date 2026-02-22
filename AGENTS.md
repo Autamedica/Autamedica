@@ -419,3 +419,20 @@ Entregables:
 - Fix mínimo (DB primero si es regla de negocio crítica) + mirror en UI.
 - Checklist de verificación (SQL prod, astro check/build, evidencia visual).
 ```
+
+---
+
+## 18. Imported Senior Rules (AutoRenta -> AutaMedica)
+
+Reglas framework-agnostic transferidas desde AutoRenta para subir el estándar de operación:
+
+1. **AI Cross-Review obligatorio:** Ningún cambio generado por IA se considera listo sin una segunda auditoría (humano u otro agente). Fallos comunes: reformat destructivo, imports duplicados, eliminación accidental de optimizaciones existentes, archivos creados en paths no canónicos.
+2. **Higiene de repo reforzada:** Si se tocan docs/reportes, ejecutar `pnpm docs:ttl:check`. Si hay rename/copy sospechoso (`C100`), validar con `git log --follow --name-status <file>`.
+3. **Regeneración de tipos de DB con protocolo seguro:** Generar a `/tmp`, comparar diff, validar enums/estados críticos, correr checks/build y recién después reemplazar archivo canónico.
+4. **Workflows resilientes:** Preferir "prerequisite check + skip explícito" antes que `continue-on-error`. No ocultar fallas reales.
+5. **Post-Implementation Review obligatorio (UI):** Validar con evidencia visual (capturas before/after), probar viewports 375/768/1024/1440 y listar defectos encontrados sin complacencia.
+6. **Operaciones largas en tmux:** Migraciones pesadas, builds largos o tests extensos se ejecutan en sesión `tmux` para persistencia y observabilidad.
+7. **Regla de nombres SQL:** Evitar `atomic` en nombres de tablas/columnas/funciones por bug conocido del parser de Supabase CLI.
+8. **Frozen Code policy:** Definir paths críticos read-only por defecto. Solo se modifican con pedido explícito del usuario.
+
+Detalles operativos y checklists en `AGENTS-2.md` (sección 23).

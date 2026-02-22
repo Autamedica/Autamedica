@@ -392,6 +392,23 @@ pnpm lint && pnpm typecheck && pnpm build:packages:core
 
 ---
 
+## 8b) Reglas Importadas (AutoRenta, Framework-Agnostic)
+
+Reglas senior transferidas y activas en AutaMedica:
+
+- **AI Cross-Review:** Cambios generados por IA requieren segunda auditoría antes de merge.
+- **Higiene reforzada:** Si se tocan docs/reportes, correr `pnpm docs:ttl:check`; si hay rename/copy sospechoso (`C100`), auditar con `git log --follow --name-status`.
+- **Regeneración segura de tipos DB:** Generar snapshot en `/tmp`, revisar diff, validar enums/estados críticos y solo luego reemplazar archivo canónico.
+- **Workflows resilientes:** Preferir `precheck + skip explícito`; evitar `continue-on-error` en pasos críticos.
+- **Post-Implementation Review UI:** Capturas before/after + validación en viewports 375/768/1024/1440.
+- **Operaciones largas en tmux:** migraciones/builds/tests largos deben correrse en sesiones persistentes.
+- **Regla SQL `atomic`:** No usar `atomic` en identificadores de DB por bug del parser de Supabase CLI.
+- **Frozen Code policy:** Paths críticos read-only por defecto; cambios solo con pedido explícito del usuario.
+
+Detalle operativo completo: `AGENTS-2.md` sección 23.
+
+---
+
 ## 9) Referencias
 
 ### Documentos del proyecto

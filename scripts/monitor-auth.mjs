@@ -9,11 +9,14 @@
  *   pnpm monitor:auth --interval 60  # Custom interval en segundos
  */
 
-import { setTimeout } from 'timers/promises'
+import { setTimeout as sleep } from 'timers/promises'
+import domainsConfig from './config/domains.js'
+
+const { URLS, LOCAL_URLS } = domainsConfig
 
 const AUTH_URLS = {
-  production: 'https://autamedica-auth.pages.dev',
-  development: 'http://localhost:3005'
+  production: URLS.authHub,
+  development: LOCAL_URLS.authHub,
 }
 
 const config = {
@@ -60,46 +63,42 @@ async function checkHealth() {
   }
 
   try {
-    // 1. Health endpoint usando fetch nativo de Node.js
-    log('info', `Checking health at ${BASE_URL}/api/health`)
-    const healthController = new AbortController()
-    const healthTimeout = setTimeout(() => healthController.abort(), 10000)
+    // 1. Login page health using root auth route
+    log('info', `Checking login page at ${BASE_URL}/auth/login`)
+    const loginController = new AbortController()
+    const loginTimeout = globalThis.setTimeout(() => loginController.abort(), 10000)
 
     try {
-      const healthResponse = await fetch(`${BASE_URL}/api/health`, {
+      const loginResponse = await fetch(`${BASE_URL}/auth/login`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           'User-Agent': 'AutaMedica-Monitor/1.0'
         },
-        signal: healthController.signal
+        signal: loginController.signal
       })
-      clearTimeout(healthTimeout)
+      clearTimeout(loginTimeout)
 
-      const healthData = await healthResponse.json()
-      results.checks.health = {
-        status: healthResponse.ok ? 'pass' : 'fail',
-        statusCode: healthResponse.status,
-        latency: healthData.totalLatency,
-        details: {
-          database: healthData.checks?.database?.status,
-          environment: healthData.checks?.environment?.status
-        }
+      results.checks.loginPage = {
+        status: loginResponse.ok ? 'pass' : 'fail',
+        statusCode: loginResponse.status,
+        expectation: 'Should return 2xx for /auth/login'
       }
 
-      if (!healthResponse.ok) {
-        log('warning', 'Health check returned non-OK status', healthData)
+      if (!loginResponse.ok) {
+        log('warning', 'Login page returned non-OK status', {
+          statusCode: loginResponse.status
+        })
       } else {
-        log('success', `Health check passed (${healthData.totalLatency}ms)`)
+        log('success', `Login page check passed (${loginResponse.status})`)
       }
     } catch (error) {
-      clearTimeout(healthTimeout)
+      clearTimeout(loginTimeout)
       if (error.name === 'AbortError') {
-        results.checks.health = {
+        results.checks.loginPage = {
           status: 'fail',
           error: 'Request timeout (10s)'
         }
-        log('error', 'Health check timed out')
+        log('error', 'Login page check timed out')
       } else {
         throw error
       }
@@ -108,7 +107,7 @@ async function checkHealth() {
     // 2. Session-sync endpoint (should return 401 without auth)
     log('info', 'Checking session-sync endpoint')
     const sessionController = new AbortController()
-    const sessionTimeout = setTimeout(() => sessionController.abort(), 10000)
+    const sessionTimeout = globalThis.setTimeout(() => sessionController.abort(), 10000)
 
     try {
       const sessionResponse = await fetch(`${BASE_URL}/api/session-sync`, {
@@ -203,7 +202,7 @@ async function monitorLoop() {
 
     if (config.watch) {
       log('info', `Waiting ${config.interval}s until next check...`)
-      await setTimeout(config.interval * 1000)
+      await sleep(config.interval * 1000)
     }
   } while (config.watch)
 }

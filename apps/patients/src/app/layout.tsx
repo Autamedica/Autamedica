@@ -8,6 +8,18 @@ import { SessionSync } from '@/components/SessionSync'
 export const metadata: Metadata = {
   title: 'AutaMedica Patient Portal',
   description: 'Portal personal de pacientes AutaMedica con acceso a historial clínico, citas y documentación.',
+  alternates: {
+    canonical: 'https://patients.autamedica.com',
+  },
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
 }
 
 type RootLayoutProps = {

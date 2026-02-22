@@ -1,0 +1,97 @@
+name: Apply Auth DB Fixes
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: "Supabase project ref"
+        required: true
+        default: "knywotiidsydsaveqkjs"
+        type: string
+      apply_trigger_fix:
+        description: "Apply handle_new_user trigger fix"
+        required: true
+        default: true
+        type: boolean
+      apply_profiles_rls_fix:
+        description: "Apply profiles RLS recursion fix"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROJECT_REF: ${{ github.event.inputs.project_ref }}
+      SECRET_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SECRET_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      INPUT_TRIGGER_FIX: ${{ github.event.inputs.apply_trigger_fix }}
+      INPUT_PROFILES_RLS_FIX: ${{ github.event.inputs.apply_profiles_rls_fix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client python3
+          psql --version
+
+      - name: Resolve DB URL
+        run: |
+          set -euo pipefail
+
+          DB_URL="${SECRET_DB_URL:-}"
+          if [ -z "$DB_URL" ]; then
+            if [ -z "${SECRET_DB_PASSWORD:-}" ]; then
+              echo "❌ Missing SUPABASE_DB_URL and SUPABASE_DB_PASSWORD secrets"
+              exit 1
+            fi
+
+            ENC_PASS=$(python3 -c "import os, urllib.parse; print(urllib.parse.quote(os.environ['SECRET_DB_PASSWORD'], safe=''))")
+            DB_URL="postgresql://postgres.${PROJECT_REF}:${ENC_PASS}@aws-1-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require"
+          fi
+
+          echo "DB_URL=$DB_URL" >> "$GITHUB_ENV"
+          echo "✅ DB URL resolved for ${PROJECT_REF}"
+
+      - name: Apply trigger fix migration
+        if: env.INPUT_TRIGGER_FIX == 'true'
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260219200000_fix_handle_new_user_trigger.sql
+
+      - name: Apply profiles RLS fix migration
+        if: env.INPUT_PROFILES_RLS_FIX == 'true'
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260222213000_fix_profiles_rls_recursion.sql
+
+      - name: Verify auth trigger and profiles policies
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          SELECT proname
+          FROM pg_proc p
+          JOIN pg_namespace n ON n.oid = p.pronamespace
+          WHERE n.nspname = 'public'
+            AND proname IN ('handle_new_user', 'is_platform_or_org_admin')
+          ORDER BY proname;
+
+          SELECT tgname
+          FROM pg_trigger
+          WHERE tgrelid = 'auth.users'::regclass
+            AND tgname = 'on_auth_user_created'
+            AND tgisinternal = false;
+
+          SELECT polname
+          FROM pg_policy
+          WHERE polrelid = 'public.profiles'::regclass
+          ORDER BY polname;
+          SQL
