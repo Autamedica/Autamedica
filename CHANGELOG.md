@@ -15,6 +15,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- a198274 fix(security): harden redirect validation and auth login fallback
 - 35d84c2 fix(auth): align auth-hub refs and clear lint warnings
 - ab39ac9 fix(auth): harden routing, redirects and domain migration
 - 7248b9f fix(ci): resolve all remaining build failures in CI/CD
@@ -45,6 +46,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- d8280f7 📝 docs: actualizar changelog automático
 - be32ee1 📝 docs: actualizar changelog automático
 - bc66adc 📝 docs: actualizar changelog automático
 - d7317da 📝 docs: actualizar changelog automático
@@ -93,4 +95,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-21 22:39:04*
+*Generado automáticamente el 2026-02-22 00:06:00*
