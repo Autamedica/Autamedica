@@ -10,16 +10,37 @@ const processRef = typeof process !== 'undefined' ? process : null;
  * @returns true if NODE_ENV is 'production'
  */
 export function isProduction(): boolean {
-  return processRef?.env?.NODE_ENV === 'production';
+  const env = processRef?.env?.NODE_ENV;
+  if (env) {
+    return env === 'production';
+  }
+
+  // Browser fallback: any non-localhost host is treated as production.
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    return host !== 'localhost' && host !== '127.0.0.1' && !host.endsWith('.local');
+  }
+
+  // Server fallback when NODE_ENV is unavailable.
+  return true;
 }
 
 /**
  * Check if the current environment is development
- * @returns true if NODE_ENV is 'development' or undefined
+ * @returns true if NODE_ENV is 'development' or browser host is localhost
  */
 export function isDevelopment(): boolean {
   const env = processRef?.env?.NODE_ENV;
-  return env === 'development' || env === undefined;
+  if (env) {
+    return env === 'development';
+  }
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local');
+  }
+
+  return false;
 }
 
 // Tipos de configuración de entorno
