@@ -119,15 +119,26 @@ export function buildSafeLoginUrl(
   returnTo?: string | null,
   error?: string
 ): string {
-  const fallbackAuthOrigin = process.env.NODE_ENV === 'production'
-    ? 'https://www.autamedica.com'
-    : 'http://localhost:3000';
+  const inferFallbackAuthOrigin = (): string => {
+    // Prefer localhost only when returnTo explicitly points to a local dev URL.
+    if (returnTo) {
+      try {
+        const returnToUrl = new URL(returnTo);
+        if (returnToUrl.hostname === 'localhost' || returnToUrl.hostname === '127.0.0.1') {
+          return 'http://localhost:3000';
+        }
+      } catch {
+        // Ignore invalid returnTo and use production-safe default.
+      }
+    }
+    return 'https://www.autamedica.com';
+  };
 
   const baseOrigin =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_BASE_URL_WEB_APP ||
-    fallbackAuthOrigin;
+    inferFallbackAuthOrigin();
 
   const loginUrl = new URL('/auth/login', baseOrigin);
 
