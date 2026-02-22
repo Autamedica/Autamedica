@@ -8,6 +8,10 @@ permissions:
   contents: read
   pull-requests: write
 
+concurrency:
+  group: pr-size-guard-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   size-check:
     name: 'Verificar tamaño del PR'
@@ -46,34 +50,38 @@ jobs:
               message = `❌ PR too large: ${totalChanges} líneas (máx ${MAX_LINES}), ${totalFiles} archivos (máx ${MAX_FILES})`;
 
               // Comentar en el PR
+              const warningBody = [
+                '## 🚨 PR Size Warning',
+                '',
+                '**Este PR es demasiado grande para review efectivo.**',
+                '',
+                '📊 **Estadísticas actuales:**',
+                `- **Líneas cambiadas**: ${totalChanges} (máximo recomendado: ${MAX_LINES})`,
+                `- **Archivos modificados**: ${totalFiles} (máximo recomendado: ${MAX_FILES})`,
+                '',
+                '### 💡 **Recomendaciones:**',
+                '',
+                '1. **Dividir en PRs más pequeños** - Facilita el review y reduce errores',
+                '2. **Usar feature flags** - Para releases incrementales',
+                '3. **Separar refactoring** - De nuevas features',
+                '4. **Agrupar por dominio** - Un PR por área funcional',
+                '',
+                '### 📋 **Excepciones Válidas:**',
+                '',
+                'Si este PR tiene una razón válida para ser grande, agrega una justificación en la descripción:',
+                '- [ ] Migración de dependencias',
+                '- [ ] Refactoring arquitectural necesario',
+                '- [ ] Generación automática de código',
+                '- [ ] Sincronización con rama externa',
+                '',
+                '**🎯 Objetivo:** PRs pequeños = reviews más rápidos y código más confiable',
+              ].join('\\n');
+
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `## 🚨 PR Size Warning
-
-**Este PR es demasiado grande para review efectivo.**
-
-📊 **Estadísticas actuales:**
-- **Líneas cambiadas**: ${totalChanges} (máximo recomendado: ${MAX_LINES})
-- **Archivos modificados**: ${totalFiles} (máximo recomendado: ${MAX_FILES})
-
-### 💡 **Recomendaciones:**
-
-1. **Dividir en PRs más pequeños** - Facilita el review y reduce errores
-2. **Usar feature flags** - Para releases incrementales
-3. **Separar refactoring** - De nuevas features
-4. **Agrupar por dominio** - Un PR por área funcional
-
-### 📋 **Excepciones Válidas:**
-
-Si este PR tiene una razón válida para ser grande, agrega una justificación en la descripción:
-- [ ] Migración de dependencias
-- [ ] Refactoring arquitectural necesario
-- [ ] Generación automática de código
-- [ ] Sincronización con rama externa
-
-**🎯 Objetivo:** PRs pequeños = reviews más rápidos y código más confiable`
+                body: warningBody
               });
             }
 
