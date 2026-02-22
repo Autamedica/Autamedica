@@ -14,6 +14,7 @@
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
 ### 🔧 Mejoras y Optimizaciones
+- 7b25d04 chore(ci): harden workflows and fix broken action configs
 - 04d6c49 chore: persist post-commit auth layout/style updates
 - e4579f6 chore(auth): add workflow to seed QA login users
 - d629ad5 chore: remove explicit-any warnings in shared db wrapper
@@ -21,6 +22,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- c122733 fix(ci): grant status permission to pr-size guard
 - 749994b fix: harden turbo hook and persist shared auth redirect updates
 - a7630b9 fix(deploy): treat existing custom domains as success
 - f97ce6a fix(deploy): attach doctors and companies custom domains
@@ -64,6 +66,8 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 2961e7e docs: add seo benchmark and 100-point senior roadmap
+- 34d0df6 📝 docs: actualizar changelog automático
 - 1e899ed 📝 docs: actualizar changelog automático
 - 78fd3ec 📝 docs: actualizar changelog automático
 - 664d52b 📝 docs: actualizar changelog automático
@@ -127,4 +131,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 05:01:17*
+*Generado automáticamente el 2026-02-22 05:40:54*
