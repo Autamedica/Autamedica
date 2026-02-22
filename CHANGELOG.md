@@ -18,6 +18,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- a887a05 fix(deploy): attach patients custom domain after Pages deploy
 - 2beebe3 fix(ci): stabilize Cloudflare deploy for patients and companies
 - 6a4d609 fix(auth): restore callback routes for patients and companies
 - 43500c5 fix(auth): harden signup trigger to be non-blocking
@@ -57,6 +58,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- dd31efc 📝 docs: actualizar changelog automático
 - 9e6e5b8 📝 docs: actualizar changelog automático
 - 2c38cac 📝 docs: actualizar changelog automático
 - bb3ecf5 📝 docs: actualizar changelog automático
@@ -115,4 +117,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 02:51:56*
+*Generado automáticamente el 2026-02-22 03:18:47*
