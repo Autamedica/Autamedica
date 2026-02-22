@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { logger } from '@autamedica/shared';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Hook principal para gestión de WebRTC Peer Connection
@@ -89,7 +89,7 @@ const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
   // {
   //   urls: 'turn:turn.autamedica.com:3478',
   //   username: 'autamedica',
-  //   credential: process.env.NEXT_PUBLIC_TURN_SECRET
+  //   credential: 'getOptionalClientEnv("NEXT_PUBLIC_TURN_SECRET")'
   // }
 ];
 

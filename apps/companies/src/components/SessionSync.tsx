@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { ensureClientEnv } from '@autamedica/shared';
 import { createBrowserClient } from '@supabase/ssr';
+import { useEffect } from 'react';
 
 /**
  * SessionSync Component
@@ -25,8 +26,8 @@ export function SessionSync() {
 
     if (accessToken && refreshToken) {
       const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL'),
+        ensureClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
       );
 
       // Set the session with the tokens from URL

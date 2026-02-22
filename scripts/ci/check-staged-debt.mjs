@@ -2,7 +2,7 @@
 
 import { execSync } from 'node:child_process';
 
-const debtPattern = /\b(TODO|FIXME|XXX)\b/i;
+const debtPattern = /(?:\b|^)(TODO|FIXME|XXX)(?:\b|$)/;
 const referencePattern =
   /(#\d+|[A-Z]{2,12}-\d+|https?:\/\/\S+|ticket[:\s]+[A-Za-z0-9-]+)/i;
 

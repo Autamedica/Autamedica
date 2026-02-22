@@ -1,0 +1,3 @@
+ WARN  Unsupported engine: wanted: {"node":"20.x"} (current: {"node":"v22.22.0","pnpm":"9.15.2"})
+Pages directory cannot be found at /home/edu/Autamedica/pages or /home/edu/Autamedica/src/pages. If using a custom path, please configure with the `no-html-link-for-pages` rule in your eslint config file.
+The compact formatter is no longer part of core ESLint. Install it manually with `npm install -D eslint-formatter-compact`

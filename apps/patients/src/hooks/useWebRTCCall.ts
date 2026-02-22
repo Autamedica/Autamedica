@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { SignalingEvent, SignalingService, getSignalingService } from '@/services/SignalingService';
+import { getOptionalClientEnv, logger } from '@autamedica/shared';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useWebRTC } from './useWebRTC';
-import { SignalingService, SignalingEvent, getSignalingService } from '@/services/SignalingService';
-import { logger } from '@autamedica/shared';
 
 /**
  * Hook orquestador completo para videollamadas WebRTC
@@ -70,7 +70,7 @@ export interface WebRTCCallActions {
   toggleScreenShare: () => Promise<void>;
 }
 
-const DEFAULT_SIGNALING_URL = process.env.NEXT_PUBLIC_SIGNALING_SERVER_URL || 'ws://localhost:8888';
+const DEFAULT_SIGNALING_URL = getOptionalClientEnv('NEXT_PUBLIC_SIGNALING_SERVER_URL') || 'ws://localhost:8888';
 
 const DEFAULT_MEDIA_CONSTRAINTS: MediaStreamConstraints = {
   video: {

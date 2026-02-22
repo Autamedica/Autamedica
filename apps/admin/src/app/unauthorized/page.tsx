@@ -1,12 +1,12 @@
-import Link from 'next/link';
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Acceso No Autorizado - AutaMedica Admin',
   description: 'No tienes permisos para acceder al panel de administración',
 };
 
-export default function UnauthorizedPage(): React.ReactElement {
+export default function UnauthorizedPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">

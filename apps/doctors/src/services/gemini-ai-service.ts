@@ -3,9 +3,10 @@
  * Alternativa a Anthropic Claude
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getServerEnvOrDefault } from '@autamedica/shared';
 import { featureFlags } from '@autamedica/shared/config/feature-flags';
-import type { MedicalAnalysis, AnalysisRequest } from './ai-analysis-service';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { AnalysisRequest, MedicalAnalysis } from './ai-analysis-service';
 
 /**
  * Servicio de Análisis Médico con Google Gemini
@@ -16,9 +17,9 @@ export class GeminiAIService {
   // private readonly model = 'gemini-2.5-pro-preview-03-25'; // Más potente
 
   constructor() {
-    // Solo inicializar si NO estamos en modo mock y tenemos API key
-    if (!featureFlags.USE_MOCK_AI && process.env.GOOGLE_AI_API_KEY) {
-      this.genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
+    const googleApiKey = getServerEnvOrDefault('GOOGLE_AI_API_KEY', '');
+    if (!featureFlags.USE_MOCK_AI && googleApiKey) {
+      this.genAI = new GoogleGenerativeAI(googleApiKey);
       console.log('✅ GeminiAIService inicializado con Gemini 2.5');
     } else if (featureFlags.USE_MOCK_AI) {
       console.log('⚠️  GeminiAIService en modo MOCK (desarrollo)');
@@ -268,7 +269,7 @@ SOLO responde con el JSON, sin texto adicional.`;
       provider: 'Google Gemini',
       mode: featureFlags.USE_MOCK_AI ? 'mock' : 'production',
       modelUsed: featureFlags.USE_MOCK_AI ? 'gemini-mock' : this.model,
-      apiKeyConfigured: !!process.env.GOOGLE_AI_API_KEY,
+      apiKeyConfigured: !!getServerEnvOrDefault('GOOGLE_AI_API_KEY', ''),
       clientInitialized: !!this.genAI,
       features: {
         multimodal: true,

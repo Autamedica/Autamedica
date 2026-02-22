@@ -14,11 +14,11 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@autamedica/auth": "workspace:^",
-    "@autamedica/hooks": "workspace:^",
-    "@autamedica/shared": "workspace:^",
-    "@autamedica/tailwind-config": "workspace:^",
-    "@autamedica/types": "workspace:^",
+    "@autamedica/auth": "workspace:*",
+    "@autamedica/hooks": "workspace:*",
+    "@autamedica/shared": "workspace:*",
+    "@autamedica/tailwind-config": "workspace:*",
+    "@autamedica/types": "workspace:*",
     "@heroicons/react": "^2.1.5",
     "@nextui-org/react": "^2.4.8",
     "@supabase/ssr": "^0.5.2",

@@ -3,25 +3,32 @@
  * Usa Supabase en producción, mocks en desarrollo (controlado por feature flags)
  */
 
-import { createClient } from '@supabase/supabase-js'
-import { featureFlags, logger } from '@autamedica/shared/config/feature-flags'
 import type {
-  VitalSigns,
-  MedicalRecord,
-  Prescription,
   AIAnalysis,
-  UUID,
+  MedicalRecord,
   MedicalRecordFilters,
-  PrescriptionFilters
-} from '@/types/medical'
+  Prescription,
+  PrescriptionFilters,
+  UUID,
+  VitalSigns
+} from '@/types/medical';
+import { getOptionalClientEnv } from '@autamedica/shared';
+import { featureFlags, logger } from '@autamedica/shared/config/feature-flags';
+import { createClient } from '@supabase/supabase-js';
 
 // Cliente de Supabase (solo se inicializa si NO usamos mocks)
 const supabase = !featureFlags.USE_MOCK_MEDICAL_DATA
-  ? createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-  : null
+  ? (() => {
+      const url = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_URL');
+      const anonKey = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+      
+      // Solo inicializa si los valores existen (en el servidor/build podrían faltar sin NEXT_PUBLIC_)
+      if (url && anonKey) {
+        return createClient(url, anonKey);
+      }
+      return null;
+    })()
+  : null;
 
 // API Client
 class MedicalDataAPI {

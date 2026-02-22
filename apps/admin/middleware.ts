@@ -1,3 +1,4 @@
+import { ensureServerEnv, ensureClientEnv } from '@autamedica/shared';
 /**
  * Secure middleware for Admin portal
  * Implements session validation and admin role verification
@@ -34,8 +35,8 @@ export async function middleware(request: NextRequest) {
   });
 
   const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
+    ensureServerEnv("SUPABASE_URL"),
+    ensureClientEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       cookies: {
         get(name: string) {

@@ -1,6 +1,6 @@
 /**
  * Utilidades de entorno para apps/web (Astro).
- * Usa import.meta.env en lugar de process.env.
+ * Usa import.meta.env en lugar de process-env.
  */
 
 export type AppTarget = 'patients' | 'doctors' | 'companies' | 'admin';

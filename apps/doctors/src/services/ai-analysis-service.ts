@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getServerEnvOrDefault } from '@autamedica/shared';
 import { featureFlags } from '@autamedica/shared/config/feature-flags';
 /**
  * Tipos para el servicio de AI
@@ -42,9 +43,10 @@ export class AIAnalysisService {
   constructor() {
     // Solo inicializar Anthropic si NO estamos en modo mock
     // y tenemos API key disponible
-    if (!featureFlags.USE_MOCK_AI && process.env.ANTHROPIC_API_KEY) {
+    const anthropicKey = getServerEnvOrDefault('ANTHROPIC_API_KEY', '');
+    if (!featureFlags.USE_MOCK_AI && anthropicKey) {
       this.anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
+        apiKey: anthropicKey,
       });
 
       console.log('✅ AIAnalysisService inicializado con Claude API');
@@ -150,6 +152,10 @@ FORMATO DE RESPUESTA (JSON):
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         ...analysis,
+        summary: analysis.summary || 'Análisis completado sin resumen específico',
+        recommendations: analysis.recommendations || [],
+        severity: analysis.severity || 'low',
+        confidence: analysis.confidence || 0,
         metadata: {
           modelUsed: this.model,
           tokensUsed: {
@@ -291,7 +297,7 @@ FORMATO DE RESPUESTA (JSON):
     return {
       mode: featureFlags.USE_MOCK_AI ? 'mock' : 'production',
       modelUsed: featureFlags.USE_MOCK_AI ? 'mock-model' : this.model,
-      apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
+      apiKeyConfigured: !!getServerEnvOrDefault('ANTHROPIC_API_KEY', ''),
       clientInitialized: !!this.anthropic,
     };
   }
