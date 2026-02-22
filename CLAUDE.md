@@ -405,7 +405,7 @@ Reglas senior transferidas y activas en AutaMedica:
 - **Regla SQL `atomic`:** No usar `atomic` en identificadores de DB por bug del parser de Supabase CLI.
 - **Frozen Code policy:** Paths críticos read-only por defecto; cambios solo con pedido explícito del usuario.
 
-Detalle operativo completo: `AGENTS-2.md` sección 23.
+Detalle operativo completo: `docs/AGENTS-2.md` sección 23.
 
 ---
 

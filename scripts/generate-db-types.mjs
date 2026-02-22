@@ -43,7 +43,7 @@ async function checkSupabaseCLI() {
   try {
     await execAsync('supabase --version');
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -52,11 +52,11 @@ async function checkSupabaseCLI() {
  * Verifica si hay cambios en el esquema desde la última generación
  */
 function hasSchemaChanged() {
-  const schemaPath = join(rootDir, 'database', 'schema.sql');
+  const schemaPath = join(rootDir, 'docs', 'database', 'schema.sql');
   const typesPath = join(rootDir, 'packages', 'types', 'src', 'supabase', 'database.types.ts');
 
   if (!existsSync(schemaPath)) {
-    log('⚠️  No se encontró database/schema.sql', 'yellow');
+    log('⚠️  No se encontró docs/database/schema.sql', 'yellow');
     return false;
   }
 
@@ -109,7 +109,7 @@ async function generateFromLocalSchema() {
   log('📄 Generando tipos desde esquema SQL local...', 'cyan');
 
   try {
-    const schemaPath = join(rootDir, 'database', 'schema.sql');
+    const schemaPath = join(rootDir, 'docs', 'database', 'schema.sql');
     const outputPath = join(rootDir, 'packages', 'types', 'src', 'supabase', 'database.types.ts');
 
     // Para generar desde SQL local, necesitamos procesar el archivo
@@ -289,13 +289,6 @@ export interface Database {
   output = output.replace(/duration_minutes\?: string/g, 'duration_minutes?: number');
 
   return output;
-}
-
-/**
- * Parsea columnas de una definición de tabla mejorado (legacy)
- */
-function parseTableColumns(definition) {
-  return parseTableColumnsWithEnums(definition, new Map());
 }
 
 /**
@@ -531,13 +524,6 @@ const TYPE_MAP = [
 ];
 
 /**
- * Parsea información de tipo de columna mejorada (legacy)
- */
-function parseColumnType(typeDefinition, columnName, tableDefinition) {
-  return parseColumnTypeWithEnums(typeDefinition, columnName, tableDefinition, new Map());
-}
-
-/**
  * Parsea información de tipo de columna con soporte para enums e identidad
  */
 
@@ -550,7 +536,7 @@ function updateGlosarioDocumentation() {
     let content = readFileSync(glosarioPath, 'utf-8');
 
     const timestamp = new Date().toISOString().split('T')[0];
-    const schemaPath = join(rootDir, 'database', 'schema.sql');
+    const schemaPath = join(rootDir, 'docs', 'database', 'schema.sql');
     const schemaContent = readFileSync(schemaPath, 'utf-8');
 
     // Contar tablas
@@ -655,10 +641,10 @@ async function main() {
     // 5. Validar resultado
     log('🔍 Validando tipos generados...', 'cyan');
     try {
-      const { validateDatabaseSchema } = await import('./validate-database-schema.mjs');
+      await import('./validate-database-schema.mjs');
       // No ejecutar validación aquí para evitar recursión
       log('✅ Tipos generados correctamente', 'green');
-    } catch (error) {
+    } catch {
       log('⚠️  Error en validación posterior, pero types generados', 'yellow');
     }
 

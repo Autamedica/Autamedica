@@ -4,7 +4,7 @@ set -e
 # Runner para Auditoría Pre-Producción AutaMedica
 # Basado en ai-pr-review.sh adaptado para YAML multi-agente
 
-PROMPT_FILE="${1:-prompts/auditoria-preprod-autamedica.yaml}"
+PROMPT_FILE="${1:-scripts/prompts/auditoria-preprod-autamedica.yaml}"
 OUTPUT_DIR="generated-docs"
 LOG_DIR=".logs"
 

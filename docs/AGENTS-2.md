@@ -4,6 +4,7 @@
 > Complementario a AGENTS.md. Previene schema drift, auth bypasses, enum mismatches y gaps de RLS.
 
 **Contexto:** Estas reglas emergieron de sesiones de auditoría donde se descubrieron:
+
 - Mismatches entre tipos TypeScript y enums de DB (causan errores en runtime)
 - Auth bypasses en Edge Functions (cualquier request sin autenticación puede ejecutar lógica)
 - Gaps de RLS (buckets de storage sin política INSERT)
@@ -43,6 +44,7 @@
 **Problema:** Los tipos TypeScript divergen de los enums de la DB, causando errores en runtime de producción.
 
 **Ejemplo del bug:**
+
 ```typescript
 // Tipo TypeScript (INCORRECTO)
 export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show';
@@ -71,6 +73,7 @@ grep "AppointmentStatus" packages/types/src/index.ts
 ```
 
 **Enums Críticos de AutaMedica (verificar antes de modificar):**
+
 - `appointment_status`: estados de consultas médicas
 - `user_role`: `patient`, `doctor`, `company`, `admin`
 - `consultation_type`: `video`, `chat`, `in_person`
@@ -84,17 +87,17 @@ grep "AppointmentStatus" packages/types/src/index.ts
 // Run: pnpm tsx scripts/validate-enum-sync.ts
 // Exit code: 0 = todo OK, 1 = mismatches encontrados
 
-import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'fs';
+import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
 
 const SUPABASE_URL = process.env.PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const CRITICAL_ENUMS = [
   {
-    tsType: 'AppointmentStatus',
-    dbEnum: 'appointment_status',
-    file: 'packages/types/src/index.ts',
+    tsType: "AppointmentStatus",
+    dbEnum: "appointment_status",
+    file: "packages/types/src/index.ts",
     linePattern: /type AppointmentStatus = ([^;]+);/,
   },
   // Agregar más enums aquí
@@ -102,8 +105,11 @@ const CRITICAL_ENUMS = [
 
 async function getDbEnumValues(enumName: string): Promise<Set<string>> {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-  const { data, error } = await supabase.rpc('get_enum_values', { enum_name: enumName });
-  if (error) { console.error(`Failed: ${enumName}`, error); process.exit(1); }
+  const { data, error } = await supabase.rpc("get_enum_values", { enum_name: enumName });
+  if (error) {
+    console.error(`Failed: ${enumName}`, error);
+    process.exit(1);
+  }
   return new Set(data.map((row: { enumlabel: string }) => row.enumlabel));
 }
 
@@ -111,6 +117,7 @@ async function getDbEnumValues(enumName: string): Promise<Set<string>> {
 ```
 
 **SQL Helper (agregar a migraciones):**
+
 ```sql
 CREATE OR REPLACE FUNCTION public.get_enum_values(enum_name text)
 RETURNS TABLE(enumlabel text)
@@ -129,11 +136,10 @@ GRANT EXECUTE ON FUNCTION public.get_enum_values TO service_role;
 **Problema:** El código asume que columnas/tablas existen basándose en memoria o docs desactualizados.
 
 **Ejemplo:**
+
 ```typescript
 // Asume que profiles.specialty existe
-const { data } = await supabase
-  .from('profiles')
-  .select('specialty')  // ❌ Columna no existe en profiles!
+const { data } = await supabase.from("profiles").select("specialty"); // ❌ Columna no existe en profiles!
 
 // Realidad: specialty vive en doctor_profiles.specialty
 ```
@@ -159,6 +165,7 @@ grep -A 30 "profiles:" /tmp/fresh-db-types.ts
 ```
 
 **Checklist de Schema Verification:**
+
 - [ ] Tipos regenerados a archivo temporal (< 24 horas)
 - [ ] Tabla buscada en los tipos generados
 - [ ] Columna confirmada existe en tipo `Row`
@@ -172,6 +179,7 @@ grep -A 30 "profiles:" /tmp/fresh-db-types.ts
 **Problema:** Migraciones fallan en segundo run, causando problemas de deployment.
 
 **Ejemplo de migración NO idempotente:**
+
 ```sql
 -- ❌ Falla si se ejecuta dos veces
 CREATE POLICY "policy_name" ON public.my_table FOR SELECT USING (...);
@@ -321,6 +329,7 @@ CREATE TRIGGER trg_appointments_updated_at
 ```
 
 **Checklist de Idempotencia:**
+
 - [ ] `CREATE TABLE` → `IF NOT EXISTS`
 - [ ] `ALTER TABLE ADD COLUMN` → Envuelto en check de existencia
 - [ ] `ALTER TYPE ADD VALUE` → Envuelto en `DO $$ BEGIN ... EXCEPTION` block
@@ -344,33 +353,33 @@ CREATE TRIGGER trg_appointments_updated_at
 
 ```typescript
 // supabase/functions/my-function/index.ts
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 // CORS (si el frontend llama directamente)
 const ALLOWED_ORIGINS = [
-  'https://autamedica.com',
-  'https://www.autamedica.com',
-  'http://localhost:3000', // Dev
+  "https://autamedica.com",
+  "https://www.autamedica.com",
+  "http://localhost:3000", // Dev
 ];
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const isAllowed = origin && ALLOWED_ORIGINS.includes(origin);
   return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info',
-    'Access-Control-Max-Age': '86400',
+    "Access-Control-Allow-Origin": isAllowed ? origin : ALLOWED_ORIGINS[0],
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "authorization, content-type, x-client-info",
+    "Access-Control-Max-Age": "86400",
   };
 }
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get('origin');
+  const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
@@ -379,27 +388,24 @@ Deno.serve(async (req) => {
     // PASO 1: AUTENTICACIÓN (OBLIGATORIO — Primera línea en try block)
     // ====================================================================
 
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.warn('[my-function] Missing Authorization header');
-      return new Response(
-        JSON.stringify({ error: 'Missing Authorization header', code: 'AUTH_REQUIRED' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.warn("[my-function] Missing Authorization header");
+      return new Response(JSON.stringify({ error: "Missing Authorization header", code: "AUTH_REQUIRED" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error('[my-function] Auth failed:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token', code: 'AUTH_INVALID' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.error("[my-function] Auth failed:", authError);
+      return new Response(JSON.stringify({ error: "Invalid or expired token", code: "AUTH_INVALID" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     console.log(`[my-function] Authenticated: ${user.id}`);
@@ -421,10 +427,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     if (!body.required_field) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required_field', code: 'VALIDATION_ERROR' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Missing required_field", code: "VALIDATION_ERROR" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ====================================================================
@@ -437,17 +440,10 @@ Deno.serve(async (req) => {
     // PASO 5: RESPUESTA
     // ====================================================================
 
-    return new Response(
-      JSON.stringify({ success: true, data: result }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ success: true, data: result }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
-    console.error('[my-function] Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', code: 'INTERNAL_ERROR' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.error("[my-function] Unexpected error:", error);
+    return new Response(JSON.stringify({ error: "Internal server error", code: "INTERNAL_ERROR" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
 ```
@@ -455,36 +451,36 @@ Deno.serve(async (req) => {
 **Helper Reutilizable** (`supabase/functions/_shared/auth-helpers.ts`):
 
 ```typescript
-import { createClient, SupabaseClient, User } from 'jsr:@supabase/supabase-js@2';
+import { createClient, SupabaseClient, User } from "jsr:@supabase/supabase-js@2";
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-export interface AuthResult { user: User; supabase: SupabaseClient; }
+export interface AuthResult {
+  user: User;
+  supabase: SupabaseClient;
+}
 
 /**
  * Valida Authorization header y retorna usuario autenticado.
  * Lanza Response (401) si auth falla — catchear y retornar.
  */
 export async function requireAuth(req: Request): Promise<AuthResult> {
-  const authHeader = req.headers.get('Authorization');
+  const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    throw new Response(
-      JSON.stringify({ error: 'Missing Authorization header', code: 'AUTH_REQUIRED' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    throw new Response(JSON.stringify({ error: "Missing Authorization header", code: "AUTH_REQUIRED" }), { status: 401, headers: { "Content-Type": "application/json" } });
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
 
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   if (error || !user) {
-    throw new Response(
-      JSON.stringify({ error: 'Invalid or expired token', code: 'AUTH_INVALID' }),
-      { status: 401, headers: { 'Content-Type': 'application/json' } }
-    );
+    throw new Response(JSON.stringify({ error: "Invalid or expired token", code: "AUTH_INVALID" }), { status: 401, headers: { "Content-Type": "application/json" } });
   }
 
   return { user, supabase };
@@ -502,8 +498,9 @@ export async function optionalAuth(req: Request): Promise<AuthResult | null> {
 ```
 
 **Uso del helper:**
+
 ```typescript
-import { requireAuth } from '../_shared/auth-helpers.ts';
+import { requireAuth } from "../_shared/auth-helpers.ts";
 
 Deno.serve(async (req) => {
   try {
@@ -511,13 +508,13 @@ Deno.serve(async (req) => {
     // ... lógica médica aquí
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
     // requireAuth lanza Response en auth failure
     if (error instanceof Response) return error;
-    console.error('[fn] Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500 });
+    console.error("[fn] Error:", error);
+    return new Response(JSON.stringify({ error: "Internal error" }), { status: 500 });
   }
 });
 ```
@@ -529,6 +526,7 @@ Deno.serve(async (req) => {
 Antes de deployar CUALQUIER Edge Function:
 
 **Autenticación & Autorización:**
+
 - [ ] Auth verificada ANTES de cualquier lógica de negocio (primera línea en try block)
 - [ ] Usa `requireAuth()` helper o equivalente
 - [ ] Si operación admin: verifica role en metadata o tabla
@@ -538,6 +536,7 @@ Antes de deployar CUALQUIER Edge Function:
 - [ ] Logs de auth failures con user ID para audit trail
 
 **Validación de Input:**
+
 - [ ] Valida campos requeridos existen
 - [ ] Valida tipos de datos (UUID format para IDs)
 - [ ] Valida valores enum contra listas permitidas
@@ -545,27 +544,32 @@ Antes de deployar CUALQUIER Edge Function:
 - [ ] NUNCA confiar en `req.body.user_id` — usar `auth.getUser()` (JWT)
 
 **Datos Médicos:**
+
 - [ ] Nunca retornar datos de otros pacientes
 - [ ] Logs NO contienen datos sensibles (diagnósticos, medicamentos, datos personales)
 - [ ] Datos en tránsito solo via HTTPS
 
 **Error Handling:**
+
 - [ ] Códigos HTTP semánticos (400/401/403/404/409, no 500 genérico)
 - [ ] Estructura de error: `{ error: string, code: string }`
 - [ ] Errores internos no filtran detalles al cliente
 - [ ] Logs full error con contexto: `console.error('[function-name]', error)`
 
 **CORS:**
+
 - [ ] CORS configurado si el frontend llama directamente
 - [ ] Maneja OPTIONS preflight
 - [ ] Whitelist de origins definida (no `'*'` en producción)
 
 **Secrets & Config:**
+
 - [ ] Todos los secrets desde `Deno.env.get()`, nunca hardcodeados
 - [ ] API keys nunca en logs ni en responses
 - [ ] Service role key solo cuando es estrictamente necesario
 
 **Testing:**
+
 - [ ] Probado con token válido
 - [ ] Probado sin token (esperar 401)
 - [ ] Probado con token expirado (esperar 401)
@@ -742,11 +746,11 @@ async updateAppointmentStatus(
 ```typescript
 // Transiciones permitidas (enforceadas en DB via trigger + en TypeScript)
 const APPOINTMENT_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
-  pending:   ['confirmed', 'cancelled'],
-  confirmed: ['completed', 'cancelled', 'no_show'],
-  completed: [],  // Estado final
-  cancelled: [],  // Estado final
-  no_show:   [],  // Estado final
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["completed", "cancelled", "no_show"],
+  completed: [], // Estado final
+  cancelled: [], // Estado final
+  no_show: [], // Estado final
 };
 
 function canTransition(from: AppointmentStatus, to: AppointmentStatus): boolean {
@@ -818,6 +822,7 @@ FROM appointments;"
 ```
 
 **Checklist Pre-Deploy:**
+
 - [ ] Migración aplicada en staging/local sin errores
 - [ ] Migración es idempotente (ejecutada 2 veces sin errores)
 - [ ] RLS policies alineadas con nueva estructura
@@ -828,6 +833,7 @@ FROM appointments;"
 - [ ] Query de verificación post-deploy preparada
 
 **Checklist Post-Deploy:**
+
 - [ ] Migración aplicada en producción
 - [ ] Query de verificación SQL ejecutada y resultado esperado
 - [ ] Flujo completo probado manualmente (o via browser automation)
@@ -932,6 +938,7 @@ Paquete de reglas transferido desde AutoRenta y adaptado a AutaMedica sin depend
 **Regla:** Ningún cambio generado por IA queda "done" sin segunda auditoría (humano u otro agente).
 
 **Checklist obligatorio (antes de merge):**
+
 - [ ] `pnpm lint` pasa (0 errors / 0 warnings)
 - [ ] Verificación de imports duplicados y paths no canónicos
 - [ ] Verificación de regresiones de performance obvias (event listeners sin `passive: true` removido sin razón, rerenders evitables)
@@ -989,6 +996,7 @@ Solo si todo pasa, copiar el snapshot al archivo canónico y commitear.
 **Regla:** Cambios UI/UX requieren evidencia, no inferencia.
 
 **Checklist obligatorio:**
+
 - [ ] Captura before/after
 - [ ] Viewports: 375, 768, 1024, 1440
 - [ ] Lista explícita de issues encontrados (aunque sean menores)
@@ -997,6 +1005,7 @@ Solo si todo pasa, copiar el snapshot al archivo canónico y commitear.
 ### 23.5 Long-Running Ops Reliability
 
 Migraciones largas, builds pesados o test suites extensas deben correr en `tmux`:
+
 - Persistencia si se corta la sesión SSH/terminal
 - Monitoreo de progreso con `tmux capture-pane`
 - Menor riesgo de operaciones incompletas
@@ -1004,6 +1013,7 @@ Migraciones largas, builds pesados o test suites extensas deben correr en `tmux`
 ### 23.6 SQL Identifier Safety (`atomic` rule)
 
 Por bug conocido del parser de Supabase CLI, evitar `atomic` dentro de identificadores SQL:
+
 - Tablas
 - Columnas
 - Funciones
@@ -1013,6 +1023,7 @@ Si un nombre legado no puede cambiarse, aislarlo en migración de statement úni
 ### 23.7 Frozen Code Protocol
 
 Todo dominio crítico debe tener un inventario de "frozen paths":
+
 - Read-only por defecto
 - Solo se modifican con pedido explícito del usuario
 - Sin refactors "por limpieza" en código congelado

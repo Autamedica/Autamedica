@@ -17,6 +17,7 @@ Esta guía te ayudará a desplegar tu monorepo de AutaMedica en Cloudflare Pages
 2. Crea un nuevo proyecto para cada app:
 
 #### 🌐 **Web App Principal**
+
 ```
 Project Name: autamedica-web-app
 Build Command: cd apps/web-app && pnpm build:cloudflare
@@ -29,6 +30,7 @@ Environment Variables:
 ```
 
 #### 👨‍⚕️ **Doctors App**
+
 ```
 Project Name: autamedica-doctors
 Build Command: cd apps/doctors && pnpm add @opennextjs/cloudflare && pnpm build:cloudflare
@@ -41,6 +43,7 @@ Environment Variables:
 ```
 
 #### 👤 **Patients App**
+
 ```
 Project Name: autamedica-patients
 Build Command: cd apps/patients && pnpm add @opennextjs/cloudflare && pnpm build:cloudflare
@@ -53,6 +56,7 @@ Environment Variables:
 ```
 
 #### 🏢 **Companies App**
+
 ```
 Project Name: autamedica-companies
 Build Command: cd apps/companies && pnpm add @opennextjs/cloudflare && pnpm build:cloudflare
@@ -67,11 +71,13 @@ Environment Variables:
 ## 🚀 Método 2: Despliegue via CLI (después de autenticación)
 
 ### Paso 1: Autenticación
+
 ```bash
 wrangler login
 ```
 
 ### Paso 2: Crear proyectos
+
 ```bash
 # Web App
 cd apps/web-app
@@ -91,6 +97,7 @@ wrangler pages project create autamedica-companies --production-branch main
 ```
 
 ### Paso 3: Deploy
+
 ```bash
 # Desde cada app
 pnpm deploy:cloudflare
@@ -135,6 +142,7 @@ cp ../web-app/wrangler.toml . # Ya está creado
 ## 🔧 Troubleshooting
 
 ### Error: "experimental.esmExternals warning"
+
 ```javascript
 // En next.config.js, remover:
 experimental: {
@@ -143,7 +151,9 @@ experimental: {
 ```
 
 ### Error: "node_modules pattern matching"
+
 Revisar `tailwind.config.js` y optimizar patterns:
+
 ```javascript
 content: [
   './src/**/*.{js,ts,jsx,tsx}',
@@ -152,7 +162,9 @@ content: [
 ```
 
 ### Build timeout
+
 Aumentar límites en Cloudflare Dashboard:
+
 - Build timeout: 20 minutos
 - Memory limit: 2GB
 

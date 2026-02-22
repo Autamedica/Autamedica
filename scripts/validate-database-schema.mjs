@@ -227,7 +227,7 @@ function compareSchemas(sqlTables, typeTables) {
   };
 
   // Tablas faltantes en TypeScript
-  for (const [tableName, sqlTable] of sqlTables) {
+  for (const [tableName] of sqlTables) {
     if (!typeTables.has(tableName)) {
       issues.missingTables.push(tableName);
     }
@@ -329,7 +329,7 @@ function areTypesCompatible(sqlType, tsType) {
     'Json': ['Json', 'JSON', 'JSONB']
   };
 
-  for (const [group, types] of Object.entries(normalized)) {
+  for (const [, types] of Object.entries(normalized)) {
     if (types.includes(sqlType) && types.includes(tsType)) {
       return true;
     }
@@ -357,7 +357,7 @@ function checkGlosarioDocumentation() {
       hasSection: !!databaseSectionMatch,
       content: databaseSectionMatch ? databaseSectionMatch[1] : ''
     };
-  } catch (error) {
+  } catch {
     return { hasSection: false, content: '' };
   }
 }
@@ -369,7 +369,7 @@ async function main() {
   log('🔍 Validando sincronización entre esquema SQL y tipos TypeScript...', 'cyan');
 
   // 1. Leer archivos
-  const schemaPath = join(rootDir, 'database', 'schema.sql');
+  const schemaPath = join(rootDir, 'docs', 'database', 'schema.sql');
   const typesPath = join(rootDir, 'packages', 'types', 'src', 'supabase', 'database.types.ts');
 
   if (!existsSync(schemaPath)) {

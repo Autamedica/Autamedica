@@ -14,6 +14,7 @@ node test-role-routing.mjs
 ```
 
 **🎯 En 30 segundos tendrás:**
+
 - ✅ 5 aplicaciones ejecutándose en paralelo
 - ✅ Sistema de roles completamente funcional
 - ✅ Datos de prueba listos para testing
@@ -22,13 +23,13 @@ node test-role-routing.mjs
 
 ## 🌐 **URLs de Desarrollo**
 
-| Aplicación | URL Local | Propósito |
-|------------|-----------|-----------|
-| **Web-App** | http://localhost:3000 | Landing + Auth central |
-| **Doctors** | http://localhost:3001 | Portal médicos profesional |
-| **Patients** | http://localhost:3002 | Portal pacientes personal |
+| Aplicación    | URL Local             | Propósito                   |
+| ------------- | --------------------- | --------------------------- |
+| **Web-App**   | http://localhost:3000 | Landing + Auth central      |
+| **Doctors**   | http://localhost:3001 | Portal médicos profesional  |
+| **Patients**  | http://localhost:3002 | Portal pacientes personal   |
 | **Companies** | http://localhost:3003 | Portal empresarial + Crisis |
-| **Admin** | http://localhost:3004 | Panel administrativo |
+| **Admin**     | http://localhost:3004 | Panel administrativo        |
 
 ---
 
@@ -47,6 +48,7 @@ node test-role-routing.mjs
 ```
 
 **🎯 Flujo de Testing:**
+
 1. Ir a http://localhost:3000/auth/login
 2. Usar cualquier email de arriba
 3. Sistema redirige automáticamente al portal correcto
@@ -57,6 +59,7 @@ node test-role-routing.mjs
 ## 🧪 **Validación Rápida**
 
 ### ⚡ **Tests Automatizados**
+
 ```bash
 # Verificar role routing (debe mostrar 7/7 roles OK)
 node test-role-routing.mjs
@@ -69,6 +72,7 @@ pnpm docs:validate
 ```
 
 ### 🔍 **Verificación Manual en DB**
+
 ```sql
 -- Conectar a Supabase y ejecutar:
 
@@ -92,6 +96,7 @@ WHERE organization_id = '00000000-0000-0000-0000-000000000111';
 ## 🔄 **Workflows Comunes**
 
 ### 🛠️ **Desarrollo Activo**
+
 ```bash
 # Solo web-app (más rápido para auth testing)
 pnpm dev --filter @autamedica/web-app
@@ -104,6 +109,7 @@ pnpm dev --filter @autamedica/web-app --filter @autamedica/doctors
 ```
 
 ### 🚀 **Preparar Deploy**
+
 ```bash
 # Build completo
 pnpm build
@@ -113,6 +119,7 @@ pnpm typecheck && pnpm lint && node test-role-routing.mjs
 ```
 
 ### 🔧 **Resolver Problemas Comunes**
+
 ```bash
 # Limpiar cache si hay problemas
 rm -rf node_modules dist .next .turbo
@@ -130,6 +137,7 @@ node -e "console.log('Seeds check: Connect to Supabase and run verification quer
 ## 🎯 **Flujos de Testing por Rol**
 
 ### 1. **Testing Organization Admin**
+
 ```bash
 # 1. Login como admin@clinica-demo.com
 # 2. Debe redirigir a Admin Portal (localhost:3004)
@@ -137,6 +145,7 @@ node -e "console.log('Seeds check: Connect to Supabase and run verification quer
 ```
 
 ### 2. **Testing Company Portal**
+
 ```bash
 # 1. Login como company@clinica-demo.com
 # 2. Debe redirigir a Companies Portal (localhost:3003)
@@ -144,6 +153,7 @@ node -e "console.log('Seeds check: Connect to Supabase and run verification quer
 ```
 
 ### 3. **Testing Doctor Portal**
+
 ```bash
 # 1. Login como doctor@clinica-demo.com
 # 2. Debe redirigir a Doctors Portal (localhost:3001)
@@ -151,6 +161,7 @@ node -e "console.log('Seeds check: Connect to Supabase and run verification quer
 ```
 
 ### 4. **Testing Patient Portal**
+
 ```bash
 # 1. Login como patient@clinica-demo.com
 # 2. Debe redirigir a Patients Portal (localhost:3002)
@@ -162,12 +173,14 @@ node -e "console.log('Seeds check: Connect to Supabase and run verification quer
 ## 📚 **Archivos Clave**
 
 ### 🔐 **Sistema de Roles**
+
 - `supabase/migrations/20250929_introduce_role_system.sql` - Migración principal
 - `supabase/seed_role_system.sql` - Datos de prueba
 - `test-role-routing.mjs` - Tests automatizados
 - `packages/shared/src/role-routing.ts` - Lógica de routing
 
 ### 📊 **Monitoreo**
+
 - `ROLE_SYSTEM_STATUS.md` - Estado del sistema completo
 - `.github/workflows/` - CI/CD automático
 - `package.json` - Scripts disponibles
@@ -177,12 +190,14 @@ node -e "console.log('Seeds check: Connect to Supabase and run verification quer
 ## 🚨 **Solución de Problemas**
 
 ### ❌ **Puerto ocupado**
+
 ```bash
 # Matar procesos en puertos 3000-3004
 lsof -ti:3000,3001,3002,3003,3004 | xargs -r kill -9
 ```
 
 ### ❌ **Seeds no aplicados**
+
 ```bash
 # Ir a Supabase Dashboard SQL Editor:
 # https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/sql
@@ -191,6 +206,7 @@ lsof -ti:3000,3001,3002,3003,3004 | xargs -r kill -9
 ```
 
 ### ❌ **Tests fallan**
+
 ```bash
 # Verificar que packages están built
 pnpm build:packages
@@ -207,12 +223,14 @@ node test-role-routing.mjs
 ## 🎯 **Next Steps**
 
 ### 🔥 **Testing Inmediato**
+
 1. ✅ Ejecutar `pnpm dev`
 2. ✅ Probar login con usuarios demo
 3. ✅ Verificar redirects automáticos
 4. ✅ Confirmar que cada portal carga correctamente
 
 ### 🚀 **Development Ready**
+
 - Sistema 100% operativo para desarrollo
 - Base sólida para features avanzadas
 - CI/CD automático configurado

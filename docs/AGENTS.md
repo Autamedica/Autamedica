@@ -4,19 +4,19 @@
 
 ## Quick Reference
 
-| Comando | Descripción |
-|---------|-------------|
-| `pnpm build:packages:core` | Compilar packages antes de usarlos en apps |
-| `pnpm --filter @autamedica/web dev` | Dev server Astro (port 3000) |
-| `pnpm --filter @autamedica/web check` | astro check (TypeScript 0 errors) |
-| `pnpm --filter @autamedica/web build` | Build Astro → dist/ |
-| `pnpm lint` | ESLint todo el monorepo |
-| `pnpm lint:fix` | Auto-fix ESLint |
-| `pnpm typecheck` | TypeScript check global |
-| `pnpm test:unit` | Tests unitarios (Vitest) |
-| `pnpm build` | Turbo build completo (solo CI/CD) |
-| `pnpm db:sync` | Regenerar tipos desde DB |
-| `pnpm deploy:web` | Build + deploy apps/web a Cloudflare Pages |
+| Comando                               | Descripción                                |
+| ------------------------------------- | ------------------------------------------ |
+| `pnpm build:packages:core`            | Compilar packages antes de usarlos en apps |
+| `pnpm --filter @autamedica/web dev`   | Dev server Astro (port 3000)               |
+| `pnpm --filter @autamedica/web check` | astro check (TypeScript 0 errors)          |
+| `pnpm --filter @autamedica/web build` | Build Astro → dist/                        |
+| `pnpm lint`                           | ESLint todo el monorepo                    |
+| `pnpm lint:fix`                       | Auto-fix ESLint                            |
+| `pnpm typecheck`                      | TypeScript check global                    |
+| `pnpm test:unit`                      | Tests unitarios (Vitest)                   |
+| `pnpm build`                          | Turbo build completo (solo CI/CD)          |
+| `pnpm db:sync`                        | Regenerar tipos desde DB                   |
+| `pnpm deploy:web`                     | Build + deploy apps/web a Cloudflare Pages |
 
 **Package Manager**: `pnpm` únicamente (NUNCA npm/yarn)
 
@@ -40,6 +40,7 @@
 **Objetivo:** Historial limpio, sin merge hell, aislamiento estricto.
 
 ### Reglas
+
 1. **`main` es Producción.** Única rama eterna. Siempre desplegable. Sin commits directos (usar PR/Merge).
 2. **Feature Branches (`feat/...`, `fix/...`) son Descartables.**
    - Crear para UNA tarea específica.
@@ -52,6 +53,7 @@
 ## 1.2 Repository Hygiene (Non-Regressive)
 
 **Reglas hard**
+
 - Root solo para runtime/config/docs core.
 - Nunca versionar artefactos temporales (`tmp-*`, logs, screenshots, `*.pid`, dumps).
 - Outputs generados (`dist/`, `.astro/`, `.next/`, `.open-next/`) no se commitean nunca.
@@ -59,6 +61,7 @@
 - Si aparece un nuevo patrón de artefacto local, actualizar `.gitignore` en el mismo commit.
 
 **Checklist pre-commit (obligatorio)**
+
 1. `git status --short` sin archivos fuera de lugar.
 2. `pnpm lint && pnpm typecheck` limpios.
 3. Si hubo rename/move: validar referencias con `grep -r`.
@@ -89,6 +92,7 @@ pnpm lint:fix                           # Auto-fix
 ## 3. Code Style
 
 ### TypeScript
+
 - **Strict mode** — Sin `any`. Usar `unknown` + validación.
 - **Return types explícitos** en funciones públicas.
 - **Null vs Undefined**: `undefined` para no cargado, `null` para vacío explícito/reset.
@@ -98,21 +102,23 @@ pnpm lint:fix                           # Auto-fix
 
 ```typescript
 // Correcto
-export type PatientId = string & { readonly _brand: 'PatientId' };
-export type DoctorId = string & { readonly _brand: 'DoctorId' };
+export type PatientId = string & { readonly _brand: "PatientId" };
+export type DoctorId = string & { readonly _brand: "DoctorId" };
 // Error en compile-time si se mezclan
 ```
 
 ### Naming Conventions
-| Tipo | Patrón | Ejemplo |
-|------|---------|---------|
-| Páginas Astro | `{name}.astro` | `appointments.astro` |
-| Islands React | `{Name}.tsx` (PascalCase) | `AppointmentCard.tsx` |
-| Hooks | `use{Name}.ts` | `useAppointments.ts` |
-| Tipos | `{Entity}` en `@autamedica/types` | `Doctor`, `Patient` |
-| API endpoints Astro | `{action}.ts` en `pages/api/` | `vitals.ts` |
+
+| Tipo                | Patrón                            | Ejemplo               |
+| ------------------- | --------------------------------- | --------------------- |
+| Páginas Astro       | `{name}.astro`                    | `appointments.astro`  |
+| Islands React       | `{Name}.tsx` (PascalCase)         | `AppointmentCard.tsx` |
+| Hooks               | `use{Name}.ts`                    | `useAppointments.ts`  |
+| Tipos               | `{Entity}` en `@autamedica/types` | `Doctor`, `Patient`   |
+| API endpoints Astro | `{action}.ts` en `pages/api/`     | `vitals.ts`           |
 
 ### Formatting
+
 - Single quotes, 100 char width, trailing commas ES5.
 - `pnpm lint:fix` para auto-formato.
 
@@ -121,6 +127,7 @@ export type DoctorId = string & { readonly _brand: 'DoctorId' };
 ## 4. Architecture & Ownership
 
 ### Monorepo Structure
+
 ```
 apps/
   web/           # Astro 5 + React 19 islands (MIGRACIÓN ACTIVA)
@@ -144,6 +151,7 @@ supabase/
 ```
 
 ### Reglas de Ownership
+
 - **`packages/*`**: lógica compartida, tipos, auth, hooks — sin lógica de presentación.
 - **`apps/*/src/components`**: islands React o componentes Astro — sin lógica de negocio inline.
 - **Prohibido** que apps importen directamente de otras apps. Solo via `packages/*`.
@@ -154,22 +162,24 @@ supabase/
 ## 5. Astro-Specific Patterns
 
 ### Islands Directives
+
 - `client:load` — interactividad inmediata (above-the-fold, crítico para UX).
 - `client:visible` — lazy cuando entra al viewport (below-the-fold).
 - `client:only="react"` — cuando el componente no puede hacer SSR.
 - Estado entre islands: `localStorage` o React Context DENTRO del island.
 
 ### Middleware y API Endpoints
+
 ```typescript
 // Middleware: defineMiddleware de astro:middleware
-import { defineMiddleware } from 'astro:middleware';
+import { defineMiddleware } from "astro:middleware";
 export const onRequest = defineMiddleware(async (context, next) => {
   // context.locals.session, context.locals.supabase
   return next();
 });
 
 // API Endpoint
-import type { APIRoute } from 'astro';
+import type { APIRoute } from "astro";
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.json();
   return new Response(JSON.stringify({ ok: true }), { status: 200 });
@@ -177,23 +187,26 @@ export const POST: APIRoute = async ({ request }) => {
 ```
 
 ### Variables de Entorno (Astro)
+
 - **Siempre** `PUBLIC_*` (NUNCA `NEXT_PUBLIC_*` en apps/web).
 - **Siempre** `import.meta.env` (NUNCA `process.env` en apps/web).
 - Tipar en `src/env.d.ts`: `ImportMetaEnv` + `App.Locals`.
 
 ### Cookies en Middleware (Gotcha crítico)
+
 - `AstroCookies` NO tiene `getAll()`.
 - Parsear el Cookie header directamente:
   ```typescript
-  const cookieHeader = context.request.headers.get('cookie') ?? '';
-  return cookieHeader.split('; ').map(c => {
-    const eq = c.indexOf('=');
-    return { name: eq >= 0 ? c.slice(0, eq) : c, value: eq >= 0 ? c.slice(eq + 1) : '' };
+  const cookieHeader = context.request.headers.get("cookie") ?? "";
+  return cookieHeader.split("; ").map((c) => {
+    const eq = c.indexOf("=");
+    return { name: eq >= 0 ? c.slice(0, eq) : c, value: eq >= 0 ? c.slice(eq + 1) : "" };
   });
   ```
 - `AstroCookies.set()` requiere castear `options as any` si Supabase SSR pasa `Partial<CookieSerializeOptions>`.
 
 ### Migración Next.js → Astro (Checklist)
+
 - [ ] `next/dynamic` → imports estáticos + directivas `client:*`.
 - [ ] `useRouter` de `next/navigation` → `window.location` o `<a href>`.
 - [ ] `styled-jsx` (`<style jsx>`) → `<style>` regular o Tailwind.
@@ -217,55 +230,63 @@ export const POST: APIRoute = async ({ request }) => {
 ## 7. Supabase (DB + Edge Functions)
 
 ### Storage Paths
+
 ```typescript
 // CORRECTO — sin prefijo de bucket
-await supabase.storage.from('medical-docs').upload(`${userId}/doc.pdf`, file);
+await supabase.storage.from("medical-docs").upload(`${userId}/doc.pdf`, file);
 
 // INCORRECTO — rompe RLS
-await supabase.storage.from('medical-docs').upload(`medical-docs/${userId}/doc.pdf`, file);
+await supabase.storage.from("medical-docs").upload(`medical-docs/${userId}/doc.pdf`, file);
 ```
 
 ### Error Handling
+
 ```typescript
-const { data, error } = await supabase.from('appointments').select();
+const { data, error } = await supabase.from("appointments").select();
 if (error) {
-  logger.error('Query failed', error); // logger de @autamedica/shared, nunca console.*
+  logger.error("Query failed", error); // logger de @autamedica/shared, nunca console.*
   throw error;
 }
 ```
 
 ### RPC & Queries
+
 ```typescript
 // Correcto (schema explícito via Accept-Profile)
-const { data } = await supabase.schema('public').rpc('get_patient_appointments', { patient_id });
+const { data } = await supabase.schema("public").rpc("get_patient_appointments", { patient_id });
 
 // OK (default schema = public)
-const { data } = await supabase.rpc('get_patient_appointments', { patient_id });
+const { data } = await supabase.rpc("get_patient_appointments", { patient_id });
 
 // INCORRECTO — se convierte en public.public.fn en PostgREST
-const { data } = await supabase.rpc('public.get_patient_appointments', { patient_id });
+const { data } = await supabase.rpc("public.get_patient_appointments", { patient_id });
 ```
 
 ### Migraciones
+
 - Naming: `YYYYMMDDHHMMSS_name.sql`.
 - Idempotentes: `IF NOT EXISTS` y checks antes de `DROP`.
 - Tablas nuevas requieren políticas RLS.
 - Datos médicos: retención mínima 15 años (ley Argentina).
 
 ### Edge Functions
+
 - Siempre retornar errores HTTP semánticos (400/404/409), no 500 genérico.
 - Nunca hardcodear secrets; usar `Deno.env.get(...)`.
 - Logging estructurado con prefijo `[function-name]`.
 - Ver logs en Supabase Dashboard.
 
 ### Two-Plane Debugging (UI vs DB) — Crítico
+
 Siempre hay dos planos:
+
 - **UI/Client gating**: lo que la UI permite, filtra, deshabilita u oculta (guards, middleware Astro, queries).
 - **DB enforcement**: lo que la DB realmente permite (enums, triggers, constraints, RLS).
 
 Si un bug parece "se guardó pero no se ve" o "desapareció", asumir **RLS y filtros** primero.
 
 **Auth context (Edge Functions):**
+
 - `auth.uid()` solo existe si el request incluye un **JWT de usuario** (header `Authorization`).
 - Llamar un RPC con **service role** usualmente hace que `auth.uid()` quede NULL → RLS falla.
 - Patrón en Edge Functions: 2 clientes Supabase:
@@ -273,6 +294,7 @@ Si un bug parece "se guardó pero no se ve" o "desapareció", asumir **RLS y fil
   - anon key + `Authorization` forwardeado para RPCs user-scoped.
 
 ### Roles de Usuario (AutaMedica)
+
 - `patient` → redirige `/dashboard`
 - `doctor` → redirige `/doctor/dashboard`
 - `company` → redirige `/company/dashboard`
@@ -280,9 +302,11 @@ Si un bug parece "se guardó pero no se ve" o "desapareció", asumir **RLS y fil
 - Sin rol → redirige `/auth/select-role`
 
 ### DB Access CLI (Producción)
+
 ```bash
 PGPASSWORD="$DB_PASSWORD" psql "postgresql://postgres.gtyvdircfhmdjiaelqkg@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=5"
 ```
+
 Nunca pegar credenciales en chat o commitearlas a git.
 
 ---
@@ -296,20 +320,20 @@ Nunca pegar credenciales en chat o commitearlas a git.
 
 ## 9. Anti-Patterns
 
-| Evitar | Usar en cambio |
-|--------|---------------|
-| `console.*` en prod | `logger` de `@autamedica/shared` |
-| `process.env` en apps/web | `import.meta.env.PUBLIC_*` |
-| `next/dynamic` en apps/web | Imports estáticos + `client:*` |
-| `styled-jsx` (`<style jsx>`) | `<style>` regular o Tailwind |
-| Import `.tsx` con extensión en `.astro` | Omitir extensión |
-| `supabase.*` directo en components | Hooks de `@autamedica/hooks` |
-| Cross-app imports | Solo via `packages/*` |
-| `any` type | `unknown` + type guards |
-| Lógica médica/financiera en frontend | Backend es la autoridad |
-| Hardcoded strings de dominio | Constantes en `@autamedica/types` |
-| `useRouter` de `next/navigation` en Astro | `window.location` o `<a href>` |
-| `req.body.user_id` en Edge Functions | `auth.getUser()` (JWT) |
+| Evitar                                    | Usar en cambio                    |
+| ----------------------------------------- | --------------------------------- |
+| `console.*` en prod                       | `logger` de `@autamedica/shared`  |
+| `process.env` en apps/web                 | `import.meta.env.PUBLIC_*`        |
+| `next/dynamic` en apps/web                | Imports estáticos + `client:*`    |
+| `styled-jsx` (`<style jsx>`)              | `<style>` regular o Tailwind      |
+| Import `.tsx` con extensión en `.astro`   | Omitir extensión                  |
+| `supabase.*` directo en components        | Hooks de `@autamedica/hooks`      |
+| Cross-app imports                         | Solo via `packages/*`             |
+| `any` type                                | `unknown` + type guards           |
+| Lógica médica/financiera en frontend      | Backend es la autoridad           |
+| Hardcoded strings de dominio              | Constantes en `@autamedica/types` |
+| `useRouter` de `next/navigation` en Astro | `window.location` o `<a href>`    |
+| `req.body.user_id` en Edge Functions      | `auth.getUser()` (JWT)            |
 
 ---
 
@@ -387,6 +411,7 @@ Nunca pegar credenciales en chat o commitearlas a git.
 Para protocolos detallados de hardening (enum sync, schema verification, migration idempotency, Edge Function auth patterns, RLS audit scripts, typed status updates, pre-deploy verification), ver **`AGENTS-2.md`** en el root del proyecto.
 
 Temas clave en AGENTS-2.md:
+
 - Enum Sync Protocol (DB ↔ TypeScript)
 - Schema Verification antes de codificar
 - Migration Idempotency Standards
