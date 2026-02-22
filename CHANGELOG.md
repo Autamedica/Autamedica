@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- 2053d6d feat: update auth flow and portal entrypoints
 - cd4cbaa feat: ship astro migration slices with seo and routing hardening
 - 53a0d6d feat(auth): remove role from login flow — detect role automatically post-auth
 - f35c7ab feat(web): apply NYT editorial philosophy to landing copy
@@ -13,12 +14,14 @@
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
 ### 🔧 Mejoras y Optimizaciones
+- 04d6c49 chore: persist post-commit auth layout/style updates
 - e4579f6 chore(auth): add workflow to seed QA login users
 - d629ad5 chore: remove explicit-any warnings in shared db wrapper
 - 880e183 chore(ci): add staged debt and db drift guards to pre-commit
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 749994b fix: harden turbo hook and persist shared auth redirect updates
 - a7630b9 fix(deploy): treat existing custom domains as success
 - f97ce6a fix(deploy): attach doctors and companies custom domains
 - a887a05 fix(deploy): attach patients custom domain after Pages deploy
@@ -61,6 +64,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 1e899ed 📝 docs: actualizar changelog automático
 - 78fd3ec 📝 docs: actualizar changelog automático
 - 664d52b 📝 docs: actualizar changelog automático
 - f120ac7 📝 docs: actualizar changelog automático
@@ -123,4 +127,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 04:23:11*
+*Generado automáticamente el 2026-02-22 05:01:17*
