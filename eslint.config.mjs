@@ -1,11 +1,11 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
-import globals from 'globals';
 import unusedImports from 'eslint-plugin-unused-imports';
+import globals from 'globals';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -254,14 +254,15 @@ js.configs.recommended,
   rules: {
     'no-restricted-properties': 'off',
   },
-}, // Configuration files - need TypeScript parser
-{
+}, {
   files: [
     '**/*.config.{ts,mts}',
     '**/middleware.{ts,mts}',
     '**/open-next.config.{ts,mts}',
     '**/tsup.config.{ts,mts}',
     '**/vitest.config.{ts,mts}',
+    '**/vitest.config.example.{ts,mts}',
+    'worker/**/*.{ts,mts}',
   ],
   languageOptions: {
     parser: tsparser,

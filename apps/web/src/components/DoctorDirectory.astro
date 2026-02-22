@@ -70,25 +70,27 @@ const doctors = [
       <p class="directory-subtitle">Medicos verificados, disponibles para tu consulta</p>
     </div>
 
-    <div class="doctor-grid">
-      {doctors.map((d) => (
-        <article class="doctor-card animate-on-scroll">
-          <div class="doctor-avatar" style={`background: ${d.gradient}`} set:html={d.icon} />
-          <div class="doctor-info">
-            <h3 class="doctor-name">{d.name}</h3>
-            <p class="doctor-specialty">{d.specialty}</p>
-            <div class="doctor-meta">
-              <span>{d.experience} anios exp.</span>
-              <span class="doctor-meta-dot" aria-hidden="true" />
-              <span>{d.languages.join(', ')}</span>
+    <div class="directory-marquee-wrapper">
+      <div class="doctor-marquee">
+        {doctors.map((d) => (
+          <article class="doctor-card">
+            <div class="doctor-avatar" style={`background: ${d.gradient}`} set:html={d.icon} />
+            <div class="doctor-info">
+              <h3 class="doctor-name">{d.name}</h3>
+              <p class="doctor-specialty">{d.specialty}</p>
+              <div class="doctor-meta">
+                <span>{d.experience} anios exp.</span>
+                <span class="doctor-meta-dot" aria-hidden="true" />
+                <span>{d.languages.join(', ')}</span>
+              </div>
+              <div class="doctor-availability">
+                <span class={`status-dot ${d.available ? 'available' : ''}`} aria-hidden="true" />
+                <span>{d.available ? 'Disponible hoy' : 'Disponible manana'}</span>
+              </div>
             </div>
-            <div class="doctor-availability">
-              <span class={`status-dot ${d.available ? 'available' : ''}`} aria-hidden="true" />
-              <span>{d.available ? 'Disponible hoy' : 'Disponible manana'}</span>
-            </div>
-          </div>
-        </article>
-      ))}
+          </article>
+        ))}
+      </div>
     </div>
 
     <div class="directory-cta animate-on-scroll">
@@ -131,25 +133,41 @@ const doctors = [
     margin: 0;
   }
 
-  .doctor-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-4);
+  .directory-marquee-wrapper {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    padding: var(--space-8) 0;
+    overflow: hidden;
+  }
+
+  .doctor-marquee {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-6);
+    padding: 0 var(--space-8);
+    width: max-content;
   }
 
   .doctor-card {
+    width: 360px;
+    flex-shrink: 0;
     display: flex;
     gap: var(--space-4);
     padding: var(--space-6);
-    border: 1px solid var(--au-border);
+    border: 1px solid rgba(255, 255, 255, 0.08); /* Premium subtle border */
     border-radius: var(--radius-md);
-    background: var(--au-bg);
-    transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+    background: rgba(255, 255, 255, 0.02); /* Glass background */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05); /* Inner light */
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* Smooth Apple-like easing */
   }
 
   .doctor-card:hover {
-    border-color: var(--au-border-hover);
-    box-shadow: var(--shadow-glow);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
   }
 
   .doctor-avatar {
@@ -246,15 +264,56 @@ const doctors = [
     border-color: var(--au-border-hover);
   }
 
-  @media (max-width: 1024px) {
-    .doctor-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
   @media (max-width: 640px) {
-    .doctor-grid {
-      grid-template-columns: 1fr;
+    .doctor-card {
+      width: 300px;
     }
   }
 </style>
+
+<script>
+  import { gsap } from 'gsap';
+  import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  // ── GSAP Mobile Best Practices ──
+  ScrollTrigger.config({ ignoreMobileResize: true });
+
+  if ('ontouchstart' in window) {
+    ScrollTrigger.normalizeScroll({ allowNestedScroll: true });
+  }
+
+  const initMarquee = () => {
+    const marquee = document.querySelector('.doctor-marquee') as HTMLElement;
+    const wrapper = document.querySelector('.directory-marquee-wrapper') as HTMLElement;
+    
+    if (marquee && wrapper) {
+      // GPU-accelerate the animated element
+      marquee.style.willChange = 'transform';
+
+      const containerWidth = marquee.offsetWidth;
+      const windowWidth = window.innerWidth;
+      
+      if (containerWidth > windowWidth) {
+        const scrollDistance = containerWidth - windowWidth + 64; 
+        
+        gsap.to(marquee, {
+          x: -scrollDistance,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: wrapper,
+            start: 'center center',
+            end: () => `+=${scrollDistance}`,
+            scrub: 1,
+            pin: true,
+            anticipatePin: 1
+          }
+        });
+      }
+    }
+  };
+
+  // Setup after render
+  initMarquee();
+</script>

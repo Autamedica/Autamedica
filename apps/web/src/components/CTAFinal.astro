@@ -1,17 +1,31 @@
 ---
-
+import { TextReveal } from './ui/TextReveal';
+import { MagneticButton } from './ui/MagneticButton';
 ---
 
 <section class="cta-final" aria-label="Llamada a la accion">
-  <div class="cta-glow" aria-hidden="true"></div>
-  <div class="cta-inner animate-on-scroll">
-    <h2 class="cta-title">Cuando tengas una consulta,<br>los médicos están acá.</h2>
-    <p class="cta-subtitle">Consultas médicas de calidad, sin sala de espera.</p>
-    <div class="cta-actions">
-      <a href="/auth/select-role" class="cta-btn-primary">
-        Agendá tu consulta
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
+  <div class="cta-inner">
+    <div class="cta-text-wrapper min-h-[50vh] flex flex-col items-center justify-center relative z-10">
+      <TextReveal 
+        text="los médicos\nestán acá." 
+        className="cta-huge-title text-[12vw] leading-[0.85] tracking-tighter sm:text-[10vw] md:text-[8vw] font-bold text-center text-white mix-blend-difference" 
+        client:visible 
+        delay={0.1}
+      />
+      
+      <p class="cta-subtitle mt-12 mb-16 text-xl md:text-2xl text-[var(--au-text-secondary)] font-light max-w-2xl text-center">
+        Consultas médicas remotas en Full HD. Infraestructura de atención disponible 24/7.
+      </p>
+
+      <MagneticButton client:visible stiffness={200} damping={10}>
+        <a href="/auth/select-role" class="cta-btn-premium group">
+          <span class="relative z-10 flex items-center gap-3">
+            Acceder a la plataforma
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 group-hover:translate-x-1"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+          <div class="absolute inset-0 bg-white scale-y-[0.01] origin-bottom group-hover:scale-y-100 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)]" />
+        </a>
+      </MagneticButton>
     </div>
   </div>
 </section>
@@ -19,69 +33,36 @@
 <style>
   .cta-final {
     position: relative;
-    padding: var(--section-py) var(--section-px);
-    background: var(--au-surface);
-    border-top: 1px solid var(--au-border);
-    border-bottom: 1px solid var(--au-border);
+    padding: clamp(6rem, 15vh, 12rem) var(--section-px);
+    background: #0A0A0A; /* Deep dark to contrast with footer */
     overflow: hidden;
-  }
-
-  .cta-glow {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.02), transparent 70%);
-    pointer-events: none;
   }
 
   .cta-inner {
     position: relative;
-    max-width: 640px;
+    max-width: 1400px;
     margin: 0 auto;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  .cta-title {
-    font-size: var(--text-4xl);
-    font-weight: var(--font-medium);
-    color: var(--au-text-primary);
-    margin: 0 0 var(--space-4);
-    letter-spacing: -0.03em;
-  }
-
-  .cta-subtitle {
-    font-size: var(--text-xl);
-    color: var(--au-text-secondary);
-    margin: 0 0 var(--space-8);
-    line-height: 1.6;
-  }
-
-  .cta-actions {
-    margin-bottom: var(--space-4);
-  }
-
-  .cta-btn-primary {
+  .cta-btn-premium {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-4) var(--space-8);
-    font-size: var(--text-base);
-    font-weight: var(--font-semibold);
-    color: var(--au-bg);
-    background: var(--au-accent);
-    border-radius: var(--radius-sm);
-    transition: transform var(--transition-base), box-shadow var(--transition-base), opacity var(--transition-base);
-    box-shadow: var(--shadow-glow);
+    justify-content: center;
+    padding: 1.25rem 2.5rem;
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #0A0A0A;
+    background: #FFFFFF;
+    border-radius: 9999px;
+    overflow: hidden;
+    transition: color 0.4s ease;
   }
 
-  .cta-btn-primary:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.1);
-  }
-
-  .cta-note {
-    font-size: var(--text-xs);
-    color: var(--au-text-tertiary);
-    margin: 0;
+  .cta-btn-premium:hover {
+    color: #000000;
   }
 </style>

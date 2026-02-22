@@ -1,94 +1,67 @@
 ---
-const props = [
+import { InteractiveBentoCard } from './ui/InteractiveBentoCard';
+
+const features = [
   {
-    icon: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-    title: "Consulta en minutos",
-    description: "Los médicos están disponibles ahora. Elegís el profesional y estás en consulta en menos de 5 minutos, sin sala de espera."
+    iconSvg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    title: "Privacidad por diseño",
+    description: "Cifrado de extremo a extremo. AutaMedica cumple con las normativas HIPAA y la Ley 25.326 de Protección de Datos Personales.",
+    videoSrc: "/videos/patient_historia_clinica.mp4",
+    isLarge: false
   },
   {
-    icon: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-    title: "Tus datos, protegidos",
-    description: "Tu historia clínica está cifrada y es tuya. Solo vos y tu médico tienen acceso. Nunca la compartimos con terceros."
+    iconSvg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>`,
+    title: "El médico mira al paciente, no al teclado",
+    description: "En una consulta clínica tradicional, el profesional pasa el 40% del tiempo escribiendo. En AutaMedica, un agente de IA transcribe y estructura la historia clínica en tiempo real durante la videollamada.",
+    videoSrc: "/videos/alta-agent-ia.mp4",
+    isLarge: true
   },
   {
-    icon: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/></svg>`,
-    title: "IA que trabaja para el médico",
-    description: "Nuestro asistente de IA agiliza el diagnóstico y el seguimiento clínico, para que el médico dedique su tiempo a atenderte."
+    iconSvg: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    title: "Especialistas al instante",
+    description: "Infraestructura P2P que conecta pacientes con profesionales de la salud sin intermediarios geográficos ni listas de espera.",
+    videoSrc: "/videos/patient_consulta_virtual.mp4",
+    isLarge: false
   }
 ];
 ---
 
-<section class="value-props" aria-label="Propuesta de valor">
-  <div class="value-props-inner">
-    {props.map((prop) => (
-      <article class="value-card animate-on-scroll">
-        <div class="value-icon" set:html={prop.icon} />
-        <h3 class="value-title">{prop.title}</h3>
-        <p class="value-desc">{prop.description}</p>
-      </article>
-    ))}
+<section class="relative bg-black py-24 sm:py-32 overflow-hidden" aria-label="Propuesta de valor">
+  {/* Ambient glowing background behind the grid */}
+  <div class="absolute left-1/2 top-1/2 -z-10 h-[600px] w-[800px] -translate-x-1/2 -translate-y-1/2 opacity-20 blur-[120px]" style="background: radial-gradient(circle, rgba(56,189,248,0.4) 0%, transparent 60%);"></div>
+
+  <div class="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
+    
+    <div class="mx-auto max-w-2xl lg:text-center mb-16 animate-on-scroll">
+      <h2 class="text-base font-semibold leading-7 text-primary/80 tracking-widest uppercase">La Diferencia</h2>
+      <p class="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl text-balance">
+        Menos burocracia.<br class="hidden sm:block" /> Más medicina.
+      </p>
+    </div>
+
+    <!-- Bento Grid -->
+    <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2">
+        {features.map((feature) => {
+          const gridClass = feature.isLarge 
+            ? "lg:col-span-2 lg:row-span-2 min-h-[400px] lg:min-h-[500px]" 
+            : "lg:col-span-1 lg:row-span-1 min-h-[300px]";
+
+          return (
+            <div class={`animate-on-scroll ${gridClass} flex w-full`}>
+              <InteractiveBentoCard 
+                client:visible
+                title={feature.title} 
+                description={feature.description} 
+                iconSvg={feature.iconSvg}
+                videoSrc={feature.videoSrc}
+                isLarge={feature.isLarge}
+                className="flex w-full"
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
   </div>
 </section>
-
-<style>
-  .value-props {
-    padding: var(--section-py) var(--section-px);
-    background: var(--au-bg);
-  }
-
-  .value-props-inner {
-    max-width: 1120px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-8);
-  }
-
-  .value-card {
-    padding: var(--space-8);
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-md);
-    background: var(--au-surface);
-    transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
-  }
-
-  .value-card:hover {
-    border-color: var(--au-border-hover);
-    box-shadow: var(--shadow-glow);
-  }
-
-  .value-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-sm);
-    background: var(--au-accent-soft);
-    border: 1px solid var(--au-border);
-    color: var(--au-accent);
-    margin-bottom: var(--space-6);
-  }
-
-  .value-title {
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
-    color: var(--au-text-primary);
-    margin: 0 0 var(--space-3);
-    letter-spacing: -0.01em;
-  }
-
-  .value-desc {
-    font-size: var(--text-base);
-    line-height: 1.7;
-    color: var(--au-text-secondary);
-    margin: 0;
-  }
-
-  @media (max-width: 768px) {
-    .value-props-inner {
-      grid-template-columns: 1fr;
-      gap: var(--space-4);
-    }
-  }
-</style>

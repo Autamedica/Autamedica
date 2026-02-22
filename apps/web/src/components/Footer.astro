@@ -3,50 +3,60 @@ const currentYear = new Date().getFullYear();
 
 const columns = [
   {
-    title: "Plataforma",
+    title: "PLATAFORMA",
     links: [
       { text: "Pacientes", href: "/auth/select-role" },
-      { text: "Medicos", href: "/auth/select-role" },
+      { text: "Médicos", href: "/auth/select-role" },
       { text: "Empresas", href: "/auth/select-role" },
     ]
   },
   {
-    title: "Recursos",
+    title: "RECURSOS",
     links: [
-      { text: "Como funciona", href: "#proceso" },
+      { text: "Cómo funciona", href: "#proceso" },
       { text: "Seguridad", href: "#" },
       { text: "Soporte", href: "#" },
     ]
   },
   {
-    title: "Legal",
+    title: "LEGAL",
     links: [
       { text: "Privacidad", href: "/privacy" },
-      { text: "Terminos", href: "/terms" },
+      { text: "Términos", href: "/terms" },
       { text: "HIPAA Compliance", href: "#" },
     ]
   }
 ];
 ---
 
-<footer class="footer" aria-label="Pie de pagina">
-  <div class="footer-inner">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <a href="/" class="footer-logo">
-          <img src="/logo.png" alt="AutaMedica" width="28" height="28" loading="lazy" />
-          <span>AutaMedica</span>
+<footer class="footer-premium" aria-label="Pie de pagina">
+  <div class="footer-wrap">
+    
+    <div class="footer-top-grid">
+      <div class="brand-col">
+        <a href="/" class="brand-logo group">
+          <div class="logo-box overflow-hidden relative w-10 h-10 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 group-hover:border-white/30 transition-colors">
+            <span class="text-white font-bold text-lg">A</span>
+          </div>
+          <span class="text-2xl font-medium tracking-tight mt-6 block text-white/90">AutaMedica</span>
         </a>
-        <p class="footer-tagline">Telemedicina sin fricciones.<br/>Desarrollado por E.M Medicina - UBA.</p>
+        <p class="brand-desc mt-4 text-[var(--au-text-tertiary)] text-lg max-w-sm font-light">
+          Telemedicina sin fricciones.<br/>Desarrollado por profesionales de salud - UBA.
+        </p>
       </div>
 
-      <div class="footer-columns">
+      <div class="nav-cols">
         {columns.map((col) => (
-          <div class="footer-column">
-            <h4 class="footer-column-title">{col.title}</h4>
-            <ul class="footer-column-links">
+          <div class="nav-group">
+            <h4 class="nav-header text-[10px] tracking-widest text-white/40 mb-8">{col.title}</h4>
+            <ul class="nav-list space-y-4">
               {col.links.map((link) => (
-                <li><a href={link.href}>{link.text}</a></li>
+                <li>
+                  <a href={link.href} class="nav-link text-white/60 hover:text-white transition-colors duration-300 text-lg relative inline-block group">
+                    {link.text}
+                    <span class="absolute -bottom-1 left-0 w-0 h-[1px] bg-white transition-all duration-300 group-hover:w-full" />
+                  </a>
+                </li>
               ))}
             </ul>
           </div>
@@ -54,154 +64,67 @@ const columns = [
       </div>
     </div>
 
-    <div class="footer-bottom">
-      <p class="footer-copy">&copy; {currentYear} AutaMedica. Todos los derechos reservados.</p>
-      <div class="footer-badges">
-        <span class="badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          HIPAA
-        </span>
-        <span class="badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          TLS 1.3
-        </span>
-        <span class="badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-          AES-256
-        </span>
+    {/* Massive Footer Typography */}
+    <div class="footer-massive-type overflow-hidden flex items-center justify-center mt-32 mb-16 select-none opacity-5">
+      <h2 class="text-[14vw] sm:text-[13.5vw] font-bold tracking-tighter leading-none whitespace-nowrap">AUTAMEDICA</h2>
+    </div>
+
+    <div class="footer-bottom-bar flex flex-col md:flex-row justify-between items-center py-8 border-t border-white/5 mt-16">
+      <p class="text-white/40 text-sm">&copy; {currentYear} AutaMedica. Todos los derechos reservados.</p>
+      
+      <div class="cert-badges flex gap-4 mt-6 md:mt-0">
+        {['HIPAA', 'TLS 1.3', 'AES-256'].map(cert => (
+          <span class="px-4 py-1.5 rounded-full border border-white/10 text-[10px] tracking-widest text-white/40 uppercase bg-white/5 backdrop-blur-sm">
+            {cert}
+          </span>
+        ))}
       </div>
     </div>
   </div>
 </footer>
 
 <style>
-  .footer {
-    padding: var(--space-12) var(--section-px) var(--space-6);
-    background: var(--au-bg);
-    border-top: 1px solid var(--au-border);
+  .footer-premium {
+    background: #000000;
+    color: white;
+    padding-top: clamp(8rem, 15vh, 12rem);
+    position: relative;
+    z-index: 10;
   }
 
-  .footer-inner {
-    max-width: 1120px;
+  .footer-wrap {
+    max-width: 1440px;
     margin: 0 auto;
+    padding: 0 max(2rem, 5vw);
   }
 
-  .footer-top {
-    display: grid;
-    grid-template-columns: 1.2fr 2fr;
-    gap: var(--space-12);
-    margin-bottom: var(--space-12);
-  }
-
-  .footer-logo {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--text-base);
-    font-weight: var(--font-semibold);
-    color: var(--au-text-primary);
-    margin-bottom: var(--space-3);
-  }
-
-  .footer-logo img {
-    border-radius: 4px;
-  }
-
-  .footer-tagline {
-    font-size: var(--text-sm);
-    color: var(--au-text-tertiary);
-    line-height: 1.6;
-    margin: 0;
-  }
-
-  .footer-columns {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-8);
-  }
-
-  .footer-column-title {
-    font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--au-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin: 0 0 var(--space-4);
-  }
-
-  .footer-column-links {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  .footer-top-grid {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: 6rem;
   }
 
-  .footer-column-links a {
-    font-size: var(--text-sm);
-    color: var(--au-text-tertiary);
-    transition: color var(--transition-base);
+  @media (min-width: 1024px) {
+    .footer-top-grid {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    .nav-cols {
+      display: flex;
+      gap: 6rem;
+    }
   }
 
-  .footer-column-links a:hover {
-    color: var(--au-text-primary);
+  .nav-cols {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4rem;
   }
-
-  .footer-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--au-border);
-  }
-
-  .footer-copy {
-    font-size: var(--text-xs);
-    color: var(--au-text-tertiary);
-    margin: 0;
-  }
-
-  .footer-badges {
-    display: flex;
-    gap: var(--space-3);
-  }
-
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-1);
-    font-size: 0.65rem;
-    font-weight: var(--font-semibold);
-    color: var(--au-text-tertiary);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-1) var(--space-2);
-  }
-
-  @media (max-width: 768px) {
-    .footer-top {
+  
+  @media (max-width: 640px) {
+    .nav-cols {
       grid-template-columns: 1fr;
-      gap: var(--space-8);
-    }
-
-    .footer-columns {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    .footer-bottom {
-      flex-direction: column;
-      gap: var(--space-4);
-      text-align: center;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .footer-columns {
-      grid-template-columns: 1fr;
-      gap: var(--space-6);
     }
   }
 </style>
