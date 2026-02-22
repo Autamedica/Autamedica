@@ -21,7 +21,5 @@ export default createNextAppConfig({
       },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
-  },
+  serverExternalPackages: ['@supabase/supabase-js'],
 });

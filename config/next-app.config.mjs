@@ -30,8 +30,8 @@ export function createNextAppConfig({
   includeImagesConfig = true,
   ignoreLintDuringBuild = true,
   ignoreTypeErrorsDuringBuild = true,
-  extendConfig = {},
   extendWebpack,
+  ...extendConfig
 } = {}) {
   if (!appDir) {
     throw new Error('createNextAppConfig requires `appDir` to be provided');
