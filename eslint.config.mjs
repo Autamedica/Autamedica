@@ -85,6 +85,9 @@ const eslintConfig = [...compat.extends("next/core-web-vitals", "next/typescript
     '**/supabase/.branches/**',
     '**/supabase/.temp/**',
 
+    // Archive directory - historical files, not linted
+    '.archive/**',
+
     // Other system files
     '**/bin/**',
     '**/snap/**',

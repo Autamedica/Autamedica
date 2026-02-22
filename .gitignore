@@ -63,6 +63,9 @@ apps/*/pnpm-lock.yaml
 *.tsbuildinfo
 .tsbuildinfo
 
+# Credentials — never commit
+TEST_CREDENTIALS.md
+
 # Generated local secrets
 generated-docs/*.production.local.txt
 

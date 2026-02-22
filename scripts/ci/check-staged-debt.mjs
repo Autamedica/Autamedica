@@ -37,7 +37,7 @@ function isCommentLine(content, filePath) {
 }
 
 function getStagedAddedLines() {
-  const output = execSync('git diff --cached --no-color -U0', { encoding: 'utf8' });
+  const output = execSync('git diff --cached --no-color -U0', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const lines = output.split('\n');
 
   const issues = [];

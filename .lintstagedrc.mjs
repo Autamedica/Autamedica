@@ -9,8 +9,10 @@
  * ESLint with --max-warnings=0 provides fast, per-file quality gates pre-commit.
  */
 const lintStagedConfig = {
-  "*.{ts,tsx,js,mjs}": (filenames) =>
-    `eslint --max-warnings=0 ${filenames.join(" ")}`,
+  "*.{ts,tsx,js,mjs}": (filenames) => {
+    const lintable = filenames.filter((f) => !f.includes('/.archive/'));
+    return lintable.length ? `eslint --max-warnings=0 ${lintable.join(" ")}` : 'echo "no files to lint"';
+  },
   "*.{json,md}": (filenames) =>
     `prettier --write ${filenames.join(" ")}`,
 };
