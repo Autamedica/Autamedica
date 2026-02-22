@@ -16,6 +16,13 @@ const {
 } = Astro.props;
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
+const currentPath = Astro.url.pathname;
+const currentSearch = Astro.url.search;
+const authFlowLinks = [
+  { href: '/auth/select-role', label: 'Perfil' },
+  { href: '/auth/login', label: 'Login' },
+  { href: '/auth/register', label: 'Registro' },
+];
 ---
 
 <!doctype html>
@@ -104,6 +111,17 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             Volver al inicio
           </a>
+          <nav class="auth-flow-nav" aria-label="Flujo de autenticacion">
+            {authFlowLinks.map((link) => {
+              const isCurrent = currentPath === link.href;
+              const hrefWithSearch = `${link.href}${currentSearch}`;
+              return (
+                <a href={hrefWithSearch} class:list={{ 'is-current': isCurrent }} aria-current={isCurrent ? 'page' : undefined}>
+                  {link.label}
+                </a>
+              );
+            })}
+          </nav>
           <slot />
         </div>
       </main>
