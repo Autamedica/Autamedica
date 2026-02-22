@@ -22,6 +22,8 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 9d70e2d fix(seo): allow indexing for companies landing route
+- 57290a4 fix(ci): disable legacy shellcheck noise in workflow lint gate
 - c122733 fix(ci): grant status permission to pr-size guard
 - 749994b fix: harden turbo hook and persist shared auth redirect updates
 - a7630b9 fix(deploy): treat existing custom domains as success
@@ -66,6 +68,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- a86a7e6 📝 docs: actualizar changelog automático
 - 2961e7e docs: add seo benchmark and 100-point senior roadmap
 - 34d0df6 📝 docs: actualizar changelog automático
 - 1e899ed 📝 docs: actualizar changelog automático
@@ -131,4 +134,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 05:40:54*
+*Generado automáticamente el 2026-02-22 05:45:17*
