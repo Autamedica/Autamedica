@@ -84,7 +84,7 @@ jobs:
 
     strategy:
       matrix:
-        app: [web, web-app, patients, doctors, companies, admin]
+        app: [web, patients, doctors, companies, admin]
       fail-fast: false
 
     steps:
