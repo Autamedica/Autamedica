@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { logger } from '@autamedica/shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

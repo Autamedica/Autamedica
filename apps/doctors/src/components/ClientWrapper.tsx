@@ -11,6 +11,7 @@ interface ClientWrapperProps {
 }
 
 export function ClientWrapper({ children }: ClientWrapperProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAuthStateChange = (event: string, session: any) => {
     if (event === 'SIGNED_OUT') {
       const authOrigin = getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', isProduction() ? 'https://www.autamedica.com' : 'http://localhost:3000');
