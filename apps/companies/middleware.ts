@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, hasRole, getPortalForRole, isCorrectPortal, buildSafeLoginUrl } from '@autamedica/shared';
+import { getSession, hasRole, buildSafeLoginUrl, getTargetUrlByRole, isValidRole } from '@autamedica/shared';
 import { logger } from '@autamedica/shared';
 
 // Public routes that don't require authentication
@@ -27,7 +27,7 @@ function withNoIndex(response: NextResponse): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const origin = request.nextUrl.origin;
+  const { origin, search } = request.nextUrl;
 
   // Allow public routes
   if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
@@ -36,7 +36,8 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Get session using JWT verification (no Supabase client needed)
-    const session = await getSession(request);
+    // Cast needed due to monorepo Next type resolution mismatch between apps/packages.
+    const session = await getSession(request as any);
 
     // No session - redirect to login
     if (!session) {
@@ -47,14 +48,24 @@ export async function middleware(request: NextRequest) {
     // Check if user has allowed role for companies portal
     if (!hasRole(session, [...ALLOWED_ROLES])) {
       // User has wrong role - redirect to their correct portal
-      const correctPortal = getPortalForRole(session.user.role);
-      return NextResponse.redirect(new URL('/', correctPortal));
+      const role = session.user.role;
+      if (!role || !isValidRole(role)) {
+        const loginUrl = buildSafeLoginUrl('companies', request.url, 'wrong_role');
+        return NextResponse.redirect(loginUrl);
+      }
+      return NextResponse.redirect(getTargetUrlByRole(role));
     }
 
     // Verify user is on correct portal for their role
-    if (!isCorrectPortal(origin, session.user.role)) {
-      const correctPortal = getPortalForRole(session.user.role);
-      return NextResponse.redirect(new URL(pathname, correctPortal));
+    const role = session.user.role;
+    if (!role || !isValidRole(role)) {
+      const loginUrl = buildSafeLoginUrl('companies', request.url, 'wrong_role');
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const expectedOrigin = new URL(getTargetUrlByRole(role)).origin;
+    if (origin !== expectedOrigin) {
+      return NextResponse.redirect(new URL(`${pathname}${search}`, expectedOrigin));
     }
 
     // All checks passed

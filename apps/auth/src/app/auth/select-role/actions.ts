@@ -3,7 +3,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getPortalForRole, ensureClientEnv } from '@autamedica/shared';
+import { getTargetUrlByRole, ensureClientEnv, isValidRole } from '@autamedica/shared';
 import type { UserRole } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
 import type { CookieOptions } from '@supabase/ssr';
@@ -54,9 +54,11 @@ export async function chooseRole(role: UserRole) {
 
     // logger.info(`Role set successfully for user ${user.email}: ${role}`);
 
-    // Redirect to the correct portal for this role
-    const portalUrl = getPortalForRole(role);
-    redirect(portalUrl);
+    // Redirect to the correct absolute portal URL for this role
+    if (!isValidRole(role)) {
+      throw new Error(`Rol inválido para redirección: ${role}`);
+    }
+    redirect(getTargetUrlByRole(role));
 
   } catch (error) {
     logger.error('Failed to choose role:', error);
