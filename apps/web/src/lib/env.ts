@@ -11,10 +11,10 @@ function readPublicEnv(key: keyof ImportMetaEnv, fallback: string): string {
 }
 
 const BASE_URLS: Record<AppTarget, string> = {
-  doctors: readPublicEnv('PUBLIC_DOCTORS_URL', 'https://doctors.autamedica.com'),
-  patients: readPublicEnv('PUBLIC_PATIENTS_URL', 'https://patients.autamedica.com'),
-  companies: readPublicEnv('PUBLIC_COMPANIES_URL', 'https://companies.autamedica.com'),
-  admin: readPublicEnv('PUBLIC_ADMIN_URL', 'https://admin.autamedica.com'),
+  doctors: readPublicEnv('PUBLIC_DOCTORS_URL', 'https://autamedica-doctors.pages.dev'),
+  patients: readPublicEnv('PUBLIC_PATIENTS_URL', 'https://autamedica-patients.pages.dev'),
+  companies: readPublicEnv('PUBLIC_COMPANIES_URL', 'https://autamedica-companies.pages.dev'),
+  admin: readPublicEnv('PUBLIC_ADMIN_URL', 'https://autamedica-admin.pages.dev'),
 } as const;
 
 const ROUTE_TO_APP: Array<[string, AppTarget]> = [

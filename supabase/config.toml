@@ -9,20 +9,23 @@ max_rows = 1000
 
 [auth]
 enabled = true
-site_url = "https://autamedica-web-app.pages.dev"
+site_url = "https://autamedica-web.pages.dev"
 additional_redirect_urls = [
-  "https://autamedica-web-app.pages.dev/**",
+  "https://autamedica-web.pages.dev/**",
   "https://autamedica-patients.pages.dev/**",
   "https://autamedica-doctors.pages.dev/**",
   "https://autamedica-companies.pages.dev/**",
+  "https://autamedica-admin.pages.dev/**",
   "http://localhost:3000/**",
   "http://localhost:4001/**",
-  "http://localhost:4002/**"
+  "http://localhost:4002/**",
+  "http://localhost:4003/**",
+  "http://localhost:4004/**"
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
-enable_signup = false
+enable_signup = true
 enable_manual_linking = false
 enable_anonymous_sign_ins = false
 
@@ -31,7 +34,7 @@ enable_confirmations = true
 
 [db]
 port = 54322
-major_version = 15
+major_version = 17
 
 [studio]
 enabled = true

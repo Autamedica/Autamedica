@@ -135,7 +135,7 @@ function inferFallbackAuthOrigin(returnTo?: string | null): string {
     }
   }
 
-  return 'https://www.autamedica.com';
+  return 'https://autamedica-web.pages.dev';
 }
 
 function resolveAuthBaseOrigin(returnTo?: string | null): string {

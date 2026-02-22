@@ -33,17 +33,17 @@ function getBaseUrlByRole(): Record<UserRole, string> {
   if (isProduction) {
     return {
       'patient': readEnv('NEXT_PUBLIC_BASE_URL_PATIENTS', 'NEXT_PUBLIC_PATIENTS_URL')
-        || 'https://patients.autamedica.com',
+        || 'https://autamedica-patients.pages.dev',
       'doctor': readEnv('NEXT_PUBLIC_BASE_URL_DOCTORS', 'NEXT_PUBLIC_DOCTORS_URL')
-        || 'https://doctors.autamedica.com',
+        || 'https://autamedica-doctors.pages.dev',
       'company': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
-        || 'https://companies.autamedica.com',
+        || 'https://autamedica-companies.pages.dev',
       'company_admin': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
-        || 'https://companies.autamedica.com',
+        || 'https://autamedica-companies.pages.dev',
       'organization_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
-        || 'https://admin.autamedica.com',
+        || 'https://autamedica-admin.pages.dev',
       'platform_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
-        || 'https://admin.autamedica.com',
+        || 'https://autamedica-admin.pages.dev',
     };
   }
 
@@ -210,7 +210,7 @@ export function getLoginUrl(returnTo?: string, portal?: string): string {
     try {
       webAppUrl = ensureServerEnv('NEXT_PUBLIC_BASE_URL_WEB_APP');
     } catch {
-      webAppUrl = 'https://www.autamedica.com';
+      webAppUrl = 'https://autamedica-web.pages.dev';
     }
   }
   const loginUrl = new URL(AUTH_URLS.LOGIN, webAppUrl);
