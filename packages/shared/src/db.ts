@@ -22,6 +22,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // TODO: Re-enable when @autamedica/types package is created
 // import type { Database } from '@autamedica/types';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Database = any; // Temporary type until @autamedica/types is created
 import { toCamel, toSnake } from './casing';
 
@@ -144,7 +145,7 @@ export async function selectActive<Table extends TableName, TResult = TableRow<T
     offset,
   } = options;
 
-  let queryBuilder = supabase.from(table as any).select(query);
+  let queryBuilder = supabase.from(table as unknown as string).select(query);
 
   // Auto-filtro de soft-deleted (a menos que explícitamente se incluyan)
   if (!includeDeleted) {
@@ -153,7 +154,7 @@ export async function selectActive<Table extends TableName, TResult = TableRow<T
 
   // Ordenamiento
   if (orderBy) {
-    queryBuilder = queryBuilder.order(orderBy.column as any, {
+    queryBuilder = queryBuilder.order(orderBy.column as unknown as string, {
       ascending: orderBy.ascending ?? true,
     });
   }
@@ -224,7 +225,7 @@ export async function selectById<Table extends TableName, TResult = TableRow<Tab
   const { includeDeleted = false, transform = true } = options;
 
   let queryBuilder = supabase
-    .from(table as any)
+    .from(table as unknown as string)
     .select('*')
     .eq('id', id);
 
@@ -278,8 +279,8 @@ export async function insertRecord<Table extends TableName, TInput extends Recor
   const dbPayload = (transform ? toSnake(data) : data) as TableInsert<Table>;
 
   const { data: inserted, error } = await supabase
-    .from(table as any)
-    .insert(dbPayload as any)
+    .from(table as unknown as string)
+    .insert(dbPayload as unknown as Record<string, unknown>)
     .select()
     .single();
 
@@ -316,8 +317,8 @@ export async function updateRecord<Table extends TableName, TInput extends Recor
   const dbPayload = (transform ? toSnake(data) : data) as TableUpdate<Table>;
 
   const { data: updated, error } = await supabase
-    .from(table as any)
-    .update(dbPayload as any)
+    .from(table as unknown as string)
+    .update(dbPayload as unknown as Record<string, unknown>)
     .eq('id', id)
     .select()
     .single();
@@ -352,8 +353,8 @@ export async function softDelete<Table extends TableName>(
   const now = new Date().toISOString();
 
   const { error } = await supabase
-    .from(table as any)
-    .update({ deleted_at: now } as any)
+    .from(table as unknown as string)
+    .update({ deleted_at: now })
     .eq('id', id);
 
   if (error) {
@@ -375,7 +376,7 @@ export async function hardDelete<Table extends TableName>(
   id: string
 ): Promise<void> {
   const { error } = await supabase
-    .from(table as any)
+    .from(table as unknown as string)
     .delete()
     .eq('id', id);
 
@@ -396,8 +397,8 @@ export async function restoreRecord<Table extends TableName>(
   id: string
 ): Promise<void> {
   const { error } = await supabase
-    .from(table as any)
-    .update({ deleted_at: null } as any)
+    .from(table as unknown as string)
+    .update({ deleted_at: null })
     .eq('id', id);
 
   if (error) {
@@ -419,7 +420,7 @@ export async function countActive<Table extends TableName>(
   const { includeDeleted = false } = options;
 
   let queryBuilder = supabase
-    .from(table as any)
+    .from(table as unknown as string)
     .select('*', { count: 'exact', head: true });
 
   if (!includeDeleted) {
