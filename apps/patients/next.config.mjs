@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 export default createNextAppConfig({
   appDir: __dirname,
   output: 'standalone',
-  trailingSlash: true,
+  trailingSlash: false,
   images: {
     unoptimized: false,
     domains: ['knywotiidsydsaveqkjs.supabase.co'],
