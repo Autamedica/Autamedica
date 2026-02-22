@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+- cd4cbaa feat: ship astro migration slices with seo and routing hardening
 - 53a0d6d feat(auth): remove role from login flow — detect role automatically post-auth
 - f35c7ab feat(web): apply NYT editorial philosophy to landing copy
 - 3367525 feat: consolidate auth into autamedica-web, remove deploy-auth job
@@ -60,6 +61,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 78fd3ec 📝 docs: actualizar changelog automático
 - 664d52b 📝 docs: actualizar changelog automático
 - f120ac7 📝 docs: actualizar changelog automático
 - dd31efc 📝 docs: actualizar changelog automático
@@ -121,4 +123,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 03:29:03*
+*Generado automáticamente el 2026-02-22 04:23:11*
