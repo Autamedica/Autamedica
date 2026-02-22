@@ -11,15 +11,6 @@
 import type { UserRole } from './auth/portals';
 import { ensureServerEnv } from './env';
 
-// Definir ROLES localmente para evitar dependencia circular con auth
-const ROLES = {
-  PATIENT: 'patient' as UserRole,
-  DOCTOR: 'doctor' as UserRole,
-  COMPANY_ADMIN: 'company_admin' as UserRole,
-  ORGANIZATION_ADMIN: 'organization_admin' as UserRole,
-  PLATFORM_ADMIN: 'platform_admin' as UserRole,
-};
-
 /**
  * URLs base para cada aplicación por entorno
  * CONFIGURACIÓN: URLs de deployment de Cloudflare Pages para producción
@@ -216,7 +207,11 @@ export function getLoginUrl(returnTo?: string, portal?: string): string {
   try {
     webAppUrl = ensureServerEnv('NEXT_PUBLIC_APP_URL');
   } catch {
-    webAppUrl = BASE_URL_BY_ROLE[ROLES.PLATFORM_ADMIN] || 'https://www.autamedica.com';
+    try {
+      webAppUrl = ensureServerEnv('NEXT_PUBLIC_BASE_URL_WEB_APP');
+    } catch {
+      webAppUrl = 'https://www.autamedica.com';
+    }
   }
   const loginUrl = new URL(AUTH_URLS.LOGIN, webAppUrl);
 

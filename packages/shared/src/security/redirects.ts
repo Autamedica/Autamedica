@@ -33,6 +33,33 @@ function buildWildcardRegex(pattern: string): RegExp {
   return new RegExp(`^${wildcardSafe}$`, 'i');
 }
 
+function matchesExactPattern(url: URL, pattern: string): boolean {
+  try {
+    const allowed = new URL(pattern);
+    if (url.origin !== allowed.origin) {
+      return false;
+    }
+
+    // Origin-only patterns allow any path on the same origin.
+    if (allowed.pathname === '/' && !allowed.search && !allowed.hash) {
+      return true;
+    }
+
+    // If query/hash are specified in pattern, require exact URL match.
+    if (allowed.search || allowed.hash) {
+      return url.href === allowed.href;
+    }
+
+    // Path-based pattern: allow exact path or nested routes.
+    const allowedPath = allowed.pathname.endsWith('/')
+      ? allowed.pathname
+      : `${allowed.pathname}/`;
+    return url.pathname === allowed.pathname || url.pathname.startsWith(allowedPath);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Check if a URL is allowed for redirect
  * Prevents open redirect vulnerabilities
@@ -50,7 +77,7 @@ export function isAllowedRedirect(urlStr?: string | null): boolean {
       if (!pattern) return false;
 
       // Exact match
-      if (url.origin === pattern || url.href.startsWith(pattern)) {
+      if (matchesExactPattern(url, pattern)) {
         return true;
       }
 
