@@ -106,7 +106,7 @@ export function useWebRTCCall(config: WebRTCCallConfig): [WebRTCCallState, WebRT
 
   // WebRTC hook
   const [webrtcState, webrtcActions] = useWebRTC({
-    onRemoteStream: (stream) => {
+    onRemoteStream: (_stream) => {
       // logger.info('[useWebRTCCall] Remote stream received');
     },
     onIceCandidate: (candidate) => {
@@ -180,8 +180,8 @@ export function useWebRTCCall(config: WebRTCCallConfig): [WebRTCCallState, WebRT
     });
 
     // Usuario se unió a la sala
-    signaling.on(SignalingEvent.USER_JOINED, async ({ userId: remoteUserId }) => {
-      // logger.info('[useWebRTCCall] User joined:', remoteUserId);
+    signaling.on(SignalingEvent.USER_JOINED, async ({ userId: _remoteUserId }) => {
+      // logger.info('[useWebRTCCall] User joined:', _remoteUserId);
 
       // Si soy el primer usuario en la sala, espero
       // Si llega otro usuario, inicio la negociación
@@ -377,7 +377,7 @@ export function useWebRTCCall(config: WebRTCCallConfig): [WebRTCCallState, WebRT
     if (callStatus !== 'connected') return;
 
     const interval = setInterval(async () => {
-      const stats = await webrtcActions.getConnectionStats();
+      const _stats = await webrtcActions.getConnectionStats();
       // Stats se actualizan automáticamente en webrtcState
     }, 2000);
 

@@ -19,11 +19,11 @@ export interface WebRTCConfig {
   /** Auto-restart on connection failure */
   autoReconnect?: boolean;
   /** Callback cuando se recibe remote stream */
-  onRemoteStream?: (stream: MediaStream) => void;
+  onRemoteStream?: (_stream: MediaStream) => void;
   /** Callback cuando se genera ICE candidate */
-  onIceCandidate?: (candidate: RTCIceCandidate) => void;
+  onIceCandidate?: (_candidate: RTCIceCandidate) => void;
   /** Callback cuando cambia el estado de conexión */
-  onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
+  onConnectionStateChange?: (_state: RTCPeerConnectionState) => void;
 }
 
 export interface WebRTCState {
@@ -64,15 +64,15 @@ export interface WebRTCActions {
   /** Inicializar peer connection */
   initializePeerConnection: () => void;
   /** Agregar local stream a peer connection */
-  addLocalStream: (stream: MediaStream) => void;
+  addLocalStream: (_stream: MediaStream) => void;
   /** Crear oferta SDP */
   createOffer: () => Promise<RTCSessionDescriptionInit | null>;
   /** Crear respuesta SDP */
   createAnswer: () => Promise<RTCSessionDescriptionInit | null>;
   /** Establecer remote description */
-  setRemoteDescription: (description: RTCSessionDescriptionInit) => Promise<void>;
+  setRemoteDescription: (_description: RTCSessionDescriptionInit) => Promise<void>;
   /** Agregar ICE candidate remoto */
-  addIceCandidate: (candidate: RTCIceCandidateInit) => Promise<void>;
+  addIceCandidate: (_candidate: RTCIceCandidateInit) => Promise<void>;
   /** Cerrar peer connection */
   closePeerConnection: () => void;
   /** Obtener estadísticas de conexión */
