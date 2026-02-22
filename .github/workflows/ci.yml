@@ -76,6 +76,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Build Packages (Core)
+        run: pnpm build:packages:core
+
       - name: Typecheck (Astro + Next)
         run: pnpm check:all
 

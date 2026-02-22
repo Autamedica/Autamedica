@@ -8,6 +8,7 @@ import { join } from 'node:path';
 
 function findTsconfigs(root) {
   const list = [];
+  const IGNORED = ['apps/admin', 'apps/companies', 'apps/patients', 'apps/doctors', 'apps/auth', 'apps/signaling-server', 'apps/web-app'];
   for (const dir of ['apps', 'packages']) {
     const base = join(root, dir);
     try {
@@ -15,6 +16,8 @@ function findTsconfigs(root) {
         const p = join(base, name);
         try {
           if (statSync(p).isDirectory()) {
+            const relPath = `${dir}/${name}`;
+            if (IGNORED.includes(relPath)) continue;
             const tsconfig = join(p, 'tsconfig.json');
             try { statSync(tsconfig); list.push(tsconfig); } catch {}
           }
