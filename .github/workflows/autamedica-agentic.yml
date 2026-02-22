@@ -309,7 +309,7 @@ jobs:
               --assert.assertions.performance=">=0.85" \
               --assert.assertions.accessibility=">=0.90" \
               --assert.assertions.best-practices=">=0.90" \
-              --assert.assertions.seo=">=0.90"
+              --assert.assertions.seo=">=1"
           done
 
   k6_smoke:

@@ -33,6 +33,27 @@ const jsonLd = {
       inLanguage: 'es-AR'
     },
     {
+      '@type': 'MedicalOrganization',
+      '@id': `${baseUrl}/#medical-organization`,
+      name: 'AutaMedica',
+      url: `${baseUrl}/`,
+      image: `${baseUrl}/images/seo/og-main.png`,
+      medicalSpecialty: ['Telemedicine', 'PrimaryCare', 'PreventiveMedicine'],
+      areaServed: {
+        '@type': 'Country',
+        name: 'Argentina',
+      },
+      availableService: {
+        '@type': 'Service',
+        name: 'Telemedicina sin fricciones',
+        serviceType: 'Atencion medica virtual',
+        url: `${baseUrl}/platform`,
+      },
+      isPartOf: {
+        '@id': `${baseUrl}/#website`,
+      },
+    },
+    {
       '@type': 'SoftwareApplication',
       '@id': `${baseUrl}/#application`,
       name: 'AutaMedica',

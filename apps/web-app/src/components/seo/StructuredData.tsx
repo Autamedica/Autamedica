@@ -31,12 +31,18 @@ export default function StructuredData() {
         inLanguage: 'es-AR'
       },
       {
-        '@type': 'MedicalBusiness',
-        '@id': 'https://www.autamedica.com/#business',
+        '@type': ['MedicalBusiness', 'MedicalOrganization'],
+        '@id': 'https://www.autamedica.com/#medical-organization',
         name: 'AutaMedica',
-        image: 'https://www.autamedica.com/og-image.png',
+        image: 'https://www.autamedica.com/images/seo/og-main.png',
         url: 'https://www.autamedica.com',
-        priceRange: '$$',
+        medicalSpecialty: ['Telemedicine', 'PrimaryCare', 'PreventiveMedicine'],
+        availableService: {
+          '@type': 'Service',
+          name: 'Telemedicina sin fricciones',
+          serviceType: 'Atencion medica virtual',
+          url: 'https://www.autamedica.com/platform'
+        },
         address: {
           '@type': 'PostalAddress',
           addressLocality: 'Buenos Aires',

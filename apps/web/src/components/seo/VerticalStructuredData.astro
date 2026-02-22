@@ -27,27 +27,45 @@ const canonicalUrl = new URL(pathname, `${baseOrigin}/`).toString();
 
 const verticalConfig: Record<Vertical, {
   name: string;
+  medicalEntityType: 'MedicalOrganization' | 'MedicalBusiness';
   serviceType: string;
+  audienceType: string;
   specialties: string[];
+  imagePath: string;
+  summary: string;
 }> = {
   patients: {
     name: 'Portal de Pacientes',
+    medicalEntityType: 'MedicalOrganization',
     serviceType: 'Atencion medica virtual para pacientes',
+    audienceType: 'Pacientes y familias',
     specialties: ['PrimaryCare', 'PreventiveMedicine', 'Telemedicine'],
+    imagePath: '/images/seo/og-patients.png',
+    summary: 'Seguimiento clinico, turnos y continuidad de atencion en una sola experiencia digital.',
   },
   doctors: {
     name: 'Portal para Medicos',
+    medicalEntityType: 'MedicalOrganization',
     serviceType: 'Herramientas clinicas y teleconsulta para profesionales',
+    audienceType: 'Profesionales de la salud',
     specialties: ['Telemedicine', 'MedicalClinic'],
+    imagePath: '/images/seo/og-doctors.png',
+    summary: 'Flujo medico optimizado para agenda, teleconsulta y gestion de pacientes.',
   },
   companies: {
     name: 'Portal de Empresas',
+    medicalEntityType: 'MedicalBusiness',
     serviceType: 'Salud ocupacional y continuidad operativa empresarial',
+    audienceType: 'Empresas y equipos de RRHH',
     specialties: ['OccupationalMedicine', 'PreventiveMedicine'],
+    imagePath: '/images/seo/og-companies.png',
+    summary: 'Cobertura de salud corporativa para operacion continua y prevencion de riesgos.',
   },
 };
 
 const config = verticalConfig[vertical];
+const medicalEntityId = `${canonicalUrl}#medical-entity`;
+const serviceId = `${canonicalUrl}#service`;
 
 const defaultBreadcrumbs: BreadcrumbItem[] = [
   { name: 'Inicio', path: '/' },
@@ -85,14 +103,16 @@ const jsonLd = {
       },
     },
     {
-      '@type': 'MedicalBusiness',
-      '@id': `${canonicalUrl}#medical-business`,
+      '@type': ['MedicalBusiness', config.medicalEntityType],
+      '@id': medicalEntityId,
       name: `${config.name} | AutaMedica`,
       url: canonicalUrl,
       description,
-      image: `${baseOrigin}/og-image.png`,
+      image: `${baseOrigin}${config.imagePath}`,
       medicalSpecialty: config.specialties,
-      serviceType: config.serviceType,
+      availableService: {
+        '@id': serviceId,
+      },
       areaServed: {
         '@type': 'Country',
         name: 'Argentina',
@@ -102,16 +122,47 @@ const jsonLd = {
       },
     },
     {
+      '@type': 'Service',
+      '@id': serviceId,
+      name: `${config.name} - Servicio principal`,
+      serviceType: config.serviceType,
+      description: config.summary,
+      provider: {
+        '@id': medicalEntityId,
+      },
+      audience: {
+        '@type': 'Audience',
+        audienceType: config.audienceType,
+      },
+      areaServed: {
+        '@type': 'Country',
+        name: 'Argentina',
+      },
+      availableChannel: {
+        '@type': 'ServiceChannel',
+        serviceUrl: canonicalUrl,
+      },
+    },
+    {
       '@type': 'WebPage',
       '@id': `${canonicalUrl}#webpage`,
       url: canonicalUrl,
       name: title,
       description,
+      inLanguage: 'es-AR',
       breadcrumb: {
         '@id': `${canonicalUrl}#breadcrumb`,
       },
-      about: {
-        '@id': `${canonicalUrl}#medical-business`,
+      about: [
+        {
+          '@id': medicalEntityId,
+        },
+        {
+          '@id': serviceId,
+        },
+      ],
+      mainEntity: {
+        '@id': serviceId,
       },
     },
     breadcrumbList,
