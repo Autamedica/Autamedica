@@ -75,6 +75,11 @@ jobs:
             exit 0
           fi
 
+          if [ "${http_code}" = "400" ] && grep -Eq '8000018|already added this custom domain' /tmp/cf_domain_response.json; then
+            echo "✅ ${domain}: ya estaba vinculado (code 8000018)"
+            exit 0
+          fi
+
           echo "⚠️ ${domain}: HTTP ${http_code}"
           cat /tmp/cf_domain_response.json || true
           exit 1
