@@ -1,36 +1,36 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from 'react'
-import type { JSX, ReactNode } from 'react'
-import {
-  Brain,
-  CheckCircle2,
-  Loader2,
-  Mic,
-  MicOff,
-  MonitorUp,
-  PhoneOff,
-  ScreenShare,
-  ScreenShareOff,
-  Video,
-  VideoOff,
-  Sparkles,
-  Activity,
-  ChevronUp,
-  ChevronDown,
-  FileText,
-  Pill,
-  X
-} from 'lucide-react'
+import { StartCallButton } from '@/components/calls/StartCallButton'
+import { useDoctorsPortal } from '@/components/layout/DoctorsPortalShell'
+import { PrescriptionModal } from '@/components/medical/PrescriptionModal'
+import { QuickNotesModal } from '@/components/medical/QuickNotesModal'
+import { TelemedicineSignalingPanel } from '@/components/telemedicine/TelemedicineSignalingPanel'
 import { useActiveSession, usePatientData } from '@/hooks'
 import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
-import { TelemedicineSignalingPanel } from '@/components/telemedicine/TelemedicineSignalingPanel'
-import { useDoctorsPortal } from '@/components/layout/DoctorsPortalShell'
 import { useMedicalHistoryStore } from '@/stores/medicalHistoryStore'
-import { QuickNotesModal } from '@/components/medical/QuickNotesModal'
-import { PrescriptionModal } from '@/components/medical/PrescriptionModal'
-import { StartCallButton } from '@/components/calls/StartCallButton'
 import { getClientEnvOrDefault } from '@autamedica/shared'
+import {
+    Activity,
+    Brain,
+    CheckCircle2,
+    ChevronDown,
+    ChevronUp,
+    FileText,
+    Loader2,
+    Mic,
+    MicOff,
+    MonitorUp,
+    PhoneOff,
+    Pill,
+    ScreenShare,
+    ScreenShareOff,
+    Sparkles,
+    Video,
+    VideoOff,
+    X
+} from 'lucide-react'
+import type { JSX, ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 type ControlButtonProps = {
   active: boolean
@@ -366,16 +366,16 @@ export default function DoctorsHomePage(): JSX.Element {
         <section className="call-area__videoCard relative flex min-h-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-lg">
             {cameraError ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[#0d1b2f] px-4 py-6 text-center text-slate-300 sm:px-8">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-rose-500/20 text-rose-200">
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-6 text-center text-slate-300 sm:px-8">
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-400 shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-rose-500/20">
                   <VideoOff className="h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-semibold text-slate-100">No se detectó cámara</h3>
+                <h3 className="mt-4 text-xl font-semibold text-slate-100">No se detectó cámara</h3>
                 <p className="max-w-md text-sm text-slate-400">{cameraError}</p>
                 <button
                   type="button"
                   onClick={handleActivateCamera}
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+                  className="mt-2 rounded-xl border border-blue-500/30 bg-blue-600/20 px-6 py-2.5 text-sm font-semibold text-blue-300 transition-all hover:bg-blue-600 hover:text-white hover:shadow-[0_0_20px_-5px_rgba(37,99,235,0.4)] active:scale-95"
                 >
                   Reintentar
                 </button>
@@ -391,36 +391,36 @@ export default function DoctorsHomePage(): JSX.Element {
                 muted
               />
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-[#0d1b2f] px-4 py-6 text-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-fuchsia-500/20 text-fuchsia-200">
+              <div className="flex flex-1 flex-col items-center justify-center gap-5 bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-8 text-center">
+                <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-fuchsia-500/20">
                   <VideoOff className="h-12 w-12" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-slate-100">Cámara no activada</h3>
-                  <p className="text-sm text-slate-400">Inicia una llamada con el paciente para comenzar la videoconsulta</p>
+                  <h3 className="text-2xl font-bold tracking-tight text-white mb-2">Cámara no activada</h3>
+                  <p className="text-sm font-medium text-slate-400">Inicia una llamada con el paciente para comenzar la videoconsulta</p>
                 </div>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4 mt-2">
                   {authLoading ? (
-                    <div className="flex items-center justify-center gap-2 rounded-lg bg-gray-600 px-6 py-2 text-sm font-semibold text-white">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Autenticando...
+                    <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 backdrop-blur-md">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                      Autenticando médico...
                     </div>
                   ) : user ? (
                     <StartCallButton
                       doctorId={user.id}
                       patientId={session?.patientId || 'demo-patient-1'}
                       patientName={getPatientDisplayName(patient)}
-                      className="rounded-lg bg-green-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-green-500"
+                      className="group relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40 active:scale-95"
                     />
                   ) : (
-                    <div className="flex flex-col gap-3 rounded-lg bg-yellow-600/20 border border-yellow-500/30 px-4 py-3 text-sm">
+                    <div className="flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm backdrop-blur-md">
                       <div>
-                        <p className="text-yellow-200 font-medium">Autenticación requerida</p>
-                        <p className="text-yellow-300/80 text-xs">Inicia sesión para poder realizar llamadas</p>
+                        <p className="text-amber-300 font-semibold mb-1">Autenticación requerida</p>
+                        <p className="text-amber-400/70 text-xs">Abre tu sesión para autorizar la llamada</p>
                       </div>
                       <a
                         href={`${authBaseUrl}/auth/login?portal=doctors`}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-500"
+                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500/20 px-4 py-2 text-xs font-semibold text-amber-300 transition-colors hover:bg-amber-500 hover:text-white"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -431,18 +431,18 @@ export default function DoctorsHomePage(): JSX.Element {
                   <button
                     type="button"
                     onClick={handleActivateCamera}
-                    className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 transition-all hover:bg-slate-700 hover:text-white active:scale-95"
                   >
-                    O activar cámara directamente
+                    Probar cámara sin transmitir
                   </button>
                 </div>
               </div>
             )}
 
             {callStatus === 'connecting' && (
-              <div className="absolute inset-0 flex h-full flex-col items-center justify-center gap-3 bg-[#0d1b2f]/80 text-slate-200 backdrop-blur-sm">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-300" />
-                <p className="text-sm font-medium">Inicializando videollamada…</p>
+              <div className="absolute inset-0 flex h-full flex-col items-center justify-center gap-4 bg-slate-950/80 text-slate-200 backdrop-blur-md z-10 transition-all duration-300">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+                <p className="text-sm font-semibold tracking-wide text-blue-100">Estableciendo conexión segura…</p>
               </div>
             )}
 
@@ -508,8 +508,8 @@ export default function DoctorsHomePage(): JSX.Element {
               )}
             </div>
 
-            <div className={`video-overlay autoHide ${showControls ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-              <div className="flex flex-wrap items-center justify-center gap-3 rounded-full border border-slate-800/80 bg-slate-900/90 px-4 py-3 shadow-lg sm:flex-nowrap sm:justify-start sm:px-6">
+            <div className={`video-overlay absolute bottom-6 inset-x-0 flex justify-center transition-opacity duration-300 ${showControls ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+              <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-6 py-4 backdrop-blur-2xl shadow-2xl shadow-black/50 sm:flex-nowrap">
                 <ControlButton
                   active={!isMuted}
                   iconActive={<Mic className="h-5 w-5" />}
@@ -590,7 +590,7 @@ export default function DoctorsHomePage(): JSX.Element {
         )}
 
         <aside
-          className={`right-drawer hidden h-full flex-col space-y-3 rounded-2xl border border-slate-800/60 bg-[#101d32] p-3 shadow-xl shadow-slate-900/20 lg:flex ${
+          className={`right-drawer hidden h-full flex-col space-y-4 rounded-3xl border border-slate-700/50 bg-slate-900/80 p-4 shadow-2xl shadow-blue-900/10 backdrop-blur-2xl lg:flex ${
             isFocusMode && isQuickActionsVisible ? 'right-drawer--open' : ''
           }`}
         >
