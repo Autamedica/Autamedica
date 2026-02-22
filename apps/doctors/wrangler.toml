@@ -3,7 +3,11 @@ compatibility_date = "2025-03-25"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".open-next"
 
-# Environment variables configuration:
-# NEXT_PUBLIC_WEB_APP_URL must be set in Cloudflare Pages Dashboard
-# Production: https://autamedica.com
-# Preview: https://autamedica-web-app.pages.dev
+[vars]
+NEXT_PUBLIC_BASE_URL_AUTH = "https://autamedica-web.pages.dev"
+NEXT_PUBLIC_BASE_URL_WEB = "https://autamedica-web.pages.dev"
+NEXT_PUBLIC_BASE_URL_PATIENTS = "https://autamedica-patients.pages.dev"
+NEXT_PUBLIC_BASE_URL_DOCTORS = "https://autamedica-doctors.pages.dev"
+NEXT_PUBLIC_BASE_URL_COMPANIES = "https://autamedica-companies.pages.dev"
+NEXT_PUBLIC_BASE_URL_ADMIN = "https://autamedica-admin.pages.dev"
+NEXT_PUBLIC_SITE_URL = "https://autamedica-web.pages.dev"
