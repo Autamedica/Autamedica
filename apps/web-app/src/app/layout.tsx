@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     description: "Agenda inmediata, receta digital al finalizar y resultados en tu móvil. Plataforma de telemedicina HIPAA-compliant.",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "AutaMedica - Telemedicina sin fricciones",
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
     creator: "@autamedica",
     title: "AutaMedica - Telemedicina sin fricciones",
     description: "Agenda inmediata, receta digital al finalizar y resultados en tu móvil",
-    images: ["/twitter-image.jpg"],
+    images: ["/twitter-image.png"],
   },
   alternates: {
     canonical: "https://www.autamedica.com",

@@ -37,6 +37,11 @@ done
 echo "📋 Validando convenciones..."
 node scripts/validate-conventions.mjs || exit 1
 
+# 1.1 Validar paridad SEO (sitemap/indexación + assets sociales)
+echo "🔎 Validando paridad SEO..."
+pnpm seo:validate:parity || exit 1
+pnpm seo:validate:assets || exit 1
+
 # 2. Verificar Router
 echo "🗂️  Verificando App Router..."
 if ls -d apps/**/pages 2>/dev/null | grep -v node_modules | grep .; then

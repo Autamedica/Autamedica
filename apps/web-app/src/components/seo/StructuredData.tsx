@@ -34,7 +34,7 @@ export default function StructuredData() {
         '@type': 'MedicalBusiness',
         '@id': 'https://www.autamedica.com/#business',
         name: 'AutaMedica',
-        image: 'https://www.autamedica.com/og-image.jpg',
+        image: 'https://www.autamedica.com/og-image.png',
         url: 'https://www.autamedica.com',
         priceRange: '$$',
         address: {

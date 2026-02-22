@@ -46,6 +46,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "validate-exports": "node scripts/validate-exports.mjs",
     "docs:validate": "node scripts/validate-exports.mjs",
+    "seo:validate:parity": "node scripts/seo/validate-parity.mjs",
+    "seo:validate:assets": "node scripts/seo/validate-social-assets.mjs",
     "docs:generate": "node scripts/auto-generate-docs.mjs",
     "docs:auto-fix": "node scripts/auto-generate-docs.mjs && node scripts/validate-exports.mjs",
     "types:analyze": "node scripts/analyze-type-duplication.mjs",

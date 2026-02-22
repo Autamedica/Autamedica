@@ -10,8 +10,16 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/terms', priority: '0.4', changefreq: 'yearly' },
 ];
 
+const FALLBACK_LASTMOD = '2026-02-22T00:00:00.000Z';
+
+function resolveLastmod(): string {
+  const raw = import.meta.env.PUBLIC_SITEMAP_LASTMOD ?? FALLBACK_LASTMOD;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? FALLBACK_LASTMOD : parsed.toISOString();
+}
+
 function buildSitemapXml(base: URL): string {
-  const now = new Date().toISOString();
+  const lastmod = resolveLastmod();
   const baseUrl = base.toString().replace(/\/$/, '');
 
   const urls = ROUTES.map(({ path, priority, changefreq }) => {
@@ -19,7 +27,7 @@ function buildSitemapXml(base: URL): string {
     return [
       '  <url>',
       `    <loc>${loc}</loc>`,
-      `    <lastmod>${now}</lastmod>`,
+      `    <lastmod>${lastmod}</lastmod>`,
       `    <changefreq>${changefreq}</changefreq>`,
       `    <priority>${priority}</priority>`,
       '  </url>',

@@ -279,6 +279,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: SEO parity validators
+        run: |
+          node scripts/seo/validate-parity.mjs
+          node scripts/seo/validate-social-assets.mjs
 
       - name: Setup Lighthouse CI
         run: npm install -g @lhci/cli@0.13.x
@@ -302,7 +309,7 @@ jobs:
               --assert.assertions.performance=">=0.85" \
               --assert.assertions.accessibility=">=0.90" \
               --assert.assertions.best-practices=">=0.90" \
-              --assert.assertions.seo=">=0.90" || echo "⚠️ Lighthouse warnings at ${URL}"
+              --assert.assertions.seo=">=0.90"
           done
 
   k6_smoke:
