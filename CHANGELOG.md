@@ -16,6 +16,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- dee926d fix(auth): avoid localhost fallback for login redirects in edge
 - 13aab50 fix(auth): normalize cross-portal redirects to absolute role URLs
 - 265aa29 fix(auth): harden signup trigger recovery and profiles RLS policies
 - a198274 fix(security): harden redirect validation and auth login fallback
@@ -49,6 +50,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 5cac51b 📝 docs: actualizar changelog automático
 - 25a0dbf 📝 docs: actualizar changelog automático
 - a082f54 📝 docs: actualizar changelog automático
 - 0760b64 📝 docs: actualizar changelog automático
@@ -101,4 +103,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 01:27:01*
+*Generado automáticamente el 2026-02-22 01:56:52*
