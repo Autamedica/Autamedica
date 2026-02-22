@@ -8,27 +8,27 @@ const portals = [
     role: 'patient' as EntryRole,
     color: "var(--portal-patients)",
     hex: "#10b981",
-    description: "Gestiona tu salud desde cualquier lugar, en cualquier momento.",
+    description: "Portal clínico personal con acceso a recetas, historial propio y triage virtual.",
     features: [
-      "Consultas virtuales en HD",
-      "Historia clinica digital",
-      "Agendamiento inteligente",
-      "Receta digital al instante"
+      "Videoconsultas P2P",
+      "Historia clínica unificada",
+      "Gestor de turnos",
+      "Emisión de recetas digitales"
     ],
     href: "/patients",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
   },
   {
-    name: "Medicos",
+    name: "Médicos",
     role: 'doctor' as EntryRole,
     color: "var(--portal-doctors)",
     hex: "#3b82f6",
-    description: "Herramientas profesionales para una practica medica moderna.",
+    description: "Infraestructura para telemedicina y gestión electrónica de pacientes.",
     features: [
-      "Consultorio virtual integrado",
-      "Gestion avanzada de pacientes",
-      "IA para diagnostico asistido",
-      "Teleconsultas HD profesionales"
+      "Consultorio virtual seguro",
+      "Vademécum integrado",
+      "Transcripción clínica por IA",
+      "Firma digital de documentos"
     ],
     href: "/doctors",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`
@@ -38,12 +38,12 @@ const portals = [
     role: 'company_admin' as EntryRole,
     color: "var(--portal-companies)",
     hex: "#f59e0b",
-    description: "Soluciones integrales de salud corporativa para tu equipo.",
+    description: "Panel de control para seguimiento de ausentismo y medicina ocupacional.",
     features: [
-      "Dashboard empresarial completo",
-      "Medicina ocupacional digital",
-      "Reportes de salud corporativa",
-      "Programas de bienestar"
+      "Dashboard de métricas agregadas",
+      "Subida de aptos físicos",
+      "Validación de certificados",
+      "Asignación de coberturas"
     ],
     href: "/companies",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg>`
@@ -60,8 +60,8 @@ const enrichedPortals = portals.map((portal) => ({
 <section id="portales" class="portals" aria-label="Portales de acceso">
   <div class="portals-inner">
     <div class="portals-header animate-on-scroll">
-      <h2 class="portals-title">Una plataforma, tres portales</h2>
-      <p class="portals-subtitle">Soluciones especializadas para cada necesidad del ecosistema de salud</p>
+      <h2 class="portals-title">Infraestructura Clínica Digital</h2>
+      <p class="portals-subtitle">Accesos segregados por rol con cumplimiento normativo (HIPAA).</p>
     </div>
 
     <div class="portals-grid">
@@ -80,7 +80,7 @@ const enrichedPortals = portals.map((portal) => ({
           </ul>
           <div class="portal-actions">
             <a href={portal.loginHref} class="portal-cta portal-cta-primary" style={`--portal-card-accent:${portal.hex};`}>
-              Ingresar ahora
+              Acceder al portal
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
             <div class="portal-subactions">
@@ -98,6 +98,7 @@ const enrichedPortals = portals.map((portal) => ({
   .portals {
     padding: var(--section-py) var(--section-px);
     background: var(--au-bg);
+    overflow: hidden; /* Prevent grid from bleeding into horizontal scroll */
   }
 
   .portals-inner {
@@ -128,6 +129,8 @@ const enrichedPortals = portals.map((portal) => ({
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-6);
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .portal-card {
@@ -237,6 +240,16 @@ const enrichedPortals = portals.map((portal) => ({
   @media (max-width: 768px) {
     .portals-grid {
       grid-template-columns: 1fr;
+    }
+
+    /* Reduce padding so card doesn't overflow narrow viewports */
+    .portals {
+      padding-left: clamp(1rem, 4vw, 1.5rem);
+      padding-right: clamp(1rem, 4vw, 1.5rem);
+    }
+
+    .portal-card {
+      padding: var(--space-6);
     }
   }
 
