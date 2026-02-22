@@ -18,6 +18,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+- 6a4d609 fix(auth): restore callback routes for patients and companies
 - 43500c5 fix(auth): harden signup trigger to be non-blocking
 - fb9e77c fix: stabilize patients/doctors UI and unblock builds
 - 6d44849 fix(env): treat non-local browser hosts as production by default
@@ -55,6 +56,7 @@
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+- 2c38cac 📝 docs: actualizar changelog automático
 - bb3ecf5 📝 docs: actualizar changelog automático
 - 9c186b5 📝 docs: actualizar changelog automático
 - 9d99dab 📝 docs: actualizar changelog automático
@@ -111,4 +113,4 @@
 - 3740074 test(auth): update legacy auth domain references
 - 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 02:35:12*
+*Generado automáticamente el 2026-02-22 02:47:50*
