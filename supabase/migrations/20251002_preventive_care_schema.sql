@@ -299,12 +299,14 @@ ALTER TABLE screening_reminder_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medical_cases ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para Screenings (catálogo público)
+DROP POLICY IF EXISTS "Screenings are viewable by everyone" ON preventive_screenings;
 CREATE POLICY "Screenings are viewable by everyone"
 ON preventive_screenings FOR SELECT
 TO authenticated
 USING (true);
 
 -- Políticas para Patient Screenings
+DROP POLICY IF EXISTS "Patients can view their own screenings" ON patient_screenings;
 CREATE POLICY "Patients can view their own screenings"
 ON patient_screenings FOR SELECT
 TO authenticated
@@ -314,6 +316,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Patients can update their own screenings" ON patient_screenings;
 CREATE POLICY "Patients can update their own screenings"
 ON patient_screenings FOR UPDATE
 TO authenticated
@@ -324,12 +327,14 @@ USING (
 );
 
 -- Políticas para Factores de Riesgo (catálogo público)
+DROP POLICY IF EXISTS "Risk factors are viewable by everyone" ON risk_factors;
 CREATE POLICY "Risk factors are viewable by everyone"
 ON risk_factors FOR SELECT
 TO authenticated
 USING (true);
 
 -- Políticas para Patient Risk Factors
+DROP POLICY IF EXISTS "Patients can view their own risk factors" ON patient_risk_factors;
 CREATE POLICY "Patients can view their own risk factors"
 ON patient_risk_factors FOR SELECT
 TO authenticated
@@ -339,6 +344,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Patients can insert their own risk factors" ON patient_risk_factors;
 CREATE POLICY "Patients can insert their own risk factors"
 ON patient_risk_factors FOR INSERT
 TO authenticated
@@ -349,6 +355,7 @@ WITH CHECK (
 );
 
 -- Políticas para Recordatorios
+DROP POLICY IF EXISTS "Patients can view their own reminders" ON screening_reminder_notifications;
 CREATE POLICY "Patients can view their own reminders"
 ON screening_reminder_notifications FOR SELECT
 TO authenticated
@@ -358,6 +365,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Patients can update their own reminders" ON screening_reminder_notifications;
 CREATE POLICY "Patients can update their own reminders"
 ON screening_reminder_notifications FOR UPDATE
 TO authenticated
@@ -368,6 +376,7 @@ USING (
 );
 
 -- Políticas para Casos Médicos (publicados son públicos)
+DROP POLICY IF EXISTS "Published medical cases are viewable by everyone" ON medical_cases;
 CREATE POLICY "Published medical cases are viewable by everyone"
 ON medical_cases FOR SELECT
 TO authenticated

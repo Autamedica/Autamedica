@@ -116,6 +116,7 @@ DROP POLICY IF EXISTS "doctors_update_own" ON public.doctors;
 DROP POLICY IF EXISTS "doctors_delete_admin" ON public.doctors;
 
 -- Políticas para lectura de doctores
+DROP POLICY IF EXISTS "doctors_select_public" ON public.doctors;
 CREATE POLICY "doctors_select_public" ON public.doctors
   FOR SELECT USING (
     -- Información pública: cualquier usuario puede ver doctores activos (datos básicos)
@@ -132,6 +133,7 @@ CREATE POLICY "doctors_select_public" ON public.doctors
   );
 
 -- Políticas para inserción de doctores
+DROP POLICY IF EXISTS "doctors_insert_own" ON public.doctors;
 CREATE POLICY "doctors_insert_own" ON public.doctors
   FOR INSERT WITH CHECK (
     -- Solo pueden crear perfil de doctor usuarios con rol doctor
@@ -140,6 +142,7 @@ CREATE POLICY "doctors_insert_own" ON public.doctors
   );
 
 -- Políticas para actualización de doctores
+DROP POLICY IF EXISTS "doctors_update_own" ON public.doctors;
 CREATE POLICY "doctors_update_own" ON public.doctors
   FOR UPDATE USING (
     -- Doctores pueden actualizar su propio perfil
@@ -150,6 +153,7 @@ CREATE POLICY "doctors_update_own" ON public.doctors
   );
 
 -- Políticas para eliminación de doctores
+DROP POLICY IF EXISTS "doctors_delete_admin" ON public.doctors;
 CREATE POLICY "doctors_delete_admin" ON public.doctors
   FOR DELETE USING (
     -- Solo admins pueden eliminar perfiles de doctores
@@ -167,6 +171,7 @@ DROP POLICY IF EXISTS "patients_update_restricted" ON public.patients;
 DROP POLICY IF EXISTS "patients_delete_admin" ON public.patients;
 
 -- Políticas para lectura de pacientes
+DROP POLICY IF EXISTS "patients_select_restricted" ON public.patients;
 CREATE POLICY "patients_select_restricted" ON public.patients
   FOR SELECT USING (
     -- Pacientes pueden ver su propio perfil
@@ -183,6 +188,7 @@ CREATE POLICY "patients_select_restricted" ON public.patients
   );
 
 -- Políticas para inserción de pacientes
+DROP POLICY IF EXISTS "patients_insert_own" ON public.patients;
 CREATE POLICY "patients_insert_own" ON public.patients
   FOR INSERT WITH CHECK (
     -- Solo pueden crear perfil de paciente usuarios con rol patient
@@ -191,6 +197,7 @@ CREATE POLICY "patients_insert_own" ON public.patients
   );
 
 -- Políticas para actualización de pacientes
+DROP POLICY IF EXISTS "patients_update_restricted" ON public.patients;
 CREATE POLICY "patients_update_restricted" ON public.patients
   FOR UPDATE USING (
     -- Pacientes pueden actualizar su propio perfil
@@ -204,6 +211,7 @@ CREATE POLICY "patients_update_restricted" ON public.patients
   );
 
 -- Políticas para eliminación de pacientes
+DROP POLICY IF EXISTS "patients_delete_admin" ON public.patients;
 CREATE POLICY "patients_delete_admin" ON public.patients
   FOR DELETE USING (
     -- Solo admins pueden eliminar perfiles de pacientes
@@ -221,6 +229,7 @@ DROP POLICY IF EXISTS "companies_update_owner" ON public.companies;
 DROP POLICY IF EXISTS "companies_delete_admin" ON public.companies;
 
 -- Políticas para lectura de empresas
+DROP POLICY IF EXISTS "companies_select_public" ON public.companies;
 CREATE POLICY "companies_select_public" ON public.companies
   FOR SELECT USING (
     -- Información básica es pública
@@ -237,6 +246,7 @@ CREATE POLICY "companies_select_public" ON public.companies
   );
 
 -- Políticas para inserción de empresas
+DROP POLICY IF EXISTS "companies_insert_admin" ON public.companies;
 CREATE POLICY "companies_insert_admin" ON public.companies
   FOR INSERT WITH CHECK (
     -- Solo company admins o system admins pueden crear empresas
@@ -244,6 +254,7 @@ CREATE POLICY "companies_insert_admin" ON public.companies
   );
 
 -- Políticas para actualización de empresas
+DROP POLICY IF EXISTS "companies_update_owner" ON public.companies;
 CREATE POLICY "companies_update_owner" ON public.companies
   FOR UPDATE USING (
     -- Owners pueden actualizar su empresa
@@ -257,6 +268,7 @@ CREATE POLICY "companies_update_owner" ON public.companies
   );
 
 -- Políticas para eliminación de empresas
+DROP POLICY IF EXISTS "companies_delete_admin" ON public.companies;
 CREATE POLICY "companies_delete_admin" ON public.companies
   FOR DELETE USING (
     -- Solo system admins pueden eliminar empresas
@@ -274,6 +286,7 @@ DROP POLICY IF EXISTS "medical_records_update_authorized" ON public.medical_reco
 DROP POLICY IF EXISTS "medical_records_delete_admin" ON public.medical_records;
 
 -- Políticas para lectura de registros médicos
+DROP POLICY IF EXISTS "medical_records_select_restricted" ON public.medical_records;
 CREATE POLICY "medical_records_select_restricted" ON public.medical_records
   FOR SELECT USING (
     -- Pacientes pueden ver sus propios registros
@@ -295,6 +308,7 @@ CREATE POLICY "medical_records_select_restricted" ON public.medical_records
   );
 
 -- Políticas para inserción de registros médicos
+DROP POLICY IF EXISTS "medical_records_insert_authorized" ON public.medical_records;
 CREATE POLICY "medical_records_insert_authorized" ON public.medical_records
   FOR INSERT WITH CHECK (
     -- Solo doctores pueden crear registros médicos para sus pacientes
@@ -307,6 +321,7 @@ CREATE POLICY "medical_records_insert_authorized" ON public.medical_records
   );
 
 -- Políticas para actualización de registros médicos
+DROP POLICY IF EXISTS "medical_records_update_authorized" ON public.medical_records;
 CREATE POLICY "medical_records_update_authorized" ON public.medical_records
   FOR UPDATE USING (
     -- Solo el doctor que creó el registro o admins pueden actualizarlo
@@ -321,6 +336,7 @@ CREATE POLICY "medical_records_update_authorized" ON public.medical_records
   );
 
 -- Políticas para eliminación de registros médicos
+DROP POLICY IF EXISTS "medical_records_delete_admin" ON public.medical_records;
 CREATE POLICY "medical_records_delete_admin" ON public.medical_records
   FOR DELETE USING (
     -- Solo admins pueden eliminar registros médicos (para compliance)
@@ -338,6 +354,7 @@ DROP POLICY IF EXISTS "appointments_update_participants" ON public.appointments;
 DROP POLICY IF EXISTS "appointments_delete_participants" ON public.appointments;
 
 -- Políticas para lectura de citas
+DROP POLICY IF EXISTS "appointments_select_participants" ON public.appointments;
 CREATE POLICY "appointments_select_participants" ON public.appointments
   FOR SELECT USING (
     -- Pacientes pueden ver sus propias citas
@@ -359,6 +376,7 @@ CREATE POLICY "appointments_select_participants" ON public.appointments
   );
 
 -- Políticas para inserción de citas
+DROP POLICY IF EXISTS "appointments_insert_authorized" ON public.appointments;
 CREATE POLICY "appointments_insert_authorized" ON public.appointments
   FOR INSERT WITH CHECK (
     -- Pacientes pueden crear citas para sí mismos
@@ -380,6 +398,7 @@ CREATE POLICY "appointments_insert_authorized" ON public.appointments
   );
 
 -- Políticas para actualización de citas
+DROP POLICY IF EXISTS "appointments_update_participants" ON public.appointments;
 CREATE POLICY "appointments_update_participants" ON public.appointments
   FOR UPDATE USING (
     -- Participantes pueden actualizar la cita
@@ -400,6 +419,7 @@ CREATE POLICY "appointments_update_participants" ON public.appointments
   );
 
 -- Políticas para eliminación de citas
+DROP POLICY IF EXISTS "appointments_delete_participants" ON public.appointments;
 CREATE POLICY "appointments_delete_participants" ON public.appointments
   FOR DELETE USING (
     -- Participantes pueden cancelar la cita
@@ -439,6 +459,7 @@ CREATE TABLE IF NOT EXISTS public.medical_audit_log (
 -- RLS para audit log (solo admins pueden ver)
 ALTER TABLE public.medical_audit_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "audit_log_admin_only" ON public.medical_audit_log;
 CREATE POLICY "audit_log_admin_only" ON public.medical_audit_log
   FOR ALL USING (public.is_system_admin());
 

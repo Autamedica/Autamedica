@@ -12,18 +12,22 @@ ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Allow everyone to read profiles (public info)
+DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
 CREATE POLICY "profiles_select_all" ON public.profiles
     FOR SELECT USING (true);
 
 -- Users can insert their own profile
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
 CREATE POLICY "profiles_insert_own" ON public.profiles
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Users can update their own profile
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own" ON public.profiles
     FOR UPDATE USING (auth.uid() = user_id);
 
 -- Only admins can delete profiles
+DROP POLICY IF EXISTS "profiles_delete_admin" ON public.profiles;
 CREATE POLICY "profiles_delete_admin" ON public.profiles
     FOR DELETE USING (
         EXISTS (

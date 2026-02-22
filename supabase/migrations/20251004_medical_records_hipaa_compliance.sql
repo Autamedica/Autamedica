@@ -96,6 +96,7 @@ DROP POLICY IF EXISTS "medical_records_delete_policy" ON public.medical_records;
 ALTER TABLE public.medical_records ENABLE ROW LEVEL SECURITY;
 
 -- SELECT policy: Only non-deleted records, respecting visibility
+DROP POLICY IF EXISTS "medical_records_select_policy" ON public.medical_records;
 CREATE POLICY "medical_records_select_policy" ON public.medical_records
 FOR SELECT
 USING (
@@ -140,6 +141,7 @@ USING (
 );
 
 -- INSERT policy: Only doctors and platform admins
+DROP POLICY IF EXISTS "medical_records_insert_policy" ON public.medical_records;
 CREATE POLICY "medical_records_insert_policy" ON public.medical_records
 FOR INSERT
 WITH CHECK (
@@ -152,6 +154,7 @@ WITH CHECK (
 );
 
 -- UPDATE policy: Only doctor who created it or platform admin
+DROP POLICY IF EXISTS "medical_records_update_policy" ON public.medical_records;
 CREATE POLICY "medical_records_update_policy" ON public.medical_records
 FOR UPDATE
 USING (
@@ -172,6 +175,7 @@ WITH CHECK (
 );
 
 -- DELETE policy: Soft delete only, by doctor or admin
+DROP POLICY IF EXISTS "medical_records_delete_policy" ON public.medical_records;
 CREATE POLICY "medical_records_delete_policy" ON public.medical_records
 FOR UPDATE
 USING (

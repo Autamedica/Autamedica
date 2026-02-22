@@ -42,6 +42,7 @@ BEGIN
       AND tablename = 'anamnesis'
       AND policyname = 'patient_select_anamnesis'
   ) THEN
+    DROP POLICY IF EXISTS patient_select_anamnesis ON public.anamnesis;
     CREATE POLICY patient_select_anamnesis ON public.anamnesis
       FOR SELECT
       USING (auth.uid() = patient_id AND deleted_at IS NULL);
@@ -53,6 +54,7 @@ BEGIN
       AND tablename = 'anamnesis'
       AND policyname = 'patient_insert_anamnesis'
   ) THEN
+    DROP POLICY IF EXISTS patient_insert_anamnesis ON public.anamnesis;
     CREATE POLICY patient_insert_anamnesis ON public.anamnesis
       FOR INSERT
       WITH CHECK (auth.uid() = patient_id);
@@ -64,6 +66,7 @@ BEGIN
       AND tablename = 'anamnesis'
       AND policyname = 'patient_update_anamnesis'
   ) THEN
+    DROP POLICY IF EXISTS patient_update_anamnesis ON public.anamnesis;
     CREATE POLICY patient_update_anamnesis ON public.anamnesis
       FOR UPDATE
       USING (auth.uid() = patient_id)
@@ -76,6 +79,7 @@ BEGIN
       AND tablename = 'anamnesis_sections'
       AND policyname = 'patient_select_anamnesis_sections'
   ) THEN
+    DROP POLICY IF EXISTS patient_select_anamnesis_sections ON public.anamnesis_sections;
     CREATE POLICY patient_select_anamnesis_sections ON public.anamnesis_sections
       FOR SELECT
       USING (
@@ -94,6 +98,7 @@ BEGIN
       AND tablename = 'anamnesis_sections'
       AND policyname = 'patient_upsert_anamnesis_sections'
   ) THEN
+    DROP POLICY IF EXISTS patient_upsert_anamnesis_sections ON public.anamnesis_sections;
     CREATE POLICY patient_upsert_anamnesis_sections ON public.anamnesis_sections
       FOR ALL
       USING (

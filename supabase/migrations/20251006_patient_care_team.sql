@@ -49,6 +49,7 @@ ON public.patient_care_team(assigned_at, updated_at);
 ALTER TABLE public.patient_care_team ENABLE ROW LEVEL SECURITY;
 
 -- Policy: SELECT - Participantes y admins pueden ver
+DROP POLICY IF EXISTS "patient_care_team_select" ON public.patient_care_team;
 CREATE POLICY "patient_care_team_select" ON public.patient_care_team
 FOR SELECT USING (
   -- Doctores pueden ver sus asignaciones
@@ -62,6 +63,7 @@ FOR SELECT USING (
 );
 
 -- Policy: INSERT - Solo doctores y admins pueden asignar
+DROP POLICY IF EXISTS "patient_care_team_insert" ON public.patient_care_team;
 CREATE POLICY "patient_care_team_insert" ON public.patient_care_team
 FOR INSERT WITH CHECK (
   -- Doctores pueden agregarse a equipos de atención
@@ -72,6 +74,7 @@ FOR INSERT WITH CHECK (
 );
 
 -- Policy: UPDATE - Solo doctores propios y admins
+DROP POLICY IF EXISTS "patient_care_team_update" ON public.patient_care_team;
 CREATE POLICY "patient_care_team_update" ON public.patient_care_team
 FOR UPDATE USING (
   -- Doctor puede actualizar sus propias asignaciones
@@ -82,6 +85,7 @@ FOR UPDATE USING (
 );
 
 -- Policy: DELETE - Solo admins (soft delete via active=false)
+DROP POLICY IF EXISTS "patient_care_team_delete" ON public.patient_care_team;
 CREATE POLICY "patient_care_team_delete" ON public.patient_care_team
 FOR DELETE USING (
   -- Solo admins pueden eliminar permanentemente

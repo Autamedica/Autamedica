@@ -279,17 +279,20 @@ ALTER TABLE medical_chats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medical_messages ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para Especialistas (solo lectura pública para pacientes)
+DROP POLICY IF EXISTS "Specialists are viewable by everyone" ON reproductive_health_specialists;
 CREATE POLICY "Specialists are viewable by everyone"
 ON reproductive_health_specialists FOR SELECT
 TO authenticated
 USING (true);
 
+DROP POLICY IF EXISTS "Specialists can update their own profile" ON reproductive_health_specialists;
 CREATE POLICY "Specialists can update their own profile"
 ON reproductive_health_specialists FOR UPDATE
 TO authenticated
 USING (auth.uid() = doctor_id);
 
 -- Políticas para Citas
+DROP POLICY IF EXISTS "Patients can view their own appointments" ON reproductive_health_appointments;
 CREATE POLICY "Patients can view their own appointments"
 ON reproductive_health_appointments FOR SELECT
 TO authenticated
@@ -299,6 +302,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Patients can create appointments" ON reproductive_health_appointments;
 CREATE POLICY "Patients can create appointments"
 ON reproductive_health_appointments FOR INSERT
 TO authenticated
@@ -308,6 +312,7 @@ WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "Patients can update their own appointments" ON reproductive_health_appointments;
 CREATE POLICY "Patients can update their own appointments"
 ON reproductive_health_appointments FOR UPDATE
 TO authenticated
@@ -318,12 +323,14 @@ USING (
 );
 
 -- Políticas para Centros de Salud (lectura pública)
+DROP POLICY IF EXISTS "Health centers are viewable by everyone" ON health_centers;
 CREATE POLICY "Health centers are viewable by everyone"
 ON health_centers FOR SELECT
 TO authenticated
 USING (true);
 
 -- Políticas para Chats
+DROP POLICY IF EXISTS "Users can view their own chats" ON medical_chats;
 CREATE POLICY "Users can view their own chats"
 ON medical_chats FOR SELECT
 TO authenticated
@@ -340,6 +347,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Patients can create chats" ON medical_chats;
 CREATE POLICY "Patients can create chats"
 ON medical_chats FOR INSERT
 TO authenticated
@@ -350,6 +358,7 @@ WITH CHECK (
 );
 
 -- Políticas para Mensajes
+DROP POLICY IF EXISTS "Users can view messages from their chats" ON medical_messages;
 CREATE POLICY "Users can view messages from their chats"
 ON medical_messages FOR SELECT
 TO authenticated
@@ -368,6 +377,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Users can insert messages in their chats" ON medical_messages;
 CREATE POLICY "Users can insert messages in their chats"
 ON medical_messages FOR INSERT
 TO authenticated

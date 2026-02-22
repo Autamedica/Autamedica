@@ -173,18 +173,21 @@ ALTER TABLE recording_access_logs ENABLE ROW LEVEL SECURITY;
 -- ============================================================================
 
 -- Patients can view their own consultation rooms
+DROP POLICY IF EXISTS "Patients can view their own consultation rooms" ON consultation_rooms;
 CREATE POLICY "Patients can view their own consultation rooms"
   ON consultation_rooms
   FOR SELECT
   USING (patient_id = auth.uid());
 
 -- Doctors can view their own consultation rooms
+DROP POLICY IF EXISTS "Doctors can view their own consultation rooms" ON consultation_rooms;
 CREATE POLICY "Doctors can view their own consultation rooms"
   ON consultation_rooms
   FOR SELECT
   USING (doctor_id = auth.uid());
 
 -- Service role can insert/update consultation rooms
+DROP POLICY IF EXISTS "Service role can manage consultation rooms" ON consultation_rooms;
 CREATE POLICY "Service role can manage consultation rooms"
   ON consultation_rooms
   FOR ALL
@@ -195,12 +198,14 @@ CREATE POLICY "Service role can manage consultation rooms"
 -- ============================================================================
 
 -- Only doctors who recorded can view their recordings
+DROP POLICY IF EXISTS "Doctors can view their recordings" ON consultation_recordings;
 CREATE POLICY "Doctors can view their recordings"
   ON consultation_recordings
   FOR SELECT
   USING (recorded_by = auth.uid());
 
 -- Service role can manage recordings (for signaling-server)
+DROP POLICY IF EXISTS "Service role can manage recordings" ON consultation_recordings;
 CREATE POLICY "Service role can manage recordings"
   ON consultation_recordings
   FOR ALL
@@ -211,12 +216,14 @@ CREATE POLICY "Service role can manage recordings"
 -- ============================================================================
 
 -- Users can view their own access logs
+DROP POLICY IF EXISTS "Users can view their own access logs" ON recording_access_logs;
 CREATE POLICY "Users can view their own access logs"
   ON recording_access_logs
   FOR SELECT
   USING (accessed_by = auth.uid());
 
 -- Doctors can view access logs for their recordings
+DROP POLICY IF EXISTS "Doctors can view access logs for their recordings" ON recording_access_logs;
 CREATE POLICY "Doctors can view access logs for their recordings"
   ON recording_access_logs
   FOR SELECT
@@ -229,6 +236,7 @@ CREATE POLICY "Doctors can view access logs for their recordings"
   );
 
 -- Service role can insert access logs
+DROP POLICY IF EXISTS "Service role can insert access logs" ON recording_access_logs;
 CREATE POLICY "Service role can insert access logs"
   ON recording_access_logs
   FOR INSERT

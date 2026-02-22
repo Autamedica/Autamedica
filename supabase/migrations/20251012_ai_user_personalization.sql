@@ -18,6 +18,7 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'ai_user_patterns' AND policyname = 'owner_can_manage_patterns'
   ) THEN
+    DROP POLICY IF EXISTS owner_can_manage_patterns ON public.ai_user_patterns;
     CREATE POLICY owner_can_manage_patterns ON public.ai_user_patterns
       FOR ALL
       USING (auth.uid() = user_id)
@@ -42,6 +43,7 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'ai_user_faq' AND policyname = 'owner_can_manage_faq'
   ) THEN
+    DROP POLICY IF EXISTS owner_can_manage_faq ON public.ai_user_faq;
     CREATE POLICY owner_can_manage_faq ON public.ai_user_faq
       FOR ALL
       USING (auth.uid() = user_id)
@@ -68,6 +70,7 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'patient_ai_chats' AND policyname = 'owner_can_read_chats'
   ) THEN
+    DROP POLICY IF EXISTS owner_can_read_chats ON public.patient_ai_chats;
     CREATE POLICY owner_can_read_chats ON public.patient_ai_chats
       FOR SELECT
       USING (auth.uid() = user_id);
@@ -75,6 +78,7 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'patient_ai_chats' AND policyname = 'owner_can_insert_chats'
   ) THEN
+    DROP POLICY IF EXISTS owner_can_insert_chats ON public.patient_ai_chats;
     CREATE POLICY owner_can_insert_chats ON public.patient_ai_chats
       FOR INSERT
       WITH CHECK (auth.uid() = user_id);

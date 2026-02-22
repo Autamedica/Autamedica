@@ -331,6 +331,7 @@ DO $$ BEGIN
       AND tablename = 'vital_signs'
       AND policyname = 'vital_signs_patient_select'
   ) THEN
+    DROP POLICY IF EXISTS "vital_signs_patient_select" ON public.vital_signs;
     CREATE POLICY "vital_signs_patient_select"
       ON public.vital_signs FOR SELECT TO authenticated
       USING (
@@ -352,6 +353,7 @@ DO $$ BEGIN
       AND tablename = 'vital_signs'
       AND policyname = 'vital_signs_patient_insert'
   ) THEN
+    DROP POLICY IF EXISTS "vital_signs_patient_insert" ON public.vital_signs;
     CREATE POLICY "vital_signs_patient_insert"
       ON public.vital_signs FOR INSERT TO authenticated
       WITH CHECK (
@@ -373,6 +375,7 @@ DO $$ BEGIN
       AND tablename = 'vital_signs'
       AND policyname = 'vital_signs_doctor_select'
   ) THEN
+    DROP POLICY IF EXISTS "vital_signs_doctor_select" ON public.vital_signs;
     CREATE POLICY "vital_signs_doctor_select"
       ON public.vital_signs FOR SELECT TO authenticated
       USING (
@@ -396,6 +399,7 @@ DO $$ BEGIN
       AND tablename = 'medication_logs'
       AND policyname = 'medication_logs_patient_select'
   ) THEN
+    DROP POLICY IF EXISTS "medication_logs_patient_select" ON public.medication_logs;
     CREATE POLICY "medication_logs_patient_select"
       ON public.medication_logs FOR SELECT TO authenticated
       USING (
@@ -417,6 +421,7 @@ DO $$ BEGIN
       AND tablename = 'medication_logs'
       AND policyname = 'medication_logs_patient_insert'
   ) THEN
+    DROP POLICY IF EXISTS "medication_logs_patient_insert" ON public.medication_logs;
     CREATE POLICY "medication_logs_patient_insert"
       ON public.medication_logs FOR INSERT TO authenticated
       WITH CHECK (
@@ -438,6 +443,7 @@ DO $$ BEGIN
       AND tablename = 'medication_logs'
       AND policyname = 'medication_logs_doctor_select'
   ) THEN
+    DROP POLICY IF EXISTS "medication_logs_doctor_select" ON public.medication_logs;
     CREATE POLICY "medication_logs_doctor_select"
       ON public.medication_logs FOR SELECT TO authenticated
       USING (
@@ -461,6 +467,7 @@ DO $$ BEGIN
       AND tablename = 'symptom_reports'
       AND policyname = 'symptom_reports_patient_select'
   ) THEN
+    DROP POLICY IF EXISTS "symptom_reports_patient_select" ON public.symptom_reports;
     CREATE POLICY "symptom_reports_patient_select"
       ON public.symptom_reports FOR SELECT TO authenticated
       USING (
@@ -482,6 +489,7 @@ DO $$ BEGIN
       AND tablename = 'symptom_reports'
       AND policyname = 'symptom_reports_patient_insert'
   ) THEN
+    DROP POLICY IF EXISTS "symptom_reports_patient_insert" ON public.symptom_reports;
     CREATE POLICY "symptom_reports_patient_insert"
       ON public.symptom_reports FOR INSERT TO authenticated
       WITH CHECK (
@@ -503,6 +511,7 @@ DO $$ BEGIN
       AND tablename = 'symptom_reports'
       AND policyname = 'symptom_reports_doctor_select'
   ) THEN
+    DROP POLICY IF EXISTS "symptom_reports_doctor_select" ON public.symptom_reports;
     CREATE POLICY "symptom_reports_doctor_select"
       ON public.symptom_reports FOR SELECT TO authenticated
       USING (
@@ -526,6 +535,7 @@ DO $$ BEGIN
       AND tablename = 'lab_results'
       AND policyname = 'lab_results_patient_select'
   ) THEN
+    DROP POLICY IF EXISTS "lab_results_patient_select" ON public.lab_results;
     CREATE POLICY "lab_results_patient_select"
       ON public.lab_results FOR SELECT TO authenticated
       USING (
@@ -547,6 +557,7 @@ DO $$ BEGIN
       AND tablename = 'lab_results'
       AND policyname = 'lab_results_patient_insert'
   ) THEN
+    DROP POLICY IF EXISTS "lab_results_patient_insert" ON public.lab_results;
     CREATE POLICY "lab_results_patient_insert"
       ON public.lab_results FOR INSERT TO authenticated
       WITH CHECK (
@@ -568,6 +579,7 @@ DO $$ BEGIN
       AND tablename = 'lab_results'
       AND policyname = 'lab_results_doctor_select'
   ) THEN
+    DROP POLICY IF EXISTS "lab_results_doctor_select" ON public.lab_results;
     CREATE POLICY "lab_results_doctor_select"
       ON public.lab_results FOR SELECT TO authenticated
       USING (
@@ -591,6 +603,7 @@ DO $$ BEGIN
       AND tablename = 'patient_alerts'
       AND policyname = 'patient_alerts_patient_select'
   ) THEN
+    DROP POLICY IF EXISTS "patient_alerts_patient_select" ON public.patient_alerts;
     CREATE POLICY "patient_alerts_patient_select"
       ON public.patient_alerts FOR SELECT TO authenticated
       USING (
@@ -612,6 +625,7 @@ DO $$ BEGIN
       AND tablename = 'patient_alerts'
       AND policyname = 'patient_alerts_doctor_select'
   ) THEN
+    DROP POLICY IF EXISTS "patient_alerts_doctor_select" ON public.patient_alerts;
     CREATE POLICY "patient_alerts_doctor_select"
       ON public.patient_alerts FOR SELECT TO authenticated
       USING (
@@ -635,6 +649,7 @@ DO $$ BEGIN
       AND tablename = 'patient_alerts'
       AND policyname = 'patient_alerts_doctor_update'
   ) THEN
+    DROP POLICY IF EXISTS "patient_alerts_doctor_update" ON public.patient_alerts;
     CREATE POLICY "patient_alerts_doctor_update"
       ON public.patient_alerts FOR UPDATE TO authenticated
       USING (

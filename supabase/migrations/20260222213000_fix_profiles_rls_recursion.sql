@@ -140,6 +140,7 @@ BEGIN
     identifier_column
   );
 
+  DROP POLICY IF EXISTS "profiles_select_admin" ON public.profiles;
   CREATE POLICY "profiles_select_admin"
     ON public.profiles FOR SELECT
     USING (public.is_platform_or_org_admin(auth.uid()));

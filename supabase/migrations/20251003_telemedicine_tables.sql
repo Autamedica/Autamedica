@@ -104,21 +104,25 @@ ALTER TABLE public.telemedicine_session_events ENABLE ROW LEVEL SECURITY;
 -- Policies para telemedicine_sessions
 
 -- Patients can view their own sessions
+DROP POLICY IF EXISTS "Patients can view own sessions" ON public.telemedicine_sessions;
 CREATE POLICY "Patients can view own sessions" ON public.telemedicine_sessions
   FOR SELECT
   USING (auth.uid() = patient_id);
 
 -- Doctors can view their own sessions
+DROP POLICY IF EXISTS "Doctors can view own sessions" ON public.telemedicine_sessions;
 CREATE POLICY "Doctors can view own sessions" ON public.telemedicine_sessions
   FOR SELECT
   USING (auth.uid() = doctor_id);
 
 -- Patients can create sessions
+DROP POLICY IF EXISTS "Patients can create sessions" ON public.telemedicine_sessions;
 CREATE POLICY "Patients can create sessions" ON public.telemedicine_sessions
   FOR INSERT
   WITH CHECK (auth.uid() = patient_id);
 
 -- Doctors and patients can update their sessions (for status changes)
+DROP POLICY IF EXISTS "Participants can update sessions" ON public.telemedicine_sessions;
 CREATE POLICY "Participants can update sessions" ON public.telemedicine_sessions
   FOR UPDATE
   USING (auth.uid() = patient_id OR auth.uid() = doctor_id);
@@ -126,16 +130,19 @@ CREATE POLICY "Participants can update sessions" ON public.telemedicine_sessions
 -- Policies para room_participants
 
 -- Users can view their own participation records
+DROP POLICY IF EXISTS "Users can view own participation" ON public.telemedicine_room_participants;
 CREATE POLICY "Users can view own participation" ON public.telemedicine_room_participants
   FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Users can insert their own participation records
+DROP POLICY IF EXISTS "Users can insert own participation" ON public.telemedicine_room_participants;
 CREATE POLICY "Users can insert own participation" ON public.telemedicine_room_participants
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 -- Users can update their own participation records
+DROP POLICY IF EXISTS "Users can update own participation" ON public.telemedicine_room_participants;
 CREATE POLICY "Users can update own participation" ON public.telemedicine_room_participants
   FOR UPDATE
   USING (auth.uid() = user_id);
@@ -143,6 +150,7 @@ CREATE POLICY "Users can update own participation" ON public.telemedicine_room_p
 -- Policies para session_events
 
 -- Users can view events from their sessions
+DROP POLICY IF EXISTS "Users can view session events" ON public.telemedicine_session_events;
 CREATE POLICY "Users can view session events" ON public.telemedicine_session_events
   FOR SELECT
   USING (
@@ -153,6 +161,7 @@ CREATE POLICY "Users can view session events" ON public.telemedicine_session_eve
   );
 
 -- Users can insert events for their sessions
+DROP POLICY IF EXISTS "Users can insert session events" ON public.telemedicine_session_events;
 CREATE POLICY "Users can insert session events" ON public.telemedicine_session_events
   FOR INSERT
   WITH CHECK (

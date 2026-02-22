@@ -20,11 +20,13 @@ ALTER TABLE doctor_patient ENABLE ROW LEVEL SECURITY;
 -- =============================================================================
 
 -- lab_results: patients see own, doctors see assigned patients
+DROP POLICY IF EXISTS "patients_read_own_lab_results" ON lab_results;
 CREATE POLICY "patients_read_own_lab_results" ON lab_results
   FOR SELECT USING (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "doctors_read_assigned_lab_results" ON lab_results;
 CREATE POLICY "doctors_read_assigned_lab_results" ON lab_results
   FOR SELECT USING (
     EXISTS (
@@ -35,6 +37,7 @@ CREATE POLICY "doctors_read_assigned_lab_results" ON lab_results
     )
   );
 
+DROP POLICY IF EXISTS "doctors_insert_lab_results" ON lab_results;
 CREATE POLICY "doctors_insert_lab_results" ON lab_results
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -43,11 +46,13 @@ CREATE POLICY "doctors_insert_lab_results" ON lab_results
   );
 
 -- medication_logs: patients see own, doctors see assigned patients
+DROP POLICY IF EXISTS "patients_read_own_medication_logs" ON medication_logs;
 CREATE POLICY "patients_read_own_medication_logs" ON medication_logs
   FOR SELECT USING (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "doctors_read_assigned_medication_logs" ON medication_logs;
 CREATE POLICY "doctors_read_assigned_medication_logs" ON medication_logs
   FOR SELECT USING (
     EXISTS (
@@ -58,17 +63,20 @@ CREATE POLICY "doctors_read_assigned_medication_logs" ON medication_logs
     )
   );
 
+DROP POLICY IF EXISTS "patients_insert_own_medication_logs" ON medication_logs;
 CREATE POLICY "patients_insert_own_medication_logs" ON medication_logs
   FOR INSERT WITH CHECK (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
 -- patient_alerts: patients see own
+DROP POLICY IF EXISTS "patients_read_own_alerts" ON patient_alerts;
 CREATE POLICY "patients_read_own_alerts" ON patient_alerts
   FOR SELECT USING (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "doctors_read_assigned_alerts" ON patient_alerts;
 CREATE POLICY "doctors_read_assigned_alerts" ON patient_alerts
   FOR SELECT USING (
     EXISTS (
@@ -79,6 +87,7 @@ CREATE POLICY "doctors_read_assigned_alerts" ON patient_alerts
     )
   );
 
+DROP POLICY IF EXISTS "doctors_manage_alerts" ON patient_alerts;
 CREATE POLICY "doctors_manage_alerts" ON patient_alerts
   FOR ALL USING (
     EXISTS (
@@ -90,16 +99,19 @@ CREATE POLICY "doctors_manage_alerts" ON patient_alerts
   );
 
 -- symptom_reports: patients see own, doctors see assigned
+DROP POLICY IF EXISTS "patients_read_own_symptoms" ON symptom_reports;
 CREATE POLICY "patients_read_own_symptoms" ON symptom_reports
   FOR SELECT USING (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "patients_insert_own_symptoms" ON symptom_reports;
 CREATE POLICY "patients_insert_own_symptoms" ON symptom_reports
   FOR INSERT WITH CHECK (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "doctors_read_assigned_symptoms" ON symptom_reports;
 CREATE POLICY "doctors_read_assigned_symptoms" ON symptom_reports
   FOR SELECT USING (
     EXISTS (
@@ -111,16 +123,19 @@ CREATE POLICY "doctors_read_assigned_symptoms" ON symptom_reports
   );
 
 -- vital_signs: patients see own, doctors see assigned
+DROP POLICY IF EXISTS "patients_read_own_vitals" ON vital_signs;
 CREATE POLICY "patients_read_own_vitals" ON vital_signs
   FOR SELECT USING (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "patients_insert_own_vitals" ON vital_signs;
 CREATE POLICY "patients_insert_own_vitals" ON vital_signs
   FOR INSERT WITH CHECK (
     patient_id IN (SELECT id FROM patients WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "doctors_read_assigned_vitals" ON vital_signs;
 CREATE POLICY "doctors_read_assigned_vitals" ON vital_signs
   FOR SELECT USING (
     EXISTS (

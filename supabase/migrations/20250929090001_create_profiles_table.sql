@@ -15,6 +15,7 @@ create policy "Users can view own profile" on public.profiles
   for select using (auth.uid() = user_id);
 
 -- Service role can manage all profiles
+DROP POLICY IF EXISTS "Service role can manage profiles" ON public.profiles;
 create policy "Service role can manage profiles" on public.profiles
   for all using (auth.jwt() ->> 'role' = 'service_role');
 

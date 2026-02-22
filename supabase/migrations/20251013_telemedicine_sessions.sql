@@ -82,6 +82,7 @@ ALTER TABLE public.telemedicine_sessions ENABLE ROW LEVEL SECURITY;
 -- RLS Policies
 
 -- 1. Doctors can view their own sessions
+DROP POLICY IF EXISTS doctors_view_own_sessions ON public.telemedicine_sessions;
 CREATE POLICY doctors_view_own_sessions ON public.telemedicine_sessions
   FOR SELECT
   USING (
@@ -93,6 +94,7 @@ CREATE POLICY doctors_view_own_sessions ON public.telemedicine_sessions
   );
 
 -- 2. Patients can view their own sessions
+DROP POLICY IF EXISTS patients_view_own_sessions ON public.telemedicine_sessions;
 CREATE POLICY patients_view_own_sessions ON public.telemedicine_sessions
   FOR SELECT
   USING (
@@ -104,6 +106,7 @@ CREATE POLICY patients_view_own_sessions ON public.telemedicine_sessions
   );
 
 -- 3. Doctors can create sessions for their patients
+DROP POLICY IF EXISTS doctors_create_sessions ON public.telemedicine_sessions;
 CREATE POLICY doctors_create_sessions ON public.telemedicine_sessions
   FOR INSERT
   WITH CHECK (
@@ -115,6 +118,7 @@ CREATE POLICY doctors_create_sessions ON public.telemedicine_sessions
   );
 
 -- 4. Doctors can update their own sessions
+DROP POLICY IF EXISTS doctors_update_own_sessions ON public.telemedicine_sessions;
 CREATE POLICY doctors_update_own_sessions ON public.telemedicine_sessions
   FOR UPDATE
   USING (
@@ -133,6 +137,7 @@ CREATE POLICY doctors_update_own_sessions ON public.telemedicine_sessions
   );
 
 -- 5. Patients can update limited fields in their sessions (status, media settings)
+DROP POLICY IF EXISTS patients_update_own_sessions ON public.telemedicine_sessions;
 CREATE POLICY patients_update_own_sessions ON public.telemedicine_sessions
   FOR UPDATE
   USING (
@@ -151,6 +156,7 @@ CREATE POLICY patients_update_own_sessions ON public.telemedicine_sessions
   );
 
 -- 6. Platform admins can view all sessions
+DROP POLICY IF EXISTS admins_view_all_sessions ON public.telemedicine_sessions;
 CREATE POLICY admins_view_all_sessions ON public.telemedicine_sessions
   FOR SELECT
   USING (
@@ -162,6 +168,7 @@ CREATE POLICY admins_view_all_sessions ON public.telemedicine_sessions
   );
 
 -- 7. Platform admins can manage all sessions
+DROP POLICY IF EXISTS admins_manage_all_sessions ON public.telemedicine_sessions;
 CREATE POLICY admins_manage_all_sessions ON public.telemedicine_sessions
   FOR ALL
   USING (

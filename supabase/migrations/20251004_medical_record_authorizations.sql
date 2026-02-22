@@ -69,6 +69,7 @@ ALTER TABLE public.medical_record_authorizations ENABLE ROW LEVEL SECURITY;
 -- =====================================================
 
 -- SELECT: Users can see authorizations where they are involved
+DROP POLICY IF EXISTS "medical_record_authorizations_select_policy" ON public.medical_record_authorizations;
 CREATE POLICY "medical_record_authorizations_select_policy"
 ON public.medical_record_authorizations
 FOR SELECT
@@ -95,6 +96,7 @@ USING (
 );
 
 -- INSERT: Only doctor who created record or platform admin can grant authorization
+DROP POLICY IF EXISTS "medical_record_authorizations_insert_policy" ON public.medical_record_authorizations;
 CREATE POLICY "medical_record_authorizations_insert_policy"
 ON public.medical_record_authorizations
 FOR INSERT
@@ -130,6 +132,7 @@ WITH CHECK (
 );
 
 -- UPDATE: Only to revoke authorization (set revoked_at)
+DROP POLICY IF EXISTS "medical_record_authorizations_update_policy" ON public.medical_record_authorizations;
 CREATE POLICY "medical_record_authorizations_update_policy"
 ON public.medical_record_authorizations
 FOR UPDATE
@@ -159,6 +162,7 @@ WITH CHECK (
 );
 
 -- DELETE: No hard deletes allowed (audit trail)
+DROP POLICY IF EXISTS "medical_record_authorizations_delete_policy" ON public.medical_record_authorizations;
 CREATE POLICY "medical_record_authorizations_delete_policy"
 ON public.medical_record_authorizations
 FOR DELETE

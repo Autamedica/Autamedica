@@ -60,6 +60,7 @@ ALTER TABLE public.calls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.call_events ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Doctors can see calls where they are the doctor
+DROP POLICY IF EXISTS "doctors_own_calls" ON public.calls;
 CREATE POLICY "doctors_own_calls" ON public.calls
   FOR ALL USING (
     doctor_id = auth.uid()::UUID OR
@@ -69,6 +70,7 @@ CREATE POLICY "doctors_own_calls" ON public.calls
   );
 
 -- Policy: Patients can see calls where they are the patient
+DROP POLICY IF EXISTS "patients_own_calls" ON public.calls;
 CREATE POLICY "patients_own_calls" ON public.calls
   FOR ALL USING (
     patient_id = auth.uid()::UUID OR
@@ -78,6 +80,7 @@ CREATE POLICY "patients_own_calls" ON public.calls
   );
 
 -- Policy: Users can see events for their calls
+DROP POLICY IF EXISTS "call_events_for_participants" ON public.call_events;
 CREATE POLICY "call_events_for_participants" ON public.call_events
   FOR ALL USING (
     call_id IN (

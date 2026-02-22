@@ -41,6 +41,7 @@ CREATE POLICY "Users can view own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = user_id);
 
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Patients can view own data" ON public.patients;
 CREATE POLICY "Patients can view own data" ON public.patients
   FOR SELECT USING (EXISTS(
     SELECT 1 FROM public.profiles p
@@ -48,6 +49,7 @@ CREATE POLICY "Patients can view own data" ON public.patients
   ));
 
 ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Doctors can view own data" ON public.doctors;
 CREATE POLICY "Doctors can view own data" ON public.doctors
   FOR SELECT USING (EXISTS(
     SELECT 1 FROM public.profiles p

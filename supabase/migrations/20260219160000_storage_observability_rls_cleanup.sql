@@ -61,10 +61,12 @@ VALUES (
 -- -------------------------
 
 -- Anyone can view avatars (public bucket)
+DROP POLICY IF EXISTS "avatars_select_public" ON storage.objects;
 CREATE POLICY "avatars_select_public" ON storage.objects
   FOR SELECT USING (bucket_id = 'avatars');
 
 -- Authenticated users can upload their own avatar (folder = user_id)
+DROP POLICY IF EXISTS "avatars_insert_own" ON storage.objects;
 CREATE POLICY "avatars_insert_own" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'avatars'
@@ -73,6 +75,7 @@ CREATE POLICY "avatars_insert_own" ON storage.objects
   );
 
 -- Users can update their own avatar
+DROP POLICY IF EXISTS "avatars_update_own" ON storage.objects;
 CREATE POLICY "avatars_update_own" ON storage.objects
   FOR UPDATE USING (
     bucket_id = 'avatars'
@@ -80,6 +83,7 @@ CREATE POLICY "avatars_update_own" ON storage.objects
   );
 
 -- Users can delete their own avatar
+DROP POLICY IF EXISTS "avatars_delete_own" ON storage.objects;
 CREATE POLICY "avatars_delete_own" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'avatars'
@@ -91,6 +95,7 @@ CREATE POLICY "avatars_delete_own" ON storage.objects
 -- -------------------------
 
 -- Patients read own medical record files (folder = patient_user_id)
+DROP POLICY IF EXISTS "medical_records_select_patient" ON storage.objects;
 CREATE POLICY "medical_records_select_patient" ON storage.objects
   FOR SELECT USING (
     bucket_id = 'medical-records'
@@ -98,6 +103,7 @@ CREATE POLICY "medical_records_select_patient" ON storage.objects
   );
 
 -- Doctors read files of assigned patients
+DROP POLICY IF EXISTS "medical_records_select_doctor" ON storage.objects;
 CREATE POLICY "medical_records_select_doctor" ON storage.objects
   FOR SELECT USING (
     bucket_id = 'medical-records'
@@ -111,6 +117,7 @@ CREATE POLICY "medical_records_select_doctor" ON storage.objects
   );
 
 -- Doctors can upload medical record files to patient folders
+DROP POLICY IF EXISTS "medical_records_insert_doctor" ON storage.objects;
 CREATE POLICY "medical_records_insert_doctor" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'medical-records'
@@ -124,6 +131,7 @@ CREATE POLICY "medical_records_insert_doctor" ON storage.objects
 -- -------------------------
 
 -- Patients read own lab result files
+DROP POLICY IF EXISTS "lab_results_storage_select_patient" ON storage.objects;
 CREATE POLICY "lab_results_storage_select_patient" ON storage.objects
   FOR SELECT USING (
     bucket_id = 'lab-results'
@@ -131,6 +139,7 @@ CREATE POLICY "lab_results_storage_select_patient" ON storage.objects
   );
 
 -- Doctors read lab results of assigned patients
+DROP POLICY IF EXISTS "lab_results_storage_select_doctor" ON storage.objects;
 CREATE POLICY "lab_results_storage_select_doctor" ON storage.objects
   FOR SELECT USING (
     bucket_id = 'lab-results'
@@ -144,6 +153,7 @@ CREATE POLICY "lab_results_storage_select_doctor" ON storage.objects
   );
 
 -- Doctors and patients can upload lab results
+DROP POLICY IF EXISTS "lab_results_storage_insert_auth" ON storage.objects;
 CREATE POLICY "lab_results_storage_insert_auth" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'lab-results'
@@ -155,6 +165,7 @@ CREATE POLICY "lab_results_storage_insert_auth" ON storage.objects
 -- -------------------------
 
 -- Patients read own prescriptions
+DROP POLICY IF EXISTS "prescriptions_select_patient" ON storage.objects;
 CREATE POLICY "prescriptions_select_patient" ON storage.objects
   FOR SELECT USING (
     bucket_id = 'prescriptions'
@@ -162,6 +173,7 @@ CREATE POLICY "prescriptions_select_patient" ON storage.objects
   );
 
 -- Doctors read prescriptions of assigned patients
+DROP POLICY IF EXISTS "prescriptions_select_doctor" ON storage.objects;
 CREATE POLICY "prescriptions_select_doctor" ON storage.objects
   FOR SELECT USING (
     bucket_id = 'prescriptions'
@@ -175,6 +187,7 @@ CREATE POLICY "prescriptions_select_doctor" ON storage.objects
   );
 
 -- Only doctors can upload prescriptions
+DROP POLICY IF EXISTS "prescriptions_insert_doctor" ON storage.objects;
 CREATE POLICY "prescriptions_insert_doctor" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'prescriptions'
@@ -188,10 +201,12 @@ CREATE POLICY "prescriptions_insert_doctor" ON storage.objects
 -- -------------------------
 
 -- Anyone can view company logos
+DROP POLICY IF EXISTS "company_logos_select_public" ON storage.objects;
 CREATE POLICY "company_logos_select_public" ON storage.objects
   FOR SELECT USING (bucket_id = 'company-logos');
 
 -- Company admins can upload logos (folder = company_id)
+DROP POLICY IF EXISTS "company_logos_insert_admin" ON storage.objects;
 CREATE POLICY "company_logos_insert_admin" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'company-logos'
@@ -202,6 +217,7 @@ CREATE POLICY "company_logos_insert_admin" ON storage.objects
   );
 
 -- Company admins can update logos
+DROP POLICY IF EXISTS "company_logos_update_admin" ON storage.objects;
 CREATE POLICY "company_logos_update_admin" ON storage.objects
   FOR UPDATE USING (
     bucket_id = 'company-logos'
@@ -231,12 +247,14 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
 -- RLS for audit_logs: only admins can read, system inserts via triggers
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "audit_logs_select_admin" ON audit_logs;
 CREATE POLICY "audit_logs_select_admin" ON audit_logs
   FOR SELECT USING (is_system_admin());
 
 -- Allow trigger functions (running as definer/owner) to insert
 -- No INSERT policy needed for SECURITY DEFINER triggers;
 -- but add one for service_role access
+DROP POLICY IF EXISTS "audit_logs_insert_system" ON audit_logs;
 CREATE POLICY "audit_logs_insert_system" ON audit_logs
   FOR INSERT WITH CHECK (true);
 
@@ -362,6 +380,7 @@ CREATE TRIGGER tr_audit_telemedicine_sessions
 -- =============================================================================
 
 -- Doctors can see their own patient relationships
+DROP POLICY IF EXISTS "doctor_patient_select_doctor" ON doctor_patient;
 CREATE POLICY "doctor_patient_select_doctor" ON doctor_patient
   FOR SELECT USING (
     EXISTS (
@@ -372,6 +391,7 @@ CREATE POLICY "doctor_patient_select_doctor" ON doctor_patient
   );
 
 -- Patients can see which doctors are assigned to them
+DROP POLICY IF EXISTS "doctor_patient_select_patient" ON doctor_patient;
 CREATE POLICY "doctor_patient_select_patient" ON doctor_patient
   FOR SELECT USING (
     EXISTS (
@@ -382,6 +402,7 @@ CREATE POLICY "doctor_patient_select_patient" ON doctor_patient
   );
 
 -- Doctors can create assignments (assign patients to themselves)
+DROP POLICY IF EXISTS "doctor_patient_insert_doctor" ON doctor_patient;
 CREATE POLICY "doctor_patient_insert_doctor" ON doctor_patient
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -392,6 +413,7 @@ CREATE POLICY "doctor_patient_insert_doctor" ON doctor_patient
   );
 
 -- Doctors can remove their own patient assignments
+DROP POLICY IF EXISTS "doctor_patient_delete_doctor" ON doctor_patient;
 CREATE POLICY "doctor_patient_delete_doctor" ON doctor_patient
   FOR DELETE USING (
     EXISTS (
@@ -402,6 +424,7 @@ CREATE POLICY "doctor_patient_delete_doctor" ON doctor_patient
   );
 
 -- Admins can manage all relationships
+DROP POLICY IF EXISTS "doctor_patient_manage_admin" ON doctor_patient;
 CREATE POLICY "doctor_patient_manage_admin" ON doctor_patient
   FOR ALL USING (is_system_admin());
 

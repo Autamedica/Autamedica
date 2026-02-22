@@ -147,12 +147,15 @@ CREATE TABLE IF NOT EXISTS public.medical_records (
 -- Profiles policies
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile" ON public.profiles
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Platform admins can view all profiles" ON public.profiles;
 CREATE POLICY "Platform admins can view all profiles" ON public.profiles
     FOR SELECT USING (
         EXISTS (
@@ -164,6 +167,7 @@ CREATE POLICY "Platform admins can view all profiles" ON public.profiles
 -- Companies policies
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Company admins can view own companies" ON public.companies;
 CREATE POLICY "Company admins can view own companies" ON public.companies
     FOR SELECT USING (
         owner_profile_id = auth.uid() OR
@@ -176,9 +180,11 @@ CREATE POLICY "Company admins can view own companies" ON public.companies
 -- Doctors policies
 ALTER TABLE public.doctors ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Doctors can view own profile" ON public.doctors;
 CREATE POLICY "Doctors can view own profile" ON public.doctors
     FOR SELECT USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Platform admins can view all doctors" ON public.doctors;
 CREATE POLICY "Platform admins can view all doctors" ON public.doctors
     FOR SELECT USING (
         EXISTS (
@@ -190,9 +196,11 @@ CREATE POLICY "Platform admins can view all doctors" ON public.doctors
 -- Patients policies
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Patients can view own profile" ON public.patients;
 CREATE POLICY "Patients can view own profile" ON public.patients
     FOR SELECT USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Doctors can view assigned patients" ON public.patients;
 CREATE POLICY "Doctors can view assigned patients" ON public.patients
     FOR SELECT USING (
         EXISTS (
@@ -206,6 +214,7 @@ CREATE POLICY "Doctors can view assigned patients" ON public.patients
 -- Appointments policies
 ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Patients can view own appointments" ON public.appointments;
 CREATE POLICY "Patients can view own appointments" ON public.appointments
     FOR SELECT USING (
         EXISTS (
@@ -214,6 +223,7 @@ CREATE POLICY "Patients can view own appointments" ON public.appointments
         )
     );
 
+DROP POLICY IF EXISTS "Doctors can view their appointments" ON public.appointments;
 CREATE POLICY "Doctors can view their appointments" ON public.appointments
     FOR SELECT USING (
         EXISTS (
@@ -225,6 +235,7 @@ CREATE POLICY "Doctors can view their appointments" ON public.appointments
 -- Medical records policies
 ALTER TABLE public.medical_records ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Patients can view their visible records" ON public.medical_records;
 CREATE POLICY "Patients can view their visible records" ON public.medical_records
     FOR SELECT USING (
         EXISTS (
@@ -233,6 +244,7 @@ CREATE POLICY "Patients can view their visible records" ON public.medical_record
         ) AND visibility IN ('patient', 'care_team')
     );
 
+DROP POLICY IF EXISTS "Doctors can view care team records" ON public.medical_records;
 CREATE POLICY "Doctors can view care team records" ON public.medical_records
     FOR SELECT USING (
         EXISTS (
@@ -267,26 +279,32 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Add updated_at triggers
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at
     BEFORE UPDATE ON public.profiles
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS update_companies_updated_at ON public.companies;
 CREATE TRIGGER update_companies_updated_at
     BEFORE UPDATE ON public.companies
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS update_doctors_updated_at ON public.doctors;
 CREATE TRIGGER update_doctors_updated_at
     BEFORE UPDATE ON public.doctors
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS update_patients_updated_at ON public.patients;
 CREATE TRIGGER update_patients_updated_at
     BEFORE UPDATE ON public.patients
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS update_appointments_updated_at ON public.appointments;
 CREATE TRIGGER update_appointments_updated_at
     BEFORE UPDATE ON public.appointments
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS update_medical_records_updated_at ON public.medical_records;
 CREATE TRIGGER update_medical_records_updated_at
     BEFORE UPDATE ON public.medical_records
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
