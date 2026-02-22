@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { intentClassifier } from '../../lib/ai/intent-classifier'
-import { medicalQA, type PatientContext } from '../../lib/ai/medical-qa'
+import { intentClassifier } from '../intent-classifier'
+import { medicalQA, type PatientContext } from '../medical-qa'
 
 describe('Auta AI - identidad del paciente', () => {
   it('clasifica preguntas de nombre como intent identity', () => {

@@ -150,8 +150,8 @@ export class MedicalTokenizer {
       const tokenId = this.vocabulary.get(word);
       // Filtra palabras que están en vocabulario médico (no comunes ni especiales)
       return tokenId !== undefined &&
-             tokenId > 5 && // Después de tokens especiales
-             tokenId < 60;  // Dentro de palabras médicas
+        tokenId >= 5 && // Starting from first medical word (after special tokens)
+        tokenId < 60;  // Dentro de palabras médicas
     });
   }
 }

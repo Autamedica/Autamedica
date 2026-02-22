@@ -43,11 +43,11 @@ const INTENT_PATTERNS: Record<MedicalIntent, string[]> = {
     'presion', 'tension', 'arterial', 'latidos', 'pulso', 'frecuencia',
     'cardiaca', 'temperatura', 'saturacion', 'oxigeno', 'signos vitales',
     'signos', 'vitales', 'parametros', 'indicadores', 'mediciones',
-    'peso', 'altura', 'imc', 'glucosa', 'azucar'
+    'peso', 'altura', 'imc', 'glucosa', 'azucar', 'pa'
   ],
   appointments: [
     'cita', 'consulta', 'turno', 'agendar', 'reservar', 'doctor', 'medico',
-    'cuando', 'horario', 'disponible', 'ver', 'proximo', 'proxima',
+    'horario', 'disponible', 'proximo', 'proxima',
     'agenda', 'reunion', 'visita', 'atencion', 'ver medico', 'especialista'
   ],
   screenings: [
@@ -133,7 +133,7 @@ export class IntentClassifier {
    */
   public classify(text: string): IntentClassification {
     const keywords = medicalTokenizer.extractMedicalKeywords(text);
-    const normalizedText = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const normalizedText = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
     const words = normalizedText.split(/\s+/).filter(w => w.length > 0);
 
     // Calcular scores por intención
@@ -151,21 +151,35 @@ export class IntentClassifier {
       general: 0,
       greeting: 0,
       closing: 0,
+      identity: 0,
+      demographics: 0,
       unknown: 0
     };
 
     // Scoring basado en keywords
+    // High-specificity patterns get 2 points to break ties against overly generic ones
+    const HIGH_SPECIFICITY: Partial<Record<MedicalIntent, string[]>> = {
+      vitals: ['presion', 'tension', 'arterial', 'glucosa', 'saturacion', 'pa'],
+      screenings: ['screening', 'mamografia', 'colonoscopia', 'psa', 'preventivo', 'chequeo'],
+      reproductive: ['ive', 'ile', 'anticonceptivo', 'interrupcion', 'reproductiva'],
+    };
+
     for (const [intent, patterns] of Object.entries(INTENT_PATTERNS)) {
       for (const pattern of patterns) {
         const normalizedPattern = pattern.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const isSingleWord = !/\s/.test(normalizedPattern);
-        if ((intent === 'greeting' || intent === 'closing') && isSingleWord) {
+        // Short patterns (≤3 chars) must match as whole words to avoid false substring matches
+        const requiresWordBoundary = isSingleWord && normalizedPattern.length <= 3;
+        const isHighSpec = HIGH_SPECIFICITY[intent as MedicalIntent]?.includes(normalizedPattern);
+        const weight = isHighSpec ? 2 : 1;
+
+        if (intent === 'greeting' || intent === 'closing' || requiresWordBoundary) {
           if (words.includes(normalizedPattern)) {
-            scores[intent as MedicalIntent] += 1;
+            scores[intent as MedicalIntent] += weight;
           }
         } else {
           if (normalizedText.includes(normalizedPattern)) {
-            scores[intent as MedicalIntent] += 1;
+            scores[intent as MedicalIntent] += weight;
           }
         }
       }
