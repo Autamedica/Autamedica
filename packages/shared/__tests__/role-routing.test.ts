@@ -9,7 +9,6 @@ import {
   isValidRole,
   getTargetUrlByRole,
   getRoleForPortal,
-  PORTAL_TO_ROLE,
   BASE_URL_BY_ROLE,
   HOME_BY_ROLE
 } from '../src/role-routing';

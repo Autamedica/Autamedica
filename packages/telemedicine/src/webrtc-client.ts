@@ -44,6 +44,7 @@ export class WebRTCClient {
   private peerConnections = new Map<string, PeerState>()
   private localStream: MediaStream | null = null
   private config: WebRTCConfig
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private eventListeners = new Map<keyof WebRTCEvents, Function[]>()
   private connectionState: ConnectionState = 'disconnected'
 
@@ -94,7 +95,6 @@ export class WebRTCClient {
     if (listeners) {
       listeners.forEach(listener => {
         try {
-          // @ts-ignore
           listener(...args)
         } catch (error) {
           logger.error(`Error in ${event} listener:`, error)

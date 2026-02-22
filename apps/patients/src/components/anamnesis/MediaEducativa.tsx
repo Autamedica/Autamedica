@@ -1,8 +1,6 @@
 'use client';
 
-import { Play, Image as ImageIcon } from 'lucide-react';
 
-import { logger } from '@autamedica/shared';
 interface MediaEducativaProps {
   type: 'image' | 'video';
   url: string;

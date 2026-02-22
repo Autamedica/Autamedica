@@ -6,7 +6,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type {
-  Appointment,
   AppointmentWithDoctor,
   CreateAppointmentInput,
   UpdateAppointmentInput,

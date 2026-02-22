@@ -57,7 +57,7 @@ export async function DELETE(request: Request) {
     if (!userId) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
     const body = await request.json().catch(() => ({}));
     const path: string | undefined = body?.path;
-    if (!path || !path.startsWith(`${userId}/`)) return NextResponse.json({ ok: false, error: 'invalid_path' }, { status: 400 });
+    if (!path?.startsWith(`${userId}/`)) return NextResponse.json({ ok: false, error: 'invalid_path' }, { status: 400 });
 
     const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL');
     const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY');

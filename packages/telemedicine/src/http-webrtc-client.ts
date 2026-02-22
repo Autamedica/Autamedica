@@ -34,6 +34,7 @@ export class HttpWebRTCClient {
   private peerConnections = new Map<string, RTCPeerConnection>()
   private localStream: MediaStream | null = null
   private config: HttpWebRTCConfig
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private eventListeners = new Map<keyof HttpWebRTCEvents, Function[]>()
   private connectionState: ConnectionState = 'disconnected'
   private pollTimer: number | null = null
@@ -80,7 +81,6 @@ export class HttpWebRTCClient {
     if (listeners) {
       listeners.forEach(listener => {
         try {
-          // @ts-ignore
           listener(...args)
         } catch (error) {
           logger.error(`Error in ${event} listener:`, error)

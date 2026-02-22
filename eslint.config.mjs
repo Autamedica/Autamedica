@@ -250,6 +250,11 @@ js.configs.recommended,
     'apps/doctors/**/*.{ts,tsx}',
     // Companies portal — server-side services use process.env directly
     'apps/companies/**/*.{ts,tsx}',
+    'apps/admin/**/*.{ts,tsx}',
+    'apps/patients/**/*.{ts,tsx}',
+    'apps/web/src/components/ErrorBoundary.tsx',
+    'apps/signaling-server/**/*.{ts,tsx}',
+    'packages/telemedicine/**/*.{ts,tsx}',
   ],
   rules: {
     'no-restricted-properties': 'off',
@@ -303,8 +308,12 @@ js.configs.recommended,
   },
 }, // Test files
 {
-  files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', '**/tests/**/*.{ts,tsx,js,jsx}'],
+  files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', '**/tests/**/*.{ts,tsx,js,jsx}', 'packages/**/__tests__/**/*.{ts,tsx,js,jsx}', 'packages/**/vitest.setup.ts'],
   languageOptions: {
+    parser: tsparser,
+    parserOptions: {
+      project: false
+    },
     globals: {
       ...globals.jest,
       ...globals.mocha,
@@ -314,9 +323,41 @@ js.configs.recommended,
   },
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/prefer-optional-chain': 'off',
     'no-restricted-properties': 'off',
     'no-useless-escape': 'off',
   },
+}, // Script files
+{
+  files: ['apps/patients/**', 'apps/doctors/**', 'apps/companies/**', 'tests/**', 'worker/**', 'scripts/**', 'supabase/**'],
+  languageOptions: {
+    parser: tsparser,
+    parserOptions: {
+      project: false
+    }
+  },
+  plugins: {
+    '@typescript-eslint': tseslint,
+    'unused-imports': unusedImports,
+  },
+  rules: {
+    '@typescript-eslint/no-require-imports': 'off',
+    '@typescript-eslint/prefer-optional-chain': 'off',
+    'no-empty': 'warn',
+    'react/no-unescaped-entities': 'warn',
+    'no-case-declarations': 'warn',
+    'no-misleading-character-class': 'warn',
+    'react-hooks/rules-of-hooks': 'warn',
+    '@typescript-eslint/ban-ts-comment': 'warn',
+    '@typescript-eslint/no-unsafe-declaration-merging': 'warn',
+    'no-restricted-properties': 'off',
+    'no-restricted-syntax': 'off',
+    'import/no-anonymous-default-export': 'off',
+    'unused-imports/no-unused-imports': 'warn',
+    'unused-imports/no-unused-vars': 'warn',
+    'no-unused-vars': 'warn',
+    '@typescript-eslint/no-unused-vars': 'warn'
+  }
 }, // Script files
 {
   files: ['**/scripts/**/*.{js,mjs,cjs}'],

@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from 'react'
 import { logger } from '@autamedica/shared'
+import { useCallback, useEffect, useState } from 'react'
 import type { WebRTCClient } from '../webrtc-client'
 
 export interface MediaControlsState {
@@ -136,7 +136,7 @@ export function useMediaControls(client: WebRTCClient | null): MediaControlsHook
 
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          // @ts-ignore - mediaSource is supported in getDisplayMedia
+          // @ts-expect-error - mediaSource is supported in getDisplayMedia
         mediaSource: 'screen',
           width: { ideal: 1920 },
           height: { ideal: 1080 },

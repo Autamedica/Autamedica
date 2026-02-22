@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
 import { useSupabase } from '@autamedica/auth/react';
-import { parseProfile, safeParseProfile, type Profile } from '@/lib/zod/profiles';
+import { safeParseProfile, type Profile } from '@/lib/zod/profiles';
 import { parsePatient, type Patient } from '@/lib/zod/patients';
 
 interface PatientSessionState {
@@ -90,7 +90,7 @@ export function usePatientSession(): UsePatientSessionResult {
         // Intentar insertar con user_id; si falla por columna, probar con id
         let inserted: any = null;
         let insertError: any = null;
-        let insert = await supabase
+        const insert = await supabase
           .from('profiles')
           .insert({
             user_id: user.id,

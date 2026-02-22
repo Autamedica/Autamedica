@@ -153,7 +153,7 @@ export function useHealthCentersGeolocation(
       setIsLoading(true);
       setError(null);
 
-      let query = supabase
+      const query = supabase
         .from('health_centers')
         .select('*')
         .eq('offers_ive_ile', true)

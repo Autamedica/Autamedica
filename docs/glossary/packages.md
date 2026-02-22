@@ -65,15 +65,36 @@ export { logger } from "./services/logger.service";
 export type { Logger, LogLevel } from "./services/logger.service";
 
 // Role-based routing
-export { BASE_URL_BY_ROLE, HOME_BY_ROLE, AUTH_URLS, PORTAL_TO_ROLE, getTargetUrlByRole, getCookieDomain, getPortalForRole, getRoleForPortal, getLoginUrl } from "./role-routing";
+export { BASE_URL_BY_ROLE, HOME_BY_ROLE, getTargetUrlByRole, getCookieDomain, isValidRole, PORTAL_TO_ROLE, resolveRoleFromPortal, AUTH_URLS, getLoginUrl } from "./role-routing";
+
+// Unified portal routing system
+export { getPortalForRole, getPortalUrlWithPath, isCorrectPortal, getRoleForPortal } from "./env/portals";
 
 // Session management
-export { getSession, hasRole } from "./session";
+export { getSession, hasRole, type Session, type SessionRole } from "./auth/session";
 
 // Security helpers
 export { isAllowedRedirect, safeRedirectOrFallback, buildSafeLoginUrl, isSameOrigin, sanitizeReturnUrl } from "./security/redirects";
 
-// Role types (re-exported from types package)
+// App URL helpers (deprecated)
+export { getAppUrl, getBaseUrlForRole } from "./env/getAppUrl";
+
+// WebRTC diagnostics and media utils
+export { WebRTCDiagnostics, ICE_SERVERS } from "./webrtc-diagnostics";
+
+// Tenant-based roles and permissions
+export { canManageBilling, canManageCompany, canInviteMembers, type MemberRole } from "./tenant/roles";
+
+// Simplified role system utilities
+export { roleToPortal, roleToPortalDev, getDefaultRedirectUrl, hasAdminAccess, canManageOrganizations, canAccessMedicalFeatures, getRoleDisplayName, getRoleDescription, isValidUserRole, requiresVerification, AVAILABLE_ROLES, VERIFIED_ROLES } from "./roles";
+
+// Case converters
+export { toCamel, toSnake, type CamelCased, type SnakeCased } from "./casing";
+
+// Supabase database wrapper
+export { supabase, selectActive, selectActiveRaw, selectById, insertRecord, updateRecord, softDelete, hardDelete, restoreRecord, countActive, type SelectOptions } from "./db";
+
+// Role types
 export type { UserRole } from "./auth/portals";
 ```
 

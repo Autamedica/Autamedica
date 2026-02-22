@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { validateSession, isSessionExpired, getSessionTimeRemaining } from '../session';
+import { describe, expect, it } from 'vitest';
+import { getSessionTimeRemaining, isSessionExpired, validateSession } from '../session';
 
 describe('Session Management', () => {
   describe('validateSession', () => {
