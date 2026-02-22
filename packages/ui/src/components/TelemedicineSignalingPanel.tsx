@@ -1,10 +1,8 @@
 'use client';
 
+import { useTelemedicineClient } from '@autamedica/hooks';
+import type { ConnectionState, TelemedicineRole } from '@autamedica/telemedicine';
 import { useMemo } from 'react';
-import { useTelemedicineSignaling } from '@autamedica/hooks';
-import type { TelemedicineRole } from '@autamedica/telemedicine';
-import type { SignalingConnectionState } from '@autamedica/hooks';
-import { logger } from '@autamedica/shared';
 
 interface TelemedicineSignalingPanelProps {
   roomId: string;
@@ -23,36 +21,22 @@ export function TelemedicineSignalingPanel({
   roomId,
   userId,
   userType,
-  metadata,
   className,
-  signalingUrl,
-  iceCandidateStyle,
 }: TelemedicineSignalingPanelProps) {
-  const { state, controls } = useTelemedicineSignaling({
-    roomId,
-    userId,
-    userType,
-    metadata,
-    signalingUrl,
+  const state = useTelemedicineClient(roomId, userId, userType as 'doctor' | 'patient' | 'nurse', {
+    autoConnect: false,
   });
 
   const participantSummary = useMemo(() => {
-    if (state.participants.length === 0) {
+    if (state.remoteStreams.size === 0) {
       return 'En espera de participantes';
     }
-    return state.participants
-      .map((participant) => `${participant.userType === 'doctor' ? '👨‍⚕️' : '🧑‍⚕️'} ${participant.id}`)
+    return Array.from(state.remoteStreams.keys())
+      .map((id) => `${id}`)
       .join(', ');
-  }, [state.participants]);
+  }, [state.remoteStreams]);
 
   const statusBadge = getStatusBadge(state.connectionState);
-
-  const iceCandidateDefaultStyle = {
-    bg: 'bg-stone-50',
-    text: 'text-stone-900',
-  };
-
-  const iceStyle = iceCandidateStyle || iceCandidateDefaultStyle;
 
   return (
     <div
@@ -79,7 +63,7 @@ export function TelemedicineSignalingPanel({
           type="button"
           className="flex-1 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-emerald-400"
           onClick={() => {
-            controls.connect().catch((error) => logger.error('[Telemedicina] error al conectar', error));
+            state.connect().catch((error) => console.error('[Telemedicina] error al conectar', error));
           }}
         >
           Conectar
@@ -87,7 +71,7 @@ export function TelemedicineSignalingPanel({
         <button
           type="button"
           className="flex-1 rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
-          onClick={() => controls.disconnect()}
+          onClick={() => state.disconnect()}
         >
           Desconectar
         </button>
@@ -98,24 +82,6 @@ export function TelemedicineSignalingPanel({
           <p className="font-semibold text-slate-200">Participantes</p>
           <p className="text-slate-400">{participantSummary}</p>
         </div>
-        {state.lastOffer && (
-          <div className="rounded-md border border-blue-500/30 bg-blue-500/10 p-2">
-            <p className="font-semibold text-blue-200">Oferta recibida</p>
-            <p className="text-[11px] text-blue-100">De: {state.lastOffer.from}</p>
-          </div>
-        )}
-        {state.lastAnswer && (
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2">
-            <p className="font-semibold text-emerald-200">Respuesta recibida</p>
-            <p className="text-[11px] text-emerald-100">De: {state.lastAnswer.from}</p>
-          </div>
-        )}
-        {state.lastCandidate && (
-          <div className={`rounded-md border border-stone-300 p-2 ${iceStyle.bg}`}>
-            <p className={`font-semibold ${iceStyle.text}`}>ICE candidate</p>
-            <p className={`text-[11px] ${iceStyle.text}`}>Origen: {state.lastCandidate.from}</p>
-          </div>
-        )}
         {state.error && (
           <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-rose-200">
             Error: {state.error.message}
@@ -126,17 +92,17 @@ export function TelemedicineSignalingPanel({
   );
 }
 
-function getStatusBadge(state: SignalingConnectionState) {
+function getStatusBadge(state: ConnectionState) {
   switch (state) {
     case 'connected':
       return { label: 'Conectado', color: 'text-emerald-200', background: 'bg-emerald-500/10' };
     case 'connecting':
       return { label: 'Conectando…', color: 'text-blue-200', background: 'bg-blue-500/10' };
-    case 'reconnecting':
-      return { label: 'Reconectando…', color: 'text-yellow-200', background: 'bg-yellow-500/10' };
+    case 'failed':
+      return { label: 'Error de conexión', color: 'text-rose-200', background: 'bg-rose-500/10' };
     case 'disconnected':
-      return { label: 'Desconectado', color: 'text-slate-300', background: 'bg-slate-600/20' };
+    case 'closed':
     default:
-      return { label: 'Inactivo', color: 'text-slate-300', background: 'bg-slate-600/20' };
+      return { label: 'Desconectado', color: 'text-slate-300', background: 'bg-slate-600/20' };
   }
 }
