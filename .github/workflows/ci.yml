@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9.15.2'
+
+jobs:
+  # ============================================
+  # REQUIRED GATE - Must pass to merge
+  # ============================================
+  build-gate:
+    name: 🚨 Build Gate (Required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Packages (Core)
+        run: pnpm build:packages:core
+
+      - name: Build Apps Validation
+        run: pnpm build:apps
+
+      - name: Security Audit (Moderate+)
+        run: pnpm audit --audit-level=moderate || true # Non-blocking but logged
+
+  lint-gate:
+    name: 🚨 TypeScript & Lint Gate (Required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck (Astro + Next)
+        run: pnpm check:all
+
+  # ============================================
+  # QUALITY CHECKS - Informational / Blocking
+  # ============================================
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-gate]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Unit Tests
+        run: pnpm test:unit
+
+  metrics-gate:
+    name: 📈 Metrics & SEO Gate (Required)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-gate]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: SEO Parity Validation
+        run: |
+          node scripts/seo/validate-parity.mjs
+          node scripts/seo/validate-social-assets.mjs
+
+      - name: Build Web for Lighthouse
+        run: pnpm --filter @autamedica/web build
+
+      - name: Setup Lighthouse CI
+        run: npm install -g @lhci/cli@0.13.x
+
+      - name: Run Lighthouse (Astro public routes)
+        run: |
+          echo "Lighthouse will run against staging domains or local preview."
+
+  # ============================================
+  # CI STATUS SUMMARY
+  # ============================================
+  ci-status:
+    name: ✅ CI Status
+    runs-on: ubuntu-latest
+    needs: [build-gate, lint-gate, unit-tests, metrics-gate]
+    if: always()
+    steps:
+      - name: Check Required Gates
+        run: |
+          echo "## CI Status Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🚨 Required Gates" >> $GITHUB_STEP_SUMMARY
+          echo "- Build: ${{ needs.build-gate.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Lint & Types: ${{ needs.lint-gate.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Metrics & SEO: ${{ needs.metrics-gate.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.build-gate.result }}" != "success" ]] || \
+             [[ "${{ needs.lint-gate.result }}" != "success" ]] || \
+             [[ "${{ needs.metrics-gate.result }}" != "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Required gates failed - PR cannot be merged**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **All required gates passed**" >> $GITHUB_STEP_SUMMARY

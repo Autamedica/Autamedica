@@ -1,0 +1,205 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  validate-pr:
+    name: Validate Pull Request
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Evaluate PR Quality Signals
+        id: pr-quality
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+
+          title = os.environ.get('PR_TITLE', '') or ''
+          body = os.environ.get('PR_BODY', '') or ''
+          author = os.environ.get('PR_AUTHOR', '') or ''
+          author_type = os.environ.get('PR_AUTHOR_TYPE', '') or ''
+
+          reasons = []
+
+          auto_title_re = re.compile(
+              r'(Fix: The error|indicates that|could be due to|No authorization header|'
+              r'ERR_PNPM|Missing script|could not be found in the npm registry)',
+              re.I,
+          )
+
+          suspect_title = False
+          if len(title) > 140:
+            reasons.append('title_too_long')
+            suspect_title = True
+          if '`' in title:
+            reasons.append('title_contains_backticks')
+            suspect_title = True
+          if auto_title_re.search(title):
+            reasons.append('title_auto_generated')
+            suspect_title = True
+
+          suspect_body = False
+          if not body.strip():
+            reasons.append('body_empty')
+            suspect_body = True
+          if 'Closes #<!--' in body or '<!-- número de issue -->' in body:
+            reasons.append('body_placeholder_issue')
+            suspect_body = True
+          if '<!-- Proporciona una descripción' in body:
+            reasons.append('body_placeholder_description')
+            suspect_body = True
+
+          suspect_author = False
+          if author_type.lower() == 'bot' and 'dependabot' not in author.lower():
+            reasons.append('author_is_bot')
+            suspect_author = True
+
+          quality_fail = (suspect_title and suspect_body) or (suspect_author and suspect_body)
+          auto_close = 'title_auto_generated' in reasons and suspect_body
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as fh:
+            fh.write(f"quality_fail={'true' if quality_fail else 'false'}\n")
+            fh.write(f"auto_close={'true' if auto_close else 'false'}\n")
+            fh.write(f"quality_reasons={','.join(reasons)}\n")
+          PY
+
+      - name: Flag Low-Quality PR
+        if: steps.pr-quality.outputs.quality_fail == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const reasons = ("${{ steps.pr-quality.outputs.quality_reasons }}" || "")
+              .split(",")
+              .filter(Boolean);
+            const lines = reasons.length
+              ? reasons.map((reason) => `- ${reason}`)
+              : ['- quality_signals_detected'];
+            const bodyLines = [
+              '## ⚠️ PR marcado como baja calidad',
+              '',
+              'Esta PR coincide con señales típicas de PRs auto-generados o incompletos. Por favor:',
+              '',
+              '- Resume el cambio en un título corto (<= 120 caracteres)',
+              '- Completa la sección de requisitos mínimos del template',
+              '- Agrega una descripción concreta del problema y la solución',
+              '',
+              '**Señales detectadas:**',
+              ...lines,
+              '',
+              'Si esto fue un falso positivo, responde a este comentario con el contexto y se revisará.',
+            ];
+            const body = bodyLines.join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            try {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels: ['low-quality'],
+              });
+            } catch (error) {
+              core.info(`Label warning: ${error.message}`);
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
+
+      - name: Auto-close Low-Quality PR
+        if: steps.pr-quality.outputs.auto_close == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            await github.rest.pulls.update({
+              owner,
+              repo,
+              pull_number,
+              state: 'closed',
+            });
+
+      - name: Enforce PR Quality Gate
+        if: steps.pr-quality.outputs.quality_fail == 'true'
+        run: |
+          echo "PR quality gate failed. Address the template and title requirements."
+          exit 1
+          
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Check PR Size
+        id: pr-size
+        run: |
+          FILES_CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | wc -l)
+          echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
+          
+          if [ "$FILES_CHANGED" -gt 60 ]; then
+            echo "⚠️ PR is very large ($FILES_CHANGED files). Consider splitting into smaller PRs."
+            echo "size_warning=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ PR size is acceptable ($FILES_CHANGED files)"
+            echo "size_warning=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for Secrets
+        id: check-secrets
+        run: |
+          echo "Checking for hardcoded secrets..."
+          if grep -r "sk_live\|pk_live\|DATABASE_URL\|SUPABASE.*KEY" \
+            --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" \
+            --include="*.astro" \
+            --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git . \
+            | grep -v "process.env" | grep -v "Deno.env" | grep -v "import.meta.env" | grep -v "PUBLIC_"; then
+            echo "❌ Potential secrets found in code!"
+            echo "⚠️ WARNING: Potential secrets detected. Please verify they are not real keys."
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+      - name: Check for console.log
+        id: check-console
+        run: |
+          echo "Checking for console.log statements..."
+          CONSOLE_LOGS=$(git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.js' '*.tsx' '*.jsx' '*.astro' | grep -c "console.log" || true)
+          if [ "$CONSOLE_LOGS" -gt 0 ]; then
+            echo "⚠️ Found $CONSOLE_LOGS console.log statements. Consider removing them or using proper logger."
+            echo "console_warning=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No new console.log statements"
+            echo "console_warning=false" >> $GITHUB_OUTPUT
+          fi

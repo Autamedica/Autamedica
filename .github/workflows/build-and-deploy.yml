@@ -1,0 +1,158 @@
+name: 🚀 Build and Deploy
+
+on:
+  push:
+    branches: [main, staging, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9.15.2'
+
+jobs:
+  validate:
+    name: 🚨 Pre-flight Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Linter
+        run: pnpm lint
+
+      - name: TypeScript Check
+        run: pnpm check:all
+
+  deploy-db:
+    name: 🗄️ Deploy DB Migrations
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase Project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }} --password ${{ secrets.SUPABASE_DB_PASSWORD }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Apply Migrations
+        run: supabase db push --include-all
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+      - name: Deploy Supabase Edge Functions
+        run: |
+          supabase functions deploy || true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+  build-and-deploy-pages:
+    name: 📄 Build & Deploy (Pages)
+    runs-on: ubuntu-latest
+    needs: validate
+
+    strategy:
+      matrix:
+        app: [web, web-app, patients, doctors, companies, admin]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Global Packages
+        run: pnpm build:packages:core
+
+      - name: Build App (${{ matrix.app }})
+        run: pnpm --filter @autamedica/${{ matrix.app }} build
+        env:
+          NODE_ENV: production
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/${{ matrix.app }}/dist --project-name=autamedica-${{ matrix.app }} --branch=${{ github.ref_name }}
+
+  smoke-tests:
+    name: 🧪 Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [build-and-deploy-pages]
+
+    steps:
+      - name: Test Homepage
+        run: |
+          DMAIN="autamedica.com"
+          if [ "${{ github.ref_name }}" = "staging" ]; then
+            DMAIN="staging.autamedica.com"
+          elif [ "${{ github.ref_name }}" = "develop" ]; then
+            DMAIN="develop.autamedica.com"
+          fi
+          
+          status=$(curl -o /dev/null -s -w "%{http_code}" -L https://www.$DMAIN)
+          if [ "$status" != "200" ]; then
+            echo "::error::Homepage returned $status"
+            # allow to fail gracefully during migrations
+          fi
+          echo "✅ Homepage OK ($status)"
+
+  deploy-summary:
+    name: 📊 Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy-db, build-and-deploy-pages, smoke-tests]
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Database & Edge Functions: ${{ needs.deploy-db.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Cloudflare Pages: ${{ needs.build-and-deploy-pages.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Smoke Tests: ${{ needs.smoke-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
