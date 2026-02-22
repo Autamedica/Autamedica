@@ -63,32 +63,18 @@
   ],
   "shortcuts": [
     {
-      "name": "Nueva consulta",
-      "short_name": "Consulta",
-      "description": "Iniciar una nueva consulta médica",
-      "url": "/consulta",
+      "name": "Portal de Pacientes",
+      "short_name": "Pacientes",
+      "description": "Acceder al portal de pacientes",
+      "url": "/patients",
       "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
     },
     {
-      "name": "Mis citas",
-      "short_name": "Citas",
-      "description": "Ver mis citas programadas",
-      "url": "/citas",
+      "name": "Portal de Médicos",
+      "short_name": "Médicos",
+      "description": "Acceder al portal de médicos",
+      "url": "/doctors",
       "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot-1.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshot-2.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
     }
   ]
 }

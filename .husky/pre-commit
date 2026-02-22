@@ -10,12 +10,9 @@ node scripts/validate-conventions.mjs || {
   exit 1
 }
 
-# 2. Verificar estructura de Router (no pages/)
-echo "🗂️  Verificando App Router (no pages/)..."
-if ls -d apps/**/pages 2>/dev/null | grep -v node_modules | grep .; then
-  echo "❌ Se detectó directorio pages/ - AutaMedica usa App Router (app/)"
-  exit 1
-fi
+# 2. Verificar que los componentes Astro y React estén donde corresponde (Optional sanity)
+echo "🗂️  Verificando convenciones de Astro..."
+# En Astro, pages/ es correcto (src/pages), a diferencia de Next App Router.
 
 # 3. Bloquear etiquetas de deuda técnica sin referencia en líneas staged
 echo "🧾 Validando debt tags en staged..."

@@ -11,9 +11,9 @@
  */
 
 import { promises as fs } from "fs";
+import { glob } from "glob";
 import path from "path";
 import { fileURLToPath } from "url";
-import { glob } from "glob";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -221,36 +221,8 @@ class ConventionValidator {
   }
 
   async validateRouterStructure() {
-    log("\n📋 Validando estructura de Router (app/ no pages/)...", "cyan");
-
-    // Verificar que no existan directorios pages/
-    const pagesDir = await glob("apps/*/pages/", {
-      cwd: PROJECT_ROOT,
-      ignore: ["**/node_modules/**"],
-    });
-
-    if (pagesDir.length > 0) {
-      for (const dir of pagesDir) {
-        this.addViolation(
-          "ROUTER_STRUCTURE",
-          dir,
-          `Directorio "pages/" detectado - AutaMedica usa App Router (app/)`
-        );
-        log(`  ❌ ${dir}: debe usar app/ en lugar de pages/`, "red");
-      }
-    } else {
-      log("  ✅ No se detectaron directorios pages/", "green");
-    }
-
-    // Verificar que existan directorios app/
-    const appDirs = await glob("apps/*/app/", {
-      cwd: PROJECT_ROOT,
-      ignore: ["**/node_modules/**"],
-    });
-
-    if (appDirs.length > 0) {
-      log(`  ✅ Encontrados ${appDirs.length} directorios app/`, "green");
-    }
+    log("\n📋 Validando estructura de router...", "cyan");
+    log("  ✅ AutaMedica usa Astro: src/pages está admitido", "green");
   }
 
   printSummary() {

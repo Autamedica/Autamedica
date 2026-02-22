@@ -9,6 +9,8 @@ interface Props {
   description?: string;
   canonical?: string;
   ogImage?: string;
+  ogType?: 'website' | 'article';
+  publishedTime?: string;
   robots?: string;
 }
 
@@ -17,6 +19,8 @@ const {
   description = 'Plataforma de telemedicina innovadora. Conecta con profesionales de la salud, agenda consultas inmediatas y recibe atencion medica de calidad. Tecnologia segura HIPAA-compliant.',
   canonical,
   ogImage = '/og-image.png',
+  ogType = 'website',
+  publishedTime,
   robots = 'index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1',
 } = Astro.props;
 
@@ -36,10 +40,16 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
       canonical={canonical}
       robots={robots}
       ogImage={ogImage}
+      ogType={ogType}
+      publishedTime={publishedTime}
       twitterSite="@autamedica"
       twitterCreator="@autamedica"
       keywords="telemedicina, consulta virtual, medico online, salud digital, consultas online, HIPAA, AutaMedica, receta digital, historia clinica digital, inteligencia artificial medica, telemedicina Argentina, consulta medica virtual"
     />
+
+    <!-- Performance hints -->
+    <link rel="preconnect" href="https://knywotiidsydsaveqkjs.supabase.co" />
+    <link rel="dns-prefetch" href="https://knywotiidsydsaveqkjs.supabase.co" />
 
     <!-- Autores -->
     <meta name="author" content="E.M Medicina - UBA" />
