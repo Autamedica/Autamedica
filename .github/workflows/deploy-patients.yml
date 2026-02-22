@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          for project_name in "autamedica-patients" "patients" "autamedica-patient"; do
+          for project_name in "autamedica-patients" "autamedica-patient" "patients"; do
             echo "Intentando deploy a Cloudflare Pages project: ${project_name}"
             for attempt in 1 2 3; do
               set +e
@@ -60,6 +60,20 @@ jobs:
               if [ $DEPLOY_STATUS -eq 0 ]; then
                 echo "✅ Deploy exitoso en project: ${project_name}"
                 exit 0
+              fi
+
+              if echo "$DEPLOY_OUTPUT" | grep -q "Project not found" && [ "$project_name" = "autamedica-patients" ]; then
+                echo "⚙️ Proyecto ${project_name} no existe. Intentando crearlo..."
+                set +e
+                CREATE_OUTPUT=$(pnpm dlx wrangler pages project create "${project_name}" --production-branch main 2>&1)
+                CREATE_STATUS=$?
+                set -e
+                echo "$CREATE_OUTPUT"
+
+                if [ $CREATE_STATUS -eq 0 ] || echo "$CREATE_OUTPUT" | grep -qi "already exists"; then
+                  echo "🔁 Reintentando deploy tras creación de proyecto..."
+                  continue
+                fi
               fi
 
               if echo "$DEPLOY_OUTPUT" | grep -q "code: 10429"; then
