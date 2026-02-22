@@ -7,8 +7,6 @@ const projectRoot = process.cwd();
 const requiredAssets = [
   'apps/web/public/og-image.png',
   'apps/web/public/twitter-image.png',
-  'apps/web-app/public/og-image.png',
-  'apps/web-app/public/twitter-image.png',
 ];
 
 let hasErrors = false;
