@@ -3,6 +3,7 @@
 ## 🚀 Quick Deployment
 
 ### Option 1: One-Click Deploy
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ecucondorSA/Autamedica&root-directory=apps/patients)
 
 ### Option 2: Manual Deployment
@@ -26,9 +27,9 @@
    Add these environment variables in Vercel dashboard:
 
    ```
-   NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+   NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
-   SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+   SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
    SUPABASE_ANON_KEY=your_anon_key_here
    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
    NODE_ENV=production

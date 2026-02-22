@@ -7,6 +7,7 @@
 **Herramienta:** DevTools Complete Analyzer (Playwright)
 
 ### Estado General
+
 - ✅ **Página carga correctamente** (853ms)
 - ✅ **HTTPS configurado** correctamente
 - ✅ **12 de 13 requests exitosos** (92.3% success rate)
@@ -19,6 +20,7 @@
 ### 1. Error 404 - Logo de Autamedica Faltante
 
 #### **Detalles del Error:**
+
 ```json
 {
   "type": "error",
@@ -33,6 +35,7 @@
 ```
 
 #### **Información del Request Fallido:**
+
 - **URL completa:** `https://auth.autamedica.com/_next/image/?url=%2Fautamedica-logo.png&w=96&q=75`
 - **URL decodificada:** `https://auth.autamedica.com/_next/image/?url=/autamedica-logo.png&w=96&q=75`
 - **Método:** GET
@@ -41,9 +44,11 @@
 - **Efecto:** Logo no se muestra en la interfaz
 
 #### **Causa Raíz:**
+
 La aplicación intenta cargar `/autamedica-logo.png` a través del sistema de optimización de imágenes de Next.js, pero el archivo **no existe** en el directorio `public/` de la app `auth`.
 
 #### **Ubicación Esperada del Archivo:**
+
 ```
 apps/auth/public/autamedica-logo.png
 ```
@@ -51,6 +56,7 @@ apps/auth/public/autamedica-logo.png
 #### **Solución:**
 
 **Opción 1: Copiar logo desde otra app**
+
 ```bash
 # Verificar si existe en web-app
 ls /root/Autamedica/apps/web-app/public/autamedica-logo.png
@@ -61,6 +67,7 @@ cp /root/Autamedica/apps/web-app/public/autamedica-logo.png \
 ```
 
 **Opción 2: Buscar y copiar logo existente**
+
 ```bash
 # Buscar cualquier logo de Autamedica en el proyecto
 find /root/Autamedica -name "*autamedica*logo*.png" -o -name "*logo*.svg" | grep -v node_modules
@@ -72,6 +79,7 @@ find /root/Autamedica -name "*autamedica*logo*.png" -o -name "*logo*.svg" | grep
 Si el logo tiene otro nombre, actualizar el componente que lo referencia.
 
 #### **Verificación Post-Fix:**
+
 ```bash
 # Después de copiar el logo, verificar que existe
 ls -lh /root/Autamedica/apps/auth/public/autamedica-logo.png
@@ -89,13 +97,16 @@ pnpm --filter @autamedica/auth dev
 ## ✅ RECURSOS QUE CARGAN CORRECTAMENTE
 
 ### Documentos
+
 - ✅ HTML principal (21.3 KB, 200 OK)
 
 ### Fuentes (Fonts)
+
 - ✅ `4cf2300e9c8272f7-s.p.woff2` (28.4 KB, cacheable 1 año)
 - ✅ `93f479601ee12b01-s.p.woff2` (cached, revalidated)
 
 ### JavaScript Bundles
+
 - ✅ `webpack-*.js`
 - ✅ `framework-*.js`
 - ✅ `main-app-*.js`
@@ -103,6 +114,7 @@ pnpm --filter @autamedica/auth dev
 - ✅ `app/auth/select-role/page-*.js`
 
 ### CSS
+
 - ✅ Hojas de estilo Next.js
 
 ---
@@ -110,6 +122,7 @@ pnpm --filter @autamedica/auth dev
 ## 📊 Métricas de Performance
 
 ### Tiempos de Carga
+
 ```
 DNS Lookup:      1.3ms    ✅ Excelente
 TCP Connection:  54.9ms   ✅ Bueno
@@ -121,12 +134,14 @@ Total Load:      317.5ms  ✅ Muy rápido
 ```
 
 ### Tamaños de Transferencia
+
 - **HTML:** 21.3 KB (comprimido con Brotli)
 - **JavaScript total:** ~100 KB (estimado)
 - **Fuentes:** 28.4 KB
 - **Total transferido:** ~150 KB
 
 ### Cache Performance
+
 - ✅ Fuentes cacheadas correctamente (max-age=31536000)
 - ✅ Cloudflare CDN activo (cf-cache-status: HIT/REVALIDATED)
 - ✅ Assets estáticos con cache inmutable
@@ -136,25 +151,28 @@ Total Load:      317.5ms  ✅ Muy rápido
 ## 🔐 Análisis de Seguridad
 
 ### Headers de Seguridad Presentes
+
 - ✅ **HTTPS:** Conexión segura
 - ✅ **Referrer-Policy:** `strict-origin-when-cross-origin`
 - ✅ **X-Content-Type-Options:** `nosniff`
 - ✅ **Access-Control-Allow-Origin:** `*` (CORS habilitado)
 
 ### Headers de Seguridad Recomendados (Faltantes)
+
 - ⚠️ **Strict-Transport-Security (HSTS):** No presente
 - ⚠️ **Content-Security-Policy (CSP):** No presente
 - ⚠️ **X-Frame-Options:** No presente
 - ⚠️ **Permissions-Policy:** No presente
 
 ### Recomendación de Seguridad
+
 Agregar archivo `_headers` en `apps/auth/public/`:
 
 ```
 # apps/auth/public/_headers
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://gtyvdircfhmdjiaelqkg.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://knywotiidsydsaveqkjs.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
@@ -166,13 +184,16 @@ Agregar archivo `_headers` en `apps/auth/public/`:
 ## 🗄️ Storage y Cookies
 
 ### LocalStorage
+
 - **Keys:** 0 (vacío)
 - ✅ No hay data sensible expuesta
 
 ### SessionStorage
+
 - **Keys:** 0 (vacío)
 
 ### Cookies
+
 - **Count:** 0
 - ⚠️ **Observación:** No hay cookies de sesión visibles
 - Esto podría indicar:
@@ -185,11 +206,13 @@ Agregar archivo `_headers` en `apps/auth/public/`:
 ## 🎨 Análisis del DOM
 
 ### Estructura de Página
+
 - **Total elementos:** 119
 - **Título:** "AutaMedica Auth Hub - Acceso Seguro"
 - **Charset:** UTF-8 ✅
 
 ### Elementos Clave
+
 - **Formularios:** Presente (select-role)
 - **Botones:** Múltiples opciones de rol
 - **Imágenes:** 1 (el logo 404)
@@ -208,18 +231,21 @@ El screenshot muestra la página de selección de rol con el logo faltante (espa
 ## 🔧 PLAN DE ACCIÓN
 
 ### Prioridad Alta 🔴
+
 1. **Resolver error 404 del logo**
    - Localizar archivo `autamedica-logo.png`
    - Copiar a `apps/auth/public/`
    - Verificar build y deploy
 
 ### Prioridad Media 🟡
+
 2. **Agregar headers de seguridad**
    - Crear `apps/auth/public/_headers`
    - Incluir CSP, HSTS, X-Frame-Options
    - Deploy y verificar
 
 ### Prioridad Baja 🟢
+
 3. **Optimizaciones adicionales**
    - Revisar bundle sizes
    - Code splitting si es necesario
@@ -272,6 +298,7 @@ cat auth-analysis-fixed/console.json
 
 **Generado por:** DevTools Complete Analyzer
 **Comando ejecutado:**
+
 ```bash
 node ~/Documentos/devtools-complete-analyzer.js \
   --url https://auth.autamedica.com/auth/select-role/ \

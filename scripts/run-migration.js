@@ -23,7 +23,7 @@ console.log('5. Create formatting functions for display IDs\n');
 console.log('⚠️  IMPORTANT: To apply this migration:\n');
 console.log('Option 1: Supabase Dashboard (Recommended)');
 console.log('----------------------------------------');
-console.log('1. Go to: https://app.supabase.com/project/gtyvdircfhmdjiaelqkg/editor');
+console.log('1. Go to: https://app.supabase.com/project/knywotiidsydsaveqkjs/editor');
 console.log('2. Click on "SQL Editor"');
 console.log('3. Copy the migration from:');
 console.log(`   ${migrationPath}`);
@@ -32,7 +32,7 @@ console.log('4. Paste and click "Run"\n');
 console.log('Option 2: Direct Database Connection');
 console.log('----------------------------------------');
 console.log('If you have the correct database password:');
-console.log('psql "postgresql://postgres.gtyvdircfhmdjiaelqkg:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres" \\');
+console.log('psql "postgresql://postgres.knywotiidsydsaveqkjs:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres" \\');
 console.log(`  -f ${migrationPath}\n`);
 
 console.log('Option 3: Using Supabase Service Role Key');

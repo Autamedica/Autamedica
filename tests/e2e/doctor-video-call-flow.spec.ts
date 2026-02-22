@@ -6,7 +6,7 @@ const DOCTOR_EMAIL = process.env.DOCTOR_DEMO_EMAIL ?? 'doctor.demo@autamedica.co
 const DOCTOR_PASSWORD = process.env.DOCTOR_DEMO_PASSWORD ?? 'Demo1234';
 const SUPABASE_URL = process.env.SUPABASE_URL
   ?? process.env.NEXT_PUBLIC_SUPABASE_URL
-  ?? 'https://gtyvdircfhmdjiaelqkg.supabase.co';
+  ?? 'https://knywotiidsydsaveqkjs.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 const REPORT_PATH = '/tmp/test_doctor_video_call.json';

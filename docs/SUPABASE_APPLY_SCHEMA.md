@@ -3,6 +3,7 @@
 ## ✅ Estado Actual
 
 **Implementación completada:**
+
 - ✅ Types creados en `@autamedica/types` (1,250+ líneas)
 - ✅ Hooks personalizados (`useAnamnesis`, `useTelemedicine`, `useCommunity`)
 - ✅ Schema SQL completo y listo para aplicar
@@ -12,11 +13,13 @@
 ### 1. Obtener Clave Anónima de Supabase
 
 **Acceder al Dashboard de Supabase:**
+
 ```
-https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/settings/api
+https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/settings/api
 ```
 
 **Copiar la clave anónima (anon/public key):**
+
 - Navegar a: Project Settings → API
 - Copiar: `anon` / `public` key
 - **NO** usar la `service_role` key en frontend
@@ -27,7 +30,7 @@ https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/settings/api
 
 ```bash
 # Supabase (Reemplazar la clave actual)
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***  # ← REEMPLAZAR AQUÍ
 SUPABASE_JWT_SECRET=l5v/qoRl8SqzvN07iMcott58d3rWp4eiFimpYsm4v6YpegKM6uG3BtQGNMjktD5egtJ1PI92tkCzp2EAkXE7gw==
 ```
@@ -37,11 +40,13 @@ SUPABASE_JWT_SECRET=l5v/qoRl8SqzvN07iMcott58d3rWp4eiFimpYsm4v6YpegKM6uG3BtQGNMjk
 **Opción A: SQL Editor (Recomendado)**
 
 1. Abrir SQL Editor en Supabase Dashboard:
+
    ```
-   https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/sql/new
+   https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new
    ```
 
 2. Copiar contenido completo de:
+
    ```
    docs/supabase-schema-complete.sql
    ```
@@ -62,7 +67,7 @@ SUPABASE_JWT_SECRET=l5v/qoRl8SqzvN07iMcott58d3rWp4eiFimpYsm4v6YpegKM6uG3BtQGNMjk
 npm install -g supabase
 
 # Aplicar schema
-supabase db push --db-url "postgresql://postgres:[PASSWORD]@db.gtyvdircfhmdjiaelqkg.supabase.co:5432/postgres" \
+supabase db push --db-url "postgresql://postgres:[PASSWORD]@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres" \
   --file docs/supabase-schema-complete.sql
 ```
 
@@ -71,21 +76,25 @@ supabase db push --db-url "postgresql://postgres:[PASSWORD]@db.gtyvdircfhmdjiael
 **Tablas esperadas (19 total):**
 
 **Base:**
+
 - `appointments`
 - `patient_care_team`
 
 **Anamnesis (Historia Clínica):**
+
 - `anamnesis`
 - `anamnesis_sections`
 - `anamnesis_attachments`
 
 **Telemedicina:**
+
 - `telemedicine_sessions`
 - `session_participants`
 - `session_events`
 - `session_recordings`
 
 **Comunidad de Pacientes:**
+
 - `community_groups`
 - `group_memberships`
 - `community_posts`
@@ -95,6 +104,7 @@ supabase db push --db-url "postgresql://postgres:[PASSWORD]@db.gtyvdircfhmdjiael
 - `community_notifications`
 
 **Salud Preventiva:**
+
 - `patient_screenings`
 - `screening_reminders`
 - `health_goals`
@@ -132,18 +142,15 @@ VALUES
 
 ```typescript
 // En cualquier componente de pacientes
-import { createBrowserClient } from '@autamedica/auth';
+import { createBrowserClient } from "@autamedica/auth";
 
 const supabase = createBrowserClient();
 
 // Test básico
-const { data, error } = await supabase
-  .from('community_groups')
-  .select('*')
-  .limit(5);
+const { data, error } = await supabase.from("community_groups").select("*").limit(5);
 
-console.log('Grupos:', data);
-console.log('Error:', error);
+console.log("Grupos:", data);
+console.log("Error:", error);
 ```
 
 ### 8. Reiniciar Servidor de Desarrollo
@@ -159,18 +166,23 @@ pnpm dev
 ## 🔍 Troubleshooting
 
 ### Error: "relation does not exist"
+
 **Solución:** El schema no se aplicó correctamente. Revisar logs de SQL Editor.
 
 ### Error: "JWT expired" o "Invalid API key"
+
 **Solución:** La `NEXT_PUBLIC_SUPABASE_ANON_KEY` es incorrecta o expiró. Obtener nueva key del dashboard.
 
 ### Error: "new row violates row-level security policy"
+
 **Solución:** Las políticas RLS están muy restrictivas. Verificar que:
+
 - El usuario está autenticado
 - El `patient_id` coincide con `auth.uid()`
 - Las políticas permiten INSERT/SELECT
 
 ### Error: "permission denied for table"
+
 **Solución:** El rol `anon` necesita permisos. Ejecutar:
 
 ```sql

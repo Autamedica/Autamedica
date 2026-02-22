@@ -17,8 +17,9 @@ Root directory: (leave empty - monorepo root)
 ### Environment Variables
 
 **Production:**
+
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Njc4NTUsImV4cCI6MjA3MjI0Mzg1NX0.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA
 NEXT_PUBLIC_NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://autamedica.com
@@ -31,6 +32,7 @@ NODE_ENV=production
 `cd apps/web-app && pnpm build:cloudflare`
 
 Ejecuta internamente:
+
 1. `cd ../.. && pnpm build:packages:core` - Build solo packages core (types, shared, auth, hooks, tailwind-config)
 2. `pnpm turbo run build --filter=@autamedica/web-app --no-deps` - Build web-app sin dependencias hermanas
 

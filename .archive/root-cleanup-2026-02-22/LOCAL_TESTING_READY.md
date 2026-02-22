@@ -9,6 +9,7 @@ El testing local ha sido exitoso. Todos los servicios están operativos.
 ## ✅ Tests Completados
 
 ### 1. Google Gemini AI ✅
+
 ```
 Response: "Estos síntomas sugieren una infección viral común..."
 Input tokens: 52
@@ -18,6 +19,7 @@ Status: WORKING ✅
 ```
 
 ### 2. Configuración ✅
+
 ```
 ✅ .env.local configurado
 ✅ Google AI SDK instalado
@@ -47,6 +49,7 @@ pnpm dev --filter @autamedica/patients # Puerto 3002
 1. **Abrir consola del navegador** (F12)
 
 2. **Buscar mensajes de inicio**:
+
 ```
 ✅ GeminiAIService inicializado con Gemini 2.5
 ✅ MedicalDataAPI usando Supabase (producción)
@@ -54,6 +57,7 @@ pnpm dev --filter @autamedica/patients # Puerto 3002
 ```
 
 3. **NO deben aparecer**:
+
 ```
 ❌ MOCK
 ❌ modo desarrollo
@@ -64,12 +68,12 @@ pnpm dev --filter @autamedica/patients # Puerto 3002
 
 ## 📊 Servicios Activos
 
-| Servicio | Status | Endpoint |
-|----------|--------|----------|
-| Google Gemini AI | ✅ READY | API Key configured |
-| LiveKit | ✅ CONFIGURED | wss://eduardo-4vew3u6i.livekit.cloud |
-| Supabase | ✅ CONFIGURED | gtyvdircfhmdjiaelqkg.supabase.co |
-| Feature Flags | ✅ SET | Mocks: OFF, Real: ON |
+| Servicio         | Status        | Endpoint                             |
+| ---------------- | ------------- | ------------------------------------ |
+| Google Gemini AI | ✅ READY      | API Key configured                   |
+| LiveKit          | ✅ CONFIGURED | wss://eduardo-4vew3u6i.livekit.cloud |
+| Supabase         | ✅ CONFIGURED | knywotiidsydsaveqkjs.supabase.co     |
+| Feature Flags    | ✅ SET        | Mocks: OFF, Real: ON                 |
 
 ---
 

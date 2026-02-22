@@ -8,7 +8,7 @@
 ## 📋 Variables Obtenidas desde Supabase
 
 ```bash
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 ```
 
@@ -24,12 +24,12 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 ```bash
 # Supabase Server-Side
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 SUPABASE_SERVICE_ROLE_KEY=<OBTENER_DESDE_SUPABASE_DASHBOARD>
 
 # Supabase Client-Side
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 
 # Auth Configuration
@@ -45,12 +45,12 @@ NEXT_PUBLIC_BASE_URL=https://auth.autamedica.com
 
 ```bash
 # Supabase Server-Side
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 SUPABASE_SERVICE_ROLE_KEY=<OBTENER_DESDE_SUPABASE_DASHBOARD>
 
 # Supabase Client-Side
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 
 # Auth Configuration
@@ -73,12 +73,12 @@ NEXT_PUBLIC_COMPANIES_URL=https://companies.autamedica.com
 
 ```bash
 # Supabase Server-Side
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 SUPABASE_SERVICE_ROLE_KEY=<OBTENER_DESDE_SUPABASE_DASHBOARD>
 
 # Supabase Client-Side
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 
 # Auth Configuration
@@ -94,12 +94,12 @@ NEXT_PUBLIC_BASE_URL=https://doctors.autamedica.com
 
 ```bash
 # Supabase Server-Side
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 SUPABASE_SERVICE_ROLE_KEY=<OBTENER_DESDE_SUPABASE_DASHBOARD>
 
 # Supabase Client-Side
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 
 # Auth Configuration
@@ -115,12 +115,12 @@ NEXT_PUBLIC_BASE_URL=https://companies.autamedica.com
 
 ```bash
 # Supabase Server-Side
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 SUPABASE_SERVICE_ROLE_KEY=<OBTENER_DESDE_SUPABASE_DASHBOARD>
 
 # Supabase Client-Side
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 
 # Auth Configuration
@@ -136,7 +136,7 @@ NEXT_PUBLIC_BASE_URL=https://admin.autamedica.com
 
 ```bash
 # Supabase Client-Side (solo necesita public keys)
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYyOTI3OTAsImV4cCI6MjA3MTg2ODc5MH0.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4
 
 # Auth Configuration
@@ -149,7 +149,7 @@ NEXT_PUBLIC_BASE_URL=https://www.autamedica.com
 ## 🔑 Cómo Obtener SUPABASE_SERVICE_ROLE_KEY
 
 1. Ir a [Supabase Dashboard](https://supabase.com/dashboard)
-2. Seleccionar proyecto `gtyvdircfhmdjiaelqkg`
+2. Seleccionar proyecto `knywotiidsydsaveqkjs`
 3. Settings → API
 4. Project API Keys → `service_role` (secret)
 5. Copiar el valor y **mantenerlo seguro**

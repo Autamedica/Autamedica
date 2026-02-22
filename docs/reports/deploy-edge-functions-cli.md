@@ -9,11 +9,11 @@
 npx supabase login
 
 # 2. Desplegar ambas funciones
-npx supabase functions deploy create-call --project-ref gtyvdircfhmdjiaelqkg
-npx supabase functions deploy update-call-status --project-ref gtyvdircfhmdjiaelqkg
+npx supabase functions deploy create-call --project-ref knywotiidsydsaveqkjs
+npx supabase functions deploy update-call-status --project-ref knywotiidsydsaveqkjs
 
 # 3. Verificar deployment
-curl -L -X POST 'https://gtyvdircfhmdjiaelqkg.supabase.co/functions/v1/create-call' \
+curl -L -X POST 'https://knywotiidsydsaveqkjs.supabase.co/functions/v1/create-call' \
   -H 'Authorization: Bearer [YOUR-AUTH-TOKEN]' \
   -H 'Content-Type: application/json' \
   -H 'apikey: REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA' \
@@ -29,8 +29,8 @@ Si ya tienes un access token de Supabase:
 export SUPABASE_ACCESS_TOKEN="your_access_token_here"
 
 # 2. Desplegar funciones
-npx supabase functions deploy create-call --project-ref gtyvdircfhmdjiaelqkg
-npx supabase functions deploy update-call-status --project-ref gtyvdircfhmdjiaelqkg
+npx supabase functions deploy create-call --project-ref knywotiidsydsaveqkjs
+npx supabase functions deploy update-call-status --project-ref knywotiidsydsaveqkjs
 ```
 
 ### **Opción C: Script de Despliegue Automatizado**
@@ -49,8 +49,8 @@ chmod +x ./deploy-functions.sh
 
 Una vez desplegadas exitosamente, las funciones estarán disponibles en:
 
-- **Create Call**: `https://gtyvdircfhmdjiaelqkg.supabase.co/functions/v1/create-call`
-- **Update Call Status**: `https://gtyvdircfhmdjiaelqkg.supabase.co/functions/v1/update-call-status`
+- **Create Call**: `https://knywotiidsydsaveqkjs.supabase.co/functions/v1/create-call`
+- **Update Call Status**: `https://knywotiidsydsaveqkjs.supabase.co/functions/v1/update-call-status`
 
 ## 🧪 **Testing Post-Deployment**
 
@@ -58,14 +58,14 @@ Una vez desplegadas exitosamente, las funciones estarán disponibles en:
 
 ```bash
 # Test create-call
-curl -L -X POST 'https://gtyvdircfhmdjiaelqkg.supabase.co/functions/v1/create-call' \
+curl -L -X POST 'https://knywotiidsydsaveqkjs.supabase.co/functions/v1/create-call' \
   -H 'Authorization: Bearer [USER-AUTH-TOKEN]' \
   -H 'Content-Type: application/json' \
   -H 'apikey: REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA' \
   --data '{"doctorId":"test-doctor","patientId":"test-patient"}'
 
 # Test update-call-status
-curl -L -X POST 'https://gtyvdircfhmdjiaelqkg.supabase.co/functions/v1/update-call-status' \
+curl -L -X POST 'https://knywotiidsydsaveqkjs.supabase.co/functions/v1/update-call-status' \
   -H 'Authorization: Bearer [USER-AUTH-TOKEN]' \
   -H 'Content-Type: application/json' \
   -H 'apikey: REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA' \
@@ -79,22 +79,26 @@ Abrir `test-edge-functions.html` en el navegador y seguir las instrucciones.
 ## 🔧 **Troubleshooting**
 
 ### **Error: Access token not provided**
+
 ```bash
 # Solución: Login first
 npx supabase login
 ```
 
 ### **Error: function not found**
+
 ```bash
 # Verificar que las funciones se desplegaron correctamente
-npx supabase functions list --project-ref gtyvdircfhmdjiaelqkg
+npx supabase functions list --project-ref knywotiidsydsaveqkjs
 ```
 
 ### **Error: Invalid API key**
+
 - Verificar que estás usando el `anon key` correcto en las peticiones
 - Verificar que la función está verificando autenticación correctamente
 
 ### **Error: Database function not found**
+
 - Asegurarse de que la migración SQL se aplicó correctamente
 - Verificar que las funciones `create_call` y `update_call_status` existen en la base de datos
 

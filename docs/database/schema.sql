@@ -1,6 +1,6 @@
 -- AutaMedica Database Schema
 -- Generated: 2025-09-19
--- Supabase Project: gtyvdircfhmdjiaelqkg
+-- Supabase Project: knywotiidsydsaveqkjs
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

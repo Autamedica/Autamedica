@@ -18,6 +18,7 @@
 ## 🚀 Uso Rápido
 
 ### **Comando Básico**
+
 ```bash
 pnpm dev:capture
 ```
@@ -25,6 +26,7 @@ pnpm dev:capture
 Captura información del navegador en `http://localhost:3002` (Patients app por defecto)
 
 ### **Capturas por App**
+
 ```bash
 # Patients portal
 pnpm dev:capture:patients
@@ -37,6 +39,7 @@ pnpm dev:capture:prod
 ```
 
 ### **URL Personalizada**
+
 ```bash
 TARGET_URL=https://doctors.autamedica.com pnpm dev:capture
 ```
@@ -48,6 +51,7 @@ TARGET_URL=https://doctors.autamedica.com pnpm dev:capture
 Cada captura genera **3 archivos** en `generated-docs/browser-captures/`:
 
 ### 1. **JSON Completo** (`capture-{timestamp}.json`)
+
 Datos crudos con toda la información capturada:
 
 ```json
@@ -89,28 +93,32 @@ Datos crudos con toda la información capturada:
 ```
 
 ### 2. **Reporte Markdown** (`report-{timestamp}.md`)
+
 Reporte visual con tablas y estado de cada métrica:
 
 ```markdown
 # 🔍 AGENT-DEV Browser Capture Report
 
 ## 📋 Summary
-| Metric | Value | Status |
-|--------|-------|--------|
-| Console Errors | 2 | ⚠️ |
-| Failed Requests | 0 | ✅ |
-| Slow Requests | 3 | ⚠️ |
-| Security Issues | 0 | ✅ |
+
+| Metric          | Value | Status |
+| --------------- | ----- | ------ |
+| Console Errors  | 2     | ⚠️     |
+| Failed Requests | 0     | ✅     |
+| Slow Requests   | 3     | ⚠️     |
+| Security Issues | 0     | ✅     |
 
 ## ⚡ Web Vitals
-| Metric | Value | Status |
-|--------|-------|--------|
-| LCP | 1234ms | ✅ GOOD |
-| CLS | 0.08 | ✅ GOOD |
-| FCP | 892ms | ✅ GOOD |
+
+| Metric | Value  | Status  |
+| ------ | ------ | ------- |
+| LCP    | 1234ms | ✅ GOOD |
+| CLS    | 0.08   | ✅ GOOD |
+| FCP    | 892ms  | ✅ GOOD |
 ```
 
 ### 3. **Screenshot** (`screenshot-{timestamp}.png`)
+
 Captura de pantalla completa de la página
 
 ---
@@ -169,6 +177,7 @@ Mientras captura, verás output colorizado en tiempo real:
 ## 🔍 Casos de Uso
 
 ### **1. Debugging en Desarrollo**
+
 ```bash
 # Levanta tu app
 pnpm dev --filter @autamedica/patients
@@ -180,6 +189,7 @@ pnpm dev:capture:patients
 **Resultado**: Identificas que tienes 2 console errors y 41% de JS no usado.
 
 ### **2. Validación Pre-Deploy**
+
 ```bash
 # Build de producción
 pnpm build
@@ -194,27 +204,32 @@ pnpm dev:capture:prod
 **Resultado**: Validas que no introduces nuevos errores antes de deployar.
 
 ### **3. Análisis de Performance**
+
 ```bash
 pnpm dev:capture:prod
 ```
 
 **Resultado**: Obtienes Web Vitals reales de producción:
+
 - LCP: 1234ms ✅ GOOD
 - CLS: 0.08 ✅ GOOD
 - Coverage: 41% JS no usado → Oportunidad de optimización
 
 ### **4. Auditoría de Seguridad**
+
 ```bash
 pnpm dev:capture:prod
 ```
 
 **Resultado**: Validas que todos los security headers están presentes:
+
 - HSTS ✅
 - CSP ⚠️ MISSING
 - XFO ✅
 - XCTO ✅
 
 ### **5. CI/CD Integration**
+
 ```bash
 # En GitHub Actions
 - name: Capture browser data
@@ -232,6 +247,7 @@ pnpm dev:capture:prod
 ## 📋 Información Capturada Detallada
 
 ### **Console API**
+
 ```javascript
 {
   type: 'error',
@@ -246,9 +262,10 @@ pnpm dev:capture:prod
 ```
 
 ### **Network API**
+
 ```javascript
 {
-  url: 'https://gtyvdircfhmdjiaelqkg.supabase.co/rest/v1/patients',
+  url: 'https://knywotiidsydsaveqkjs.supabase.co/rest/v1/patients',
   method: 'GET',
   status: 200,
   headers: {
@@ -262,6 +279,7 @@ pnpm dev:capture:prod
 ```
 
 ### **Performance Metrics**
+
 ```javascript
 {
   webVitals: {
@@ -279,6 +297,7 @@ pnpm dev:capture:prod
 ```
 
 ### **Security Headers**
+
 ```javascript
 {
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
@@ -291,6 +310,7 @@ pnpm dev:capture:prod
 ```
 
 ### **Code Coverage**
+
 ```javascript
 {
   js: {
@@ -310,12 +330,13 @@ pnpm dev:capture:prod
 
 ## ⚙️ Variables de Entorno
 
-| Variable | Descripción | Default |
-|----------|-------------|---------|
-| `TARGET_URL` | URL a capturar | `http://localhost:3002` |
+| Variable     | Descripción          | Default                           |
+| ------------ | -------------------- | --------------------------------- |
+| `TARGET_URL` | URL a capturar       | `http://localhost:3002`           |
 | `OUTPUT_DIR` | Directorio de salida | `generated-docs/browser-captures` |
 
 **Ejemplo:**
+
 ```bash
 TARGET_URL=https://doctors.autamedica.com \
 OUTPUT_DIR=/tmp/captures \
@@ -327,18 +348,21 @@ pnpm dev:capture
 ## 🎯 Thresholds y Validación
 
 ### **Web Vitals**
-| Métrica | Good | Needs Improvement | Poor |
-|---------|------|-------------------|------|
-| LCP | < 2.5s | 2.5s - 4s | > 4s |
-| CLS | < 0.1 | 0.1 - 0.25 | > 0.25 |
-| FCP | < 1.8s | 1.8s - 3s | > 3s |
-| TTFB | < 600ms | 600ms - 1.5s | > 1.5s |
+
+| Métrica | Good    | Needs Improvement | Poor   |
+| ------- | ------- | ----------------- | ------ |
+| LCP     | < 2.5s  | 2.5s - 4s         | > 4s   |
+| CLS     | < 0.1   | 0.1 - 0.25        | > 0.25 |
+| FCP     | < 1.8s  | 1.8s - 3s         | > 3s   |
+| TTFB    | < 600ms | 600ms - 1.5s      | > 1.5s |
 
 ### **Network**
+
 - **Slow Request**: > 500ms
 - **Failed Request**: Status >= 400
 
 ### **Code Coverage**
+
 - **Good**: < 40% unused
 - **Needs Improvement**: 40-60% unused
 - **Poor**: > 60% unused
@@ -348,6 +372,7 @@ pnpm dev:capture
 ## 🔧 Integración con Agentes
 
 ### **agent_security**
+
 ```bash
 # Captura datos
 pnpm dev:capture:prod
@@ -359,6 +384,7 @@ pnpm dev:capture:prod
 ```
 
 ### **agent_qa**
+
 ```bash
 # Captura datos
 pnpm dev:capture:patients
@@ -370,6 +396,7 @@ pnpm dev:capture:patients
 ```
 
 ### **agent_code**
+
 ```bash
 # Captura coverage
 pnpm dev:capture
@@ -393,11 +420,13 @@ pnpm dev:capture
 ## 🚀 Próximos Pasos
 
 1. **Ejecuta tu primera captura**:
+
    ```bash
    pnpm dev:capture:patients
    ```
 
 2. **Revisa el reporte generado**:
+
    ```bash
    cat generated-docs/browser-captures/report-*.md
    ```

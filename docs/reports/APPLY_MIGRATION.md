@@ -5,11 +5,13 @@
 **Para aplicar la migración inmediatamente:**
 
 ### 1. Abre el SQL Editor de Supabase:
+
 ```
-https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/sql/new
+https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new
 ```
 
 ### 2. Copia y pega todo el contenido del archivo:
+
 ```
 apply-migration-direct.sql
 ```
@@ -17,6 +19,7 @@ apply-migration-direct.sql
 ### 3. Haz click en "Run" (botón azul)
 
 ### 4. Deberías ver el mensaje:
+
 ```
 Migración completada exitosamente!
 ```
@@ -47,14 +50,17 @@ Una vez aplicada la migración:
 ## 🐛 Si Hay Problemas
 
 ### Error: "function create_call does not exist"
+
 - La migración no se aplicó correctamente
 - Reintenta los pasos 1-3 arriba
 
 ### Error: "permission denied"
+
 - Las políticas RLS pueden estar bloqueando
 - La migración incluye políticas permisivas para testing
 
 ### Error de conexión
+
 - Verifica que las variables de entorno estén correctas:
   ```bash
   echo $NEXT_PUBLIC_SUPABASE_URL
@@ -64,6 +70,7 @@ Una vez aplicada la migración:
 ## 📄 Contenido de la Migración
 
 La migración incluye:
+
 - ✅ Extensiones necesarias (uuid-ossp, pgcrypto)
 - ✅ Enum `call_status` con todos los estados
 - ✅ Tabla `calls` con constraints e índices
@@ -75,6 +82,7 @@ La migración incluye:
 ## 🎯 Después de la Migración
 
 Una vez aplicada exitosamente, el sistema estará 100% funcional:
+
 - El botón "Llamar a Paciente" funcionará
 - Se creará registro en DB
 - Se enviará invitación via signaling

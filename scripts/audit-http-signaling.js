@@ -2,7 +2,7 @@
 
 const { createClient } = require('@supabase/supabase-js')
 
-const supabaseUrl = 'https://gtyvdircfhmdjiaelqkg.supabase.co'
+const supabaseUrl = 'https://knywotiidsydsaveqkjs.supabase.co'
 const supabaseKey = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA'
 
 // IDs de prueba

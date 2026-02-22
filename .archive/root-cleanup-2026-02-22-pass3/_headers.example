@@ -23,7 +23,7 @@
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   # Modo report-only: NO bloquea nada, solo reporta violaciones
   # Una vez validado en producción, cambiar a "Content-Security-Policy"
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://gtyvdircfhmdjiaelqkg.supabase.co https://vocal-condor-26768.upstash.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-to default; report-uri /csp-report
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://knywotiidsydsaveqkjs.supabase.co https://vocal-condor-26768.upstash.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-to default; report-uri /csp-report
 
   # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   # Report-To - Configuración de endpoints de reportes

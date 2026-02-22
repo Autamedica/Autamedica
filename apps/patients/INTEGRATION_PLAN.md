@@ -1,4 +1,5 @@
 # 📋 Plan de Integración Completo - App Pacientes
+
 ## AutaMedica - Portal de Pacientes con Supabase
 
 **Fecha de creación:** 2 de Octubre, 2025
@@ -12,6 +13,7 @@
 ### ✅ Estado Actual de Autenticación
 
 #### **Sistema de Auth Implementado:**
+
 - ✅ `AuthContext` en `/src/contexts/AuthContext.tsx`
 - ✅ `AuthProvider` en root layout
 - ✅ Cliente Supabase en `/src/lib/supabase.ts`
@@ -20,9 +22,11 @@
 - ⚠️ **FALTA:** Redirección a login si no autenticado
 
 #### **Comentario Crítico Encontrado (layout.tsx:21):**
+
 ```typescript
 // Always allow access - no redirects
 ```
+
 **PROBLEMA:** La aplicación permite acceso sin autenticación
 
 ---
@@ -30,7 +34,9 @@
 ## 🚨 PROBLEMAS CRÍTICOS DETECTADOS
 
 ### 1. **Rutas SIN Protección**
+
 Todas las páginas son accesibles sin login:
+
 - ❌ `/` (Dashboard)
 - ❌ `/appointments` (Citas)
 - ❌ `/anamnesis` (Historia clínica)
@@ -42,22 +48,27 @@ Todas las páginas son accesibles sin login:
 ### 2. **Datos Hardcodeados (Mock Data)**
 
 #### **📄 Appointments (`/appointments/page.tsx`):**
+
 ```typescript
-import { mockAppointments, getAppointmentsByStatus } from '../../../../mocks/appointments';
+import { mockAppointments, getAppointmentsByStatus } from "../../../../mocks/appointments";
 ```
+
 - ❌ Usa datos mock en lugar de Supabase
 - ❌ Botón "Agendar nueva cita" no funcional
 - ❌ Stats calculadas con datos ficticios
 
 #### **📄 Medical History (`/medical-history/page.tsx`):**
+
 ```typescript
-import { mockMedicalRecords } from '../../../../mocks/medical-records';
+import { mockMedicalRecords } from "../../../../mocks/medical-records";
 ```
+
 - ❌ Usa datos mock de registros médicos
 - ❌ Botón "Exportar historial" no funcional
 - ❌ Botón "Ver detalle" no funcional
 
 #### **📄 Anamnesis (`/anamnesis/page.tsx`):**
+
 - ✅ **Parcialmente conectado** - Usa hook `useAnamnesis()`
 - ⚠️ Guarda en `localStorage` como respaldo
 - ⚠️ No valida que el usuario esté autenticado antes de crear
@@ -65,6 +76,7 @@ import { mockMedicalRecords } from '../../../../mocks/medical-records';
 ### 3. **Componentes con Mock Client**
 
 **`/src/lib/supabase.ts` tiene un modo "dev bypass":**
+
 ```typescript
 const isDevBypass = patientsEnv.authDevBypassEnabled;
 if (isDevBypass) {
@@ -78,27 +90,28 @@ if (isDevBypass) {
 
 ### **Páginas Principales (22 rutas)**
 
-| Ruta | Estado Auth | Conexión DB | Prioridad |
-|------|------------|-------------|-----------|
-| `/` (Dashboard) | ❌ No protegida | ✅ Parcial (appointments) | 🔴 Alta |
-| `/appointments` | ❌ No protegida | ❌ Mock data | 🔴 Alta |
-| `/anamnesis` | ❌ No protegida | ✅ Parcial | 🔴 Alta |
-| `/medical-history` | ❌ No protegida | ❌ Mock data | 🔴 Alta |
-| `/preventive-health` | ❌ No protegida | ❌ No revisada | 🟡 Media |
-| `/profile` | ❌ No protegida | ❌ No revisada | 🟡 Media |
-| `/call/[roomId]` | ❌ No protegida | ❌ No revisada | 🟡 Media |
-| `/community` | ❌ No protegida | ❌ No revisada | 🟢 Baja |
-| `/reproductive-health` | ❌ No protegida | ❌ No revisada | 🟢 Baja |
-| `/results` | ❌ No protegida | ❌ No revisada | 🟢 Baja |
-| `/settings` | ❌ No protegida | ❌ No revisada | 🟡 Media |
-| `/team` | ❌ No protegida | ❌ No revisada | 🟢 Baja |
-| `/wallet` | ❌ No protegida | ❌ No revisada | 🟢 Baja |
-| `/help` | ✅ Puede ser pública | - | - |
-| `/onboarding` | ✅ Puede ser pública | ❌ No revisada | 🟡 Media |
+| Ruta                   | Estado Auth          | Conexión DB               | Prioridad |
+| ---------------------- | -------------------- | ------------------------- | --------- |
+| `/` (Dashboard)        | ❌ No protegida      | ✅ Parcial (appointments) | 🔴 Alta   |
+| `/appointments`        | ❌ No protegida      | ❌ Mock data              | 🔴 Alta   |
+| `/anamnesis`           | ❌ No protegida      | ✅ Parcial                | 🔴 Alta   |
+| `/medical-history`     | ❌ No protegida      | ❌ Mock data              | 🔴 Alta   |
+| `/preventive-health`   | ❌ No protegida      | ❌ No revisada            | 🟡 Media  |
+| `/profile`             | ❌ No protegida      | ❌ No revisada            | 🟡 Media  |
+| `/call/[roomId]`       | ❌ No protegida      | ❌ No revisada            | 🟡 Media  |
+| `/community`           | ❌ No protegida      | ❌ No revisada            | 🟢 Baja   |
+| `/reproductive-health` | ❌ No protegida      | ❌ No revisada            | 🟢 Baja   |
+| `/results`             | ❌ No protegida      | ❌ No revisada            | 🟢 Baja   |
+| `/settings`            | ❌ No protegida      | ❌ No revisada            | 🟡 Media  |
+| `/team`                | ❌ No protegida      | ❌ No revisada            | 🟢 Baja   |
+| `/wallet`              | ❌ No protegida      | ❌ No revisada            | 🟢 Baja   |
+| `/help`                | ✅ Puede ser pública | -                         | -         |
+| `/onboarding`          | ✅ Puede ser pública | ❌ No revisada            | 🟡 Media  |
 
 ### **Componentes con Hooks de Supabase**
 
 Archivos que YA tienen integración parcial:
+
 - ✅ `useAnamnesis.ts` - Hook para anamnesis
 - ✅ `useMedicalHistory.ts` - Hook para historial
 - ✅ `useTelemedicine.ts` - Hook para telemedicina
@@ -116,9 +129,11 @@ Archivos que YA tienen integración parcial:
 ## 🎯 PLAN DE INTEGRACIÓN (6 FASES)
 
 ### **FASE 1: Protección de Rutas** 🔴 CRÍTICO
+
 **Objetivo:** Ninguna página debe ser accesible sin login
 
 #### Tareas:
+
 1. ✅ Crear `middleware.ts` en la raíz de `/src`
 2. ✅ Configurar matcher para proteger todas las rutas excepto públicas
 3. ✅ Verificar sesión de Supabase en middleware
@@ -126,11 +141,13 @@ Archivos que YA tienen integración parcial:
 5. ✅ Remover comentario "Always allow access" de layout.tsx
 
 **Archivos a modificar:**
+
 - `src/middleware.ts` (crear)
 - `src/app/layout.tsx` (modificar línea 21)
 - `next.config.mjs` (agregar experimental middleware)
 
 **Rutas públicas permitidas:**
+
 - `/auth/*` (login, registro, callback)
 - `/help` (ayuda)
 - `/_next/*` (assets)
@@ -139,9 +156,11 @@ Archivos que YA tienen integración parcial:
 ---
 
 ### **FASE 2: Integración de Appointments** 🔴 CRÍTICO
+
 **Objetivo:** Reemplazar mock data con datos reales de Supabase
 
 #### Tabla Supabase: `appointments`
+
 ```sql
 appointments (
   id UUID PRIMARY KEY,
@@ -158,6 +177,7 @@ appointments (
 ```
 
 #### Tareas:
+
 1. ✅ Verificar/crear tabla `appointments` en Supabase
 2. ✅ Actualizar `/appointments/page.tsx` para usar hook real
 3. ✅ Implementar función "Agendar nueva cita"
@@ -165,6 +185,7 @@ appointments (
 5. ✅ Remover imports de mock data
 
 **Archivos a modificar:**
+
 - `src/app/(dashboard)/appointments/page.tsx`
 - Crear hook `useAppointments.ts` si no existe
 - Crear componente `AppointmentModal.tsx` para crear/editar
@@ -172,9 +193,11 @@ appointments (
 ---
 
 ### **FASE 3: Integración de Medical History** 🔴 CRÍTICO
+
 **Objetivo:** Historial médico real desde Supabase
 
 #### Tabla Supabase: `medical_records`
+
 ```sql
 medical_records (
   id UUID PRIMARY KEY,
@@ -193,6 +216,7 @@ medical_records (
 ```
 
 #### Tareas:
+
 1. ✅ Verificar/crear tabla `medical_records`
 2. ✅ Actualizar `/medical-history/page.tsx`
 3. ✅ Implementar función "Exportar historial" (PDF)
@@ -201,6 +225,7 @@ medical_records (
 6. ✅ Remover mock data
 
 **Archivos a modificar:**
+
 - `src/app/(dashboard)/medical-history/page.tsx`
 - `src/hooks/useMedicalHistory.ts` (ya existe, revisar)
 - Crear `MedicalRecordDetailModal.tsx`
@@ -209,9 +234,11 @@ medical_records (
 ---
 
 ### **FASE 4: Completar Anamnesis** 🟡 PRIORIDAD MEDIA
+
 **Objetivo:** Anamnesis 100% funcional con Supabase
 
 #### Tabla Supabase: `anamnesis`
+
 ```sql
 anamnesis (
   id UUID PRIMARY KEY,
@@ -234,6 +261,7 @@ anamnesis (
 ```
 
 #### Tareas:
+
 1. ✅ Hook `useAnamnesis` ya existe, verificar funcionalidad completa
 2. ✅ Agregar método `updateAnamnesis` al hook (falta en línea 144)
 3. ✅ Implementar sincronización con `localStorage` como backup
@@ -241,6 +269,7 @@ anamnesis (
 5. ✅ Implementar notificaciones de guardado exitoso/error
 
 **Archivos a modificar:**
+
 - `src/hooks/useAnamnesis.ts` (agregar método faltante)
 - `src/app/(dashboard)/anamnesis/page.tsx` (línea 144)
 
@@ -249,7 +278,9 @@ anamnesis (
 ### **FASE 5: Profile, Settings y Rutas Secundarias** 🟡 PRIORIDAD MEDIA
 
 #### **5.1 Profile (`/profile`)**
+
 Tabla: `user_profiles`
+
 ```sql
 user_profiles (
   user_id UUID PRIMARY KEY REFERENCES auth.users(id),
@@ -267,16 +298,19 @@ user_profiles (
 ```
 
 #### **5.2 Settings (`/settings`)**
+
 - Preferencias de notificaciones
 - Configuración de privacidad
 - Cambio de contraseña
 - Eliminación de cuenta
 
 #### **5.3 Reproductive Health (`/reproductive-health`)**
+
 - Ya tiene hook `useReproductiveHealthAppointments`
 - Conectar componente `ReproductiveHealthHub.tsx`
 
 #### **5.4 Preventive Health (`/preventive-health`)**
+
 - Ya tiene hook `usePreventiveScreenings`
 - Crear tabla `preventive_screenings` si no existe
 
@@ -285,15 +319,18 @@ user_profiles (
 ### **FASE 6: Telemedicina y Rutas Avanzadas** 🟢 PRIORIDAD BAJA
 
 #### **6.1 Video Calls (`/call/[roomId]`)**
+
 - Integrar con WebRTC
 - Verificar que solo usuarios autenticados puedan unirse
 - Guardar grabaciones en `storage.buckets`
 
 #### **6.2 Community (`/community`)**
+
 - Hook `useCommunity` ya existe
 - Conectar con tabla `community_posts`
 
 #### **6.3 Wallet (`/wallet`)**
+
 - Sistema de pagos y saldo
 - Integración con Stripe/MercadoPago
 
@@ -386,6 +423,7 @@ USING (
 ## 📝 CHECKLIST DE IMPLEMENTACIÓN
 
 ### **Paso 1: Protección de Rutas** (1-2 horas)
+
 - [ ] Crear `middleware.ts`
 - [ ] Configurar rutas públicas/privadas
 - [ ] Probar redirección a login
@@ -393,6 +431,7 @@ USING (
 - [ ] Deploy y verificación en producción
 
 ### **Paso 2: Crear/Verificar Tablas** (2-3 horas)
+
 - [ ] Revisar esquema actual en Supabase
 - [ ] Crear tablas faltantes
 - [ ] Configurar RLS policies
@@ -400,6 +439,7 @@ USING (
 - [ ] Probar queries básicas
 
 ### **Paso 3: Integración Appointments** (3-4 horas)
+
 - [ ] Actualizar página appointments
 - [ ] Crear modal de nueva cita
 - [ ] Implementar CRUD completo
@@ -407,6 +447,7 @@ USING (
 - [ ] Deploy
 
 ### **Paso 4: Integración Medical History** (3-4 horas)
+
 - [ ] Actualizar página medical-history
 - [ ] Crear modal de detalle
 - [ ] Implementar exportación PDF
@@ -414,6 +455,7 @@ USING (
 - [ ] Testing y deploy
 
 ### **Paso 5: Completar Anamnesis** (2-3 horas)
+
 - [ ] Agregar método updateAnamnesis
 - [ ] Mejorar sincronización
 - [ ] Agregar validaciones
@@ -421,6 +463,7 @@ USING (
 - [ ] Deploy
 
 ### **Paso 6: Profile y Settings** (4-5 horas)
+
 - [ ] Crear página de perfil
 - [ ] Implementar edición de datos
 - [ ] Crear página settings
@@ -428,6 +471,7 @@ USING (
 - [ ] Deploy
 
 ### **Paso 7: Rutas Secundarias** (6-8 horas)
+
 - [ ] Reproductive health
 - [ ] Preventive health
 - [ ] Community
@@ -435,6 +479,7 @@ USING (
 - [ ] Deploy
 
 ### **Paso 8: Testing Final** (2-3 horas)
+
 - [ ] Testing de autenticación
 - [ ] Testing de cada página
 - [ ] Testing de integración
@@ -446,23 +491,27 @@ USING (
 ## ⚠️ CONSIDERACIONES DE SEGURIDAD
 
 ### **1. Variables de Entorno**
+
 ```bash
 # NUNCA commit estas variables
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***
 ```
 
 ### **2. RLS Obligatorio**
+
 - ✅ Todas las tablas deben tener RLS habilitado
 - ✅ Políticas restrictivas por defecto (deny all)
 - ✅ Solo permitir acceso explícito
 
 ### **3. Validación Client + Server**
+
 - ✅ Validar en componentes (UX)
 - ✅ Validar en Supabase Functions (seguridad)
 - ✅ NUNCA confiar en datos del cliente
 
 ### **4. HIPAA Compliance**
+
 - ✅ Logs de auditoría para acceso a datos médicos
 - ✅ Encriptación de datos sensibles
 - ✅ Políticas de retención de datos
@@ -473,23 +522,27 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***
 ## 🚀 ORDEN DE EJECUCIÓN RECOMENDADO
 
 ### **Sprint 1: Seguridad Básica** (1 semana)
+
 1. Protección de rutas (middleware)
 2. Crear/verificar tablas principales
 3. Configurar RLS policies
 
 ### **Sprint 2: Funcionalidad Core** (2 semanas)
+
 1. Appointments completamente funcional
 2. Medical History completamente funcional
 3. Anamnesis 100% integrada
 4. Profile y Settings
 
 ### **Sprint 3: Funcionalidades Avanzadas** (2 semanas)
+
 1. Reproductive Health
 2. Preventive Health
 3. Community
 4. Telemedicina
 
 ### **Sprint 4: Polish y Testing** (1 semana)
+
 1. Testing exhaustivo
 2. Performance optimization
 3. Security audit
@@ -518,6 +571,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***
 4. **Asignar tiempos** - ¿Cuánto tiempo tenemos?
 
 **Comando para empezar:**
+
 ```bash
 # Iniciar Fase 1: Protección de Rutas
 # 1. Crear middleware

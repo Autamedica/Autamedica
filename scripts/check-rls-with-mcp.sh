@@ -4,7 +4,7 @@
 
 set -e
 
-PROJECT_REF="gtyvdircfhmdjiaelqkg"
+PROJECT_REF="knywotiidsydsaveqkjs"
 OUTPUT_DIR="generated-docs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 

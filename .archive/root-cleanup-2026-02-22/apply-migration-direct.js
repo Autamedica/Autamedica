@@ -1,7 +1,7 @@
 const { createClient: _createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 
-const _SUPABASE_URL = 'https://gtyvdircfhmdjiaelqkg.supabase.co';
+const _SUPABASE_URL = 'https://knywotiidsydsaveqkjs.supabase.co';
 const _SUPABASE_ANON_KEY = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA';
 
 async function applyMigration() {

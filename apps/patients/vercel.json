@@ -26,7 +26,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://gtyvdircfhmdjiaelqkg.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://knywotiidsydsaveqkjs.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';"
         },
         {
           "key": "X-Frame-Options",

@@ -8,6 +8,7 @@
 ## 🔍 Análisis: Workers vs Pages
 
 ### Cloudflare Workers + Static Assets (Documentación compartida)
+
 ```toml
 # Para Workers con assets estáticos
 [assets]
@@ -17,18 +18,21 @@ binding = "ASSETS"
 ```
 
 **Características:**
+
 - Deploy manual con `wrangler deploy`
 - Más control sobre routing
 - Requiere Worker script
 - Para aplicaciones custom
 
 ### Cloudflare Pages (Lo que estamos usando ✅)
+
 ```toml
 # Para Pages con Git integration
 pages_build_output_dir = ".next"
 ```
 
 **Características:**
+
 - Deploy automático desde Git
 - Build automático en cada push
 - Más simple para Next.js
@@ -41,11 +45,13 @@ pages_build_output_dir = ".next"
 ### 1. wrangler.toml Corregido
 
 **❌ ANTES (Incorrecto):**
+
 ```toml
 pages_build_output_dir = "out"  # Next.js NO genera "out/"
 ```
 
 **✅ AHORA (Correcto):**
+
 ```toml
 pages_build_output_dir = ".next"  # Next.js genera ".next/"
 ```
@@ -53,6 +59,7 @@ pages_build_output_dir = ".next"  # Next.js genera ".next/"
 ### 2. Variables de Entorno
 
 **Removido del wrangler.toml:**
+
 ```toml
 # ❌ NO poner NEXT_PUBLIC_* aquí
 NEXT_PUBLIC_SUPABASE_URL = "..."
@@ -60,6 +67,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY = "..."
 ```
 
 **✅ Ya configuradas en Dashboard:**
+
 - `NEXT_PUBLIC_SUPABASE_URL` ✅
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` ✅
 
@@ -80,10 +88,12 @@ Branch: main
 ### Environment Variables (Ya configuradas ✅)
 
 **Production:**
-- `NEXT_PUBLIC_SUPABASE_URL` = `https://gtyvdircfhmdjiaelqkg.supabase.co`
+
+- `NEXT_PUBLIC_SUPABASE_URL` = `https://knywotiidsydsaveqkjs.supabase.co`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `eyJhbGc...` (tu key)
 
 **Opcionales (agregar si el build falla):**
+
 - `NODE_ENV` = `production`
 - `NEXT_PUBLIC_NODE_ENV` = `production`
 
@@ -129,6 +139,7 @@ git push origin main
 **Cloudflare Pages detectará el nuevo commit automáticamente.**
 
 Monitorea en:
+
 ```
 https://dash.cloudflare.com/
 → Workers & Pages
@@ -139,6 +150,7 @@ https://dash.cloudflare.com/
 ### Paso 3: Verificar Build Logs
 
 **Buscar en logs:**
+
 ```
 ✅ Cloning repository
 ✅ Installing dependencies
@@ -157,6 +169,7 @@ https://dash.cloudflare.com/
 
 **Causa:** Build command incorrecto
 **Solución:**
+
 ```bash
 # Dashboard → Build configuration → Edit
 Build command: pnpm install && pnpm build:packages:core && cd apps/web-app && pnpm build
@@ -167,6 +180,7 @@ Build output: apps/web-app/.next
 
 **Causa:** Packages no compilados antes de web-app
 **Solución:** Usar el build command completo:
+
 ```bash
 pnpm install && pnpm build:packages:core && cd apps/web-app && pnpm build
 ```
@@ -175,6 +189,7 @@ pnpm install && pnpm build:packages:core && cd apps/web-app && pnpm build
 
 **Causa:** Variables no configuradas en el scope correcto
 **Solución:**
+
 1. Dashboard → Environment variables
 2. Verificar que estén en **Production** scope
 3. Trigger nuevo deployment (Retry deployment)

@@ -9,11 +9,13 @@ Se ha implementado un sistema completo de salud reproductiva (IVE/ILE) con integ
 ## 📦 **Archivos Creados**
 
 ### 1. **Tipos TypeScript** (`@autamedica/types`)
+
 ```
 packages/types/src/reproductive-health/reproductive-health.types.ts
 ```
 
 **Tipos exportados:**
+
 - `ReproductiveHealthSpecialist` - Especialistas certificados
 - `ReproductiveHealthAppointment` - Sistema de citas
 - `HealthCenter` - Centros de salud con geolocalización
@@ -23,16 +25,18 @@ packages/types/src/reproductive-health/reproductive-health.types.ts
 ### 2. **Hooks Personalizados**
 
 #### **a) useReproductiveHealthSpecialists.ts**
+
 ```typescript
 // Obtener especialistas desde Supabase
 const { specialists, isLoading, error, refetch } = useReproductiveHealthSpecialists({
-  specialty: 'gynecology',
+  specialty: "gynecology",
   availableOnly: true,
-  certifiedOnly: true
+  certifiedOnly: true,
 });
 ```
 
 **Funcionalidades:**
+
 - ✅ Filtrado por especialidad
 - ✅ Filtrado por disponibilidad
 - ✅ Solo certificados IVE/ILE
@@ -40,21 +44,18 @@ const { specialists, isLoading, error, refetch } = useReproductiveHealthSpeciali
 - ✅ Ordenamiento por rating y consultas
 
 #### **b) useReproductiveHealthAppointments.ts**
+
 ```typescript
 // Sistema completo de citas
-const {
-  appointments,
-  createAppointment,
-  updateAppointment,
-  cancelAppointment
-} = useReproductiveHealthAppointments({
-  patientId: 'patient-uuid',
-  status: 'scheduled',
-  upcoming: true
+const { appointments, createAppointment, updateAppointment, cancelAppointment } = useReproductiveHealthAppointments({
+  patientId: "patient-uuid",
+  status: "scheduled",
+  upcoming: true,
 });
 ```
 
 **Funcionalidades:**
+
 - ✅ CRUD completo de citas
 - ✅ Filtrado por paciente, estado, fecha
 - ✅ Generación de slots disponibles
@@ -62,24 +63,21 @@ const {
 - ✅ Soporte para videollamada, presencial, chat
 
 #### **c) useHealthCentersGeolocation.ts**
+
 ```typescript
 // Geolocalización de centros de salud
-const {
-  centers,
-  userLocation,
-  requestLocation,
-  searchNearby
-} = useHealthCentersGeolocation({
+const { centers, userLocation, requestLocation, searchNearby } = useHealthCentersGeolocation({
   autoDetectLocation: true,
   filters: {
-    type: ['public_hospital', 'caps'],
+    type: ["public_hospital", "caps"],
     offers_medication_method: true,
-    max_distance_km: 50
-  }
+    max_distance_km: 50,
+  },
 });
 ```
 
 **Funcionalidades:**
+
 - ✅ Geolocalización del navegador
 - ✅ Cálculo de distancias con fórmula Haversine
 - ✅ Búsqueda por radio (km)
@@ -88,25 +86,19 @@ const {
 - ✅ Filtros avanzados
 
 #### **d) useMedicalChat.ts**
+
 ```typescript
 // Chat médico con Realtime
-const {
-  chats,
-  createChat,
-  updateChatStatus
-} = useMedicalChats({
-  patientId: 'patient-uuid',
-  activeOnly: true
+const { chats, createChat, updateChatStatus } = useMedicalChats({
+  patientId: "patient-uuid",
+  activeOnly: true,
 });
 
-const {
-  messages,
-  sendMessage,
-  markAsRead
-} = useChatMessages(chatId, userId);
+const { messages, sendMessage, markAsRead } = useChatMessages(chatId, userId);
 ```
 
 **Funcionalidades:**
+
 - ✅ Listado de chats activos
 - ✅ Creación de nuevos chats
 - ✅ Mensajes en tiempo real (Supabase Realtime)
@@ -115,21 +107,23 @@ const {
 - ✅ Contador de no leídos
 
 ### 3. **Migración de Base de Datos**
+
 ```sql
 supabase/migrations/20251002_reproductive_health_schema.sql
 ```
 
 **Tablas creadas:**
 
-| Tabla | Descripción |
-|-------|-------------|
-| `reproductive_health_specialists` | Especialistas certificados IVE/ILE |
-| `reproductive_health_appointments` | Citas y consultas |
-| `health_centers` | Centros de salud con PostGIS |
-| `medical_chats` | Chats asíncronos |
-| `medical_messages` | Mensajes con soporte multimedia |
+| Tabla                              | Descripción                        |
+| ---------------------------------- | ---------------------------------- |
+| `reproductive_health_specialists`  | Especialistas certificados IVE/ILE |
+| `reproductive_health_appointments` | Citas y consultas                  |
+| `health_centers`                   | Centros de salud con PostGIS       |
+| `medical_chats`                    | Chats asíncronos                   |
+| `medical_messages`                 | Mensajes con soporte multimedia    |
 
 **Características:**
+
 - ✅ Row Level Security (RLS) configurado
 - ✅ Índices optimizados para búsquedas
 - ✅ Triggers para `updated_at`
@@ -138,6 +132,7 @@ supabase/migrations/20251002_reproductive_health_schema.sql
 - ✅ Validaciones con CHECK constraints
 
 ### 4. **Componente Integrado**
+
 ```
 apps/patients/src/components/medical/IntegratedReproductiveHealthHub.tsx
 ```
@@ -145,6 +140,7 @@ apps/patients/src/components/medical/IntegratedReproductiveHealthHub.tsx
 **Funcionalidades implementadas:**
 
 #### **Tab "Especialistas"**
+
 - ✅ Listado real desde Supabase
 - ✅ Estado de disponibilidad en tiempo real
 - ✅ Botón "Llamar" para videoconsulta inmediata
@@ -153,6 +149,7 @@ apps/patients/src/components/medical/IntegratedReproductiveHealthHub.tsx
 - ✅ Biografía y años de experiencia
 
 #### **Tab "Centros Cercanos"**
+
 - ✅ Geolocalización automática
 - ✅ Listado ordenado por distancia
 - ✅ Cálculo de distancia en km
@@ -161,6 +158,7 @@ apps/patients/src/components/medical/IntegratedReproductiveHealthHub.tsx
 - ✅ Click-to-call en números de teléfono
 
 #### **Tab "Chat Médico"**
+
 - ✅ Listado de chats activos
 - ✅ Contador de mensajes no leídos
 - ✅ Indicador de urgencia
@@ -182,7 +180,7 @@ supabase db push
 
 # O manualmente
 psql -h aws-0-us-east-1.pooler.supabase.com -p 6543 \
-  -U postgres.gtyvdircfhmdjiaelqkg \
+  -U postgres.knywotiidsydsaveqkjs \
   -d postgres \
   -f supabase/migrations/20251002_reproductive_health_schema.sql
 ```
@@ -190,13 +188,14 @@ psql -h aws-0-us-east-1.pooler.supabase.com -p 6543 \
 ### **2. Usar Componente Integrado**
 
 #### **Opción A: Reemplazar componente original**
+
 ```tsx
 // apps/patients/src/app/reproductive-health/page.tsx
-import { IntegratedReproductiveHealthHub } from '@/components/medical/IntegratedReproductiveHealthHub';
+import { IntegratedReproductiveHealthHub } from "@/components/medical/IntegratedReproductiveHealthHub";
 
 export default function ReproductiveHealthPage() {
   // Obtener patientId desde session
-  const patientId = 'patient-uuid-from-session';
+  const patientId = "patient-uuid-from-session";
 
   return (
     <div className="max-w-6xl mx-auto py-6">
@@ -207,18 +206,21 @@ export default function ReproductiveHealthPage() {
 ```
 
 #### **Opción B: Usar hooks individualmente**
+
 ```tsx
-import { useReproductiveHealthSpecialists } from '@/hooks/useReproductiveHealthSpecialists';
+import { useReproductiveHealthSpecialists } from "@/hooks/useReproductiveHealthSpecialists";
 
 function MyComponent() {
   const { specialists, isLoading } = useReproductiveHealthSpecialists({
-    availableOnly: true
+    availableOnly: true,
   });
 
   return (
     <div>
-      {specialists.map(s => (
-        <div key={s.id}>{s.first_name} {s.last_name}</div>
+      {specialists.map((s) => (
+        <div key={s.id}>
+          {s.first_name} {s.last_name}
+        </div>
       ))}
     </div>
   );
@@ -278,15 +280,18 @@ INSERT INTO health_centers (
 ### **Row Level Security (RLS)**
 
 ✅ **Especialistas:**
+
 - Lectura pública para pacientes
 - Actualización solo por el médico propietario
 
 ✅ **Citas:**
+
 - Pacientes solo ven sus propias citas
 - Pacientes solo crean/modifican sus citas
 - Médicos ven citas donde son el especialista asignado
 
 ✅ **Chats y Mensajes:**
+
 - Solo participantes del chat pueden ver mensajes
 - Solo participantes pueden enviar mensajes
 - Validación de autorización en cada operación
@@ -305,6 +310,7 @@ INSERT INTO health_centers (
 ### **Optimizaciones Implementadas**
 
 1. **Índices de Base de Datos:**
+
    ```sql
    CREATE INDEX idx_rh_specialists_availability ON ...
    CREATE INDEX idx_health_centers_coordinates USING GIST(...);
@@ -331,14 +337,14 @@ INSERT INTO health_centers (
 
 ```typescript
 // 1. Test de carga de especialistas
-it('should load specialists from Supabase', async () => {
+it("should load specialists from Supabase", async () => {
   const { result } = renderHook(() => useReproductiveHealthSpecialists());
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   expect(result.current.specialists.length).toBeGreaterThan(0);
 });
 
 // 2. Test de geolocalización
-it('should calculate distances correctly', () => {
+it("should calculate distances correctly", () => {
   const point1 = { latitude: -34.6037, longitude: -58.3816 }; // CABA
   const point2 = { latitude: -34.9215, longitude: -57.9545 }; // La Plata
   const distance = calculateDistance(point1, point2);
@@ -346,8 +352,8 @@ it('should calculate distances correctly', () => {
 });
 
 // 3. Test de chat en tiempo real
-it('should receive messages in realtime', async () => {
-  const { result } = renderHook(() => useChatMessages('chat-id', 'user-id'));
+it("should receive messages in realtime", async () => {
+  const { result } = renderHook(() => useChatMessages("chat-id", "user-id"));
   // Simular mensaje nuevo desde otro cliente
   // Verificar que aparece en result.current.messages
 });
@@ -358,6 +364,7 @@ it('should receive messages in realtime', async () => {
 ## 🔧 **Troubleshooting**
 
 ### **Problema: Especialistas no cargan**
+
 ```bash
 # Verificar que existe la tabla
 psql ... -c "SELECT COUNT(*) FROM reproductive_health_specialists;"
@@ -367,15 +374,17 @@ psql ... -c "SELECT * FROM pg_policies WHERE tablename = 'reproductive_health_sp
 ```
 
 ### **Problema: Geolocalización no funciona**
+
 - ✅ Verificar que PostGIS esté instalado
 - ✅ Comprobar permisos de navegador
 - ✅ Usar HTTPS (geolocation requiere conexión segura)
 
 ### **Problema: Chat Realtime no actualiza**
+
 ```typescript
 // Verificar suscripción
 const channel = supabase.channel(`medical_chat:${chatId}`);
-console.log('Channel status:', channel.state);
+console.log("Channel status:", channel.state);
 ```
 
 ---
@@ -392,18 +401,21 @@ console.log('Channel status:', channel.state);
 ## 🎯 **Próximas Mejoras**
 
 ### **Corto Plazo**
+
 - [ ] Sistema de notificaciones push para citas
 - [ ] Recordatorios automáticos 24hs antes
 - [ ] Upload de archivos en chat (imágenes, PDFs)
 - [ ] Traductor automático para múltiples idiomas
 
 ### **Mediano Plazo**
+
 - [ ] IA para triaje automático de urgencia
 - [ ] Mapa interactivo de centros (Mapbox/Google Maps)
 - [ ] Sistema de rating post-consulta
 - [ ] Analytics dashboard para especialistas
 
 ### **Largo Plazo**
+
 - [ ] Telemedicina con WebRTC integrado
 - [ ] Sistema de seguimiento post-procedimiento
 - [ ] Integración con historias clínicas electrónicas

@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://gtyvdircfhmdjiaelqkg.supabase.co';
+const supabaseUrl = 'https://knywotiidsydsaveqkjs.supabase.co';
 const supabaseAnonKey = 'REPLACE_WITH_ROTATED_KEY.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4';
 
 console.log('🔍 Probando conexión con Supabase...\n');

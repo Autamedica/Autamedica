@@ -20,6 +20,7 @@ El build command en Cloudflare Pages está ejecutando `build:cloudflare` que inc
 1. Ir a: `Settings → Builds & Deployments → Build Configuration`
 
 2. Cambiar:
+
 ```bash
 # ❌ ACTUAL (falla)
 Build command: cd apps/web-app && pnpm run build:cloudflare
@@ -54,6 +55,7 @@ Build command: pnpm install && pnpm turbo run build --filter=@autamedica/web-app
 ## 🔍 Diagnóstico: ¿Por qué falla opennextjs-cloudflare?
 
 El comando actual:
+
 ```bash
 cd ../.. &&
 pnpm build:packages:core &&
@@ -83,7 +85,7 @@ Node version: 22.16.0 (ya detectado correctamente)
 
 # Environment Variables (Production)
 NODE_ENV=production
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0eXZkaXJjZmhtZGppYWVscWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Njc4NTUsImV4cCI6MjA3MjI0Mzg1NX0.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA
 NEXT_PUBLIC_APP_URL=https://autamedica.com
 NEXT_PUBLIC_NODE_ENV=production
@@ -114,6 +116,7 @@ SKIP_ENV_VALIDATION=true
 ```
 
 **O desde git:**
+
 ```bash
 git commit --allow-empty -m "trigger: rebuild con nueva configuración"
 git push origin main
@@ -132,6 +135,7 @@ Si prefieres mantener `build:cloudflare` pero sin OpenNext:
 ```
 
 **Luego commit y push:**
+
 ```bash
 git add apps/web-app/package.json
 git commit -m "fix(web-app): remover opennextjs-cloudflare del build"
@@ -164,17 +168,20 @@ git push origin main
 ### Errores comunes y soluciones:
 
 **Error: "Module not found: Can't resolve '@autamedica/tailwind-config'"**
+
 ```bash
 # Solución: Asegurar que packages estén en dependencies
 Build command: pnpm install --frozen-lockfile && pnpm build:packages:core && cd apps/web-app && pnpm build
 ```
 
 **Error: "process.env is not defined"**
+
 ```bash
 # Solución: Agregar NODE_ENV a environment variables en dashboard
 ```
 
 **Error: "Middleware error"**
+
 ```bash
 # Solución: Verificar que middleware.ts no use Node.js APIs
 # Edge runtime no soporta: fs, crypto (Node), process (excepto env)

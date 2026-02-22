@@ -48,6 +48,7 @@ He implementado una solución de **SSO (Single Sign-On) con mínima fricción** 
 ## 📦 Componentes Creados
 
 ### 1. **Package @autamedica/auth**
+
 ```
 packages/auth/
 ├── src/
@@ -63,17 +64,21 @@ packages/auth/
 ```
 
 ### 2. **Configuración Supabase** (`supabase/config.toml`)
+
 - Redirect URLs para todos los subdominios `.pages.dev`
 - Configuración de cookies para SSO
 - CORS para todas las apps
 
 ### 3. **Configuración Cloudflare** (`wrangler.toml`)
+
 - KV namespaces para sesiones (`AUTH_SESSIONS`, `USER_PROFILES`)
 - Variables de entorno compartidas
 - Bindings para todas las apps
 
 ### 4. **Script de Setup** (`scripts/setup-auth.sh`)
+
 Script automatizado que:
+
 - Configura Supabase auth
 - Crea KV namespaces
 - Genera Pages Functions
@@ -160,8 +165,9 @@ curl -I https://autamedica-doctors.pages.dev/dashboard
 ### 2. **Variables de Entorno en Pages**
 
 Para cada proyecto Pages, agregar:
+
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 ```
 
@@ -200,7 +206,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 
 ```javascript
 // apps/patients/functions/_middleware.js
-import { onRequest } from '@autamedica/auth/middleware/cloudflare-auth';
+import { onRequest } from "@autamedica/auth/middleware/cloudflare-auth";
 export { onRequest };
 ```
 
@@ -208,7 +214,7 @@ export { onRequest };
 
 ```tsx
 // components/Header.tsx
-import { useAuth } from '@autamedica/auth';
+import { useAuth } from "@autamedica/auth";
 
 export function Header() {
   const { user, profile, signOut } = useAuth();
@@ -226,7 +232,7 @@ export function Header() {
 
 ```tsx
 // app/dashboard/page.tsx
-import { useRequireAuth } from '@autamedica/auth';
+import { useRequireAuth } from "@autamedica/auth";
 
 export default function Dashboard() {
   const { user, profile } = useRequireAuth();

@@ -1,6 +1,7 @@
 # 🚀 Guía Completa: De Mocks a Producción
 
 ## 📋 Índice
+
 1. [Análisis de Mocks Actuales](#análisis-de-mocks-actuales)
 2. [Estrategia de Feature Flags](#estrategia-de-feature-flags)
 3. [Variables de Entorno por Ambiente](#variables-de-entorno)
@@ -15,21 +16,25 @@
 ### Mocks Identificados:
 
 #### 1. **useMockRemoteStream** (`apps/patients/src/hooks/useMockRemoteStream.ts`)
+
 **Propósito**: Simula stream de video del médico
 **Usado en**: `EnhancedVideoCall.tsx`
 **Reemplazo**: WebRTC real con LiveKit/Twilio
 
 #### 2. **Mock Medical Data** (`apps/doctors/src/services/medical-data-api.ts`)
+
 **Propósito**: Datos médicos de prueba
 **Usado en**: Dashboard de médicos
 **Reemplazo**: API de Supabase con datos reales
 
 #### 3. **Mock AI Analysis** (`apps/doctors/src/hooks/useAIAnalysis.ts`)
+
 **Propósito**: Análisis de IA simulados
 **Usado en**: Herramientas de diagnóstico
 **Reemplazo**: API de Claude/OpenAI real
 
 #### 4. **MOCK_AUTAMEDICA** (Testing)
+
 **Propósito**: Tests E2E sin servicios externos
 **Usado en**: Playwright tests
 **Acción**: Mantener para testing, agregar ambiente staging
@@ -46,20 +51,20 @@ Crear un sistema que permita activar/desactivar mocks por ambiente:
 // packages/shared/src/config/feature-flags.ts
 export const featureFlags = {
   // Video/Telemedicine
-  USE_MOCK_VIDEO: process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === 'true',
-  USE_LIVEKIT: process.env.NEXT_PUBLIC_USE_LIVEKIT === 'true',
+  USE_MOCK_VIDEO: process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === "true",
+  USE_LIVEKIT: process.env.NEXT_PUBLIC_USE_LIVEKIT === "true",
 
   // Medical Data
-  USE_MOCK_MEDICAL_DATA: process.env.NEXT_PUBLIC_USE_MOCK_MEDICAL_DATA === 'true',
+  USE_MOCK_MEDICAL_DATA: process.env.NEXT_PUBLIC_USE_MOCK_MEDICAL_DATA === "true",
 
   // AI Services
-  USE_MOCK_AI: process.env.NEXT_PUBLIC_USE_MOCK_AI === 'true',
+  USE_MOCK_AI: process.env.NEXT_PUBLIC_USE_MOCK_AI === "true",
   USE_REAL_AI: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY !== undefined,
 
   // Environment
-  IS_PRODUCTION: process.env.NODE_ENV === 'production',
-  IS_DEVELOPMENT: process.env.NODE_ENV === 'development',
-  IS_STAGING: process.env.NEXT_PUBLIC_ENV === 'staging',
+  IS_PRODUCTION: process.env.NODE_ENV === "production",
+  IS_DEVELOPMENT: process.env.NODE_ENV === "development",
+  IS_STAGING: process.env.NEXT_PUBLIC_ENV === "staging",
 } as const;
 
 export type FeatureFlags = typeof featureFlags;
@@ -151,7 +156,7 @@ NODE_ENV=production
 NEXT_PUBLIC_ENV=production
 
 # Supabase (producción)
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
 
@@ -186,8 +191,8 @@ NEXT_PUBLIC_ADMIN_URL=https://admin.autamedica.com
 **Archivo**: `apps/patients/src/hooks/useRealRemoteStream.ts` (nuevo)
 
 ```typescript
-import { useEffect, useState } from 'react';
-import { RemoteParticipant, RemoteTrack, RemoteTrackPublication, Track } from 'livekit-client';
+import { useEffect, useState } from "react";
+import { RemoteParticipant, RemoteTrack, RemoteTrackPublication, Track } from "livekit-client";
 
 export function useRealRemoteStream(remoteParticipant?: RemoteParticipant) {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -198,45 +203,33 @@ export function useRealRemoteStream(remoteParticipant?: RemoteParticipant) {
       return;
     }
 
-    const handleTrackSubscribed = (
-      track: RemoteTrack,
-      publication: RemoteTrackPublication,
-      participant: RemoteParticipant
-    ) => {
+    const handleTrackSubscribed = (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (track.kind === Track.Kind.Video) {
         const mediaStream = new MediaStream([track.mediaStreamTrack]);
         setRemoteStream(mediaStream);
       }
     };
 
-    const handleTrackUnsubscribed = (
-      track: RemoteTrack,
-      publication: RemoteTrackPublication,
-      participant: RemoteParticipant
-    ) => {
+    const handleTrackUnsubscribed = (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
       if (track.kind === Track.Kind.Video) {
         setRemoteStream(null);
       }
     };
 
     // Suscribirse a eventos
-    remoteParticipant.on('trackSubscribed', handleTrackSubscribed);
-    remoteParticipant.on('trackUnsubscribed', handleTrackUnsubscribed);
+    remoteParticipant.on("trackSubscribed", handleTrackSubscribed);
+    remoteParticipant.on("trackUnsubscribed", handleTrackUnsubscribed);
 
     // Verificar si ya hay tracks disponibles
     remoteParticipant.videoTracks.forEach((publication) => {
       if (publication.track) {
-        handleTrackSubscribed(
-          publication.track,
-          publication,
-          remoteParticipant
-        );
+        handleTrackSubscribed(publication.track, publication, remoteParticipant);
       }
     });
 
     return () => {
-      remoteParticipant.off('trackSubscribed', handleTrackSubscribed);
-      remoteParticipant.off('trackUnsubscribed', handleTrackUnsubscribed);
+      remoteParticipant.off("trackSubscribed", handleTrackSubscribed);
+      remoteParticipant.off("trackUnsubscribed", handleTrackUnsubscribed);
     };
   }, [remoteParticipant]);
 
@@ -247,19 +240,15 @@ export function useRealRemoteStream(remoteParticipant?: RemoteParticipant) {
 **Actualizar**: `apps/patients/src/components/telemedicine/EnhancedVideoCall.tsx`
 
 ```typescript
-import { useMockRemoteStream } from '@/hooks/useMockRemoteStream';
-import { useRealRemoteStream } from '@/hooks/useRealRemoteStream';
-import { featureFlags } from '@autamedica/shared/config/feature-flags';
+import { useMockRemoteStream } from "@/hooks/useMockRemoteStream";
+import { useRealRemoteStream } from "@/hooks/useRealRemoteStream";
+import { featureFlags } from "@autamedica/shared/config/feature-flags";
 
 export function EnhancedVideoCall({ videoCall }: Props) {
   // Usar mock o real según feature flag
-  const mockStream = featureFlags.USE_MOCK_VIDEO
-    ? useMockRemoteStream(videoCall.callStatus === 'live')
-    : null;
+  const mockStream = featureFlags.USE_MOCK_VIDEO ? useMockRemoteStream(videoCall.callStatus === "live") : null;
 
-  const realStream = !featureFlags.USE_MOCK_VIDEO
-    ? useRealRemoteStream(remoteParticipant)
-    : null;
+  const realStream = !featureFlags.USE_MOCK_VIDEO ? useRealRemoteStream(remoteParticipant) : null;
 
   const remoteStream = featureFlags.USE_MOCK_VIDEO ? mockStream : realStream;
 
@@ -272,27 +261,24 @@ export function EnhancedVideoCall({ videoCall }: Props) {
 **Archivo**: `apps/doctors/src/services/medical-data-api.ts`
 
 ```typescript
-import { createClient } from '@supabase/supabase-js';
-import { featureFlags } from '@autamedica/shared/config/feature-flags';
+import { createClient } from "@supabase/supabase-js";
+import { featureFlags } from "@autamedica/shared/config/feature-flags";
 
 // Mock data (solo para desarrollo)
 const MOCK_MEDICAL_DATA = {
-  '550e8400-e29b-41d4-a716-446655440000': [
+  "550e8400-e29b-41d4-a716-446655440000": [
     {
-      id: '1',
+      id: "1",
       date: new Date().toISOString(),
-      type: 'Lab Result',
-      description: 'Complete Blood Count',
-      status: 'completed',
+      type: "Lab Result",
+      description: "Complete Blood Count",
+      status: "completed",
     },
   ],
 };
 
 export class MedicalDataAPI {
-  private supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  private supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
   async getMedicalHistory(patientId: string) {
     // Modo desarrollo con mocks
@@ -305,14 +291,10 @@ export class MedicalDataAPI {
     }
 
     // Modo producción con Supabase
-    const { data, error } = await this.supabase
-      .from('medical_records')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await this.supabase.from("medical_records").select("*").eq("patient_id", patientId).order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error fetching medical history:', error);
+      console.error("Error fetching medical history:", error);
       throw error;
     }
 
@@ -321,14 +303,10 @@ export class MedicalDataAPI {
 
   async getLabResults(patientId: string) {
     if (featureFlags.USE_MOCK_MEDICAL_DATA) {
-      return MOCK_MEDICAL_DATA[patientId]?.filter(r => r.type === 'Lab Result') || [];
+      return MOCK_MEDICAL_DATA[patientId]?.filter((r) => r.type === "Lab Result") || [];
     }
 
-    const { data, error } = await this.supabase
-      .from('lab_results')
-      .select('*')
-      .eq('patient_id', patientId)
-      .order('test_date', { ascending: false });
+    const { data, error } = await this.supabase.from("lab_results").select("*").eq("patient_id", patientId).order("test_date", { ascending: false });
 
     if (error) throw error;
     return data;
@@ -341,8 +319,8 @@ export class MedicalDataAPI {
 **Archivo**: `apps/doctors/src/services/ai-analysis-service.ts` (nuevo)
 
 ```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { featureFlags } from '@autamedica/shared/config/feature-flags';
+import Anthropic from "@anthropic-ai/sdk";
+import { featureFlags } from "@autamedica/shared/config/feature-flags";
 
 export class AIAnalysisService {
   private anthropic: Anthropic | null = null;
@@ -361,19 +339,20 @@ export class AIAnalysisService {
       return {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        summary: '[MOCK] Análisis simulado de datos médicos',
-        recommendations: ['Revisión recomendada', 'Seguimiento en 2 semanas'],
-        severity: 'low' as const,
+        summary: "[MOCK] Análisis simulado de datos médicos",
+        recommendations: ["Revisión recomendada", "Seguimiento en 2 semanas"],
+        severity: "low" as const,
       };
     }
 
     // Modo producción con Claude
     const message = await this.anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 4096,
-      messages: [{
-        role: 'user',
-        content: `Como asistente médico especializado, analiza los siguientes datos:
+      messages: [
+        {
+          role: "user",
+          content: `Como asistente médico especializado, analiza los siguientes datos:
 
 ${JSON.stringify(data, null, 2)}
 
@@ -383,12 +362,11 @@ Proporciona:
 3. Nivel de severidad (low/medium/high)
 
 Formato JSON.`,
-      }],
+        },
+      ],
     });
 
-    const responseText = message.content[0].type === 'text'
-      ? message.content[0].text
-      : '';
+    const responseText = message.content[0].type === "text" ? message.content[0].text : "";
 
     const analysis = JSON.parse(responseText);
 
@@ -404,7 +382,7 @@ Formato JSON.`,
 **Actualizar**: `apps/doctors/src/hooks/useAIAnalysis.ts`
 
 ```typescript
-import { AIAnalysisService } from '@/services/ai-analysis-service';
+import { AIAnalysisService } from "@/services/ai-analysis-service";
 
 const aiService = new AIAnalysisService();
 
@@ -417,10 +395,10 @@ export function useAIAnalysis() {
 
     try {
       const analysis = await aiService.analyzeMedicalData(data);
-      setAnalyses(prev => [analysis, ...prev]);
+      setAnalyses((prev) => [analysis, ...prev]);
       return analysis;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error en análisis');
+      setError(err instanceof Error ? err.message : "Error en análisis");
       throw err;
     } finally {
       setLoading(false);
@@ -442,6 +420,7 @@ Vercel detecta automáticamente monorepos con Turborepo. Cada app necesita su pr
 #### 1. **Web-App (Landing + Auth)**
 
 **Configuración Vercel Dashboard:**
+
 ```
 Project Name: autamedica-web-app
 Framework Preset: Next.js
@@ -452,9 +431,10 @@ Install Command: pnpm install
 ```
 
 **Variables de Entorno** (Vercel Dashboard > Settings > Environment Variables):
+
 ```
 # Production
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh...
 SUPABASE_SERVICE_ROLE_KEY=secret-key
 NEXT_PUBLIC_USE_MOCK_VIDEO=false
@@ -475,6 +455,7 @@ Build Command: cd ../.. && pnpm turbo run build --filter=@autamedica/doctors
 ```
 
 **Variables adicionales**:
+
 ```
 ANTHROPIC_API_KEY=sk-ant-your-key
 NEXT_PUBLIC_USE_LIVEKIT=true
@@ -509,6 +490,7 @@ Build Command: cd ../.. && pnpm turbo run build --filter=@autamedica/admin
 ### Dominios Personalizados
 
 **Configuración de Dominios**:
+
 ```
 autamedica.com → autamedica-web-app
 doctors.autamedica.com → autamedica-doctors
@@ -560,11 +542,12 @@ Según tu `CLAUDE.md`, ya tienes configurado Cloudflare Pages. Aquí están las 
 **Dashboard de Cloudflare Pages** > Cada proyecto > Settings > Environment Variables:
 
 **autamedica-web-app**:
+
 ```bash
 # Production
 NODE_ENV=production
 NEXT_PUBLIC_ENV=production
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
 NEXT_PUBLIC_USE_MOCK_VIDEO=false
@@ -576,6 +559,7 @@ NEXT_PUBLIC_USE_MOCK_AI=false
 ```
 
 **autamedica-doctors**:
+
 ```bash
 # Además de las de web-app:
 ANTHROPIC_API_KEY=sk-ant-your-production-key
@@ -586,6 +570,7 @@ NEXT_PUBLIC_LIVEKIT_URL=wss://your-production.livekit.cloud
 ```
 
 **autamedica-patients**:
+
 ```bash
 # Igual que web-app + específicas de telemedicina
 NEXT_PUBLIC_LIVEKIT_URL=wss://your-production.livekit.cloud

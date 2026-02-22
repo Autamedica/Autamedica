@@ -10,7 +10,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Configuración de Supabase (usar variables de entorno en producción)
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gtyvdircfhmdjiaelqkg.supabase.co'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://knywotiidsydsaveqkjs.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // Truncado por seguridad
 
 // Test users (corresponden a los seeds)

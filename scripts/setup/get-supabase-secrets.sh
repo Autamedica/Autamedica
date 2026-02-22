@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT_ID="gtyvdircfhmdjiaelqkg"
+PROJECT_ID="knywotiidsydsaveqkjs"
 
 echo "🔐 Obteniendo secretos de Supabase para proyecto: $PROJECT_ID"
 echo "============================================================"

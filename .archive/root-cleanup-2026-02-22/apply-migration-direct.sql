@@ -1,6 +1,6 @@
 -- Migración directa para aplicar inmediatamente
 -- Este script debe copiarse y pegarse en Supabase Dashboard SQL Editor
--- URL: https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/sql/new
+-- URL: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new
 
 -- Paso 1: Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

@@ -13,7 +13,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Configuración (usar variables de entorno en producción)
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gtyvdircfhmdjiaelqkg.supabase.co'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://knywotiidsydsaveqkjs.supabase.co'
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'dummy-key'
 
 class MedicalWorkflowTest {

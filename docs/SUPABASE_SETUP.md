@@ -7,12 +7,14 @@ AltaMedica uses Supabase as the primary Identity Provider (IdP) and database for
 ## Environment Structure
 
 ### Production Environment
-- **Project**: `gtyvdircfhmdjiaelqkg` (already configured)
-- **URL**: `https://gtyvdircfhmdjiaelqkg.supabase.co`
+
+- **Project**: `knywotiidsydsaveqkjs` (already configured)
+- **URL**: `https://knywotiidsydsaveqkjs.supabase.co`
 - **Domain**: `autamedica.com` and subdomains
 - **OAuth Providers**: Google, Apple, GitHub
 
 ### Staging Environment
+
 - **Project**: To be created as `altamedica-staging`
 - **URL**: `https://[STAGING_ID].supabase.co`
 - **Domain**: `staging.autamedica.com`
@@ -23,10 +25,10 @@ AltaMedica uses Supabase as the primary Identity Provider (IdP) and database for
 The production Supabase instance is already configured with:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-DATABASE_URL=postgresql://postgres:R00tP@ssw0rd!@db.gtyvdircfhmdjiaelqkg.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres:R00tP@ssw0rd!@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres
 ```
 
 ## Staging Environment Setup
@@ -43,6 +45,7 @@ npx supabase projects create altamedica-staging --org-id [YOUR_ORG_ID]
 Update OAuth provider settings to use staging URLs:
 
 #### Google OAuth
+
 - **Authorized JavaScript origins**:
   - `https://staging.autamedica.com`
 - **Authorized redirect URIs**:
@@ -50,10 +53,12 @@ Update OAuth provider settings to use staging URLs:
   - `https://[STAGING_ID].supabase.co/auth/v1/callback`
 
 #### Apple OAuth
+
 - **Return URLs**: `https://staging.autamedica.com/auth/callback`
 - **Domains**: `staging.autamedica.com`
 
 #### GitHub OAuth
+
 - **Homepage URL**: `https://staging.autamedica.com`
 - **Authorization callback URL**: `https://staging.autamedica.com/auth/callback`
 
@@ -63,7 +68,7 @@ Copy production schema to staging:
 
 ```bash
 # Export production schema
-npx supabase db dump --db-url "postgresql://postgres:R00tP@ssw0rd!@db.gtyvdircfhmdjiaelqkg.supabase.co:5432/postgres" > production_schema.sql
+npx supabase db dump --db-url "postgresql://postgres:R00tP@ssw0rd!@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres" > production_schema.sql
 
 # Apply to staging
 npx supabase db reset --db-url "[STAGING_DATABASE_URL]"
@@ -115,13 +120,13 @@ Based on email domain, users are automatically assigned roles:
 ```typescript
 // Example role assignment logic
 const assignRole = (email: string) => {
-  const domain = email.split('@')[1];
+  const domain = email.split("@")[1];
 
-  if (domain === 'hospital.com') return 'doctor';
-  if (domain === 'clinic.org') return 'doctor';
-  if (domain === 'autamedica.com') return 'admin';
+  if (domain === "hospital.com") return "doctor";
+  if (domain === "clinic.org") return "doctor";
+  if (domain === "autamedica.com") return "admin";
 
-  return 'patient'; // Default role
+  return "patient"; // Default role
 };
 ```
 
@@ -195,6 +200,7 @@ curl -X GET https://autamedica.com/auth/providers \
 ### Supabase Dashboard Monitoring
 
 Monitor both environments for:
+
 - **Authentication failures**
 - **Database connection issues**
 - **API rate limits**
@@ -206,14 +212,11 @@ Monitor both environments for:
 // Health check for Supabase connectivity
 export async function checkSupabaseHealth() {
   try {
-    const { data, error } = await supabase
-      .from('health_check')
-      .select('*')
-      .limit(1);
+    const { data, error } = await supabase.from("health_check").select("*").limit(1);
 
-    return { status: 'healthy', timestamp: new Date() };
+    return { status: "healthy", timestamp: new Date() };
   } catch (error) {
-    return { status: 'unhealthy', error: error.message };
+    return { status: "unhealthy", error: error.message };
   }
 }
 ```
@@ -251,6 +254,7 @@ npx supabase auth providers list --project-ref [PROJECT_ID]
 ## Migration Checklist
 
 ### From Development to Staging
+
 - [ ] Create staging Supabase project
 - [ ] Configure OAuth providers with staging URLs
 - [ ] Migrate database schema
@@ -259,6 +263,7 @@ npx supabase auth providers list --project-ref [PROJECT_ID]
 - [ ] Verify role-based redirection
 
 ### From Staging to Production
+
 - [ ] Validate all OAuth providers
 - [ ] Run data migration scripts
 - [ ] Update DNS records
@@ -269,6 +274,7 @@ npx supabase auth providers list --project-ref [PROJECT_ID]
 ## Support
 
 For issues with Supabase configuration:
+
 - **Supabase Support**: https://supabase.com/docs/guides/auth
 - **AltaMedica Internal**: Check `#infrastructure` Slack channel
 - **OAuth Provider Docs**: Provider-specific documentation

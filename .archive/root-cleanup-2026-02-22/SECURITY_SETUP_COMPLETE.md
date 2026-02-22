@@ -10,6 +10,7 @@ Todas las configuraciones de seguridad han sido implementadas exitosamente usand
 ## ✅ Checklist Completado
 
 ### 1. Vulnerabilidades Corregidas (5/5)
+
 - ✅ Credenciales hardcodeadas eliminadas
 - ✅ Cookies con Secure flag
 - ✅ Redirects validados contra whitelist
@@ -17,6 +18,7 @@ Todas las configuraciones de seguridad han sido implementadas exitosamente usand
 - ✅ Middleware con verificación de roles
 
 ### 2. Secrets Configurados en GitHub (11/11)
+
 - ✅ `CLOUDFLARE_ACCOUNT_ID`
 - ✅ `CLOUDFLARE_API_TOKEN`
 - ✅ `NEXT_PUBLIC_SUPABASE_URL`
@@ -30,6 +32,7 @@ Todas las configuraciones de seguridad han sido implementadas exitosamente usand
 - ✅ `SUPABASE_JWT_SECRET`
 
 ### 3. Pull Request
+
 - ✅ PR #6 creado
 - ✅ Estado: MERGEABLE
 - ✅ URL: https://github.com/ecucondorSA/Autamedica/pull/6
@@ -37,7 +40,9 @@ Todas las configuraciones de seguridad han sido implementadas exitosamente usand
 ## 🚀 Próximos Pasos
 
 ### Inmediato (hacer ahora)
+
 1. **Merge el PR #6**
+
    ```bash
    gh pr merge 6 --squash
    ```
@@ -47,11 +52,13 @@ Todas las configuraciones de seguridad han sido implementadas exitosamente usand
    - Monitorear: https://github.com/ecucondorSA/Autamedica/actions
 
 ### Post-Merge (importante)
+
 1. **Rotar el anon key en Supabase Dashboard**
    - La key actual está expuesta en el código histórico
    - Dashboard → Settings → API → Roll anon key
 
 2. **Actualizar la nueva anon key**
+
    ```bash
    gh secret set NEXT_PUBLIC_SUPABASE_ANON_KEY --body "NUEVA_KEY_AQUI"
    ```
@@ -62,18 +69,18 @@ Todas las configuraciones de seguridad han sido implementadas exitosamente usand
 
 ## 📊 Estado Final
 
-| Componente | Estado | Acción |
-|------------|--------|--------|
-| Código | ✅ Seguro | PR listo |
-| GitHub Secrets | ✅ Configurados | 11/11 |
-| Supabase | ⚠️ Funcional | Rotar anon key post-merge |
-| Cloudflare | ⏳ Pendiente | Actualizar después del merge |
+| Componente     | Estado          | Acción                       |
+| -------------- | --------------- | ---------------------------- |
+| Código         | ✅ Seguro       | PR listo                     |
+| GitHub Secrets | ✅ Configurados | 11/11                        |
+| Supabase       | ⚠️ Funcional    | Rotar anon key post-merge    |
+| Cloudflare     | ⏳ Pendiente    | Actualizar después del merge |
 
 ## 🔐 Valores Configurados
 
 ```env
 # Públicos (OK en código)
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_BASE_URL_*=https://autamedica-*.pages.dev
 
 # Secreto (solo en env vars)

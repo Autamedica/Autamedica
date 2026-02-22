@@ -17,6 +17,7 @@ NEXT_PUBLIC_AUTH_CALLBACK_URL=https://<dominio-app>/auth/callback
 ```
 
 **URLs por app:**
+
 - **Web-App**: `https://autamedica.com/auth/callback`
 - **Doctors**: `https://doctors.autamedica.com/auth/callback`
 - **Patients**: `https://patients.autamedica.com/auth/callback`
@@ -27,8 +28,8 @@ NEXT_PUBLIC_AUTH_CALLBACK_URL=https://<dominio-app>/auth/callback
 `signInWithOAuth()` en `@autamedica/auth` usa las URLs correctas automáticamente:
 
 ```typescript
-import { signInWithOAuth } from '@autamedica/auth';
-await signInWithOAuth('google', 'patients');
+import { signInWithOAuth } from "@autamedica/auth";
+await signInWithOAuth("google", "patients");
 ```
 
 ### 3. **🌐 Configuración Cloudflare Completa**
@@ -42,11 +43,13 @@ Los scripts `scripts/setup-supabase-urls.sh` y `scripts/update-supabase-with-pat
 Supabase → **Authentication** → **URL Configuration**:
 
 #### **Site URL**
+
 ```
 https://autamedica.com
 ```
 
 #### **Additional Redirect URLs**
+
 ```
 https://autamedica.com/auth/callback
 https://doctors.autamedica.com/auth/callback
@@ -59,13 +62,15 @@ https://autamedica-doctors.pages.dev/auth/callback
 ### **2️⃣ Configurar OAuth Providers**
 
 Agregar a cada provider (Google, GitHub, etc.):
+
 ```
-https://gtyvdircfhmdjiaelqkg.supabase.co/auth/v1/callback
+https://knywotiidsydsaveqkjs.supabase.co/auth/v1/callback
 ```
 
 ### **3️⃣ Verificar Domain Wildcards**
 
 Para soportar previews de Cloudflare Pages:
+
 ```
 https://*.pages.dev
 ```
@@ -103,4 +108,5 @@ https://*.pages.dev
 3. Probar autenticación end-to-end en cada portal
 
 ---
+
 Una vez completada la configuración, Supabase reconocerá los dominios de Cloudflare Pages y los flujos OAuth funcionarán sin bucles de redirección.

@@ -171,6 +171,11 @@ Para cualquier feature o bug de datos, analizar y validar siempre en dos niveles
   - Empresas (`/company/dashboard`): gestionar colaboradores, ver métricas de salud.
   - Admin (`/admin/dashboard`): gestión global, aprobación de médicos, reportes.
 
+### Supabase Project
+
+- **Project ID:** `knywotiidsydsaveqkjs`
+- **URL:** `https://knywotiidsydsaveqkjs.supabase.co`
+
 ---
 
 ## 4b. Estrategia de Ramas (Trunk-Based Development)

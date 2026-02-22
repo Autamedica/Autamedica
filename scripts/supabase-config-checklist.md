@@ -1,23 +1,27 @@
 # 🔧 Checklist de Configuración Supabase para Deployment en Cloudflare Pages
 
 ## 📍 **Problema Actual**
+
 El login puede quedar en loop cuando Supabase no reconoce los nuevos dominios (productivos o previews) como URLs autorizadas.
 
 ## 🎯 **Solución: Configurar Redirect URLs en Supabase**
 
 ### **Paso 1: Acceder a Supabase Dashboard**
+
 1. Ir a [Supabase Dashboard](https://supabase.com/dashboard)
-2. Seleccionar proyecto: `gtyvdircfhmdjiaelqkg` (AutaMedica)
+2. Seleccionar proyecto: `knywotiidsydsaveqkjs` (AutaMedica)
 3. Ir a **Authentication** → **URL Configuration**
 
 ### **Paso 2: Agregar Nuevas URLs**
 
 **Site URL (URL principal):**
+
 ```
 https://autamedica.com
 ```
 
 **Redirect URLs (callbacks OAuth):**
+
 ```
 https://autamedica.com/auth/callback
 https://doctors.autamedica.com/auth/callback
@@ -28,6 +32,7 @@ https://autamedica-doctors.pages.dev/auth/callback   # Preview Cloudflare
 ```
 
 **Additional Redirect URLs (comodines recomendados):**
+
 ```
 https://autamedica.com/**
 https://doctors.autamedica.com/**
@@ -40,6 +45,7 @@ https://autamedica-doctors.pages.dev/**
 ### **Paso 3: Verificar Configuración**
 
 **URLs que DEBEN estar configuradas:**
+
 - ✅ `https://autamedica.com/auth/callback`
 - ✅ `https://doctors.autamedica.com/auth/callback`
 - ✅ `https://patients.autamedica.com/auth/callback`
@@ -50,6 +56,7 @@ https://autamedica-doctors.pages.dev/**
 ### **Paso 4: Configurar CORS Origins**
 
 En **Settings** → **API** → **CORS Origins**, agregar:
+
 ```
 https://autamedica.com
 https://doctors.autamedica.com
@@ -63,6 +70,7 @@ http://localhost:3001
 ## 🔍 **Cómo identificar el proyecto en Cloudflare Pages**
 
 Cada app está desplegada como un proyecto individual:
+
 ```
 autamedica-web-app
 autamedica-doctors
@@ -90,12 +98,14 @@ Las URLs de preview siguen el patrón: `https://<proyecto>.pages.dev`.
 ## 🚀 **Comandos de Ayuda**
 
 Para redeploy manual vía CLI:
+
 ```bash
 cd apps/doctors
 pnpm deploy:cloudflare
 ```
 
 Para revisar variables de entorno en Cloudflare Pages (requiere wrangler):
+
 ```bash
 wrangler pages project list
 wrangler pages project settings autamedica-doctors

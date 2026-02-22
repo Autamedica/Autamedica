@@ -8,7 +8,7 @@ set -euo pipefail
 
 echo "🚀 Configurando variables de entorno de Auth Hub en Cloudflare Pages..."
 
-SUPABASE_URL="https://gtyvdircfhmdjiaelqkg.supabase.co"
+SUPABASE_URL="https://knywotiidsydsaveqkjs.supabase.co"
 SUPABASE_ANON_KEY="REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA"
 AUTH_HUB_URL="https://www.autamedica.com"
 

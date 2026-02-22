@@ -14,6 +14,7 @@
 **Solución Implementada:**
 
 #### `.env.example` actualizado:
+
 ```bash
 # 🔐 Supabase Configuración (Server-Side)
 # IMPORTANTE: Variables sin NEXT_PUBLIC_ para uso en servidor
@@ -27,13 +28,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 #### `.env.local` actualizado:
+
 ```bash
 # Server-side (sin NEXT_PUBLIC_)
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 
 # Client-side (con NEXT_PUBLIC_)
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 
 # Auth
@@ -41,6 +43,7 @@ AUTH_COOKIE_DOMAIN=.autamedica.com
 ```
 
 **Resultado:**
+
 - ✅ Middleware puede acceder a `process.env.SUPABASE_URL`
 - ✅ Middleware puede acceder a `process.env.SUPABASE_ANON_KEY`
 - ✅ Evita error `Missing required server environment variable`
@@ -56,37 +59,39 @@ AUTH_COOKIE_DOMAIN=.autamedica.com
 #### `middleware.ts` - Autenticación completa:
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes bypass
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
   // Create Supabase client
-  const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    { cookies: { /* ... */ } }
-  );
+  const supabase = createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+    cookies: {
+      /* ... */
+    },
+  });
 
   // Validate session
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
 
   if (!session || error) {
-    return NextResponse.redirect('/auth/login?returnTo=' + pathname);
+    return NextResponse.redirect("/auth/login?returnTo=" + pathname);
   }
 
   // Verify admin role
-  const userRole = session.user.user_metadata?.role ||
-                   session.user.app_metadata?.role;
+  const userRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
 
-  if (userRole !== 'platform_admin') {
-    return NextResponse.redirect('/unauthorized');
+  if (userRole !== "platform_admin") {
+    return NextResponse.redirect("/unauthorized");
   }
 
   return response;
@@ -94,6 +99,7 @@ export async function middleware(request: NextRequest) {
 ```
 
 **Características:**
+
 - ✅ Validación de sesión Supabase
 - ✅ Verificación de rol `platform_admin`
 - ✅ Redirect a login si no hay sesión
@@ -109,6 +115,7 @@ export async function middleware(request: NextRequest) {
 **Propósito:** Informar a usuarios sin permisos de admin.
 
 **Características:**
+
 - ✅ UI clara con mensaje de error
 - ✅ Opción para volver al inicio
 - ✅ Opción para cerrar sesión
@@ -134,6 +141,7 @@ export default function UnauthorizedPage(): React.ReactElement {
 ## 🔒 Flujo de Autenticación Implementado
 
 ### 1. Usuario Accede a Admin
+
 ```
 https://autamedica-admin.pages.dev
          ↓
@@ -142,6 +150,7 @@ https://autamedica-admin.pages.dev
 ```
 
 ### 2. Validación de Sesión
+
 ```
 ¿Tiene sesión válida?
     ├─ NO → Redirect: /auth/login?returnTo=/
@@ -150,6 +159,7 @@ https://autamedica-admin.pages.dev
 ```
 
 ### 3. Validación de Rol
+
 ```
 ¿Es platform_admin?
     ├─ NO → Redirect: /unauthorized
@@ -163,6 +173,7 @@ https://autamedica-admin.pages.dev
 ## 🎯 Comparación: Antes vs Después
 
 ### ❌ ANTES
+
 ```typescript
 // middleware.ts
 export async function middleware(request: NextRequest) {
@@ -173,12 +184,14 @@ export async function middleware(request: NextRequest) {
 ```
 
 **Problemas:**
+
 - ❌ Sin validación de sesión
 - ❌ Sin verificación de roles
 - ❌ Cualquiera puede acceder
 - ❌ Variables de entorno faltantes
 
 ### ✅ DESPUÉS
+
 ```typescript
 // middleware.ts
 export async function middleware(request: NextRequest) {
@@ -200,6 +213,7 @@ export async function middleware(request: NextRequest) {
 ```
 
 **Mejoras:**
+
 - ✅ Validación de sesión completa
 - ✅ Verificación de rol platform_admin
 - ✅ Redirects apropiados
@@ -210,6 +224,7 @@ export async function middleware(request: NextRequest) {
 ## 📦 Archivos Modificados/Creados
 
 ### Modificados:
+
 1. **`.env.example`**
    - Agregadas variables `SUPABASE_URL`, `SUPABASE_ANON_KEY`
    - Documentación clara server vs client
@@ -223,6 +238,7 @@ export async function middleware(request: NextRequest) {
    - Validación de sesión y roles
 
 ### Creados:
+
 4. **`src/app/unauthorized/page.tsx`**
    - Página de acceso no autorizado
    - UI con opciones de acción
@@ -237,6 +253,7 @@ export async function middleware(request: NextRequest) {
 ### Test Manual Requerido:
 
 1. **Sin sesión:**
+
    ```bash
    # Acceder sin login
    curl -I https://autamedica-admin.pages.dev
@@ -244,6 +261,7 @@ export async function middleware(request: NextRequest) {
    ```
 
 2. **Con sesión no-admin:**
+
    ```bash
    # Login como patient/doctor
    # Acceder a admin
@@ -261,13 +279,10 @@ export async function middleware(request: NextRequest) {
 
 ```javascript
 // test-admin-auth.mjs
-const res = await fetch('https://autamedica-admin.pages.dev');
+const res = await fetch("https://autamedica-admin.pages.dev");
 
 // Sin sesión debe redirigir
-console.assert(
-  res.status === 307 && res.headers.get('location').includes('/auth/login'),
-  'Should redirect to login'
-);
+console.assert(res.status === 307 && res.headers.get("location").includes("/auth/login"), "Should redirect to login");
 ```
 
 ---
@@ -280,7 +295,7 @@ Agregar en **Settings → Environment Variables:**
 
 ```bash
 # Production
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=<your_anon_key>
 AUTH_COOKIE_DOMAIN=.autamedica.com
 
@@ -292,6 +307,7 @@ SUPABASE_ANON_KEY=<same_or_staging_key>
 ### Verificación Post-Deployment:
 
 1. Check variables existen:
+
    ```bash
    wrangler pages deployment tail --project-name autamedica-admin
    # Buscar: "Missing required server environment variable"
@@ -309,14 +325,14 @@ SUPABASE_ANON_KEY=<same_or_staging_key>
 
 ### Seguridad Implementada:
 
-| Feature | Estado | Descripción |
-|---------|--------|-------------|
-| **Session Validation** | ✅ | Supabase auth en middleware |
-| **Role Verification** | ✅ | Solo platform_admin permitido |
-| **Environment Vars** | ✅ | Server + Client configuradas |
-| **Error Handling** | ✅ | Redirects apropiados |
-| **Unauthorized Page** | ✅ | UI clara para usuarios sin permisos |
-| **Cookie Domain** | ✅ | .autamedica.com configurado |
+| Feature                | Estado | Descripción                         |
+| ---------------------- | ------ | ----------------------------------- |
+| **Session Validation** | ✅     | Supabase auth en middleware         |
+| **Role Verification**  | ✅     | Solo platform_admin permitido       |
+| **Environment Vars**   | ✅     | Server + Client configuradas        |
+| **Error Handling**     | ✅     | Redirects apropiados                |
+| **Unauthorized Page**  | ✅     | UI clara para usuarios sin permisos |
+| **Cookie Domain**      | ✅     | .autamedica.com configurado         |
 
 ### Cumplimiento Recomendaciones:
 

@@ -150,7 +150,7 @@ const { data } = await supabase.from("profiles").select("specialty"); // ❌ Col
 # ANTES de escribir cualquier query de Supabase:
 
 # 1. Regenerar tipos a archivo temporal
-supabase gen types typescript --project-id gtyvdircfhmdjiaelqkg > /tmp/fresh-db-types.ts
+supabase gen types typescript --project-id knywotiidsydsaveqkjs > /tmp/fresh-db-types.ts
 
 # 2. Buscar la tabla que vas a consultar
 grep -A 30 "profiles:" /tmp/fresh-db-types.ts
@@ -792,7 +792,7 @@ async createDoctorProfile(data: DoctorData): Promise<void> {
 
 ```bash
 # 1. Verificar schema actual vs código
-supabase gen types typescript --project-id gtyvdircfhmdjiaelqkg > /tmp/current-types.ts
+supabase gen types typescript --project-id knywotiidsydsaveqkjs > /tmp/current-types.ts
 diff packages/types/src/database.types.ts /tmp/current-types.ts
 
 # 2. Verificar que las migraciones pending están en orden correcto
@@ -920,7 +920,7 @@ psql $DATABASE_URL < scripts/audit-rls.sql
 pnpm tsx scripts/validate-enum-sync.ts
 
 # Verificar schema drift
-supabase gen types typescript --project-id gtyvdircfhmdjiaelqkg > /tmp/fresh.ts
+supabase gen types typescript --project-id knywotiidsydsaveqkjs > /tmp/fresh.ts
 diff packages/types/src/database.types.ts /tmp/fresh.ts
 
 # Build completo para verificación

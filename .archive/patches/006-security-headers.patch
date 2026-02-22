@@ -29,7 +29,7 @@ index 0000000..1234567
 @@ -0,0 +1,8 @@
 +/*
 +  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://gtyvdircfhmdjiaelqkg.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
++  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://knywotiidsydsaveqkjs.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
 +  X-Frame-Options: DENY
 +  X-Content-Type-Options: nosniff
 +  Referrer-Policy: strict-origin-when-cross-origin
@@ -44,7 +44,7 @@ index 0000000..1234567
 @@ -0,0 +1,8 @@
 +/*
 +  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://gtyvdircfhmdjiaelqkg.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
++  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://knywotiidsydsaveqkjs.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
 +  X-Frame-Options: DENY
 +  X-Content-Type-Options: nosniff
 +  Referrer-Policy: strict-origin-when-cross-origin
@@ -59,7 +59,7 @@ index 0000000..1234567
 @@ -0,0 +1,8 @@
 +/*
 +  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://gtyvdircfhmdjiaelqkg.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
++  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://knywotiidsydsaveqkjs.supabase.co wss://autamedica-signaling-server.ecucondor.workers.dev; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
 +  X-Frame-Options: DENY
 +  X-Content-Type-Options: nosniff
 +  Referrer-Policy: strict-origin-when-cross-origin
@@ -74,7 +74,7 @@ index 0000000..1234567
 @@ -0,0 +1,7 @@
 +/*
 +  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://gtyvdircfhmdjiaelqkg.supabase.co; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
++  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss: https://knywotiidsydsaveqkjs.supabase.co; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; frame-ancestors 'none';
 +  X-Frame-Options: DENY
 +  X-Content-Type-Options: nosniff
 +  Referrer-Policy: strict-origin-when-cross-origin

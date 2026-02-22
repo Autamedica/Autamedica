@@ -19,35 +19,37 @@ El análisis inicial contenía información desactualizada. El código actual es
 ### 1. ✅ Integración con Auth Hub - CORRECTO
 
 **Hallazgo original (INCORRECTO):**
+
 > `session-sync.ts:26` devuelve null incondicional
 
 **Estado real verificado:**
+
 ```typescript
 // apps/patients/src/lib/session-sync.ts:50-81
 export async function fetchSessionData(): Promise<SessionData | null> {
   try {
     const response = await fetch(`${patientsEnv.authHubOrigin}/api/session-sync`, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store'
-    })
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
-      if (response.status === 401) return null // Solo si no autenticado
-      throw new Error(`Session sync failed: ${response.status}`)
+      if (response.status === 401) return null; // Solo si no autenticado
+      throw new Error(`Session sync failed: ${response.status}`);
     }
 
-    const sessionData: SessionData = await response.json()
+    const sessionData: SessionData = await response.json();
 
     // Valida rol correcto
-    if (!['patient'].includes(sessionData.profile.role)) {
-      throw new Error(`Invalid role for patients portal`)
+    if (!["patient"].includes(sessionData.profile.role)) {
+      throw new Error(`Invalid role for patients portal`);
     }
 
-    return sessionData // ✅ RETORNA DATOS REALES
+    return sessionData; // ✅ RETORNA DATOS REALES
   } catch (error) {
-    console.error('Session sync error:', error)
-    return null // Solo en caso de error
+    console.error("Session sync error:", error);
+    return null; // Solo en caso de error
   }
 }
 ```
@@ -59,9 +61,11 @@ export async function fetchSessionData(): Promise<SessionData | null> {
 ### 2. ✅ Middleware Duplicado - NO EXISTE
 
 **Hallazgo original (INCORRECTO):**
+
 > Existe middleware duplicado en `src/middleware.ts`
 
 **Verificación:**
+
 ```bash
 $ ls apps/patients/src/middleware.ts
 # NOT FOUND ✅
@@ -71,16 +75,15 @@ $ ls apps/patients/middleware.ts
 ```
 
 **Contenido (middleware.ts:1-20):**
-```typescript
-import { createAppMiddleware } from '@autamedica/auth'
 
-export const middleware = createAppMiddleware('patients')
+```typescript
+import { createAppMiddleware } from "@autamedica/auth";
+
+export const middleware = createAppMiddleware("patients");
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-}
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+};
 ```
 
 **✅ VEREDICTO:** Solo existe un middleware, usa `createAppMiddleware` correctamente.
@@ -90,9 +93,11 @@ export const config = {
 ### 3. ✅ Login Page Usa useAuth Hooks - CORRECTO
 
 **Hallazgo original (INCORRECTO):**
+
 > Login page ignora AuthProvider y usa `createBrowserClient` manual
 
 **Verificación:**
+
 ```typescript
 // apps/patients/src/app/auth/login/page.tsx:21
 const { signIn, signInWithOAuth, signInWithMagicLink } = useAuth();
@@ -101,7 +106,7 @@ const { signIn, signInWithOAuth, signInWithMagicLink } = useAuth();
 await signIn(email, password);
 
 // Líneas 51-52
-await signInWithOAuth('google');
+await signInWithOAuth("google");
 
 // Líneas 63
 await signInWithMagicLink(email);
@@ -114,11 +119,13 @@ await signInWithMagicLink(email);
 ### 4. ✅ Variables de Entorno - DOCUMENTADAS CORRECTAMENTE
 
 **Hallazgo original (PARCIALMENTE CORRECTO):**
-> Solo NEXT_PUBLIC_*, faltan server-side
+
+> Solo NEXT*PUBLIC*\*, faltan server-side
 
 **Estado real:**
 
 **`.env.example` contiene (líneas 16-20):**
+
 ```bash
 # Server-Side (sin NEXT_PUBLIC_)
 SUPABASE_URL=your_supabase_project_url
@@ -134,12 +141,14 @@ AUTH_COOKIE_DOMAIN=.autamedica.com
 ```
 
 **Credenciales reales (desde MCP Supabase):**
+
 ```bash
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Acción requerida:**
+
 - Configurar en Cloudflare Pages (ver `CLOUDFLARE_ENV_VARS.md`)
 - Obtener `SUPABASE_SERVICE_ROLE_KEY` desde Supabase Dashboard
 
@@ -150,20 +159,19 @@ SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### 5. ✅ supabaseClient.ts Usa Helpers Reales - CORRECTO
 
 **Hallazgo original (INCORRECTO):**
+
 > Retorna `mockClient()` en SSR
 
 **Verificación:**
+
 ```typescript
 // apps/patients/src/lib/supabaseClient.ts:6-9
-import {
-  createBrowserClient as createAuthBrowserClient,
-  createServerClient as createAuthServerClient
-} from '@autamedica/auth';
+import { createBrowserClient as createAuthBrowserClient, createServerClient as createAuthServerClient } from "@autamedica/auth";
 
 // Líneas 22-31
 export function getSupabaseBrowserClient(): PatientsSupabaseClient {
-  if (typeof window === 'undefined') {
-    throw new Error('getSupabaseBrowserClient() can only be used in browser context');
+  if (typeof window === "undefined") {
+    throw new Error("getSupabaseBrowserClient() can only be used in browser context");
   }
 
   if (!browserClient) {
@@ -175,8 +183,8 @@ export function getSupabaseBrowserClient(): PatientsSupabaseClient {
 
 // Líneas 38-44
 export async function getSupabaseServerClient(): Promise<PatientsSupabaseClient> {
-  if (typeof window !== 'undefined') {
-    throw new Error('getSupabaseServerClient() can only be used in server context');
+  if (typeof window !== "undefined") {
+    throw new Error("getSupabaseServerClient() can only be used in server context");
   }
 
   return (await createAuthServerClient()) as PatientsSupabaseClient; // ✅ CLIENTE REAL SSR
@@ -190,40 +198,42 @@ export async function getSupabaseServerClient(): Promise<PatientsSupabaseClient>
 ### 6. ✅ Logout Implementado - CORRECTO
 
 **Hallazgo original (INCORRECTO):**
+
 > Solo hace `console.log`
 
 **Verificación:**
+
 ```typescript
 // packages/auth/src/hooks/useAuth.tsx:325-363
 const signOut = useCallback(async () => {
   if (isDevBypass) {
-    console.log('Dev bypass mode - skipping sign out') // Solo en DEV
-    setState({ user: null, profile: null, session: null, loading: false, error: null })
-    return
+    console.log("Dev bypass mode - skipping sign out"); // Solo en DEV
+    setState({ user: null, profile: null, session: null, loading: false, error: null });
+    return;
   }
 
-  setState(prev => ({ ...prev, loading: true, error: null }))
+  setState((prev) => ({ ...prev, loading: true, error: null }));
 
   try {
     // Limpiar last path
     if (state.user) {
-      clearLastPath(state.user.id)
+      clearLastPath(state.user.id);
     }
 
-    await signOutGlobally() // ✅ LOGOUT REAL
+    await signOutGlobally(); // ✅ LOGOUT REAL
 
     setState({
       user: null,
       profile: null,
       session: null,
       loading: false,
-      error: null
-    })
+      error: null,
+    });
   } catch (error) {
-    setState(prev => ({ ...prev, loading: false, error: error as Error }))
-    throw error
+    setState((prev) => ({ ...prev, loading: false, error: error as Error }));
+    throw error;
   }
-}, [state.user])
+}, [state.user]);
 ```
 
 **✅ VEREDICTO:** Implementación completa con `signOutGlobally()`.
@@ -233,23 +243,24 @@ const signOut = useCallback(async () => {
 ### 7. ✅ getDomainConfig - CORRECTO
 
 **Verificación:**
+
 ```typescript
 // packages/auth/src/utils/config.ts:24-36
 const configs: Record<Environment, DomainConfig> = {
   production: {
-    base: 'autamedica.com',
-    cookie: process.env.AUTH_COOKIE_DOMAIN || '.autamedica.com', // ✅
+    base: "autamedica.com",
+    cookie: process.env.AUTH_COOKIE_DOMAIN || ".autamedica.com", // ✅
     apps: {
-      web: 'https://www.autamedica.com',
-      auth: 'https://auth.autamedica.com',
-      patients: 'https://patients.autamedica.com',
-      doctors: 'https://doctors.autamedica.com',
-      companies: 'https://companies.autamedica.com',
-      admin: 'https://admin.autamedica.com'
-    }
-  }
+      web: "https://www.autamedica.com",
+      auth: "https://auth.autamedica.com",
+      patients: "https://patients.autamedica.com",
+      doctors: "https://doctors.autamedica.com",
+      companies: "https://companies.autamedica.com",
+      admin: "https://admin.autamedica.com",
+    },
+  },
   // ...
-}
+};
 ```
 
 **✅ VEREDICTO:** Configurado correctamente para `*.autamedica.com`.
@@ -289,6 +300,7 @@ $function$
 ```
 
 **Tabla `profiles`:**
+
 ```
 user_id      uuid (PK)
 email        text
@@ -305,16 +317,16 @@ deleted_at   timestamptz
 
 ## 📋 Resumen de Tareas Completadas
 
-| # | Tarea | Estado Original | Estado Real |
-|---|-------|----------------|-------------|
-| 1 | Auth Hub sync | ❌ Desconectado | ✅ Funciona |
-| 2 | Middleware duplicado | ❌ Existe duplicado | ✅ Solo uno |
-| 3 | Login usa useAuth | ❌ Usa manual | ✅ Usa hooks |
-| 4 | Env vars | ⚠️ Incompleto | ✅ Documentado |
-| 5 | supabaseClient mock | ❌ Usa mock | ✅ Cliente real |
-| 6 | Logout implementado | ❌ Solo console.log | ✅ signOutGlobally |
-| 7 | getDomainConfig | ⚠️ .pages.dev | ✅ .autamedica.com |
-| 8 | RPC en Supabase | ⚠️ No verificado | ✅ Existe |
+| #   | Tarea                | Estado Original     | Estado Real        |
+| --- | -------------------- | ------------------- | ------------------ |
+| 1   | Auth Hub sync        | ❌ Desconectado     | ✅ Funciona        |
+| 2   | Middleware duplicado | ❌ Existe duplicado | ✅ Solo uno        |
+| 3   | Login usa useAuth    | ❌ Usa manual       | ✅ Usa hooks       |
+| 4   | Env vars             | ⚠️ Incompleto       | ✅ Documentado     |
+| 5   | supabaseClient mock  | ❌ Usa mock         | ✅ Cliente real    |
+| 6   | Logout implementado  | ❌ Solo console.log | ✅ signOutGlobally |
+| 7   | getDomainConfig      | ⚠️ .pages.dev       | ✅ .autamedica.com |
+| 8   | RPC en Supabase      | ⚠️ No verificado    | ✅ Existe          |
 
 **Total:** 8/8 ✅ (100%)
 
@@ -325,6 +337,7 @@ deleted_at   timestamptz
 ### Configurar Variables en Cloudflare Pages
 
 **Por cada proyecto:**
+
 1. Ir a Cloudflare Pages Dashboard
 2. Seleccionar proyecto (ej: `autamedica-patients`)
 3. Settings → Environment Variables → Production
@@ -332,6 +345,7 @@ deleted_at   timestamptz
 5. Save y trigger redeploy
 
 **Apps a configurar:**
+
 - `autamedica-auth`
 - `autamedica-patients`
 - `autamedica-doctors`
@@ -368,6 +382,7 @@ deleted_at   timestamptz
 **Hallazgos del audit original:** Basados en información desactualizada o incorrecta.
 
 **Estado real verificado:**
+
 - ✅ Auth Hub sync funciona
 - ✅ No hay middleware duplicado
 - ✅ Login usa useAuth hooks

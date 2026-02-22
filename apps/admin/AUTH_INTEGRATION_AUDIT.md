@@ -20,10 +20,12 @@
 ### 1. ✅ Integración con Auth Hub
 
 **Patients:**
+
 - ❌ `session-sync.ts` retorna `null` (Auth Hub desconectado)
 - ❌ Sincronización de perfil suspendida
 
 **Admin:**
+
 - ✅ No implementa Auth Hub (no lo necesita)
 - ✅ Admin es una app administrativa sin perfil de usuario complejo
 - 📝 **Conclusión:** Diseño apropiado - Admin no requiere Auth Hub
@@ -33,12 +35,14 @@
 ### 2. ✅ Middleware
 
 **Patients:**
+
 - ❌ Middleware duplicado (`middleware.ts` + `src/middleware.ts`)
 - ❌ Código inconsistente y conflictivo
 
 **Admin:**
+
 - ✅ Un solo middleware en `middleware.ts`
-- ⚠️  No usa `createAppMiddleware` de `@autamedica/auth`
+- ⚠️ No usa `createAppMiddleware` de `@autamedica/auth`
 - ✅ Middleware simplificado funcional:
   ```typescript
   // For now, allow all requests during build
@@ -51,11 +55,13 @@
 ### 3. ✅ Auth Provider en Cliente
 
 **Patients:**
+
 - ❌ Login crea cliente Supabase manualmente
 - ❌ Ignora `useAuth` centralizado
 - ❌ No usa `signOutGlobally`, `redirectToRole`, etc.
 
 **Admin:**
+
 - ✅ No tiene página de login propia
 - ✅ Admin es solo 2 archivos: `layout.tsx` + `page.tsx`
 - ✅ Arquitectura minimalista sin auth local
@@ -63,15 +69,18 @@
 
 ---
 
-### 4. ⚠️  Variables de Entorno
+### 4. ⚠️ Variables de Entorno
 
 **Patients:**
+
 - ❌ Solo `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - ❌ Falta `SUPABASE_URL`, `SUPABASE_ANON_KEY` (servidor)
 - ❌ `ensureServerEnv()` falla en runtime
 
 **Admin:**
-- ⚠️  `.env.example` tiene ambas versiones:
+
+- ⚠️ `.env.example` tiene ambas versiones:
+
   ```bash
   # Cliente
   NEXT_PUBLIC_SUPABASE_URL=...
@@ -81,13 +90,15 @@
   SUPABASE_SERVICE_ROLE_KEY=...
   DATABASE_URL=...
   ```
+
 - ❌ Falta `SUPABASE_URL` y `SUPABASE_ANON_KEY` sin prefijo
 - 📝 **Conclusión:** Mejor que patients pero incompleto
 
 **Solución requerida:**
+
 ```bash
 # Agregar a .env.example
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 ```
 
@@ -96,10 +107,12 @@ SUPABASE_ANON_KEY=<anon_key>
 ### 5. ✅ Cliente SSR
 
 **Patients:**
+
 - ❌ `supabaseClient.ts` retorna `mockClient()` en SSR
 - ❌ Server Components no hablan con Supabase real
 
 **Admin:**
+
 - ✅ No tiene `src/lib/supabaseClient.ts`
 - ✅ No implementa cliente SSR propio
 - ✅ Cuando necesite Supabase, usará helpers de `@autamedica/auth`
@@ -110,11 +123,13 @@ SUPABASE_ANON_KEY=<anon_key>
 ### 6. ✅ Callback OAuth
 
 **Patients:**
+
 - ❌ `callback/route.ts` usa `ensureEnv('NEXT_PUBLIC_...')` en servidor
 - ❌ Error de configuración (ensureEnv prohíbe NEXT_PUBLIC en servidor)
 - ❌ `set_user_role` RPC falla por falta de `SUPABASE_SERVICE_ROLE_KEY`
 
 **Admin:**
+
 - ✅ No tiene `auth/callback/route.ts`
 - ✅ OAuth se maneja en Auth Hub centralizado
 - ✅ Admin solo consume sesiones, no las crea
@@ -125,10 +140,12 @@ SUPABASE_ANON_KEY=<anon_key>
 ### 7. ✅ Domain Config (CORREGIDO)
 
 **Patients (problema original):**
+
 - ❌ `getDomainConfig()` usa `.pages.dev` en producción
 - ❌ Cookies SSO con dominio incorrecto
 
 **Admin (estado actual):**
+
 - ✅ `packages/auth/src/utils/config.ts` **YA CORREGIDO**:
   ```typescript
   production: {
@@ -149,6 +166,7 @@ SUPABASE_ANON_KEY=<anon_key>
 ## 🎯 Diferencias Clave: Admin vs Patients
 
 ### Admin (Arquitectura Simplificada)
+
 ```
 apps/admin/
 ├── src/
@@ -160,6 +178,7 @@ apps/admin/
 ```
 
 **Características:**
+
 - ✅ Sin auth local (delegado a Auth Hub)
 - ✅ Sin cliente Supabase propio
 - ✅ Sin OAuth callback
@@ -167,6 +186,7 @@ apps/admin/
 - ✅ 2 archivos de componentes únicamente
 
 ### Patients (Arquitectura Compleja)
+
 ```
 apps/patients/
 ├── src/
@@ -183,6 +203,7 @@ apps/patients/
 ```
 
 **Problemas:**
+
 - ❌ Auth Hub desconectado
 - ❌ Middleware duplicado
 - ❌ Cliente directo en lugar de hooks
@@ -196,28 +217,31 @@ apps/patients/
 ### 1. Completar Variables de Entorno ✅ URGENTE
 
 **Agregar a `.env.example` y deployment:**
+
 ```bash
 # Server-side (sin NEXT_PUBLIC)
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 ```
 
-### 2. Implementar Auth en Middleware ⚠️  IMPORTANTE
+### 2. Implementar Auth en Middleware ⚠️ IMPORTANTE
 
 **Actualizar `middleware.ts`:**
-```typescript
-import { createAppMiddleware } from '@autamedica/auth';
 
-export const middleware = createAppMiddleware('admin');
+```typescript
+import { createAppMiddleware } from "@autamedica/auth";
+
+export const middleware = createAppMiddleware("admin");
 ```
 
 **O implementar validación manual:**
+
 ```typescript
-import { requireSession } from '@autamedica/auth';
+import { requireSession } from "@autamedica/auth";
 
 export async function middleware(request: NextRequest) {
   // Skip public routes
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+  if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
@@ -226,13 +250,13 @@ export async function middleware(request: NextRequest) {
     const session = await requireSession();
 
     // Check admin role
-    if (session.user.user_metadata?.role !== 'platform_admin') {
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    if (session.user.user_metadata?.role !== "platform_admin") {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 
     return NextResponse.next();
   } catch (error) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+    return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 }
 ```
@@ -240,6 +264,7 @@ export async function middleware(request: NextRequest) {
 ### 3. Mantener Arquitectura Simplificada ✅
 
 **NO replicar problemas de patients:**
+
 - ❌ NO crear `session-sync.ts` local
 - ❌ NO crear `supabaseClient.ts` con mock
 - ❌ NO duplicar middleware
@@ -249,6 +274,7 @@ export async function middleware(request: NextRequest) {
 ### 4. Feature Flags y Permisos 📋
 
 **Admin tiene feature flags en `.env.example`:**
+
 ```bash
 NEXT_PUBLIC_ADMIN_PANEL_ENABLED=true
 NEXT_PUBLIC_DATABASE_ADMIN_ENABLED=true
@@ -257,13 +283,14 @@ NEXT_PUBLIC_HIPAA_AUDIT_ENABLED=true
 ```
 
 **Implementar guards:**
+
 ```typescript
 // Server action ejemplo
 export async function adminAction() {
   const session = await requireSession();
 
-  if (session.user.user_metadata?.role !== 'platform_admin') {
-    throw new Error('Unauthorized');
+  if (session.user.user_metadata?.role !== "platform_admin") {
+    throw new Error("Unauthorized");
   }
 
   // Admin logic...
@@ -277,10 +304,11 @@ export async function adminAction() {
 ### Admin NO tiene los problemas críticos de Patients
 
 **Scorecard:**
+
 - **Auth Hub:** ✅ No aplica (diseño correcto)
 - **Middleware:** ✅ Simple y único
 - **Auth Provider:** ✅ Sin duplicación
-- **Variables entorno:** ⚠️  Casi completo (falta 2 vars)
+- **Variables entorno:** ⚠️ Casi completo (falta 2 vars)
 - **Cliente SSR:** ✅ No implementado (evita mock)
 - **OAuth Callback:** ✅ No aplica (centralizado)
 - **Domain Config:** ✅ CORREGIDO (`.autamedica.com`)

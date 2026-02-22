@@ -1,4 +1,5 @@
 # Plan de Acción - AutaMedica
+
 **Fecha**: 2025-10-05 23:20 UTC
 **Score Actual**: 85/100 🎯
 **Status**: Production-Ready
@@ -8,6 +9,7 @@
 ## 🎯 Resumen Ejecutivo
 
 **Logros de Hoy**:
+
 - ✅ Sistema de auditoría multi-agente implementado
 - ✅ 7/7 packages compilando (100%)
 - ✅ 2/4 apps listas para deploy (doctors, patients)
@@ -33,6 +35,7 @@ cd /root/Autamedica
 ```
 
 **Output esperado**:
+
 ```
 🚀 AutaMedica - Deployment Script
 ==================================
@@ -83,6 +86,7 @@ wrangler pages deploy apps/patients/.next \
 **Cloudflare Dashboard** → DNS → autamedica.com → Add record:
 
 **Doctors**:
+
 ```
 Type: CNAME
 Name: doctors
@@ -92,6 +96,7 @@ TTL: Auto
 ```
 
 **Patients**:
+
 ```
 Type: CNAME
 Name: patients
@@ -110,7 +115,7 @@ TTL: Auto
 
 ```bash
 # Production Environment
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 NEXT_PUBLIC_AUTH_CALLBACK_URL=https://doctors.autamedica.com/auth/callback
 NEXT_PUBLIC_APP_URL=https://doctors.autamedica.com
@@ -121,7 +126,7 @@ NODE_ENV=production
 
 ```bash
 # Production Environment
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 NEXT_PUBLIC_AUTH_CALLBACK_URL=https://patients.autamedica.com/auth/callback
 NEXT_PUBLIC_APP_URL=https://patients.autamedica.com
@@ -159,6 +164,7 @@ curl -sI https://doctors.autamedica.com | grep -i "cf-ray"
 ```
 
 **Expected**:
+
 ```
 strict-transport-security: max-age=63072000
 cf-ray: [ray-id]-EZE
@@ -168,11 +174,13 @@ server: cloudflare
 #### 3. Test Manual (Browser)
 
 **Doctors**:
+
 - https://doctors.autamedica.com → Landing page loads
 - https://doctors.autamedica.com/appointments → Page loads
 - Auth flow funciona
 
 **Patients**:
+
 - https://patients.autamedica.com → Landing page loads
 - https://patients.autamedica.com/dashboard → Redirects to auth or loads
 - Auth flow funciona
@@ -196,11 +204,13 @@ cat generated-docs/AUDIT_PREPROD_AUTAMEDICA.md | grep "Score"
 ### 2. Monitoring Setup (10 min)
 
 #### Cloudflare Analytics
+
 1. Dashboard → Pages → autamedica-doctors → Analytics
 2. Dashboard → Pages → autamedica-patients → Analytics
 3. Configurar alertas (opcional)
 
 #### Real-time Logs
+
 ```bash
 # Terminal 1: Doctors logs
 wrangler pages deployment tail autamedica-doctors
@@ -219,18 +229,21 @@ Crear archivo `DEPLOYMENT_LOG.md`:
 ## 2025-10-05
 
 ### Doctors App
+
 - Deployed: [timestamp]
 - URL: https://doctors.autamedica.com
 - Build: [build-id]
 - Status: ✅ Success
 
 ### Patients App
+
 - Deployed: [timestamp]
 - URL: https://patients.autamedica.com
 - Build: [build-id]
 - Status: ✅ Success
 
 ### Issues: None
+
 ### Rollbacks: None
 ```
 
@@ -241,11 +254,13 @@ Crear archivo `DEPLOYMENT_LOG.md`:
 ### Rollback Rápido
 
 **Cloudflare Dashboard**:
+
 1. Pages → [proyecto] → Deployments
 2. Click en deployment anterior
 3. Button "Rollback to this deployment"
 
 **CLI**:
+
 ```bash
 # Ver deployments
 wrangler pages deployment list autamedica-doctors
@@ -259,6 +274,7 @@ wrangler pages deploy apps/doctors/.next --project-name autamedica-doctors
 ### Troubleshooting Common Issues
 
 **Error: Build fails**
+
 ```bash
 # Limpiar y rebuild
 rm -rf apps/doctors/.next .turbo
@@ -266,12 +282,14 @@ pnpm --filter '@autamedica/doctors' build
 ```
 
 **Error: 522 (Connection timed out)**
+
 ```bash
 # Verificar Cloudflare SSL mode = Full
 # Dashboard → SSL/TLS → Overview → Full (not Flexible)
 ```
 
 **Error: DNS no resuelve**
+
 ```bash
 # Verificar propagación
 dig doctors.autamedica.com
@@ -285,6 +303,7 @@ nslookup doctors.autamedica.com
 ## 📈 Métricas de Éxito
 
 ### Deployment Exitoso Si:
+
 - [ ] Build completa sin errores
 - [ ] Deployment exitoso en Cloudflare
 - [ ] DNS resuelve correctamente
@@ -295,6 +314,7 @@ nslookup doctors.autamedica.com
 - [ ] No errores en console del browser
 
 ### Score Target:
+
 - Pre-deployment: 85/100 ✅
 - Post-deployment: ≥ 85/100 (mantener o mejorar)
 
@@ -303,6 +323,7 @@ nslookup doctors.autamedica.com
 ## 🎯 Checklist Completo
 
 ### Pre-Deployment
+
 - [x] Builds verificados localmente
 - [x] Type checking passed
 - [x] Packages 100% compilando
@@ -312,11 +333,13 @@ nslookup doctors.autamedica.com
 - [ ] Cloudflare projects creados
 
 ### Durante Deployment
+
 - [ ] Comando de deploy ejecutado
 - [ ] Build logs revisados (sin errores)
 - [ ] Deployment URL accesible (.pages.dev)
 
 ### Post-Deployment
+
 - [ ] DNS configurado
 - [ ] Variables de entorno agregadas
 - [ ] Redeploy con variables (si es necesario)
@@ -334,6 +357,7 @@ nslookup doctors.autamedica.com
 ## 📚 Recursos de Referencia
 
 ### Documentación Generada
+
 ```bash
 cd /root/Autamedica/generated-docs
 
@@ -348,6 +372,7 @@ cat AUDIT_PREPROD_AUTAMEDICA.md
 ```
 
 ### Scripts Útiles
+
 ```bash
 # Deployment
 ./scripts/deploy-apps.sh [doctors|patients|all]
@@ -362,15 +387,15 @@ pnpm --filter '@autamedica/[app]' build
 
 ### Comandos Quick Reference
 
-| Acción | Comando |
-|--------|---------|
-| Deploy todo | `./scripts/deploy-apps.sh all` |
-| Deploy doctors | `./scripts/deploy-apps.sh doctors` |
-| Deploy patients | `./scripts/deploy-apps.sh patients` |
-| Verify deployment | `curl -I https://[app].autamedica.com` |
-| Check logs | `wrangler pages deployment tail [project]` |
-| Re-audit | `./scripts/run-audit-preprod.sh` |
-| Rollback | Dashboard → Deployments → Previous → Rollback |
+| Acción            | Comando                                       |
+| ----------------- | --------------------------------------------- |
+| Deploy todo       | `./scripts/deploy-apps.sh all`                |
+| Deploy doctors    | `./scripts/deploy-apps.sh doctors`            |
+| Deploy patients   | `./scripts/deploy-apps.sh patients`           |
+| Verify deployment | `curl -I https://[app].autamedica.com`        |
+| Check logs        | `wrangler pages deployment tail [project]`    |
+| Re-audit          | `./scripts/run-audit-preprod.sh`              |
+| Rollback          | Dashboard → Deployments → Previous → Rollback |
 
 ---
 
@@ -379,12 +404,14 @@ pnpm --filter '@autamedica/[app]' build
 ### Corto Plazo (Esta Semana)
 
 **1. Fix Companies App** (15 min)
+
 ```bash
 # Resolver DTS issue en supabase-client
 # Deploy companies cuando esté listo
 ```
 
 **2. ESLint Protection** (30 min)
+
 ```bash
 # Agregar pre-commit hooks
 # Validación automática de console.log
@@ -392,6 +419,7 @@ pnpm --filter '@autamedica/[app]' build
 ```
 
 **3. Performance Optimization** (1 hora)
+
 ```bash
 # Lighthouse audits
 # Bundle size analysis
@@ -401,16 +429,19 @@ pnpm --filter '@autamedica/[app]' build
 ### Mediano Plazo (Este Mes)
 
 **1. Testing Coverage**
+
 - E2E tests con Playwright
 - Integration tests
 - Unit tests >80% coverage
 
 **2. Error Tracking**
+
 - Setup Sentry o alternativa
 - Error alertas automáticas
 - Performance monitoring
 
 **3. CI/CD Enhancement**
+
 - Auto-deploy en merge to main
 - Preview deployments por PR
 - Automated smoke tests
@@ -418,16 +449,19 @@ pnpm --filter '@autamedica/[app]' build
 ### Largo Plazo (Este Trimestre)
 
 **1. Infrastructure**
+
 - Multi-region deployment
 - CDN optimization
 - Database replication
 
 **2. Features**
+
 - User analytics
 - A/B testing framework
 - Feature flags system
 
 **3. Documentation**
+
 - API documentation
 - Developer onboarding guide
 - Architecture decision records (ADRs)
@@ -437,6 +471,7 @@ pnpm --filter '@autamedica/[app]' build
 ## 💡 Lecciones para Futuros Deployments
 
 ### Do's ✅
+
 - ✅ Ejecutar auditoría antes del deploy
 - ✅ Verificar builds localmente primero
 - ✅ Usar scripts automatizados
@@ -446,6 +481,7 @@ pnpm --filter '@autamedica/[app]' build
 - ✅ Tener plan de rollback listo
 
 ### Don'ts ❌
+
 - ❌ Deploy directo a producción sin staging
 - ❌ Ignorar warnings en builds
 - ❌ Configurar SSL en modo "Flexible"
@@ -461,11 +497,13 @@ pnpm --filter '@autamedica/[app]' build
 ### Si Necesitas Ayuda
 
 **Documentación**:
+
 - `generated-docs/DEPLOYMENT_GUIDE.md` - Guía detallada
 - `generated-docs/FINAL_SESSION_REPORT.md` - Contexto completo
 - `NEXT_STEPS.md` - Quick reference
 
 **Logs y Debugging**:
+
 ```bash
 # Ver logs de build
 wrangler pages deployment list [project]
@@ -478,6 +516,7 @@ wrangler pages deployment tail [project]
 ```
 
 **Rollback**:
+
 ```bash
 # Ver guía completa en DEPLOYMENT_GUIDE.md
 # Sección: "Rollback Procedure"
@@ -529,4 +568,4 @@ echo ""
 
 ---
 
-*Este plan consolida todos los próximos pasos para llevar AutaMedica de 1 app deployed a 3 apps en producción.*
+_Este plan consolida todos los próximos pasos para llevar AutaMedica de 1 app deployed a 3 apps en producción._

@@ -12,11 +12,11 @@ El sistema de autenticación presenta un **Error 522 (Connection timed out)** en
 
 ### Estado de Servidores
 
-| Servidor | Puerto | Estado | URL |
-|----------|--------|--------|-----|
-| **Auth** | 3005 | ✅ Funcionando | `http://localhost:3005` |
-| **Doctors** | 3001 | ✅ Funcionando | `http://localhost:3001` |
-| **Session Sync API** | 3005 | ✅ Funcionando | `/api/session-sync` |
+| Servidor             | Puerto | Estado         | URL                     |
+| -------------------- | ------ | -------------- | ----------------------- |
+| **Auth**             | 3005   | ✅ Funcionando | `http://localhost:3005` |
+| **Doctors**          | 3001   | ✅ Funcionando | `http://localhost:3001` |
+| **Session Sync API** | 3005   | ✅ Funcionando | `/api/session-sync`     |
 
 ### Flujo de Autenticación (Local)
 
@@ -34,6 +34,7 @@ El sistema de autenticación presenta un **Error 522 (Connection timed out)** en
 ### 1. **App Auth** (`/apps/auth`)
 
 **Responsabilidades:**
+
 - Autenticación centralizada (OAuth + Email)
 - Gestión de sesiones con Supabase
 - Asignación de roles
@@ -42,6 +43,7 @@ El sistema de autenticación presenta un **Error 522 (Connection timed out)** en
 **Endpoints Críticos:**
 
 #### `/auth/login` (page.tsx)
+
 ```typescript
 - Verifica si usuario ya tiene sesión
 - Si tiene rol → redirect a portal correspondiente
@@ -50,6 +52,7 @@ El sistema de autenticación presenta un **Error 522 (Connection timed out)** en
 ```
 
 **Roles Soportados:**
+
 - `doctor` → `http://localhost:3001` (dev) / `https://doctors.autamedica.com` (prod)
 - `patient` → `http://localhost:3002` / `https://patients.autamedica.com`
 - `company_admin` → `http://localhost:3003` / `https://companies.autamedica.com`
@@ -57,6 +60,7 @@ El sistema de autenticación presenta un **Error 522 (Connection timed out)** en
 - `platform_admin` → `http://localhost:3004` / `https://admin.autamedica.com`
 
 #### `/auth/callback` (route.ts)
+
 ```typescript
 - Maneja callback OAuth de Supabase
 - Exchange code por session (PKCE)
@@ -66,12 +70,14 @@ El sistema de autenticación presenta un **Error 522 (Connection timed out)** en
 ```
 
 **Características:**
+
 - ✅ Soporte PKCE con fallback a implicit flow
 - ✅ Sincronización de roles: profiles → app_metadata
 - ✅ Validación de returnTo URL
 - ⚠️ Requiere `SUPABASE_SERVICE_ROLE_KEY` para sync de roles
 
 #### `/api/session-sync` (route.ts)
+
 ```typescript
 GET /api/session-sync
 Response: {
@@ -96,6 +102,7 @@ Response: {
 ```
 
 **Funciones de Routing:**
+
 ```typescript
 // packages/shared/src/roles.ts
 - getPortalForRole(role: UserRole): string
@@ -104,6 +111,7 @@ Response: {
 ```
 
 **Variables de Entorno:**
+
 ```bash
 # /apps/doctors/.env.local (CREADO HOY)
 NODE_ENV=development
@@ -112,6 +120,7 @@ NEXT_PUBLIC_AUTH_HUB_URL=http://localhost:3005
 ```
 
 **Archivos Creados Durante Auditoría:**
+
 - ✅ `.env.local` → Corrigió redirect a producción
 - ✅ `src/data/demoData.ts` → Resuelve import faltante
 
@@ -124,11 +133,13 @@ NEXT_PUBLIC_AUTH_HUB_URL=http://localhost:3005
 **URL afectada:** `https://auth.autamedica.com/?code=9f4e1509-d933-4f77-a031-206ec1d9fb49`
 
 **Síntomas:**
+
 - Connection timed out (Cloudflare Error 522)
 - El servidor de origin no responde
 - Browser OK → Cloudflare OK → **Origin Server FAIL**
 
 **Causas Posibles:**
+
 1. Servidor auth en Cloudflare Pages no está corriendo
 2. Timeout excedido (>100 segundos default CF)
 3. Proceso de autenticación muy lento
@@ -147,12 +158,13 @@ NEXT_PUBLIC_AUTH_HUB_URL=http://localhost:3005
 export async function GET(request: NextRequest) {
   return NextResponse.json({
     user: null,
-    authenticated: false
-  })
+    authenticated: false,
+  });
 }
 ```
 
 **Debería:**
+
 - Verificar cookies de sesión
 - Consultar Supabase
 - Devolver datos reales del usuario
@@ -162,6 +174,7 @@ export async function GET(request: NextRequest) {
 ### 3. ⚠️ Dependencia de Variables de Entorno
 
 **Faltaban variables críticas en doctors app:**
+
 - `AUTH_HUB_URL` → Causaba redirect a producción
 - Sin `.env.local` → Usaba defaults de producción
 
@@ -172,6 +185,7 @@ export async function GET(request: NextRequest) {
 ### 4. ℹ️ Imports Faltantes
 
 **Error resuelto:**
+
 ```
 Module not found: Can't resolve '@/data/demoData'
 ```
@@ -185,6 +199,7 @@ Module not found: Can't resolve '@/data/demoData'
 ### `@autamedica/shared/roles`
 
 **Funciones exportadas:**
+
 ```typescript
 - getPortalForRole(role, isDev?) → URL del portal
 - getRoleDisplayName(role) → Nombre en español
@@ -195,6 +210,7 @@ Module not found: Can't resolve '@/data/demoData'
 ```
 
 **Mapeos de Portales:**
+
 ```typescript
 roleToPortal: {
   doctor: 'https://doctors.autamedica.com',
@@ -218,6 +234,7 @@ roleToPortalDev: {
 ## ✅ Configuración Correcta (Desarrollo)
 
 ### Doctors App
+
 ```bash
 # apps/doctors/.env.local
 NODE_ENV=development
@@ -226,9 +243,10 @@ NEXT_PUBLIC_AUTH_HUB_URL=http://localhost:3005
 ```
 
 ### Auth App
+
 ```bash
 # apps/auth/.env.local
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[key]
 SUPABASE_SERVICE_ROLE_KEY=[key]  # Necesario para sync de roles
 ```
@@ -240,11 +258,13 @@ SUPABASE_SERVICE_ROLE_KEY=[key]  # Necesario para sync de roles
 ### 🔴 **Urgente - Resolver Error 522**
 
 1. **Verificar Cloudflare Pages Deployment:**
+
    ```bash
    wrangler pages deployment list --project-name autamedica-auth-app
    ```
 
 2. **Revisar Logs de Auth App:**
+
    ```bash
    wrangler pages deployment tail --project-name autamedica-auth-app
    ```
@@ -269,29 +289,27 @@ export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   const supabase = createServerClient(/* ... */);
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.json({
       user: null,
-      authenticated: false
+      authenticated: false,
     });
   }
 
   // Fetch role from profiles
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("user_id", user.id).single();
 
   return NextResponse.json({
     user: {
       id: user.id,
       email: user.email,
-      role: profile?.role
+      role: profile?.role,
     },
-    authenticated: true
+    authenticated: true,
   });
 }
 ```
@@ -312,12 +330,14 @@ export async function GET(request: NextRequest) {
 ## 📝 Testing Checklist
 
 ### Local Development
+
 - [x] Auth server responde en :3005
 - [x] Doctors redirect a auth local
 - [x] Session sync endpoint funciona
 - [x] Variables de entorno correctas
 
 ### Producción (Pendiente)
+
 - [ ] `auth.autamedica.com` responde (actualmente 522)
 - [ ] `doctors.autamedica.com` responde
 - [ ] Login con Google funciona
@@ -339,6 +359,7 @@ export async function GET(request: NextRequest) {
 
 **Auditoría realizada por:** Claude Code
 **Archivos modificados durante auditoría:**
+
 - ✅ `/apps/doctors/.env.local` (creado)
 - ✅ `/apps/doctors/src/data/demoData.ts` (creado)
 - ✅ `/apps/auth/src/app/api/session-sync/route.ts` (creado)

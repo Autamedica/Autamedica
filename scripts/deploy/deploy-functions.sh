@@ -6,7 +6,7 @@
 
 set -e  # Exit on any error
 
-PROJECT_REF="gtyvdircfhmdjiaelqkg"
+PROJECT_REF="knywotiidsydsaveqkjs"
 ANON_KEY="REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA"
 
 echo "🚀 AutaMedica Edge Functions Deployment"

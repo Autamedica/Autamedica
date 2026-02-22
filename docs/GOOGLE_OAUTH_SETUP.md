@@ -12,6 +12,7 @@
 Ve a **APIs & Services** → **Credentials** → **OAuth 2.0 Client IDs** y agrega:
 
 ### 🌐 **Production Domains:**
+
 ```
 https://autamedica.com
 https://doctors.autamedica.com
@@ -20,6 +21,7 @@ https://companies.autamedica.com
 ```
 
 ### 🧪 **Development Domains:**
+
 ```
 http://localhost:3000
 http://localhost:3001
@@ -28,6 +30,7 @@ http://localhost:3003
 ```
 
 ### 📱 **Cloudflare Pages Preview URLs:**
+
 ```
 https://*.pages.dev
 ```
@@ -37,8 +40,9 @@ https://*.pages.dev
 ## ✅ **STEP 2: Authorized Redirect URIs**
 
 **Debe tener configurado** (ya existe):
+
 ```
-https://gtyvdircfhmdjiaelqkg.supabase.co/auth/v1/callback
+https://knywotiidsydsaveqkjs.supabase.co/auth/v1/callback
 ```
 
 ---
@@ -46,6 +50,7 @@ https://gtyvdircfhmdjiaelqkg.supabase.co/auth/v1/callback
 ## 🎯 **Configuración Completa Final**
 
 ### **Authorized JavaScript origins:**
+
 ```
 https://autamedica.com
 https://doctors.autamedica.com
@@ -59,8 +64,9 @@ https://*.pages.dev
 ```
 
 ### **Authorized redirect URIs:**
+
 ```
-https://gtyvdircfhmdjiaelqkg.supabase.co/auth/v1/callback
+https://knywotiidsydsaveqkjs.supabase.co/auth/v1/callback
 ```
 
 ---
@@ -70,7 +76,7 @@ https://gtyvdircfhmdjiaelqkg.supabase.co/auth/v1/callback
 Una vez configurado, podrás hacer OAuth desde:
 
 - ✅ **localhost:3000** → Web-App login
-- ✅ **localhost:3001** → Doctors login  
+- ✅ **localhost:3001** → Doctors login
 - ✅ **localhost:3002** → Patients login
 - ✅ **localhost:3003** → Companies login
 - ✅ **autamedica.com** → Production login
@@ -102,12 +108,13 @@ Una vez configurado, podrás hacer OAuth desde:
 ## ✅ **Verificación**
 
 Después de configurar, test desde:
+
 ```bash
 # Development
 http://localhost:3002 → Login → Should work ✅
 http://localhost:3003 → Login → Should work ✅
 
-# Production  
+# Production
 https://patients.autamedica.com → Login → Should work ✅
 https://companies.autamedica.com → Login → Should work ✅
 ```

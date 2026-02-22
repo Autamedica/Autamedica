@@ -20,7 +20,7 @@
 
 **Package Manager**: `pnpm` únicamente (NUNCA npm/yarn)
 
-**Supabase Project activo**: `gtyvdircfhmdjiaelqkg`
+**Supabase Project activo**: `knywotiidsydsaveqkjs`
 
 ---
 
@@ -304,7 +304,7 @@ Si un bug parece "se guardó pero no se ve" o "desapareció", asumir **RLS y fil
 ### DB Access CLI (Producción)
 
 ```bash
-PGPASSWORD="$DB_PASSWORD" psql "postgresql://postgres.gtyvdircfhmdjiaelqkg@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=5"
+PGPASSWORD="$DB_PASSWORD" psql "postgresql://postgres.knywotiidsydsaveqkjs@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=5"
 ```
 
 Nunca pegar credenciales en chat o commitearlas a git.

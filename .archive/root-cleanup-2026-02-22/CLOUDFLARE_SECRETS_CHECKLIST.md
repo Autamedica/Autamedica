@@ -16,23 +16,23 @@
 
 ### Producción (Production)
 
-| Variable | Valor | Necesaria | Estado |
-|----------|-------|-----------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://gtyvdircfhmdjiaelqkg.supabase.co` | ✅ Crítica | ✅ Configurada |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | ✅ Crítica | ✅ Configurada |
-| `NEXT_PUBLIC_NODE_ENV` | `production` | ⚠️ Recomendada | ⏳ Pendiente |
-| `NEXT_PUBLIC_APP_URL` | `https://autamedica.com` | ⚠️ Recomendada | ⏳ Pendiente |
-| `NODE_ENV` | `production` | ⚠️ Recomendada | ⏳ Pendiente |
-| `SKIP_ENV_VALIDATION` | `true` | 📝 Opcional | ⏳ Pendiente |
+| Variable                        | Valor                                      | Necesaria      | Estado         |
+| ------------------------------- | ------------------------------------------ | -------------- | -------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | `https://knywotiidsydsaveqkjs.supabase.co` | ✅ Crítica     | ✅ Configurada |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`  | ✅ Crítica     | ✅ Configurada |
+| `NEXT_PUBLIC_NODE_ENV`          | `production`                               | ⚠️ Recomendada | ⏳ Pendiente   |
+| `NEXT_PUBLIC_APP_URL`           | `https://autamedica.com`                   | ⚠️ Recomendada | ⏳ Pendiente   |
+| `NODE_ENV`                      | `production`                               | ⚠️ Recomendada | ⏳ Pendiente   |
+| `SKIP_ENV_VALIDATION`           | `true`                                     | 📝 Opcional    | ⏳ Pendiente   |
 
 ### Preview (Opcional - para PRs)
 
-| Variable | Valor | Necesaria |
-|----------|-------|-----------|
-| `NEXT_PUBLIC_SUPABASE_URL` | (mismo que production) | ✅ |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (mismo que production) | ✅ |
-| `NEXT_PUBLIC_NODE_ENV` | `preview` | ⚠️ |
-| `NEXT_PUBLIC_APP_URL` | `https://[hash].autamedica-web-app.pages.dev` | ⚠️ |
+| Variable                        | Valor                                         | Necesaria |
+| ------------------------------- | --------------------------------------------- | --------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | (mismo que production)                        | ✅        |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (mismo que production)                        | ✅        |
+| `NEXT_PUBLIC_NODE_ENV`          | `preview`                                     | ⚠️        |
+| `NEXT_PUBLIC_APP_URL`           | `https://[hash].autamedica-web-app.pages.dev` | ⚠️        |
 
 ---
 
@@ -41,6 +41,7 @@
 ### Opción A: Mínimo Funcional (Ya tienes esto ✅)
 
 Solo las 2 variables críticas que ya configuraste:
+
 - ✅ `NEXT_PUBLIC_SUPABASE_URL`
 - ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
@@ -75,6 +76,7 @@ Agregar estas 3 adicionales en **Production**:
 ### ANON_KEY Válida
 
 Verifica que la `NEXT_PUBLIC_SUPABASE_ANON_KEY` sea la **correcta** y no contenga:
+
 - ❌ `REPLACE_WITH_ROTATED_KEY`
 - ❌ Texto placeholder
 - ✅ Debe empezar con: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI...`
@@ -82,8 +84,8 @@ Verifica que la `NEXT_PUBLIC_SUPABASE_ANON_KEY` sea la **correcta** y no conteng
 ### URL Correcta
 
 ```
-✅ CORRECTO: https://gtyvdircfhmdjiaelqkg.supabase.co
-❌ INCORRECTO: https://gtyvdircfhmdjiaelqkg.supabase.co/
+✅ CORRECTO: https://knywotiidsydsaveqkjs.supabase.co
+❌ INCORRECTO: https://knywotiidsydsaveqkjs.supabase.co/
                                                         ^ sin barra final
 ```
 
@@ -92,6 +94,7 @@ Verifica que la `NEXT_PUBLIC_SUPABASE_ANON_KEY` sea la **correcta** y no conteng
 ## 🎯 Próximos Pasos
 
 1. **Verificar build actual:**
+
    ```
    Dashboard → Deployments → Ver último deployment
    ```
@@ -128,15 +131,19 @@ Verifica que la `NEXT_PUBLIC_SUPABASE_ANON_KEY` sea la **correcta** y no conteng
 ## 🐛 Troubleshooting
 
 ### Error: "NEXT_PUBLIC_SUPABASE_URL is not defined"
+
 **Solución:** Verifica que la variable esté en el scope "Production" (no solo Preview)
 
 ### Error: "Failed to initialize Supabase client"
+
 **Solución:** Verifica que ANON_KEY sea válida (no el placeholder)
 
 ### Error: "process.env is not defined"
+
 **Solución:** Agrega `NODE_ENV=production` a las variables
 
 ### Build funciona pero la app no conecta a Supabase
+
 **Solución:** Verifica que las variables tengan el prefijo `NEXT_PUBLIC_` (son client-side)
 
 ---

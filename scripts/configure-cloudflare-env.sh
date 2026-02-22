@@ -12,7 +12,7 @@ echo "   Si prefieres CLI, usa: ./scripts/configure-cloudflare-cli.sh"
 echo ""
 
 # Variables de entorno de AutaMedica
-SUPABASE_URL="https://gtyvdircfhmdjiaelqkg.supabase.co"
+SUPABASE_URL="https://knywotiidsydsaveqkjs.supabase.co"
 SUPABASE_ANON_KEY="REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA"
 AUTH_HUB_URL="https://www.autamedica.com"
 
@@ -62,7 +62,7 @@ cat > .env.cloudflare << EOF
 # Configurar estas variables en el dashboard de Cloudflare Pages
 
 # Variables comunes (todas las apps)
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA
 NEXT_PUBLIC_NODE_ENV=production
 SKIP_ENV_VALIDATION=true

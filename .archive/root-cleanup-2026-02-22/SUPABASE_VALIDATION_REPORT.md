@@ -2,7 +2,7 @@
 
 **Fecha:** 20 de septiembre de 2025  
 **Proyecto:** altamedica-reboot  
-**Supabase Project:** gtyvdircfhmdjiaelqkg  
+**Supabase Project:** knywotiidsydsaveqkjs
 
 ---
 
@@ -11,6 +11,7 @@
 ✅ **IMPLEMENTACIÓN COMPLETADA AL 100%**
 
 Se ha implementado exitosamente un sistema médico completo con Supabase, incluyendo:
+
 - Esquema de base de datos HIPAA-compliant
 - Tipos TypeScript generados e integrados
 - Seeds de datos de prueba para todos los roles
@@ -48,6 +49,7 @@ export interface Database {
 **Migración Principal:** `supabase/migrations/20250919212900_essential_medical_schema.sql`
 
 **Tablas Implementadas:**
+
 - `profiles` - Usuarios del sistema con roles
 - `companies` - Empresas y organizaciones
 - `doctors` - Perfiles de médicos con especialidades
@@ -62,12 +64,14 @@ export interface Database {
 **Archivo:** `supabase/seed_data.sql`
 
 **Usuarios de Prueba Creados:**
+
 - **Platform Admin:** admin@autamedica.com
 - **Company Admin:** empresa@hospitalsanmartin.com
 - **Médicos:** dr.garcia@autamedica.com (Cardiólogo), dra.martinez@autamedica.com (Pediatra), dr.lopez@autamedica.com (Med. Laboral)
 - **Pacientes:** juan.perez@gmail.com (Individual), carlos.ruiz@empresa.com (Corporativo)
 
 **Datos de Prueba:**
+
 - 2 empresas (Hospital San Martín, TechCorp SA)
 - 6 citas médicas en diferentes estados
 - 4 registros médicos con diferentes niveles de visibilidad
@@ -80,6 +84,7 @@ export interface Database {
 ### Políticas Implementadas
 
 **Profiles:**
+
 ```sql
 -- Usuarios pueden ver y editar solo su propio perfil
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
@@ -87,13 +92,15 @@ CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.
 ```
 
 **Companies:**
+
 ```sql
 -- Company admins ven solo sus empresas
-CREATE POLICY "Company admins can view own companies" ON companies FOR SELECT 
+CREATE POLICY "Company admins can view own companies" ON companies FOR SELECT
 USING (auth.uid() = owner_profile_id);
 ```
 
 **Doctors/Patients:**
+
 ```sql
 -- Médicos ven solo pacientes asignados, pacientes ven solo su data
 CREATE POLICY "Doctors can view assigned patients" ON patients FOR SELECT
@@ -106,6 +113,7 @@ USING (EXISTS (SELECT 1 FROM patient_care_team WHERE doctor_id IN (...)));
 **Simulación:** `scripts/test-supabase-simulation.mjs`
 
 **Resultados de Simulación:**
+
 - ✅ Platform admin: Acceso completo al sistema (11/11 tests)
 - ✅ Doctor: Solo pacientes asignados y appointments propios
 - ✅ Patient: Solo datos propios y records visibles
@@ -122,6 +130,7 @@ USING (EXISTS (SELECT 1 FROM patient_care_team WHERE doctor_id IN (...)));
 **Simulación:** `scripts/test-medical-workflows-simulation.mjs`
 
 #### 1. 🏥 Agendamiento y Consulta Médica
+
 - Solicitud de cita por paciente
 - Validación de disponibilidad médica
 - Notificaciones automáticas
@@ -129,12 +138,14 @@ USING (EXISTS (SELECT 1 FROM patient_care_team WHERE doctor_id IN (...)));
 - Creación de registros médicos
 
 #### 2. 💰 Facturación y Pagos
+
 - Generación automática de facturas
 - Integración con obras sociales (OSDE simulado)
 - Procesamiento de pagos y copagos
 - Liquidación automática a profesionales
 
 #### 3. 🏢 Medicina Laboral Empresarial
+
 - Solicitudes corporativas de exámenes
 - Asignación de médicos laborales
 - Exámenes preocupacionales
@@ -142,6 +153,7 @@ USING (EXISTS (SELECT 1 FROM patient_care_team WHERE doctor_id IN (...)));
 - Facturación corporativa con descuentos
 
 #### 4. 💻 Telemedicina y Seguimiento
+
 - Consultas virtuales por video
 - Revisión de estudios digitales
 - Prescripción digital
@@ -153,25 +165,25 @@ USING (EXISTS (SELECT 1 FROM patient_care_team WHERE doctor_id IN (...)));
 
 ### Cobertura de Funcionalidades
 
-| Funcionalidad | Estado | Cobertura |
-|---------------|--------|-----------|
-| Autenticación y Roles | ✅ Completo | 100% |
-| Gestión de Perfiles | ✅ Completo | 100% |
-| Agendamiento de Citas | ✅ Completo | 100% |
-| Registros Médicos | ✅ Completo | 100% |
-| Facturación | ✅ Simulado | 95% |
-| Medicina Laboral | ✅ Completo | 100% |
-| Telemedicina | ✅ Simulado | 90% |
-| Row Level Security | ✅ Completo | 100% |
+| Funcionalidad         | Estado      | Cobertura |
+| --------------------- | ----------- | --------- |
+| Autenticación y Roles | ✅ Completo | 100%      |
+| Gestión de Perfiles   | ✅ Completo | 100%      |
+| Agendamiento de Citas | ✅ Completo | 100%      |
+| Registros Médicos     | ✅ Completo | 100%      |
+| Facturación           | ✅ Simulado | 95%       |
+| Medicina Laboral      | ✅ Completo | 100%      |
+| Telemedicina          | ✅ Simulado | 90%       |
+| Row Level Security    | ✅ Completo | 100%      |
 
 ### Arquitectura TypeScript
 
-| Package | Tipos | Estado |
-|---------|-------|--------|
-| @autamedica/types | 450+ tipos | ✅ Compilado |
-| Supabase Types | 15 tablas | ✅ Integrado |
-| API Responses | Discriminated unions | ✅ Validado |
-| Brand Types | IDs seguros | ✅ Activo |
+| Package           | Tipos                | Estado       |
+| ----------------- | -------------------- | ------------ |
+| @autamedica/types | 450+ tipos           | ✅ Compilado |
+| Supabase Types    | 15 tablas            | ✅ Integrado |
+| API Responses     | Discriminated unions | ✅ Validado  |
+| Brand Types       | IDs seguros          | ✅ Activo    |
 
 ---
 
@@ -198,14 +210,14 @@ USING (EXISTS (SELECT 1 FROM patient_care_team WHERE doctor_id IN (...)));
 
 ```bash
 # 1. Obtener credenciales correctas
-supabase settings get api --project-ref gtyvdircfhmdjiaelqkg
+supabase settings get api --project-ref knywotiidsydsaveqkjs
 
 # 2. Aplicar seeds a producción
-psql "postgresql://postgres:PASSWORD@db.gtyvdircfhmdjiaelqkg.supabase.co:5432/postgres" \
+psql "postgresql://postgres:PASSWORD@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres" \
   -f supabase/seed_data.sql
 
 # 3. Ejecutar tests reales (credenciales ya configuradas)
-NEXT_PUBLIC_SUPABASE_URL="https://gtyvdircfhmdjiaelqkg.supabase.co" \
+NEXT_PUBLIC_SUPABASE_URL="https://knywotiidsydsaveqkjs.supabase.co" \
 NEXT_PUBLIC_SUPABASE_ANON_KEY="REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA" \
 node scripts/test-supabase-rls.mjs
 
@@ -222,6 +234,7 @@ node scripts/test-medical-workflows.mjs
 **El sistema AltaMedica con Supabase está 100% implementado y validado.**
 
 **Características Destacadas:**
+
 - 🔒 **Seguridad:** RLS policies que cumplen HIPAA
 - 🏥 **Médico:** Flujos completos de atención médica
 - 🏢 **Empresarial:** Medicina laboral y facturación corporativa
@@ -232,6 +245,7 @@ node scripts/test-medical-workflows.mjs
 ### 🎯 READINESS SCORE: 95/100
 
 **Desglose:**
+
 - Arquitectura de datos: 100/100
 - Tipos TypeScript: 100/100
 - Seguridad RLS: 100/100
@@ -278,4 +292,4 @@ pnpm docs:validate
 
 **🎉 IMPLEMENTACIÓN SUPABASE COMPLETADA EXITOSAMENTE**
 
-*Reporte generado automáticamente el 20/09/2025 - AltaMedica Team*
+_Reporte generado automáticamente el 20/09/2025 - AltaMedica Team_

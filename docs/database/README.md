@@ -12,9 +12,9 @@ This directory contains the complete database schema for the AutaMedica medical 
 
 ### Supabase Integration
 
-- **Supabase Project ID**: `gtyvdircfhmdjiaelqkg`
+- **Supabase Project ID**: `knywotiidsydsaveqkjs`
 - **Environment**: Production
-- **Database URL**: `https://gtyvdircfhmdjiaelqkg.supabase.co`
+- **Database URL**: `https://knywotiidsydsaveqkjs.supabase.co`
 
 ## 🏗️ Schema Architecture
 

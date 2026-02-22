@@ -10,18 +10,18 @@ Este documento explica cómo configurar las environment variables necesarias par
 
 ### **Doctors App** (`autamedica-doctors`)
 
-| Variable | Valor Producción | Valor Preview | Descripción |
-|----------|------------------|---------------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://gtyvdircfhmdjiaelqkg.supabase.co` | *(mismo)* | URL de Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *(ver GitHub Secrets)* | *(mismo)* | Anon key de Supabase |
-| `NEXT_PUBLIC_WEB_APP_URL` | `https://autamedica.com` | `https://autamedica-web-app.pages.dev` | URL del Web App para auth redirects |
+| Variable                        | Valor Producción                           | Valor Preview                          | Descripción                         |
+| ------------------------------- | ------------------------------------------ | -------------------------------------- | ----------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | `https://knywotiidsydsaveqkjs.supabase.co` | _(mismo)_                              | URL de Supabase                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | _(ver GitHub Secrets)_                     | _(mismo)_                              | Anon key de Supabase                |
+| `NEXT_PUBLIC_WEB_APP_URL`       | `https://autamedica.com`                   | `https://autamedica-web-app.pages.dev` | URL del Web App para auth redirects |
 
 ### **Patients App** (`autamedica-patients`)
 
-| Variable | Valor Producción | Valor Preview | Descripción |
-|----------|------------------|---------------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://gtyvdircfhmdjiaelqkg.supabase.co` | *(mismo)* | URL de Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *(ver GitHub Secrets)* | *(mismo)* | Anon key de Supabase |
+| Variable                        | Valor Producción                           | Valor Preview | Descripción          |
+| ------------------------------- | ------------------------------------------ | ------------- | -------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | `https://knywotiidsydsaveqkjs.supabase.co` | _(mismo)_     | URL de Supabase      |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | _(ver GitHub Secrets)_                     | _(mismo)_     | Anon key de Supabase |
 
 ---
 
@@ -41,6 +41,7 @@ Este documento explica cómo configurar las environment variables necesarias par
 3. Click en **Add variable**
 
 **Para PRODUCTION:**
+
 ```
 Variable name: NEXT_PUBLIC_WEB_APP_URL
 Value: https://autamedica.com
@@ -48,6 +49,7 @@ Environment: Production
 ```
 
 **Para PREVIEW:**
+
 ```
 Variable name: NEXT_PUBLIC_WEB_APP_URL
 Value: https://autamedica-web-app.pages.dev
@@ -89,12 +91,13 @@ Abrir la app en browser y ejecutar en console:
 
 ```javascript
 // Debería mostrar el valor correcto (NO localhost)
-console.log(process.env.NEXT_PUBLIC_WEB_APP_URL)
+console.log(process.env.NEXT_PUBLIC_WEB_APP_URL);
 ```
 
 ### **3. Test de Auth Redirect**
 
 En `doctors.autamedica.com`:
+
 - Click en "Iniciar sesión como médico"
 - Debería redirigir a `autamedica.com/auth/login?portal=medico`
 - NO debería redirigir a `localhost:3000`
@@ -106,6 +109,7 @@ En `doctors.autamedica.com`:
 ### **Problema: Redirect a localhost**
 
 **Síntoma:**
+
 ```
 ERR_CONNECTION_REFUSED at http://localhost:3000/auth/login
 ```
@@ -113,6 +117,7 @@ ERR_CONNECTION_REFUSED at http://localhost:3000/auth/login
 **Causa:** Environment variable no configurada o deployment viejo
 
 **Solución:**
+
 1. Verificar que `NEXT_PUBLIC_WEB_APP_URL` esté en Cloudflare Dashboard
 2. Hacer un nuevo deployment (las vars solo se aplican en nuevos builds)
 3. Clear browser cache y recargar
@@ -120,13 +125,15 @@ ERR_CONNECTION_REFUSED at http://localhost:3000/auth/login
 ### **Problema: Variable undefined**
 
 **Síntoma:**
+
 ```javascript
-console.log(process.env.NEXT_PUBLIC_WEB_APP_URL) // undefined
+console.log(process.env.NEXT_PUBLIC_WEB_APP_URL); // undefined
 ```
 
 **Causa:** Variable no tiene prefijo `NEXT_PUBLIC_`
 
 **Solución:**
+
 - ✅ Correcto: `NEXT_PUBLIC_WEB_APP_URL`
 - ❌ Incorrecto: `WEB_APP_URL`
 

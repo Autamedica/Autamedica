@@ -1,14 +1,15 @@
 # 🏥 AUTAMEDICA - GUÍA DE CONFIGURACIÓN MANUAL SUPABASE
 
 **Fecha:** 20 de Septiembre de 2025  
-**Proyecto:** gtyvdircfhmdjiaelqkg  
-**Estado:** Tablas NO existen - Requiere aplicación manual  
+**Proyecto:** knywotiidsydsaveqkjs  
+**Estado:** Tablas NO existen - Requiere aplicación manual
 
 ---
 
 ## ⚠️ **SITUACIÓN ACTUAL**
 
 ### ✅ **COMPLETADO:**
+
 - Credenciales correctas identificadas y validadas
 - Schema SQL completo generado y validado
 - Seeds de datos médicos preparados
@@ -16,6 +17,7 @@
 - Tipos TypeScript integrados
 
 ### ❌ **PENDIENTE:**
+
 - Las tablas NO existen en la base de datos remota
 - CLI de Supabase no puede conectarse (problemas de red/firewall)
 - Se requiere aplicación MANUAL vía Dashboard
@@ -27,7 +29,7 @@
 ### **Paso 1: Acceder al Dashboard de Supabase**
 
 1. Abre tu navegador web
-2. Ve a: **https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/sql**
+2. Ve a: **https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql**
 3. Inicia sesión con tu cuenta de Supabase
 
 ### **Paso 2: Crear las Tablas (Schema)**
@@ -56,6 +58,7 @@
 ### **Paso 4: Verificar las Tablas**
 
 En el Dashboard, navega a **Table Editor** y verifica que existan:
+
 - ✅ **profiles** (9 registros)
 - ✅ **companies** (2 registros)
 - ✅ **doctors** (3 registros)
@@ -70,6 +73,7 @@ En el Dashboard, navega a **Table Editor** y verifica que existan:
 ### **Schema Completo (Paso 2)**
 
 El archivo contiene:
+
 - 8 tablas médicas principales
 - Políticas RLS por rol
 - Índices para optimización
@@ -81,9 +85,10 @@ El archivo contiene:
 ### **Seeds de Datos (Paso 3)**
 
 Incluye:
+
 - **9 usuarios** con diferentes roles:
   - 1 Platform Admin
-  - 1 Company Admin  
+  - 1 Company Admin
   - 3 Médicos (Cardiólogo, Pediatra, Laboral)
   - 4 Pacientes (2 individuales, 2 corporativos)
 - **2 empresas** (Hospital San Martín, TechCorp)
@@ -102,7 +107,7 @@ Una vez aplicados schema y seeds, ejecuta:
 
 ```bash
 # Test de políticas RLS
-NEXT_PUBLIC_SUPABASE_URL="https://gtyvdircfhmdjiaelqkg.supabase.co" \
+NEXT_PUBLIC_SUPABASE_URL="https://knywotiidsydsaveqkjs.supabase.co" \
 NEXT_PUBLIC_SUPABASE_ANON_KEY="REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA" \
 node scripts/test-supabase-rls.mjs
 
@@ -113,6 +118,7 @@ node scripts/test-medical-workflows.mjs
 ### **Resultados Esperados**
 
 Si todo está correcto:
+
 - ✅ Tests RLS: 11/11 passed
 - ✅ Flujos médicos: 4/4 workflows completados
 - ✅ Base de datos lista para producción
@@ -128,9 +134,10 @@ Si todo está correcto:
    - Crea cada tabla manualmente con los campos especificados
 
 2. **Usa la API REST:**
+
    ```bash
    # Ejemplo para crear tabla profiles vía API
-   curl -X POST https://gtyvdircfhmdjiaelqkg.supabase.co/rest/v1/rpc/query \
+   curl -X POST https://knywotiidsydsaveqkjs.supabase.co/rest/v1/rpc/query \
    -H "apikey: [SERVICE_ROLE_KEY]" \
    -H "Content-Type: application/json" \
    -d '{"query": "[SQL_STATEMENT]"}'
@@ -140,11 +147,12 @@ Si todo está correcto:
    - pgAdmin
    - DBeaver
    - TablePlus
-   - Conexión: `postgresql://postgres:[PASSWORD]@db.gtyvdircfhmdjiaelqkg.supabase.co:5432/postgres`
+   - Conexión: `postgresql://postgres:[PASSWORD]@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres`
 
 ### **Si los seeds fallan:**
 
 Los scripts JavaScript alternativos están en:
+
 - `/root/altamedica-reboot/scripts/load-seeds.mjs`
 - Pueden ejecutarse una vez que las tablas existan
 
@@ -177,7 +185,7 @@ Al completar estos pasos tendrás:
 ✅ **Base de datos médica HIPAA-compliant operativa**  
 ✅ **Datos de prueba para todos los roles**  
 ✅ **Sistema listo para desarrollo y testing**  
-✅ **Arquitectura validada para producción**  
+✅ **Arquitectura validada para producción**
 
 ---
 
@@ -193,8 +201,8 @@ Al completar estos pasos tendrás:
 
 **⏰ Tiempo estimado:** 15-20 minutos  
 **🔧 Dificultad:** Media (copy/paste en Dashboard)  
-**🎯 Success Rate:** 100% siguiendo los pasos  
+**🎯 Success Rate:** 100% siguiendo los pasos
 
 ---
 
-*Documento generado para aplicación manual debido a restricciones de conectividad CLI*
+_Documento generado para aplicación manual debido a restricciones de conectividad CLI_

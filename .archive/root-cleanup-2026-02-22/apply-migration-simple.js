@@ -2,7 +2,7 @@
 
 const { createClient } = require('@supabase/supabase-js')
 
-const supabaseUrl = 'https://gtyvdircfhmdjiaelqkg.supabase.co'
+const supabaseUrl = 'https://knywotiidsydsaveqkjs.supabase.co'
 const supabaseKey = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA'
 
 async function applyMigrationStepByStep() {
@@ -57,7 +57,7 @@ async function applyMigrationStepByStep() {
   console.log('💡 SOLUTION: Usar el SQL Editor de Supabase')
   console.log('')
   console.log('📋 PASOS MANUAL:')
-  console.log('1. Abrir: https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/sql/new')
+  console.log('1. Abrir: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new')
   console.log('2. Copiar todo el contenido de: apply-migration-direct.sql')
   console.log('3. Pegar en el editor y hacer click en "Run"')
   console.log('4. Verificar que muestre: "Migración completada exitosamente!"')

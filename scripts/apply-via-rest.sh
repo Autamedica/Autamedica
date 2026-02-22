@@ -9,7 +9,7 @@ echo "🚀 Aplicando migración via Supabase REST API..."
 MIGRATION_SQL=$(cat apply-migration-direct.sql)
 
 # Aplicar usando curl
-curl -X POST "https://gtyvdircfhmdjiaelqkg.supabase.co/rest/v1/rpc/exec" \
+curl -X POST "https://knywotiidsydsaveqkjs.supabase.co/rest/v1/rpc/exec" \
   -H "apikey: REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA" \
   -H "Authorization: Bearer REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA" \
   -H "Content-Type: application/json" \

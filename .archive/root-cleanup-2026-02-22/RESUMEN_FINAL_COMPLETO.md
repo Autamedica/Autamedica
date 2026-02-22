@@ -10,13 +10,13 @@ Has completado exitosamente la migración de mocks a servicios reales en producc
 
 ### Servicios Integrados
 
-| Servicio | Provider | Status | Configuración |
-|----------|----------|--------|---------------|
-| **AI Médica** | Google Gemini | ✅ TESTED | API Key configurada |
-| **AI Médica** | Anthropic Claude | ⚠️ Opcional | Puede agregarse |
-| **Video Calling** | LiveKit | ✅ CONFIGURED | Credenciales listas |
-| **Base de Datos** | Supabase | ✅ CONFIGURED | Connection ready |
-| **Feature Flags** | Custom | ✅ IMPLEMENTED | Control granular |
+| Servicio          | Provider         | Status         | Configuración       |
+| ----------------- | ---------------- | -------------- | ------------------- |
+| **AI Médica**     | Google Gemini    | ✅ TESTED      | API Key configurada |
+| **AI Médica**     | Anthropic Claude | ⚠️ Opcional    | Puede agregarse     |
+| **Video Calling** | LiveKit          | ✅ CONFIGURED  | Credenciales listas |
+| **Base de Datos** | Supabase         | ✅ CONFIGURED  | Connection ready    |
+| **Feature Flags** | Custom           | ✅ IMPLEMENTED | Control granular    |
 
 ### Testing Completado
 
@@ -32,12 +32,14 @@ Has completado exitosamente la migración de mocks a servicios reales en producc
 ## 🔑 Credenciales Configuradas
 
 ### Google Gemini AI
+
 ```bash
 GOOGLE_AI_API_KEY=AIzaSyDctTrQFsDylXfIP87lgkHqEo4EBNi7eNo
 Model: gemini-2.5-flash-preview-05-20
 ```
 
 **Test ejecutado**:
+
 ```
 Input: Análisis de síntomas médicos
 Output: "Estos síntomas sugieren una infección viral común..."
@@ -47,6 +49,7 @@ Status: ✅ WORKING
 ```
 
 ### LiveKit (Video Calling)
+
 ```bash
 NEXT_PUBLIC_LIVEKIT_URL=wss://eduardo-4vew3u6i.livekit.cloud
 LIVEKIT_API_KEY=APIdeCcSqaJyrTG
@@ -54,8 +57,9 @@ LIVEKIT_API_SECRET=vj1eNiqEHN0N5Qse4amrjzhlAl4y9pN68Qm0Y6KHOMr
 ```
 
 ### Supabase
+
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... (configurada)
 ```
 
@@ -66,17 +70,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... (configurada)
 ### 1. Servicios de AI
 
 **`apps/doctors/src/services/gemini-ai-service.ts`**
+
 - Servicio de Google Gemini AI
 - Análisis médico con IA
 - Soporte multimodal (imágenes)
 - Singleton pattern
 
 **`apps/doctors/src/services/ai-analysis-service.ts`**
+
 - Servicio de Anthropic Claude
 - Análisis médico avanzado
 - Fallback automático
 
 **`apps/doctors/src/services/unified-ai-service.ts`**
+
 - Servicio unificado de AI
 - Auto-selección de proveedor
 - Comparación cruzada
@@ -85,6 +92,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... (configurada)
 ### 2. Video Streaming
 
 **`apps/patients/src/hooks/useRealRemoteStream.ts`**
+
 - Hook de LiveKit para video real
 - Manejo de eventos WebRTC
 - Cleanup automático
@@ -93,6 +101,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... (configurada)
 ### 3. Data Services
 
 **`apps/doctors/src/services/medical-data-api.ts`** (modificado)
+
 - Integración con Supabase
 - Feature flags para mocks/real
 - Queries optimizadas
@@ -101,6 +110,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... (configurada)
 ### 4. Feature Flags
 
 **`packages/shared/src/config/feature-flags.ts`** (actualizado)
+
 - Selección de proveedor AI
 - Control granular de mocks
 - Validación automática
@@ -109,6 +119,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... (configurada)
 ### 5. Configuración
 
 **`.env.local.production-ready`**
+
 - Variables de entorno listas
 - Credenciales reales configuradas
 - Template para deployment
@@ -124,6 +135,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... (configurada)
 ### 7. Testing
 
 **`test-services.mjs`**
+
 - Script de testing automático
 - Verifica Google Gemini
 - Validación de configuración
@@ -195,7 +207,7 @@ LIVEKIT_API_SECRET=vj1eNiqEHN0N5Qse4amrjzhlAl4y9pN68Qm0Y6KHOMr
 ### 1. Sistema de Feature Flags
 
 ```typescript
-import { featureFlags, getAIProvider } from '@autamedica/shared/config/feature-flags';
+import { featureFlags, getAIProvider } from "@autamedica/shared/config/feature-flags";
 
 // Control granular por servicio
 if (featureFlags.USE_MOCK_AI) {
@@ -211,24 +223,24 @@ const provider = getAIProvider(); // 'google', 'anthropic', or null
 ### 2. AI Médica Unificada
 
 ```typescript
-import { getUnifiedAIService } from '@/services/unified-ai-service';
+import { getUnifiedAIService } from "@/services/unified-ai-service";
 
 const aiService = getUnifiedAIService();
 
 // Usa automáticamente el proveedor configurado
 const analysis = await aiService.analyzeMedicalData({
-  patientId: 'uuid',
+  patientId: "uuid",
   data: {
-    symptoms: ['fiebre', 'tos'],
-    vitals: { temperature: 38.5 }
-  }
+    symptoms: ["fiebre", "tos"],
+    vitals: { temperature: 38.5 },
+  },
 });
 ```
 
 ### 3. Video Calling Real
 
 ```typescript
-import { useRealRemoteStream } from '@/hooks/useRealRemoteStream';
+import { useRealRemoteStream } from "@/hooks/useRealRemoteStream";
 
 // En componente de video
 const remoteStream = useRealRemoteStream(remoteParticipant);
@@ -238,7 +250,7 @@ const remoteStream = useRealRemoteStream(remoteParticipant);
 ### 4. Datos Médicos de Supabase
 
 ```typescript
-import { medicalDataAPI } from '@/services/medical-data-api';
+import { medicalDataAPI } from "@/services/medical-data-api";
 
 // Automáticamente usa Supabase en producción
 const vitals = await medicalDataAPI.getVitalSigns(patientId);
@@ -260,6 +272,7 @@ const { records } = await medicalDataAPI.getMedicalRecords(patientId);
 ## 📋 Checklist de Deployment
 
 ### Pre-Deployment ✅
+
 - [x] Feature flags implementados
 - [x] Google Gemini service creado
 - [x] LiveKit hooks creados
@@ -271,6 +284,7 @@ const { records } = await medicalDataAPI.getMedicalRecords(patientId);
 - [x] Testing local exitoso
 
 ### Deployment (Pendiente)
+
 - [ ] Variables en Vercel configuradas
 - [ ] Variables en Cloudflare configuradas
 - [ ] Redeploy ejecutado
@@ -278,6 +292,7 @@ const { records } = await medicalDataAPI.getMedicalRecords(patientId);
 - [ ] Smoke tests
 
 ### Post-Deployment
+
 - [ ] Logs verificados (sin mocks)
 - [ ] Servicios reales funcionando
 - [ ] Monitoring configurado

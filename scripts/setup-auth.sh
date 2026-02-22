@@ -41,7 +41,7 @@ fi
 
 # Link to remote project
 echo "Linking to Supabase project..."
-supabase link --project-ref gtyvdircfhmdjiaelqkg
+supabase link --project-ref knywotiidsydsaveqkjs
 
 # Update redirect URLs in Supabase
 echo "Updating Supabase Auth configuration..."

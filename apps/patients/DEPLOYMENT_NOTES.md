@@ -36,10 +36,11 @@ El script `patch-open-next.mjs` modifica `_worker.js` para:
 3. **Retornar 307 redirect** temporal
 
 **Código del patch:**
+
 ```javascript
 if (url.pathname.startsWith("/_next/static/")) {
-    const target = "/assets" + url.pathname + url.search;
-    return Response.redirect(new URL(target, request.url), 307);
+  const target = "/assets" + url.pathname + url.search;
+  return Response.redirect(new URL(target, request.url), 307);
 }
 ```
 
@@ -54,6 +55,7 @@ if (url.pathname.startsWith("/_next/static/")) {
 ```
 
 **Propósito:**
+
 - `include: ["/*"]` - Todas las rutas pasan por el Worker
 - `exclude: ["/assets/*", "/_next/static/*"]` - Assets servidos directamente desde CDN (sin Worker)
 
@@ -66,12 +68,14 @@ curl -I https://autamedica-patients.pages.dev/
 ```
 
 **Expected:**
+
 ```
 HTTP/2 200
 content-type: text/html
 ```
 
 **Verificación:**
+
 - Status code: `200`
 - Content-Type: `text/html`
 - Response time: < 500ms
@@ -84,23 +88,27 @@ curl -I https://autamedica-patients.pages.dev/_next/static/chunks/main.js
 ```
 
 **Expected:**
+
 ```
 HTTP/2 307 Temporary Redirect
 location: /assets/_next/static/chunks/main.js
 ```
 
 **Then following redirect:**
+
 ```bash
 curl -I https://autamedica-patients.pages.dev/assets/_next/static/chunks/main.js
 ```
 
 **Expected:**
+
 ```
 HTTP/2 200
 content-type: application/javascript
 ```
 
 **Verificación:**
+
 - Primera request: `307` redirect
 - Location header: `/assets/_next/static/...`
 - Segunda request (auto-redirect): `200 OK`
@@ -113,6 +121,7 @@ curl -I https://autamedica-patients.pages.dev/assets/_next/static/css/app.css
 ```
 
 **Expected:**
+
 ```
 HTTP/2 200
 content-type: text/css
@@ -120,6 +129,7 @@ cf-cache-status: HIT
 ```
 
 **Verificación:**
+
 - Status code: `200`
 - Cloudflare cache activo (`cf-cache-status: HIT`)
 - Content-Type correcto para el asset
@@ -166,6 +176,7 @@ wrangler pages deploy .open-next \
 **Causa:** Patch no aplicado correctamente
 
 **Solución:**
+
 ```bash
 # Re-run patch
 node scripts/patch-open-next.mjs
@@ -174,11 +185,12 @@ node scripts/patch-open-next.mjs
 grep "/_next/static/" .open-next/_worker.js
 ```
 
-### Error: _routes.json missing
+### Error: \_routes.json missing
 
 **Causa:** Script no generó `_routes.json`
 
 **Solución:**
+
 ```bash
 # Verificar que existe
 ls -la .open-next/_routes.json
@@ -192,6 +204,7 @@ pnpm build:cloudflare
 **Causa:** `_routes.json` mal configurado
 
 **Solución:**
+
 - Verificar excludes incluyen `/assets/*` y `/_next/static/*`
 - Evitar includes que conflictúen con excludes
 
@@ -211,19 +224,22 @@ pnpm build:cloudflare
 El portal de pacientes requiere **variables de entorno duplicadas** para operaciones client-side Y server-side:
 
 ### Server-Side (Next.js SSR/Middleware)
+
 ```bash
-SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>  # Para callback OAuth
 ```
 
 ### Client-Side (Browser)
+
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 ```
 
 ### Auth Configuration
+
 ```bash
 AUTH_COOKIE_DOMAIN=.autamedica.com  # Para SSO cross-subdomain
 NODE_ENV=production
@@ -234,6 +250,7 @@ NODE_ENV=production
 ## 📝 Changelog
 
 ### [2025-10-04] - Auth Integration Fixes
+
 - ✅ **Habilitado Auth Hub sync** en `session-sync.ts` (eliminado `return null`)
 - ✅ **Eliminado middleware duplicado** `src/middleware.ts` (solo usar `middleware.ts`)
 - ✅ **Refactorizado `supabaseClient.ts`** para SSR real (eliminado mock)
@@ -245,6 +262,7 @@ NODE_ENV=production
 - ✅ **`getDomainConfig()`** corregido: `.autamedica.com` en producción (no `.pages.dev`)
 
 ### [Previous] - Cloudflare Deployment Fix
+
 - ✅ Agregado `prebuild:cloudflare` hook
 - ✅ Refactorizado `build:cloudflare` pipeline
 - ✅ Creado `patch-open-next.mjs` con redirect logic

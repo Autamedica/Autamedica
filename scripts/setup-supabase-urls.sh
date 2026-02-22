@@ -7,7 +7,7 @@ echo "🔧 Configurando Redirect URLs en Supabase..."
 echo ""
 
 # Verificar que tenemos acceso al proyecto Supabase
-PROJECT_REF="gtyvdircfhmdjiaelqkg"
+PROJECT_REF="knywotiidsydsaveqkjs"
 
 echo "📍 Proyecto Supabase: $PROJECT_REF"
 echo ""

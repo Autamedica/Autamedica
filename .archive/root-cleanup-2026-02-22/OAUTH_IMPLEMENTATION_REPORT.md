@@ -17,7 +17,8 @@ Se ha completado la implementación del flujo OAuth con **flujo implícito** par
 
 **Síntoma**: El callback de OAuth descargaba un archivo HTML en lugar de ejecutarse.
 
-**Causa Raíz**: 
+**Causa Raíz**:
+
 - PKCE flow (authorization code) es incompatible con sitios estáticos
 - Cloudflare Pages no puede ejecutar API routes server-side
 - El archivo `route.ts` no puede procesarse en entornos estáticos
@@ -31,6 +32,7 @@ Se ha completado la implementación del flujo OAuth con **flujo implícito** par
    - A: `page.tsx` (Página cliente-side)
 
 2. **Flujo OAuth Actualizado** (`LoginForm.tsx`):
+
 ```typescript
 queryParams: {
   response_type: 'token',  // Force implicit flow
@@ -39,16 +41,17 @@ queryParams: {
 ```
 
 3. **Procesamiento de Tokens** (`callback/page.tsx`):
+
 ```typescript
 // Extraer tokens del hash fragment
-const hashParams = new URLSearchParams(window.location.hash.substring(1))
-const accessToken = hashParams.get('access_token')
+const hashParams = new URLSearchParams(window.location.hash.substring(1));
+const accessToken = hashParams.get("access_token");
 
 // Establecer sesión con tokens
 await supabase.auth.setSession({
   access_token: accessToken,
-  refresh_token: refreshToken || ''
-})
+  refresh_token: refreshToken || "",
+});
 ```
 
 ## 📊 Flujo de Autenticación Actual
@@ -68,29 +71,33 @@ graph TD
 ## 🔧 Configuración Técnica
 
 ### Variables de Entorno Configuradas:
+
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ### URLs de Callback Configuradas en Supabase:
+
 - `https://autamedica-web-app.pages.dev/auth/callback`
 - `https://4c261492.autamedica-web-app.pages.dev/auth/callback`
 - `http://localhost:3000/auth/callback`
 
 ### Redirect URLs por Rol:
+
 ```typescript
 const redirectUrls = {
-  'patient': 'https://autamedica-patients.pages.dev',
-  'doctor': 'https://autamedica-doctors.pages.dev',
-  'company': 'https://autamedica-companies.pages.dev',
-  'admin': '/admin'
-}
+  patient: "https://autamedica-patients.pages.dev",
+  doctor: "https://autamedica-doctors.pages.dev",
+  company: "https://autamedica-companies.pages.dev",
+  admin: "/admin",
+};
 ```
 
 ## 🧪 Pruebas Realizadas
 
 ### ✅ Componentes Verificados:
+
 1. **Login Form**: Renderiza correctamente con botones OAuth
 2. **OAuth Redirect**: Redirige a providers correctamente
 3. **Callback Handler**: Procesa tokens del hash fragment
@@ -99,27 +106,30 @@ const redirectUrls = {
 6. **Portal Redirect**: Redirige al portal correspondiente
 
 ### 🔬 Herramientas de Test:
+
 - **Test Page**: `/test-oauth.html` - Análisis detallado del flujo
 - **Console Logging**: Logging extensivo en callback
 - **URL Analysis**: Verificación de tokens en hash fragment
 
 ## 📈 Métricas de Éxito
 
-| Métrica | Objetivo | Actual | Estado |
-|---------|----------|--------|--------|
-| OAuth Login Success | 100% | 100% | ✅ |
-| Callback Processing | Sin errores | Sin errores | ✅ |
-| Session Creation | < 2s | ~1s | ✅ |
-| Role-based Redirect | 100% accuracy | 100% | ✅ |
+| Métrica             | Objetivo      | Actual      | Estado |
+| ------------------- | ------------- | ----------- | ------ |
+| OAuth Login Success | 100%          | 100%        | ✅     |
+| Callback Processing | Sin errores   | Sin errores | ✅     |
+| Session Creation    | < 2s          | ~1s         | ✅     |
+| Role-based Redirect | 100% accuracy | 100%        | ✅     |
 
 ## 🚀 Próximos Pasos Recomendados
 
 ### Inmediatos:
+
 1. ✅ Prueba end-to-end con usuario real
 2. ⏳ Monitoreo de sesiones en producción
 3. ⏳ Implementar refresh token handling
 
 ### Futuros:
+
 1. Implementar MFA (Multi-Factor Authentication)
 2. Añadir más providers (Microsoft, Apple)
 3. Implementar SSO para empresas
@@ -128,9 +138,10 @@ const redirectUrls = {
 ## 🛠️ Comandos Útiles
 
 ### Despliegue:
+
 ```bash
 # Build con variables correctas
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co \
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co \
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh... \
 pnpm build
 
@@ -139,6 +150,7 @@ npx wrangler pages deploy out --project-name=autamedica-web-app
 ```
 
 ### Testing:
+
 ```bash
 # Test local
 pnpm dev
@@ -150,11 +162,13 @@ curl -s https://[deployment-url]/auth/login | grep "OAuth"
 ## 📝 Notas Importantes
 
 ### ⚠️ Limitaciones del Flujo Implícito:
+
 1. Tokens expuestos en URL (hash fragment)
 2. No hay refresh token real (solo access token)
 3. Menor seguridad que PKCE
 
 ### ✅ Ventajas para Sitios Estáticos:
+
 1. No requiere backend para intercambio de código
 2. Funciona completamente client-side
 3. Compatible con Cloudflare Pages, Netlify, etc.

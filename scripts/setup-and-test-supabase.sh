@@ -58,7 +58,7 @@ if [ -f "supabase/seed_data.sql" ]; then
         echo "🔌 Conectando a Supabase para aplicar seeds..."
         
         # Construir URL de conexión con encoding apropiado
-        DB_URL="postgresql://postgres:R00tP%40ssw0rd%21@db.gtyvdircfhmdjiaelqkg.supabase.co:5432/postgres"
+        DB_URL="postgresql://postgres:R00tP%40ssw0rd%21@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres"
         
         # Aplicar seeds con timeout
         timeout 60s psql "$DB_URL" -f supabase/seed_data.sql -q
@@ -101,7 +101,7 @@ if [ -f "scripts/test-supabase-rls.mjs" ]; then
     echo "🔒 Validando políticas de seguridad..."
     
     # Exportar variables necesarias para los tests
-    export NEXT_PUBLIC_SUPABASE_URL="https://gtyvdircfhmdjiaelqkg.supabase.co"
+    export NEXT_PUBLIC_SUPABASE_URL="https://knywotiidsydsaveqkjs.supabase.co"
     export NEXT_PUBLIC_SUPABASE_ANON_KEY="dummy-key-for-testing"
     
     # Ejecutar tests RLS

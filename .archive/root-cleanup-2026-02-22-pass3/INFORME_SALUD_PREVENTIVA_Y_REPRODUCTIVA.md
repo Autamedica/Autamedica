@@ -931,19 +931,19 @@ supabase db push
 # Opción B: Via psql directo
 psql -h aws-0-us-east-1.pooler.supabase.com \
      -p 6543 \
-     -U postgres.gtyvdircfhmdjiaelqkg \
+     -U postgres.knywotiidsydsaveqkjs \
      -d postgres \
      -f supabase/migrations/20251002_reproductive_health_schema.sql
 
 psql -h aws-0-us-east-1.pooler.supabase.com \
      -p 6543 \
-     -U postgres.gtyvdircfhmdjiaelqkg \
+     -U postgres.knywotiidsydsaveqkjs \
      -d postgres \
      -f supabase/migrations/20251002_buenos_aires_health_centers_seed.sql
 
 psql -h aws-0-us-east-1.pooler.supabase.com \
      -p 6543 \
-     -U postgres.gtyvdircfhmdjiaelqkg \
+     -U postgres.knywotiidsydsaveqkjs \
      -d postgres \
      -f supabase/migrations/20251002_preventive_care_schema.sql
 ```

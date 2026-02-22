@@ -3,15 +3,17 @@
 ## 🎯 **Filosofía: Comandos Largos como Herramienta de Precisión**
 
 ### **Principio Fundamental**
+
 > **"Un comando largo bien construido vale más que 20 pasos manuales propensos a error"**
 
 ## 🚀 **Metodología de Comandos Largos**
 
 ### **1. Deployment Atómico**
+
 ```bash
 # ✅ CORRECTO: Todo en un comando
 cd /root/altamedica-reboot-deploy && \
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co \
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co \
 NEXT_PUBLIC_SUPABASE_ANON_KEY=NUEVA-ANON-KEY-ROTADA.. \
 SUPABASE_SERVICE_ROLE_KEY=NUEVA-ANON-KEY-ROTADA.. \
 NEXT_PUBLIC_APP_URL=https://autamedica.com \
@@ -33,21 +35,25 @@ wrangler pages deploy .open-next/dist --project-name autamedica-web-app --branch
 ### **2. Ventajas de la Metodología**
 
 #### **🔒 Seguridad**
+
 - **Variables efímeras**: Solo existen durante el comando
 - **No persistencia**: No quedan en el environment
 - **Scope limitado**: Solo afectan al proceso específico
 
 #### **📋 Reproducibilidad**
+
 - **Comando = Documentación**: El comando ES la receta exacta
 - **Zero ambiguity**: No hay interpretación, solo ejecución
 - **Version control**: El comando puede versionarse
 
 #### **⚡ Eficiencia**
+
 - **Un paso vs muchos**: Reduce superficie de error
 - **Atomic operation**: Todo o nada
 - **Self-contained**: No depende de estado previo
 
 #### **🧪 Testing**
+
 - **Fácil replicar**: Copy-paste para reproducir
 - **Environment isolation**: Cada test con su configuración
 - **Debugging clear**: Estado visible completo
@@ -55,21 +61,25 @@ wrangler pages deploy .open-next/dist --project-name autamedica-web-app --branch
 ### **3. Patrones de Implementación**
 
 #### **Pattern 1: Environment + Command**
+
 ```bash
 ENV1=value1 ENV2=value2 ENV3=value3 command --flags
 ```
 
 #### **Pattern 2: Directory + Environment + Command**
+
 ```bash
 cd /path/to/project && ENV1=value1 ENV2=value2 command
 ```
 
 #### **Pattern 3: Conditional Environment**
+
 ```bash
 NODE_ENV=production SKIP_VALIDATION=true $(condition && echo "EXTRA_FLAG=1") command
 ```
 
 #### **Pattern 4: Multi-line for Readability**
+
 ```bash
 LONG_COMMAND="
 cd /project && \
@@ -84,6 +94,7 @@ eval $LONG_COMMAND
 ### **4. Casos de Uso Específicos**
 
 #### **🚀 Production Deployment**
+
 ```bash
 # Deployment completo con todas las configuraciones
 cd /deploy-dir && \
@@ -95,6 +106,7 @@ npm run deploy:production
 ```
 
 #### **🧪 Testing Environment**
+
 ```bash
 # Testing con base de datos temporal
 NODE_ENV=test \
@@ -105,6 +117,7 @@ npm test
 ```
 
 #### **🔧 Development Setup**
+
 ```bash
 # Development con hot reload y debugging
 NODE_ENV=development \
@@ -115,6 +128,7 @@ npm run dev
 ```
 
 #### **📦 Build Configuration**
+
 ```bash
 # Build optimizado con flags específicos
 NEXT_TELEMETRY_DISABLED=1 \
@@ -127,12 +141,14 @@ npm run build
 ### **5. Best Practices**
 
 #### **✅ DO - Hacer**
+
 - Usar variables específicas por comando
 - Documentar el propósito del comando largo
 - Usar `&&` para secuenciar operaciones críticas
 - Incluir validación dentro del comando cuando sea posible
 
 #### **❌ DON'T - No hacer**
+
 - No usar `export` antes de comandos de deployment
 - No dividir comandos críticos en múltiples pasos
 - No asumir estado previo del environment
@@ -141,13 +157,14 @@ npm run build
 ### **6. Tools and Utilities**
 
 #### **Command Builder Pattern**
+
 ```bash
 # Builder para comandos complejos
 build_deploy_command() {
   local env=$1
   local app=$2
   local token=$3
-  
+
   echo "cd /deploy && \
     NODE_ENV=$env \
     APP_NAME=$app \
@@ -161,6 +178,7 @@ eval $DEPLOY_CMD
 ```
 
 #### **Validation Pattern**
+
 ```bash
 # Comando con validación integrada
 cd /project && \
@@ -173,24 +191,29 @@ npm run deploy || (echo "Deploy failed" && exit 1)
 ## 🎓 **Filosofía de Desarrollo**
 
 ### **"Executable Documentation"**
+
 El código debe ser tan claro que el comando mismo sea la documentación. Un comando largo bien construido cuenta la historia completa de lo que está pasando.
 
 ### **"Atomic Operations"**
+
 Cada comando debe ser una operación atómica completa. Si falla, falla todo. Si funciona, funciona todo.
 
 ### **"Environment Isolation"**
+
 Cada comando debe ser autocontenido y no depender de estado externo, excepto los archivos del proyecto.
 
 ### **"Reproducible Everywhere"**
+
 El mismo comando debe producir el mismo resultado en cualquier máquina, en cualquier momento.
 
 ## 📚 **Referencias y Ejemplos**
 
 ### **Comando Real Documentado**
+
 ```bash
 # Este comando despliega la app web-app con configuración completa de producción
 cd /root/altamedica-reboot-deploy && \
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co \
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co \
 NEXT_PUBLIC_SUPABASE_ANON_KEY=NUEVA-ANON-KEY-ROTADA.. \
 SUPABASE_SERVICE_ROLE_KEY=NUEVA-ANON-KEY-ROTADA.. \
 NEXT_PUBLIC_APP_URL=https://autamedica.com \
@@ -200,6 +223,7 @@ wrangler pages deploy .open-next/dist --project-name autamedica-web-app --branch
 ```
 
 **¿Por qué este comando es perfecto?**
+
 1. **Directory setup**: `cd` asegura contexto correcto
 2. **Environment complete**: Todas las vars necesarias
 3. **Security**: Variables no persisten después del comando

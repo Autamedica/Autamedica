@@ -200,7 +200,7 @@ lsof -ti:3000,3001,3002,3003,3004 | xargs -r kill -9
 
 ```bash
 # Ir a Supabase Dashboard SQL Editor:
-# https://supabase.com/dashboard/project/gtyvdircfhmdjiaelqkg/sql
+# https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql
 # Copiar contenido de: supabase/seed_role_system.sql
 # Ejecutar script
 ```

@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuración de Supabase
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gtyvdircfhmdjiaelqkg.supabase.co';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://knywotiidsydsaveqkjs.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DATABASE_URL = process.env.SUPABASE_DB_URL;
 

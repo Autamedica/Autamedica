@@ -6,6 +6,7 @@
 ## 🏥 **Funcionalidades para Pacientes**
 
 ### ✅ **Historial Médico Personal**
+
 - 📋 **Historial clínico** completo y cronológico
 - 🧪 **Resultados de laboratorio** con gráficos visuales
 - 💊 **Medicamentos actuales** y prescripciones
@@ -13,6 +14,7 @@
 - 📊 **Reportes médicos** descargables
 
 ### ✅ **Gestión de Citas**
+
 - 📅 **Calendario de citas** médicas
 - 🔔 **Recordatorios** automáticos
 - 👨‍⚕️ **Selección de especialistas** y horarios
@@ -20,6 +22,7 @@
 - ⏰ **Reprogramación** flexible de citas
 
 ### ✅ **Portal Personal**
+
 - 👤 **Perfil personal** editable
 - 🛡️ **Información de seguro** médico
 - 📱 **Contactos de emergencia**
@@ -27,6 +30,7 @@
 - 🔐 **Privacidad y permisos** de datos
 
 ### ✅ **Sistema de Temas**
+
 - 🎨 **Temas visuales** personalizables
 - 🌙 **Modo oscuro/claro** adaptativo
 - 🎯 **Accesibilidad** mejorada
@@ -78,6 +82,7 @@ pnpm build --filter @autamedica/patients
 ## 🏗️ **Arquitectura Modular**
 
 ### **Layout Modular Responsivo**
+
 ```
 PatientLayoutModular/
 ├── PatientHeaderModular/      # Header con navegación personalizada
@@ -101,6 +106,7 @@ PatientLayoutModular/
 ```
 
 ### **Componentes de Datos Médicos**
+
 ```typescript
 // Componentes especializados para pacientes
 <LabResultCard />           // Tarjetas de resultados
@@ -116,31 +122,33 @@ PatientLayoutModular/
 ## 🎨 **Sistema de Temas Personalizable**
 
 ### **Temas Disponibles**
+
 ```typescript
 // Configuración de temas médicos
 const PATIENT_THEMES = {
   default: {
-    primary: 'blue-600',
-    secondary: 'blue-100',
-    background: 'white',
-    text: 'gray-900'
+    primary: "blue-600",
+    secondary: "blue-100",
+    background: "white",
+    text: "gray-900",
   },
   dark: {
-    primary: 'blue-400',
-    secondary: 'blue-900',
-    background: 'gray-900',
-    text: 'gray-100'
+    primary: "blue-400",
+    secondary: "blue-900",
+    background: "gray-900",
+    text: "gray-100",
   },
   healthcare: {
-    primary: 'green-600',
-    secondary: 'green-100',
-    background: 'green-50',
-    text: 'gray-800'
-  }
-}
+    primary: "green-600",
+    secondary: "green-100",
+    background: "green-50",
+    text: "gray-800",
+  },
+};
 ```
 
 ### **Configuración Persistente**
+
 ```typescript
 // Hook para persistencia de temas
 useThemePreference() → {
@@ -153,6 +161,7 @@ useThemePreference() → {
 ## 🔧 **Integración Médica**
 
 ### **Datos del Paciente**
+
 ```typescript
 // Hooks especializados para pacientes
 usePatientProfile() → PatientProfile
@@ -163,19 +172,21 @@ useMedicalHistory() → MedicalRecord[]
 ```
 
 ### **Exportación de Datos**
+
 ```typescript
 // Sistema de exportación GDPR-compliant
 const exportOptions = {
-  pdf: 'Reporte médico completo',
-  csv: 'Datos tabulares',
-  json: 'Datos estructurados',
-  xlsx: 'Excel para análisis'
-}
+  pdf: "Reporte médico completo",
+  csv: "Datos tabulares",
+  json: "Datos estructurados",
+  xlsx: "Excel para análisis",
+};
 ```
 
 ## 📊 **Visualización de Datos Médicos**
 
 ### **Dashboards Personalizados**
+
 - 📈 **Gráficos de signos vitales** en tiempo real
 - 🧪 **Tendencias de laboratorio** con comparativas
 - 💊 **Adherencia a medicamentos** con recordatorios
@@ -183,6 +194,7 @@ const exportOptions = {
 - 📋 **Resumen médico** para médicos
 
 ### **Componentes Visuales**
+
 ```typescript
 // Componentes de visualización médica
 <VitalSignsChart data={vitals} />
@@ -195,14 +207,16 @@ const exportOptions = {
 ## 🚀 **Deployment**
 
 ### **Cloudflare Pages**
+
 - **URL Producción**: https://autamedica-patients.pages.dev ✅
 - **Build Command**: `pnpm turbo run build --filter=@autamedica/patients`
 - **Output Directory**: `.next/`
 - **Root Directory**: `apps/patients`
 
 ### **Variables de Entorno**
+
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://gtyvdircfhmdjiaelqkg.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***
 NODE_ENV=production
 HUSKY=0
@@ -211,23 +225,27 @@ HUSKY=0
 ## 📦 **Dependencies Especializadas**
 
 ### **Core**
+
 - `next`: 15.5.0 (App Router + RSC)
 - `react`: 18.2.0
 - `typescript`: 5.9.2
 
 ### **Datos Médicos**
+
 - `@supabase/supabase-js`: ^2.39.0
 - `@autamedica/types`: workspace:^ (Tipos médicos)
 - `@autamedica/hooks`: workspace:^ (Hooks pacientes)
 - `@autamedica/auth`: workspace:^ (Auth pacientes)
 
 ### **UI/Visualización**
+
 - `recharts`: Para gráficos médicos
 - `date-fns`: Manejo de fechas médicas
 - `lucide-react`: ^0.263.1 (Icons médicos)
 - `@autamedica/tailwind-config`: workspace:^
 
 ### **Exportación**
+
 - `jsPDF`: Generación PDFs médicos
 - `xlsx`: Exportación Excel
 - `html2canvas`: Screenshots de datos
@@ -262,6 +280,7 @@ graph TD
 ## 🔒 **Privacidad del Paciente**
 
 ### **Controles de Privacidad**
+
 - ✅ **Consentimiento informado** para compartir datos
 - ✅ **Controles granulares** de permisos
 - ✅ **Exportación GDPR** de datos personales
@@ -269,13 +288,14 @@ graph TD
 - ✅ **Audit trail** de accesos a datos
 
 ### **Compartir Datos Médicos**
+
 ```typescript
 // Sistema de compartir datos controlado
 const sharePermissions = {
-  doctors: ['full_access', 'read_only', 'emergency_only'],
-  family: ['basic_info', 'emergency_contact'],
-  insurance: ['claims_only', 'verification_only']
-}
+  doctors: ["full_access", "read_only", "emergency_only"],
+  family: ["basic_info", "emergency_contact"],
+  insurance: ["claims_only", "verification_only"],
+};
 ```
 
 ## 📱 **Experiencia Mobile**

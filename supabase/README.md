@@ -14,10 +14,10 @@ Para exportar el esquema desde la instancia de producción:
 
 ```bash
 # Exportar esquema completo
-supabase db dump --project-ref gtyvdircfhmdjiaelqkg --schema public > supabase/migrations/$(date +%Y%m%d%H%M%S)_initial_schema.sql
+supabase db dump --project-ref knywotiidsydsaveqkjs --schema public > supabase/migrations/$(date +%Y%m%d%H%M%S)_initial_schema.sql
 
 # O usando URL directa
-pg_dump "postgresql://postgres:R00tP@ssw0rd!@db.gtyvdircfhmdjiaelqkg.supabase.co:5432/postgres" \
+pg_dump "postgresql://postgres:R00tP@ssw0rd!@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres" \
   --schema=public \
   --no-owner \
   --no-privileges \
@@ -31,7 +31,7 @@ pg_dump "postgresql://postgres:R00tP@ssw0rd!@db.gtyvdircfhmdjiaelqkg.supabase.co
 supabase db reset
 
 # Aplicar a instancia remota (producción)
-supabase db push --project-ref gtyvdircfhmdjiaelqkg
+supabase db push --project-ref knywotiidsydsaveqkjs
 ```
 
 ## Políticas RLS

@@ -5,6 +5,7 @@
 ### 1. **Console API** (Logs y Errores)
 
 #### **Estructura de Mensajes de Console**
+
 ```javascript
 {
   type: 'log' | 'error' | 'warning' | 'info' | 'debug',
@@ -30,6 +31,7 @@
 ```
 
 #### **Ejemplo Real**
+
 ```javascript
 // Console Error:
 {
@@ -50,6 +52,7 @@
 ```
 
 **🎯 Utilidad para Agentes:**
+
 - `agent_security`: Detectar errores de seguridad (XSS, CORS)
 - `agent_qa`: Validar que no hay errores en producción
 - `agent_code`: Identificar código problemático
@@ -59,6 +62,7 @@
 ### 2. **Network API** (Requests y Responses)
 
 #### **Estructura de Request**
+
 ```javascript
 {
   requestId: string,
@@ -140,10 +144,11 @@
 ```
 
 #### **Ejemplo Real: API Request**
+
 ```javascript
 {
   requestId: '1234.56',
-  url: 'https://gtyvdircfhmdjiaelqkg.supabase.co/rest/v1/patients?select=*',
+  url: 'https://knywotiidsydsaveqkjs.supabase.co/rest/v1/patients?select=*',
   method: 'GET',
   headers: {
     'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
@@ -174,6 +179,7 @@
 ```
 
 **🎯 Utilidad para Agentes:**
+
 - `agent_security`:
   - ✅ Verificar headers de seguridad presentes
   - ✅ Detectar requests sin HTTPS
@@ -192,6 +198,7 @@
 ### 3. **Performance API** (Métricas Web Vitals)
 
 #### **Estructura de Performance Metrics**
+
 ```javascript
 {
   // Core Web Vitals:
@@ -286,6 +293,7 @@
 ```
 
 #### **Ejemplo Real: Web Vitals**
+
 ```javascript
 {
   LCP: {
@@ -323,6 +331,7 @@
 ```
 
 **🎯 Utilidad para Agentes:**
+
 - `agent_qa`:
   - ✅ Validar Core Web Vitals dentro de límites
   - ✅ Detectar recursos que bloquean render
@@ -336,6 +345,7 @@
 ### 4. **Security API** (Headers y Políticas)
 
 #### **Estructura de Security Info**
+
 ```javascript
 {
   securityState: 'secure' | 'insecure' | 'neutral',
@@ -434,6 +444,7 @@
 ```
 
 #### **Ejemplo Real: Security Check**
+
 ```javascript
 {
   securityState: 'secure',
@@ -490,6 +501,7 @@
 ```
 
 **🎯 Utilidad para Agentes:**
+
 - `agent_security`:
   - ✅ Validar todos los security headers presentes
   - ✅ Detectar mixed content (HTTP en HTTPS)
@@ -504,6 +516,7 @@
 ### 5. **Coverage API** (Código Usado vs No Usado)
 
 #### **Estructura de Coverage Data**
+
 ```javascript
 {
   css: [
@@ -561,6 +574,7 @@
 ```
 
 #### **Ejemplo Real: Coverage Analysis**
+
 ```javascript
 {
   css: [
@@ -590,6 +604,7 @@
 ```
 
 **🎯 Utilidad para Agentes:**
+
 - `agent_code`:
   - ✅ Identificar código muerto
   - ✅ Sugerir code splitting
@@ -602,6 +617,7 @@
 ### 6. **Accessibility API** (ARIA y A11y)
 
 #### **Estructura de Accessibility Tree**
+
 ```javascript
 {
   violations: [
@@ -637,6 +653,7 @@
 ```
 
 #### **Ejemplo Real: A11y Violations**
+
 ```javascript
 {
   violations: [
@@ -678,6 +695,7 @@
 ```
 
 **🎯 Utilidad para Agentes:**
+
 - `agent_qa`:
   - ✅ Validar accesibilidad WCAG 2.1 AA
   - ✅ Detectar violaciones críticas
@@ -688,81 +706,84 @@
 ## 🛠️ Cómo Capturar Esta Data con Playwright
 
 ### **1. Console Messages**
+
 ```javascript
-page.on('console', msg => {
+page.on("console", (msg) => {
   console.log({
     type: msg.type(),
     text: msg.text(),
-    location: msg.location()
+    location: msg.location(),
   });
 });
 ```
 
 ### **2. Network Requests**
+
 ```javascript
-page.on('request', request => {
+page.on("request", (request) => {
   console.log({
     url: request.url(),
     method: request.method(),
-    headers: request.headers()
+    headers: request.headers(),
   });
 });
 
-page.on('response', response => {
+page.on("response", (response) => {
   console.log({
     url: response.url(),
     status: response.status(),
-    headers: response.headers()
+    headers: response.headers(),
   });
 });
 ```
 
 ### **3. Performance Metrics**
+
 ```javascript
 const metrics = await page.evaluate(() => {
   return {
-    LCP: performance.getEntriesByType('largest-contentful-paint')[0],
-    FCP: performance.getEntriesByType('paint').find(e => e.name === 'first-contentful-paint'),
-    resources: performance.getEntriesByType('resource'),
-    navigation: performance.getEntriesByType('navigation')[0]
+    LCP: performance.getEntriesByType("largest-contentful-paint")[0],
+    FCP: performance.getEntriesByType("paint").find((e) => e.name === "first-contentful-paint"),
+    resources: performance.getEntriesByType("resource"),
+    navigation: performance.getEntriesByType("navigation")[0],
   };
 });
 ```
 
 ### **4. Security Headers**
+
 ```javascript
-const response = await page.goto('https://patients.autamedica.com');
+const response = await page.goto("https://patients.autamedica.com");
 const headers = response.headers();
 
 const securityHeaders = {
-  hsts: headers['strict-transport-security'],
-  csp: headers['content-security-policy'],
-  xfo: headers['x-frame-options'],
-  xcto: headers['x-content-type-options']
+  hsts: headers["strict-transport-security"],
+  csp: headers["content-security-policy"],
+  xfo: headers["x-frame-options"],
+  xcto: headers["x-content-type-options"],
 };
 ```
 
 ### **5. Coverage**
+
 ```javascript
 await page.coverage.startJSCoverage();
 await page.coverage.startCSSCoverage();
 
 // ... navegación ...
 
-const [jsCoverage, cssCoverage] = await Promise.all([
-  page.coverage.stopJSCoverage(),
-  page.coverage.stopCSSCoverage()
-]);
+const [jsCoverage, cssCoverage] = await Promise.all([page.coverage.stopJSCoverage(), page.coverage.stopCSSCoverage()]);
 ```
 
 ### **6. Accessibility**
+
 ```javascript
-import { injectAxe, checkA11y } from 'axe-playwright';
+import { injectAxe, checkA11y } from "axe-playwright";
 
 await injectAxe(page);
 const results = await checkA11y(page, null, {
   detailedReport: true,
-  detailedReportOptions: { html: true }
+  detailedReportOptions: { html: true },
 });
 ```
 
@@ -771,9 +792,10 @@ const results = await checkA11y(page, null, {
 ## 🎯 Integración con tus Agentes
 
 ### **agent_security Script**
+
 ```javascript
 // scripts/security-audit.mjs
-import { chromium } from 'playwright';
+import { chromium } from "playwright";
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -783,35 +805,36 @@ const securityData = {
   console: [],
   network: [],
   headers: null,
-  mixed: []
+  mixed: [],
 };
 
-page.on('console', msg => securityData.console.push(msg));
-page.on('response', r => securityData.network.push(r));
+page.on("console", (msg) => securityData.console.push(msg));
+page.on("response", (r) => securityData.network.push(r));
 
-const response = await page.goto('https://patients.autamedica.com');
+const response = await page.goto("https://patients.autamedica.com");
 securityData.headers = response.headers();
 
 // Analizar y reportar
-console.log('Security Audit Results:', securityData);
+console.log("Security Audit Results:", securityData);
 ```
 
 ### **agent_qa Script**
+
 ```javascript
 // scripts/performance-audit.mjs
-import { chromium } from 'playwright';
+import { chromium } from "playwright";
 
 const page = await chromium.newPage();
-await page.goto('https://patients.autamedica.com');
+await page.goto("https://patients.autamedica.com");
 
 const metrics = await page.evaluate(() => ({
-  LCP: performance.getEntriesByType('largest-contentful-paint')[0],
-  CLS: performance.getEntriesByType('layout-shift')
+  LCP: performance.getEntriesByType("largest-contentful-paint")[0],
+  CLS: performance.getEntriesByType("layout-shift"),
 }));
 
 // Validar thresholds
 if (metrics.LCP?.renderTime > 2500) {
-  console.error('❌ LCP > 2.5s - FAILED');
+  console.error("❌ LCP > 2.5s - FAILED");
 }
 ```
 
