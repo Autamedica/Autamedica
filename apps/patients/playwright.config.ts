@@ -45,8 +45,8 @@ export default defineConfig({
           timeout: 120_000,
         },
         {
-          command: 'pnpm -w --silent --filter @autamedica/auth-app dev',
-          url: 'http://localhost:3005',
+          command: 'pnpm -w --silent --filter @autamedica/web dev',
+          url: 'http://localhost:3000',
           reuseExistingServer: true,
           timeout: 120_000,
         },
