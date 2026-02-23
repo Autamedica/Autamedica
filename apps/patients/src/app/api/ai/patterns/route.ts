@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { ensureClientEnv, ensureServerEnv, logger } from '@autamedica/shared'
 import { getUserIdFromRequest } from '@/lib/server/auth'
+import { createAdminClient } from '@autamedica/auth/server'
+import { logger } from '@autamedica/shared'
+import type { AppSupabaseClient } from '@autamedica/supabase-client'
+import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
@@ -10,15 +11,13 @@ export async function GET() {
     const userId = await getUserIdFromRequest()
     if (!userId) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
 
-    const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL')
-    const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY')
-    const admin = createClient(url, serviceKey)
+    const admin = createAdminClient() as any as AppSupabaseClient;
 
-    const patterns = await admin.from('ai_user_patterns').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(200)
-      .then(r => (r.error ? [] : (r.data as any[])))
+    const patterns = await (admin as any).from('ai_user_patterns').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(200)
+      .then((r: any) => (r.error ? [] : (r.data as any[])))
       .catch(() => [] as any[])
-    const faqs = await admin.from('ai_user_faq').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(200)
-      .then(r => (r.error ? [] : (r.data as any[])))
+    const faqs = await (admin as any).from('ai_user_faq').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(200)
+      .then((r: any) => (r.error ? [] : (r.data as any[])))
       .catch(() => [] as any[])
 
     return NextResponse.json({ ok: true, data: { patterns, faqs } })
@@ -33,9 +32,8 @@ export async function POST(request: Request) {
   try {
     const userId = await getUserIdFromRequest()
     if (!userId) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-    const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL')
-    const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY')
-    const admin = createClient(url, serviceKey)
+
+    const admin = createAdminClient() as any as AppSupabaseClient;
 
     const body = await request.json().catch(() => ({}))
     const kind: 'pattern' | 'faq' | undefined = body?.type

@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { logger, selectActive } from '@autamedica/shared';
 import { PatientWithProfile } from '@autamedica/types';
-import { selectActive } from '@autamedica/shared';
-import { logger } from '@autamedica/shared';
+import { useEffect, useState } from 'react';
 
 /**
  * Hook migrado al sistema híbrido
@@ -59,7 +58,7 @@ export function useRealPatients(): UsePatientsResult {
       setError(null);
 
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const data = await selectActive<UiPatient>('patients', `
+      const data = await selectActive<'patients', UiPatient>('patients', `
         *,
         profile:profiles!inner(*)
       `, {
@@ -112,7 +111,7 @@ export function useCurrentPatient(userId?: string): UseCurrentPatientResult {
       setLoading(true);
       setError(null);
 
-      const data = await selectActive<UiPatient>('patients', `
+      const data = await selectActive<'patients', UiPatient>('patients', `
         *,
         profile:profiles!inner(*)
       `);
@@ -169,7 +168,7 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       setError(null);
 
       // First get the doctor ID
-      const doctors = await selectActive<{ id: string; userId: string }>('doctors', 'id, user_id');
+      const doctors = await selectActive<'doctors', { id: string; userId: string }>('doctors', 'id, user_id');
       const doctor = doctors.find(d => d.userId === doctorUserId);
 
       if (!doctor) {
@@ -177,7 +176,7 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       }
 
       // Then get patients assigned to this doctor through patient_care_team
-      const careTeam = await selectActive<{
+      const careTeam = await selectActive<'patient_care_team', {
         doctorId: string;
         patientId: string;
         active: boolean;
@@ -201,7 +200,7 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       }
 
       // Fetch all patients and filter by IDs
-      const allPatients = await selectActive<UiPatient>('patients', `
+      const allPatients = await selectActive<'patients', UiPatient>('patients', `
         *,
         profile:profiles!inner(*)
       `);
@@ -253,7 +252,7 @@ export function usePatientsByCompany(companyId?: string): UsePatientsByCompanyRe
       setLoading(true);
       setError(null);
 
-      const data = await selectActive<UiPatient>('patients', `
+      const data = await selectActive<'patients', UiPatient>('patients', `
         *,
         profile:profiles!inner(*)
       `, {

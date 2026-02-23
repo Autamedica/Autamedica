@@ -19,38 +19,17 @@
  * ```
  */
 
+import type { Database } from '@autamedica/types';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-// TODO: Re-enable when @autamedica/types package is created
-// import type { Database } from '@autamedica/types';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Database = any; // Temporary type until @autamedica/types is created
 import { toCamel, toSnake } from './casing';
 
-type PublicSchema = Database extends { public: infer Schema }
-  ? Schema extends Record<string, unknown>
-    ? Schema
-    : never
-  : never;
-
-type Tables = PublicSchema extends { Tables: infer T }
-  ? T
-  : never;
-
+type PublicSchema = Database['public'];
+type Tables = PublicSchema['Tables'];
 type TableName = Extract<keyof Tables, string>;
 
-type TableDefinition<Table extends TableName> = Tables[Table] extends {
-  Row: infer Row;
-  Insert: infer Insert;
-  Update: infer Update;
-}
-  ? { Row: Row; Insert: Insert; Update: Update }
-  : never;
-
-type TableRow<Table extends TableName> = TableDefinition<Table>['Row'];
-
-type TableInsert<Table extends TableName> = TableDefinition<Table>['Insert'];
-
-type TableUpdate<Table extends TableName> = TableDefinition<Table>['Update'];
+type TableRow<Table extends TableName> = Tables[Table] extends { Row: infer R } ? R : never;
+type TableInsert<Table extends TableName> = Tables[Table] extends { Insert: infer I } ? I : never;
+type TableUpdate<Table extends TableName> = Tables[Table] extends { Update: infer U } ? U : never;
 
 /**
  * Cliente Supabase singleton (lazy).
@@ -145,7 +124,7 @@ export async function selectActive<Table extends TableName, TResult = TableRow<T
     offset,
   } = options;
 
-  let queryBuilder = supabase.from(table as unknown as string).select(query);
+  let queryBuilder = supabase.from(table as any).select(query);
 
   // Auto-filtro de soft-deleted (a menos que explícitamente se incluyan)
   if (!includeDeleted) {
@@ -154,7 +133,7 @@ export async function selectActive<Table extends TableName, TResult = TableRow<T
 
   // Ordenamiento
   if (orderBy) {
-    queryBuilder = queryBuilder.order(orderBy.column as unknown as string, {
+    queryBuilder = queryBuilder.order(orderBy.column as any, {
       ascending: orderBy.ascending ?? true,
     });
   }
@@ -225,7 +204,7 @@ export async function selectById<Table extends TableName, TResult = TableRow<Tab
   const { includeDeleted = false, transform = true } = options;
 
   let queryBuilder = supabase
-    .from(table as unknown as string)
+    .from(table as any)
     .select('*')
     .eq('id', id);
 
@@ -233,7 +212,7 @@ export async function selectById<Table extends TableName, TResult = TableRow<Tab
     queryBuilder = queryBuilder.is('deleted_at', null);
   }
 
-  const { data, error} = await queryBuilder.maybeSingle();
+  const { data, error } = await queryBuilder.maybeSingle();
 
   if (error) {
     throw new Error(`Error en selectById('${table}', '${id}'): ${error.message}`);
@@ -279,7 +258,7 @@ export async function insertRecord<Table extends TableName, TInput extends Recor
   const dbPayload = (transform ? toSnake(data) : data) as TableInsert<Table>;
 
   const { data: inserted, error } = await supabase
-    .from(table as unknown as string)
+    .from(table as any)
     .insert(dbPayload as unknown as Record<string, unknown>)
     .select()
     .single();
@@ -317,7 +296,7 @@ export async function updateRecord<Table extends TableName, TInput extends Recor
   const dbPayload = (transform ? toSnake(data) : data) as TableUpdate<Table>;
 
   const { data: updated, error } = await supabase
-    .from(table as unknown as string)
+    .from(table as any)
     .update(dbPayload as unknown as Record<string, unknown>)
     .eq('id', id)
     .select()
@@ -353,7 +332,7 @@ export async function softDelete<Table extends TableName>(
   const now = new Date().toISOString();
 
   const { error } = await supabase
-    .from(table as unknown as string)
+    .from(table as any)
     .update({ deleted_at: now })
     .eq('id', id);
 
@@ -376,7 +355,7 @@ export async function hardDelete<Table extends TableName>(
   id: string
 ): Promise<void> {
   const { error } = await supabase
-    .from(table as unknown as string)
+    .from(table as any)
     .delete()
     .eq('id', id);
 
@@ -397,7 +376,7 @@ export async function restoreRecord<Table extends TableName>(
   id: string
 ): Promise<void> {
   const { error } = await supabase
-    .from(table as unknown as string)
+    .from(table as any)
     .update({ deleted_at: null })
     .eq('id', id);
 
@@ -420,7 +399,7 @@ export async function countActive<Table extends TableName>(
   const { includeDeleted = false } = options;
 
   let queryBuilder = supabase
-    .from(table as unknown as string)
+    .from(table as any)
     .select('*', { count: 'exact', head: true });
 
   if (!includeDeleted) {

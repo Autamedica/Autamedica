@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import DoctorsHomePage from '@/components/doctors/DoctorsHomePage';
+
+const title = 'Portal Médico | AutaMedica';
+const description = 'Portal de videoconsultas para profesionales médicos';
+---
+
+<Layout title={title} description={description}>
+  <DoctorsHomePage client:load />
+</Layout>

@@ -1,44 +1,45 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import type { JSX, ReactNode } from 'react'
-import {
-  Activity,
-  Brain,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  FileText,
-  History,
-  Home,
-  MapPin,
-  Menu,
-  MessageSquare,
-  Settings,
-  Star,
-  Users,
-  X,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { PatientInfoTab } from '@/components/patient/PatientInfoTab'
+import { getPatientDisplayName } from '@/app/page'
+import { AppointmentsPanel } from '@/components/appointments/AppointmentsPanel'
+import { DiagnosisPanel } from '@/components/diagnosis/DiagnosisPanel'
+import { MarketplacePanel } from '@/components/marketplace/MarketplacePanel'
+import { AIHistoryTab } from '@/components/medical/AIHistoryTab'
 import { MedicalHistoryTab } from '@/components/medical/MedicalHistoryTab'
 import { PrescriptionsTab } from '@/components/medical/PrescriptionsTab'
 import { VitalSignsTab } from '@/components/medical/VitalSignsTab'
-import { AIHistoryTab } from '@/components/medical/AIHistoryTab'
+import { PatientInfoTab } from '@/components/patient/PatientInfoTab'
+import { PatientsPanel } from '@/components/patients/PatientsPanel'
+import { MedicalRankingPanel } from '@/components/ranking/MedicalRankingPanel'
+import { RecordsPanel } from '@/components/records/RecordsPanel'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { SubscriptionPanel } from '@/components/subscription/SubscriptionPanel'
-import { MarketplacePanel } from '@/components/marketplace/MarketplacePanel'
-import { PatientsPanel } from '@/components/patients/PatientsPanel'
-import { AppointmentsPanel } from '@/components/appointments/AppointmentsPanel'
-import { RecordsPanel } from '@/components/records/RecordsPanel'
 import { VitalSignsPanel } from '@/components/vitals/VitalSignsPanel'
-import { DiagnosisPanel } from '@/components/diagnosis/DiagnosisPanel'
-import { MedicalRankingPanel } from '@/components/ranking/MedicalRankingPanel'
 import { useActiveSession } from '@/hooks'
 import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
-import { useCurrentDoctor } from '@/hooks/useRealDoctors'
 import { useDoctorStats } from '@/hooks/useDoctorStats'
+import { useCurrentDoctor } from '@/hooks/useRealDoctors'
+import type { LucideIcon } from 'lucide-react'
+import {
+    Activity,
+    Brain,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    CreditCard,
+    FileText,
+    History,
+    Home,
+    MapPin,
+    Menu,
+    MessageSquare,
+    Settings,
+    Star,
+    Users,
+    X,
+} from 'lucide-react'
+import type { JSX, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 type TabId = 'video-call' | 'patient-info' | 'medical-history' | 'prescriptions' | 'vital-signs' | 'ai-history'
 
@@ -86,86 +87,48 @@ function getInitials(name: string): string {
   )
 }
 
-function _TabPlaceholder({ label }: { label: string }): JSX.Element {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#111b2e] text-center text-slate-300">
-      <span className="text-4xl">🛠️</span>
-      <div>
-        <p className="text-lg font-semibold">{label}</p>
-        <p className="text-sm text-slate-400">Esta sección estará disponible próximamente.</p>
-      </div>
-    </div>
-  )
-}
-
-function SectionPlaceholder({ title, icon, description }: { title: string; icon: string; description: string }): JSX.Element {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 rounded-xl border border-slate-800/60 bg-[#101d32] p-8 text-center">
-      <span className="text-6xl">{icon}</span>
-      <div>
-        <h3 className="text-xl font-semibold text-slate-100">{title}</h3>
-        <p className="text-slate-400">{description}</p>
-      </div>
-      <button
-        type="button"
-        onClick={() => window.location.reload()}
-        className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-600"
-      >
-        Actualizar página
-      </button>
-    </div>
-  )
-}
-
-
 export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabId>('video-call')
   const [currentTime, setCurrentTime] = useState<string>('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [activeSection, setActiveSection] = useState<string | null>(null)
-  const [_isHydrated, setIsHydrated] = useState(false)
   const [isFocusMode, setIsFocusMode] = useState(false)
 
   // Production-ready hooks for real data
-  const { user, loading: _authLoading } = useAuthenticatedUser()
-  const { doctor, loading: _doctorLoading } = useCurrentDoctor(user?.id)
+  const { user } = useAuthenticatedUser()
+  const { doctor } = useCurrentDoctor(user?.id)
   const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
 
   useEffect(() => {
-    setIsHydrated(true)
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    const updateClock = () => {
+      setCurrentTime(
+        new Intl.DateTimeFormat('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(new Date()),
+      )
     }
 
-    fetch('http://localhost:4312/active-section', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ activeSection }),
-    }).catch(() => {
-      // Debug server not running; ignore
-    })
-  }, [activeSection])
+    updateClock()
+    const interval = setInterval(updateClock, 60_000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Hook para obtener la sesión activa con el paciente
   const { session } = useActiveSession()
 
   // Real userName from authenticated user or doctor profile
-  const userName = doctor?.profile?.full_name ||
-                   user?.profile?.full_name ||
+  const userName = doctor?.profile ? getPatientDisplayName(doctor.profile) :
+                   user?.profile ? getPatientDisplayName(user.profile) :
                    `Dr. ${user?.email?.split('@')[0] || 'Médico'}`
   const doctorSpecialty = doctor?.specialty || 'Medicina General'
   const doctorLicense = doctor?.license_number || 'No registrado'
 
   // Contadores reales (se actualizarán con stats cuando estén disponibles)
-  const patients = { length: 0 } // TODO: Conectar con patients stats
-  const appointments = { length: stats?.todayCount || 0 }
-  const history = { length: 0 } // TODO: Conectar con medical records count
+  const patientsCount = 0 // TODO: Conectar con patients stats
+  const appointmentsCount = stats?.todayCount || 0
+  const historyCount = 0 // TODO: Conectar con medical records count
 
   // Efecto para plegar el sidebar automáticamente cuando inicia una videollamada
   useEffect(() => {
@@ -181,7 +144,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   }, [isFocusMode])
 
   const handleSidebarItemClick = (itemId: string) => {
-        setIsSidebarOpen(false)
+    setIsSidebarOpen(false)
 
     if (isFocusMode) {
       setIsFocusMode(false)
@@ -222,30 +185,15 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
         setActiveSection('history')
         break
       default:
-                setActiveSection(null)
+        setActiveSection(null)
     }
   }
 
-  useEffect(() => {
-    const updateClock = () => {
-      setCurrentTime(
-        new Intl.DateTimeFormat('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(new Date()),
-      )
-    }
-
-    updateClock()
-    const interval = setInterval(updateClock, 60_000)
-    return () => clearInterval(interval)
-  }, [])
-
   const sidebarItems = useMemo<SidebarItem[]>(
     () => [
-      { id: 'patients', icon: Users, label: 'Pacientes', count: patients.length },
-      { id: 'appointments', icon: Calendar, label: 'Citas', count: appointments.length },
-      { id: 'records', icon: FileText, label: 'Historiales', count: history.length },
+      { id: 'patients', icon: Users, label: 'Pacientes', count: patientsCount },
+      { id: 'appointments', icon: Calendar, label: 'Citas', count: appointmentsCount },
+      { id: 'records', icon: FileText, label: 'Historiales', count: historyCount },
       { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
       { id: 'chat', icon: MessageSquare, label: 'Chat', count: 0 },
       { id: 'diagnosis', icon: Brain, label: 'Asistente Clínico' },
@@ -255,7 +203,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
       { id: 'marketplace', icon: MapPin, label: 'Trabajo Médico' },
       { id: 'settings', icon: Settings, label: 'Configuración' },
     ],
-    [patients.length, appointments.length, history.length],
+    [patientsCount, appointmentsCount, historyCount],
   )
 
   const resumeFocusIfLive = () => {
@@ -380,7 +328,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 <button
                   type="button"
                   onClick={() => {
-                                        setActiveSection(null)
+                    setActiveSection(null)
                     setActiveTab('video-call')
                     setIsSidebarOpen(false)
                     resumeFocusIfLive()
@@ -425,7 +373,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 <button
                   type="button"
                   onClick={() => {
-                                        setActiveSection(null)
+                    setActiveSection(null)
                     setActiveTab('video-call')
                     resumeFocusIfLive()
                   }}
@@ -438,7 +386,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 <button
                   type="button"
                   onClick={() => {
-                                        setActiveSection(null)
+                    setActiveSection(null)
                     setActiveTab('video-call')
                     resumeFocusIfLive()
                   }}
@@ -505,9 +453,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
 
           <main className="flex min-h-0 flex-1 flex-col bg-[#07101e]">
             <section
-              className={`flex min-h-0 flex-1 overflow-hidden ${
-                isFocusMode ? 'p-0' : 'p-0'
-              }`}
+              className={`flex min-h-0 flex-1 overflow-hidden p-0`}
             >
               <div
                 className="flex h-full w-full flex-col overflow-auto p-6"
@@ -528,19 +474,23 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {activeSection === 'records' && <RecordsPanel />}
                 {activeSection === 'vitals' && <VitalSignsPanel />}
                 {activeSection === 'chat' && (
-                  <SectionPlaceholder
-                    title="Chat Médico"
-                    icon="💬"
-                    description="Comunicación segura con pacientes y colegas"
-                  />
+                  <div className="flex h-full flex-col items-center justify-center gap-4 rounded-xl border border-slate-800/60 bg-[#101d32] p-8 text-center">
+                    <span className="text-6xl">💬</span>
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-100">Chat Médico</h3>
+                      <p className="text-slate-400">Comunicación segura con pacientes y colegas</p>
+                    </div>
+                  </div>
                 )}
                 {activeSection === 'diagnosis' && <DiagnosisPanel />}
                 {activeSection === 'history' && (
-                  <SectionPlaceholder
-                    title="Historial IA"
-                    icon="🤖"
-                    description="Historial de análisis y recomendaciones de IA"
-                  />
+                  <div className="flex h-full flex-col items-center justify-center gap-4 rounded-xl border border-slate-800/60 bg-[#101d32] p-8 text-center">
+                    <span className="text-6xl">🤖</span>
+                    <div>
+                      <h3 className="text-xl font-semibold text-slate-100">Historial IA</h3>
+                      <p className="text-slate-400">Historial de análisis y recomendaciones de IA</p>
+                    </div>
+                  </div>
                 )}
                 {activeSection === 'ranking' && <MedicalRankingPanel />}
 

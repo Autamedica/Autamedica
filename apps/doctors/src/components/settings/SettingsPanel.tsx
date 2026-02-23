@@ -1,15 +1,15 @@
 "use client"
 
-import { useEffect, useMemo, useState } from 'react'
-import type { JSX } from 'react'
 import {
-  Bell,
-  Lock,
-  Palette,
-  Shield,
-  User,
-  Video
+    Bell,
+    Lock,
+    Palette,
+    Shield,
+    User,
+    Video
 } from 'lucide-react'
+import type { JSX } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type SettingsCategory = {
   id: string
@@ -145,21 +145,21 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Nombre completo',
         description: 'Tu nombre como aparece en el sistema',
         type: 'input',
-        value: settings.fullName,
+        value: settings.fullName ?? '',
       },
       {
         id: 'specialty',
         label: 'Especialidad médica',
         description: 'Tu área de especialización',
         type: 'input',
-        value: settings.specialty,
+        value: settings.specialty ?? '',
       },
       {
         id: 'license',
         label: 'Número de licencia médica',
         description: 'Tu número de colegiatura profesional',
         type: 'input',
-        value: settings.license,
+        value: settings.license ?? '',
       }
     ],
     video: [
@@ -168,7 +168,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Calidad de video',
         description: 'Resolución predeterminada para videollamadas',
         type: 'select',
-        value: settings.videoQuality,
+        value: settings.videoQuality ?? 'HD',
         options: ['SD', 'HD', '4K']
       },
       {
@@ -176,7 +176,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Resolución de cámara',
         description: 'Calidad de captura de video',
         type: 'select',
-        value: settings.cameraResolution,
+        value: settings.cameraResolution ?? '1080p',
         options: ['720p', '1080p', '4K']
       },
       {
@@ -184,14 +184,14 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Ganancia del micrófono',
         description: 'Nivel de amplificación del audio',
         type: 'input',
-        value: settings.microphoneGain
+        value: settings.microphoneGain ?? 75
       },
       {
         id: 'autoRecording',
         label: 'Grabación automática',
         description: 'Grabar consultas automáticamente (con consentimiento)',
         type: 'toggle',
-        value: settings.autoRecording
+        value: !!settings.autoRecording
       }
     ],
     notifications: [
@@ -200,21 +200,21 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Notificaciones push',
         description: 'Recibir alertas en tiempo real',
         type: 'toggle',
-        value: settings.notifications
+        value: !!settings.notifications
       },
       {
         id: 'emailNotifications',
         label: 'Notificaciones por email',
         description: 'Recibir resúmenes y recordatorios por correo',
         type: 'toggle',
-        value: settings.emailNotifications
+        value: !!settings.emailNotifications
       },
       {
         id: 'appointmentReminders',
         label: 'Recordatorios de citas',
         description: 'Alertas antes de consultas programadas',
         type: 'toggle',
-        value: settings.appointmentReminders
+        value: !!settings.appointmentReminders
       }
     ],
     privacy: [
@@ -223,14 +223,14 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Modo privacidad mejorada',
         description: 'Encriptación adicional para datos sensibles',
         type: 'toggle',
-        value: settings.privacyMode
+        value: !!settings.privacyMode
       },
       {
         id: 'dataRetention',
         label: 'Retención de datos',
         description: 'Tiempo de almacenamiento de información médica',
         type: 'select',
-        value: settings.dataRetention,
+        value: settings.dataRetention ?? '7 años',
         options: ['1 año', '3 años', '5 años', '7 años', '10 años']
       },
       {
@@ -238,7 +238,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Compartir análisis anónimos',
         description: 'Ayudar a mejorar el sistema con datos anónimos',
         type: 'toggle',
-        value: settings.shareAnalytics
+        value: !!settings.shareAnalytics
       }
     ],
     appearance: [
@@ -247,14 +247,14 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Modo oscuro',
         description: 'Interfaz con colores oscuros para reducir fatiga visual',
         type: 'toggle',
-        value: settings.darkMode
+        value: !!settings.darkMode
       },
       {
         id: 'language',
         label: 'Idioma',
         description: 'Idioma de la interfaz',
         type: 'select',
-        value: settings.language,
+        value: settings.language ?? 'es',
         options: ['es', 'en', 'pt', 'fr']
       },
       {
@@ -262,7 +262,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Tamaño de fuente',
         description: 'Tamaño del texto en la interfaz',
         type: 'select',
-        value: settings.fontSize,
+        value: settings.fontSize ?? 'medium',
         options: ['small', 'medium', 'large', 'extra-large']
       }
     ],
@@ -272,14 +272,14 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Autenticación de dos factores',
         description: 'Seguridad adicional para tu cuenta',
         type: 'toggle',
-        value: settings.twoFactorAuth
+        value: !!settings.twoFactorAuth
       },
       {
         id: 'sessionTimeout',
         label: 'Tiempo de sesión',
         description: 'Cerrar sesión automáticamente por inactividad',
         type: 'select',
-        value: settings.sessionTimeout,
+        value: settings.sessionTimeout ?? '30 minutos',
         options: ['15 minutos', '30 minutos', '1 hora', '2 horas', 'Nunca']
       },
       {
@@ -287,7 +287,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         label: 'Alertas de inicio de sesión',
         description: 'Notificar cuando se accede a tu cuenta',
         type: 'toggle',
-        value: settings.loginAlerts
+        value: !!settings.loginAlerts
       }
     ]
   }), [settings])

@@ -1,7 +1,7 @@
 'use client';
 
-import { ensureClientEnv } from '@autamedica/shared';
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient } from '@autamedica/auth';
+import { logger } from '@autamedica/shared';
 import { useEffect } from 'react';
 
 /**
@@ -25,16 +25,14 @@ export function SessionSync() {
     const refreshToken = urlParams.get('refresh_token');
 
     if (accessToken && refreshToken) {
-      const supabase = createBrowserClient(
-        ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL'),
-        ensureClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
-      );
+      const supabase = createBrowserClient();
 
       // Set the session with the tokens from URL
       supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
       }).then(() => {
+        logger.info('[SessionSync] Sesión sincronizada desde URL');
         // Clean up URL by removing tokens
         urlParams.delete('access_token');
         urlParams.delete('refresh_token');

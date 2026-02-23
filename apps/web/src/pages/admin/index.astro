@@ -1,159 +1,26 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+import Layout from '@/layouts/Layout.astro';
+import AdminHomePage from '@/components/admin/AdminHomePage';
 
-const stats = [
-  {
-    title: 'Gestión de usuarios',
-    description: 'Altas, bajas y auditoría de permisos para pacientes, médicos y empresas.',
-  },
-  {
-    title: 'Salud del sistema',
-    description: 'Estado de servicios críticos, trazas y observabilidad operativa.',
-  },
-  {
-    title: 'Reportes operativos',
-    description: 'Métricas de adopción, uso por portal y control de incidentes.',
-  },
-];
+const title = 'Panel de Administración | AutaMedica';
+const description = 'Panel de administración de AutaMedica';
 ---
 
-<Layout
-  title="AutaMedica Admin"
-  description="Portal interno de administración y operaciones de AutaMedica"
-  canonical="https://www.autamedica.com/admin"
-  robots="noindex, nofollow, noarchive"
->
-  <main class="admin-shell">
-    <section class="admin-card">
-      <p class="admin-badge">Portal Interno</p>
-      <h1>Panel de Administración</h1>
-      <p class="admin-lead">
-        Vista consolidada para operaciones internas, control de accesos y monitoreo de la plataforma.
-      </p>
-
-      <div class="admin-grid" role="list">
-        {stats.map((item) => (
-          <article class="admin-item" role="listitem">
-            <h2>{item.title}</h2>
-            <p>{item.description}</p>
-          </article>
-        ))}
+<Layout title={title} description={description}>
+  <div class="min-h-screen bg-gray-50">
+    <header class="bg-white shadow">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <h1 class="text-xl font-semibold text-gray-900">
+              AutaMedica Admin
+            </h1>
+          </div>
+        </div>
       </div>
-
-      <div class="admin-actions">
-        <a class="primary" href="/auth/login?portal=admin&returnTo=%2Fadmin">Ingresar con cuenta admin</a>
-        <a class="secondary" href="/admin/unauthorized">Ver pantalla de acceso denegado</a>
-      </div>
-    </section>
-  </main>
+    </header>
+    <main>
+      <AdminHomePage client:load />
+    </main>
+  </div>
 </Layout>
-
-<style>
-  .admin-shell {
-    min-height: 100vh;
-    padding: clamp(5rem, 9vh, 7rem) var(--section-px) var(--space-16);
-    background:
-      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.16), transparent 45%),
-      radial-gradient(circle at 80% 10%, rgba(245, 158, 11, 0.12), transparent 40%),
-      var(--au-bg);
-  }
-
-  .admin-card {
-    max-width: 1080px;
-    margin: 0 auto;
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-lg);
-    padding: clamp(1.5rem, 3vw, 2.25rem);
-    background: rgba(20, 20, 22, 0.94);
-    box-shadow: var(--shadow-glow);
-  }
-
-  .admin-badge {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid var(--au-border-hover);
-    border-radius: var(--radius-full);
-    padding: 0.35rem 0.8rem;
-    font-size: var(--text-xs);
-    color: var(--au-text-secondary);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin: 0 0 var(--space-4);
-  }
-
-  h1 {
-    margin: 0;
-    font-size: clamp(1.75rem, 4vw, 2.5rem);
-    letter-spacing: -0.02em;
-  }
-
-  .admin-lead {
-    margin: var(--space-3) 0 var(--space-8);
-    color: var(--au-text-secondary);
-    max-width: 70ch;
-  }
-
-  .admin-grid {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-
-  .admin-item {
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-md);
-    background: var(--au-surface);
-    padding: var(--space-4);
-  }
-
-  .admin-item h2 {
-    margin: 0 0 var(--space-2);
-    font-size: var(--text-base);
-  }
-
-  .admin-item p {
-    margin: 0;
-    color: var(--au-text-secondary);
-    font-size: var(--text-sm);
-    line-height: 1.55;
-  }
-
-  .admin-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    margin-top: var(--space-8);
-  }
-
-  .admin-actions a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-    border-radius: var(--radius-sm);
-    padding: 0.75rem 1rem;
-    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-  }
-
-  .admin-actions .primary {
-    background: var(--au-accent);
-    color: #111;
-    border: 1px solid transparent;
-  }
-
-  .admin-actions .primary:hover {
-    transform: translateY(-1px);
-  }
-
-  .admin-actions .secondary {
-    border: 1px solid var(--au-border-hover);
-    color: var(--au-text-primary);
-    background: transparent;
-  }
-
-  .admin-actions .secondary:hover {
-    border-color: var(--au-accent);
-    background: var(--au-accent-soft);
-  }
-</style>

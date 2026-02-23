@@ -1,0 +1,15 @@
+---
+import Layout from '@/layouts/Layout.astro';
+
+const { roomId } = Astro.params;
+const title = `Videollamada ${roomId} | AutaMedica`;
+const description = 'Videollamada con tu médico';
+---
+
+<Layout title={title} description={description}>
+  <div class="p-6">
+    <h1 class="text-3xl font-bold">Videollamada</h1>
+    <p class="mt-4 text-slate-600">Room ID: {roomId}</p>
+    <p class="mt-2 text-slate-600">Componente de videollamada en construcción</p>
+  </div>
+</Layout>

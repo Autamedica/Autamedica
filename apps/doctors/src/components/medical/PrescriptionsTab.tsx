@@ -4,26 +4,26 @@
 
 'use client'
 
-import { useState } from 'react'
-import type { JSX } from 'react'
-import {
-  Pill,
-  Plus,
-  Search,
-  Calendar,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Pause,
-  Edit3,
-  Eye
-} from 'lucide-react'
 import { usePrescriptions } from '@/hooks'
-import type { PrescriptionStatus } from '@/types/medical'
+import type { PrescriptionStatus, UUID } from '@/types/medical'
+import {
+    AlertTriangle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Edit3,
+    Eye,
+    Pause,
+    Pill,
+    Plus,
+    Search,
+    XCircle
+} from 'lucide-react'
+import type { JSX } from 'react'
+import { useState } from 'react'
 
 interface PrescriptionsTabProps {
-  patientId: string | null
+  patientId: UUID | null
 }
 
 const STATUS_CONFIG: Record<PrescriptionStatus, {

@@ -8,7 +8,7 @@ import { TelemedicineSignalingPanel } from '@/components/telemedicine/Telemedici
 import { useActiveSession, usePatientData } from '@/hooks'
 import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
 import { useMedicalHistoryStore } from '@/stores/medicalHistoryStore'
-import { getClientEnvOrDefault } from '@autamedica/shared'
+import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import {
     Activity,
     Brain,
@@ -48,21 +48,27 @@ type PatientNameCandidate = {
   lastName?: string | null
 }
 
-function getPatientDisplayName(patient: unknown): string {
+export function getPatientDisplayName(patient: unknown): string {
   if (!patient || typeof patient !== 'object') {
     return 'Paciente'
   }
 
   const candidate = patient as PatientNameCandidate
   const fullName = candidate.full_name?.trim()
+    || [candidate.first_name, candidate.last_name].filter(Boolean).join(' ').trim()
     || [candidate.firstName, candidate.lastName].filter(Boolean).join(' ').trim()
 
-  if (fullName) {
-    return fullName
-  }
+  return fullName || 'Paciente'
+}
 
-  const snakeName = [candidate.first_name, candidate.last_name].filter(Boolean).join(' ').trim()
-  return snakeName || 'Paciente'
+function getPatientAge(patient: any): string {
+  if (!patient || !patient.birthDate) {
+    return '—'
+  }
+  const birthDate = new Date(patient.birthDate)
+  const ageDifMs = Date.now() - birthDate.getTime()
+  const ageDate = new Date(ageDifMs)
+  return Math.abs(ageDate.getUTCFullYear() - 1970).toString()
 }
 
 export default function DoctorsHomePage(): JSX.Element {
@@ -459,8 +465,8 @@ export default function DoctorsHomePage(): JSX.Element {
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-emerald-400" />
                     <div>
-                      <p className="text-xs font-semibold text-slate-100">{patient?.full_name ?? 'Paciente'}</p>
-                      <p className="text-[10px] text-slate-400">{patient?.age ?? '—'} años • {formattedDuration}</p>
+                      <p className="text-xs font-semibold text-slate-100">{getPatientDisplayName(patient)}</p>
+                      <p className="text-[10px] text-slate-400">{getPatientAge(patient)} años • {formattedDuration}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -551,7 +557,7 @@ export default function DoctorsHomePage(): JSX.Element {
               userType="doctor"
               metadata={{
                 patientId: session?.patientId ?? 'guest-patient',
-                patientName: patient?.full_name ?? 'Paciente invitado',
+                patientName: getPatientDisplayName(patient),
               }}
               className="mt-3 rounded-2xl border border-slate-800/60 bg-[#101d32] p-4 shadow-2xl shadow-slate-900/20 sm:p-6"
             />
@@ -725,7 +731,7 @@ export default function DoctorsHomePage(): JSX.Element {
                   <Brain className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">Análisis IA · {patient?.full_name ?? 'Paciente'}</h2>
+                  <h2 className="text-lg font-semibold">Análisis IA · {getPatientDisplayName(patient)}</h2>
                   <p className="text-xs text-slate-400">Carga un resumen de síntomas para generar diagnósticos asistidos.</p>
                 </div>
               </div>

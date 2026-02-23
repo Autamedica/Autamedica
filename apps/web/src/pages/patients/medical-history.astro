@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import MedicalHistoryPage from '@/components/patients/MedicalHistoryPage';
+
+const title = 'Historial Médico | AutaMedica';
+const description = 'Accede a tu historial médico completo';
+---
+
+<Layout title={title} description={description}>
+  <MedicalHistoryPage client:load />
+</Layout>

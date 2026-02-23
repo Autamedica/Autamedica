@@ -88,7 +88,7 @@ class ConventionValidator {
       const content = await fs.readFile(path.join(PROJECT_ROOT, file), "utf-8");
 
       // Buscar CREATE TABLE statements
-      const tableMatches = content.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?([a-zA-Z0-9_]+)/gi);
+      const tableMatches = content.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:"?public"?\.)?"?([a-zA-Z0-9_]+)"?/gi);
 
       for (const match of tableMatches) {
         const tableName = match[1];

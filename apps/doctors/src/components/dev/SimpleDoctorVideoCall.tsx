@@ -1,20 +1,21 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { WebRTCDebugger, quickDiagnosis } from '../../utils/webrtc-debug'
+import { logger } from '@autamedica/shared'
 import {
-  Video,
-  VideoOff,
-  Mic,
-  MicOff,
-  PhoneOff,
-  Phone,
-  User,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Settings
+    CheckCircle,
+    Clock,
+    Mic,
+    MicOff,
+    Phone,
+    PhoneOff,
+    Settings,
+    User,
+    Video,
+    VideoOff,
+    XCircle
 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { WebRTCDebugger, quickDiagnosis } from '../../utils/webrtc-debug'
 import MediaPicker from './MediaPicker'
 
 interface SimpleDoctorVideoCallProps {

@@ -4,24 +4,24 @@
 
 'use client'
 
-import { useState } from 'react'
-import type { JSX } from 'react'
-import {
-  FileText,
-  Calendar,
-  Search,
-  Plus,
-  Eye,
-  AlertTriangle,
-  Stethoscope,
-  ChevronDown,
-  Download
-} from 'lucide-react'
 import { useMedicalHistory } from '@/hooks'
-import type { ConsultationType } from '@/types/medical'
+import type { ConsultationType, UUID } from '@/types/medical'
+import {
+    AlertTriangle,
+    Calendar,
+    ChevronDown,
+    Download,
+    Eye,
+    FileText,
+    Plus,
+    Search,
+    Stethoscope
+} from 'lucide-react'
+import type { JSX } from 'react'
+import { useState } from 'react'
 
 interface MedicalHistoryTabProps {
-  patientId: string | null
+  patientId: UUID | null
 }
 
 const CONSULTATION_TYPES: { value: ConsultationType; label: string; color: string }[] = [

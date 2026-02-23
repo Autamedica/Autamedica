@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import type { JSX } from 'react'
-import { Users, Search, UserPlus, Calendar, FileText } from 'lucide-react'
 import { createBrowserClient } from '@autamedica/auth/client'
 import { usePatients } from '@autamedica/hooks'
+import { Calendar, FileText, Search, UserPlus, Users } from 'lucide-react'
+import type { JSX } from 'react'
+import { useEffect, useState } from 'react'
 
 export function PatientsPanel(): JSX.Element {
   const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createBrowserClient> | null>(null)
@@ -133,9 +133,9 @@ export function PatientsPanel(): JSX.Element {
                   </div>
 
                   <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
-                    <span>Estado: {patient.status}</span>
+                    <span>Estado: {patient.status || 'Activo'}</span>
                     <span>•</span>
-                    <span>Última visita: {new Date(patient.lastVisit).toLocaleDateString('es-ES')}</span>
+                    <span>Última visita: {patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString('es-ES') : 'Sin visitas'}</span>
                   </div>
                 </div>
               ))}

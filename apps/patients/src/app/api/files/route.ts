@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { ensureClientEnv, ensureServerEnv, logger } from '@autamedica/shared';
 import { getUserIdFromRequest } from '@/lib/server/auth';
+import { createAdminClient } from '@autamedica/auth/server';
+import { logger } from '@autamedica/shared';
+import type { AppSupabaseClient } from '@autamedica/supabase-client';
+import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
@@ -12,22 +13,24 @@ export async function GET() {
     const userId = await getUserIdFromRequest();
     if (!userId) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
 
-    const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL');
-    const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const admin = createClient(url, serviceKey);
+    const admin = createAdminClient() as any as AppSupabaseClient;
 
     const prefix = `${userId}/`;
     const { data: objects, error } = await admin.storage.from(BUCKET).list(prefix, { limit: 100, offset: 0 });
     if (error) throw error;
 
     const list = Array.isArray(objects) ? objects : [];
-    return NextResponse.json({ ok: true, data: { files: list.map(o => ({
-      name: o.name,
-      path: prefix + o.name,
-      size: o.metadata?.size ?? null,
-      lastModified: o.updated_at ?? null,
-      contentType: o.metadata?.mimetype ?? null,
-    })) } });
+    return NextResponse.json({
+      ok: true, data: {
+        files: list.map(o => ({
+          name: o.name,
+          path: prefix + o.name,
+          size: o.metadata?.size ?? null,
+          lastModified: o.updated_at ?? null,
+          contentType: o.metadata?.mimetype ?? null,
+        }))
+      }
+    });
   } catch (e: any) {
     logger.error('[API] files GET error', e);
     return NextResponse.json({ ok: false, error: e?.message || 'internal_error' }, { status: 500 });
@@ -59,9 +62,7 @@ export async function DELETE(request: Request) {
     const path: string | undefined = body?.path;
     if (!path?.startsWith(`${userId}/`)) return NextResponse.json({ ok: false, error: 'invalid_path' }, { status: 400 });
 
-    const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL');
-    const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const admin = createClient(url, serviceKey);
+    const admin = createAdminClient() as any as AppSupabaseClient;
     const { error } = await admin.storage.from(BUCKET).remove([path]);
     if (error) throw error;
     return NextResponse.json({ ok: true });

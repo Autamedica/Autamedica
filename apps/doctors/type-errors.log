@@ -1,0 +1,144 @@
+.                                        |  WARN  Unsupported engine: wanted: {"node":"20.x"} (current: {"node":"v22.22.0","pnpm":"9.15.2"})
+
+> @autamedica/doctors@0.1.0 type-check /home/edu/Autamedica/apps/doctors
+> tsc --noEmit
+
+.next/types/app/page.ts(12,13): error TS2344: Type 'OmitWithTag<typeof import("/home/edu/Autamedica/apps/doctors/src/app/page"), "metadata" | "default" | "config" | "generateStaticParams" | "revalidate" | "dynamic" | "dynamicParams" | "fetchCache" | ... 6 more ... | "experimental_ppr", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'getPatientDisplayName' is incompatible with index signature.
+    Type '(patient: unknown) => string' is not assignable to type 'never'.
+src/app/auth/callback/route.ts(3,56): error TS2307: Cannot find module '@supabase/ssr' or its corresponding type declarations.
+src/app/call/[roomId]/CallPageClient.tsx(18,19): error TS2322: Type '{ children: Element; onAuthStateChange: () => void; }' is not assignable to type 'IntrinsicAttributes & { children?: ReactNode; }'.
+  Property 'onAuthStateChange' does not exist on type 'IntrinsicAttributes & { children?: ReactNode; }'.
+src/components/ClientWrapper.tsx(30,21): error TS2322: Type '{ children: ReactNode; onAuthStateChange: (event: string, session: any) => void; }' is not assignable to type 'IntrinsicAttributes & { children?: ReactNode; }'.
+  Property 'onAuthStateChange' does not exist on type 'IntrinsicAttributes & { children?: ReactNode; }'.
+src/components/calls/StartCallButton.tsx(72,43): error TS2339: Property 'message' does not exist on type '{}'.
+src/components/calls/StartCallButton.tsx(73,41): error TS2339: Property 'stack' does not exist on type '{}'.
+src/components/consultation/DoctorVideoConsultation.tsx(51,26): error TS2345: Argument of type 'LocalTrackPublication | undefined' is not assignable to parameter of type 'SetStateAction<boolean>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<boolean>'.
+src/components/dev/MediaPicker.tsx(49,27): error TS2532: Object is possibly 'undefined'.
+src/components/dev/MediaPicker.tsx(52,24): error TS2532: Object is possibly 'undefined'.
+src/components/marketplace/MarketplacePanel.tsx(39,7): error TS2353: Object literal may only specify known properties, and 'hospital' does not exist in type 'MarketplaceJobOffer'.
+src/components/marketplace/MarketplacePanel.tsx(69,7): error TS2353: Object literal may only specify known properties, and 'hospital' does not exist in type 'MarketplaceJobOffer'.
+src/components/medical/VitalSignsTab.tsx(45,79): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'UUID | null'.
+  Type 'string' is not assignable to type 'UUID'.
+    Type 'string' is not assignable to type '{ readonly __brand: "UUID"; }'.
+src/components/onboarding/DoctorOnboardingWizard.tsx(80,22): error TS2345: Argument of type 'OnboardingStep | undefined' is not assignable to parameter of type 'SetStateAction<OnboardingStep>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<OnboardingStep>'.
+src/components/onboarding/DoctorOnboardingWizard.tsx(90,22): error TS2345: Argument of type 'OnboardingStep | undefined' is not assignable to parameter of type 'SetStateAction<OnboardingStep>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<OnboardingStep>'.
+src/components/onboarding/DoctorOnboardingWizard.tsx(105,9): error TS2322: Type 'string' is not assignable to type 'UUID'.
+  Type 'string' is not assignable to type '{ readonly __brand: "UUID"; }'.
+src/components/onboarding/EducationCertificationStep.tsx(54,7): error TS2322: Type 'string | undefined' is not assignable to type 'ISODateString'.
+  Type 'undefined' is not assignable to type 'ISODateString'.
+    Type 'undefined' is not assignable to type 'string'.
+src/components/onboarding/LicenseValidationStep.tsx(105,27): error TS2345: Argument of type '{ isValid: boolean; message: string; doctorInfo: { name: string; specialty: string; status: string; }; } | { isValid: boolean; message: string; doctorInfo?: undefined; } | undefined' is not assignable to parameter of type 'SetStateAction<{ isValid: boolean; message: string; doctorInfo?: { name: string; specialty: string; status: string; } | undefined; } | null>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<{ isValid: boolean; message: string; doctorInfo?: { name: string; specialty: string; status: string; } | undefined; } | null>'.
+src/components/onboarding/LicenseValidationStep.tsx(106,28): error TS18048: 'result' is possibly 'undefined'.
+src/components/patients/PatientsPanel.tsx(136,44): error TS2339: Property 'status' does not exist on type 'Patient'.
+src/components/patients/PatientsPanel.tsx(138,60): error TS2339: Property 'lastVisit' does not exist on type 'Patient'.
+src/components/payment/MercadoPagoIntegration.tsx(74,7): error TS2304: Cannot find name 'logger'.
+src/components/payment/MercadoPagoIntegration.tsx(101,7): error TS2304: Cannot find name 'logger'.
+src/components/settings/SettingsPanel.tsx(141,9): error TS2322: Type '{ profile: { id: string; label: string; description: string; type: "input"; value: string | number | boolean | undefined; }[]; video: ({ id: string; label: string; description: string; type: "select"; value: string | ... 2 more ... | undefined; options: string[]; } | { ...; } | { ...; })[]; notifications: { ...; }[]...' is not assignable to type 'Record<string, SettingItem[]>'.
+  Property 'profile' is incompatible with index signature.
+    Type '{ id: string; label: string; description: string; type: "input"; value: string | number | boolean | undefined; }[]' is not assignable to type 'SettingItem[]'.
+      Type '{ id: string; label: string; description: string; type: "input"; value: string | number | boolean | undefined; }' is not assignable to type 'SettingItem'.
+        Types of property 'value' are incompatible.
+          Type 'string | number | boolean | undefined' is not assignable to type 'string | number | boolean'.
+            Type 'undefined' is not assignable to type 'string | number | boolean'.
+src/components/subscription/SubscriptionPanel.tsx(145,5): error TS2304: Cannot find name 'logger'.
+src/components/telemedicine/TelemedicineSignalingPanel.tsx(3,59): error TS6305: Output file '/home/edu/Autamedica/packages/ui/dist/index.d.ts' has not been built from source file '/home/edu/Autamedica/packages/ui/src/index.ts'.
+src/components/telemedicine/VideoCallComponent.tsx(95,7): error TS2304: Cannot find name 'logger'.
+src/components/telemedicine/VideoCallComponent.tsx(121,7): error TS2304: Cannot find name 'logger'.
+src/components/telemedicine/VideoCallComponent.tsx(133,7): error TS2304: Cannot find name 'logger'.
+src/features/appointments/useAppointments.ts(25,15): error TS2345: Argument of type 'UiAppointment[]' is not assignable to parameter of type 'SetStateAction<{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]>'.
+  Type 'UiAppointment[]' is not assignable to type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }[]'.
+    Type 'UiAppointment' is missing the following properties from type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }': created_at, created_by, doctor_id, duration_minutes, and 6 more.
+src/features/appointments/useAppointments.ts(36,13): error TS2345: Argument of type '(prev: { created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]) => ({ ...; } | UiAppointment)[]' is not assignable to parameter of type 'SetStateAction<{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]>'.
+  Type '(prev: { created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]) => ({ ...; } | UiAppointment)[]' is not assignable to type '(prevState: { created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]) => { ...; }[]'.
+    Type '({ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; } | UiAppointment)[]' is not assignable to type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }[]'.
+      Type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; } | UiAppointment' is not assignable to type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }'.
+        Type 'UiAppointment' is missing the following properties from type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }': created_at, created_by, doctor_id, duration_minutes, and 6 more.
+src/features/appointments/useAppointments.ts(42,13): error TS2345: Argument of type '(prev: { created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]) => ({ ...; } | UiAppointment)[]' is not assignable to parameter of type 'SetStateAction<{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]>'.
+  Type '(prev: { created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]) => ({ ...; } | UiAppointment)[]' is not assignable to type '(prevState: { created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; }[]) => { ...; }[]'.
+    Type '({ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; } | UiAppointment)[]' is not assignable to type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }[]'.
+      Type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; ... 6 more ...; updated_at: string | null; } | UiAppointment' is not assignable to type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }'.
+        Type 'UiAppointment' is missing the following properties from type '{ created_at: string | null; created_by: string | null; doctor_id: string | null; duration_minutes: number | null; end_time: string | null; id: string; location: string | null; meeting_url: string | null; ... 5 more ...; updated_at: string | null; }': created_at, created_by, doctor_id, duration_minutes, and 6 more.
+src/hooks/useAIAnalysis.ts(59,46): error TS2344: Type 'UiAIAnalysis' does not satisfy the constraint 'TableName'.
+src/hooks/useAIAnalysis.ts(64,50): error TS2339: Property 'patientId' does not exist on type 'TableRow<Table>'.
+src/hooks/useAIAnalysis.ts(130,19): error TS2345: Argument of type '(prev: AIAnalysis[]) => (AIAnalysis | { id: string; patient_id: UUID; doctor_id: string; medical_record_id: null; input_symptoms: string[]; input_text: string; ... 8 more ...; created_at: string; })[]' is not assignable to parameter of type 'SetStateAction<AIAnalysis[]>'.
+  Type '(prev: AIAnalysis[]) => (AIAnalysis | { id: string; patient_id: UUID; doctor_id: string; medical_record_id: null; input_symptoms: string[]; input_text: string; ... 8 more ...; created_at: string; })[]' is not assignable to type '(prevState: AIAnalysis[]) => AIAnalysis[]'.
+    Type '(AIAnalysis | { id: string; patient_id: UUID; doctor_id: string; medical_record_id: null; input_symptoms: string[]; input_text: string; additional_context: string | null; ... 7 more ...; created_at: string; })[]' is not assignable to type 'AIAnalysis[]'.
+      Type 'AIAnalysis | { id: string; patient_id: UUID; doctor_id: string; medical_record_id: null; input_symptoms: string[]; input_text: string; additional_context: string | null; ... 7 more ...; created_at: string; }' is not assignable to type 'AIAnalysis'.
+        Type '{ id: string; patient_id: UUID; doctor_id: string; medical_record_id: null; input_symptoms: string[]; input_text: string; additional_context: string | null; primary_diagnosis: AIDiagnosis; ... 6 more ...; created_at: string; }' is not assignable to type 'AIAnalysis'.
+          Types of property 'id' are incompatible.
+            Type 'string' is not assignable to type 'UUID'.
+              Type 'string' is not assignable to type '{ readonly __brand: "UUID"; }'.
+src/hooks/useAIAnalysis.ts(132,7): error TS2322: Type '{ id: string; patient_id: UUID; doctor_id: string; medical_record_id: null; input_symptoms: string[]; input_text: string; additional_context: string | null; primary_diagnosis: AIDiagnosis; ... 6 more ...; created_at: string; }' is not assignable to type 'AIAnalysis'.
+  Types of property 'id' are incompatible.
+    Type 'string' is not assignable to type 'UUID'.
+      Type 'string' is not assignable to type '{ readonly __brand: "UUID"; }'.
+src/hooks/useAuthenticatedUser.ts(63,9): error TS2304: Cannot find name 'logger'.
+src/hooks/useAuthenticatedUser.ts(82,7): error TS2304: Cannot find name 'logger'.
+src/hooks/useAuthenticatedUser.ts(110,7): error TS2304: Cannot find name 'logger'.
+src/hooks/useDoctorStats.ts(83,13): error TS2339: Property 'status' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(83,43): error TS2339: Property 'status' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(87,13): error TS2339: Property 'scheduled_at' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(87,47): error TS2339: Property 'scheduled_at' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(92,13): error TS2339: Property 'scheduled_at' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(93,14): error TS2339: Property 'status' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(93,44): error TS2339: Property 'status' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(97,33): error TS2339: Property 'scheduled_at' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(101,31): error TS2339: Property 'patient' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(102,33): error TS2339: Property 'patient' does not exist on type 'never'.
+src/hooks/useDoctorStats.ts(102,80): error TS2339: Property 'patient' does not exist on type 'never'.
+src/hooks/useMedicalHistory.ts(68,45): error TS2344: Type 'UiMedicalRecord' does not satisfy the constraint 'TableName'.
+src/hooks/useMedicalHistory.ts(73,47): error TS2339: Property 'patientId' does not exist on type 'TableRow<Table>'.
+src/hooks/useMedicalHistory.ts(77,43): error TS2339: Property 'consultationType' does not exist on type 'TableRow<Table>'.
+src/hooks/useMedicalHistory.ts(81,43): error TS2339: Property 'consultationDate' does not exist on type 'TableRow<Table>'.
+src/hooks/useMedicalHistory.ts(85,43): error TS2339: Property 'consultationDate' does not exist on type 'TableRow<Table>'.
+src/hooks/useMedicalHistory.ts(90,13): error TS2339: Property 'diagnosis' does not exist on type 'TableRow<Table>'.
+src/hooks/useVitalSigns.ts(56,44): error TS2344: Type 'UiVitalSigns' does not satisfy the constraint 'TableName'.
+src/hooks/useVitalSigns.ts(61,48): error TS2339: Property 'patientId' does not exist on type 'TableRow<Table>'.
+src/hooks/useVitalSigns.ts(91,44): error TS2558: Expected 2-3 type arguments, but got 1.
+src/lib/env.ts(1,47): error TS2307: Cannot find module '@autamedica/config' or its corresponding type declarations.
+src/lib/repos/appointments.ts(36,35): error TS2344: Type 'UiAppointment' does not satisfy the constraint 'TableName'.
+src/lib/repos/appointments.ts(39,3): error TS2322: Type 'TableRow<Table>[]' is not assignable to type 'UiAppointment[]'.
+  Type 'TableRow<Table>' is not assignable to type 'UiAppointment'.
+    Type 'unknown' is not assignable to type 'UiAppointment'.
+src/lib/repos/appointments.ts(44,35): error TS2344: Type 'UiAppointment' does not satisfy the constraint 'TableName'.
+src/lib/repos/appointments.ts(45,5): error TS2322: Type 'Awaited<TableRow<Table>> | null' is not assignable to type 'UiAppointment | null'.
+  Type 'Awaited<TableRow<Table>>' is not assignable to type 'UiAppointment | null'.
+    Type 'unknown' is not assignable to type 'UiAppointment | null'.
+src/lib/repos/appointments.ts(57,35): error TS2558: Expected 2-3 type arguments, but got 1.
+src/lib/repos/appointments.ts(58,3): error TS2322: Type 'Awaited<TableRow<Table>>' is not assignable to type 'UiAppointment'.
+  Type 'unknown' is not assignable to type 'UiAppointment'.
+src/lib/repos/appointments.ts(67,35): error TS2558: Expected 2-3 type arguments, but got 1.
+src/lib/repos/appointments.ts(68,3): error TS2322: Type 'Awaited<TableRow<Table>>' is not assignable to type 'UiAppointment'.
+  Type 'unknown' is not assignable to type 'UiAppointment'.
+src/services/ai-analysis-service.ts(1,23): error TS2307: Cannot find module '@anthropic-ai/sdk' or its corresponding type declarations.
+src/services/ai-analysis-service.ts(3,30): error TS2307: Cannot find module '@autamedica/shared/config/feature-flags' or its corresponding type declarations.
+src/services/api/base.service.ts(6,27): error TS2307: Cannot find module '@autamedica/config' or its corresponding type declarations.
+src/services/gemini-ai-service.ts(7,30): error TS2307: Cannot find module '@autamedica/shared/config/feature-flags' or its corresponding type declarations.
+src/services/gemini-ai-service.ts(62,50): error TS2345: Argument of type '{ contents: { role: string; parts: { text: string; }[]; }[]; generationConfig: { temperature: number; maxOutputTokens: number; topP: number; topK: number; }; safetySettings: { category: "HARM_CATEGORY_MEDICAL"; threshold: "BLOCK_NONE"; }[]; }' is not assignable to parameter of type 'string | GenerateContentRequest | (string | Part)[]'.
+  Types of property 'safetySettings' are incompatible.
+    Type '{ category: "HARM_CATEGORY_MEDICAL"; threshold: "BLOCK_NONE"; }[]' is not assignable to type 'SafetySetting[]'.
+      Type '{ category: "HARM_CATEGORY_MEDICAL"; threshold: "BLOCK_NONE"; }' is not assignable to type 'SafetySetting'.
+        Types of property 'category' are incompatible.
+          Type '"HARM_CATEGORY_MEDICAL"' is not assignable to type 'HarmCategory'.
+src/services/gemini-ai-service.ts(95,11): error TS2353: Object literal may only specify known properties, and 'processingTimeMs' does not exist in type '{ modelUsed?: string | undefined; tokensUsed?: { input: number; output: number; } | undefined; }'.
+src/services/gemini-ai-service.ts(335,11): error TS2353: Object literal may only specify known properties, and 'multimodal' does not exist in type '{ modelUsed?: string | undefined; tokensUsed?: { input: number; output: number; } | undefined; }'.
+src/services/medical-data-api.ts(16,38): error TS2307: Cannot find module '@autamedica/shared/config/feature-flags' or its corresponding type declarations.
+src/services/medical-data-api.ts(51,44): error TS2339: Property 'baseUrl' does not exist on type 'MedicalDataAPI'.
+src/services/medical-data-api.ts(87,7): error TS2322: Type '{ blood_pressure_diastolic: number | null; blood_pressure_systolic: number | null; bmi: number | null; created_at: string; deleted_at: string | null; heart_rate: number | null; ... 15 more ...; weight: number | null; }[]' is not assignable to type 'VitalSigns[]'.
+  Property 'doctor_id' is missing in type '{ blood_pressure_diastolic: number | null; blood_pressure_systolic: number | null; bmi: number | null; created_at: string; deleted_at: string | null; heart_rate: number | null; ... 15 more ...; weight: number | null; }' but required in type 'VitalSigns'.
+src/services/medical-data-api.ts(183,9): error TS2322: Type '{ appointment_id: string | null; attachments: Json; content: Json; created_at: string | null; date_recorded: string | null; deleted_at: string | null; doctor_id: string | null; ... 5 more ...; visibility: string | null; }[]' is not assignable to type 'MedicalRecord[]'.
+  Type '{ appointment_id: string | null; attachments: Json; content: Json; created_at: string | null; date_recorded: string | null; deleted_at: string | null; doctor_id: string | null; ... 5 more ...; visibility: string | null; }' is missing the following properties from type 'MedicalRecord': consultation_date, consultation_type, chief_complaint, symptoms, and 3 more.
+src/services/unified-ai-service.ts(7,31): error TS2307: Cannot find module '@autamedica/shared/config/feature-flags' or its corresponding type declarations.
+src/stores/medicalHistoryStore.ts(120,9): error TS2304: Cannot find name 'logger'.
+src/utils/webrtc-debug.ts(300,26): error TS2684: The 'this' context of type 'void' is not assignable to method's 'this' of type 'RTCPeerConnection'.
+src/utils/webrtc-debug.ts(308,33): error TS2684: The 'this' context of type 'void' is not assignable to method's 'this' of type 'RTCPeerConnection'.
+src/utils/webrtc-debug.ts(314,42): error TS2554: Expected 1 arguments, but got 0.
+src/utils/webrtc-debug.ts(320,45): error TS2554: Expected 1 arguments, but got 0.
+/home/edu/Autamedica/apps/doctors:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @autamedica/doctors@0.1.0 type-check: `tsc --noEmit`
+Exit status 2

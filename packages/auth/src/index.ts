@@ -5,22 +5,13 @@
 
 // Export types
 export type {
-  UserRole,
-  AppName,
-  UserProfile,
-  AuthState,
-  Environment,
-  DomainConfig,
-  RedirectConfig,
-  SessionConfig,
-  AuthErrorType,
-  UserMetadata
+  AppName, AuthErrorType, AuthState, DomainConfig, Environment, RedirectConfig,
+  SessionConfig, UserMetadata, UserProfile, UserRole
 } from './types'
 
 export {
-  ROLE_APP_MAPPING,
   APP_ALLOWED_ROLES,
-  AuthError
+  AuthError, ROLE_APP_MAPPING
 } from './types'
 
 // Export constants
@@ -36,9 +27,8 @@ export {
 
 // Export server utilities
 export {
-  createServerClient,
-  createMiddlewareClient,
-  createRouteHandlerClient
+  createAdminClient, createMiddlewareClient,
+  createRouteHandlerClient, createServerClient
 } from './server'
 
 // Export hooks and context
@@ -59,9 +49,7 @@ export {
 
 // Export configuration utilities
 export {
-  getEnvironment,
-  getDomainConfig,
-  getSessionConfig,
+  getDomainConfig, getEnvironment, getSessionConfig,
   getSupabaseConfig,
   isSameOrigin,
   sanitizeReturnUrl
@@ -69,23 +57,10 @@ export {
 
 // Export redirect utilities
 export {
-  getRedirectUrl,
-  getDefaultRedirectUrl,
-  getLoginUrl,
-  isCorrectAppForRole,
-  getCorrectAppUrl,
-  storeLastPath,
-  getLastPath,
-  clearLastPath
+  clearLastPath, getCorrectAppUrl, getDefaultRedirectUrl, getLastPath, getLoginUrl, getRedirectUrl, isCorrectAppForRole, storeLastPath
 } from './utils/redirect'
 
 // Export session utilities
 export {
-  getSession,
-  requireSession,
-  requirePortalAccess,
-  signOut,
-  getCurrentUser,
-  hasRole,
-  hasPortalAccess
+  getCurrentUser, getSession, hasPortalAccess, hasRole, requirePortalAccess, requireSession, signOut
 } from './session'

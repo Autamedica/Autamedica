@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { CreditCard, Lock, Shield, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import { logger } from '@autamedica/shared'
+import { AlertCircle, CheckCircle, CreditCard, Loader, Lock, Shield } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface PaymentMethod {
   id: string

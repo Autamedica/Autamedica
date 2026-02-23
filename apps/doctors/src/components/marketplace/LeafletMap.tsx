@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { MarketplaceDoctor, MarketplaceJobOffer } from '@/types/marketplace'
+import { logger } from '@autamedica/shared'
+import { Clock, DollarSign, Loader, MapPin, Star, Users } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { MapPin, Users, Star, DollarSign, Clock, Loader } from 'lucide-react'
-import { MarketplaceJobOffer, MarketplaceDoctor } from '@/types/marketplace'
+import { useEffect, useState } from 'react'
 
 // Dynamic import para evitar problemas de SSR con Leaflet
 const MapContainer = dynamic(
@@ -87,7 +88,6 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters 
       html: `
         <div style="
           background-color: ${color};
-import { logger } from '@autamedica/shared';
           width: ${size}px;
           height: ${size}px;
           border-radius: 50%;

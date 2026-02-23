@@ -7,14 +7,14 @@
  * - Auto-filtrado de soft-deleted (deleted_at IS NULL)
  */
 
-import { useEffect, useState, useCallback } from 'react'
-import { selectActive, insertRecord, updateRecord, logger } from '@autamedica/shared'
 import type {
   Prescription,
+  PrescriptionFilters,
   UsePrescriptionsResult,
-  UUID,
-  PrescriptionFilters
-} from '@/types/medical'
+  UUID
+} from '@/types/medical';
+import { insertRecord, logger, selectActive, updateRecord } from '@autamedica/shared';
+import { useCallback, useEffect, useState } from 'react';
 
 interface UsePrescriptionsOptions {
   filters?: PrescriptionFilters
@@ -60,8 +60,8 @@ export function usePrescriptions(
 
     try {
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const allPrescriptions = await selectActive<UiPrescription>('prescriptions', '*', {
-        orderBy: { column: 'prescribed_date', ascending: false }
+      const allPrescriptions = await selectActive<'prescriptions', UiPrescription>('prescriptions', '*', {
+        orderBy: { column: 'created_at', ascending: false }
       });
 
       // Filtrar por patient_id
@@ -107,7 +107,7 @@ export function usePrescriptions(
 
     try {
       // Sistema híbrido: insertRecord() auto-transforma a snake_case
-      await insertRecord<UiPrescription>('prescriptions', {
+      await insertRecord<'prescriptions', any, UiPrescription>('prescriptions', {
         ...prescription,
         patient_id: patientId
       } as any);
@@ -129,7 +129,7 @@ export function usePrescriptions(
   ): Promise<void> => {
     try {
       // Sistema híbrido: updateRecord() auto-transforma a snake_case
-      await updateRecord<UiPrescription>('prescriptions', id, updates as any);
+      await updateRecord<'prescriptions', any, UiPrescription>('prescriptions', id, updates as any);
 
       // Actualizar la lista local
       setPrescriptions(prev =>

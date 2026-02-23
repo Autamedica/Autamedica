@@ -1,12 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
-import { getAppBaseUrl } from '../../lib/env';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
 
-const companiesExternalUrl = getAppBaseUrl('companies');
-const pageTitle = 'Portal de Empresas - AutaMedica';
-const pageDescription = 'Entrada operativa para empresas con continuidad hacia el portal corporativo legacy durante la migracion.';
+const pageTitle = 'Portal para Empresas';
+const pageDescription = 'Centro de control de crisis sanitarias, gestión de personal médico y marketplace de profesionales para empresas en AutaMedica.';
 ---
 
 <Layout
@@ -22,163 +21,89 @@ const pageDescription = 'Entrada operativa para empresas con continuidad hacia e
     description={pageDescription}
   />
 
-  <main class="companies-shell">
-    <section class="companies-card">
-      <p class="companies-badge">Bridge Temporal</p>
-      <h1>Portal de Empresas</h1>
-      <p class="companies-lead">
-        Esta ruta ya corre sobre Astro y sirve como punto de entrada mientras mantenemos la operacion
-        del portal corporativo en paralelo.
-      </p>
+  <PortalLanding
+    badge="Companies Slice"
+    title="Portal de Empresas en Astro"
+    subtitle="Centro de control de crisis sanitarias y marketplace médico integrado para gestión empresarial de salud."
+    accent="var(--portal-companies)"
+    stats={[
+      { value: '24/7', label: 'Monitoreo en tiempo real' },
+      { value: '1-2', label: 'Clics para acciones clave' },
+      { value: '<200ms', label: 'Meta de INP p75' },
+    ]}
+    pillars={[
+      {
+        title: 'Control de Crisis',
+        description: 'Monitoreo en tiempo real de incidentes sanitarios, estado de instalaciones y personal disponible.',
+      },
+      {
+        title: 'Marketplace Médico',
+        description: 'Gestión integral de contratación de profesionales médicos con seguimiento de aplicaciones y conversión.',
+      },
+      {
+        title: 'Rendimiento optimizado',
+        description: 'Islands React solo en componentes interactivos; servidor renderiza el resto para reducir carga de JS.',
+      },
+    ]}
+    primaryCta={{
+      href: buildRoleAuthPath('login', 'company'),
+      label: 'Entrar como empresa',
+    }}
+    secondaryCta={{
+      href: buildRoleAuthPath('register', 'company'),
+      label: 'Registrar empresa',
+    }}
+  />
 
-      <div class="companies-grid">
-        <article>
-          <h2>Control de crisis</h2>
-          <p>Monitoreo de incidentes, estado operativo y respuesta coordinada.</p>
-          <a href="/companies/crisis">Ir a control de crisis</a>
-        </article>
-
-        <article>
-          <h2>Marketplace medico</h2>
-          <p>Acceso a profesionales, contrataciones y disponibilidad de servicios.</p>
-          <a href="/companies/marketplace">Ir a marketplace</a>
-        </article>
-
-        <article>
-          <h2>Metricas y reportes</h2>
-          <p>Indicadores de salud corporativa, ausentismo y cumplimiento operativo.</p>
-          <a href="/companies/reports">Ir a reportes</a>
-        </article>
+  <section class="quick-links" aria-label="Accesos rapidos companies">
+    <div class="quick-links-inner">
+      <h2>Accesos rapidos del portal</h2>
+      <div class="quick-links-grid">
+        <a href="/companies/crisis">Centro de Control de Crisis</a>
+        <a href="/companies/marketplace">Marketplace Médico</a>
+        <a href="/companies/reports">Métricas y Reportes</a>
       </div>
-
-      <div class="companies-actions">
-        <a class="primary" href={buildRoleAuthPath('login', 'company_admin')}>
-          Entrar como empresa
-        </a>
-        <a class="secondary" href={buildRoleAuthPath('register', 'company_admin')}>
-          Crear cuenta empresarial
-        </a>
-        <a class="tertiary" href={companiesExternalUrl}>
-          Abrir portal corporativo directo
-        </a>
-      </div>
-    </section>
-  </main>
+    </div>
+  </section>
 </Layout>
 
 <style>
-  .companies-shell {
-    min-height: 100vh;
-    padding: clamp(4.5rem, 9vh, 6.5rem) var(--section-px) var(--space-16);
-    background:
-      radial-gradient(circle at 10% -8%, rgba(245, 158, 11, 0.2), transparent 48%),
-      radial-gradient(circle at 90% 0%, rgba(239, 68, 68, 0.14), transparent 42%),
-      var(--au-bg);
+  .quick-links {
+    padding: 0 var(--section-px) var(--space-16);
+    background: var(--au-bg);
   }
 
-  .companies-card {
-    max-width: 1020px;
+  .quick-links-inner {
+    max-width: 1120px;
     margin: 0 auto;
     border: 1px solid var(--au-border);
-    border-radius: var(--radius-lg);
-    padding: clamp(1.5rem, 3vw, 2.25rem);
-    background: rgba(20, 20, 22, 0.94);
-    box-shadow: var(--shadow-glow);
-  }
-
-  .companies-badge {
-    display: inline-flex;
-    margin: 0 0 var(--space-4);
-    padding: 0.35rem 0.8rem;
-    border: 1px solid var(--au-border-hover);
-    border-radius: var(--radius-full);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--au-text-secondary);
-  }
-
-  h1 {
-    margin: 0;
-    font-size: clamp(1.8rem, 4vw, 2.7rem);
-    letter-spacing: -0.02em;
-  }
-
-  .companies-lead {
-    margin: var(--space-3) 0 var(--space-8);
-    color: var(--au-text-secondary);
-    max-width: 70ch;
-  }
-
-  .companies-grid {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  }
-
-  .companies-grid article {
-    border: 1px solid var(--au-border);
     border-radius: var(--radius-md);
-    padding: var(--space-4);
     background: var(--au-surface);
+    padding: var(--space-6);
   }
 
-  .companies-grid h2 {
-    margin: 0 0 var(--space-2);
-    font-size: var(--text-base);
-  }
-
-  .companies-grid p {
+  .quick-links h2 {
     margin: 0 0 var(--space-4);
-    font-size: var(--text-sm);
-    color: var(--au-text-secondary);
-    line-height: 1.55;
+    font-size: var(--text-lg);
   }
 
-  .companies-grid a {
-    display: inline-flex;
-    font-size: var(--text-sm);
-    color: var(--au-accent);
-    font-weight: var(--font-semibold);
-  }
-
-  .companies-actions {
-    display: flex;
-    flex-wrap: wrap;
+  .quick-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: var(--space-3);
-    margin-top: var(--space-8);
   }
 
-  .companies-actions a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
+  .quick-links-grid a {
+    border: 1px solid var(--au-border);
     border-radius: var(--radius-sm);
-    padding: 0.75rem 1rem;
-    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-  }
-
-  .companies-actions a:hover {
-    transform: translateY(-1px);
-  }
-
-  .companies-actions .primary {
-    background: var(--au-accent);
-    color: #111;
-    border: 1px solid transparent;
-  }
-
-  .companies-actions .secondary {
-    border: 1px solid var(--au-border-hover);
-    color: var(--au-text-primary);
-    background: transparent;
-  }
-
-  .companies-actions .tertiary {
-    border: 1px solid var(--au-border-hover);
+    padding: var(--space-3);
     color: var(--au-text-secondary);
-    background: transparent;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .quick-links-grid a:hover {
+    border-color: var(--portal-companies);
+    color: var(--au-text-primary);
+    background: rgba(255, 102, 0, 0.08);
   }
 </style>

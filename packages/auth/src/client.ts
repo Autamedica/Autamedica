@@ -7,12 +7,13 @@
 
 "use client";
 
-import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr";
 import { ensureClientEnv } from "@autamedica/shared";
+import type { Database } from "@autamedica/types";
+import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr";
 import type { Provider } from "@supabase/supabase-js";
 
 export function createBrowserClient() {
-  return createSupabaseBrowserClient(
+  return createSupabaseBrowserClient<Database>(
     ensureClientEnv("NEXT_PUBLIC_SUPABASE_URL"),
     ensureClientEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
   );
@@ -29,16 +30,16 @@ export async function signInWithOAuth(
   portal?: "patients" | "doctors" | "companies" | "admin"
 ) {
   const supabase = createBrowserClient();
-  
+
   // Usar la URL de callback de la app actual
   const callbackUrl = ensureClientEnv('NEXT_PUBLIC_AUTH_CALLBACK_URL');
-  
+
   // Construir URL completa con parámetros
   const redirectUrl = new URL(callbackUrl);
   if (portal) {
     redirectUrl.searchParams.set('portal', portal);
   }
-  
+
   return await supabase.auth.signInWithOAuth({
     provider,
     options: {

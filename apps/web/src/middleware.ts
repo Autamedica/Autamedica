@@ -5,10 +5,10 @@
  * La lógica de rutas protegidas, redirecciones y roles es idéntica al original.
  */
 
-import { defineMiddleware } from 'astro:middleware';
-import type { AstroCookieSetOptions } from 'astro';
-import { createServerClient } from '@supabase/ssr';
 import { logger } from '@autamedica/shared';
+import { createServerClient } from '@supabase/ssr';
+import type { AstroCookieSetOptions } from 'astro';
+import { defineMiddleware } from 'astro:middleware';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
@@ -214,6 +214,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const redirectUrl = new URL(legacyTarget, context.request.url);
     redirectUrl.search = requestUrl.search;
     return context.redirect(redirectUrl.toString(), 301);
+  }
+
+  // Interceptar redirects de OAuth o Magic Links que caen fuera del callback
+  if (pathname !== '/auth/callback' && requestUrl.searchParams.has('code')) {
+    const callbackUrl = new URL('/auth/callback', context.request.url);
+    callbackUrl.search = requestUrl.search;
+    return context.redirect(callbackUrl.toString(), 302);
   }
 
   // Saltear verificación para archivos estáticos y rutas públicas

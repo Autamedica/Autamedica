@@ -1,0 +1,387 @@
+.next/types/validator.ts(414,31): error TS2344: Type 'typeof import("/home/edu/Autamedica/apps/patients/src/app/api/telemedicine/session/[sessionId]/events/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/telemedicine/session/[sessionId]/events">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: Request, { params }: { params: { sessionId: string; }; }) => Promise<NextResponse<{ ok: boolean; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ sessionId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ sessionId: string; }>; }' is not assignable to type '{ params: { sessionId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'sessionId' is missing in type 'Promise<{ sessionId: string; }>' but required in type '{ sessionId: string; }'.
+.next/types/validator.ts(423,31): error TS2344: Type 'typeof import("/home/edu/Autamedica/apps/patients/src/app/api/telemedicine/session/[sessionId]/participants/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/telemedicine/session/[sessionId]/participants">'.
+  Types of property 'POST' are incompatible.
+    Type '(request: Request, { params }: { params: { sessionId: string; }; }) => Promise<NextResponse<{ ok: boolean; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ sessionId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ sessionId: string; }>; }' is not assignable to type '{ params: { sessionId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'sessionId' is missing in type 'Promise<{ sessionId: string; }>' but required in type '{ sessionId: string; }'.
+.next/types/validator.ts(432,31): error TS2344: Type 'typeof import("/home/edu/Autamedica/apps/patients/src/app/api/telemedicine/session/[sessionId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/telemedicine/session/[sessionId]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: Request, { params }: { params: { sessionId: string; }; }) => Promise<NextResponse<{ ok: boolean; error: string; }> | NextResponse<{ ok: boolean; data: { status: any; ended_at: any; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ sessionId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ sessionId: string; }>; }' is not assignable to type '{ params: { sessionId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'sessionId' is missing in type 'Promise<{ sessionId: string; }>' but required in type '{ sessionId: string; }'.
+.next/types/validator.ts(472,31): error TS2344: Type 'typeof import("/home/edu/Autamedica/apps/patients/src/app/layout")' does not satisfy the constraint 'LayoutConfig<"/">'.
+  Types of property 'default' are incompatible.
+    Type '({ children }: RootLayoutProps) => Element' is not assignable to type 'ComponentType<LayoutProps<"/">> | ((props: LayoutProps<"/">) => void | Promise<void> | ReactNode | Promise<ReactNode>)'.
+      Type '({ children }: RootLayoutProps) => Element' is not assignable to type 'FunctionComponent<LayoutProps<"/">>'.
+        Types of parameters '__0' and 'props' are incompatible.
+          Type 'LayoutProps<"/">' is not assignable to type 'RootLayoutProps'.
+            Types of property 'children' are incompatible.
+              Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+                Type 'bigint' is not assignable to type 'ReactNode'.
+e2e/api-appointments.spec.ts(24,48): error TS2339: Property 'email' does not exist on type 'never'.
+src/app/(dashboard)/appointments/page.tsx(146,30): error TS2322: Type 'AppointmentWithDoctor[]' is not assignable to type 'Appointment[]'.
+  Type 'AppointmentWithDoctor' is missing the following properties from type 'Appointment': created_by, deleted_at
+src/app/(dashboard)/layout.tsx(15,24): error TS2322: Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+  Type 'bigint' is not assignable to type 'ReactNode'.
+src/app/api/ai/context/route.ts(19,7): error TS2589: Type instantiation is excessively deep and possibly infinite.
+src/app/api/ai/context/route.ts(24,23): error TS2339: Property 'full_name' does not exist on type '{ active: boolean; avatar_url: string; created_at: string; email: string; external_id: string; first_name: string; last_name: string; numeric_id: number; phone: string; role: string; updated_at: string; user_id: string; }'.
+src/app/api/ai/context/route.ts(27,24): error TS2339: Property 'portal' does not exist on type '{ active: boolean; avatar_url: string; created_at: string; email: string; external_id: string; first_name: string; last_name: string; numeric_id: number; phone: string; role: string; updated_at: string; user_id: string; }'.
+src/app/api/ai/patterns/route.ts(20,8): error TS2339: Property 'catch' does not exist on type 'PromiseLike<any[]>'.
+src/app/api/ai/patterns/route.ts(23,8): error TS2339: Property 'catch' does not exist on type 'PromiseLike<any[]>'.
+src/app/api/appointments/[id]/route.ts(29,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/appointments/[id]/route.ts(32,68): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(45,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(59,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(105,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/appointments/[id]/route.ts(108,68): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(121,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(135,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(182,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(229,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/appointments/[id]/route.ts(232,68): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(245,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/[id]/route.ts(259,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/route.ts(20,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/appointments/route.ts(23,68): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/route.ts(36,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/route.ts(50,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/route.ts(92,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/appointments/route.ts(95,68): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/route.ts(108,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/appointments/route.ts(159,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/allergies/route.ts(7,45): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/medical-history/allergies/route.ts(9,48): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/allergies/route.ts(24,6): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/conditions/route.ts(7,45): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/medical-history/conditions/route.ts(9,48): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/conditions/route.ts(21,6): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/medications/route.ts(7,45): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/medical-history/medications/route.ts(9,48): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/medications/route.ts(25,6): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/route.ts(14,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/medical-history/route.ts(16,68): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/route.ts(24,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/medical-history/route.ts(36,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/profile/ensure/route.ts(24,65): error TS2339: Property 'get' does not exist on type 'Promise<ReadonlyHeaders>'.
+src/app/api/profile/route.ts(66,62): error TS2353: Object literal may only specify known properties, and 'full_name' does not exist in type '{ active?: boolean; avatar_url?: string; created_at?: string; email?: string; external_id?: string; first_name?: string; last_name?: string; numeric_id?: number; phone?: string; role?: string; updated_at?: string; user_id?: string; }'.
+src/app/api/telemedicine/session/[sessionId]/events/route.ts(9,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/telemedicine/session/[sessionId]/events/route.ts(21,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(9,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(14,24): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(21,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(38,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(57,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(62,24): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(69,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/participants/route.ts(85,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/route.ts(12,6): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/route.ts(19,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/route.ts(28,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/telemedicine/session/[sessionId]/route.ts(33,24): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/route.ts(58,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/[sessionId]/route.ts(83,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/telemedicine/session/[sessionId]/route.ts(86,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(61,6): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(128,6): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(136,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/telemedicine/session/route.ts(140,24): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(156,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(166,10): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(171,10): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(194,11): error TS2353: Object literal may only specify known properties, and 'participants' does not exist in type 'StartResponse'.
+src/app/api/telemedicine/session/route.ts(204,10): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(228,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(257,9): error TS2353: Object literal may only specify known properties, and 'participants' does not exist in type 'StartResponse'.
+src/app/api/telemedicine/session/route.ts(271,47): error TS2345: Argument of type 'ReadonlyRequestCookies' is not assignable to parameter of type 'NextRequest'.
+  Type 'ReadonlyRequestCookies' is missing the following properties from type 'NextRequest': cookies, nextUrl, page, ua, and 22 more.
+src/app/api/telemedicine/session/route.ts(277,24): error TS2339: Property 'auth' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(284,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(306,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/api/telemedicine/session/route.ts(311,8): error TS2339: Property 'from' does not exist on type '{ supabase: SupabaseClient<Database, "public", { Tables: { ai_user_faq: { Row: { active: boolean; answer: string; created_at: string; id: string; question: string; user_id: string; }; Insert: { active?: boolean; ... 4 more ...; user_id: string; }; Update: { ...; }; Relationships: []; }; ... 61 more ...; vital_signs:...'.
+src/app/community/page.tsx(291,66): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+src/app/consultation/[id]/page.tsx(3,10): error TS2305: Module '"react"' has no exported member 'use'.
+src/app/onboarding/actions.ts(74,24): error TS2345: Argument of type '"patients"' is not assignable to parameter of type 'never'.
+src/components/SearchParamsWrapper.tsx(28,3): error TS2578: Unused '@ts-expect-error' directive.
+src/components/SearchParamsWrapper.tsx(30,15): error TS2322: Type 'string | number | bigint | true | Element | Iterable<ReactNode> | Promise<AwaitedReactNode>' is not assignable to type 'ReactNode'.
+  Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/SearchParamsWrapper.tsx(31,7): error TS2322: Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+  Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/anamnesis/AnamnesisField.tsx(33,13): error TS2322: Type 'string | number | true | string[]' is not assignable to type 'string | number | readonly string[]'.
+  Type 'boolean' is not assignable to type 'string | number | readonly string[]'.
+src/components/anamnesis/AnamnesisField.tsx(46,13): error TS2322: Type 'string | number | true | string[]' is not assignable to type 'string | number | readonly string[]'.
+  Type 'boolean' is not assignable to type 'string | number | readonly string[]'.
+src/components/anamnesis/AnamnesisField.tsx(58,13): error TS2322: Type 'string | number | true | string[]' is not assignable to type 'string | number | readonly string[]'.
+  Type 'boolean' is not assignable to type 'string | number | readonly string[]'.
+src/components/anamnesis/AnamnesisField.tsx(145,15): error TS2322: Type 'string | number | true | string[]' is not assignable to type 'string | number | readonly string[]'.
+  Type 'boolean' is not assignable to type 'string | number | readonly string[]'.
+src/components/anamnesis/AnamnesisField.tsx(161,13): error TS2322: Type 'string | number | true | string[]' is not assignable to type 'string | number | readonly string[]'.
+  Type 'boolean' is not assignable to type 'string | number | readonly string[]'.
+src/components/appointments/AppointmentsTable.tsx(51,45): error TS2339: Property 'appointment_type' does not exist on type 'Appointment'.
+src/components/appointments/AppointmentsTable.tsx(65,70): error TS2339: Property 'reason' does not exist on type 'Appointment'.
+src/components/chat/AutaChatbot.tsx(245,26): error TS2304: Cannot find name 'medicalQA'.
+src/components/consultation/VideoConsultation.tsx(123,57): error TS2339: Property 'from' does not exist on type 'string'.
+src/components/consultation/VideoConsultation.tsx(123,84): error TS2339: Property 'message' does not exist on type 'string'.
+src/components/dev/MediaPicker.tsx(54,7): error TS2304: Cannot find name 'logger'.
+src/components/dev/MediaPicker.tsx(117,9): error TS2304: Cannot find name 'logger'.
+src/components/dev/MediaPicker.tsx(190,14): error TS2786: 'Camera' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/MediaPicker.tsx(211,14): error TS2786: 'Mic' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/MediaPicker.tsx(238,10): error TS2786: 'Monitor' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/MediaPicker.tsx(255,16): error TS2786: 'RefreshCw' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/MediaPicker.tsx(260,16): error TS2786: 'Monitor' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/MediaPicker.tsx(265,16): error TS2786: 'Camera' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/MediaPicker.tsx(276,12): error TS2786: 'RefreshCw' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/MediaPicker.tsx(305,12): error TS2786: 'Mic' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(123,11): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(132,9): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(167,9): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(226,21): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(241,21): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(253,11): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(297,7): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(315,9): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(397,9): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(418,15): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(448,9): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(498,7): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(536,7): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(558,7): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(637,18): error TS2786: 'Clock' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(650,16): error TS2786: 'Settings' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(661,17): error TS2304: Cannot find name 'logger'.
+src/components/dev/SimplePatientVideoCall.tsx(675,22): error TS2786: 'PhoneIncoming' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(687,22): error TS2786: 'Phone' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(694,22): error TS2786: 'X' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(713,16): error TS2786: 'Clock' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(719,16): error TS2786: 'Clock' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(725,16): error TS2786: 'Phone' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(731,16): error TS2786: 'PhoneOff' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(751,22): error TS2786: 'Clock' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(771,22): error TS2786: 'VideoOff' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(797,29): error TS2786: 'MicOff' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(797,62): error TS2786: 'Mic' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(808,32): error TS2786: 'VideoOff' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(808,67): error TS2786: 'Video' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(815,18): error TS2786: 'PhoneOff' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/dev/SimplePatientVideoCall.tsx(824,14): error TS2786: 'User' cannot be used as a JSX component.
+  Its type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/components/layout/PatientRootLayout.tsx(130,7): error TS2353: Object literal may only specify known properties, and ''--patient-bg'' does not exist in type 'Properties<string | number, string & {}>'.
+src/components/medical-history/AnamnesisForm.legacy.tsx(5,3): error TS2305: Module '"@autamedica/types"' has no exported member 'CreateMedicalConditionInput'.
+src/components/medical-history/AnamnesisForm.legacy.tsx(6,3): error TS2305: Module '"@autamedica/types"' has no exported member 'CreateMedicalAllergyInput'.
+src/components/medical-history/AnamnesisForm.legacy.tsx(7,3): error TS2305: Module '"@autamedica/types"' has no exported member 'ConditionStatus'.
+src/components/medical-history/AnamnesisForm.legacy.tsx(9,3): error TS2305: Module '"@autamedica/types"' has no exported member 'FamilyRelationship'.
+src/components/medical-history/AnamnesisForm.tsx(5,3): error TS2305: Module '"@autamedica/types"' has no exported member 'CreateMedicalConditionInput'.
+src/components/medical-history/AnamnesisForm.tsx(6,3): error TS2305: Module '"@autamedica/types"' has no exported member 'CreateMedicalAllergyInput'.
+src/components/medical-history/AnamnesisForm.tsx(7,3): error TS2305: Module '"@autamedica/types"' has no exported member 'ConditionStatus'.
+src/components/medical-history/AnamnesisForm.tsx(9,3): error TS2305: Module '"@autamedica/types"' has no exported member 'FamilyRelationship'.
+src/components/medical-history/MedicalHistorySummary.tsx(3,15): error TS2305: Module '"@autamedica/types"' has no exported member 'MedicalHistorySummary'.
+src/components/medical-history/MedicalHistoryTimeline.tsx(5,3): error TS2724: '"@autamedica/types"' has no exported member named 'MedicalHistoryTimeline'. Did you mean 'MedicalHistoryId'?
+src/components/medical-history/MedicalHistoryTimeline.tsx(6,3): error TS2724: '"@autamedica/types"' has no exported member named 'MedicalHistoryCondition'. Did you mean 'MedicalCondition'?
+src/components/medical-history/MedicalHistoryTimeline.tsx(7,3): error TS2305: Module '"@autamedica/types"' has no exported member 'MedicalAllergy'.
+src/components/medical-history/MedicalHistoryTimeline.tsx(8,3): error TS2305: Module '"@autamedica/types"' has no exported member 'PatientMedication'.
+src/components/medical-history/MedicalHistoryTimeline.tsx(9,3): error TS2305: Module '"@autamedica/types"' has no exported member 'MedicalProcedure'.
+src/components/medical-history/MedicalHistoryTimeline.tsx(10,3): error TS2305: Module '"@autamedica/types"' has no exported member 'MedicalEncounter'.
+src/components/medical-history/MedicalHistoryTimeline.tsx(11,3): error TS2305: Module '"@autamedica/types"' has no exported member 'Immunization'.
+src/components/medical/IntegratedReproductiveHealthHub.tsx(105,7): error TS2322: Type 'string' is not assignable to type 'PatientId'.
+  Type 'string' is not assignable to type '{ readonly __brand: "PatientId"; }'.
+src/components/medical/IntegratedReproductiveHealthHub.tsx(106,7): error TS2322: Type 'string' is not assignable to type 'never'.
+  The intersection 'ReproductiveHealthSpecialistId' was reduced to 'never' because property '__brand' has conflicting types in some constituents.
+src/components/medical/IntegratedReproductiveHealthHub.tsx(109,7): error TS2322: Type 'string' is not assignable to type 'ISODateString'.
+  Type 'string' is not assignable to type '{ readonly __brand: "ISODateString"; }'.
+src/components/medical/IntegratedReproductiveHealthHub.tsx(123,7): error TS2322: Type 'string' is not assignable to type 'PatientId'.
+  Type 'string' is not assignable to type '{ readonly __brand: "PatientId"; }'.
+src/components/medical/IntegratedReproductiveHealthHub.tsx(124,7): error TS2322: Type 'string' is not assignable to type 'never'.
+  The intersection 'ReproductiveHealthSpecialistId' was reduced to 'never' because property '__brand' has conflicting types in some constituents.
+src/components/medical/MedicalDashboard.tsx(24,29): error TS2339: Property 'getSymptomTrends' does not exist on type '{ addPersonalNote: any; recordSymptom: any; recordMedicationTaken: any; recordVitalSigns: any; getHealthSummary: any; generateMedicalSummaryForDoctor: any; entries: PatientMedicalEntry[]; ... 5 more ...; vitals: PatientMedicalEntry[]; }'.
+src/components/medical/MedicalDashboard.tsx(24,47): error TS2339: Property 'getMedicationAdherence' does not exist on type '{ addPersonalNote: any; recordSymptom: any; recordMedicationTaken: any; recordVitalSigns: any; getHealthSummary: any; generateMedicalSummaryForDoctor: any; entries: PatientMedicalEntry[]; ... 5 more ...; vitals: PatientMedicalEntry[]; }'.
+src/components/onboarding/PatientOnboarding.tsx(38,7): error TS2353: Object literal may only specify known properties, and 'closeBtnText' does not exist in type 'Config'.
+src/components/preventive/PersonalizedScreeningCalculator.tsx(199,32): error TS2339: Property 'length' does not exist on type 'unknown'.
+src/components/preventive/PersonalizedScreeningCalculator.tsx(206,44): error TS2339: Property 'length' does not exist on type 'unknown'.
+src/components/preventive/PersonalizedScreeningCalculator.tsx(209,35): error TS2339: Property 'map' does not exist on type 'unknown'.
+src/components/preventive/PreventiveScreenings.tsx(3,42): error TS2307: Cannot find module '../../../mocks/preventive-screenings' or its corresponding type declarations.
+src/components/telemedicine/EnhancedVideoCall.tsx(14,18): error TS2305: Module '"@autamedica/shared"' has no exported member 'featureFlags'.
+src/components/telemedicine/EnhancedVideoCall.tsx(33,11): error TS2339: Property 'currentSession' does not exist on type 'UsePatientSessionResult'.
+src/components/telemedicine/EnhancedVideoCall.tsx(33,27): error TS2339: Property 'formattedDuration' does not exist on type 'UsePatientSessionResult'.
+src/components/telemedicine/EnhancedVideoCall.tsx(217,18): error TS2786: 'LiveKitRoom' cannot be used as a JSX component.
+  Its type '(props: LiveKitRoomProps & { children?: ReactNode; } & RefAttributes<HTMLDivElement>) => ReactNode' is not a valid JSX element type.
+    Type '(props: LiveKitRoomProps & { children?: ReactNode; } & RefAttributes<HTMLDivElement>) => ReactNode' is not assignable to type '(props: any, deprecatedLegacyContext?: any) => ReactNode'.
+      Type 'React.ReactNode' is not assignable to type 'import("/home/edu/Autamedica/node_modules/.pnpm/@types+react@18.3.25/node_modules/@types/react/index").ReactNode'.
+        Type 'bigint' is not assignable to type 'ReactNode'.
+src/hooks/useMedicalChat.ts(257,9): error TS2322: Type 'string' is not assignable to type 'never'.
+  The intersection 'MedicalChatId' was reduced to 'never' because property '__brand' has conflicting types in some constituents.
+src/hooks/useMedicalChat.ts(259,9): error TS2322: Type 'string' is not assignable to type 'UUID'.
+  Type 'string' is not assignable to type '{ readonly __brand: "UUID"; }'.
+src/hooks/usePreventiveScreenings.ts(230,11): error TS2322: Type 'string' is not assignable to type 'PatientId'.
+  Type 'string' is not assignable to type '{ readonly __brand: "PatientId"; }'.
+src/hooks/usePreventiveScreenings.ts(231,11): error TS2322: Type 'string' is not assignable to type 'never'.
+  The intersection 'PreventiveScreeningId' was reduced to 'never' because property '__brand' has conflicting types in some constituents.
+src/hooks/usePreventiveScreenings.ts(233,11): error TS2322: Type 'string' is not assignable to type 'ISODateString'.
+  Type 'string' is not assignable to type '{ readonly __brand: "ISODateString"; }'.
+src/hooks/usePreventiveScreenings.ts(277,33): error TS2339: Property 'recommended_frequency' does not exist on type '{ recommended_frequency: any; }[]'.
+src/hooks/usePreventiveScreenings.ts(278,42): error TS2339: Property 'recommended_frequency' does not exist on type '{ recommended_frequency: any; }[]'.
+src/hooks/useRealRemoteStream.ts(84,45): error TS2345: Argument of type '(track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => void' is not assignable to parameter of type '(track: RemoteTrack<Kind>, publication: RemoteTrackPublication) => void'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/hooks/useRealRemoteStream.ts(85,47): error TS2345: Argument of type '(track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => void' is not assignable to parameter of type '(track: RemoteTrack<Kind>, publication: RemoteTrackPublication) => void'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/hooks/useRealRemoteStream.ts(91,23): error TS2339: Property 'videoTracks' does not exist on type 'RemoteParticipant'.
+src/hooks/useRealRemoteStream.ts(103,48): error TS2345: Argument of type '(track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => void' is not assignable to parameter of type '(track: RemoteTrack<Kind>, publication: RemoteTrackPublication) => void'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/hooks/useRealRemoteStream.ts(104,50): error TS2345: Argument of type '(track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => void' is not assignable to parameter of type '(track: RemoteTrack<Kind>, publication: RemoteTrackPublication) => void'.
+  Target signature provides too few arguments. Expected 3 or more, but got 2.
+src/hooks/useRealRemoteStream.ts(145,19): error TS2339: Property 'videoTracks' does not exist on type 'RemoteParticipant'.
+src/hooks/useTelemedicineSignaling.ts(79,43): error TS2345: Argument of type '{ url: string; roomId: string; userId: string; userType: TelemedicineRole; metadata: Record<string, unknown>; token: string; autoReconnect: boolean; }' is not assignable to parameter of type 'Partial<WebRTCConfig> & { userId: string; userType: "patient" | "doctor" | "nurse"; }'.
+  Type '{ url: string; roomId: string; userId: string; userType: TelemedicineRole; metadata: Record<string, unknown>; token: string; autoReconnect: boolean; }' is not assignable to type 'Partial<WebRTCConfig>'.
+    Types of property 'userType' are incompatible.
+      Type 'TelemedicineRole' is not assignable to type '"patient" | "doctor" | "nurse"'.
+        Type '"unknown"' is not assignable to type '"patient" | "doctor" | "nurse"'.
+src/hooks/useTelemedicineSignaling.ts(83,17): error TS2345: Argument of type '"open"' is not assignable to parameter of type 'keyof WebRTCEvents'.
+src/hooks/useTelemedicineSignaling.ts(86,17): error TS2345: Argument of type '"close"' is not assignable to parameter of type 'keyof WebRTCEvents'.
+src/hooks/useTelemedicineSignaling.ts(99,25): error TS2339: Property 'from' does not exist on type 'string'.
+src/hooks/useTelemedicineSignaling.ts(100,31): error TS2339: Property 'data' does not exist on type 'string'.
+src/hooks/useTelemedicineSignaling.ts(107,94): error TS2339: Property 'from' does not exist on type 'string'.
+src/hooks/useTelemedicineSignaling.ts(110,17): error TS2345: Argument of type '"offer"' is not assignable to parameter of type 'keyof WebRTCEvents'.
+src/hooks/useTelemedicineSignaling.ts(113,17): error TS2345: Argument of type '"answer"' is not assignable to parameter of type 'keyof WebRTCEvents'.
+src/hooks/useTelemedicineSignaling.ts(116,17): error TS2345: Argument of type '"ice-candidate"' is not assignable to parameter of type 'keyof WebRTCEvents'.
+src/hooks/useTelemedicineSignaling.ts(145,24): error TS2339: Property 'sendOffer' does not exist on type 'WebRTCClient'.
+src/hooks/useTelemedicineSignaling.ts(149,24): error TS2339: Property 'sendAnswer' does not exist on type 'WebRTCClient'.
+src/hooks/useTelemedicineSignaling.ts(153,24): error TS2339: Property 'sendIceCandidate' does not exist on type 'WebRTCClient'.
+src/hooks/useTelemedicineSignaling.ts(157,24): error TS2339: Property 'sendLeave' does not exist on type 'WebRTCClient'.
+src/lib/ai/onnx-service.ts(195,91): error TS2322: Type 'bigint' is not assignable to type 'number'.
+src/lib/ai/onnx-service.ts(196,101): error TS2322: Type 'bigint' is not assignable to type 'number'.
+src/lib/ai/onnx-service.ts(198,106): error TS2322: Type 'bigint' is not assignable to type 'number'.
+src/lib/ai/onnx-service.ts(206,30): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+src/lib/ai/onnx-service.ts(207,44): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/env.ts(1,47): error TS2307: Cannot find module '@autamedica/config' or its corresponding type declarations.
+src/lib/session-sync.ts(8,10): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
+src/lib/supabaseClient.ts(5,3): error TS1205: Re-exporting a type when 'isolatedModules' is enabled requires using 'export type'.
+src/stores/medicalHistoryStore.ts(3,35): error TS2304: Cannot find name 'logger'.
+src/stores/patientMedicalStore.ts(211,7): error TS2304: Cannot find name 'logger'.
+src/utils/webrtc-debug.ts(135,27): error TS2304: Cannot find name 'logger'.
+src/utils/webrtc-debug.ts(300,26): error TS2684: The 'this' context of type 'void' is not assignable to method's 'this' of type 'RTCPeerConnection'.
+src/utils/webrtc-debug.ts(308,33): error TS2684: The 'this' context of type 'void' is not assignable to method's 'this' of type 'RTCPeerConnection'.
+src/utils/webrtc-debug.ts(314,42): error TS2554: Expected 1 arguments, but got 0.
+src/utils/webrtc-debug.ts(320,45): error TS2554: Expected 1 arguments, but got 0.

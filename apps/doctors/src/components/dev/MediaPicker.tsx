@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { logger } from '@autamedica/shared'
 import { Camera, Mic, Monitor, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface MediaPickerProps {
   onMediaReady: (stream: MediaStream) => void
@@ -102,7 +103,6 @@ export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps)
 
     for (const constraint of constraints) {
       try {
-        // logger.info('Trying constraints:', constraint)
         const stream = await navigator.mediaDevices.getUserMedia(constraint)
 
         // Save successful device selection
@@ -159,7 +159,7 @@ export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps)
             stream.addTrack(track)
           })
         } catch (err) {
-          // logger.info('Could not add audio to screen share:', err)
+          logger.error('Could not add audio to screen share:', err)
         }
       }
 

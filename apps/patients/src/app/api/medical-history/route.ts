@@ -3,15 +3,13 @@
  * GET /api/medical-history → Resumen y timeline del historial del paciente autenticado
  */
 
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
+import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient(cookieStore)
+    const supabase = await createRouteHandlerClient()
 
     const { data: { session }, error: authError } = await supabase.auth.getSession()
     if (authError || !session) {
@@ -39,8 +37,8 @@ export async function GET() {
       .maybeSingle()
 
     const recs = medicalRecords || []
-    const activeMedications = recs.filter(r => r.record_type === 'prescription' && r.status === 'active')
-    const recentDiagnoses = recs.filter(r => r.record_type === 'diagnosis')
+    const activeMedications = recs.filter(r => r.type === 'prescription' && (r.content as any)?.status === 'active')
+    const recentDiagnoses = recs.filter(r => r.type === 'diagnosis')
 
     const summary = {
       patient_id: userId,
@@ -50,18 +48,21 @@ export async function GET() {
       last_encounter_date: recs?.[0]?.created_at || new Date().toISOString(),
       chronic_conditions: recentDiagnoses.map(d => ({
         condition: d.title,
-        diagnosed_date: d.created_at,
-        icd10_code: d.icd10_code || undefined,
+        diagnosed_date: d.created_at || d.date_recorded || new Date().toISOString(),
+        icd10_code: (d.content as any)?.icd10_code || undefined,
         status: 'active' as const,
       })),
       critical_allergies: [],
-      current_medications: activeMedications.map(m => ({
-        medication_name: m.title,
-        dosage: m.dosage || 'No especificado',
-        frequency: m.frequency || 'Según indicación médica',
-        start_date: m.created_at,
-        route: m.route || 'oral',
-      })),
+      current_medications: activeMedications.map(m => {
+        const c = m.content as any
+        return {
+          medication_name: m.title,
+          dosage: c?.dosage || 'No especificado',
+          frequency: c?.frequency || 'Según indicación médica',
+          start_date: m.created_at || m.date_recorded,
+          route: c?.route || 'oral',
+        }
+      }),
     }
 
     const timeline = {
@@ -70,43 +71,46 @@ export async function GET() {
         conditions: recentDiagnoses.map(r => ({
           id: r.id,
           condition: r.title,
-          diagnosed_date: r.created_at,
-          icd10_code: r.icd10_code || undefined,
+          diagnosed_date: r.created_at || r.date_recorded || new Date().toISOString(),
+          icd10_code: (r.content as any)?.icd10_code || undefined,
           status: 'active' as const,
-          notes: r.notes || undefined,
+          notes: (r.content as any)?.notes || undefined,
         })),
         allergies: [],
-        medications: activeMedications.map(m => ({
-          id: m.id,
-          medication_name: m.title,
-          dosage: m.dosage || 'No especificado',
-          frequency: m.frequency || 'Según indicación médica',
-          route: m.route || 'oral',
-          start_date: m.created_at,
-          end_date: m.end_date || null,
-          prescribing_doctor: m.doctor_id || undefined,
-          reason: m.notes || 'No especificado',
-        })),
+        medications: activeMedications.map(m => {
+          const c = m.content as any
+          return {
+            id: m.id,
+            medication_name: m.title,
+            dosage: c?.dosage || 'No especificado',
+            frequency: c?.frequency || 'Según indicación médica',
+            route: c?.route || 'oral',
+            start_date: m.created_at || m.date_recorded,
+            end_date: c?.end_date || null,
+            prescribing_doctor: m.doctor_id || undefined,
+            reason: c?.notes || 'No especificado',
+          }
+        }),
         procedures: recs
-          .filter(r => r.record_type === 'procedure')
+          .filter(r => r.type === 'procedure')
           .map(p => ({
             id: p.id,
             procedure_name: p.title,
-            date: p.created_at,
+            date: p.created_at || p.date_recorded,
             provider: p.doctor_id || undefined,
-            facility: p.facility || undefined,
-            outcome: p.outcome || undefined,
+            facility: (p.content as any)?.facility || undefined,
+            outcome: (p.content as any)?.outcome || undefined,
           })),
         encounters: recs
-          .filter(r => r.record_type === 'encounter' || r.record_type === 'note')
+          .filter(r => r.type === 'encounter' || r.type === 'note' || r.type === 'consultation')
           .map(e => ({
             id: e.id,
-            date: e.created_at,
+            date: e.created_at || e.date_recorded,
             type: 'consultation' as const,
             provider: e.doctor_id || undefined,
             reason: e.title,
-            diagnosis: e.diagnosis || undefined,
-            notes: e.notes || undefined,
+            diagnosis: (e.content as any)?.diagnosis || undefined,
+            notes: (e.content as any)?.notes || undefined,
           })),
         immunizations: [],
       },

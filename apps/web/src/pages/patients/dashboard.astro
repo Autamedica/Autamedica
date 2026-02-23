@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import PatientsHomePage from '@/components/patients/PatientsHomePage';
+
+const title = 'Panel de Paciente | AutaMedica';
+const description = 'Portal de videoconsultas y gestión de salud para pacientes';
+---
+
+<Layout title={title} description={description}>
+  <PatientsHomePage client:load />
+</Layout>

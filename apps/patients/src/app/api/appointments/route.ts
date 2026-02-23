@@ -4,11 +4,10 @@
  * POST /api/appointments - Crear nueva cita
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@autamedica/auth/server';
-import { cookies } from 'next/headers';
 import type { CreateAppointmentInput } from '@/types/appointment';
+import { createRouteHandlerClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import { NextRequest, NextResponse } from 'next/server';
 import { computeEndTime, mapAppointment, mapTypeToDb, type DbAppointmentRow } from './utils';
 /**
  * GET /api/appointments
@@ -16,8 +15,7 @@ import { computeEndTime, mapAppointment, mapTypeToDb, type DbAppointmentRow } fr
  */
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient(cookieStore);
+    const supabase = await createRouteHandlerClient();
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -46,23 +44,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener citas del paciente con información del doctor
-    const { data: appointments, error: appointmentsError } = await supabase
+    const { data: records, error } = await (supabase as any)
       .from('appointments')
       .select(`
         *,
-        doctor:doctors (
-          id,
+        doctor:doctors(
           first_name,
           last_name,
-          specialty,
-          profile_picture_url
+          specialty
         )
       `)
-      .eq('patient_id', patient.id)
+      .eq('patient_id', userId) // Changed from patient.id to userId as per instruction
       .order('start_time', { ascending: false });
 
-    if (appointmentsError) {
-      logger.error('[GET /api/appointments] Error:', appointmentsError);
+    if (error) { // Corrected syntax for error handling
+      logger.error('[GET /api/appointments] Error:', error); // Changed variable name to 'error'
       return NextResponse.json(
         { error: 'Error al obtener citas' },
         { status: 500 }
@@ -71,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: (appointments || []).map(mapAppointment),
+      data: (records || []).map(mapAppointment), // Changed variable name to 'records'
     });
   } catch (error) {
     logger.error('[GET /api/appointments] Unexpected error:', error);
@@ -88,8 +84,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient(cookieStore);
+    const supabase = await createRouteHandlerClient();
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -140,24 +135,34 @@ export async function POST(request: NextRequest) {
     const startIso = startDate.toISOString();
     const endIso = computeEndTime(startIso, duration);
 
-    // Crear la cita
-    const appointmentData = {
-      patient_id: patient.id,
-      doctor_id: body.doctor_id || null,
-      start_time: startIso,
-      end_time: endIso,
-      duration_minutes: duration,
-      type: mapTypeToDb(body.type || 'telemedicine'),
-      status: 'scheduled' as const,
-      notes: body.notes || null,
-      reason: body.reason || null,
-      meeting_url: body.meeting_url || null,
-      location: body.location || null,
-    };
+    // Destructure body for easier use in insert, matching the provided diff's variable names
+    const {
+      doctor_id,
+      type,
+      notes,
+      reason,
+      meeting_url,
+      location
+    } = body;
+    const start_time = startIso;
+    const endTime = endIso;
+    const duration_minutes = duration;
 
-    const { data: appointment, error: insertError } = await supabase
+    const { data: newAppointment, error: insertError } = await (supabase as any)
       .from('appointments')
-      .insert(appointmentData)
+      .insert({
+        patient_id: (patient as any).id,
+        doctor_id,
+        start_time,
+        end_time: endTime,
+        duration_minutes: Number(duration_minutes),
+        type: mapTypeToDb(type || 'telemedicine'), // Ensure type is mapped
+        status: 'scheduled',
+        notes,
+        reason,
+        meeting_url,
+        location
+      })
       .select(`
         *,
         doctor:doctors (
@@ -167,7 +172,7 @@ export async function POST(request: NextRequest) {
           specialty,
           profile_picture_url
         )
-      `)
+      `) // Re-added select to maintain original functionality of fetching doctor info
       .single();
 
     if (insertError) {
@@ -180,7 +185,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: mapAppointment(appointment as DbAppointmentRow),
+      data: mapAppointment(newAppointment as DbAppointmentRow),
     }, { status: 201 });
   } catch (error) {
     logger.error('[POST /api/appointments] Unexpected error:', error);

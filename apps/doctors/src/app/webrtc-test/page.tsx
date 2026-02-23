@@ -1,4 +1,5 @@
 'use client'
+import { logger } from "@autamedica/shared"
 
 import { useEffect, useRef, useState } from 'react'
 import { ensureClientEnv } from '@autamedica/shared'

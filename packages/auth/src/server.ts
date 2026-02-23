@@ -5,10 +5,11 @@
  * con manejo seguro de cookies y sesiones.
  */
 
-import { createServerClient as createSupabaseServerClient } from "@supabase/ssr";
 import { ensureServerEnv } from "@autamedica/shared";
-import { NextRequest, NextResponse } from "next/server";
+import type { Database } from "@autamedica/types";
+import { createServerClient as createSupabaseServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * Crea un cliente Supabase para Server Components y Server Actions
@@ -18,7 +19,7 @@ import { cookies } from "next/headers";
 export async function createServerClient() {
   const cookieStore = await cookies();
 
-  return createSupabaseServerClient(
+  return createSupabaseServerClient<Database>(
     ensureServerEnv("SUPABASE_URL"),
     ensureServerEnv("SUPABASE_ANON_KEY"),
     {
@@ -49,7 +50,7 @@ export function createMiddlewareClient(request: NextRequest) {
     request,
   });
 
-  const supabase = createSupabaseServerClient(
+  const supabase = createSupabaseServerClient<Database>(
     ensureServerEnv("SUPABASE_URL"),
     ensureServerEnv("SUPABASE_ANON_KEY"),
     {
@@ -73,25 +74,44 @@ export function createMiddlewareClient(request: NextRequest) {
 /**
  * Crea un cliente Supabase para Route Handlers (API Routes)
  */
-export function createRouteHandlerClient(request: NextRequest) {
-  const response = new NextResponse();
+export async function createRouteHandlerClient() {
+  const cookieStore = await cookies();
 
-  const supabase = createSupabaseServerClient(
+  return createSupabaseServerClient<Database>(
     ensureServerEnv("SUPABASE_URL"),
     ensureServerEnv("SUPABASE_ANON_KEY"),
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll();
+          return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            cookieStore.set(name, value, options);
           });
         },
       },
     }
   );
+}
 
-  return { supabase, response };
+/**
+ * Crea un cliente Supabase con privilegios administrativos (service_role)
+ * NUNCA usar en el cliente. Solo para operaciones internas del servidor.
+ */
+export function createAdminClient() {
+  return createSupabaseServerClient<Database>(
+    ensureServerEnv("SUPABASE_URL"),
+    ensureServerEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      cookies: {
+        getAll() {
+          return [];
+        },
+        setAll() {
+          // No operation
+        },
+      },
+    }
+  );
 }

@@ -15,15 +15,17 @@
 // Load environment variables FIRST
 import 'dotenv/config';
 
+import cors from 'cors';
 import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import cors from 'cors';
-import { RoomManager } from './rooms.js';
 import { authenticateSocket } from './auth.js';
 import { logger } from './logger.js';
+import { RoomManager } from './rooms.js';
 import type { ClientToServerEvents, ServerToClientEvents } from './types.js';
-import { livekitRoutes } from './routes.js';
+// LiveKit REST routes disabled: Express 4 Router crashes under tsx ESM
+// (path-to-regexp incompatibility). Socket.io signaling is unaffected.
+// import { livekitRoutes } from './routes.js';
 
 const PORT = parseInt(process.env.PORT || '8888', 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3003';
@@ -33,8 +35,8 @@ const app = express();
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json()); // Parse JSON bodies
 
-// LiveKit REST API routes
-app.use(livekitRoutes);
+// LiveKit REST API routes (disabled — see note above)
+// app.use(livekitRoutes);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
@@ -245,10 +247,10 @@ io.on('connection', async (socket: Socket) => {
 
     // Clean up all rooms user was in
     const userRooms = await roomManager.getUserRooms(userId);
-    
+
     for (const roomId of userRooms) {
       await roomManager.leaveRoom(roomId, userId);
-      
+
       // Notify others
       socket.to(roomId).emit('user-left', {
         roomId,
@@ -279,7 +281,7 @@ httpServer.listen(PORT, () => {
  */
 process.on('SIGTERM', () => {
   logger.info('[Signaling] SIGTERM received, closing server...');
-  
+
   httpServer.close(() => {
     logger.info('[Signaling] Server closed');
     process.exit(0);
@@ -288,7 +290,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   logger.info('[Signaling] SIGINT received, closing server...');
-  
+
   httpServer.close(() => {
     logger.info('[Signaling] Server closed');
     process.exit(0);

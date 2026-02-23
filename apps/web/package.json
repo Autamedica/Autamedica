@@ -24,6 +24,7 @@
     "framer-motion": "^12.23.12",
     "geist": "^1.7.0",
     "gsap": "^3.13.0",
+    "lucide-react": "^0.575.0",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },

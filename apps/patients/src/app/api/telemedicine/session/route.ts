@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@autamedica/auth/server'
-import { logger, getOptionalClientEnv, ensureServerEnv } from '@autamedica/shared'
+import { ensureServerEnv, getOptionalClientEnv, logger } from '@autamedica/shared'
+import type { Database } from '@autamedica/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
 
 const ICE_SERVERS = [
@@ -43,6 +44,9 @@ type StartResponse = {
     server_url: string
     ice_servers: Array<{ urls: string | string[]; username?: string; credential?: string }>
   }
+  participants?: any[]
+  events?: any[]
+  livekit?: any
 }
 
 function mapSession(row: DbTelemedicineSession): SessionPayload {
@@ -56,7 +60,7 @@ function mapSession(row: DbTelemedicineSession): SessionPayload {
   }
 }
 
-async function resolvePatientId(supabase: ReturnType<typeof createRouteHandlerClient>, userId: string) {
+async function resolvePatientId(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase
     .from('patients')
     .select('id')
@@ -113,7 +117,7 @@ async function requestLiveKitPayload(
 }
 
 async function markAppointmentStatus(
-  supabase: ReturnType<typeof createRouteHandlerClient>,
+  supabase: SupabaseClient<Database>,
   appointmentId: string | null,
   status: 'in_progress' | 'completed'
 ) {
@@ -132,8 +136,7 @@ async function markAppointmentStatus(
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient(cookieStore)
+    const supabase = await createRouteHandlerClient()
 
     const {
       data: { session: authSession },
@@ -176,10 +179,10 @@ export async function POST(request: Request) {
 
       const livekit = signalingUrl
         ? await requestLiveKitPayload(signalingUrl, {
-            consultationId: existing.data.id,
-            patientId,
-            doctorId,
-          })
+          consultationId: existing.data.id,
+          patientId,
+          doctorId,
+        })
         : null
 
       return NextResponse.json({
@@ -194,7 +197,7 @@ export async function POST(request: Request) {
           participants: participantsRes.data ?? [],
           events: eventsRes.data ?? [],
           livekit,
-        } satisfies StartResponse,
+        } as StartResponse,
       })
     }
 
@@ -239,10 +242,10 @@ export async function POST(request: Request) {
 
     const livekit = signalingUrl
       ? await requestLiveKitPayload(signalingUrl, {
-          consultationId: inserted.data.id,
-          patientId,
-          doctorId,
-        })
+        consultationId: inserted.data.id,
+        patientId,
+        doctorId,
+      })
       : null
 
     return NextResponse.json({
@@ -257,7 +260,7 @@ export async function POST(request: Request) {
         participants: [],
         events: [],
         livekit,
-      } satisfies StartResponse,
+      } as StartResponse,
     })
   } catch (e) {
     logger.error('[Telemedicina] POST error', e)
@@ -267,8 +270,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient(cookieStore)
+    const supabase = await createRouteHandlerClient()
     const url = new URL(request.url)
     const sessionId = url.searchParams.get('sessionId')
 
@@ -326,10 +328,10 @@ export async function GET(request: Request) {
 
     const livekit = shouldRequestLivekit
       ? await requestLiveKitPayload(signalingUrl!, {
-          consultationId: sessionRow.id,
-          patientId: String(sessionRow.patient_id),
-          doctorId: String(sessionRow.doctor_id),
-        })
+        consultationId: sessionRow.id,
+        patientId: String(sessionRow.patient_id),
+        doctorId: String(sessionRow.doctor_id),
+      })
       : null
 
     return NextResponse.json({

@@ -5,8 +5,8 @@
  * equipos de atención médica y DTOs para Supabase.
  */
 
-import type { PatientId, DoctorId, UUID } from "../primitives/id";
 import type { ISODateString } from "../primitives/date";
+import type { DoctorId, PatientId, UUID } from "../primitives/id";
 
 // ==========================================
 // Patient Care Team Types
@@ -36,6 +36,8 @@ export interface Patient {
   gender?: "male" | "female" | "other" | "prefer_not_to_say";
   address?: PatientAddress;
   emergencyContact?: EmergencyContact;
+  status?: string;
+  lastVisit?: ISODateString;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }

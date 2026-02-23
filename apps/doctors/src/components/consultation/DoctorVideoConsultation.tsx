@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import {
-  LiveKitRoom,
-  VideoConference,
-  RoomAudioRenderer,
-  ControlBar,
-  useLocalParticipant,
-  useTracks
+    ControlBar,
+    LiveKitRoom,
+    RoomAudioRenderer,
+    useLocalParticipant,
+    useTracks,
+    VideoConference
 } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { Track } from 'livekit-client';
+import { useEffect, useState } from 'react';
 interface DoctorVideoConsultationProps {
   consultationId: string;
   patientId: string;
@@ -204,7 +204,7 @@ export function DoctorVideoConsultation({
 
         {/* Componente principal de videoconferencia */}
         <VideoConference
-          chatMessageFormatter={(message) => `${message.from?.identity}: ${message.message}`}
+          chatMessageFormatter={(msg: any) => `${msg.from?.identity}: ${msg.message}`}
         />
 
         {/* Controles médicos avanzados */}

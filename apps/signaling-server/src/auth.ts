@@ -4,15 +4,16 @@
  * Valida JWT tokens de Supabase para autenticar conexiones Socket.io
  */
 
-import jwt from 'jsonwebtoken';
+import type { Database } from '@autamedica/types';
 import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
 import { logger } from './logger.js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey)
+  ? createClient<Database>(supabaseUrl, supabaseKey)
   : null;
 
 export interface AuthResult {

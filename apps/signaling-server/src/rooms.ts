@@ -8,13 +8,14 @@
  * - Tracking en Supabase (opcional)
  */
 
+import type { Database } from '@autamedica/types';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { logger } from './logger.js';
 import type { Room, RoomUser } from './types.js';
 
 export class RoomManager {
   private rooms: Map<string, Room> = new Map();
-  private supabase: SupabaseClient | null = null;
+  private supabase: SupabaseClient<Database> | null = null;
 
   constructor() {
     // Inicializar Supabase si hay credenciales
@@ -22,7 +23,7 @@ export class RoomManager {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
+      this.supabase = createClient<Database>(supabaseUrl, supabaseKey);
       logger.info('[RoomManager] Supabase integration enabled');
     } else {
       logger.warn('[RoomManager] Supabase not configured, running in-memory only');

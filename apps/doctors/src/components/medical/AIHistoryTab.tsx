@@ -4,26 +4,26 @@
 
 'use client'
 
-import { useState } from 'react'
-import type { JSX } from 'react'
-import {
-  Brain,
-  Search,
-  Calendar,
-  Target,
-  AlertTriangle,
-  CheckCircle,
-  Zap,
-  Stethoscope,
-  Activity,
-  ChevronDown,
-  ChevronRight
-} from 'lucide-react'
 import { useAIAnalysis } from '@/hooks'
-import type { DiagnosticConfidence } from '@/types/medical'
+import type { DiagnosticConfidence, UUID } from '@/types/medical'
+import {
+    Activity,
+    AlertTriangle,
+    Brain,
+    Calendar,
+    CheckCircle,
+    ChevronDown,
+    ChevronRight,
+    Search,
+    Stethoscope,
+    Target,
+    Zap
+} from 'lucide-react'
+import type { JSX } from 'react'
+import { useState } from 'react'
 
 interface AIHistoryTabProps {
-  patientId: string | null
+  patientId: UUID | null
 }
 
 const CONFIDENCE_CONFIG: Record<DiagnosticConfidence, {

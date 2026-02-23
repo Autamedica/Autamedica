@@ -14,20 +14,21 @@ import type {
 } from '@/types/medical';
 import { getOptionalClientEnv } from '@autamedica/shared';
 import { featureFlags, logger } from '@autamedica/shared/config/feature-flags';
+import type { Database } from '@autamedica/types';
 import { createClient } from '@supabase/supabase-js';
 
 // Cliente de Supabase (solo se inicializa si NO usamos mocks)
 const supabase = !featureFlags.USE_MOCK_MEDICAL_DATA
   ? (() => {
-      const url = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_URL');
-      const anonKey = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-      
-      // Solo inicializa si los valores existen (en el servidor/build podrían faltar sin NEXT_PUBLIC_)
-      if (url && anonKey) {
-        return createClient(url, anonKey);
-      }
-      return null;
-    })()
+    const url = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_URL');
+    const anonKey = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+    // Solo inicializa si los valores existen (en el servidor/build podrían faltar sin NEXT_PUBLIC_)
+    if (url && anonKey) {
+      return createClient<Database>(url, anonKey);
+    }
+    return null;
+  })()
   : null;
 
 // API Client

@@ -55,6 +55,8 @@
     "db:generate": "node scripts/generate-db-types.mjs",
     "db:sync": "node scripts/generate-db-types.mjs && node scripts/validate-database-schema.mjs",
     "db:test": "node scripts/test-db-generation.mjs",
+    "types:db:gen": "supabase gen types typescript --project-id knywotiidsydsaveqkjs > packages/types/src/supabase/database.types.ts && cp packages/types/src/supabase/database.types.ts packages/shared/src/types/database.types.ts && tsx scripts/postprocess-db-types.ts",
+    "types:db:postprocess": "tsx scripts/postprocess-db-types.ts",
     "docs:sync": "node scripts/docs-sync.mjs",
     "docs:sync:watch": "node scripts/docs-watch.mjs",
     "docs:db": "GLOSSARY_MODE=pg tsx scripts/database-glossary/cli/index.ts generate",
@@ -195,8 +197,9 @@
     "overrides": {
       "esbuild": "^0.25.4",
       "undici": "^5.28.5",
-      "path-to-regexp": "^6.3.0",
-      "cookie": "^0.7.0"
+      "cookie": "^0.7.0",
+      "@types/react": "19.1.0",
+      "@types/react-dom": "19.1.0"
     }
   }
 }

@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import DoctorCallPage from '@/components/doctors/calls/DoctorCallPage';
+
+const { roomId } = Astro.params;
+
+const title = `Videollamada ${roomId} | AutaMedica`;
+const description = 'Sala de videollamada médica';
+---
+
+<Layout title={title} description={description}>
+  <DoctorCallPage roomId={roomId} client:load />
+</Layout>

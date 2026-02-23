@@ -1,15 +1,15 @@
 'use client';
 
-import { use, useState } from 'react';
-import { DoctorVideoConsultation } from '../../../components/consultation/DoctorVideoConsultation';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { DoctorVideoConsultation } from '../../../components/consultation/DoctorVideoConsultation';
 
 export default function DoctorConsultationPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id: consultationId } = use(params);
+  const consultationId = params.id;
   const router = useRouter();
   const [showConsultation, setShowConsultation] = useState(false);
 

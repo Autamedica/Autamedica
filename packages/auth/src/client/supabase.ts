@@ -2,17 +2,18 @@
  * @fileoverview Centralized Supabase client for browser environments
  */
 
+import type { Database } from '@autamedica/types'
 import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
-import { getSupabaseConfig, getSessionConfig, getDomainConfig } from '../utils/config'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getDomainConfig, getSessionConfig, getSupabaseConfig } from '../utils/config'
 
-let supabaseClient: SupabaseClient | null = null
+let supabaseClient: SupabaseClient<Database> | null = null
 
 /**
  * Create or get the Supabase browser client
  * Singleton pattern to ensure only one client instance
  */
-export function createBrowserClient(): SupabaseClient {
+export function createBrowserClient(): SupabaseClient<Database> {
   // Return existing client if already created
   if (supabaseClient) {
     return supabaseClient
@@ -28,7 +29,7 @@ export function createBrowserClient(): SupabaseClient {
   const domainConfig = getDomainConfig()
 
   // Create the client with SSO cookie configuration
-  supabaseClient = createSupabaseBrowserClient(url, anonKey, {
+  supabaseClient = createSupabaseBrowserClient<Database>(url, anonKey, {
     cookies: {
       get(name: string) {
         // Use js-cookie for better cross-domain support
@@ -116,7 +117,7 @@ export function createBrowserClient(): SupabaseClient {
 /**
  * Get the existing Supabase client or create a new one
  */
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient<Database> {
   if (!supabaseClient) {
     return createBrowserClient()
   }

@@ -11,8 +11,9 @@
  * - Integración con base de datos Supabase
  */
 
-import { RoomServiceClient, AccessToken, EgressClient, TrackSource } from 'livekit-server-sdk';
+import type { Database } from '@autamedica/types';
 import { createClient } from '@supabase/supabase-js';
+import { AccessToken, EgressClient, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import { logger } from './logger.js';
 
 // Environment variables
@@ -45,7 +46,7 @@ export interface ConsultationRoom {
 export class LiveKitService {
   private roomService: RoomServiceClient;
   private egressClient: EgressClient;
-  private supabase: ReturnType<typeof createClient>;
+  private supabase: ReturnType<typeof createClient<Database>>;
 
   constructor() {
     this.roomService = new RoomServiceClient(LIVEKIT_API_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
@@ -53,7 +54,7 @@ export class LiveKitService {
 
     // Supabase es opcional - solo para tracking
     if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-      this.supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+      this.supabase = createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_KEY);
       logger.info('[LiveKit] Supabase tracking enabled');
     } else {
       // Mock client si no hay credenciales

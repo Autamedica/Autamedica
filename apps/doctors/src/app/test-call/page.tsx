@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { logger } from '@autamedica/shared'
 import { UnifiedVideoCall } from '@autamedica/telemedicine'
+import { useState } from 'react'
 
 export default function TestCallPage() {
   const [roomId, setRoomId] = useState('test-room-001')

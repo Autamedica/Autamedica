@@ -1,12 +1,10 @@
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
+import { NextResponse } from 'next/server'
 
 export async function POST(request: Request, { params }: { params: { sessionId: string } }) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient(cookieStore)
+    const supabase = await createRouteHandlerClient()
     const sessionId = params.sessionId
 
     const body = await request.json().catch(() => ({})) as { event_type?: string; event_data?: any }
@@ -17,15 +15,17 @@ export async function POST(request: Request, { params }: { params: { sessionId: 
       return NextResponse.json({ ok: false, error: 'event_type_required' }, { status: 400 })
     }
 
-    const res = await supabase
+    const { data: event, error } = await (supabase as any)
       .from('telemedicine_session_events')
-      .insert({
+      .insert([{
         session_id: sessionId,
         event_type: eventType,
-        event_data: eventData,
-      })
+        event_data: body.event_data || {}
+      }])
+      .select()
+      .single()
 
-    if (res.error) throw res.error
+    if (error) throw error
 
     return NextResponse.json({ ok: true })
   } catch (e) {

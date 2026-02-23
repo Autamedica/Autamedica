@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
+import type { AppSupabaseClient } from '@autamedica/supabase-client'
+import { NextResponse } from 'next/server'
 
 async function updateAppointmentStatus(
-  supabase: ReturnType<typeof createRouteHandlerClient>,
+  supabase: AppSupabaseClient,
   sessionId: string,
   status: 'completed'
 ) {
@@ -24,8 +24,7 @@ async function updateAppointmentStatus(
 
 export async function PATCH(request: Request, { params }: { params: { sessionId: string } }) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient(cookieStore)
+    const supabase = await createRouteHandlerClient()
     const sessionId = params.sessionId
 
     const {
@@ -79,8 +78,7 @@ export async function PATCH(request: Request, { params }: { params: { sessionId:
 
 export async function DELETE(_request: Request, { params }: { params: { sessionId: string } }) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createRouteHandlerClient(cookieStore)
+    const supabase = await createRouteHandlerClient()
 
     const res = await supabase
       .from('telemedicine_sessions')

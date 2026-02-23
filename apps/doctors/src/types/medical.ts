@@ -5,7 +5,9 @@
 
 // =============== TIPOS BÁSICOS ===============
 
-export type UUID = string
+import type { UUID as BrandedUUID } from '@autamedica/types'
+
+export type UUID = BrandedUUID
 export type ISODateString = string
 
 export type PatientGender = 'masculino' | 'femenino' | 'otro' | 'no_especificado'

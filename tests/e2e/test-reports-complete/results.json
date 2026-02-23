@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/root/altamedica-reboot-fresh/tests/e2e/playwright.doctor-videocall.config.ts",
-    "rootDir": "/root/altamedica-reboot-fresh/tests/e2e",
+    "configFile": "/home/edu/Autamedica/tests/e2e/playwright.doctor-videocall.config.ts",
+    "rootDir": "/home/edu/Autamedica/tests/e2e",
     "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
@@ -10,7 +10,9 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "reporter": [
       [
@@ -31,13 +33,15 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/root/altamedica-reboot-fresh/test-results",
+        "outputDir": "/home/edu/Autamedica/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/root/altamedica-reboot-fresh/tests/e2e",
+        "testDir": "/home/edu/Autamedica/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/doctor-login-videocall-flow.spec.ts"
@@ -63,12 +67,12 @@
         {
           "title": "🧠 Doctor Login + Videollamada - Flujo Completo",
           "file": "doctor-login-videocall-flow.spec.ts",
-          "line": 588,
+          "line": 594,
           "column": 6,
           "specs": [
             {
               "title": "Flujo médico completo: Login → Perfil → Videollamada → WebRTC → Cierre",
-              "ok": true,
+              "ok": false,
               "tags": [],
               "tests": [
                 {
@@ -77,18 +81,88 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 14175,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"success\"\u001b[39m\nReceived: \u001b[31m\"failed\"\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"success\"\u001b[39m\nReceived: \u001b[31m\"failed\"\u001b[39m\n    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:618:27",
+                        "location": {
+                          "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                          "column": 27,
+                          "line": 618
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 616 |\u001b[39m     \n \u001b[90m 617 |\u001b[39m     \u001b[90m// Validaciones finales\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 618 |\u001b[39m     expect(results\u001b[33m.\u001b[39mlogin)\u001b[33m.\u001b[39mtoBe(\u001b[32m'success'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 619 |\u001b[39m     expect(results\u001b[33m.\u001b[39mrole)\u001b[33m.\u001b[39mtoBe(\u001b[32m'doctor'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 620 |\u001b[39m     expect(results\u001b[33m.\u001b[39mpatient)\u001b[33m.\u001b[39mtoBe(\u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mpatientName)\u001b[33m;\u001b[39m\n \u001b[90m 621 |\u001b[39m     expect(results\u001b[33m.\u001b[39mcall_status)\u001b[33m.\u001b[39mtoBe(\u001b[32m'connected'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                            "column": 27,
+                            "line": 618
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"success\"\u001b[39m\nReceived: \u001b[31m\"failed\"\u001b[39m\n\n\u001b[0m \u001b[90m 616 |\u001b[39m     \n \u001b[90m 617 |\u001b[39m     \u001b[90m// Validaciones finales\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 618 |\u001b[39m     expect(results\u001b[33m.\u001b[39mlogin)\u001b[33m.\u001b[39mtoBe(\u001b[32m'success'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 619 |\u001b[39m     expect(results\u001b[33m.\u001b[39mrole)\u001b[33m.\u001b[39mtoBe(\u001b[32m'doctor'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 620 |\u001b[39m     expect(results\u001b[33m.\u001b[39mpatient)\u001b[33m.\u001b[39mtoBe(\u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mpatientName)\u001b[33m;\u001b[39m\n \u001b[90m 621 |\u001b[39m     expect(results\u001b[33m.\u001b[39mcall_status)\u001b[33m.\u001b[39mtoBe(\u001b[32m'connected'\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:618:27\u001b[22m"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[2026-02-22T21:54:47.893Z] 🚀 Iniciando flujo completo de doctor login + videollamada\n"
+                        },
+                        {
+                          "text": "[2026-02-22T21:54:47.897Z] 🔐 Paso 1: Realizando login como doctor...\n"
+                        },
+                        {
+                          "text": "[2026-02-22T21:54:58.251Z] ❌ ERROR: Login falló: TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('form') to be visible\u001b[22m\n\n"
+                        },
+                        {
+                          "text": "[2026-02-22T21:54:58.251Z] ❌ ERROR: Flujo falló: TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('form') to be visible\u001b[22m\n\n"
+                        },
+                        {
+                          "text": "📊 REPORTE FINAL: {\n  \"timestamp\": \"2026-02-22T21:54:58.251Z\",\n  \"test_name\": \"doctor-login-videocall-flow\",\n  \"results\": {\n    \"login\": \"failed\",\n    \"role\": null,\n    \"patient\": null,\n    \"call_status\": \"failed\",\n    \"duration_sec\": 0,\n    \"webrtc_connection\": false,\n    \"video_working\": false,\n    \"audio_working\": false,\n    \"errors\": [\n      \"Login falló: TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\\nCall log:\\n\\u001b[2m  - waiting for locator('form') to be visible\\u001b[22m\\n\",\n      \"Flujo falló: TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\\nCall log:\\n\\u001b[2m  - waiting for locator('form') to be visible\\u001b[22m\\n\"\n    ],\n    \"logs\": [\n      \"[2026-02-22T21:54:47.893Z] 🚀 Iniciando flujo completo de doctor login + videollamada\",\n      \"[2026-02-22T21:54:47.897Z] 🔐 Paso 1: Realizando login como doctor...\",\n      \"[2026-02-22T21:54:58.251Z] ❌ ERROR: Login falló: TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\\nCall log:\\n\\u001b[2m  - waiting for locator('form') to be visible\\u001b[22m\\n\",\n      \"[2026-02-22T21:54:58.251Z] ❌ ERROR: Flujo falló: TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\\nCall log:\\n\\u001b[2m  - waiting for locator('form') to be visible\\u001b[22m\\n\"\n    ]\n  },\n  \"summary\": {\n    \"passed\": false,\n    \"total_errors\": 2,\n    \"duration_seconds\": 0\n  }\n}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-22T21:54:45.547Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-72722-eollamada-→-WebRTC-→-Cierre-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-72722-eollamada-→-WebRTC-→-Cierre-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-72722-eollamada-→-WebRTC-→-Cierre-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                        "column": 27,
+                        "line": 618
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
                 }
               ],
               "id": "f7849b8a9cf51c49c253-41dcddc7f2d1b5db4af6",
               "file": "doctor-login-videocall-flow.spec.ts",
-              "line": 593,
+              "line": 599,
               "column": 7
             },
             {
               "title": "Validación de autenticación con credenciales específicas",
-              "ok": true,
+              "ok": false,
               "tags": [],
               "tests": [
                 {
@@ -97,18 +171,72 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7503,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('form')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('form')\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('form')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('form')\u001b[22m\n\n    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:631:40",
+                        "location": {
+                          "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                          "column": 40,
+                          "line": 631
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 629 |\u001b[39m     \n \u001b[90m 630 |\u001b[39m     \u001b[90m// Verificar que el formulario está presente\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 631 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'form'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 632 |\u001b[39m     \n \u001b[90m 633 |\u001b[39m     \u001b[90m// Llenar credenciales exactas del prompt\u001b[39m\n \u001b[90m 634 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[type=\"email\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorEmail)\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                            "column": 40,
+                            "line": 631
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m failed\n\nLocator:  locator('form')\nExpected: visible\nReceived: <element(s) not found>\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('form')\u001b[22m\n\n\n\u001b[0m \u001b[90m 629 |\u001b[39m     \n \u001b[90m 630 |\u001b[39m     \u001b[90m// Verificar que el formulario está presente\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 631 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mlocator(\u001b[32m'form'\u001b[39m))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 632 |\u001b[39m     \n \u001b[90m 633 |\u001b[39m     \u001b[90m// Llenar credenciales exactas del prompt\u001b[39m\n \u001b[90m 634 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[type=\"email\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorEmail)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:631:40\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-22T21:55:04.399Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-7abfd-on-credenciales-específicas-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-7abfd-on-credenciales-específicas-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-7abfd-on-credenciales-específicas-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                        "column": 40,
+                        "line": 631
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
                 }
               ],
               "id": "f7849b8a9cf51c49c253-1f95ac5d26d7f9472a30",
               "file": "doctor-login-videocall-flow.spec.ts",
-              "line": 620,
+              "line": 626,
               "column": 7
             },
             {
               "title": "Verificación de token JWT y rol en localStorage",
-              "ok": true,
+              "ok": false,
               "tags": [],
               "tests": [
                 {
@@ -117,13 +245,51 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8889,
+                      "error": {
+                        "message": "Error: page.fill: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"email\"]')\u001b[22m\n",
+                        "stack": "Error: page.fill: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"email\"]')\u001b[22m\n\n    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:655:16",
+                        "location": {
+                          "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                          "column": 16,
+                          "line": 655
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 653 |\u001b[39m     \u001b[90m// Login primero\u001b[39m\n \u001b[90m 654 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m`${TEST_CONFIG.authUrl}/login?role=doctor`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 655 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[type=\"email\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorEmail)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 656 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[type=\"password\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorPassword)\u001b[33m;\u001b[39m\n \u001b[90m 657 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button[type=\"submit\"]'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 658 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForURL(\u001b[35m/doctors/\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m15000\u001b[39m })\u001b[33m;\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                            "column": 16,
+                            "line": 655
+                          },
+                          "message": "Error: page.fill: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"email\"]')\u001b[22m\n\n\n\u001b[0m \u001b[90m 653 |\u001b[39m     \u001b[90m// Login primero\u001b[39m\n \u001b[90m 654 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m`${TEST_CONFIG.authUrl}/login?role=doctor`\u001b[39m)\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 655 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[type=\"email\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorEmail)\u001b[33m;\u001b[39m\n \u001b[90m     |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 656 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mfill(\u001b[32m'input[type=\"password\"]'\u001b[39m\u001b[33m,\u001b[39m \u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorPassword)\u001b[33m;\u001b[39m\n \u001b[90m 657 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mclick(\u001b[32m'button[type=\"submit\"]'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 658 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForURL(\u001b[35m/doctors/\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m15000\u001b[39m })\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:655:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-22T21:55:14.848Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                        "column": 16,
+                        "line": 655
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
                 }
               ],
               "id": "f7849b8a9cf51c49c253-8751cfce58c7b6d178b9",
               "file": "doctor-login-videocall-flow.spec.ts",
-              "line": 646,
+              "line": 652,
               "column": 7
             },
             {
@@ -137,18 +303,32 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 10255,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-22T21:55:27.310Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
               "id": "f7849b8a9cf51c49c253-7ab08d09a2c94815e517",
               "file": "doctor-login-videocall-flow.spec.ts",
-              "line": 666,
+              "line": 672,
               "column": 7
             },
             {
               "title": "Simulación de llamada entre doctor y paciente",
-              "ok": true,
+              "ok": false,
               "tags": [],
               "tests": [
                 {
@@ -157,13 +337,72 @@
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 3733,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3003/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3003/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3003/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3003/\", waiting until \"load\"\u001b[22m\n\n    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:722:21",
+                        "location": {
+                          "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                          "column": 21,
+                          "line": 722
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 720 |\u001b[39m       \u001b[36mawait\u001b[39m \u001b[33mPromise\u001b[39m\u001b[33m.\u001b[39mall([\n \u001b[90m 721 |\u001b[39m         doctorPage\u001b[33m.\u001b[39mgoto(\u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorsUrl)\u001b[33m,\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 722 |\u001b[39m         patientPage\u001b[33m.\u001b[39mgoto(\u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mpatientsUrl)\n \u001b[90m     |\u001b[39m                     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 723 |\u001b[39m       ])\u001b[33m;\u001b[39m\n \u001b[90m 724 |\u001b[39m       \n \u001b[90m 725 |\u001b[39m       \u001b[90m// Esperar a que carguen\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                            "column": 21,
+                            "line": 722
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3003/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3003/\", waiting until \"load\"\u001b[22m\n\n\n\u001b[0m \u001b[90m 720 |\u001b[39m       \u001b[36mawait\u001b[39m \u001b[33mPromise\u001b[39m\u001b[33m.\u001b[39mall([\n \u001b[90m 721 |\u001b[39m         doctorPage\u001b[33m.\u001b[39mgoto(\u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mdoctorsUrl)\u001b[33m,\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 722 |\u001b[39m         patientPage\u001b[33m.\u001b[39mgoto(\u001b[33mTEST_CONFIG\u001b[39m\u001b[33m.\u001b[39mpatientsUrl)\n \u001b[90m     |\u001b[39m                     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 723 |\u001b[39m       ])\u001b[33m;\u001b[39m\n \u001b[90m 724 |\u001b[39m       \n \u001b[90m 725 |\u001b[39m       \u001b[90m// Esperar a que carguen\u001b[39m\u001b[0m\n\u001b[2m    at /home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts:722:21\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-02-22T21:55:37.975Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-a9931-ada-entre-doctor-y-paciente-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-a9931-ada-entre-doctor-y-paciente-chromium/video.webm"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-a9931-ada-entre-doctor-y-paciente-chromium/test-failed-2.png"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/edu/Autamedica/test-results/doctor-login-videocall-flo-a9931-ada-entre-doctor-y-paciente-chromium/test-failed-3.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/edu/Autamedica/tests/e2e/doctor-login-videocall-flow.spec.ts",
+                        "column": 21,
+                        "line": 722
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
                 }
               ],
               "id": "f7849b8a9cf51c49c253-408b81cf25e87979c4b2",
               "file": "doctor-login-videocall-flow.spec.ts",
-              "line": 697,
+              "line": 703,
               "column": 7
             }
           ]
@@ -173,11 +412,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-05T07:02:48.432Z",
-    "duration": 130.90599999999995,
-    "expected": 0,
-    "skipped": 5,
-    "unexpected": 0,
+    "startTime": "2026-02-22T21:54:41.382Z",
+    "duration": 60621.621,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 4,
     "flaky": 0
   }
 }

@@ -1,19 +1,20 @@
 "use client"
 
-import { useState } from 'react'
-import type { JSX } from 'react'
-import {
-  Check,
-  Crown,
-  Star,
-  Users,
-  Calendar,
-  BarChart3,
-  Brain,
-  X,
-  ArrowLeft
-} from 'lucide-react'
 import { MercadoPagoCheckout, MercadoPagoSubscriptionManager } from '@/components/payment/MercadoPagoIntegration'
+import { logger } from '@autamedica/shared'
+import {
+    ArrowLeft,
+    BarChart3,
+    Brain,
+    Calendar,
+    Check,
+    Crown,
+    Star,
+    Users,
+    X
+} from 'lucide-react'
+import type { JSX } from 'react'
+import { useState } from 'react'
 
 type PlanFeature = {
   title: string

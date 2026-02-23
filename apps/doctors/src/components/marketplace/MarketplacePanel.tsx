@@ -1,21 +1,21 @@
 'use client'
 
-import { useState } from 'react'
-import {
-  Search,
-  MapPin,
-  Clock,
-  DollarSign,
-  Users,
-  Eye,
-  Briefcase,
-  Map,
-  List
-} from 'lucide-react'
-import { LeafletMap } from './LeafletMap'
 import { useRealDoctors } from '@/hooks/useRealDoctors'
-import { MarketplaceJobOffer, MarketplaceDoctor, ARGENTINE_PROVINCES } from '@/types/marketplace'
+import { ARGENTINE_PROVINCES, MarketplaceDoctor, MarketplaceJobOffer } from '@/types/marketplace'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
+import {
+    Briefcase,
+    Clock,
+    DollarSign,
+    Eye,
+    List,
+    Map,
+    MapPin,
+    Search,
+    Users
+} from 'lucide-react'
+import { useState } from 'react'
+import { LeafletMap } from './LeafletMap'
 
 export function MarketplacePanel() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -29,33 +29,101 @@ export function MarketplacePanel() {
 
   const { doctors, loading: doctorsLoading, error: doctorsError } = useRealDoctors()
 
-  // Mock job offers (en una implementación real vendría de una API)
+  // Mock job offers
   const jobOffers: MarketplaceJobOffer[] = [
     {
       id: '1',
       title: 'Cardiólogo - Hospital Italiano',
+      company: 'Hospital Italiano',
       specialty: 'Cardiología',
       hospital: 'Hospital Italiano',
-      location: 'Buenos Aires',
+      location: {
+        city: 'Buenos Aires',
+        province: 'CABA',
+        country: 'Argentina',
+        coordinates: { lat: -34.6037, lng: -58.3816 }
+      },
       type: 'full-time',
-      salary: { min: 150000, max: 250000, currency: 'ARS' },
+      salary: { min: 450000, max: 650000, currency: 'ARS', period: 'mes' },
       urgent: true,
+      remote: false,
+      applicationsCount: 12,
+      viewsCount: 145,
+      publishedDate: new Date().toISOString(),
       description: 'Buscamos cardiólogo con experiencia en procedimientos invasivos.',
-      status: 'active'
+      requirements: ['Título habilitante', 'Residencia completa', 'Experiencia 3+ años'],
+      benefits: ['Prepaga OSDE 310', 'Bonos por resultados', 'Capacitación paga'],
+      status: 'active',
+      experience: 'Senior',
+      schedule: 'Lunes a Viernes 8-16hs',
+      contactInfo: {
+        name: 'RRHH Hospital Italiano',
+        email: 'rrhh@hospitalitaliano.org.ar'
+      }
     },
     {
       id: '2',
       title: 'Pediatra - Sanatorio Otamendi',
+      company: 'Sanatorio Otamendi',
       specialty: 'Pediatría',
       hospital: 'Sanatorio Otamendi',
-      location: 'Buenos Aires',
+      location: {
+        city: 'Buenos Aires',
+        province: 'CABA',
+        country: 'Argentina',
+        coordinates: { lat: -34.5997, lng: -58.4016 }
+      },
       type: 'part-time',
-      salary: { min: 80000, max: 120000, currency: 'ARS' },
+      salary: { min: 280000, max: 350000, currency: 'ARS', period: 'mes' },
       urgent: false,
+      remote: false,
+      applicationsCount: 8,
+      viewsCount: 92,
+      publishedDate: new Date(Date.now() - 86400000).toISOString(),
       description: 'Pediatra para guardias nocturnas y fines de semana.',
-      status: 'active'
+      requirements: ['Título especialista', 'Disponibilidad horaria'],
+      benefits: ['Buen clima laboral', 'Comedor en planta'],
+      status: 'active',
+      experience: 'Semi-Senior',
+      schedule: 'Fines de semana',
+      contactInfo: {
+        name: 'RRHH Sanatorio Otamendi',
+        email: 'rrhh@otamendi.com.ar'
+      }
     }
   ]
+
+  const mappedDoctors: MarketplaceDoctor[] = (doctors || []).map(doc => {
+    // Attempt to get name from profile safely with type assertion
+    const profile = doc.profile as any;
+    const name = profile ? `${profile.first_name || profile.firstName || ''} ${profile.last_name || profile.lastName || ''}`.trim() || 'Médico' : 'Médico';
+
+    return {
+      id: doc.id,
+      name: name,
+      specialties: [doc.specialty].filter(Boolean) as string[],
+      location: {
+        city: 'Buenos Aires',
+        province: 'CABA',
+        country: 'Argentina',
+        coordinates: { lat: -34.6037, lng: -58.3816 }
+      },
+      rating: 4.8,
+      experience: 8,
+      hourlyRate: { amount: 15000, currency: 'ARS' },
+      availableForHiring: true,
+      responseTime: 2,
+      isUrgentAvailable: true,
+      isOnline: true,
+      workArrangement: 'remote',
+      languages: ['Español'],
+      verificationStatus: 'verified',
+      licenseNumber: 'MN 123456',
+      offersDirectServices: true,
+      totalJobs: 24,
+      successRate: 98
+    }
+  })
 
   const filteredJobs = jobOffers.filter(job => {
     const matchesSearch = searchTerm === '' ||
@@ -258,7 +326,7 @@ export function MarketplacePanel() {
           <div className="flex-1 p-4">
             <LeafletMap
               jobs={filteredJobs}
-              doctors={doctors}
+              doctors={mappedDoctors}
               selectedItem={selectedItem?.id}
               onItemSelect={handleItemSelect}
               filters={{
@@ -393,7 +461,7 @@ export function MarketplacePanel() {
           </div>
 
           {/* Detalles del trabajo */}
-          <div className="w-1/2 p-6">
+          <div className="w-1/2 p-6 overflow-y-auto">
             {selectedItem && 'title' in selectedItem ? (
               <div className="space-y-6">
                 <div>

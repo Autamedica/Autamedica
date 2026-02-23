@@ -9,8 +9,7 @@
     "@autamedica/telemedicine": "workspace:*",
     "react": "^19.0.0"
   },
-  "devDependencies": {
-    "@types/react": "19.1.0",
-    "typescript": "^5.9.2"
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
   }
 }

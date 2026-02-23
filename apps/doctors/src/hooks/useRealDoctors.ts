@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { logger, selectActive } from '@autamedica/shared';
 import { DoctorWithProfile } from '@autamedica/types';
-import { selectActive } from '@autamedica/shared';
-import { logger } from '@autamedica/shared';
+import { useEffect, useState } from 'react';
 
 /**
  * Hook migrado al sistema híbrido
@@ -59,7 +58,7 @@ export function useRealDoctors(): UseDoctorsResult {
 
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
       // y filtra deleted_at IS NULL
-      const data = await selectActive<UiDoctor>('doctors', `
+      const data = await selectActive<'doctors', UiDoctor>('doctors', `
         *,
         profile:profiles!inner(*)
       `, {
@@ -113,7 +112,7 @@ export function useCurrentDoctor(userId?: string): UseCurrentDoctorResult {
       setError(null);
 
       // Sistema híbrido: selectActive con filtro adicional
-      const data = await selectActive<UiDoctor>('doctors', `
+      const data = await selectActive<'doctors', UiDoctor>('doctors', `
         *,
         profile:profiles!inner(*)
       `, {
@@ -173,7 +172,7 @@ export function useDoctorsBySpecialty(specialty: string): UseDoctorsBySpecialtyR
       setError(null);
 
       // Sistema híbrido: fetch all y filtrar
-      const data = await selectActive<UiDoctor>('doctors', `
+      const data = await selectActive<'doctors', UiDoctor>('doctors', `
         *,
         profile:profiles!inner(*)
       `, {

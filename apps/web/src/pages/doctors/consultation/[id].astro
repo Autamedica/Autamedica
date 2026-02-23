@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import ConsultationPage from '@/components/doctors/consultation/ConsultationPage';
+
+const { id } = Astro.params;
+
+const title = `Videoconsulta ${id} | AutaMedica`;
+const description = 'Sala de videoconsulta médica';
+---
+
+<Layout title={title} description={description}>
+  <ConsultationPage consultationId={id} client:load />
+</Layout>

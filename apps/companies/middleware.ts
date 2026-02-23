@@ -1,9 +1,9 @@
 /**
  * Secure middleware for Companies portal
- * Uses JWT verification instead of Supabase client
+ * Uses @supabase/ssr for session verification (compatible with ECC + HS256 keys)
  */
 
-import { buildSafeLoginUrl, getSession, getTargetUrlByRole, hasRole, isValidRole, logger } from '@autamedica/shared';
+import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Public routes that don't require authentication
@@ -16,7 +16,7 @@ const PUBLIC_ROUTES = [
 ];
 
 // Allowed roles for companies portal
-const ALLOWED_ROLES = ['company_admin', 'organization_admin', 'platform_admin'] as const;
+const ALLOWED_ROLES = ['company_admin', 'organization_admin', 'platform_admin'];
 const ROBOTS_TAG_VALUE = 'noindex, nofollow, noarchive, nosnippet, noimageindex';
 
 function withNoIndex(response: NextResponse): NextResponse {
@@ -24,70 +24,66 @@ function withNoIndex(response: NextResponse): NextResponse {
   return response;
 }
 
+function getAuthHubUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
+function buildLoginRedirect(portal: string, returnTo?: string, error?: string): string {
+  const authHub = getAuthHubUrl();
+  const url = new URL('/auth/login', authHub);
+  url.searchParams.set('portal', portal);
+  if (returnTo) url.searchParams.set('returnTo', returnTo);
+  if (error) url.searchParams.set('error', error);
+  return url.toString();
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const { origin, search } = request.nextUrl;
 
   // Allow public routes
   if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
     return withNoIndex(NextResponse.next());
   }
 
-  try {
-    // Get session using JWT verification (no Supabase client needed)
-    // Cast needed due to monorepo Next type resolution mismatch between apps/packages.
-    const session = await getSession(request as any);
+  const response = NextResponse.next();
 
-    // No session - redirect to login
-    if (!session) {
-      const loginUrl = buildSafeLoginUrl('companies', request.url, 'session_expired');
-      return NextResponse.redirect(new URL(loginUrl));
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          for (const { name, value, options } of cookiesToSet) {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          }
+        },
+      },
     }
+  );
 
-    // Check if user has allowed role for companies portal
-    if (!hasRole(session, [...ALLOWED_ROLES])) {
-      // User has wrong role - redirect to their correct portal
-      const role = session.user.role;
-      if (!role || !isValidRole(role)) {
-        const loginUrl = buildSafeLoginUrl('companies', request.url, 'wrong_role');
-        return NextResponse.redirect(new URL(loginUrl));
-      }
-      return NextResponse.redirect(new URL(getTargetUrlByRole(role)));
-    }
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-    // Verify user is on correct portal for their role
-    const role = session.user.role;
-    if (!role || !isValidRole(role)) {
-      const loginUrl = buildSafeLoginUrl('companies', request.url, 'wrong_role');
-      return NextResponse.redirect(new URL(loginUrl));
-    }
-
-    const expectedOrigin = new URL(getTargetUrlByRole(role)).origin;
-    if (origin !== expectedOrigin) {
-      return NextResponse.redirect(new URL(`${pathname}${search}`, expectedOrigin));
-    }
-
-    // All checks passed
-    return withNoIndex(NextResponse.next());
-  } catch (error) {
-    logger.error('Middleware error:', error);
-
-    // On error, redirect to login
-    const loginUrl = buildSafeLoginUrl('companies', request.url, 'auth_error');
+  if (error || !user) {
+    const loginUrl = buildLoginRedirect('companies', request.url, 'session_expired');
     return NextResponse.redirect(new URL(loginUrl));
   }
+
+  // Check role from user metadata
+  const userRole = (user.user_metadata?.role as string) || '';
+  if (userRole && !ALLOWED_ROLES.includes(userRole)) {
+    const loginUrl = buildLoginRedirect('companies', undefined, 'wrong_role');
+    return NextResponse.redirect(new URL(loginUrl));
+  }
+
+  return withNoIndex(response);
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, manifest.webmanifest (metadata files)
-     * - public folder
-     * - api/health (health check endpoint)
-     */
     '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|public|api/health).*)',
   ],
 };

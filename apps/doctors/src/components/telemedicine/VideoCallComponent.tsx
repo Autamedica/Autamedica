@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { logger } from '@autamedica/shared'
 import { WebRTCClient, type ConnectionState, type MediaConstraints } from '@autamedica/telemedicine'
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Phone, Users } from 'lucide-react'
+import { Mic, MicOff, Phone, PhoneOff, Users, Video, VideoOff } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface VideoCallComponentProps {
   roomId: string

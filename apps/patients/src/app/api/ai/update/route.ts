@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { ensureClientEnv, ensureServerEnv, logger } from '@autamedica/shared'
-import { getUserIdFromRequest } from '@/lib/server/auth'
 import { buildPatientContext, persistPatientContextFiles } from '@/lib/ai/context-builder'
+import { getUserIdFromRequest } from '@/lib/server/auth'
+import { createAdminClient } from '@autamedica/auth/server'
+import { logger } from '@autamedica/shared'
+import type { AppSupabaseClient } from '@autamedica/supabase-client'
+import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
@@ -16,9 +17,7 @@ export async function POST(request: Request) {
     const patient = body?.patient as Record<string, unknown> | undefined
     if (!profile && !patient) return NextResponse.json({ ok: false, error: 'no_updates' }, { status: 400 })
 
-    const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL')
-    const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY')
-    const admin = createClient(url, serviceKey)
+    const admin = createAdminClient() as AppSupabaseClient;
 
     // Apply profile updates
     if (profile && Object.keys(profile).length > 0) {
@@ -26,30 +25,15 @@ export async function POST(request: Request) {
         const snake: any = {}
         if ('firstName' in profile) snake.first_name = (profile as any).firstName
         if ('lastName' in profile) snake.last_name = (profile as any).lastName
-        if ('phone' in profile) snake.phone = (profile as any).phone
-        if ('fullName' in profile) snake.full_name = (profile as any).fullName
-        if ('email' in profile) snake.email = (profile as any).email
+        if ('phone' in profile) snake.phone = (profile as any).phone;
+        if ('email' in profile) snake.email = (profile as any).email;
 
-        // First try modern schema columns
-        const upd = await admin.from('profiles').update(snake).eq('id', userId).select('*').single()
-        if (upd.error) throw upd.error
+        // Update profiles with typed columns (PK is 'id' which is the auth user id)
+        const upd = await admin.from('profiles').update(snake).eq('id', userId).select('*').single();
+        if (upd.error) throw upd.error;
       } catch (err: any) {
-        // Fallback legacy: collapse to full_name if needed
-        const fullName = (
-          ((profile as any)?.fullName as string | undefined) ??
-          [
-            (profile as any)?.firstName as string | undefined,
-            (profile as any)?.lastName as string | undefined,
-          ]
-            .filter(Boolean)
-            .join(' ')
-            .trim()
-        ) || null
-        const legacy = await admin.from('profiles').update({ full_name: fullName }).eq('id', userId).select('*').single()
-        if (legacy.error) {
-          logger.error('[AI] update profile failed', legacy.error)
-          return NextResponse.json({ ok: false, error: legacy.error.message || 'profile_update_failed' }, { status: 400 })
-        }
+        logger.error('[AI] update profile failed', err);
+        return NextResponse.json({ ok: false, error: err.message || 'profile_update_failed' }, { status: 400 });
       }
     }
 

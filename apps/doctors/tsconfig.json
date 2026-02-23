@@ -23,7 +23,6 @@
     { "path": "../../packages/auth" },
     { "path": "../../packages/hooks" },
     { "path": "../../packages/ui" },
-    { "path": "../../packages/utils" },
     { "path": "../../packages/telemedicine" }
   ]
 }

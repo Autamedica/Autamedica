@@ -5,12 +5,11 @@
  * DELETE /api/appointments/[id] - Cancelar cita
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@autamedica/auth/server';
-import { cookies } from 'next/headers';
 import type { UpdateAppointmentInput } from '@/types/appointment';
+import { createRouteHandlerClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
-import { mapAppointment, mapTypeToDb, computeEndTime } from '../utils';
+import { NextRequest, NextResponse } from 'next/server';
+import { computeEndTime, mapAppointment, mapTypeToDb } from '../utils';
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
@@ -25,8 +24,7 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient(cookieStore);
+    const supabase = await createRouteHandlerClient();
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -101,8 +99,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient(cookieStore);
+    const supabase = await createRouteHandlerClient();
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -225,8 +222,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-    const cookieStore = await cookies();
-    const supabase = createRouteHandlerClient(cookieStore);
+    const supabase = await createRouteHandlerClient();
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();

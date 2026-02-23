@@ -1,9 +1,10 @@
 'use client'
 
-import React, { ReactNode, useState, useEffect } from 'react'
+import { getPatientDisplayName } from '@/app/page'
 import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
-import { useCurrentDoctor } from '@/hooks/useRealDoctors'
 import { useDoctorStats } from '@/hooks/useDoctorStats'
+import { useCurrentDoctor } from '@/hooks/useRealDoctors'
+import { ReactNode, useEffect, useState } from 'react'
 
 interface VSCodeLayoutProps {
   children?: ReactNode
@@ -18,8 +19,8 @@ export default function VSCodeLayout({ children }: VSCodeLayoutProps) {
   const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
 
   // Real userName from authenticated user or doctor profile
-  const userName = doctor?.profile?.full_name ||
-                   user?.profile?.full_name ||
+  const userName = doctor?.profile ? getPatientDisplayName(doctor.profile as any) :
+                   user?.profile ? getPatientDisplayName(user.profile as any) :
                    `Dr. ${user?.email?.split('@')[0] || 'Médico'}`
 
   useEffect(() => {

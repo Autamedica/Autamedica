@@ -1,5 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { ensureClientEnv, ensureServerEnv } from '@autamedica/shared'
+import { createAdminClient } from '@autamedica/auth/server'
+import type { AppSupabaseClient } from '@autamedica/supabase-client'
 
 export type PatientContextSummary = {
   name: string | null
@@ -13,13 +13,12 @@ export type PatientContextSummary = {
   birthDate: string | null
 }
 
-export async function getAdminClient(): Promise<SupabaseClient> {
-  const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL')
-  const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY')
-  return createClient(url, serviceKey)
+// getAdminClient is now a wrapper around the standardized factory
+export async function getAdminClient(): Promise<AppSupabaseClient> {
+  return createAdminClient() as AppSupabaseClient;
 }
 
-export async function buildPatientContext(userId: string, admin?: SupabaseClient) {
+export async function buildPatientContext(userId: string, admin?: AppSupabaseClient) {
   const client = admin ?? (await getAdminClient())
   const [{ data: profile }, { data: patient }] = await Promise.all([
     client.from('profiles').select('*').eq('id', userId).maybeSingle(),
@@ -41,7 +40,7 @@ export async function buildPatientContext(userId: string, admin?: SupabaseClient
   return { profile, patient, summary }
 }
 
-export async function persistPatientContextFiles(userId: string, data: { profile: any; patient: any; summary: PatientContextSummary }, admin?: SupabaseClient) {
+export async function persistPatientContextFiles(userId: string, data: { profile: any; patient: any; summary: PatientContextSummary }, admin?: AppSupabaseClient) {
   const client = admin ?? (await getAdminClient())
   const BUCKET = 'patient-files'
 
@@ -50,14 +49,14 @@ export async function persistPatientContextFiles(userId: string, data: { profile
   const contextJson = Buffer.from(JSON.stringify(data.summary, null, 2), 'utf8')
   const summaryMd = Buffer.from(
     `# Resumen del Paciente\n\n` +
-      `- Nombre: ${data.summary.name ?? '—'}\n` +
-      `- Email: ${data.summary.email ?? '—'}\n` +
-      `- Rol: ${data.summary.role ?? '—'}\n` +
-      `- Género: ${data.summary.gender ?? '—'}\n` +
-      `- Grupo sanguíneo: ${data.summary.bloodType ?? '—'}\n` +
-      `- Altura (cm): ${data.summary.heightCm ?? '—'}\n` +
-      `- Peso (kg): ${data.summary.weightKg ?? '—'}\n` +
-      `- Fecha de nacimiento: ${data.summary.birthDate ?? '—'}\n`,
+    `- Nombre: ${data.summary.name ?? '—'}\n` +
+    `- Email: ${data.summary.email ?? '—'}\n` +
+    `- Rol: ${data.summary.role ?? '—'}\n` +
+    `- Género: ${data.summary.gender ?? '—'}\n` +
+    `- Grupo sanguíneo: ${data.summary.bloodType ?? '—'}\n` +
+    `- Altura (cm): ${data.summary.heightCm ?? '—'}\n` +
+    `- Peso (kg): ${data.summary.weightKg ?? '—'}\n` +
+    `- Fecha de nacimiento: ${data.summary.birthDate ?? '—'}\n`,
     'utf8',
   )
 

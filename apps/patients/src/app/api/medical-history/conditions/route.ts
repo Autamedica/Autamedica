@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@autamedica/auth/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies()
-  const supabase = createRouteHandlerClient(cookieStore)
+  const supabase = await createRouteHandlerClient()
 
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -17,15 +15,18 @@ export async function POST(request: NextRequest) {
 
   if (!condition) return NextResponse.json({ error: 'condition requerido' }, { status: 400 })
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('medical_records')
     .insert([{
       patient_id: userId,
-      record_type: 'diagnosis',
+      type: 'diagnosis',
       title: condition,
-      icd10_code,
-      notes,
-      status: 'active',
+      content: {
+        condition,
+        icd10_code,
+        notes,
+        status: 'active'
+      },
       visibility: 'private'
     }])
     .select('*')

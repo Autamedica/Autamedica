@@ -3,27 +3,28 @@
  * Validates user sessions and enforces role-based access control
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import type { Database } from '@autamedica/types'
 import { createServerClient } from '@supabase/ssr'
-import {
-  UserRole,
-  AppName,
-  APP_ALLOWED_ROLES,
-  AuthError,
-  UserProfile
-} from '../types'
+import { NextRequest, NextResponse } from 'next/server'
 import { isUserRole, ROLES } from '../roles'
 import {
-  getSupabaseConfig,
-  getDomainConfig,
-  getSessionConfig
-} from '../utils/config'
+  APP_ALLOWED_ROLES,
+  AppName,
+  AuthError,
+  UserProfile,
+  UserRole
+} from '../types'
 import {
-  getLoginUrl,
-  isCorrectAppForRole,
-  getCorrectAppUrl
-} from '../utils/redirect'
+  getDomainConfig,
+  getSessionConfig,
+  getSupabaseConfig
+} from '../utils/config'
 import logger from '../utils/logger'
+import {
+  getCorrectAppUrl,
+  getLoginUrl,
+  isCorrectAppForRole
+} from '../utils/redirect'
 
 /**
  * Create Supabase server client for middleware
@@ -37,7 +38,7 @@ function createMiddlewareClient(request: NextRequest) {
     request
   })
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient<Database>(url, anonKey, {
     cookies: {
       get(name) {
         return request.cookies.get(name)?.value

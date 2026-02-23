@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { ensureClientEnv, ensureServerEnv, logger } from '@autamedica/shared'
 import { getUserIdFromRequest } from '@/lib/server/auth'
+import { createAdminClient } from '@autamedica/auth/server'
+import { logger } from '@autamedica/shared'
+import type { AppSupabaseClient } from '@autamedica/supabase-client'
+import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
@@ -17,9 +18,7 @@ export async function POST(request: Request) {
     const usedPattern = Boolean(body?.usedPattern)
     const replyPreview = (body?.replyPreview as string | undefined)?.slice(0, 500) || null
 
-    const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL')
-    const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY')
-    const admin = createClient(url, serviceKey)
+    const admin = createAdminClient() as any as AppSupabaseClient;
 
     // Insertar si la tabla existe; si no, ignorar
     try {

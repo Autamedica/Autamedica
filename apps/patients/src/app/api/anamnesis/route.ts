@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { ensureClientEnv, ensureServerEnv, logger } from '@autamedica/shared'
 import { getUserIdFromRequest } from '@/lib/server/auth'
+import { createAdminClient } from '@autamedica/auth/server'
+import { logger } from '@autamedica/shared'
+import type { AppSupabaseClient } from '@autamedica/supabase-client'
+import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
@@ -32,13 +33,9 @@ function toBoolean(value: unknown, fallback = false) {
   return fallback
 }
 
-function buildSupabaseAdmin() {
-  const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL')
-  const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY')
-  return createClient(url, serviceKey)
-}
+// buildSupabaseAdmin removed as we now use createAdminClient()
 
-async function ensureAnamnesisRecord(admin: ReturnType<typeof buildSupabaseAdmin>, patientId: string) {
+async function ensureAnamnesisRecord(admin: AppSupabaseClient, patientId: string) {
   const existing = await admin
     .from('anamnesis')
     .select('*')
@@ -81,7 +78,7 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
     }
 
-    const admin = buildSupabaseAdmin()
+    const admin = createAdminClient() as AppSupabaseClient;
     const anamnesis = await ensureAnamnesisRecord(admin, userId)
 
     const sectionsRes = await admin
@@ -126,7 +123,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'missing_step' }, { status: 400 })
     }
 
-    const admin = buildSupabaseAdmin()
+    const admin = createAdminClient() as AppSupabaseClient;
     const anamnesis = await ensureAnamnesisRecord(admin, userId)
 
     const upsert = await admin
@@ -198,7 +195,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: 'no_updates' }, { status: 400 })
     }
 
-    const admin = buildSupabaseAdmin()
+    const admin = createAdminClient() as AppSupabaseClient;
     const anamnesis = await ensureAnamnesisRecord(admin, userId)
 
     const updateRes = await admin

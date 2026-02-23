@@ -1,32 +1,24 @@
+import { createAdminClient, createRouteHandlerClient } from '@autamedica/auth/server';
+import { logger } from '@autamedica/shared';
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-import { ensureClientEnv, ensureServerEnv, logger } from '@autamedica/shared';
 
 export const runtime = 'nodejs';
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-    const anonUrl = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL');
-    const anonKey = ensureClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-    const supabase = createServerClient(anonUrl, anonKey, {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value; },
-        set() { return undefined; },
-        remove() { return undefined; },
-      },
-    });
+    const supabase = await createRouteHandlerClient();
 
     // Try auth via Authorization: Bearer <token> header first (works in dev across ports)
-    const authHeader = (await import('next/headers')).headers().get('authorization');
+    const headerList = await headers();
+    const authHeader = headerList.get('authorization');
     let userId: string | null = null;
+
     if (authHeader?.toLowerCase().startsWith('bearer ')) {
       const token = authHeader.slice(7);
       try {
-        const adminTmp = createClient(anonUrl, ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY'));
-        const { data: userRes, error: userErr } = await adminTmp.auth.getUser(token);
+        const admin = createAdminClient();
+        const { data: userRes, error: userErr } = await admin.auth.getUser(token);
         if (!userErr && userRes?.user) userId = userRes.user.id;
       } catch (_) { void 0 }
     }
@@ -41,31 +33,45 @@ export async function POST() {
     if (!userId) {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
     }
-    const url = ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL');
-    const serviceKey = ensureServerEnv('SUPABASE_SERVICE_ROLE_KEY');
-    const admin = createClient(url, serviceKey);
+
+    const body = await req.json();
+    const email = body?.email;
 
     // Ensure profiles row (id PK) exists with minimal fields
     try {
-      const { data: exists } = await admin
+      const { data: profile, error: profileErr } = await (supabase as any)
         .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
-      if (!exists) {
-        await admin
-          .from('profiles')
-          .insert({ id: userId })
-          .throwOnError();
+        .upsert({
+          id: userId,
+          email: email || '', // Email is NOT NULL in schema
+          portal: 'patients',
+          full_name: body?.full_name || null
+        }, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (profileErr) {
+        throw profileErr;
       }
     } catch (e) {
       logger.error('[API] ensure profile failed (profiles)', e as Error);
       return NextResponse.json({ ok: false, error: 'profiles_failed' }, { status: 400 });
     }
 
-    // Optionally ensure patients row exists if table is present
+    // Optionally ensure patients row exists
     try {
-      await admin.from('patients').upsert({ user_id: userId, active: true }, { onConflict: 'user_id', ignoreDuplicates: false });
+      const { data: patient, error: patientErr } = await (supabase as any)
+        .from('patients')
+        .upsert({
+          user_id: userId,
+          full_name: body?.full_name || ''
+        }, { onConflict: 'user_id' })
+        .select()
+        .single();
+
+      if (patientErr) {
+        throw patientErr;
+      }
     } catch {
       // ignore if table or constraint is different in this instance
     }

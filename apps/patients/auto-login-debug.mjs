@@ -39,8 +39,8 @@ import { chromium } from '@playwright/test';
   });
 
   try {
-    console.log('📱 Navegando a http://localhost:3003/auth/login?role=patient');
-    await page.goto('http://localhost:3003/auth/login?role=patient', {
+    console.log('📱 Navegando a http://localhost:3000/auth/login?role=patient');
+    await page.goto('http://localhost:3000/auth/login?role=patient', {
       waitUntil: 'networkidle',
       timeout: 15000
     });

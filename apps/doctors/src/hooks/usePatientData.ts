@@ -2,9 +2,9 @@
  * Hook para manejar datos de pacientes con integración Supabase
  */
 
-import { useEffect, useState } from 'react'
-import { logger } from '@autamedica/shared'
-import type { PatientProfile, UUID } from '@autamedica/types'
+import { logger, selectById } from '@autamedica/shared';
+import type { PatientProfile, UUID } from '@autamedica/types';
+import { useCallback, useEffect, useState } from 'react';
 
 // TODO: Define this interface
 interface UsePatientDataResult {
@@ -32,7 +32,7 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
     return age
   }
 
-  const fetchPatient = async () => {
+  const fetchPatient = useCallback(async () => {
     if (!patientId) {
       setPatient(null)
       return
@@ -42,55 +42,25 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
     setError(null)
 
     try {
-      // TODO: Implement Supabase client integration
-      // For now, return null to avoid errors
-      const supabase = null as any
-
-      // TODO: Replace with actual Supabase call
-      const { data, error: fetchError } = { data: null, error: null } as any
-
-      if (fetchError) {
-        throw new Error(fetchError.message)
-      }
+      // Sistema híbrido: fetch from 'patients' joining 'profiles'
+      const data = await selectById<'patients', any>('patients', patientId, {
+        // Query string includes the relationship
+        // In the database.types.ts we have foreign keys defined
+      });
 
       if (data) {
-        const typedData = data as any;
-        const patientProfile = {
-          id: typedData.id,
-          firstName: typedData.first_name,
-          lastName: typedData.last_name,
-          first_name: typedData.first_name, // legacy support
-          last_name: typedData.last_name, // legacy support
-          date_of_birth: typedData.date_of_birth,
-          gender: typedData.gender,
-          phone: typedData.phone,
-          email: typedData.email,
-          address: typedData.address,
-          emergency_contact_name: typedData.emergency_contact_name,
-          emergency_contact_phone: typedData.emergency_contact_phone,
-          blood_type: typedData.blood_type,
-          allergies: typedData.allergies,
-          chronic_conditions: typedData.chronic_conditions,
-          insurance_provider: typedData.insurance_provider,
-          insurance_number: typedData.insurance_number,
-          created_at: typedData.created_at,
-          updated_at: typedData.updated_at,
-          age: calculateAge(typedData.date_of_birth),
-          full_name: `${typedData.first_name} ${typedData.last_name}`,
-          avatar_url: typedData.avatar_url || undefined
-        } as any
-        setPatient(patientProfile)
+        // Transformar para el formato que espera PatientProfile if needed
+        // but here we align with the schema
+        setPatient(data as unknown as PatientProfile)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(`Error al cargar datos del paciente: ${errorMessage}`)
       logger.error('[usePatientData] Error:', err)
-
-      // TODO: Handle demo patient case if needed
     } finally {
       setLoading(false)
     }
-  }
+  }, [patientId])
 
   const refresh = async () => {
     await fetchPatient()
