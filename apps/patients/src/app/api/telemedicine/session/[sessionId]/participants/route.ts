@@ -2,10 +2,10 @@ import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { NextResponse } from 'next/server'
 
-export async function POST(request: Request, { params }: { params: { sessionId: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
-    const supabase = await createRouteHandlerClient()
-    const sessionId = params.sessionId
+    const supabase = (await createRouteHandlerClient()) as any
+    const { sessionId } = await params
 
     const {
       data: { session: authSession },
@@ -49,10 +49,10 @@ export async function POST(request: Request, { params }: { params: { sessionId: 
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { sessionId: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
-    const supabase = await createRouteHandlerClient()
-    const sessionId = params.sessionId
+    const supabase = (await createRouteHandlerClient()) as any
+    const { sessionId } = await params
 
     const {
       data: { session: authSession },

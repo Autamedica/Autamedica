@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const supabase = await createRouteHandlerClient()
+    const supabase = (await createRouteHandlerClient()) as any
 
     const { data: { session }, error: authError } = await supabase.auth.getSession()
     if (authError || !session) {
@@ -37,8 +37,8 @@ export async function GET() {
       .maybeSingle()
 
     const recs = medicalRecords || []
-    const activeMedications = recs.filter(r => r.type === 'prescription' && (r.content as any)?.status === 'active')
-    const recentDiagnoses = recs.filter(r => r.type === 'diagnosis')
+    const activeMedications = recs.filter((r: any) => r.type === 'prescription' && (r.content as any)?.status === 'active')
+    const recentDiagnoses = recs.filter((r: any) => r.type === 'diagnosis')
 
     const summary = {
       patient_id: userId,
@@ -46,14 +46,14 @@ export async function GET() {
       active_medications_count: activeMedications.length,
       known_allergies_count: 0,
       last_encounter_date: recs?.[0]?.created_at || new Date().toISOString(),
-      chronic_conditions: recentDiagnoses.map(d => ({
+      chronic_conditions: recentDiagnoses.map((d: any) => ({
         condition: d.title,
         diagnosed_date: d.created_at || d.date_recorded || new Date().toISOString(),
         icd10_code: (d.content as any)?.icd10_code || undefined,
         status: 'active' as const,
       })),
       critical_allergies: [],
-      current_medications: activeMedications.map(m => {
+      current_medications: activeMedications.map((m: any) => {
         const c = m.content as any
         return {
           medication_name: m.title,
@@ -68,7 +68,7 @@ export async function GET() {
     const timeline = {
       patient_id: userId,
       sections: {
-        conditions: recentDiagnoses.map(r => ({
+        conditions: recentDiagnoses.map((r: any) => ({
           id: r.id,
           condition: r.title,
           diagnosed_date: r.created_at || r.date_recorded || new Date().toISOString(),
@@ -77,7 +77,7 @@ export async function GET() {
           notes: (r.content as any)?.notes || undefined,
         })),
         allergies: [],
-        medications: activeMedications.map(m => {
+        medications: activeMedications.map((m: any) => {
           const c = m.content as any
           return {
             id: m.id,
@@ -92,8 +92,8 @@ export async function GET() {
           }
         }),
         procedures: recs
-          .filter(r => r.type === 'procedure')
-          .map(p => ({
+          .filter((r: any) => r.type === 'procedure')
+          .map((p: any) => ({
             id: p.id,
             procedure_name: p.title,
             date: p.created_at || p.date_recorded,
@@ -102,8 +102,8 @@ export async function GET() {
             outcome: (p.content as any)?.outcome || undefined,
           })),
         encounters: recs
-          .filter(r => r.type === 'encounter' || r.type === 'note' || r.type === 'consultation')
-          .map(e => ({
+          .filter((r: any) => r.type === 'encounter' || r.type === 'note' || r.type === 'consultation')
+          .map((e: any) => ({
             id: e.id,
             date: e.created_at || e.date_recorded,
             type: 'consultation' as const,

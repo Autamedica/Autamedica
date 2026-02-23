@@ -1,10 +1,9 @@
 import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
-import type { AppSupabaseClient } from '@autamedica/supabase-client'
 import { NextResponse } from 'next/server'
 
 async function updateAppointmentStatus(
-  supabase: AppSupabaseClient,
+  supabase: any,
   sessionId: string,
   status: 'completed'
 ) {
@@ -22,10 +21,10 @@ async function updateAppointmentStatus(
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { sessionId: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
-    const supabase = await createRouteHandlerClient()
-    const sessionId = params.sessionId
+    const supabase = (await createRouteHandlerClient()) as any
+    const { sessionId } = await params
 
     const {
       data: { session: authSession },
@@ -76,14 +75,15 @@ export async function PATCH(request: Request, { params }: { params: { sessionId:
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: { sessionId: string } }) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
-    const supabase = await createRouteHandlerClient()
+    const supabase = (await createRouteHandlerClient()) as any
+    const { sessionId } = await params
 
     const res = await supabase
       .from('telemedicine_sessions')
       .delete()
-      .eq('id', params.sessionId)
+      .eq('id', sessionId)
 
     if (res.error) throw res.error
 

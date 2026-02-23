@@ -2,10 +2,10 @@ import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { NextResponse } from 'next/server'
 
-export async function POST(request: Request, { params }: { params: { sessionId: string } }) {
+export async function POST(request: Request, { params }: { params: Promise<{ sessionId: string }> }) {
   try {
     const supabase = await createRouteHandlerClient()
-    const sessionId = params.sessionId
+    const { sessionId } = await params
 
     const body = await request.json().catch(() => ({})) as { event_type?: string; event_data?: any }
     const eventType = typeof body.event_type === 'string' ? body.event_type.trim() : ''

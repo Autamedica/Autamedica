@@ -24,7 +24,7 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const supabase = await createRouteHandlerClient();
+    const supabase = (await createRouteHandlerClient()) as any;
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -99,7 +99,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
-    const supabase = await createRouteHandlerClient();
+    const supabase = (await createRouteHandlerClient()) as any;
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -222,7 +222,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-    const supabase = await createRouteHandlerClient();
+    const supabase = (await createRouteHandlerClient()) as any;
 
     // Verificar autenticación
     const { data: { session }, error: authError } = await supabase.auth.getSession();

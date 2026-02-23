@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
     const supabase = await createRouteHandlerClient();
 

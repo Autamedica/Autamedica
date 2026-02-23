@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const patient = body?.patient as Record<string, unknown> | undefined
     if (!profile && !patient) return NextResponse.json({ ok: false, error: 'no_updates' }, { status: 400 })
 
-    const admin = createAdminClient() as AppSupabaseClient;
+    const admin = createAdminClient() as any as AppSupabaseClient;
 
     // Apply profile updates
     if (profile && Object.keys(profile).length > 0) {

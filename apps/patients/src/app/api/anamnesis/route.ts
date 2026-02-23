@@ -78,7 +78,7 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
     }
 
-    const admin = createAdminClient() as AppSupabaseClient;
+    const admin = createAdminClient() as any as AppSupabaseClient;
     const anamnesis = await ensureAnamnesisRecord(admin, userId)
 
     const sectionsRes = await admin
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'missing_step' }, { status: 400 })
     }
 
-    const admin = createAdminClient() as AppSupabaseClient;
+    const admin = createAdminClient() as any as AppSupabaseClient;
     const anamnesis = await ensureAnamnesisRecord(admin, userId)
 
     const upsert = await admin
@@ -195,7 +195,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: 'no_updates' }, { status: 400 })
     }
 
-    const admin = createAdminClient() as AppSupabaseClient;
+    const admin = createAdminClient() as any as AppSupabaseClient;
     const anamnesis = await ensureAnamnesisRecord(admin, userId)
 
     const updateRes = await admin

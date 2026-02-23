@@ -136,7 +136,7 @@ async function markAppointmentStatus(
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createRouteHandlerClient()
+    const supabase = (await createRouteHandlerClient()) as any
 
     const {
       data: { session: authSession },
@@ -270,7 +270,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const supabase = await createRouteHandlerClient()
+    const supabase = (await createRouteHandlerClient()) as any
     const url = new URL(request.url)
     const sessionId = url.searchParams.get('sessionId')
 
