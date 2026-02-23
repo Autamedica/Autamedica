@@ -19,7 +19,7 @@ function getPatientName(
 ): string {
   const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
   const metadata = user?.user_metadata as Record<string, unknown> | undefined;
-  const metadataName = typeof metadata?.full_name === 'string' ? metadata.full_name : undefined;
+  const metadataName = [metadata?.first_name, metadata?.last_name].filter(Boolean).join(' ').trim() || undefined;
   const emailLocal = user?.email?.split('@')[0];
 
   return profileName || metadataName || emailLocal || 'Paciente';

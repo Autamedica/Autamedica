@@ -1,10 +1,9 @@
 'use client';
 
-import type { PreventiveScreening } from '../../../mocks/preventive-screenings';
-import { AlertCircle, CheckCircle, Clock, Calendar } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock } from 'lucide-react';
 
 interface PreventiveScreeningsProps {
-  screenings: PreventiveScreening[];
+  screenings: any[];
 }
 
 const statusConfig = {

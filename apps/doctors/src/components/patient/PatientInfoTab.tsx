@@ -4,20 +4,20 @@
 
 'use client'
 
-import { useState } from 'react'
-import type { JSX } from 'react'
 import {
-  User,
-  Calendar,
-  Phone,
-  Mail,
-  MapPin,
-  Heart,
-  AlertTriangle,
-  Shield,
-  Edit3,
-  X
+    AlertTriangle,
+    Calendar,
+    Edit3,
+    Heart,
+    Mail,
+    MapPin,
+    Phone,
+    Shield,
+    User,
+    X
 } from 'lucide-react'
+import type { JSX } from 'react'
+import { useState } from 'react'
 import { usePatientData } from '../../hooks/usePatientData'
 
 interface PatientInfoTabProps {
@@ -93,7 +93,9 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
                 {(patient as any).first_name[0]}{(patient as any).last_name[0]}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-100">{(patient as any).full_name}</h1>
+                <h1 className="text-2xl font-bold text-slate-100">
+                  {((patient as any).first_name && (patient as any).last_name) ? `${(patient as any).first_name} ${(patient as any).last_name}` : 'Paciente'}
+                </h1>
                 <p className="text-slate-400">{(patient as any).age} años • {(patient as any).gender}</p>
                 <div className="mt-1 flex items-center gap-2 text-sm text-emerald-400">
                   <Heart className="h-4 w-4" />

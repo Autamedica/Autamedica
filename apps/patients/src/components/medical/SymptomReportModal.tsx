@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Heart, Thermometer, Activity, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { usePatientMedicalStore } from '@/stores/patientMedicalStore';
 import { logger } from '@autamedica/shared';
+import { Activity, AlertTriangle, CheckCircle2, Heart, Thermometer, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 
 interface SymptomReportModalProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ interface SymptomTemplate {
   id: string;
   name: string;
   category: SymptomCategory;
-  icon: JSX.Element;
+  icon: ReactNode;
   description: string;
   defaultSeverity: SymptomSeverity;
 }

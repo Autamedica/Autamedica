@@ -4,8 +4,7 @@ import type {
   ChatStatusType,
   MedicalChatInsert,
   MedicalChatWithLastMessage,
-  MedicalMessage,
-  MedicalMessageInsert
+  MedicalMessage
 } from '@autamedica/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -253,7 +252,7 @@ export function useChatMessages(
 
     try {
 
-      const messageData: MedicalMessageInsert = {
+      const messageData: any = {
         chat_id: chatId,
         author_type: 'patient',
         author_id: userId,

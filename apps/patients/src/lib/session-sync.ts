@@ -1,11 +1,11 @@
+import type { SessionData } from '@autamedica/session';
 import {
   fetchSessionData as fetchSessionDataShared,
   getLoginUrl as getLoginUrlShared,
   logout as logoutShared,
-  SessionData,
 } from '@autamedica/session';
 
-export { SessionData };
+export type { SessionData };
 
 export async function fetchSessionData(): Promise<SessionData | null> {
   return fetchSessionDataShared('patients', 'patient');

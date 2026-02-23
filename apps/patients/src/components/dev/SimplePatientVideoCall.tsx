@@ -1,19 +1,20 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { logger } from '@autamedica/shared'
 import {
-  Video,
-  VideoOff,
-  Mic,
-  MicOff,
-  PhoneOff,
-  PhoneIncoming,
-  Phone,
-  User,
-  Clock,
-  X,
-  Settings
+    Clock,
+    Mic,
+    MicOff,
+    Phone,
+    PhoneIncoming,
+    PhoneOff,
+    Settings,
+    User,
+    Video,
+    VideoOff,
+    X
 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import MediaPicker from './MediaPicker'
 
 interface SimplePatientVideoCallProps {

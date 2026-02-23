@@ -40,7 +40,6 @@ export interface Patient {
 
 export interface PatientProfile extends Patient {
   age: number
-  full_name: string
   avatar_url?: string
 }
 

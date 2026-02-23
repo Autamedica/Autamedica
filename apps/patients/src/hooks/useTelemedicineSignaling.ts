@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { getClientEnvOrDefault } from '@autamedica/shared'
 import {
   TelemedicineClient,
-  type TelemedicineRole,
-  type OfferMessage,
   type AnswerMessage,
   type IceCandidateMessage,
+  type OfferMessage,
+  type TelemedicineRole,
 } from '@autamedica/telemedicine'
-import { getClientEnvOrDefault } from '@autamedica/shared'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 export type SignalingConnectionState =
   | 'idle'
@@ -76,14 +76,14 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
       return undefined
     }
 
-    const client = new TelemedicineClient(normalizedConfig)
+    const client = new TelemedicineClient(normalizedConfig as any)
     clientRef.current = client
 
     const unsubscribes = [
-      client.on('open', () => {
+      (client as any).on('open', () => {
         setState((prev) => ({ ...prev, connectionState: 'connected', error: null }))
       }),
-      client.on('close', () => {
+      (client as any).on('close', () => {
         setState((prev) => ({
           ...prev,
           connectionState: normalizedConfig.autoReconnect ? 'reconnecting' : 'disconnected',
@@ -92,7 +92,7 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
       client.on('error', (error) => {
         setState((prev) => ({ ...prev, error }))
       }),
-      client.on('user-joined', (message) => {
+      (client as any).on('user-joined', (message: any) => {
         setState((prev) => ({
           ...prev,
           participants: addOrUpdateParticipant(prev.participants, {
@@ -101,19 +101,19 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
           }),
         }))
       }),
-      client.on('user-left', (message) => {
+      (client as any).on('user-left', (message: any) => {
         setState((prev) => ({
           ...prev,
           participants: prev.participants.filter((participant) => participant.id !== message.from),
         }))
       }),
-      client.on('offer', (message) => {
+      (client as any).on('offer', (message: any) => {
         setState((prev) => ({ ...prev, lastOffer: message }))
       }),
-      client.on('answer', (message) => {
+      (client as any).on('answer', (message: any) => {
         setState((prev) => ({ ...prev, lastAnswer: message }))
       }),
-      client.on('ice-candidate', (message) => {
+      (client as any).on('ice-candidate', (message: any) => {
         setState((prev) => ({ ...prev, lastCandidate: message }))
       }),
     ]
@@ -142,19 +142,19 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
   }
 
   const sendOffer = (description: RTCSessionDescriptionInit, targetId?: string) => {
-    clientRef.current?.sendOffer(description, targetId)
+    (clientRef.current as any)?.sendOffer(description, targetId)
   }
 
   const sendAnswer = (description: RTCSessionDescriptionInit, targetId?: string) => {
-    clientRef.current?.sendAnswer(description, targetId)
+    (clientRef.current as any)?.sendAnswer(description, targetId)
   }
 
   const sendIceCandidate = (candidate: RTCIceCandidateInit, targetId?: string) => {
-    clientRef.current?.sendIceCandidate(candidate, targetId)
+    (clientRef.current as any)?.sendIceCandidate(candidate, targetId)
   }
 
   const sendLeave = () => {
-    clientRef.current?.sendLeave()
+    (clientRef.current as any)?.sendLeave()
   }
 
   return {

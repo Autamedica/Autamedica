@@ -12,7 +12,7 @@
  */
 
 import type { Database } from '@autamedica/types';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { AccessToken, EgressClient, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import { logger } from './logger.js';
 
@@ -46,7 +46,7 @@ export interface ConsultationRoom {
 export class LiveKitService {
   private roomService: RoomServiceClient;
   private egressClient: EgressClient;
-  private supabase: ReturnType<typeof createClient<Database>>;
+  private supabase: SupabaseClient<Database> | null;
 
   constructor() {
     this.roomService = new RoomServiceClient(LIVEKIT_API_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
@@ -58,7 +58,7 @@ export class LiveKitService {
       logger.info('[LiveKit] Supabase tracking enabled');
     } else {
       // Mock client si no hay credenciales
-      this.supabase = null as any;
+      this.supabase = null;
       logger.warn('[LiveKit] Supabase not configured - room tracking disabled');
     }
 

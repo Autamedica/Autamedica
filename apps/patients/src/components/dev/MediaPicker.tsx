@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { logger } from '@autamedica/shared'
 import { Camera, Mic, Monitor, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface MediaPickerProps {
   onMediaReady: (stream: MediaStream) => void

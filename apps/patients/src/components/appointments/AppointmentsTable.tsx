@@ -1,10 +1,9 @@
 'use client';
 
-import type { Appointment } from '@autamedica/types';
-import { Calendar, Clock, Video, MapPin, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, ExternalLink, MapPin, Video } from 'lucide-react';
 
 interface AppointmentsTableProps {
-  appointments: Appointment[];
+  appointments: any[];
 }
 
 const statusConfig = {

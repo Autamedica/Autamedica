@@ -1,9 +1,9 @@
+import { PatientRootLayout } from '@/components/layout/PatientRootLayout'
+import { SessionSync } from '@/components/SessionSync'
+import '@livekit/components-styles'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import './globals.css'
-import '@livekit/components-styles'
-import { PatientRootLayout } from '@/components/layout/PatientRootLayout'
-import { SessionSync } from '@/components/SessionSync'
 
 export const metadata: Metadata = {
   title: 'AutaMedica Patient Portal',
@@ -26,7 +26,7 @@ type RootLayoutProps = {
   children: ReactNode
 }
 
-export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
+export default function RootLayout({ children }: RootLayoutProps): ReactNode {
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased">

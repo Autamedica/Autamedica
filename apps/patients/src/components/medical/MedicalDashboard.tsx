@@ -1,19 +1,17 @@
-'use client';
-
-import { useState } from 'react';
-import {
-  Heart,
-  Pill,
-  Activity,
-  Calendar,
-  TrendingUp,
-  Clock,
-  Plus,
-  ChevronRight
-} from 'lucide-react';
 import { usePatientMedicalStore } from '@/stores/patientMedicalStore';
-import { SymptomReportModal } from './SymptomReportModal';
+import {
+    Activity,
+    Calendar,
+    ChevronRight,
+    Clock,
+    Heart,
+    Pill,
+    Plus,
+    TrendingUp
+} from 'lucide-react';
+import { useState } from 'react';
 import { MedicationTrackerModal } from './MedicationTrackerModal';
+import { SymptomReportModal } from './SymptomReportModal';
 import { VitalSignsModal } from './VitalSignsModal';
 
 interface MedicalDashboardProps {
@@ -21,17 +19,18 @@ interface MedicalDashboardProps {
 }
 
 export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
-  const { getHealthSummary, getSymptomTrends, getMedicationAdherence } = usePatientMedicalStore();
-
-  // Modal states
   const [showSymptomModal, setShowSymptomModal] = useState(false);
   const [showMedicationModal, setShowMedicationModal] = useState(false);
   const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
-
-  // Get health data
-  const healthSummary = getHealthSummary();
-  const symptomTrends = getSymptomTrends();
-  const medicationAdherence = getMedicationAdherence();
+  const store = usePatientMedicalStore() as any;
+  const healthSummary = store.getHealthSummary?.() || {
+    overallStatus: 'excelente',
+    symptomsCount: 0,
+    lastSymptom: 'Ninguno',
+    lastVitals: null
+  };
+  const symptomTrends = store.getSymptomTrends?.() || [];
+  const medicationAdherence = store.getMedicationAdherence?.() || { adherenceScore: 0 };
 
   // Quick actions for medical tracking
   const medicalActions = [

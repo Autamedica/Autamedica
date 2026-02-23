@@ -1,24 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import React from 'react';
 import { usePatientPortal } from '@/components/layout/PatientPortalShell';
-import { usePatientSession } from '@/hooks/usePatientSession';
-import { useVideoCall } from '@/hooks/useVideoCall';
+import { VideoControls } from '@/components/telemedicine/VideoControls';
+import { VideoLayout, ViewModeSelector } from '@/components/telemedicine/VideoLayout';
 import { useTelemedicine } from '@/hooks';
 import { useMockRemoteStream } from '@/hooks/useMockRemoteStream';
+import { usePatientSession } from '@/hooks/usePatientSession';
 import { useRealRemoteStream } from '@/hooks/useRealRemoteStream';
-import { VideoLayout, ViewModeSelector } from '@/components/telemedicine/VideoLayout';
-import { VideoControls } from '@/components/telemedicine/VideoControls';
-import type { EnhancedVideoCallProps, VideoViewMode, PIPPosition } from '@/types/telemedicine';
-import { logger, featureFlags } from '@autamedica/shared';
+import { useVideoCall } from '@/hooks/useVideoCall';
+import type { EnhancedVideoCallProps, PIPPosition, VideoViewMode } from '@/types/telemedicine';
+import { logger } from '@autamedica/shared';
 import {
-  LiveKitRoom,
-  VideoConference,
-  RoomAudioRenderer,
-  ControlBar,
+    ControlBar,
+    LiveKitRoom,
+    RoomAudioRenderer,
+    VideoConference,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Componente principal de videollamada refactorizado
@@ -30,7 +29,7 @@ export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, classNam
   const { isFocusMode, setFocusMode } = usePatientPortal();
 
   // Sesión del paciente
-  const { currentSession, formattedDuration } = usePatientSession();
+  const patientSession = usePatientSession();
 
   // Custom hook para lógica de video
   const videoCall = useVideoCall();
@@ -38,7 +37,7 @@ export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, classNam
   // Hook de telemedicina para Supabase
   const telemedicine = useTelemedicine(sessionId);
   const joinedRef = useRef(false);
-  const isLiveKitEnabled = featureFlags.USE_LIVEKIT && !featureFlags.USE_MOCK_VIDEO;
+  const isLiveKitEnabled = process.env.NEXT_PUBLIC_USE_LIVEKIT === 'true' && process.env.NEXT_PUBLIC_USE_MOCK_VIDEO !== 'true';
   const liveKitConfig = isLiveKitEnabled ? telemedicine.livekit : null;
 
   const handleLiveKitConnected = useCallback(async () => {
@@ -75,16 +74,16 @@ export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, classNam
 
   // Remote stream - usa mock en desarrollo, LiveKit en producción
   // Controlado por feature flag NEXT_PUBLIC_USE_MOCK_VIDEO
-  const mockStream = featureFlags.USE_MOCK_VIDEO
+  const mockStream = process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === 'true'
     ? useMockRemoteStream(videoCall.callStatus === 'live')
     : null;
 
   // TODO: Pasar remoteParticipant de LiveKit cuando esté disponible
-  const realStream = !featureFlags.USE_MOCK_VIDEO
+  const realStream = process.env.NEXT_PUBLIC_USE_MOCK_VIDEO !== 'true'
     ? useRealRemoteStream(undefined) // Pasar remoteParticipant aquí
     : null;
 
-  const remoteStream = featureFlags.USE_MOCK_VIDEO ? mockStream : realStream;
+  const remoteStream = process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === 'true' ? mockStream : realStream;
 
   // Calidad de la llamada
   // Auto-activar focus mode durante llamadas

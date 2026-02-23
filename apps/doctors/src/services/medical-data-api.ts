@@ -15,10 +15,10 @@ import type {
 import { getOptionalClientEnv } from '@autamedica/shared';
 import { featureFlags, logger } from '@autamedica/shared/config/feature-flags';
 import type { Database } from '@autamedica/types';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 // Cliente de Supabase (solo se inicializa si NO usamos mocks)
-const supabase = !featureFlags.USE_MOCK_MEDICAL_DATA
+const supabase: SupabaseClient<Database> | null = !featureFlags.USE_MOCK_MEDICAL_DATA
   ? (() => {
     const url = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_URL');
     const anonKey = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
@@ -84,7 +84,10 @@ class MedicalDataAPI {
         .limit(20)
 
       if (error) throw error
-      return data || []
+      return (data || []).map((row: any) => ({
+        ...row,
+        doctor_id: row.recorded_by_id || row.recorded_by || row.patient_id, // Fallback
+      })) as VitalSigns[]
     } catch (error) {
       console.error('Error fetching vital signs:', error)
       // Fallback a mock en caso de error
@@ -180,7 +183,24 @@ class MedicalDataAPI {
       if (error) throw error
 
       return {
-        records: data || [],
+        records: (data || []).map((row: any) => {
+          const content = row.content || {};
+          return {
+            id: row.id,
+            patient_id: row.patient_id,
+            doctor_id: row.doctor_id || row.patient_id,
+            consultation_date: row.date_recorded || row.created_at,
+            consultation_type: row.record_type || content.consultation_type || 'general',
+            chief_complaint: content.chief_complaint || content.reason || '',
+            symptoms: content.symptoms || [],
+            diagnosis: content.diagnosis || '',
+            treatment_plan: content.treatment_plan || content.treatment || '',
+            follow_up_instructions: content.follow_up_instructions || null,
+            attachments: row.attachments || [],
+            created_at: row.created_at,
+            updated_at: row.updated_at || row.created_at
+          };
+        }) as MedicalRecord[],
         hasMore: count ? startIndex + pageSize < count : false,
       }
     } catch (error) {

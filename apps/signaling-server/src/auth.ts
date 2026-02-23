@@ -5,14 +5,14 @@
  */
 
 import type { Database } from '@autamedica/types';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { logger } from './logger.js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const supabase = supabaseUrl && supabaseKey
+const supabase: SupabaseClient<Database> | null = supabaseUrl && supabaseKey
   ? createClient<Database>(supabaseUrl, supabaseKey)
   : null;
 

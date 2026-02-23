@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@autamedica/auth/client'
 import { logger } from '@autamedica/shared'
+import { useEffect, useState } from 'react'
 
 interface AppointmentStats {
   activeCount: number
@@ -64,7 +64,6 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
           status,
           patient:patients!inner(
             profile:profiles!inner(
-              full_name,
               first_name,
               last_name
             )
@@ -98,9 +97,8 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
           hour: '2-digit',
           minute: '2-digit'
         }),
-        patientName: nextAppt.patient?.profile?.full_name ||
-                    `${nextAppt.patient?.profile?.first_name || ''} ${nextAppt.patient?.profile?.last_name || ''}`.trim() ||
-                    'Paciente'
+        patientName: `${nextAppt.patient?.profile?.first_name || ''} ${nextAppt.patient?.profile?.last_name || ''}`.trim() ||
+          'Paciente'
       } : null
 
       setStats({

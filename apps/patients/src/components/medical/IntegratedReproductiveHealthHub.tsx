@@ -10,25 +10,25 @@
 
 'use client';
 
-import { useState } from 'react';
 import {
-  Heart,
-  Shield,
-  FileText,
-  Phone,
-  Video,
-  Info,
-  MapPin,
-  MessageSquare,
-  Calendar,
-  Loader2
+    Calendar,
+    FileText,
+    Heart,
+    Info,
+    Loader2,
+    MapPin,
+    MessageSquare,
+    Phone,
+    Shield,
+    Video
 } from 'lucide-react';
+import { useState } from 'react';
 
 // Hooks personalizados
-import { useReproductiveHealthSpecialists } from '@/hooks/useReproductiveHealthSpecialists';
-import { useReproductiveHealthAppointments } from '@/hooks/useReproductiveHealthAppointments';
 import { useHealthCentersGeolocation } from '@/hooks/useHealthCentersGeolocation';
 import { useMedicalChats } from '@/hooks/useMedicalChat';
+import { useReproductiveHealthAppointments } from '@/hooks/useReproductiveHealthAppointments';
+import { useReproductiveHealthSpecialists } from '@/hooks/useReproductiveHealthSpecialists';
 
 // Componentes
 import { ReproductiveHealthHub } from './ReproductiveHealthHub';
@@ -108,7 +108,7 @@ export function IntegratedReproductiveHealthHub({
       modality: 'video_call',
       scheduled_at: new Date(Date.now() + 30 * 60000).toISOString(), // 30 min from now
       duration_minutes: 30
-    });
+    } as any);
 
     if (result.success) {
       setShowAppointmentModal(false);
@@ -124,7 +124,7 @@ export function IntegratedReproductiveHealthHub({
       specialist_id: specialistId,
       subject: 'Consulta sobre IVE/ILE',
       is_urgent: false
-    });
+    } as any);
 
     if (result.success && result.chatId) {
       // Navegar al chat o abrir modal

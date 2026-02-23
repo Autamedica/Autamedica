@@ -1,13 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import type {
-  CreateMedicalConditionInput,
-  CreateMedicalAllergyInput,
-  ConditionStatus,
-  AllergySeverity,
-  FamilyRelationship
-} from '@autamedica/types';
+export type ConditionStatus = 'active' | 'resolved' | 'chronic' | 'under_treatment';
+export type AllergySeverity = 'mild' | 'moderate' | 'severe' | 'life_threatening';
+export type FamilyRelationship = 'mother' | 'father' | 'sibling' | 'grandparent' | 'aunt_uncle' | 'cousin';
+
+export interface CreateMedicalConditionInput {
+  patient_id: string;
+  name: string;
+  status: ConditionStatus;
+  is_chronic: boolean;
+  is_family_history: boolean;
+  family_relationship?: FamilyRelationship;
+}
+
+export interface CreateMedicalAllergyInput {
+  patient_id: string;
+  allergen: string;
+  allergen_type: 'medication' | 'food' | 'environmental' | 'other';
+  severity: AllergySeverity;
+}
 
 interface AnamnesisFormProps {
   onSubmit: (data: AnamnesisFormData) => void;

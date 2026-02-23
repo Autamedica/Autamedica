@@ -1,7 +1,6 @@
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
 import type {
-  PatientScreeningInsert,
   PatientScreeningWithDetails,
   PreventiveScreening,
   ScreeningRecommendation,
@@ -226,7 +225,7 @@ export function usePreventiveScreenings(
         if (updateError) throw updateError;
       } else {
         // Create new
-        const insertData: PatientScreeningInsert = {
+        const insertData: any = {
           patient_id: options.patientId,
           screening_id: screeningId,
           status: 'scheduled',
@@ -274,8 +273,8 @@ export function usePreventiveScreenings(
       let nextDueDate: Date | null = null;
 
       // Calculate next due date based on frequency
-      if (screening?.screening?.recommended_frequency) {
-        const freq = screening.screening.recommended_frequency;
+      if ((screening?.screening as any)?.recommended_frequency) {
+        const freq = (screening.screening as any).recommended_frequency;
         nextDueDate = new Date(completedDate);
 
         switch (freq) {

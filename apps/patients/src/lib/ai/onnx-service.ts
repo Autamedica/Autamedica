@@ -3,11 +3,11 @@
  * Orquesta tokenización, clasificación de intenciones y generación de respuestas
  */
 
+import { getClientEnvOrDefault, getOptionalClientEnv, logger } from '@autamedica/shared';
 import * as ort from 'onnxruntime-web';
+import { intentClassifier, type IntentClassification, type MedicalIntent } from './intent-classifier';
+import { medicalQA, type MedicalResponse, type PatientContext } from './medical-qa';
 import { medicalTokenizer } from './tokenizer';
-import { intentClassifier, type MedicalIntent, type IntentClassification } from './intent-classifier';
-import { medicalQA, type PatientContext, type MedicalResponse } from './medical-qa';
-import { logger, getClientEnvOrDefault, getOptionalClientEnv } from '@autamedica/shared';
 import { loadVocab, wordPieceTokenize, type Vocab } from './wordpiece-tokenizer';
 
 /**
@@ -192,20 +192,20 @@ export class ONNXService {
         const { inputIds, attentionMask, tokenTypeIds } = wordPieceTokenize(query, this.vocab, this.maxLen);
         const feeds: Record<string, ort.Tensor> = {};
         // Nombres comunes de entradas; probamos variantes
-        feeds['input_ids'] = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(n => BigInt(n))), [1, this.maxLen]);
-        feeds['attention_mask'] = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(n => BigInt(n))), [1, this.maxLen]);
+        feeds['input_ids'] = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(n => BigInt(n) as any)), [1, this.maxLen]);
+        feeds['attention_mask'] = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(n => BigInt(n) as any)), [1, this.maxLen]);
         // Algunos modelos no usan token_type_ids
-        try { feeds['token_type_ids'] = new ort.Tensor('int64', BigInt64Array.from(tokenTypeIds.map(n => BigInt(n))), [1, this.maxLen]); } catch {}
+        try { feeds['token_type_ids'] = new ort.Tensor('int64', BigInt64Array.from(tokenTypeIds.map(n => BigInt(n) as any)), [1, this.maxLen]); } catch { }
 
         const results = await this.session.run(feeds);
         // Tomar el primer output como logits
         const firstKey = Object.keys(results)[0];
         const logits = results[firstKey].data as Float32Array | number[];
-        const arr = Array.from(logits as any);
+        const arr = Array.from(logits as any) as number[];
         // Softmax
         const max = Math.max(...arr);
-        const exps = arr.map(v => Math.exp(v - max));
-        const sum = exps.reduce((a, b) => a + b, 0);
+        const exps = arr.map((v: number) => Math.exp(v - max));
+        const sum = exps.reduce((a: number, b: number) => a + b, 0);
         const probs = exps.map(v => v / sum);
         // Top label
         let topIdx = 0;

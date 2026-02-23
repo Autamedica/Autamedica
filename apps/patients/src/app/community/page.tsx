@@ -1,21 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import {
-  MessageSquare,
-  ThumbsUp,
-  Share2,
-  Bookmark,
-  Shield,
-  Search,
-  Plus,
-  User,
-  CheckCircle2,
-  Clock
-} from 'lucide-react'
-import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar'
 import { CollapsibleRightPanel } from '@/components/layout/CollapsibleRightPanel'
+import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar'
 import { useCommunity } from '@/hooks'
+import {
+    Bookmark,
+    CheckCircle2,
+    Clock,
+    MessageSquare,
+    Plus,
+    Search,
+    Share2,
+    Shield,
+    ThumbsUp,
+    User
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 type FilterType = 'all' | 'my-groups' | 'popular' | 'questions'
 
@@ -288,7 +288,9 @@ function PostCard({
                 </span>
               )}
               {isVerified && !isDoctor && (
-                <CheckCircle2 className="h-4 w-4 text-green-600" title="Usuario verificado" />
+                <span title="Usuario verificado">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                </span>
               )}
             </div>
             <div className="mt-1 flex items-center gap-2 text-xs text-stone-600">

@@ -1,3 +1,5 @@
+import { logger } from '@autamedica/shared'
+
 /**
  * Store médico específico para pacientes - Vista desde perspectiva del paciente
  */
@@ -261,4 +263,4 @@ export function usePatientMedicalStore() {
 }
 
 // Necesario para useState
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'

@@ -1,24 +1,24 @@
 'use client'
 
-import type { CSSProperties, ReactNode, ChangeEvent } from 'react'
-import { useEffect, useMemo, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { PatientPortalProvider } from '@/components/layout/PatientPortalShell'
 import clsx from 'clsx'
 import type { LucideIcon } from 'lucide-react'
 import {
-  Activity,
-  Calendar,
-  FileText,
-  HelpCircle,
-  Monitor,
-  Settings,
-  Stethoscope,
-  Video,
-  Heart,
-  Shield,
+    Activity,
+    Calendar,
+    FileText,
+    Heart,
+    HelpCircle,
+    Monitor,
+    Settings,
+    Shield,
+    Stethoscope,
+    Video,
 } from 'lucide-react'
-import { PatientPortalProvider } from '@/components/layout/PatientPortalShell'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { usePathname } from 'next/navigation'
+import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const formatClock = (date: Date): string =>
   new Intl.DateTimeFormat('es-AR', {
@@ -108,7 +108,7 @@ type PatientRootLayoutProps = {
   children: ReactNode
 }
 
-export function PatientRootLayout({ children }: PatientRootLayoutProps): JSX.Element {
+export function PatientRootLayout({ children }: PatientRootLayoutProps): ReactNode {
   const _pathname = usePathname()
   const [themeId, setThemeId] = useState<ThemeId>('autamedica')
   const [_fontScale, _setFontScale] = useState<FontScale>('md')
@@ -134,7 +134,7 @@ export function PatientRootLayout({ children }: PatientRootLayoutProps): JSX.Ele
       '--patient-primary-soft': theme.primarySoft,
       '--patient-text': theme.text,
       '--patient-text-muted': theme.textMuted,
-    } satisfies CSSProperties
+    } as any as CSSProperties
   }, [theme])
 
   const _mainClasses = clsx(

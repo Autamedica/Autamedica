@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useOnboardingContext } from '@/hooks/useOnboardingContext';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
-import { useOnboardingContext } from '@/hooks/useOnboardingContext';
+import { useEffect, useState } from 'react';
 import { generateAutaMiniChatHTML } from './onboarding-helpers';
 
 interface PatientOnboardingProps {
@@ -35,7 +35,6 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
       nextBtnText: 'Siguiente →',
       prevBtnText: '← Anterior',
       doneBtnText: '¡Entendido!',
-      closeBtnText: '✕',
       popoverClass: 'autamedica-onboarding-popover',
       popoverOffset: 20,
 

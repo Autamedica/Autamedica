@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Activity, Heart, Thermometer, Scale, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { usePatientMedicalStore } from '@/stores/patientMedicalStore';
 import { logger } from '@autamedica/shared';
+import { Activity, CheckCircle2, Heart, Scale, Thermometer, TrendingUp, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 
 interface VitalSignsModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ interface VitalSignsData {
 interface VitalSignField {
   key: keyof VitalSignsData;
   label: string;
-  icon: JSX.Element;
+  icon: ReactNode;
   unit: string;
   placeholder: string;
   type: 'number' | 'text';

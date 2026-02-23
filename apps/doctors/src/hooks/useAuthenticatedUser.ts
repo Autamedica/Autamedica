@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@autamedica/auth/client'
+import { logger } from '@autamedica/shared'
+import { useEffect, useState } from 'react'
 
 interface AuthenticatedUser {
   id: string
   email: string
   role: 'doctor' | 'patient' | 'company_admin' | 'platform_admin'
   profile?: {
-    full_name?: string
     first_name?: string
     last_name?: string
     specialties?: string[]
@@ -49,8 +49,8 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
 
       // Get role from user_metadata or app_metadata
       const role = authUser.user.user_metadata?.role ||
-                  authUser.user.app_metadata?.role ||
-                  'doctor' // Default for doctors app
+        authUser.user.app_metadata?.role ||
+        'doctor' // Default for doctors app
 
       // Try to get profile from public.profiles table
       const { data: profile, error: profileError } = await supabase
@@ -68,7 +68,6 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
         email: userEmail,
         role: role as AuthenticatedUser['role'],
         profile: profile || {
-          full_name: authUser.user.user_metadata?.full_name,
           first_name: authUser.user.user_metadata?.first_name,
           last_name: authUser.user.user_metadata?.last_name,
           specialties: authUser.user.user_metadata?.specialties,

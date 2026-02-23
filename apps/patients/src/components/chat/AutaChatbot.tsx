@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Loader2, Sparkles } from 'lucide-react';
 import { usePatientScreenings } from '@/hooks/usePatientScreenings';
-import { getONNXService, initializeONNX } from '@/lib/ai/onnx-service';
-import type { PatientContext } from '@/lib/ai/medical-qa';
-import { logger } from '@autamedica/shared';
 import { usePatientSession } from '@/hooks/usePatientSession';
+import type { PatientContext } from '@/lib/ai/medical-qa';
+import { medicalQA } from '@/lib/ai/medical-qa';
+import { getONNXService, initializeONNX } from '@/lib/ai/onnx-service';
 import { computeAgeFromIso, normalizeGender } from '@/lib/demographics';
+import { logger } from '@autamedica/shared';
+import { Bot, Loader2, Send, Sparkles, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Message {
   id: string;

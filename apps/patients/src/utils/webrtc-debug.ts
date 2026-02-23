@@ -1,3 +1,5 @@
+import { logger } from '@autamedica/shared';
+
 /**
  * WebRTC Debug Utility
  * Provides detailed logging for WebRTC connections
@@ -297,7 +299,7 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
   const originalOnTrack = pc.ontrack
   pc.ontrack = (event) => {
     webrtcDebugger.logTrackEvent(event)
-    if (originalOnTrack) originalOnTrack(event)
+    if (originalOnTrack) originalOnTrack.call(pc, event)
   }
 
   const originalOnIceCandidate = pc.onicecandidate
@@ -305,19 +307,19 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
     if (event.candidate) {
       webrtcDebugger.logICECandidate(event.candidate, 'sending')
     }
-    if (originalOnIceCandidate) originalOnIceCandidate(event)
+    if (originalOnIceCandidate) originalOnIceCandidate.call(pc, event)
   }
 
   const originalOnConnectionStateChange = pc.onconnectionstatechange
-  pc.onconnectionstatechange = () => {
+  pc.onconnectionstatechange = (event) => {
     webrtcDebugger.info(`Connection state changed to: ${pc.connectionState}`)
-    if (originalOnConnectionStateChange) originalOnConnectionStateChange()
+    if (originalOnConnectionStateChange) originalOnConnectionStateChange.call(pc, event)
   }
 
   const originalOnIceConnectionStateChange = pc.oniceconnectionstatechange
-  pc.oniceconnectionstatechange = () => {
+  pc.oniceconnectionstatechange = (event) => {
     webrtcDebugger.info(`ICE connection state changed to: ${pc.iceConnectionState}`)
-    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange()
+    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange.call(pc, event)
   }
 
   return webrtcDebugger

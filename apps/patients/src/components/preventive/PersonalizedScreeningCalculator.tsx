@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Calculator, User, Calendar, AlertCircle, CheckCircle2, Clock, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { CATEGORY_COLORS, CATEGORY_LABELS, getRecommendedScreenings, groupScreeningsByCategory } from '@/data/screenings';
 import * as LucideIcons from 'lucide-react';
-import { getRecommendedScreenings, groupScreeningsByCategory, CATEGORY_COLORS, CATEGORY_LABELS } from '@/data/screenings';
+import { AlertCircle, Calculator, Calendar, CheckCircle2, ChevronDown, ChevronUp, Clock, Info, User } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 interface PersonalizedScreeningCalculatorProps {
   defaultAge?: number;
@@ -195,7 +195,8 @@ export function PersonalizedScreeningCalculator({
               Tus Controles Recomendados
             </h3>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-300 scrollbar-track-stone-100">
-              {Object.entries(groupedScreenings).map(([category, screenings]) => {
+              {Object.entries(groupedScreenings).map(([category, _screenings]) => {
+                const screenings = _screenings as any[];
                 if (screenings.length === 0) return null;
                 const colors = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS];
                 const label = CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS];
@@ -270,7 +271,7 @@ export function PersonalizedScreeningCalculator({
                                     <div>
                                       <p className="text-[10px] font-bold text-stone-700 mb-1">BENEFICIOS:</p>
                                       <ul className="text-[11px] text-stone-600 space-y-0.5">
-                                        {screening.benefits.slice(0, 3).map((benefit, idx) => (
+                                        {(screening.benefits as any[]).slice(0, 3).map((benefit, idx) => (
                                           <li key={idx} className="flex items-start gap-1.5">
                                             <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0 mt-0.5" />
                                             <span>{benefit}</span>

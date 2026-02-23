@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { createClient } from '@supabase/supabase-js'
+import { expect, test } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 
 // Prueba rápida: validar que el endpoint protegido no devuelve 401 cuando el usuario está autenticado
 // Nota: usa un appointment inexistente para forzar 404 (pero autenticado)
@@ -21,7 +21,7 @@ test.describe('API /api/appointments/[id] protegido (autenticado)', () => {
     try {
       // Buscar por auth.users
       const { data: list } = await supabaseAdmin.auth.admin.listUsers()
-      const candidate = list.users.find(u => u.email === TEST_USER.email)
+      const candidate = list.users.find((u: any) => u.email === TEST_USER.email)
       if (candidate) {
         await supabaseAdmin.auth.admin.deleteUser(candidate.id)
       }

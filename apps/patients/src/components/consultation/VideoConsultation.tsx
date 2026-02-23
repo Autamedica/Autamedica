@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { LiveKitRoom, VideoConference, RoomAudioRenderer, ControlBar } from '@livekit/components-react';
+import { ControlBar, LiveKitRoom, RoomAudioRenderer, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
+import { useEffect, useState } from 'react';
 
 interface VideoConsultationProps {
   consultationId: string;
@@ -120,7 +120,7 @@ export function VideoConsultation({
 
         {/* Componente principal de videoconferencia */}
         <VideoConference
-          chatMessageFormatter={(message) => `${message.from?.identity}: ${message.message}`}
+          chatMessageFormatter={(message: any) => `${message.from?.identity}: ${message.message}`}
         />
 
         {/* Controles personalizados */}

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
         if ('email' in profile) snake.email = (profile as any).email;
 
         // Update profiles with typed columns (PK is 'id' which is the auth user id)
-        const upd = await admin.from('profiles').update(snake).eq('id', userId).select('*').single();
+        const upd = await (admin as any).from('profiles').update(snake).eq('id', userId).select('*').single();
         if (upd.error) throw upd.error;
       } catch (err: any) {
         logger.error('[AI] update profile failed', err);
@@ -47,10 +47,10 @@ export async function POST(request: Request) {
       if ('birthDate' in patient) snake.birth_date = (patient as any).birthDate
 
       try {
-        const upd = await admin.from('patients').update(snake).eq('user_id', userId).select('*').maybeSingle()
+        const upd = await (admin as any).from('patients').update(snake).eq('user_id', userId).select('*').maybeSingle()
         if (upd.error) throw upd.error
         if (!upd.data) {
-          await admin.from('patients').upsert({ user_id: userId, ...snake }, { onConflict: 'user_id' })
+          await (admin as any).from('patients').upsert({ user_id: userId, ...snake }, { onConflict: 'user_id' })
         }
       } catch (err: any) {
         // Swallow if table/columns unavailable

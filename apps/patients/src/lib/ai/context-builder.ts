@@ -15,21 +15,21 @@ export type PatientContextSummary = {
 
 // getAdminClient is now a wrapper around the standardized factory
 export async function getAdminClient(): Promise<AppSupabaseClient> {
-  return createAdminClient() as AppSupabaseClient;
+  return createAdminClient() as unknown as AppSupabaseClient;
 }
 
 export async function buildPatientContext(userId: string, admin?: AppSupabaseClient) {
   const client = admin ?? (await getAdminClient())
-  const [{ data: profile }, { data: patient }] = await Promise.all([
-    client.from('profiles').select('*').eq('id', userId).maybeSingle(),
-    client.from('patients').select('*').eq('user_id', userId).maybeSingle(),
+  const [{ data: profile }, { data: patient }]: [any, any] = await Promise.all([
+    (client as any).from('profiles').select('*').eq('id', userId).maybeSingle(),
+    (client as any).from('patients').select('*').eq('user_id', userId).maybeSingle(),
   ])
 
   const summary: PatientContextSummary = {
-    name: ((profile?.full_name as any) ?? [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()) || null,
+    name: ([profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()) || null,
     email: (profile?.email as any) ?? null,
     role: (profile?.role as any) ?? 'patient',
-    portal: (profile?.portal as any) ?? 'patients',
+    portal: ((profile as any)?.portal) ?? 'patients',
     gender: (patient?.gender as any) ?? null,
     bloodType: (patient?.blood_type as any) ?? null,
     heightCm: (patient?.height_cm as any) ?? null,

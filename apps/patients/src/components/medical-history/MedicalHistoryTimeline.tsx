@@ -1,15 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import type {
-  MedicalHistoryTimeline as MedicalHistoryTimelineData,
-  MedicalHistoryCondition,
-  MedicalAllergy,
-  PatientMedication,
-  MedicalProcedure,
-  MedicalEncounter,
-  Immunization
-} from '@autamedica/types';
+export type MedicalHistoryCondition = any;
+export type MedicalAllergy = any;
+export type PatientMedication = any;
+export type MedicalProcedure = any;
+export type MedicalEncounter = any;
+export type Immunization = any;
+
+export interface MedicalHistoryTimelineData {
+  sections: {
+    conditions: MedicalHistoryCondition[];
+    allergies: MedicalAllergy[];
+    medications: PatientMedication[];
+    procedures: MedicalProcedure[];
+    encounters: MedicalEncounter[];
+    immunizations: Immunization[];
+  }
+}
 
 interface MedicalHistoryTimelineProps {
   timeline: MedicalHistoryTimelineData;

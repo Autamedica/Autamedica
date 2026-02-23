@@ -1,6 +1,14 @@
 'use client';
 
-import type { MedicalHistorySummary as MedicalHistorySummaryData } from '@autamedica/types';
+export interface MedicalHistorySummaryData {
+  active_conditions_count: number;
+  active_medications_count: number;
+  known_allergies_count: number;
+  last_encounter_date?: string;
+  critical_allergies: string[];
+  chronic_conditions: string[];
+  current_medications: string[];
+}
 
 interface MedicalHistorySummaryProps {
   summary: MedicalHistorySummaryData;
