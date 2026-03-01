@@ -197,7 +197,7 @@ const mediaConstraints = {
 ### **Variables de Entorno**
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***
 NODE_ENV=production
 HUSKY=0

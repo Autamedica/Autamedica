@@ -98,7 +98,7 @@
 
 ```bash
 # Agregar a .env.example
-SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 ```
 
@@ -220,7 +220,7 @@ apps/patients/
 
 ```bash
 # Server-side (sin NEXT_PUBLIC)
-SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 ```
 

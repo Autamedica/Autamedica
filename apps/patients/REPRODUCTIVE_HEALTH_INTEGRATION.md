@@ -180,7 +180,7 @@ supabase db push
 
 # O manualmente
 psql -h aws-0-us-east-1.pooler.supabase.com -p 6543 \
-  -U postgres.knywotiidsydsaveqkjs \
+  -U postgres.qxjjrpksmwwrmubhvjew \
   -d postgres \
   -f supabase/migrations/20251002_reproductive_health_schema.sql
 ```

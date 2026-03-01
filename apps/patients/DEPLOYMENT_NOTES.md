@@ -226,7 +226,7 @@ El portal de pacientes requiere **variables de entorno duplicadas** para operaci
 ### Server-Side (Next.js SSR/Middleware)
 
 ```bash
-SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 SUPABASE_ANON_KEY=<anon_key>
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>  # Para callback OAuth
 ```
@@ -234,7 +234,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role_key>  # Para callback OAuth
 ### Client-Side (Browser)
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 ```
 

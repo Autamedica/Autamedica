@@ -11,11 +11,11 @@ export default createNextAppConfig({
   trailingSlash: false,
   images: {
     unoptimized: false,
-    domains: ['knywotiidsydsaveqkjs.supabase.co'],
+    domains: ['qxjjrpksmwwrmubhvjew.supabase.co'],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'knywotiidsydsaveqkjs.supabase.co',
+        hostname: 'qxjjrpksmwwrmubhvjew.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
