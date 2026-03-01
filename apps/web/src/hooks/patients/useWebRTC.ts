@@ -1,5 +1,5 @@
-/* eslint-disable no-unused-vars */
 import { logger } from '@autamedica/shared';
+import { getIceServersConfig } from '@autamedica/telemedicine';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
@@ -80,19 +80,8 @@ export interface WebRTCActions {
   getConnectionStats: () => Promise<WebRTCStats | null>;
 }
 
-const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
-  // Google STUN servers (públicos y gratuitos)
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-
-  // TODO: Agregar TURN servers privados para producción
-  // {
-  //   urls: 'turn:turn.autamedica.com:3478',
-  //   username: 'autamedica',
-  //   credential: 'getOptionalClientEnv("PUBLIC_TURN_SECRET")'
-  // }
-];
+// ICE servers from centralized config (handles STUN defaults + TURN via env vars)
+const DEFAULT_ICE_SERVERS: RTCIceServer[] = getIceServersConfig();
 
 export function useWebRTC(config: WebRTCConfig = {}): [WebRTCState, WebRTCActions] {
   const {

@@ -4,7 +4,7 @@
  */
 
 import { logger } from '@autamedica/shared'
-import { loadIceServers } from './config/ice-servers'
+import { loadIceServers, ICE_STUN_ONLY } from './config/ice-servers'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -48,16 +48,10 @@ export class WebRTCClient {
   private eventListeners = new Map<keyof WebRTCEvents, Function[]>()
   private connectionState: ConnectionState = 'disconnected'
 
-  // Default ICE servers (using public STUN servers)
-  private static readonly DEFAULT_ICE_SERVERS: RTCIceServer[] = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
-  ]
-
   constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
-    // Use environment-configured ICE servers or fallback to defaults
-    const iceServers = config.iceServers || loadIceServers() || WebRTCClient.DEFAULT_ICE_SERVERS
+    // Use environment-configured ICE servers or fallback to STUN-only defaults
+    const envServers = loadIceServers()
+    const iceServers = config.iceServers || (envServers.length > 0 ? envServers : ICE_STUN_ONLY)
 
     this.config = {
       signalingUrl: 'wss://autamedica-signaling-server.ecucondor.workers.dev/signaling',
@@ -225,7 +219,7 @@ export class WebRTCClient {
   }
 
   private sendSignalingMessage(message: any): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message))
     }
   }

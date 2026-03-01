@@ -17,6 +17,7 @@
     "@astrojs/tailwind": "^5.0.0",
     "@autamedica/shared": "workspace:^",
     "@autamedica/tailwind-config": "workspace:^",
+    "@autamedica/telemedicine": "workspace:^",
     "@fontsource-variable/inter": "^5.2.8",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.57.4",

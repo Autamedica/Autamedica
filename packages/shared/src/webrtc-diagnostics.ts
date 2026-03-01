@@ -393,14 +393,8 @@ export class WebRTCDiagnostics {
   }
 }
 
-// Configuración STUN/TURN recomendada
+// STUN-only defaults. TURN servers are loaded via env vars in @autamedica/telemedicine (getIceServersConfig).
 export const ICE_SERVERS: RTCIceServer[] = [
   { urls: ['stun:stun.l.google.com:19302'] },
   { urls: ['stun:stun1.l.google.com:19302'] },
-  // Agregar TURN server propio si es necesario:
-  // {
-  //   urls: ['turn:turn.autamedica.com:3478'],
-  //   username: 'autamedica',
-  //   credential: 'tu-credential-turn'
-  // }
 ]

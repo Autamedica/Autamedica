@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@autamedica/shared'
+import { ICE_STUN_ONLY } from './config/ice-servers'
 
 export interface HttpWebRTCConfig {
   signalingUrl: string
@@ -41,17 +42,10 @@ export class HttpWebRTCClient {
   private lastPollTimestamp = 0
   private isPolling = false
 
-  // Default ICE servers (using public STUN servers)
-  private static readonly DEFAULT_ICE_SERVERS: RTCIceServer[] = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
-  ]
-
   constructor(config: Partial<HttpWebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
     this.config = {
       signalingUrl: 'https://autamedica-http-signaling-server.ecucondor.workers.dev',
-      iceServers: HttpWebRTCClient.DEFAULT_ICE_SERVERS,
+      iceServers: ICE_STUN_ONLY,
       roomId: 'default-room',
       pollInterval: 1000, // Poll every second
       ...config
