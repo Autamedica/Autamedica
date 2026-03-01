@@ -4,6 +4,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { SessionData, fetchSessionData, getLoginUrl } from '@/lib/session-sync'
 import { logger } from '@autamedica/shared'
 
+/** Routes that should never trigger auth redirects */
+const PUBLIC_PATHS = ['/test-call', '/consultation', '/auth/callback']
+
+function isPublicPath(): boolean {
+  if (typeof window === 'undefined') return false
+  return PUBLIC_PATHS.some(p => window.location.pathname === p || window.location.pathname.startsWith(`${p}/`))
+}
+
 interface AuthContextType {
   session: SessionData | null
   loading: boolean
@@ -31,8 +39,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       const sessionData = await fetchSessionData()
 
       if (!sessionData) {
-        // 🔓 DEV MODE: Don't redirect in development
-        if (process.env.NODE_ENV !== 'development') {
+        if (!isPublicPath() && process.env.NODE_ENV !== 'development') {
           window.location.href = getLoginUrl()
         }
         return
@@ -44,8 +51,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       logger.error('Auth refresh error:', err)
       setError(err instanceof Error ? err.message : 'Authentication failed')
 
-      // 🔓 DEV MODE: Don't redirect in development
-      if (process.env.NODE_ENV !== 'development') {
+      if (!isPublicPath() && process.env.NODE_ENV !== 'development') {
         setTimeout(() => {
           window.location.href = getLoginUrl()
         }, 1000)

@@ -259,7 +259,7 @@ export async function insertRecord<Table extends TableName, TInput extends Recor
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic CRUD over union TableName resolves to never
   const { data: inserted, error } = await (supabase.from(table) as any)
-    .insert(dbPayload)
+    .insert(dbPayload as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .select()
     .single();
 
@@ -297,7 +297,7 @@ export async function updateRecord<Table extends TableName, TInput extends Recor
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic CRUD over union TableName resolves to never
   const { data: updated, error } = await (supabase.from(table) as any)
-    .update(dbPayload)
+    .update(dbPayload as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .eq('id', id)
     .select()
     .single();
@@ -333,7 +333,7 @@ export async function softDelete<Table extends TableName>(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic soft-delete over union TableName
   const { error } = await (supabase.from(table) as any)
-    .update({ deleted_at: now })
+    .update({ deleted_at: now } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .eq('id', id);
 
   if (error) {
@@ -377,7 +377,7 @@ export async function restoreRecord<Table extends TableName>(
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic restore over union TableName
   const { error } = await (supabase.from(table) as any)
-    .update({ deleted_at: null })
+    .update({ deleted_at: null } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     .eq('id', id);
 
   if (error) {
