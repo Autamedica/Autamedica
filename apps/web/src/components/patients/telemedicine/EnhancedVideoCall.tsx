@@ -1,24 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import React from 'react';
 import { usePatientPortal } from '@/components/layout/PatientPortalShell';
-import { usePatientSession } from '@/hooks/patients/usePatientSession';
-import { useVideoCall } from '@/hooks/patients/useVideoCall';
-import { useTelemedicine } from '@/hooks/patients/useTelemedicine';
-import { useMockRemoteStream } from '@/hooks/patients/useMockRemoteStream';
-import { useRealRemoteStream } from '@/hooks/patients/useRealRemoteStream';
-import { VideoLayout, ViewModeSelector } from '@/components/telemedicine/VideoLayout';
 import { VideoControls } from '@/components/telemedicine/VideoControls';
-import type { EnhancedVideoCallProps, VideoViewMode, PIPPosition } from '@/lib/patients/types/telemedicine';
-import { logger, featureFlags } from '@autamedica/shared';
+import { VideoLayout, ViewModeSelector } from '@/components/telemedicine/VideoLayout';
+import { useMockRemoteStream } from '@/hooks/patients/useMockRemoteStream';
+import { usePatientSession } from '@/hooks/patients/usePatientSession';
+import { useRealRemoteStream } from '@/hooks/patients/useRealRemoteStream';
+import { useTelemedicine } from '@/hooks/patients/useTelemedicine';
+import { useVideoCall } from '@/hooks/patients/useVideoCall';
+import type { EnhancedVideoCallProps, PIPPosition, VideoViewMode } from '@/lib/patients/types/telemedicine';
+import { featureFlags, logger } from '@autamedica/shared';
 import {
-  LiveKitRoom,
-  VideoConference,
-  RoomAudioRenderer,
-  ControlBar,
+    ControlBar,
+    LiveKitRoom,
+    RoomAudioRenderer,
+    VideoConference,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Componente principal de videollamada refactorizado
@@ -75,14 +74,13 @@ export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, classNam
 
   // Remote stream - usa mock en desarrollo, LiveKit en producción
   // Controlado por feature flag PUBLIC_USE_MOCK_VIDEO
-  const mockStream = featureFlags.USE_MOCK_VIDEO
-    ? useMockRemoteStream(videoCall.callStatus === 'live')
-    : null;
+  // Ambos hooks se llaman siempre (regla de React hooks); se usa el resultado según el flag.
+  const mockStream = useMockRemoteStream(
+    featureFlags.USE_MOCK_VIDEO && videoCall.callStatus === 'live'
+  );
 
   // TODO: Pasar remoteParticipant de LiveKit cuando esté disponible
-  const realStream = !featureFlags.USE_MOCK_VIDEO
-    ? useRealRemoteStream(undefined) // Pasar remoteParticipant aquí
-    : null;
+  const realStream = useRealRemoteStream(undefined);
 
   const remoteStream = featureFlags.USE_MOCK_VIDEO ? mockStream : realStream;
 
