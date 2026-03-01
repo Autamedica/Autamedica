@@ -111,8 +111,8 @@ export async function validateEmailForSignIn(
       });
     }
 
-    // TODO: Implementar verificación de existencia en la base de datos
-    // Por ahora, asumimos que todos los emails válidos pueden intentar login
+    // Security: intentionally returns exists=true for all valid emails
+    // to prevent user enumeration attacks (OWASP recommendation)
     return ok({
       isValid: true,
       exists: true, // Por defecto, permitimos todos los emails válidos

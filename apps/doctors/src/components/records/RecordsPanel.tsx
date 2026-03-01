@@ -3,14 +3,13 @@
 import type { JSX } from 'react'
 import { useState } from 'react'
 import { FileText, Search, Plus, Eye, Edit, Calendar, User } from 'lucide-react'
-// TODO: Fix import - hook doesn't exist yet
-// import { useMedicalHistory } from '@/hooks'
+import { useMedicalHistory } from '@/hooks'
+import type { MedicalRecord, UUID } from '@/types/medical'
 
 export function RecordsPanel(): JSX.Element {
   // Por ahora usar patientId de ejemplo (María González)
-  const [selectedPatientId] = useState<string>('550e8400-e29b-41d4-a716-446655440000')
-  // TODO: Replace with actual hook
-  const { history, loading, error } = { history: [], loading: false, error: null } as any
+  const [selectedPatientId] = useState<UUID>('550e8400-e29b-41d4-a716-446655440000' as UUID)
+  const { records: history, loading, error } = useMedicalHistory(selectedPatientId)
 
   if (loading) {
     return (
@@ -36,22 +35,20 @@ export function RecordsPanel(): JSX.Element {
 
   const getRecordTypeColor = (type: string) => {
     switch (type) {
-      case 'consultation': return 'bg-blue-500/20 text-blue-400'
-      case 'diagnosis': return 'bg-red-500/20 text-red-400'
-      case 'treatment': return 'bg-green-500/20 text-green-400'
-      case 'prescription': return 'bg-purple-500/20 text-purple-400'
-      case 'test_result': return 'bg-orange-500/20 text-orange-400'
+      case 'general': return 'bg-blue-500/20 text-blue-400'
+      case 'seguimiento': return 'bg-green-500/20 text-green-400'
+      case 'urgencia': return 'bg-red-500/20 text-red-400'
+      case 'especialidad': return 'bg-purple-500/20 text-purple-400'
       default: return 'bg-slate-500/20 text-slate-400'
     }
   }
 
   const getRecordTypeLabel = (type: string) => {
     switch (type) {
-      case 'consultation': return 'Consulta'
-      case 'diagnosis': return 'Diagnóstico'
-      case 'treatment': return 'Tratamiento'
-      case 'prescription': return 'Prescripción'
-      case 'test_result': return 'Resultado'
+      case 'general': return 'Consulta General'
+      case 'seguimiento': return 'Seguimiento'
+      case 'urgencia': return 'Urgencia'
+      case 'especialidad': return 'Especialidad'
       default: return 'Registro'
     }
   }
@@ -100,7 +97,7 @@ export function RecordsPanel(): JSX.Element {
             <div>
               <p className="text-sm text-slate-400">Consultas</p>
               <p className="text-xl font-semibold text-slate-100">
-                {history.filter((record: any) => record.record_type === 'consultation').length}
+                {history.filter((record: MedicalRecord) => record.consultation_type === 'general').length}
               </p>
             </div>
           </div>
@@ -114,8 +111,8 @@ export function RecordsPanel(): JSX.Element {
             <div>
               <p className="text-sm text-slate-400">Este Mes</p>
               <p className="text-xl font-semibold text-slate-100">
-                {history.filter((record: any) =>
-                  new Date(record.record_date).getMonth() === new Date().getMonth()
+                {history.filter((record: MedicalRecord) =>
+                  new Date(record.consultation_date).getMonth() === new Date().getMonth()
                 ).length}
               </p>
             </div>
@@ -169,7 +166,7 @@ export function RecordsPanel(): JSX.Element {
         ) : (
           <div className="h-full overflow-auto">
             <div className="grid gap-4">
-              {history.map((record: any) => (
+              {history.map((record: MedicalRecord) => (
                 <div
                   key={record.id}
                   className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-6 transition hover:border-slate-600 hover:bg-slate-800/50"
@@ -183,17 +180,17 @@ export function RecordsPanel(): JSX.Element {
                       <div>
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-slate-100">
-                            {getRecordTypeLabel(record.record_type)}
+                            {getRecordTypeLabel(record.consultation_type)}
                           </h3>
-                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getRecordTypeColor(record.record_type)}`}>
-                            {record.record_type}
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getRecordTypeColor(record.consultation_type)}`}>
+                            {record.consultation_type}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-4 text-sm text-slate-400">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {new Date(record.record_date).toLocaleDateString('es-ES')}
+                            {new Date(record.consultation_date).toLocaleDateString('es-ES')}
                           </div>
                           <div className="flex items-center gap-1">
                             <User className="h-4 w-4" />
@@ -230,17 +227,17 @@ export function RecordsPanel(): JSX.Element {
                       </div>
                     )}
 
-                    {record.assessment && (
+                    {record.diagnosis && (
                       <div>
                         <h4 className="text-sm font-medium text-slate-300 mb-1">Diagnóstico</h4>
-                        <p className="text-sm text-slate-400">{record.assessment}</p>
+                        <p className="text-sm text-slate-400">{record.diagnosis}</p>
                       </div>
                     )}
 
-                    {record.plan && (
+                    {record.treatment_plan && (
                       <div>
                         <h4 className="text-sm font-medium text-slate-300 mb-1">Plan de Tratamiento</h4>
-                        <p className="text-sm text-slate-400">{record.plan}</p>
+                        <p className="text-sm text-slate-400">{record.treatment_plan}</p>
                       </div>
                     )}
                   </div>

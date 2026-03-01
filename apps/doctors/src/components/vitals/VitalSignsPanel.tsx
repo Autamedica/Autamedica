@@ -2,14 +2,13 @@
 
 import type { JSX } from 'react'
 import { Activity, Heart, Thermometer, Wind, TrendingUp, Plus, Calendar } from 'lucide-react'
-// TODO: Fix import - hook doesn't exist yet
-// import { useVitalSigns } from '@/hooks'
+import { useVitalSigns } from '@/hooks'
+import type { VitalSigns, UUID } from '@/types/medical'
 
 export function VitalSignsPanel(): JSX.Element {
   // Por ahora usar patientId de ejemplo (María González)
-  const patientId = '550e8400-e29b-41d4-a716-446655440000'
-  // TODO: Replace with actual hook
-  const { vitals, loading, error } = { vitals: [], loading: false, error: null } as any
+  const patientId = '550e8400-e29b-41d4-a716-446655440000' as UUID
+  const { vitalSigns: vitals, loading, error } = useVitalSigns(patientId)
 
   if (loading) {
     return (
@@ -35,7 +34,8 @@ export function VitalSignsPanel(): JSX.Element {
 
   const latestVitals = vitals.length > 0 ? vitals[0] : null
 
-  const getVitalStatus = (value: number, normal: { min: number; max: number }) => {
+  const getVitalStatus = (value: number | null, normal: { min: number; max: number }) => {
+    if (value == null) return { status: 'unknown', color: 'text-slate-400' }
     if (value < normal.min) return { status: 'low', color: 'text-blue-400' }
     if (value > normal.max) return { status: 'high', color: 'text-red-400' }
     return { status: 'normal', color: 'text-green-400' }
@@ -87,14 +87,14 @@ export function VitalSignsPanel(): JSX.Element {
               <div>
                 <p className="text-sm text-slate-400">Presión Arterial</p>
                 <p className="text-lg font-semibold text-slate-100">
-                  {latestVitals.systolic_bp}/{latestVitals.diastolic_bp}
+                  {latestVitals.blood_pressure_systolic}/{latestVitals.blood_pressure_diastolic}
                   <span className="text-sm text-slate-400 ml-1">mmHg</span>
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${
-                getVitalStatus(latestVitals.systolic_bp, { min: 90, max: 140 }).status === 'normal'
+                getVitalStatus(latestVitals.blood_pressure_systolic, { min: 90, max: 140 }).status === 'normal'
                   ? 'bg-green-400'
                   : 'bg-red-400'
               }`} />
@@ -209,7 +209,7 @@ export function VitalSignsPanel(): JSX.Element {
         ) : (
           <div className="h-full overflow-auto">
             <div className="grid gap-4">
-              {vitals.map((vital: any) => (
+              {vitals.map((vital: VitalSigns) => (
                 <div
                   key={vital.id}
                   className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 transition hover:border-slate-600 hover:bg-slate-800/50"
@@ -237,7 +237,7 @@ export function VitalSignsPanel(): JSX.Element {
                       <div>
                         <p className="text-xs text-slate-400">Presión Arterial</p>
                         <p className="text-sm font-semibold text-slate-100">
-                          {vital.systolic_bp}/{vital.diastolic_bp} mmHg
+                          {vital.blood_pressure_systolic}/{vital.blood_pressure_diastolic} mmHg
                         </p>
                       </div>
                     </div>

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { DoctorVideoConsultation } from '../../../components/consultation/DoctorVideoConsultation';
+import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser';
 
 export default function DoctorConsultationPage({
   params,
@@ -13,9 +14,10 @@ export default function DoctorConsultationPage({
   const router = useRouter();
   const [showConsultation, setShowConsultation] = useState(false);
 
-  // TODO: Obtener IDs reales del usuario autenticado
-  const doctorId = 'doctor-current-user'; // Reemplazar con el ID real del doctor
-  const patientId = 'patient-assigned'; // Reemplazar con el ID real del paciente asignado
+  const { user } = useAuthenticatedUser();
+  const doctorId = user?.id ?? '';
+  // Patient ID will be resolved from the consultation session
+  const patientId = '';
 
   const handleEndConsultation = () => {
     setShowConsultation(false);

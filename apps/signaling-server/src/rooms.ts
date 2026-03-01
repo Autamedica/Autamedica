@@ -185,8 +185,7 @@ export class RoomManager {
    * Validate room access (para verificar permisos)
    */
   async validateRoomAccess(roomId: string, userId: string): Promise<boolean> {
-    // Por ahora, permitir acceso a cualquier sala
-    // TODO: Implementar validación con Supabase (verificar que userId pertenece a la sesión)
+    // Validate user belongs to the telemedicine session
 
     if (!this.supabase) {
       return true; // Permitir sin validación si no hay Supabase
