@@ -1,4 +1,4 @@
-import { getServerEnvOrDefault, featureFlags } from '@autamedica/shared';
+import { getServerEnvOrDefault, featureFlags, logger } from '@autamedica/shared';
 
 // Anthropic SDK types - loaded dynamically to avoid hard dependency
 interface AnthropicMessage {
@@ -64,16 +64,16 @@ export class AIAnalysisService {
           apiKey: anthropicKey,
         }) as AnthropicClient;
 
-        console.log('AIAnalysisService inicializado con Claude API');
+        logger.info('AIAnalysisService inicializado con Claude API');
       } catch {
-        console.warn(
+        logger.warn(
           'AIAnalysisService: @anthropic-ai/sdk not installed, usando modo mock'
         );
       }
     } else if (featureFlags.USE_MOCK_AI) {
-      console.log('AIAnalysisService en modo MOCK (desarrollo)');
+      logger.info('AIAnalysisService en modo MOCK (desarrollo)');
     } else {
-      console.warn(
+      logger.warn(
         'AIAnalysisService: No API key found, usando modo mock'
       );
     }
@@ -187,10 +187,10 @@ FORMATO DE RESPUESTA (JSON):
         },
       };
     } catch (error) {
-      console.error('Error al analizar con Claude:', error);
+      logger.error('Error al analizar con Claude:', error);
 
       // Fallback a mock si falla la API
-      console.warn('Usando análisis mock como fallback');
+      logger.warn('Usando analisis mock como fallback');
       return this.getMockAnalysis(request);
     }
   }
@@ -281,7 +281,7 @@ FORMATO DE RESPUESTA (JSON):
         confidence: 60,
       };
     } catch (error) {
-      console.error('Error parseando respuesta de Claude:', error);
+      logger.error('Error parseando respuesta de Claude:', error);
 
       return {
         summary: 'Error parseando análisis',

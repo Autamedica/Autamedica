@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { logger } from '@autamedica/shared'
 import { SessionData, fetchSessionData, getLoginUrl } from '@/lib/session-sync'
 
 interface AuthContextType {
@@ -31,7 +32,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
 
       if (!sessionData) {
         // 🔓 DEV MODE: Don't redirect in development
-        if (process.env.NODE_ENV !== 'development') {
+        if (!import.meta.env.DEV) {
           window.location.href = getLoginUrl()
         }
         return
@@ -40,11 +41,11 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       setSession(sessionData)
 
     } catch (err) {
-      console.error('Auth refresh error:', err)
+      logger.error('Auth refresh error:', err)
       setError(err instanceof Error ? err.message : 'Authentication failed')
 
       // 🔓 DEV MODE: Don't redirect in development
-      if (process.env.NODE_ENV !== 'development') {
+      if (!import.meta.env.DEV) {
         setTimeout(() => {
           window.location.href = getLoginUrl()
         }, 1000)
@@ -101,7 +102,7 @@ export function useRequireAuth() {
 
   if (!session || error) {
     // 🔓 DEV MODE: Don't redirect in development
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
+    if (typeof window !== 'undefined' && !import.meta.env.DEV) {
       window.location.href = getLoginUrl()
     }
     return { session: null, loading: false, error: error || 'No session' }

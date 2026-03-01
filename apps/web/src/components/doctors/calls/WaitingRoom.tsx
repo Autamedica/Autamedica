@@ -69,7 +69,7 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
             if (prev <= 1) {
               setState('timeout')
               // Cancel call due to timeout
-              callService.updateCallStatus(callId, 'canceled', 'timeout').catch(console.error)
+              callService.updateCallStatus(callId, 'canceled', 'timeout').catch((err) => logger.error('Error canceling call:', err))
               return 0
             }
             return prev - 1

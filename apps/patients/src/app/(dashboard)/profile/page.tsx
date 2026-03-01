@@ -18,7 +18,7 @@ import { PatientProfileForm, type PatientProfileFormPayload } from '@/components
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { useSupabase } from '@autamedica/auth/react';
 import { usePatientProfile } from '@/hooks/useProfile';
-import { ensureClientEnv } from '@autamedica/shared';
+import { ensureClientEnv, logger } from '@autamedica/shared';
 
 export default function ProfilePage() {
   const { user, profile, patient, loading, error, refresh } = usePatientSession();
@@ -83,10 +83,10 @@ export default function ProfilePage() {
         credentials: 'include',
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
-      console.log('[Profile] ensureProfile status:', res.status);
+      logger.info('[Profile] ensureProfile status:', res.status);
       await refresh();
     } catch (e) {
-      console.error('[Profile] ensureProfile failed', (e as Error)?.message);
+      logger.error('[Profile] ensureProfile failed', (e as Error)?.message);
     }
   }, [refresh]);
 
@@ -129,7 +129,7 @@ export default function ProfilePage() {
             <p className="text-amber-700 mt-1">Estamos preparando tu perfil automáticamente. Si persiste, tocá &quot;Actualizar datos&quot;.</p>
             <div className="mt-4">
               <button
-                onClick={async () => { console.log('[Profile] clicked ensure+edit'); await ensureProfile(); setIsEditing(true); }}
+                onClick={async () => { logger.info('[Profile] clicked ensure+edit'); await ensureProfile(); setIsEditing(true); }}
                 className="btn-secondary-ivory px-4 py-2 text-sm"
               >
                 Crear y editar perfil

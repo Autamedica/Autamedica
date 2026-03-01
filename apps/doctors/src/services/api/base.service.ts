@@ -3,7 +3,7 @@
  * Provides common HTTP methods for all API services
  */
 
-import { getAppEnv } from '@autamedica/shared'
+import { getAppEnv, logger } from '@autamedica/shared'
 
 export class BaseAPIService {
   protected baseURL: string
@@ -34,7 +34,7 @@ export class BaseAPIService {
 
       return response.json()
     } catch (error) {
-      console.error(`API Error [${endpoint}]:`, error)
+      logger.error(`API Error [${endpoint}]:`, error)
       throw error
     }
   }

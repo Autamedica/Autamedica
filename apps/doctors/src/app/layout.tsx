@@ -8,6 +8,7 @@ import { ClientWrapper } from '@/components/ClientWrapper'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { fetchSessionData } from '@/lib/session-sync'
 import { SessionSync } from '@/components/SessionSync'
+import { logger } from '@autamedica/shared'
 
 export const metadata: Metadata = {
   title: 'AutaMedica Doctor Portal',
@@ -39,7 +40,7 @@ export default async function RootLayout({ children }: RootLayoutProps): Promise
     sessionData = await fetchSessionData()
   } catch (error) {
     // If session fetch fails, middleware will handle redirect on next navigation
-    console.error('Session sync error:', error)
+    logger.error('Session sync error:', error)
   }
   return (
     <html lang="es" suppressHydrationWarning>

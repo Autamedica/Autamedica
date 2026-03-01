@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { logger } from '@autamedica/shared';
 import type {
   AppointmentWithDoctor,
   CreateAppointmentInput,
@@ -50,7 +51,7 @@ export function useAppointments(): UseAppointmentsResult {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar las citas';
       setError(message);
-      console.error('[useAppointments] Error:', err);
+      logger.error('[useAppointments] Error:', err);
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export function useAppointments(): UseAppointmentsResult {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear la cita';
       setError(message);
-      console.error('[useAppointments] Create error:', err);
+      logger.error('[useAppointments] Create error:', err);
       return null;
     } finally {
       setLoading(false);
@@ -136,7 +137,7 @@ export function useAppointments(): UseAppointmentsResult {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al actualizar la cita';
       setError(message);
-      console.error('[useAppointments] Update error:', err);
+      logger.error('[useAppointments] Update error:', err);
       return null;
     } finally {
       setLoading(false);
@@ -176,7 +177,7 @@ export function useAppointments(): UseAppointmentsResult {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cancelar la cita';
       setError(message);
-      console.error('[useAppointments] Cancel error:', err);
+      logger.error('[useAppointments] Cancel error:', err);
       return false;
     } finally {
       setLoading(false);

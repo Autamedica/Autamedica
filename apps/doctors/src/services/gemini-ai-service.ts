@@ -3,7 +3,7 @@
  * Alternativa a Anthropic Claude
  */
 
-import { getServerEnvOrDefault, featureFlags } from '@autamedica/shared';
+import { getServerEnvOrDefault, featureFlags, logger } from '@autamedica/shared';
 import type { AnalysisRequest, MedicalAnalysis } from './ai-analysis-service';
 
 // Gemini SDK types - loaded dynamically to avoid hard dependency
@@ -43,14 +43,14 @@ export class GeminiAIService {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { GoogleGenerativeAI } = require('@google/generative-ai');
         this.genAI = new GoogleGenerativeAI(googleApiKey) as GeminiClient;
-        console.log('GeminiAIService inicializado con Gemini 2.5');
+        logger.info('GeminiAIService inicializado con Gemini 2.5');
       } catch {
-        console.warn('GeminiAIService: @google/generative-ai not installed');
+        logger.warn('GeminiAIService: @google/generative-ai not installed');
       }
     } else if (featureFlags.USE_MOCK_AI) {
-      console.log('GeminiAIService en modo MOCK (desarrollo)');
+      logger.info('GeminiAIService en modo MOCK (desarrollo)');
     } else {
-      console.warn('GeminiAIService: No API key found');
+      logger.warn('GeminiAIService: No API key found');
     }
   }
 
@@ -124,10 +124,10 @@ export class GeminiAIService {
         },
       };
     } catch (error) {
-      console.error('Error al analizar con Gemini:', error);
+      logger.error('Error al analizar con Gemini:', error);
 
       // Fallback a mock
-      console.warn('Usando análisis mock como fallback');
+      logger.warn('Usando analisis mock como fallback');
       return this.getMockAnalysis(request);
     }
   }
@@ -234,7 +234,7 @@ SOLO responde con el JSON, sin texto adicional.`;
         confidence: 60,
       };
     } catch (error) {
-      console.error('Error parseando respuesta de Gemini:', error);
+      logger.error('Error parseando respuesta de Gemini:', error);
 
       return {
         summary: 'Error parseando análisis',
@@ -366,7 +366,7 @@ SOLO responde con el JSON, sin texto adicional.`;
         },
       };
     } catch (error) {
-      console.error('Error en análisis multimodal con Gemini:', error);
+      logger.error('Error en analisis multimodal con Gemini:', error);
       return this.getMockAnalysis(request);
     }
   }

@@ -318,31 +318,10 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
 
 // Console helper for quick diagnosis
 export function quickDiagnosis() {
-  console.log(`
-  %c🔧 QUICK WEBRTC DIAGNOSIS
-
-  Run these commands in console:
-
-  1. Check if debugger is available:
-     %cwebrtcDebug
-
-  2. Run full diagnosis:
-     %cwebrtcDebug.diagnose(peerConnectionRef.current)
-
-  3. Export logs:
-     %cwebrtcDebug.exportLogs()
-
-  4. Check specific stream:
-     %cwebrtcDebug.logStream(localVideoRef.current?.srcObject)
-
-  5. Clear logs:
-     %cwebrtcDebug.clearLogs()
-  `,
-    'color: #3B82F6; font-weight: bold; font-size: 14px;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;'
-  )
+  logger.info(`QUICK WEBRTC DIAGNOSIS - Run these commands in console:
+  1. Check if debugger is available: webrtcDebug
+  2. Run full diagnosis: webrtcDebug.diagnose(peerConnectionRef.current)
+  3. Export logs: webrtcDebug.exportLogs()
+  4. Check specific stream: webrtcDebug.logStream(localVideoRef.current?.srcObject)
+  5. Clear logs: webrtcDebug.clearLogs()`)
 }

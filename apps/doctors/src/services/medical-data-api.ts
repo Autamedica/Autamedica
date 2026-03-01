@@ -37,9 +37,9 @@ class MedicalDataAPI {
 
   constructor() {
     if (featureFlags.USE_MOCK_MEDICAL_DATA) {
-      console.log('⚠️  MedicalDataAPI en modo MOCK (desarrollo)')
+      logger.info('MedicalDataAPI en modo MOCK (desarrollo)')
     } else {
-      console.log('✅ MedicalDataAPI usando Supabase (producción)')
+      logger.info('MedicalDataAPI usando Supabase (produccion)')
     }
   }
 
@@ -89,7 +89,7 @@ class MedicalDataAPI {
         doctor_id: row.recorded_by_id || row.recorded_by || row.patient_id, // Fallback
       })) as VitalSigns[]
     } catch (error) {
-      console.error('Error fetching vital signs:', error)
+      logger.error('Error fetching vital signs:', error)
       // Fallback a mock en caso de error
       return this.getMockVitalSigns(patientId)
     }
@@ -204,7 +204,7 @@ class MedicalDataAPI {
         hasMore: count ? startIndex + pageSize < count : false,
       }
     } catch (error) {
-      console.error('Error fetching medical records:', error)
+      logger.error('Error fetching medical records:', error)
       return this.getMockMedicalRecords(patientId, filters, page, pageSize)
     }
   }

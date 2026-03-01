@@ -9,6 +9,7 @@
 
 import type { APIRoute } from 'astro';
 import { createServerClient } from '@supabase/ssr';
+import { logger } from '@autamedica/shared';
 import { isProduction } from '../../lib/auth-utils';
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
@@ -84,7 +85,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   } catch (err) {
-    console.error('Session sync error:', err);
+    logger.error('Session sync error:', err);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { logger } from '@autamedica/shared'
 import {
   Video,
   VideoOff,
@@ -267,7 +268,7 @@ export default function SimplePatientVideoCall({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, roomId })
-      }).catch(console.error)
+      }).catch((err) => logger.error('Error leaving room:', err))
 
       // Cleanup peer connection
       if (peerConnectionRef.current) {

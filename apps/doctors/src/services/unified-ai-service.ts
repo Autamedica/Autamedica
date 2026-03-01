@@ -4,7 +4,7 @@
  * basado en feature flags y disponibilidad
  */
 
-import { getAIProvider } from '@autamedica/shared';
+import { getAIProvider, logger } from '@autamedica/shared';
 import { getAIAnalysisService, AIAnalysisService } from './ai-analysis-service';
 import { getGeminiAIService, GeminiAIService } from './gemini-ai-service';
 import type { MedicalAnalysis, AnalysisRequest } from './ai-analysis-service';
@@ -23,9 +23,9 @@ export class UnifiedAIService {
     this.currentProvider = getAIProvider();
 
     if (this.currentProvider) {
-      console.log(`✅ UnifiedAIService usando: ${this.currentProvider.toUpperCase()}`);
+      logger.info(`UnifiedAIService usando: ${this.currentProvider.toUpperCase()}`);
     } else {
-      console.log('⚠️  UnifiedAIService en modo MOCK');
+      logger.info('UnifiedAIService en modo MOCK');
     }
   }
 
@@ -39,16 +39,16 @@ export class UnifiedAIService {
 
     switch (provider) {
       case 'anthropic':
-        console.log('🤖 Usando Anthropic Claude para análisis');
+        logger.info('Usando Anthropic Claude para analisis');
         return this.anthropicService.analyzeMedicalData(request);
 
       case 'google':
-        console.log('🤖 Usando Google Gemini para análisis');
+        logger.info('Usando Google Gemini para analisis');
         return this.geminiService.analyzeMedicalData(request);
 
       default:
         // Modo mock - intentar con cualquier servicio disponible
-        console.log('⚠️  Modo mock - usando fallback');
+        logger.info('Modo mock - usando fallback');
         return this.anthropicService.analyzeMedicalData(request);
     }
   }
@@ -64,7 +64,7 @@ export class UnifiedAIService {
     const provider = this.currentProvider || getAIProvider();
 
     if (provider === 'google') {
-      console.log('🖼️  Análisis multimodal con Google Gemini');
+      logger.info('Analisis multimodal con Google Gemini');
       return this.geminiService.analyzeWithImage(
         request,
         imageBase64,
@@ -74,15 +74,15 @@ export class UnifiedAIService {
 
     // Anthropic también soporta imágenes, pero de forma diferente
     if (provider === 'anthropic') {
-      console.warn(
-        '⚠️  Anthropic soporta imágenes pero requiere implementación especial'
+      logger.warn(
+        'Anthropic soporta imagenes pero requiere implementacion especial'
       );
       // TODO: Implementar soporte de imágenes para Anthropic si es necesario
       return this.anthropicService.analyzeMedicalData(request);
     }
 
     // Fallback sin imagen
-    console.warn('⚠️  No hay proveedor de AI con soporte de imágenes disponible');
+    logger.warn('No hay proveedor de AI con soporte de imagenes disponible');
     return this.analyzeMedicalData(request);
   }
 
@@ -94,17 +94,17 @@ export class UnifiedAIService {
     const anthropicInfo = this.anthropicService.getServiceInfo();
 
     if (provider === 'google' && !geminiInfo.apiKeyConfigured) {
-      console.error('❌ No se puede cambiar a Google: API key no configurada');
+      logger.error('No se puede cambiar a Google: API key no configurada');
       return false;
     }
 
     if (provider === 'anthropic' && !anthropicInfo.apiKeyConfigured) {
-      console.error('❌ No se puede cambiar a Anthropic: API key no configurada');
+      logger.error('No se puede cambiar a Anthropic: API key no configurada');
       return false;
     }
 
     this.currentProvider = provider;
-    console.log(`✅ Proveedor de AI cambiado a: ${provider.toUpperCase()}`);
+    logger.info(`Proveedor de AI cambiado a: ${provider.toUpperCase()}`);
     return true;
   }
 
@@ -191,7 +191,7 @@ export class UnifiedAIService {
             results.anthropic = analysis;
           })
           .catch((error) => {
-            console.error('Error en análisis con Anthropic:', error);
+            logger.error('Error en analisis con Anthropic:', error);
           })
       );
     }
@@ -204,7 +204,7 @@ export class UnifiedAIService {
             results.google = analysis;
           })
           .catch((error) => {
-            console.error('Error en análisis con Gemini:', error);
+            logger.error('Error en analisis con Gemini:', error);
           })
       );
     }

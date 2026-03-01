@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { logger } from '@autamedica/shared'
 import { MicOff, VideoOff, Signal, User } from 'lucide-react'
 
 export interface Participant {
@@ -29,7 +30,7 @@ function ParticipantTile({ participant, isLocal = false }: { participant: Partic
 
     const stream = new MediaStream([participant.videoTrack])
     videoRef.current.srcObject = stream
-    videoRef.current.play().catch(console.error)
+    videoRef.current.play().catch((err) => logger.error('Error playing video:', err))
     setHasVideo(true)
 
     return () => {

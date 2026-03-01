@@ -146,8 +146,8 @@ export function validateIceServersConfig(servers: RTCIceServer[]): boolean {
     return typeof url === 'string' && (url.startsWith('turn:') || url.startsWith('turns:'))
   })
 
-  if (!hasStun) console.warn('No STUN servers configured. ICE may fail in some networks.')
-  if (!hasTurn) console.warn('No TURN servers configured. Connections behind strict NAT may fail.')
+  if (!hasStun) logger.warn('No STUN servers configured. ICE may fail in some networks.')
+  if (!hasTurn) logger.warn('No TURN servers configured. Connections behind strict NAT may fail.')
 
   return true
 }

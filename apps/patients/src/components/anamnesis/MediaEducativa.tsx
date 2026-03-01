@@ -1,5 +1,6 @@
 'use client';
 
+import { logger } from '@autamedica/shared';
 
 interface MediaEducativaProps {
   type: 'image' | 'video';
@@ -14,7 +15,7 @@ export function MediaEducativa({ type, url, title, description }: MediaEducativa
   // Detectar si es video local (.mp4, .webm, etc.)
   const isLocalVideo = url.match(/\.(mp4|webm|ogg)$/i);
 
-  console.log('MediaEducativa - Loading video:', url, 'isLocal:', isLocalVideo);
+  logger.info('MediaEducativa - Loading video:', url, 'isLocal:', isLocalVideo);
 
   return (
     <div>
@@ -30,21 +31,21 @@ export function MediaEducativa({ type, url, title, description }: MediaEducativa
               preload="auto"
               className="w-full aspect-video object-contain"
               onLoadedMetadata={(e) => {
-                console.log('Video metadata loaded:', url);
+                logger.info('Video metadata loaded:', url);
                 const video = e.target as HTMLVideoElement;
                 video.volume = 0.3; // Set volume to 30%
-                console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-                console.log('Video duration:', video.duration);
-                console.log('Video volume set to:', video.volume);
+                logger.info('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                logger.info('Video duration:', video.duration);
+                logger.info('Video volume set to:', video.volume);
               }}
               onCanPlay={() => {
-                console.log('Video can play:', url);
+                logger.info('Video can play:', url);
               }}
               onError={(e) => {
-                console.error('Error loading video:', url);
+                logger.error('Error loading video:', url);
                 const video = e.target as HTMLVideoElement;
-                console.error('Video error code:', video.error?.code);
-                console.error('Video error message:', video.error?.message);
+                logger.error('Video error code:', video.error?.code);
+                logger.error('Video error message:', video.error?.message);
               }}
             >
               <source src={url} type="video/mp4" />

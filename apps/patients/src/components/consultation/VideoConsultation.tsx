@@ -3,6 +3,7 @@
 import { ControlBar, LiveKitRoom, RoomAudioRenderer, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useEffect, useState } from 'react';
+import { logger } from '@autamedica/shared';
 
 interface VideoConsultationProps {
   consultationId: string;
@@ -62,7 +63,7 @@ export function VideoConsultation({
         setConsultationData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
-        console.error('Error initializing consultation:', err);
+        logger.error('Error initializing consultation:', err);
       } finally {
         setIsLoading(false);
       }
@@ -72,7 +73,7 @@ export function VideoConsultation({
   }, [consultationId, patientId, doctorId]);
 
   const handleDisconnect = () => {
-    console.log('Disconnected from consultation room');
+    logger.info('Disconnected from consultation room');
     onEnd?.();
   };
 

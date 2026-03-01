@@ -5,6 +5,7 @@ import {
   RemoteTrackPublication,
   Track,
 } from 'livekit-client';
+import { logger } from '@autamedica/shared';
 
 /**
  * Hook para obtener el stream de video real del participante remoto (médico)
@@ -39,7 +40,7 @@ export function useRealRemoteStream(
         const mediaStream = new MediaStream([track.mediaStreamTrack]);
         setRemoteStream(mediaStream);
 
-        console.log('✅ Video remoto conectado:', {
+        logger.info('Video remoto conectado:', {
           participantId: participant.identity,
           trackId: track.sid,
         });
@@ -58,7 +59,7 @@ export function useRealRemoteStream(
       if (track.kind === Track.Kind.Video) {
         setRemoteStream(null);
 
-        console.log('⚠️  Video remoto desconectado:', {
+        logger.info('Video remoto desconectado:', {
           participantId: participant.identity,
           trackId: track.sid,
         });
@@ -70,13 +71,13 @@ export function useRealRemoteStream(
      */
     const handleTrackMuted = (publication: RemoteTrackPublication) => {
       if (publication.kind === Track.Kind.Video) {
-        console.log('🔇 Video remoto muteado');
+        logger.info('Video remoto muteado');
       }
     };
 
     const handleTrackUnmuted = (publication: RemoteTrackPublication) => {
       if (publication.kind === Track.Kind.Video) {
-        console.log('🔊 Video remoto desmuteado');
+        logger.info('Video remoto desmuteado');
       }
     };
 

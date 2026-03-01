@@ -133,9 +133,8 @@ export class WebRTCDebugger {
 
     // Log first few lines for quick check
     const lines = sdp.split('\n').slice(0, 10)
-    console.groupCollapsed(`${this.prefix} SDP ${type} preview`)
-    lines.forEach(line => logger.info(line))
-    console.groupEnd()
+    logger.debug(`${this.prefix} SDP ${type} preview`)
+    lines.forEach(line => logger.debug(line))
   }
 
   logTrackEvent(event: RTCTrackEvent) {
@@ -173,11 +172,10 @@ export class WebRTCDebugger {
 
   // Comprehensive diagnostic
   async diagnose(pc: RTCPeerConnection | null): Promise<void> {
-    console.group(`${this.prefix} 🔍 FULL DIAGNOSTIC`)
+    logger.debug(`${this.prefix} FULL DIAGNOSTIC`)
 
     if (!pc) {
       this.error('No PeerConnection to diagnose')
-      console.groupEnd()
       return
     }
 
@@ -275,7 +273,6 @@ export class WebRTCDebugger {
       this.logSDP(pc.remoteDescription, 'answer')
     }
 
-    console.groupEnd()
   }
 
   // Export logs for analysis
@@ -286,7 +283,6 @@ export class WebRTCDebugger {
   // Clear log history
   clearLogs() {
     this.logHistory = []
-    console.clear()
     this.info('Logs cleared')
   }
 }
@@ -327,31 +323,10 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
 
 // Console helper for quick diagnosis
 export function quickDiagnosis() {
-  console.log(`
-  %c🔧 QUICK WEBRTC DIAGNOSIS
-
-  Run these commands in console:
-
-  1. Check if debugger is available:
-     %cwebrtcDebug
-
-  2. Run full diagnosis:
-     %cwebrtcDebug.diagnose(peerConnectionRef.current)
-
-  3. Export logs:
-     %cwebrtcDebug.exportLogs()
-
-  4. Check specific stream:
-     %cwebrtcDebug.logStream(localVideoRef.current?.srcObject)
-
-  5. Clear logs:
-     %cwebrtcDebug.clearLogs()
-  `,
-    'color: #3B82F6; font-weight: bold; font-size: 14px;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;'
-  )
+  logger.info(`QUICK WEBRTC DIAGNOSIS - Run these commands in console:
+  1. webrtcDebug
+  2. webrtcDebug.diagnose(peerConnectionRef.current)
+  3. webrtcDebug.exportLogs()
+  4. webrtcDebug.logStream(localVideoRef.current?.srcObject)
+  5. webrtcDebug.clearLogs()`)
 }

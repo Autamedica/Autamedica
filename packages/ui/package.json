@@ -6,6 +6,7 @@
   "types": "src/index.ts",
   "dependencies": {
     "@autamedica/hooks": "workspace:*",
+    "@autamedica/shared": "workspace:*",
     "@autamedica/telemedicine": "workspace:*",
     "react": "^19.0.0"
   },

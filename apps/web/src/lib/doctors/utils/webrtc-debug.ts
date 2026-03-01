@@ -2,6 +2,7 @@
  * WebRTC Debug Utility
  * Provides detailed logging for WebRTC connections
  */
+import { logger } from '@autamedica/shared';
 
 export class WebRTCDebugger {
   private prefix: string
@@ -48,7 +49,7 @@ export class WebRTCDebugger {
       success: 'color: #10B981; font-weight: bold;'
     }
 
-    console.log(`%c${fullMessage}`, styles[level], data || '')
+    logger.info(fullMessage, data || '')
   }
 
   info(message: string, data?: any) {
@@ -132,7 +133,7 @@ export class WebRTCDebugger {
     // Log first few lines for quick check
     const lines = sdp.split('\n').slice(0, 10)
     console.groupCollapsed(`${this.prefix} SDP ${type} preview`)
-    lines.forEach(line => console.log(line))
+    lines.forEach(line => logger.info(line))
     console.groupEnd()
   }
 
@@ -325,31 +326,10 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
 
 // Console helper for quick diagnosis
 export function quickDiagnosis() {
-  console.log(`
-  %c🔧 QUICK WEBRTC DIAGNOSIS
-
-  Run these commands in console:
-
-  1. Check if debugger is available:
-     %cwebrtcDebug
-
-  2. Run full diagnosis:
-     %cwebrtcDebug.diagnose(peerConnectionRef.current)
-
-  3. Export logs:
-     %cwebrtcDebug.exportLogs()
-
-  4. Check specific stream:
-     %cwebrtcDebug.logStream(localVideoRef.current?.srcObject)
-
-  5. Clear logs:
-     %cwebrtcDebug.clearLogs()
-  `,
-    'color: #3B82F6; font-weight: bold; font-size: 14px;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;',
-    'color: #10B981; font-family: monospace;'
-  )
+  logger.info(`QUICK WEBRTC DIAGNOSIS - Run these commands in console:
+  1. Check if debugger is available: webrtcDebug
+  2. Run full diagnosis: webrtcDebug.diagnose(peerConnectionRef.current)
+  3. Export logs: webrtcDebug.exportLogs()
+  4. Check specific stream: webrtcDebug.logStream(localVideoRef.current?.srcObject)
+  5. Clear logs: webrtcDebug.clearLogs()`)
 }

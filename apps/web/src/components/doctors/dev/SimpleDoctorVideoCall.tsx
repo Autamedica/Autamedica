@@ -328,7 +328,7 @@ export default function SimpleDoctorVideoCall({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, roomId })
-      }).catch(console.error)
+      }).catch((err) => logger.error('Error leaving room:', err))
 
       // Cleanup peer connection
       if (peerConnectionRef.current) {

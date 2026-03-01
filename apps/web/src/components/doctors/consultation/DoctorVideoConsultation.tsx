@@ -11,6 +11,7 @@ import {
 import '@livekit/components-styles';
 import { Track } from 'livekit-client';
 import { useEffect, useState } from 'react';
+import { logger } from '@autamedica/shared';
 interface DoctorVideoConsultationProps {
   consultationId: string;
   patientId: string;
@@ -50,14 +51,14 @@ function DoctorControls() {
       const enabled = await localParticipant.setScreenShareEnabled(!isScreenSharing);
       setIsScreenSharing(enabled);
     } catch (error) {
-      console.error('Error toggling screen share:', error);
+      logger.error('Error toggling screen share:', error);
       alert('No se pudo compartir la pantalla. Verifica los permisos.');
     }
   };
 
   const startRecording = async () => {
     // TODO: Implementar cuando S3 esté configurado
-    console.log('Recording requested - S3 configuration needed');
+    logger.info('Recording requested - S3 configuration needed');
     setIsRecording(true);
     alert('Grabación iniciada (mock - requiere configuración S3)');
   };
@@ -142,7 +143,7 @@ export function DoctorVideoConsultation({
         setConsultationData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
-        console.error('Error initializing consultation:', err);
+        logger.error('Error initializing consultation:', err);
       } finally {
         setIsLoading(false);
       }
@@ -152,7 +153,7 @@ export function DoctorVideoConsultation({
   }, [consultationId, patientId, doctorId]);
 
   const handleDisconnect = () => {
-    console.log('Doctor disconnected from consultation room');
+    logger.info('Doctor disconnected from consultation room');
     onEnd?.();
   };
 

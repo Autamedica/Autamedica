@@ -22,7 +22,7 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 
 // Debug: log env vars
-console.log('[DEBUG] LiveKit Config:', {
+logger.info('[DEBUG] LiveKit Config:', {
   url: LIVEKIT_API_URL,
   hasKey: !!LIVEKIT_API_KEY,
   hasSecret: !!LIVEKIT_API_SECRET

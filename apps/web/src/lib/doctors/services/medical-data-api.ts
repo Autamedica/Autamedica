@@ -37,9 +37,9 @@ class MedicalDataAPI {
 
   constructor() {
     if (featureFlags.USE_MOCK_MEDICAL_DATA) {
-      console.log('⚠️  MedicalDataAPI en modo MOCK (desarrollo)')
+      logger.info('MedicalDataAPI en modo MOCK (desarrollo)')
     } else {
-      console.log('✅ MedicalDataAPI usando Supabase (producción)')
+      logger.info('MedicalDataAPI usando Supabase (produccion)')
     }
   }
 
@@ -86,7 +86,7 @@ class MedicalDataAPI {
       if (error) throw error
       return data || []
     } catch (error) {
-      console.error('Error fetching vital signs:', error)
+      logger.error('Error fetching vital signs:', error)
       // Fallback a mock en caso de error
       return this.getMockVitalSigns(patientId)
     }
@@ -184,7 +184,7 @@ class MedicalDataAPI {
         hasMore: count ? startIndex + pageSize < count : false,
       }
     } catch (error) {
-      console.error('Error fetching medical records:', error)
+      logger.error('Error fetching medical records:', error)
       return this.getMockMedicalRecords(patientId, filters, page, pageSize)
     }
   }
@@ -231,7 +231,7 @@ class MedicalDataAPI {
         // Aplicar filtros
         const filteredRecords = mockRecords
           .filter((record: MedicalRecord) => !filters.consultation_type || record.consultation_type === filters.consultation_type)
-          .filter((record: MedicalRecord) => !filters.diagnosis_contains || (record.diagnosis && record.diagnosis.toLowerCase().includes(filters.diagnosis_contains.toLowerCase())))
+          .filter((record: MedicalRecord) => !filters.diagnosis_contains || record.diagnosis?.toLowerCase().includes(filters.diagnosis_contains.toLowerCase()))
 
         const startIndex = page * pageSize
         const paginatedRecords = filteredRecords.slice(startIndex, startIndex + pageSize)

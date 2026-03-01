@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { SessionData, fetchSessionData, getLoginUrl } from '@/lib/session-sync'
+import { logger } from '@autamedica/shared'
 
 interface AuthContextType {
   session: SessionData | null
@@ -40,7 +41,7 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       setSession(sessionData)
 
     } catch (err) {
-      console.error('Auth refresh error:', err)
+      logger.error('Auth refresh error:', err)
       setError(err instanceof Error ? err.message : 'Authentication failed')
 
       // 🔓 DEV MODE: Don't redirect in development

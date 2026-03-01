@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
+import { logger } from '@autamedica/shared';
 import type { CreateAppointmentInput, AppointmentType } from '@/types/appointment';
 import { useModalAccessibility } from '@/hooks/useModalAccessibility';
 
@@ -46,7 +47,7 @@ export function CreateAppointmentModal({
       });
       onClose();
     } catch (error) {
-      console.error('Error al crear cita:', error);
+      logger.error('Error al crear cita:', error);
     } finally {
       setLoading(false);
     }
