@@ -232,13 +232,14 @@ done
 
 ## 7) Migrations Applied
 
-| Timestamp      | File                             | Description                          |
-| -------------- | -------------------------------- | ------------------------------------ |
-| 20260222000000 | `baseline_remote.sql`            | Baseline completo (516KB)            |
-| 20260222224500 | `auth_session_cleanup.sql`       | Limpieza sesiones auth               |
-| 20260301180000 | `harden_auth_signup_trigger.sql` | Fix handle_new_user()                |
-| 20260301190000 | `fix_recursive_rls_policies.sql` | Fix politicas recursivas en profiles |
-| 20260301200000 | `enable_rls_fix_views.sql`       | RLS ON + views security_invoker      |
+| Timestamp      | File                                | Description                          |
+| -------------- | ----------------------------------- | ------------------------------------ |
+| 20260222000000 | `baseline_remote.sql`               | Baseline completo (516KB)            |
+| 20260222224500 | `auth_session_cleanup.sql`          | Limpieza sesiones auth               |
+| 20260301180000 | `harden_auth_signup_trigger.sql`    | Fix handle_new_user()                |
+| 20260301190000 | `fix_recursive_rls_policies.sql`    | Fix politicas recursivas en profiles |
+| 20260301200000 | `enable_rls_fix_views.sql`          | RLS ON + views security_invoker      |
+| 20260301210000 | `fix_triggers_and_role_records.sql` | Fix triggers y registros de rol      |
 
 ---
 
