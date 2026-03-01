@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { getServerEnvOrDefault, logger } from '@autamedica/shared';
-import { featureFlags } from '@autamedica/shared/config/feature-flags';
+import { getServerEnvOrDefault, logger, featureFlags } from '@autamedica/shared';
 /**
  * Tipos para el servicio de AI
  */
@@ -143,8 +142,9 @@ FORMATO DE RESPUESTA (JSON):
       });
 
       // Extraer respuesta
+      const firstContent = message.content[0];
       const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
+        firstContent?.type === 'text' ? firstContent.text : '';
 
       // Parsear JSON de la respuesta
       const analysis = this.parseClaudeResponse(responseText);

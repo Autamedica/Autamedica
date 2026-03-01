@@ -2,8 +2,6 @@
 
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Button } from '@autamedica/ui';
-import Link from 'next/link';
 
 import { logger } from '@autamedica/shared';
 import { ensureClientEnv } from '@autamedica/shared';
@@ -50,19 +48,19 @@ export class ErrorBoundary extends Component<Props, State> {
               Ha ocurrido un error inesperado. Por favor, intenta recargar la página o vuelve al inicio.
             </p>
             <div className="space-y-3">
-              <Button 
+              <button
                 onClick={() => window.location.reload()}
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 <RefreshCw className="w-4 h-4" />
                 Recargar página
-              </Button>
-              <Link href="/dashboard">
-                <Button className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+              </button>
+              <a href="/dashboard">
+                <button className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 rounded">
                   <Home className="w-4 h-4" />
                   Ir al inicio
-                </Button>
-              </Link>
+                </button>
+              </a>
             </div>
             {ensureClientEnv('NODE_ENV') === 'development' && this.state.error && (
               <details className="mt-6 text-left">
@@ -103,19 +101,19 @@ export function ErrorFallback({ error: _error, resetErrorBoundary }: ErrorFallba
           No se pudo cargar este componente. Por favor, intenta de nuevo.
         </p>
         <div className="space-y-3">
-          <Button 
+          <button
             onClick={resetErrorBoundary}
-            className="w-full flex items-center justify-center gap-2"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             <RefreshCw className="w-4 h-4" />
             Intentar de nuevo
-          </Button>
-          <Link href="/dashboard">
-            <Button className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">
+          </button>
+          <a href="/dashboard">
+            <button className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 rounded">
               <Home className="w-4 h-4" />
               Ir al inicio
-            </Button>
-          </Link>
+            </button>
+          </a>
         </div>
       </div>
     </div>

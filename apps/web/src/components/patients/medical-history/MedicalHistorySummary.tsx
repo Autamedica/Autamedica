@@ -1,6 +1,15 @@
 'use client';
 
-import type { MedicalHistorySummary as MedicalHistorySummaryData } from '@autamedica/types';
+/** Local UI type for medical history summary (not exported from @autamedica/types) */
+interface MedicalHistorySummaryData {
+  active_conditions_count: number;
+  active_medications_count: number;
+  known_allergies_count: number;
+  last_encounter_date?: string;
+  critical_allergies: string[];
+  chronic_conditions: string[];
+  current_medications: string[];
+}
 
 interface MedicalHistorySummaryProps {
   summary: MedicalHistorySummaryData;
@@ -89,7 +98,7 @@ export function MedicalHistorySummary({ summary, className = '' }: MedicalHistor
                 Alergias Críticas
               </h3>
               <div className="space-y-1">
-                {summary.critical_allergies.map((allergy, index) => (
+                {summary.critical_allergies.map((allergy: string, index: number) => (
                   <div key={index} className="text-red-900 text-sm">
                     • {allergy}
                   </div>
@@ -106,7 +115,7 @@ export function MedicalHistorySummary({ summary, className = '' }: MedicalHistor
                 Condiciones Crónicas
               </h3>
               <div className="space-y-1">
-                {summary.chronic_conditions.map((condition, index) => (
+                {summary.chronic_conditions.map((condition: string, index: number) => (
                   <div key={index} className="text-orange-900 text-sm">
                     • {condition}
                   </div>
@@ -127,7 +136,7 @@ export function MedicalHistorySummary({ summary, className = '' }: MedicalHistor
 
           <div className="p-4 rounded-lg border border-green-500 bg-green-500/10 backdrop-blur-sm">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {summary.current_medications.map((medication, index) => (
+              {summary.current_medications.map((medication: string, index: number) => (
                 <div key={index} className="text-green-200 text-sm p-2 rounded bg-black/20">
                   • {medication}
                 </div>

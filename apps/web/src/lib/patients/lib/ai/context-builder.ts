@@ -13,9 +13,23 @@ export type PatientContextSummary = {
   birthDate: string | null
 }
 
+/** Safely extract a string field from an unknown record */
+function getString(obj: Record<string, unknown> | null | undefined, key: string): string | null {
+  if (!obj) return null
+  const val = obj[key]
+  return typeof val === 'string' ? val : null
+}
+
+/** Safely extract a number field from an unknown record */
+function getNumber(obj: Record<string, unknown> | null | undefined, key: string): number | null {
+  if (!obj) return null
+  const val = obj[key]
+  return typeof val === 'number' ? val : null
+}
+
 // getAdminClient is now a wrapper around the standardized factory
 export async function getAdminClient(): Promise<AppSupabaseClient> {
-  return createAdminClient() as AppSupabaseClient;
+  return createAdminClient() as unknown as AppSupabaseClient;
 }
 
 export async function buildPatientContext(userId: string, admin?: AppSupabaseClient) {
@@ -25,22 +39,31 @@ export async function buildPatientContext(userId: string, admin?: AppSupabaseCli
     client.from('patients').select('*').eq('user_id', userId).maybeSingle(),
   ])
 
+  // Cast Supabase rows to generic records for safe field access
+  const p = profile as Record<string, unknown> | null
+  const pt = patient as Record<string, unknown> | null
+
+  const fullName = getString(p, 'full_name')
+  const firstName = getString(p, 'first_name')
+  const lastName = getString(p, 'last_name')
+  const derivedName = fullName ?? [firstName, lastName].filter(Boolean).join(' ').trim() || null
+
   const summary: PatientContextSummary = {
-    name: ((profile?.full_name as any) ?? [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()) || null,
-    email: (profile?.email as any) ?? null,
-    role: (profile?.role as any) ?? 'patient',
-    portal: (profile?.portal as any) ?? 'patients',
-    gender: (patient?.gender as any) ?? null,
-    bloodType: (patient?.blood_type as any) ?? null,
-    heightCm: (patient?.height_cm as any) ?? null,
-    weightKg: (patient?.weight_kg as any) ?? null,
-    birthDate: (patient?.birth_date as any) ?? null,
+    name: derivedName,
+    email: getString(p, 'email'),
+    role: getString(p, 'role') ?? 'patient',
+    portal: getString(p, 'portal') ?? 'patients',
+    gender: getString(pt, 'gender'),
+    bloodType: getString(pt, 'blood_type'),
+    heightCm: getNumber(pt, 'height_cm'),
+    weightKg: getNumber(pt, 'weight_kg'),
+    birthDate: getString(pt, 'birth_date'),
   }
 
   return { profile, patient, summary }
 }
 
-export async function persistPatientContextFiles(userId: string, data: { profile: any; patient: any; summary: PatientContextSummary }, admin?: AppSupabaseClient) {
+export async function persistPatientContextFiles(userId: string, data: { profile: unknown; patient: unknown; summary: PatientContextSummary }, admin?: AppSupabaseClient) {
   const client = admin ?? (await getAdminClient())
   const BUCKET = 'patient-files'
 
@@ -60,7 +83,7 @@ export async function persistPatientContextFiles(userId: string, data: { profile
     'utf8',
   )
 
-  const uploads: Array<Promise<any>> = []
+  const uploads: Array<Promise<unknown>> = []
   uploads.push(
     client.storage.from(BUCKET).upload(`${userId}/profile.json`, profileJson, { contentType: 'application/json', upsert: true }),
   )

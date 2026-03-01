@@ -294,7 +294,7 @@ export default function SimplePatientVideoCall({
       }
 
       return mediaStream
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error al acceder a la cámara:', error)
       setMediaError(true)
       setShowMediaPicker(true)
@@ -375,7 +375,8 @@ export default function SimplePatientVideoCall({
   // Reproducir tono de llamada
   const playRingtone = () => {
     // Simular sonido de llamada con beep del navegador
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    const audioContext = new AudioCtx()
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
 
@@ -471,10 +472,9 @@ export default function SimplePatientVideoCall({
 
       const pc = createPeerConnection()
 
-      // logger.info('Adding tracks to peer connection:')
-      mediaStream.getTracks().forEach(track => {
-        pc.addTrack(track, mediaStream)
-        // logger.info(`  - Added ${track.kind} track: ${track.label}`)
+      const activeStream = mediaStream
+      activeStream.getTracks().forEach(track => {
+        pc.addTrack(track, activeStream)
       })
 
       const signalingBase = 'http://localhost:8787'

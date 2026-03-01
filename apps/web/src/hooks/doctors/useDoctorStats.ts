@@ -56,23 +56,14 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
       const now = new Date().toISOString()
 
       // Query appointments for this doctor
+      // DB schema: appointments has start_time (not scheduled_at),
+      // patient_id FK -> patients.id, patients.user_id FK -> profiles.user_id
       const { data: appointments, error: apptError } = await supabase
         .from('appointments')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          patient:patients!inner(
-            profile:profiles!inner(
-              full_name,
-              first_name,
-              last_name
-            )
-          )
-        `)
+        .select('id, start_time, status, patient_id')
         .eq('doctor_id', doctorId)
-        .gte('scheduled_at', startOfDay)
-        .order('scheduled_at', { ascending: true })
+        .gte('start_time', startOfDay)
+        .order('start_time', { ascending: true })
 
       if (apptError) {
         throw apptError
@@ -84,23 +75,43 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
       ) || []
 
       const todayAppointments = appointments?.filter(apt =>
-        apt.scheduled_at >= startOfDay && apt.scheduled_at <= endOfDay
+        apt.start_time >= startOfDay && apt.start_time <= endOfDay
       ) || []
 
       // Find next appointment
       const nextAppt = appointments?.find(apt =>
-        apt.scheduled_at >= now &&
+        apt.start_time >= now &&
         (apt.status === 'scheduled' || apt.status === 'confirmed')
       )
 
+      // For the next appointment, fetch the patient profile name separately
+      let patientName = 'Paciente'
+      if (nextAppt?.patient_id) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('user_id')
+          .eq('id', nextAppt.patient_id)
+          .single()
+
+        if (patient?.user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('user_id', patient.user_id)
+            .single()
+
+          if (profile) {
+            patientName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Paciente'
+          }
+        }
+      }
+
       const nextAppointment = nextAppt ? {
-        time: new Date(nextAppt.scheduled_at).toLocaleTimeString('es-AR', {
+        time: new Date(nextAppt.start_time).toLocaleTimeString('es-AR', {
           hour: '2-digit',
           minute: '2-digit'
         }),
-        patientName: nextAppt.patient?.profile?.full_name ||
-                    `${nextAppt.patient?.profile?.first_name || ''} ${nextAppt.patient?.profile?.last_name || ''}`.trim() ||
-                    'Paciente'
+        patientName
       } : null
 
       setStats({

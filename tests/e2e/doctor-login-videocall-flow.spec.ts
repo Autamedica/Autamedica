@@ -41,6 +41,7 @@ const USE_MOCK_ENVIRONMENT = process.env.MOCK_AUTAMEDICA === '1';
 class MockAutamedicaEnvironment {
   private wiredPages = new WeakSet<Page>();
 
+  // eslint-disable-next-line no-unused-vars
   constructor(private readonly config: TestConfig) {}
 
   async setup(page: Page): Promise<void> {

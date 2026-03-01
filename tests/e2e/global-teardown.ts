@@ -10,7 +10,7 @@ import { FullConfig } from '@playwright/test';
  * 4. Notifica resultados
  */
 
-async function globalTeardown(config: FullConfig) {
+async function globalTeardown(_config: FullConfig) {
   console.log('🧹 Iniciando Global Teardown para Doctor Login + Videollamada...');
   
   try {

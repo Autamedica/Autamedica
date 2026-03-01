@@ -151,6 +151,11 @@ export function usePatientSession(): UsePatientSessionResult {
           profileRow = updated;
         }
       }
+
+      if (!profileRow) {
+        throw new Error('Could not retrieve or create profile');
+      }
+
       // Parse robusto: intentar zod; si falla, normalizar mínimamente
       const parsed = safeParseProfile(profileRow);
       if (parsed) return parsed;

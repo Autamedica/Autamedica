@@ -1,8 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
-;
-;
+import { ReactNode, useState, useEffect } from 'react';
 import {
   Home,
   Calendar,
@@ -31,6 +29,22 @@ const navigation = [
   { name: 'Prevención Embarazo', href: '/pregnancy-prevention', icon: ShieldCheck },
   { name: 'Perfil', href: '/profile', icon: User },
 ];
+
+function usePathname(): string {
+  const [pathname, setPathname] = useState(() =>
+    typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
+  useEffect(() => {
+    const handler = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
+  return pathname;
+}
+
+function Link({ href, children: linkChildren, className, ...rest }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
+  return <a href={href} className={className} {...rest}>{linkChildren}</a>;
+}
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();

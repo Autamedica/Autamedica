@@ -3,9 +3,8 @@
  * Alternativa a Anthropic Claude
  */
 
-import { getServerEnvOrDefault, logger } from '@autamedica/shared';
-import { featureFlags } from '@autamedica/shared/config/feature-flags';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getServerEnvOrDefault, logger, featureFlags } from '@autamedica/shared';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import type { AnalysisRequest, MedicalAnalysis } from './ai-analysis-service';
 
 /**
@@ -69,13 +68,13 @@ export class GeminiAIService {
         },
         safetySettings: [
           {
-            category: 'HARM_CATEGORY_MEDICAL',
-            threshold: 'BLOCK_NONE', // Permitir contenido médico
+            category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold: HarmBlockThreshold.BLOCK_NONE,
           },
         ],
       });
 
-      const response = await result.response;
+      const response = result.response;
       const text = response.text();
       const processingTime = Date.now() - startTime;
 
@@ -92,7 +91,6 @@ export class GeminiAIService {
             input: response.usageMetadata?.promptTokenCount || 0,
             output: response.usageMetadata?.candidatesTokenCount || 0,
           },
-          processingTimeMs: processingTime,
         },
       };
     } catch (error) {
@@ -318,7 +316,7 @@ SOLO responde con el JSON, sin texto adicional.`;
         },
       });
 
-      const response = await result.response;
+      const response = result.response;
       const text = response.text();
       const analysis = this.parseGeminiResponse(text);
 
@@ -332,7 +330,6 @@ SOLO responde con el JSON, sin texto adicional.`;
             input: response.usageMetadata?.promptTokenCount || 0,
             output: response.usageMetadata?.candidatesTokenCount || 0,
           },
-          multimodal: true,
         },
       };
     } catch (error) {

@@ -89,7 +89,8 @@ export function IntegratedReproductiveHealthHub({
     if (!specialistId && specialists.length > 0) {
       // Seleccionar primer especialista disponible
       const availableSpecialist = specialists.find(s => s.availability_status === 'available');
-      specialistId = availableSpecialist?.id || specialists[0].id;
+      const firstSpecialist = specialists[0];
+      specialistId = availableSpecialist?.id ?? firstSpecialist?.id;
     }
 
     if (specialistId) {
@@ -266,12 +267,30 @@ export function IntegratedReproductiveHealthHub({
 }
 
 // Componente de Tab de Especialistas con datos reales
+interface DoctorsTabIntegratedProps {
+  specialists: Array<{
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url?: string;
+    specialty: string;
+    bio?: string;
+    rating: number;
+    total_consultations: number;
+    years_of_experience: number;
+    availability_status: string;
+  }>;
+  isLoading: boolean;
+  onRequestCall: (specialistId?: string) => void;
+  onStartChat: (specialistId: string) => void;
+}
+
 function DoctorsTabIntegrated({
   specialists,
   isLoading,
   onRequestCall,
   onStartChat
-}: any) {
+}: DoctorsTabIntegratedProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -291,7 +310,7 @@ function DoctorsTabIntegrated({
       </div>
 
       <div className="space-y-4">
-        {specialists.map((doctor: any) => (
+        {specialists.map((doctor) => (
           <div key={doctor.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 flex-1">
@@ -362,12 +381,29 @@ function DoctorsTabIntegrated({
 }
 
 // Componente de Tab de Centros con geolocalización
+interface CentersTabIntegratedProps {
+  centers: Array<{
+    id: string;
+    name: string;
+    type: string;
+    address: { street?: string; number?: string; city?: string; state?: string } | null;
+    phone: string;
+    distance_km: number;
+    offers_medication_method?: boolean;
+    offers_surgical_method?: boolean;
+    accepts_walk_ins?: boolean;
+  }>;
+  isLoading: boolean;
+  userLocation: { lat: number; lng: number } | null;
+  onRequestLocation: () => void;
+}
+
 function CentersTabIntegrated({
   centers,
   isLoading,
   userLocation,
   onRequestLocation
-}: any) {
+}: CentersTabIntegratedProps) {
   return (
     <div className="space-y-6">
       <div className="bg-blue-600/10 border border-blue-500/30 rounded-xl p-6">
@@ -397,7 +433,7 @@ function CentersTabIntegrated({
         </div>
       ) : (
         <div className="space-y-4">
-          {centers.map((center: any) => (
+          {centers.map((center) => (
             <div key={center.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -447,11 +483,25 @@ function CentersTabIntegrated({
 }
 
 // Componente de Tab de Chat
+interface ChatTabIntegratedProps {
+  chats: Array<{
+    id: string;
+    specialist_name: string;
+    is_urgent: boolean;
+    subject: string;
+    last_message_content: string;
+    unread_count: number;
+    last_message_at: string;
+  }>;
+  isLoading: boolean;
+  patientId: string;
+}
+
 function ChatTabIntegrated({
   chats,
   isLoading,
-  patientId
-}: any) {
+  patientId: _patientId
+}: ChatTabIntegratedProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -476,7 +526,7 @@ function ChatTabIntegrated({
         </div>
       ) : (
         <div className="space-y-4">
-          {chats.map((chat: any) => (
+          {chats.map((chat) => (
             <div key={chat.id} className="bg-white/5 border border-white/10 rounded-xl p-4 cursor-pointer hover:bg-white/10 transition">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -513,7 +563,13 @@ function ChatTabIntegrated({
 }
 
 // Modal de Agendar Cita
-function AppointmentModal({ onClose, onCreate, specialistId }: any) {
+interface AppointmentModalProps {
+  onClose: () => void;
+  onCreate: () => void;
+  specialistId: string | null;
+}
+
+function AppointmentModal({ onClose, onCreate, specialistId: _specialistId }: AppointmentModalProps) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-stone-300 rounded-2xl max-w-md w-full p-6">
@@ -574,7 +630,7 @@ function getCenterTypeLabel(type: string): string {
   return labels[type] || type;
 }
 
-function formatAddress(address: any): string {
+function formatAddress(address: { street?: string; number?: string; city?: string; state?: string } | null): string {
   if (!address) return '';
   const parts = [address.street, address.number, address.city, address.state].filter(Boolean);
   return parts.join(', ');

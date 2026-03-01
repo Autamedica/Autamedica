@@ -17,7 +17,7 @@ console.log('🤖 Agents will auto-sync when config changes...\n');
 
 let timeout;
 
-watch(CONFIG_PATH, (eventType, filename) => {
+watch(CONFIG_PATH, (eventType, _filename) => {
   if (eventType === 'change') {
     // Debounce: wait 500ms after last change
     clearTimeout(timeout);

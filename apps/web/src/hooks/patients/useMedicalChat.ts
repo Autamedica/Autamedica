@@ -33,6 +33,11 @@ export function useMedicalChats(
   const [error, setError] = useState<string | null>(null);
 
   const fetchChats = useCallback(async () => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -113,8 +118,11 @@ export function useMedicalChats(
   }, [supabase, options.patientId, options.activeOnly]);
 
   const createChat = useCallback(async (data: MedicalChatInsert) => {
-    try {
+    if (!supabase) {
+      return { success: false, error: 'Supabase client not available' as unknown };
+    }
 
+    try {
       const insertData = {
         patient_id: data.patient_id,
         specialist_id: data.specialist_id,
@@ -154,8 +162,11 @@ export function useMedicalChats(
     chatId: string,
     status: ChatStatusType
   ) => {
-    try {
+    if (!supabase) {
+      return { success: false, error: 'Supabase client not available' as unknown };
+    }
 
+    try {
       const { error: updateError } = await supabase
         .from('medical_chats')
         .update({
@@ -213,7 +224,7 @@ export function useChatMessages(
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const fetchMessages = useCallback(async () => {
-    if (!chatId) {
+    if (!chatId || !supabase) {
       setMessages([]);
       setIsLoading(false);
       return;
@@ -244,15 +255,14 @@ export function useChatMessages(
     content: string,
     contentType: 'text' | 'image' | 'document' = 'text'
   ) => {
-    if (!chatId || !userId) {
+    if (!chatId || !userId || !supabase) {
       return {
         success: false,
-        error: 'Missing chatId or userId'
+        error: 'Missing chatId, userId, or supabase client'
       };
     }
 
     try {
-
       const messageData: MedicalMessageInsert = {
         chat_id: chatId,
         author_type: 'patient',
@@ -293,8 +303,9 @@ export function useChatMessages(
   }, [supabase, chatId, userId]);
 
   const markAsRead = useCallback(async (messageId: string) => {
-    try {
+    if (!supabase) return;
 
+    try {
       await supabase
         .from('medical_messages')
         .update({

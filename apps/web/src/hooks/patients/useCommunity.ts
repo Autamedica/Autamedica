@@ -217,6 +217,7 @@ export function useAutoJoinGroup() {
 
   const autoJoin = useCallback(
     async (groupId: string) => {
+      if (!supabase) return;
 
       try {
         const { data: { user } } = await supabase.auth.getUser();

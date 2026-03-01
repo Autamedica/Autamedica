@@ -75,7 +75,7 @@ const SYMPTOM_TEMPLATES: SymptomTemplate[] = [
 ];
 
 export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patient' }: SymptomReportModalProps) {
-  const { recordSymptom, isLoading } = usePatientMedicalStore();
+  const { recordSymptom, isLoading: _isLoading } = usePatientMedicalStore();
 
   const [selectedTemplate, setSelectedTemplate] = useState<SymptomTemplate | null>(null);
   const [customSymptom, setCustomSymptom] = useState('');

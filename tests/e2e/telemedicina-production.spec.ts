@@ -148,7 +148,7 @@ test.describe('Telemedicina - Production URLs', () => {
           resolve({ connected: true, error: null });
         };
 
-        ws.onerror = (error) => {
+        ws.onerror = (_error) => {
           clearTimeout(timeout);
           resolve({ connected: false, error: 'connection_failed' });
         };

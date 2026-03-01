@@ -1,4 +1,4 @@
-import { MarketplaceJobOffer, MarketplaceDoctor, MarketplaceCompany, ARGENTINE_CITIES } from '@/types/marketplace'
+import { MarketplaceJobOffer, MarketplaceDoctor, MarketplaceCompany, ARGENTINE_CITIES } from '@/lib/doctors/types/marketplace'
 
 export const mockJobOffers: MarketplaceJobOffer[] = [
   {

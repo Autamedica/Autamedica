@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } // from 'next/navigation' - removed
+// useRouter removed - using window.location for Astro compatibility
 import { logger } from '@autamedica/shared'
 import { patientsEnv } from '@/lib/env'
 
@@ -21,8 +21,6 @@ interface IncomingCallModalProps {
 export function IncomingCallModal({ onAccept, onDecline }: IncomingCallModalProps) {
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const router = useRouter()
-
   useEffect(() => {
     // Listen for incoming calls via WebSocket
     const signalingUrl = patientsEnv.signalingUrl
@@ -156,7 +154,7 @@ export function IncomingCallModal({ onAccept, onDecline }: IncomingCallModalProp
         setIsVisible(false)
 
         // Navigate to call page
-        router.push(`/call/${incomingCall.roomId}?callId=${incomingCall.id}`)
+        window.location.href = `/call/${incomingCall.roomId}?callId=${incomingCall.id}`
 
         // Notify parent component
         onAccept(incomingCall.id, incomingCall.roomId)

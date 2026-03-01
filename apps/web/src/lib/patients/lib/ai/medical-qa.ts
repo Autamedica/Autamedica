@@ -548,7 +548,7 @@ export class MedicalQA {
     ];
 
     return {
-      text: greetings[Math.floor(Math.random() * greetings.length)],
+      text: greetings[Math.floor(Math.random() * greetings.length)] ?? greetings[0] ?? '',
       confidence
     };
   }
@@ -563,7 +563,7 @@ export class MedicalQA {
     ];
 
     return {
-      text: closingMessages[Math.floor(Math.random() * closingMessages.length)],
+      text: closingMessages[Math.floor(Math.random() * closingMessages.length)] ?? closingMessages[0] ?? '',
       confidence
     };
   }
@@ -588,12 +588,12 @@ export class MedicalQA {
       }
     ];
 
-    const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+    const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)] ?? suggestions[0];
 
     return {
-      text: randomSuggestion.text,
+      text: randomSuggestion?.text ?? '',
       confidence,
-      suggestedActions: randomSuggestion.suggestedActions
+      suggestedActions: randomSuggestion?.suggestedActions
     };
   }
 

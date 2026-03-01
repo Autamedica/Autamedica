@@ -1,15 +1,72 @@
 'use client';
 
 import { useState } from 'react';
-import type {
-  MedicalHistoryTimeline as MedicalHistoryTimelineData,
-  MedicalHistoryCondition,
-  MedicalAllergy,
-  PatientMedication,
-  MedicalProcedure,
-  MedicalEncounter,
-  Immunization
-} from '@autamedica/types';
+
+/** Local types for medical history timeline (not exported from @autamedica/types) */
+interface MedicalHistoryConditionLocal {
+  id: string;
+  name: string;
+  onset_date?: string;
+  created_at: string;
+  notes?: string;
+  status: string;
+  severity?: string;
+}
+
+interface MedicalAllergyLocal {
+  id: string;
+  allergen: string;
+  allergen_type: string;
+  onset_date?: string;
+  created_at: string;
+  reaction_description?: string;
+  severity?: string;
+}
+
+interface PatientMedicationLocal {
+  id: string;
+  name: string;
+  start_date: string;
+  dosage: string;
+  frequency: string;
+  status: string;
+  indication?: string;
+}
+
+interface MedicalProcedureLocal {
+  id: string;
+  name: string;
+  performed_date: string;
+  indication?: string;
+  outcome?: string;
+}
+
+interface MedicalEncounterLocal {
+  id: string;
+  encounter_date: string;
+  encounter_type: string;
+  chief_complaint?: string;
+  assessment?: string;
+}
+
+interface ImmunizationLocal {
+  id: string;
+  vaccine_name: string;
+  administration_date: string;
+  dose_number?: number;
+  notes?: string;
+}
+
+interface MedicalHistoryTimelineData {
+  sections: {
+    conditions: MedicalHistoryConditionLocal[];
+    allergies: MedicalAllergyLocal[];
+    medications: PatientMedicationLocal[];
+    procedures: MedicalProcedureLocal[];
+    encounters: MedicalEncounterLocal[];
+    immunizations: ImmunizationLocal[];
+  };
+}
 
 interface MedicalHistoryTimelineProps {
   timeline: MedicalHistoryTimelineData;
@@ -26,7 +83,7 @@ interface TimelineItem {
   description: string;
   status?: string;
   urgency?: 'low' | 'medium' | 'high';
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHistoryTimelineProps) {
@@ -39,7 +96,7 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
     const items: TimelineItem[] = [];
 
     // Add conditions
-    timeline.sections.conditions.forEach((condition: MedicalHistoryCondition) => {
+    timeline.sections.conditions.forEach((condition) => {
       items.push({
         id: condition.id,
         type: 'conditions',
@@ -48,12 +105,12 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
         description: condition.notes || `Estado: ${condition.status}`,
         status: condition.status,
         urgency: condition.severity === 'severe' ? 'high' : condition.severity === 'moderate' ? 'medium' : 'low',
-        data: condition
+        data: condition as unknown as Record<string, unknown>
       });
     });
 
     // Add allergies
-    timeline.sections.allergies.forEach((allergy: MedicalAllergy) => {
+    timeline.sections.allergies.forEach((allergy) => {
       items.push({
         id: allergy.id,
         type: 'allergies',
@@ -61,12 +118,12 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
         title: `Alergia: ${allergy.allergen}`,
         description: allergy.reaction_description || `Tipo: ${allergy.allergen_type}`,
         urgency: allergy.severity === 'life_threatening' || allergy.severity === 'severe' ? 'high' : 'medium',
-        data: allergy
+        data: allergy as unknown as Record<string, unknown>
       });
     });
 
     // Add medications
-    timeline.sections.medications.forEach((medication: PatientMedication) => {
+    timeline.sections.medications.forEach((medication) => {
       items.push({
         id: medication.id,
         type: 'medications',
@@ -75,12 +132,12 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
         description: `${medication.dosage} - ${medication.frequency}`,
         status: medication.status,
         urgency: 'low',
-        data: medication
+        data: medication as unknown as Record<string, unknown>
       });
     });
 
     // Add procedures
-    timeline.sections.procedures.forEach((procedure: MedicalProcedure) => {
+    timeline.sections.procedures.forEach((procedure) => {
       items.push({
         id: procedure.id,
         type: 'procedures',
@@ -88,12 +145,12 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
         title: procedure.name,
         description: procedure.indication || procedure.outcome || '',
         urgency: 'medium',
-        data: procedure
+        data: procedure as unknown as Record<string, unknown>
       });
     });
 
     // Add encounters
-    timeline.sections.encounters.forEach((encounter: MedicalEncounter) => {
+    timeline.sections.encounters.forEach((encounter) => {
       items.push({
         id: encounter.id,
         type: 'encounters',
@@ -101,12 +158,12 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
         title: `Consulta: ${encounter.encounter_type}`,
         description: encounter.chief_complaint || encounter.assessment || '',
         urgency: encounter.encounter_type === 'emergency' ? 'high' : 'low',
-        data: encounter
+        data: encounter as unknown as Record<string, unknown>
       });
     });
 
     // Add immunizations
-    timeline.sections.immunizations.forEach((immunization: Immunization) => {
+    timeline.sections.immunizations.forEach((immunization) => {
       items.push({
         id: immunization.id,
         type: 'immunizations',
@@ -114,7 +171,7 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
         title: `Vacuna: ${immunization.vaccine_name}`,
         description: immunization.notes || `Dosis: ${immunization.dose_number || 1}`,
         urgency: 'low',
-        data: immunization
+        data: immunization as unknown as Record<string, unknown>
       });
     });
 
@@ -318,24 +375,24 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
                 )}
 
                 {/* Additional details based on type */}
-                {selectedItem.type === 'medications' && selectedItem.data.indication && (
+                {selectedItem.type === 'medications' && typeof selectedItem.data['indication'] === 'string' && (
                   <div>
                     <label className="block text-sm font-medium text-white/60 mb-1">Indicación</label>
-                    <p className="text-white">{selectedItem.data.indication}</p>
+                    <p className="text-white">{selectedItem.data['indication'] as string}</p>
                   </div>
                 )}
 
-                {selectedItem.type === 'allergies' && (
+                {selectedItem.type === 'allergies' && typeof selectedItem.data['severity'] === 'string' && (
                   <div>
                     <label className="block text-sm font-medium text-white/60 mb-1">Severidad</label>
                     <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      selectedItem.data.severity === 'life_threatening' || selectedItem.data.severity === 'severe'
+                      selectedItem.data['severity'] === 'life_threatening' || selectedItem.data['severity'] === 'severe'
                         ? 'bg-red-500/20 text-red-400'
-                        : selectedItem.data.severity === 'moderate'
+                        : selectedItem.data['severity'] === 'moderate'
                         ? 'bg-yellow-500/20 text-yellow-400'
                         : 'bg-green-500/20 text-green-400'
                     }`}>
-                      {selectedItem.data.severity}
+                      {selectedItem.data['severity'] as string}
                     </span>
                   </div>
                 )}

@@ -1,13 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import type {
-  CreateMedicalConditionInput,
-  CreateMedicalAllergyInput,
-  ConditionStatus,
-  AllergySeverity,
-  FamilyRelationship
-} from '@autamedica/types';
+
+/** Local form types (matching the shape used in this form, not exported from @autamedica/types) */
+type ConditionStatus = 'active' | 'resolved' | 'chronic' | 'under_treatment';
+type AllergySeverity = 'mild' | 'moderate' | 'severe' | 'life_threatening';
+type FamilyRelationship = 'mother' | 'father' | 'sibling' | 'grandparent' | 'aunt_uncle' | 'cousin';
+type AllergenType = 'medication' | 'food' | 'environmental' | 'other';
+
+interface CreateMedicalConditionInput {
+  patient_id: string;
+  name: string;
+  status: ConditionStatus;
+  is_chronic: boolean;
+  is_family_history: boolean;
+  family_relationship?: FamilyRelationship;
+}
+
+interface CreateMedicalAllergyInput {
+  patient_id: string;
+  allergen: string;
+  allergen_type: AllergenType;
+  severity: AllergySeverity;
+}
 
 interface AnamnesisFormProps {
   onSubmit: (data: AnamnesisFormData) => void;
@@ -94,7 +109,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
 
   const addCondition = (type: 'personal' | 'family') => {
     const newCondition: CreateMedicalConditionInput = {
-      patient_id: '' as any, // Will be set by parent
+      patient_id: '', // Will be set by parent
       name: '',
       status: 'active' as ConditionStatus,
       is_chronic: false,
@@ -120,7 +135,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
 
   const addAllergy = () => {
     const newAllergy: CreateMedicalAllergyInput = {
-      patient_id: '' as any, // Will be set by parent
+      patient_id: '', // Will be set by parent
       allergen: '',
       allergen_type: 'medication',
       severity: 'mild' as AllergySeverity
@@ -243,7 +258,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                   value={allergy.allergen_type}
                   onChange={(e) => {
                     const newAllergies = [...formData.personalHistory.allergies];
-                    newAllergies[index].allergen_type = e.target.value as any;
+                    newAllergies[index].allergen_type = e.target.value as AllergenType;
                     setFormData(prev => ({
                       ...prev,
                       personalHistory: { ...prev.personalHistory, allergies: newAllergies }
@@ -342,7 +357,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
             value={formData.socialHistory.smoking}
             onChange={(e) => setFormData(prev => ({
               ...prev,
-              socialHistory: { ...prev.socialHistory, smoking: e.target.value as any }
+              socialHistory: { ...prev.socialHistory, smoking: e.target.value as AnamnesisFormData['socialHistory']['smoking'] }
             }))}
             className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
           >
@@ -358,7 +373,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
             value={formData.socialHistory.alcohol}
             onChange={(e) => setFormData(prev => ({
               ...prev,
-              socialHistory: { ...prev.socialHistory, alcohol: e.target.value as any }
+              socialHistory: { ...prev.socialHistory, alcohol: e.target.value as AnamnesisFormData['socialHistory']['alcohol'] }
             }))}
             className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
           >
@@ -375,7 +390,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
             value={formData.socialHistory.exercise}
             onChange={(e) => setFormData(prev => ({
               ...prev,
-              socialHistory: { ...prev.socialHistory, exercise: e.target.value as any }
+              socialHistory: { ...prev.socialHistory, exercise: e.target.value as AnamnesisFormData['socialHistory']['exercise'] }
             }))}
             className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
           >
@@ -392,7 +407,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
             value={formData.socialHistory.diet}
             onChange={(e) => setFormData(prev => ({
               ...prev,
-              socialHistory: { ...prev.socialHistory, diet: e.target.value as any }
+              socialHistory: { ...prev.socialHistory, diet: e.target.value as AnamnesisFormData['socialHistory']['diet'] }
             }))}
             className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
           >
@@ -423,7 +438,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
             value={formData.socialHistory.stress}
             onChange={(e) => setFormData(prev => ({
               ...prev,
-              socialHistory: { ...prev.socialHistory, stress: e.target.value as any }
+              socialHistory: { ...prev.socialHistory, stress: e.target.value as AnamnesisFormData['socialHistory']['stress'] }
             }))}
             className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
           >
@@ -520,8 +535,8 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
       {/* Current Section Content */}
       <div className="p-6 bg-black/20 rounded-lg border border-white/10 backdrop-blur-sm">
         <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
-          <span className="mr-3 text-2xl">{sections[currentSection].icon}</span>
-          {sections[currentSection].title}
+          <span className="mr-3 text-2xl">{sections[currentSection]?.icon}</span>
+          {sections[currentSection]?.title}
         </h2>
 
         {renderCurrentSection()}

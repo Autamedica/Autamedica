@@ -4,6 +4,13 @@ import { CheckCircle, HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 import type { AnamnesisFieldValue, AnamnesisField as FieldType } from '../../types/anamnesis';
 
+/** Convert AnamnesisFieldValue to a value safe for HTML input/select/textarea elements */
+function toInputValue(v: AnamnesisFieldValue): string | number | readonly string[] | undefined {
+  if (v === null || v === undefined || typeof v === 'boolean') return '';
+  if (Array.isArray(v)) return v;
+  return v;
+}
+
 interface AnamnesisFieldProps {
   field: FieldType;
   value: AnamnesisFieldValue;
@@ -30,7 +37,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
         return (
           <input
             type={field.type}
-            value={value || ''}
+            value={toInputValue(value) || ''}
             onChange={(e) => handleChange(field.type === 'number' ? Number(e.target.value) : e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
@@ -43,7 +50,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
       case 'textarea':
         return (
           <textarea
-            value={value || ''}
+            value={toInputValue(value) || ''}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
@@ -55,7 +62,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
       case 'select':
         return (
           <select
-            value={value || ''}
+            value={toInputValue(value) || ''}
             onChange={(e) => handleChange(e.target.value)}
             required={field.required}
             className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
@@ -142,13 +149,13 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
               type="range"
               min={field.validation?.min || 1}
               max={field.validation?.max || 10}
-              value={value || field.validation?.min || 1}
+              value={toInputValue(value) || field.validation?.min || 1}
               onChange={(e) => handleChange(Number(e.target.value))}
               className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
             <div className="flex justify-between text-sm text-stone-600">
               <span>1 (Leve)</span>
-              <span className="text-lg font-bold text-stone-900">{value || field.validation?.min || 1}</span>
+              <span className="text-lg font-bold text-stone-900">{toInputValue(value) || field.validation?.min || 1}</span>
               <span>10 (Insoportable)</span>
             </div>
           </div>
@@ -158,7 +165,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
         return (
           <input
             type="date"
-            value={value || ''}
+            value={toInputValue(value) || ''}
             onChange={(e) => handleChange(e.target.value)}
             required={field.required}
             className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"

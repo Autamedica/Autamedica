@@ -59,7 +59,8 @@ export function LocalVideoPIP({
     const positions: PIPPosition[] = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
     const currentIndex = positions.indexOf(position);
     const nextIndex = (currentIndex + 1) % positions.length;
-    onPositionChange(positions[nextIndex]);
+    const nextPosition = positions[nextIndex] ?? 'bottom-right';
+    onPositionChange(nextPosition);
   };
 
   return (

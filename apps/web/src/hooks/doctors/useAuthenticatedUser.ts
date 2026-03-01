@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@autamedica/auth/client'
+import { logger } from '@autamedica/shared'
 
 interface AuthenticatedUser {
   id: string
@@ -53,27 +54,39 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
                   'doctor' // Default for doctors app
 
       // Try to get profile from public.profiles table
+      // profiles PK is user_id, not id
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .single()
 
       if (profileError && profileError.code !== 'PGRST116') {
         logger.warn('Error fetching profile:', profileError.message)
       }
 
+      // Map DB profile (null values) to AuthenticatedUser profile (undefined values)
+      const profileData: AuthenticatedUser['profile'] = profile
+        ? {
+            full_name: `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || undefined,
+            first_name: profile.first_name ?? undefined,
+            last_name: profile.last_name ?? undefined,
+            specialties: authUser.user.user_metadata?.specialties,
+            medical_license: authUser.user.user_metadata?.medical_license
+          }
+        : {
+            full_name: authUser.user.user_metadata?.full_name,
+            first_name: authUser.user.user_metadata?.first_name,
+            last_name: authUser.user.user_metadata?.last_name,
+            specialties: authUser.user.user_metadata?.specialties,
+            medical_license: authUser.user.user_metadata?.medical_license
+          }
+
       const authenticatedUser: AuthenticatedUser = {
         id: userId,
         email: userEmail,
         role: role as AuthenticatedUser['role'],
-        profile: profile || {
-          full_name: authUser.user.user_metadata?.full_name,
-          first_name: authUser.user.user_metadata?.first_name,
-          last_name: authUser.user.user_metadata?.last_name,
-          specialties: authUser.user.user_metadata?.specialties,
-          medical_license: authUser.user.user_metadata?.medical_license
-        }
+        profile: profileData
       }
 
       return authenticatedUser

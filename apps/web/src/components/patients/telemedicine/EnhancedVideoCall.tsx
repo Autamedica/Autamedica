@@ -30,7 +30,7 @@ export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, classNam
   const { isFocusMode, setFocusMode } = usePatientPortal();
 
   // Sesión del paciente
-  const { currentSession, formattedDuration } = usePatientSession();
+  const { currentSession: _currentSession, formattedDuration: _formattedDuration } = usePatientSession();
 
   // Custom hook para lógica de video
   const videoCall = useVideoCall();

@@ -125,7 +125,7 @@ function checkCircularDependencies() {
   console.log('🔍 Verificando dependencias circulares...');
 
   // Verificar que la jerarquía es: types -> shared -> auth/hooks -> web-app
-  const dependencyOrder = [
+  const _dependencyOrder = [
     'packages/types',
     'packages/shared',
     'packages/auth',

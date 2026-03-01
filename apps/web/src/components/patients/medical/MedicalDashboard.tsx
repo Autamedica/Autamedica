@@ -21,7 +21,7 @@ interface MedicalDashboardProps {
 }
 
 export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
-  const { getHealthSummary, getSymptomTrends, getMedicationAdherence } = usePatientMedicalStore();
+  const { getHealthSummary, getSymptomTrends: _getSymptomTrends, getMedicationAdherence } = usePatientMedicalStore();
 
   // Modal states
   const [showSymptomModal, setShowSymptomModal] = useState(false);
@@ -30,7 +30,7 @@ export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
 
   // Get health data
   const healthSummary = getHealthSummary();
-  const symptomTrends = getSymptomTrends();
+  const _symptomTrends = _getSymptomTrends();
   const medicationAdherence = getMedicationAdherence();
 
   // Quick actions for medical tracking

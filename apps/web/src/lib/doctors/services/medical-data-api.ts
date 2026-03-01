@@ -12,8 +12,7 @@ import type {
   UUID,
   VitalSigns
 } from '@/types/medical';
-import { getOptionalClientEnv } from '@autamedica/shared';
-import { featureFlags, logger } from '@autamedica/shared/config/feature-flags';
+import { getOptionalClientEnv, featureFlags, logger } from '@autamedica/shared';
 import type { Database } from '@autamedica/types';
 import { createClient } from '@supabase/supabase-js';
 
@@ -43,30 +42,6 @@ class MedicalDataAPI {
     }
   }
 
-  private async fetchWithErrorHandling<T>(
-    endpoint: string,
-    options?: RequestInit
-  ): Promise<T> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
-        ...options,
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      return await response.json()
-    } catch (error) {
-      logger.error(`API Error [${endpoint}]:`, error)
-      throw error
-    }
-  }
-
   // Signos vitales
   async getVitalSigns(patientId: UUID): Promise<VitalSigns[]> {
     // Modo mock para desarrollo
@@ -84,7 +59,7 @@ class MedicalDataAPI {
         .limit(20)
 
       if (error) throw error
-      return data || []
+      return (data ?? []) as unknown as VitalSigns[]
     } catch (error) {
       logger.error('Error fetching vital signs:', error)
       // Fallback a mock en caso de error
@@ -161,18 +136,17 @@ class MedicalDataAPI {
         .select('*', { count: 'exact' })
         .eq('patient_id', patientId)
 
-      // Aplicar filtros
+      // Aplicar filtros - DB columns: type (not consultation_type), content (JSON, not diagnosis)
       if (filters.consultation_type) {
-        query = query.eq('consultation_type', filters.consultation_type)
+        query = query.eq('type', filters.consultation_type)
       }
-      if (filters.diagnosis_contains) {
-        query = query.ilike('diagnosis', `%${filters.diagnosis_contains}%`)
-      }
+      // diagnosis_contains is not directly searchable as a column;
+      // content is a JSON field - skip server-side filter for this
 
-      // Paginación
+      // Paginación - DB column: date_recorded (not consultation_date)
       const startIndex = page * pageSize
       query = query
-        .order('consultation_date', { ascending: false })
+        .order('date_recorded', { ascending: false })
         .range(startIndex, startIndex + pageSize - 1)
 
       const { data, error, count } = await query
@@ -180,7 +154,7 @@ class MedicalDataAPI {
       if (error) throw error
 
       return {
-        records: data || [],
+        records: (data ?? []) as unknown as MedicalRecord[],
         hasMore: count ? startIndex + pageSize < count : false,
       }
     } catch (error) {

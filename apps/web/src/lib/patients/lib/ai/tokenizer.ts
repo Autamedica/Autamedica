@@ -10,13 +10,13 @@ export interface TokenizerConfig {
 
 export class MedicalTokenizer {
   private maxLength: number;
-  private vocabSize: number;
+  private _vocabSize: number;
   private vocabulary: Map<string, number>;
   private reverseVocab: Map<number, string>;
 
   constructor(config: TokenizerConfig) {
     this.maxLength = config.maxLength;
-    this.vocabSize = config.vocabSize;
+    this._vocabSize = config.vocabSize;
     this.vocabulary = new Map();
     this.reverseVocab = new Map();
     this.initializeVocabulary();
@@ -135,7 +135,7 @@ export class MedicalTokenizer {
     return {
       tokens,
       attentionMask,
-      length: attentionMask.reduce((sum, val) => sum + val, 0)
+      length: attentionMask.reduce<number>((sum, val) => sum + val, 0)
     };
   }
 

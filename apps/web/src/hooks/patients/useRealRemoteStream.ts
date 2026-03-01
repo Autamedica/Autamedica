@@ -4,6 +4,7 @@ import {
   RemoteTrack,
   RemoteTrackPublication,
   Track,
+  type TrackPublication,
 } from 'livekit-client';
 import { logger } from '@autamedica/shared';
 
@@ -31,8 +32,7 @@ export function useRealRemoteStream(
      */
     const handleTrackSubscribed = (
       track: RemoteTrack,
-      publication: RemoteTrackPublication,
-      participant: RemoteParticipant
+      _publication: RemoteTrackPublication
     ) => {
       // Solo nos interesan los tracks de video
       if (track.kind === Track.Kind.Video) {
@@ -41,7 +41,7 @@ export function useRealRemoteStream(
         setRemoteStream(mediaStream);
 
         logger.info('Video remoto conectado:', {
-          participantId: participant.identity,
+          participantId: remoteParticipant.identity,
           trackId: track.sid,
         });
       }
@@ -53,14 +53,13 @@ export function useRealRemoteStream(
      */
     const handleTrackUnsubscribed = (
       track: RemoteTrack,
-      publication: RemoteTrackPublication,
-      participant: RemoteParticipant
+      _publication: RemoteTrackPublication
     ) => {
       if (track.kind === Track.Kind.Video) {
         setRemoteStream(null);
 
         logger.info('Video remoto desconectado:', {
-          participantId: participant.identity,
+          participantId: remoteParticipant.identity,
           trackId: track.sid,
         });
       }
@@ -69,13 +68,13 @@ export function useRealRemoteStream(
     /**
      * Handler cuando cambia el estado de mute
      */
-    const handleTrackMuted = (publication: RemoteTrackPublication) => {
+    const handleTrackMuted = (publication: TrackPublication) => {
       if (publication.kind === Track.Kind.Video) {
         logger.info('Video remoto muteado');
       }
     };
 
-    const handleTrackUnmuted = (publication: RemoteTrackPublication) => {
+    const handleTrackUnmuted = (publication: TrackPublication) => {
       if (publication.kind === Track.Kind.Video) {
         logger.info('Video remoto desmuteado');
       }
@@ -89,12 +88,11 @@ export function useRealRemoteStream(
 
     // Verificar si ya hay tracks de video disponibles
     // (caso cuando el médico ya tiene cámara activa al unirse)
-    remoteParticipant.videoTracks.forEach((publication) => {
+    remoteParticipant.videoTrackPublications.forEach((publication) => {
       if (publication.track && publication.isSubscribed) {
         handleTrackSubscribed(
           publication.track,
-          publication,
-          remoteParticipant
+          publication
         );
       }
     });
@@ -143,7 +141,7 @@ export function useMultipleRemoteStreams(
       participant.on('trackSubscribed', handleTrackSubscribed);
 
       // Check existing tracks
-      participant.videoTracks.forEach((publication) => {
+      participant.videoTrackPublications.forEach((publication) => {
         if (publication.track && publication.isSubscribed) {
           handleTrackSubscribed(publication.track, publication);
         }

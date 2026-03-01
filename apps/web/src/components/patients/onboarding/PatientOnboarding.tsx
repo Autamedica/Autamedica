@@ -55,7 +55,7 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
                   <li>💬 <strong>Conectar con la comunidad</strong> de pacientes</li>
                 </ul>
                 <p style="margin-top: 1rem; color: #0369a1; font-weight: 600;">Vamos a hacer un recorrido rápido (2 minutos) 🚀</p>
-                ${generateAutaMiniChatHTML(onboardingSteps[0])}
+                ${onboardingSteps[0] ? generateAutaMiniChatHTML(onboardingSteps[0]) : ''}
               </div>
             `,
           }

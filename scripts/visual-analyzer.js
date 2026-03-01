@@ -6,8 +6,8 @@
  */
 
 const { chromium } = require('playwright');
-const fs = require('fs');
-const path = require('path');
+const _fs = require('fs');
+const _path = require('path');
 
 const APPS = [
   { name: 'web-app', url: 'http://localhost:3000', port: 3000 },

@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     }
 
     const roomName = consultation.room_id || `room_${consultationId}`
-    let roomSid = null
+    let _roomSid = null
 
     // If room does not exist in consultation_rooms, create it in a transaction-like manner
     if (!consultation.consultation_rooms || consultation.consultation_rooms.length === 0) {
@@ -73,14 +73,14 @@ Deno.serve(async (req) => {
       if (roomError) {
          return new Response(JSON.stringify({ error: 'Failed to create room record' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
-      roomSid = newRoom.id // or any unique identifier from provider
+      _roomSid = newRoom.id // or any unique identifier from provider
       
       // Update telemedicine_session with the generated room_id if it was missing
       if (!consultation.room_id) {
           await supabaseAdmin.from('telemedicine_sessions').update({ room_id: roomName }).eq('id', consultationId)
       }
     } else {
-      roomSid = consultation.consultation_rooms[0].room_sid || consultation.consultation_rooms[0].id
+      _roomSid = consultation.consultation_rooms[0].room_sid || consultation.consultation_rooms[0].id
     }
 
     // Generate JWT for LiveKit / WebRTC

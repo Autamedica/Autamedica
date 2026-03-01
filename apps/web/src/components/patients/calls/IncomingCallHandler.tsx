@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } // from 'next/navigation' - removed
+// useRouter removed - using window.location for Astro compatibility
 import { createCallService } from '@autamedica/telemedicine'
 import type { InviteMessage } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
@@ -14,7 +14,6 @@ interface IncomingCallHandlerProps {
 export function IncomingCallHandler({ patientId, patientName: _patientName = 'Paciente' }: IncomingCallHandlerProps) {
   const [incomingCall, setIncomingCall] = useState<InviteMessage | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     if (!patientId) return
@@ -72,7 +71,7 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
       await callService.updateCallStatus(incomingCall.callId, 'accepted')
 
       // Navigate to call room
-      router.push(`/call/${incomingCall.roomId}?callId=${incomingCall.callId}`)
+      window.location.href = `/call/${incomingCall.roomId}?callId=${incomingCall.callId}`
 
     } catch (error) {
       logger.error('[IncomingCallHandler] Failed to accept call:', error)

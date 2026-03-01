@@ -3,11 +3,11 @@
  * Orquesta tokenización, clasificación de intenciones y generación de respuestas
  */
 
+import { getClientEnvOrDefault, getOptionalClientEnv, logger } from '@autamedica/shared';
 import * as ort from 'onnxruntime-web';
+import { intentClassifier, type IntentClassification, type MedicalIntent } from './intent-classifier';
+import { medicalQA, type MedicalResponse, type PatientContext } from './medical-qa';
 import { medicalTokenizer } from './tokenizer';
-import { intentClassifier, type MedicalIntent, type IntentClassification } from './intent-classifier';
-import { medicalQA, type PatientContext, type MedicalResponse } from './medical-qa';
-import { logger, getClientEnvOrDefault, getOptionalClientEnv } from '@autamedica/shared';
 import { loadVocab, wordPieceTokenize, type Vocab } from './wordpiece-tokenizer';
 
 /**
@@ -121,7 +121,7 @@ export class ONNXService {
           this.vocab = null; // si no existe, fallback a reglas
         }
       } catch (e) {
-        logger.warn('No se pudieron cargar labels/vocab para ONNX', (e as any)?.message || e);
+        logger.warn('No se pudieron cargar labels/vocab para ONNX', e instanceof Error ? e.message : String(e));
       }
       // logger.info('✅ ONNX model loaded successfully');
     } catch (error) {
@@ -145,7 +145,9 @@ export class ONNXService {
       };
 
       const results = await this.session.run(feeds);
-      return results[Object.keys(results)[0]];
+      const outputKey = Object.keys(results)[0];
+      if (!outputKey) throw new Error('No outputs from ONNX model run');
+      return results[outputKey] as ort.Tensor;
     } catch (error) {
       logger.error('Error running inference:', error);
       throw error;
@@ -192,16 +194,17 @@ export class ONNXService {
         const { inputIds, attentionMask, tokenTypeIds } = wordPieceTokenize(query, this.vocab, this.maxLen);
         const feeds: Record<string, ort.Tensor> = {};
         // Nombres comunes de entradas; probamos variantes
-        feeds['input_ids'] = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(n => BigInt(n))), [1, this.maxLen]);
-        feeds['attention_mask'] = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(n => BigInt(n))), [1, this.maxLen]);
+        feeds['input_ids'] = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(n => BigInt(n) as unknown as number)), [1, this.maxLen]);
+        feeds['attention_mask'] = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(n => BigInt(n) as unknown as number)), [1, this.maxLen]);
         // Algunos modelos no usan token_type_ids
-        try { feeds['token_type_ids'] = new ort.Tensor('int64', BigInt64Array.from(tokenTypeIds.map(n => BigInt(n))), [1, this.maxLen]); } catch {}
+        try { feeds['token_type_ids'] = new ort.Tensor('int64', BigInt64Array.from(tokenTypeIds.map(n => BigInt(n) as unknown as number)), [1, this.maxLen]); } catch { }
 
         const results = await this.session.run(feeds);
         // Tomar el primer output como logits
         const firstKey = Object.keys(results)[0];
+        if (!firstKey || !results[firstKey]) throw new Error('No valid outputs available');
         const logits = results[firstKey].data as Float32Array | number[];
-        const arr = Array.from(logits as any);
+        const arr = Array.from(logits as Iterable<number>);
         // Softmax
         const max = Math.max(...arr);
         const exps = arr.map(v => Math.exp(v - max));
@@ -211,13 +214,14 @@ export class ONNXService {
         let topIdx = 0;
         let topProb = probs[0] ?? 0;
         for (let i = 1; i < probs.length; i++) {
-          if (probs[i] > topProb) { topProb = probs[i]; topIdx = i; }
+          const prob = probs[i];
+          if (prob !== undefined && prob > topProb) { topProb = prob; topIdx = i; }
         }
         const label = (this.labels[topIdx] || 'unknown') as MedicalIntent;
         const keywords = medicalTokenizer.extractMedicalKeywords(query);
         return { intent: label, confidence: topProb, keywords };
       } catch (e) {
-        logger.warn('Fallo clasificación ONNX. Usando reglas.', (e as any)?.message || e);
+        logger.warn('Fallo clasificación ONNX. Usando reglas.', e instanceof Error ? e.message : String(e));
       }
     }
     // Fallback a reglas
@@ -237,7 +241,7 @@ export class ONNXService {
       const features = medicalTokenizer.extractFeatures(text);
       const inputTensor = new ort.Tensor(
         'int64',
-        BigInt64Array.from(features.tokens.map(t => BigInt(t))),
+        BigInt64Array.from(features.tokens.map(t => BigInt(t) as unknown as number)),
         [1, features.tokens.length]
       );
 
@@ -289,9 +293,11 @@ export class ONNXService {
     let normB = 0;
 
     for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+      const valA = a[i] ?? 0;
+      const valB = b[i] ?? 0;
+      dotProduct += valA * valB;
+      normA += valA * valA;
+      normB += valB * valB;
     }
 
     const denominator = Math.sqrt(normA) * Math.sqrt(normB);
@@ -329,7 +335,9 @@ export class ONNXService {
   public static async preload(): Promise<void> {
     try {
       // Precarga WASM files
-      await ort.env.wasm.proxy;
+      if (ort.env.wasm.proxy) {
+        // ... handled internally in valid browsers
+      }
       // logger.info('✅ ONNX Runtime WASM preloaded');
     } catch (error) {
       logger.warn('⚠️ Failed to preload ONNX Runtime:', error);
@@ -366,7 +374,7 @@ export async function initializeONNX(): Promise<void> {
       await svc.loadModel(modelPath);
       logger.info?.('Auta ONNX model loaded', { modelPath });
     } catch (e) {
-      logger.warn?.('Auta ONNX model failed to load. Falling back to reglas.', (e as any)?.message || e);
+      logger.warn?.('Auta ONNX model failed to load. Falling back to reglas.', e instanceof Error ? e.message : String(e));
     }
   }
 }

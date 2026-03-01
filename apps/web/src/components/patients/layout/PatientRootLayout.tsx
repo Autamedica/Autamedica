@@ -109,7 +109,7 @@ type PatientRootLayoutProps = {
 }
 
 export function PatientRootLayout({ children }: PatientRootLayoutProps): JSX.Element {
-  const _pathname = usePathname()
+  const _pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
   const [themeId, setThemeId] = useState<ThemeId>('autamedica')
   const [_fontScale, _setFontScale] = useState<FontScale>('md')
   const [_highContrast, _setHighContrast] = useState(false)

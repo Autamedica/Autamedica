@@ -172,7 +172,7 @@ test.describe('Telemedicina - Local Development Servers', () => {
       try {
         const buttonText = await toggleButtons.nth(i).textContent();
         console.log(`[Local Dev Test] Toggle button ${i}: "${buttonText}"`);
-      } catch (error) {
+      } catch (_error) {
         console.log(`[Local Dev Test] Could not read toggle button ${i}`);
       }
     }
@@ -287,7 +287,7 @@ test.describe('Telemedicina - Local Development Servers', () => {
         const title = await page.title();
         results.push({ url, status: 'accessible', title });
         console.log(`[Local Dev Test] ✅ ${url}: "${title}"`);
-      } catch (error) {
+      } catch (_error) {
         results.push({ url, status: 'not_accessible' });
         console.log(`[Local Dev Test] ❌ ${url}: not accessible`);
       }

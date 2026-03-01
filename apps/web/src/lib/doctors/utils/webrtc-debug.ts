@@ -4,17 +4,24 @@
  */
 import { logger } from '@autamedica/shared';
 
+interface WebRTCStatsReport {
+  connection?: { roundTripTime: unknown; bytesReceived: unknown; bytesSent: unknown };
+  videoInbound?: { packetsReceived: unknown; packetsLost: unknown; framesPerSecond: unknown; frameWidth: unknown; frameHeight: unknown };
+  audioInbound?: { packetsReceived: unknown; packetsLost: unknown };
+  videoOutbound?: { packetsSent: unknown; bytesSent: unknown; framesPerSecond: unknown };
+}
+
 export class WebRTCDebugger {
   private prefix: string
   private enabled: boolean = true
-  private logHistory: Array<{ timestamp: Date; message: string; data?: any }> = []
+  private logHistory: Array<{ timestamp: Date; message: string; data?: unknown }> = []
 
   constructor(role: 'doctor' | 'patient') {
     this.prefix = `[${role.toUpperCase()}]`
 
     // Expose globally for console access
     if (typeof window !== 'undefined') {
-      (window as any).webrtcDebug = this
+      (window as unknown as Record<string, unknown>).webrtcDebug = this
     }
   }
 
@@ -23,7 +30,7 @@ export class WebRTCDebugger {
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`
   }
 
-  private log(level: 'info' | 'warn' | 'error' | 'success', message: string, data?: any) {
+  private log(_level: 'info' | 'warn' | 'error' | 'success', message: string, data?: unknown) {
     if (!this.enabled) return
 
     const time = this.formatTime()
@@ -41,30 +48,22 @@ export class WebRTCDebugger {
       this.logHistory = this.logHistory.slice(-100)
     }
 
-    // Console output with styling
-    const styles = {
-      info: 'color: #3B82F6; font-weight: bold;',
-      warn: 'color: #F59E0B; font-weight: bold;',
-      error: 'color: #EF4444; font-weight: bold;',
-      success: 'color: #10B981; font-weight: bold;'
-    }
-
-    logger.info(fullMessage, data || '')
+    logger.info(fullMessage, data ?? '')
   }
 
-  info(message: string, data?: any) {
+  info(message: string, data?: unknown) {
     this.log('info', message, data)
   }
 
-  warn(message: string, data?: any) {
+  warn(message: string, data?: unknown) {
     this.log('warn', message, data)
   }
 
-  error(message: string, data?: any) {
+  error(message: string, data?: unknown) {
     this.log('error', message, data)
   }
 
-  success(message: string, data?: any) {
+  success(message: string, data?: unknown) {
     this.log('success', message, data)
   }
 
@@ -222,39 +221,41 @@ export class WebRTCDebugger {
     // logger.info('%c📈 Connection Stats:', 'font-weight: bold; color: #6B7280;')
     try {
       const stats = await pc.getStats()
-      const statsReport: any = {}
+      const statsReport: WebRTCStatsReport = {}
 
       stats.forEach(report => {
-        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+        // RTCStatsReport entries have additional properties beyond the base RTCStats type
+        const r = report as Record<string, unknown>
+        if (r.type === 'candidate-pair' && r.state === 'succeeded') {
           statsReport.connection = {
-            roundTripTime: report.currentRoundTripTime,
-            bytesReceived: report.bytesReceived,
-            bytesSent: report.bytesSent
+            roundTripTime: r.currentRoundTripTime,
+            bytesReceived: r.bytesReceived,
+            bytesSent: r.bytesSent
           }
         }
-        if (report.type === 'inbound-rtp') {
-          if (report.mediaType === 'video') {
+        if (r.type === 'inbound-rtp') {
+          if (r.mediaType === 'video') {
             statsReport.videoInbound = {
-              packetsReceived: report.packetsReceived,
-              packetsLost: report.packetsLost,
-              framesPerSecond: report.framesPerSecond,
-              frameWidth: report.frameWidth,
-              frameHeight: report.frameHeight
+              packetsReceived: r.packetsReceived,
+              packetsLost: r.packetsLost,
+              framesPerSecond: r.framesPerSecond,
+              frameWidth: r.frameWidth,
+              frameHeight: r.frameHeight
             }
           }
-          if (report.mediaType === 'audio') {
+          if (r.mediaType === 'audio') {
             statsReport.audioInbound = {
-              packetsReceived: report.packetsReceived,
-              packetsLost: report.packetsLost
+              packetsReceived: r.packetsReceived,
+              packetsLost: r.packetsLost
             }
           }
         }
-        if (report.type === 'outbound-rtp') {
-          if (report.mediaType === 'video') {
+        if (r.type === 'outbound-rtp') {
+          if (r.mediaType === 'video') {
             statsReport.videoOutbound = {
-              packetsSent: report.packetsSent,
-              bytesSent: report.bytesSent,
-              framesPerSecond: report.framesPerSecond
+              packetsSent: r.packetsSent,
+              bytesSent: r.bytesSent,
+              framesPerSecond: r.framesPerSecond
             }
           }
         }
@@ -296,29 +297,29 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
 
   // Attach event listeners for automatic logging
   const originalOnTrack = pc.ontrack
-  pc.ontrack = (event) => {
+  pc.ontrack = (event: RTCTrackEvent) => {
     webrtcDebugger.logTrackEvent(event)
-    if (originalOnTrack) originalOnTrack(event)
+    if (originalOnTrack) originalOnTrack.call(pc, event)
   }
 
   const originalOnIceCandidate = pc.onicecandidate
-  pc.onicecandidate = (event) => {
+  pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
     if (event.candidate) {
       webrtcDebugger.logICECandidate(event.candidate, 'sending')
     }
-    if (originalOnIceCandidate) originalOnIceCandidate(event)
+    if (originalOnIceCandidate) originalOnIceCandidate.call(pc, event)
   }
 
   const originalOnConnectionStateChange = pc.onconnectionstatechange
-  pc.onconnectionstatechange = () => {
+  pc.onconnectionstatechange = (event: Event) => {
     webrtcDebugger.info(`Connection state changed to: ${pc.connectionState}`)
-    if (originalOnConnectionStateChange) originalOnConnectionStateChange()
+    if (originalOnConnectionStateChange) originalOnConnectionStateChange.call(pc, event)
   }
 
   const originalOnIceConnectionStateChange = pc.oniceconnectionstatechange
-  pc.oniceconnectionstatechange = () => {
+  pc.oniceconnectionstatechange = (event: Event) => {
     webrtcDebugger.info(`ICE connection state changed to: ${pc.iceConnectionState}`)
-    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange()
+    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange.call(pc, event)
   }
 
   return webrtcDebugger

@@ -11,7 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Test 1: Check if we can connect
 console.log('1. Verificando conexión...');
-const { data: testData, error: testError } = await supabase.from('users').select('count').limit(1);
+const { error: testError } = await supabase.from('users').select('count').limit(1);
 
 if (testError) {
   console.log('❌ Error de conexión:', testError.message);
@@ -24,7 +24,7 @@ if (testError) {
 // Test 2: Try to sign up a test user
 console.log('\n2. Probando registro de usuario...');
 const testEmail = `test-${Date.now()}@example.com`;
-const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+const { error: signUpError } = await supabase.auth.signUp({
   email: testEmail,
   password: 'TestPassword123!',
 });

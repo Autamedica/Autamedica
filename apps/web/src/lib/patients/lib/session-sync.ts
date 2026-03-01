@@ -5,7 +5,7 @@ import {
   SessionData,
 } from '@autamedica/session';
 
-export { SessionData };
+export type { SessionData };
 
 export async function fetchSessionData(): Promise<SessionData | null> {
   return fetchSessionDataShared('patients', 'patient');

@@ -16,7 +16,10 @@ export function getSupabase() {
 
 // Export para compatibilidad con imports existentes
 // IMPORTANTE: Este NO se ejecuta en build time porque está en un módulo 'use client'
-export const supabase = {
+export const supabase: {
+  readonly auth: AppSupabaseClient['auth'] | { getUser: () => Promise<{ data: { user: null }; error: null }> };
+  readonly from: AppSupabaseClient['from'] | (() => { select: () => { eq: () => { single: () => Promise<{ data: null; error: null }> } } });
+} = {
   get auth() {
     const client = createClient();
     return client?.auth || { getUser: async () => ({ data: { user: null }, error: null }) };

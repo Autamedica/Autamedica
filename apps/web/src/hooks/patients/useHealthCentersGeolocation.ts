@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type {
+  Address,
   HealthCenter,
   HealthCenterWithDistance,
   HealthCenterSearchFilters,
@@ -75,6 +76,11 @@ export function useHealthCentersGeolocation(
     location: Coordinates,
     radiusKm: number = 50
   ) => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -112,10 +118,11 @@ export function useHealthCentersGeolocation(
 
       // Calculate distances and filter by radius
       const centersWithDistance: HealthCenterWithDistance[] = (data || [])
-        .map((center: any) => {
+        .map((center) => {
+          const centerRecord = center as unknown as HealthCenter;
           const centerCoords: Coordinates = {
-            latitude: center.coordinates.latitude,
-            longitude: center.coordinates.longitude
+            latitude: centerRecord.coordinates.latitude,
+            longitude: centerRecord.coordinates.longitude
           };
 
           const distance = calculateDistance(location, centerCoords);
@@ -149,6 +156,11 @@ export function useHealthCentersGeolocation(
 
   // Fetch all centers (fallback when no location available)
   const fetchAllCenters = useCallback(async () => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -164,8 +176,8 @@ export function useHealthCentersGeolocation(
       if (fetchError) throw fetchError;
 
       // Map to HealthCenterWithDistance (distance_km = 0 when no location)
-      const centersData: HealthCenterWithDistance[] = (data || []).map((center: any) => ({
-        ...center,
+      const centersData: HealthCenterWithDistance[] = (data || []).map((center) => ({
+        ...(center as unknown as HealthCenter),
         distance_km: 0,
         travel_time_minutes: undefined
       }));
@@ -231,7 +243,7 @@ export function useHealthCenterById(centerId: string | null) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!centerId) {
+    if (!centerId || !supabase) {
       setCenter(null);
       setIsLoading(false);
       return;
@@ -299,7 +311,7 @@ function getHealthCenterTypeLabel(type: string): string {
   return labels[type] || type;
 }
 
-function formatAddressForDisplay(address: any): string {
+function formatAddressForDisplay(address: Address | null | undefined): string {
   if (!address) return '';
 
   const parts = [

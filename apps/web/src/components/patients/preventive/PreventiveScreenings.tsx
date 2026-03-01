@@ -1,10 +1,21 @@
 'use client';
 
-import type { PreventiveScreening } from '../../../mocks/preventive-screenings';
 import { AlertCircle, CheckCircle, Clock, Calendar } from 'lucide-react';
 
+/** UI view type for patient-specific screening data */
+interface PreventiveScreeningView {
+  id: string;
+  title: string;
+  description: string;
+  recommended_frequency: string;
+  status: 'overdue' | 'due_soon' | 'up_to_date';
+  priority: 'high' | 'medium' | 'low';
+  last_done_date?: string;
+  next_due_date: string;
+}
+
 interface PreventiveScreeningsProps {
-  screenings: PreventiveScreening[];
+  screenings: PreventiveScreeningView[];
 }
 
 const statusConfig = {

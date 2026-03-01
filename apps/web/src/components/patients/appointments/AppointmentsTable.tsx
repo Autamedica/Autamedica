@@ -47,8 +47,10 @@ export function AppointmentsTable({ appointments }: AppointmentsTableProps) {
   return (
     <div className="space-y-4">
       {appointments.map((appointment) => {
-        const status = statusConfig[appointment.status];
-        const type = typeConfig[appointment.appointment_type];
+        const statusKey = appointment.status ?? 'scheduled';
+        const status = statusConfig[statusKey];
+        const typeKey = appointment.type ?? 'consultation';
+        const type = typeConfig[typeKey];
 
         return (
           <div
@@ -57,18 +59,20 @@ export function AppointmentsTable({ appointments }: AppointmentsTableProps) {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="text-2xl">{type.icon}</div>
+                <div className="text-2xl">{type?.icon}</div>
                 <div>
                   <h3 className="text-lg font-bold text-stone-900">
-                    {type.label}
+                    {type?.label}
                   </h3>
-                  <p className="text-sm text-stone-600">{appointment.reason}</p>
+                  {appointment.notes && (
+                    <p className="text-sm text-stone-600">{appointment.notes}</p>
+                  )}
                 </div>
               </div>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${status.color}`}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${status?.color}`}
               >
-                {status.label}
+                {status?.label}
               </span>
             </div>
 
@@ -80,7 +84,7 @@ export function AppointmentsTable({ appointments }: AppointmentsTableProps) {
               <div className="flex items-center gap-2 text-sm text-stone-700">
                 <Clock className="h-4 w-4 text-stone-500" />
                 <span>
-                  {formatTime(appointment.start_time)} - {formatTime(appointment.end_time)}
+                  {formatTime(appointment.start_time)}{appointment.end_time ? ` - ${formatTime(appointment.end_time)}` : ''}
                 </span>
               </div>
               {appointment.location && (

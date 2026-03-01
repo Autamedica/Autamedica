@@ -10,7 +10,7 @@ import { chromium, FullConfig } from '@playwright/test';
  * 4. Prepara el entorno para los tests
  */
 
-async function globalSetup(config: FullConfig) {
+async function globalSetup(_config: FullConfig) {
   console.log('🚀 Iniciando Global Setup para Doctor Login + Videollamada...');
   
   if (process.env.MOCK_AUTAMEDICA === '1') {
@@ -103,7 +103,7 @@ async function verifyWebRTCConnectivity(page: any) {
   }
 }
 
-async function setupTestData(page: any) {
+async function setupTestData(_page: any) {
   console.log('📊 Configurando datos de prueba...');
   
   try {

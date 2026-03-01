@@ -269,10 +269,10 @@ export default function SimpleDoctorVideoCall({
                 }
 
                 // Handle WebRTC answer from patient
-                if (msg.type === 'webrtc-answer' && peerConnectionRef.current) {
+                if (msg.type === 'webrtc-answer' && peerConnectionRef.current && msg.data) {
                   debuggerRef.current?.success('📬 Received WebRTC answer from patient')
                   try {
-                    const answer = new RTCSessionDescription(msg.data.answer)
+                    const answer = new RTCSessionDescription(msg.data.answer as RTCSessionDescriptionInit)
 
                     debuggerRef.current?.info('Setting remote description...', {
                       type: answer.type,
@@ -287,19 +287,19 @@ export default function SimpleDoctorVideoCall({
                     setCallStatus('connected')
                     offerInFlightRef.current = false
                     startCallTimer()
-                  } catch (err: any) {
-                    debuggerRef.current?.error('❌ Failed to set remote description:', err.message)
+                  } catch (err: unknown) {
+                    debuggerRef.current?.error('❌ Failed to set remote description:', err instanceof Error ? err.message : String(err))
                   }
                 }
 
                 // Handle ICE candidates from patient
-                if (msg.type === 'ice-candidate' && peerConnectionRef.current) {
+                if (msg.type === 'ice-candidate' && peerConnectionRef.current && msg.data) {
                   try {
-                    const candidate = new RTCIceCandidate(msg.data.candidate)
+                    const candidate = new RTCIceCandidate(msg.data.candidate as RTCIceCandidateInit)
                     await peerConnectionRef.current.addIceCandidate(candidate)
                     debuggerRef.current?.info('🧊 Added ICE candidate from patient')
-                  } catch (err: any) {
-                    debuggerRef.current?.warn('Failed to add ICE candidate:', err.message)
+                  } catch (err: unknown) {
+                    debuggerRef.current?.warn('Failed to add ICE candidate:', err instanceof Error ? err.message : String(err))
                   }
                 }
 
@@ -362,12 +362,13 @@ export default function SimpleDoctorVideoCall({
           localVideoRef.current.autoplay = true
           localVideoRef.current.play().catch(() => {})
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         offerInFlightRef.current = false
         logger.error('Unable to acquire local media for offer:', error)
-        if (error.name === 'NotAllowedError') {
+        const domErr = error instanceof DOMException ? error : null
+        if (domErr?.name === 'NotAllowedError') {
           setMediaError('Permite el acceso a cámara y micrófono para iniciar la videollamada')
-        } else if (error.name === 'NotReadableError' || error.name === 'AbortError') {
+        } else if (domErr?.name === 'NotReadableError' || domErr?.name === 'AbortError') {
           setMediaError('La cámara está en uso por otra aplicación')
         } else {
           setMediaError('No se pudo inicializar la cámara/micrófono')
@@ -482,15 +483,15 @@ export default function SimpleDoctorVideoCall({
           const mediaStream = await navigator.mediaDevices.getUserMedia(constraint)
           handleMediaReady(mediaStream)
           return
-        } catch (error: any) {
-          // logger.info(`Failed with constraint:`, constraint, error.name)
+        } catch (error: unknown) {
+          const domErr = error instanceof DOMException ? error : null
 
-          if (error.name === 'NotAllowedError') {
+          if (domErr?.name === 'NotAllowedError') {
             setMediaError('Permisos de cámara/micrófono denegados')
             break
           }
 
-          if (error.name === 'AbortError' || error.name === 'NotReadableError') {
+          if (domErr?.name === 'AbortError' || domErr?.name === 'NotReadableError') {
             setMediaError('La cámara está siendo usada por otra aplicación')
           }
         }

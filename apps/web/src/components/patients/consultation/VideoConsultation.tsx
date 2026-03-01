@@ -121,7 +121,7 @@ export function VideoConsultation({
 
         {/* Componente principal de videoconferencia */}
         <VideoConference
-          chatMessageFormatter={(message) => `${message.from?.identity}: ${message.message}`}
+          chatMessageFormatter={(message) => message}
         />
 
         {/* Controles personalizados */}

@@ -78,7 +78,7 @@ async function verifySupabaseConnection(supabase) {
 
   try {
     // Verificar conexión básica
-    const { data, error: queryError } = await supabase
+    const { error: queryError } = await supabase
       .from('community_groups')
       .select('count')
       .limit(1);
@@ -178,10 +178,10 @@ async function verifySeedData(supabase) {
   }
 }
 
-async function verifyRLS(supabase) {
+async function verifyRLS(_supabase) {
   section('4. VERIFICACIÓN DE ROW LEVEL SECURITY (RLS)');
 
-  const tables = [
+  const _tables = [
     'anamnesis',
     'telemedicine_sessions',
     'community_groups',
@@ -214,7 +214,7 @@ async function verifyHookFiles() {
       const hookPath = join(__dirname, '..', hookFile);
       readFileSync(hookPath, 'utf-8');
       success(`Hook encontrado: ${hookFile}`);
-    } catch (err) {
+    } catch (_err) {
       error(`Hook no encontrado: ${hookFile}`);
       allHooksExist = false;
     }
@@ -257,7 +257,7 @@ async function verifyIntegration() {
         error(`${file.description} - Hook "${file.hook}" NO encontrado`);
         allIntegrated = false;
       }
-    } catch (err) {
+    } catch (_err) {
       error(`No se pudo verificar: ${file.path}`);
       allIntegrated = false;
     }
@@ -266,7 +266,7 @@ async function verifyIntegration() {
   return allIntegrated;
 }
 
-async function testDataFlow(supabase) {
+async function testDataFlow(_supabase) {
   section('7. TEST DE FLUJO DE DATOS (OPCIONAL)');
 
   info('Para probar el flujo completo de datos:');

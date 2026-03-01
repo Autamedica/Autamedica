@@ -52,7 +52,7 @@ async function clearAuthState() {
   })
 
   // Clear cookies
-  const cookies = await page.context().cookies()
+  const _cookies = await page.context().cookies()
   await page.context().clearCookies()
 }
 

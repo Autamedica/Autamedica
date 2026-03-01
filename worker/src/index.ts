@@ -15,7 +15,7 @@ const users = new Map<string, WebSocket>()                 // userId -> ws
 const rooms = new Map<string, Set<WebSocket>>()            // roomId -> set<ws>
 const metas = new WeakMap<WebSocket, Meta>()
 
-function handleWS(req: Request, env: any) {
+function handleWS(req: Request, _env: any) {
   const url = new URL(req.url)
   const userId = url.searchParams.get('userId') || undefined
   const userType = (url.searchParams.get('userType') as Meta['userType']) || 'unknown'
@@ -64,7 +64,7 @@ function handleWS(req: Request, env: any) {
           // opcional: echo para debug
           ws.send(JSON.stringify({ ok: true, echo: msg.type }))
       }
-    } catch (e) {
+    } catch (_e) {
       try { ws.send(JSON.stringify({ error: 'bad-json' })) } catch {}
     }
   })

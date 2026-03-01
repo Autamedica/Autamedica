@@ -204,7 +204,7 @@ function main() {
         const violations = scanDirectory(fullPath)
         allViolations = allViolations.concat(violations)
       }
-    } catch (error) {
+    } catch (_error) {
       // Directory doesn't exist, skip
       console.log(`  ${colors.yellow}⚠ ${scanDir} no existe, omitido${colors.reset}`)
     }

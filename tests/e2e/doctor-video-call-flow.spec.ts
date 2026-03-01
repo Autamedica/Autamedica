@@ -317,7 +317,7 @@ test.describe('Doctor Portal – Login + Video Call', () => {
       let parsedToken: Record<string, unknown> | null = null;
       try {
         parsedToken = JSON.parse(tokenString);
-      } catch (error) {
+      } catch (_error) {
         return false;
       }
 

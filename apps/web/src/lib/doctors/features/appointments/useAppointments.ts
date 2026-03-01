@@ -6,17 +6,17 @@ import {
   createAppointment,
   updateAppointment,
   deleteAppointment,
-  type Appointment,
+  type UiAppointment,
   type NewAppointment,
   type PatchAppointment,
-} from '@/lib/repos/appointments';
+} from '@/lib/doctors/lib/repos/appointments';
 
 type Status = 'idle' | 'loading' | 'error' | 'success';
 
 export function useAppointments() {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [rows, setRows] = useState<Appointment[]>([]);
+  const [rows, setRows] = useState<UiAppointment[]>([]);
 
   const refresh = useCallback(async () => {
     try {
@@ -24,8 +24,8 @@ export function useAppointments() {
       const data = await listAppointments();
       setRows(data);
       setStatus('success');
-    } catch (e: any) {
-      setStatus('error'); setError(e?.message ?? 'Error');
+    } catch (e: unknown) {
+      setStatus('error'); setError(e instanceof Error ? e.message : 'Error');
     }
   }, []);
 

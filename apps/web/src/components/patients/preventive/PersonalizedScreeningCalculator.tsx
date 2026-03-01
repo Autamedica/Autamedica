@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Calculator, User, Calendar, AlertCircle, CheckCircle2, Clock, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
-import { getRecommendedScreenings, groupScreeningsByCategory, CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/patients/data/screenings';
+import { getRecommendedScreenings, groupScreeningsByCategory, CATEGORY_COLORS, CATEGORY_LABELS, type Screening, type ScreeningCategory } from '@/lib/patients/data/screenings';
 
 interface PersonalizedScreeningCalculatorProps {
   defaultAge?: number;
@@ -42,13 +42,14 @@ export function PersonalizedScreeningCalculator({
     return getRecommendedScreenings(parseInt(age), gender);
   }, [age, gender, hasCalculated]);
 
-  const groupedScreenings = useMemo(() => {
+  const groupedScreenings = useMemo((): Partial<Record<ScreeningCategory, Screening[]>> => {
     if (recommendedScreenings.length === 0) return {};
     return groupScreeningsByCategory(recommendedScreenings);
   }, [recommendedScreenings]);
 
   const getIconComponent = (iconName: string) => {
-    const Icon = (LucideIcons as any)[iconName] || LucideIcons.Circle;
+    const icons = LucideIcons as unknown as Record<string, LucideIcons.LucideIcon>;
+    const Icon = icons[iconName] || LucideIcons.Circle;
     return Icon;
   };
 
@@ -196,7 +197,7 @@ export function PersonalizedScreeningCalculator({
             </h3>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-stone-300 scrollbar-track-stone-100">
               {Object.entries(groupedScreenings).map(([category, screenings]) => {
-                if (screenings.length === 0) return null;
+                if (!screenings || screenings.length === 0) return null;
                 const colors = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS];
                 const label = CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS];
 
@@ -270,7 +271,7 @@ export function PersonalizedScreeningCalculator({
                                     <div>
                                       <p className="text-[10px] font-bold text-stone-700 mb-1">BENEFICIOS:</p>
                                       <ul className="text-[11px] text-stone-600 space-y-0.5">
-                                        {screening.benefits.slice(0, 3).map((benefit, idx) => (
+                                        {screening.benefits.slice(0, 3).map((benefit: string, idx: number) => (
                                           <li key={idx} className="flex items-start gap-1.5">
                                             <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0 mt-0.5" />
                                             <span>{benefit}</span>

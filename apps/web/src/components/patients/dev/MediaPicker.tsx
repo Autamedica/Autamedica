@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import { logger } from '@autamedica/shared'
+import { useEffect, useState } from 'react'
 import { Camera, Mic, Monitor, RefreshCw } from 'lucide-react'
 
 interface MediaPickerProps {
@@ -44,10 +45,10 @@ export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps)
       setMicrophones(mics)
 
       // Auto-select first device if none selected
-      if (!selectedCamera && cams.length > 0) {
+      if (!selectedCamera && cams.length > 0 && cams[0]) {
         setSelectedCamera(cams[0].deviceId)
       }
-      if (!selectedMic && mics.length > 0) {
+      if (!selectedMic && mics.length > 0 && mics[0]) {
         setSelectedMic(mics[0].deviceId)
       }
     } catch (err) {
@@ -113,16 +114,17 @@ export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps)
         setIsLoading(false)
         setError('')
         return
-      } catch (err: any) {
+      } catch (err: unknown) {
         logger.error('Failed with constraint:', constraint, err)
 
+        const domErr = err instanceof DOMException ? err : null
         // Continue trying if it's a constraint error
-        if (err.name === 'OverconstrainedError' || err.name === 'NotFoundError') {
+        if (domErr?.name === 'OverconstrainedError' || domErr?.name === 'NotFoundError') {
           continue
         }
 
         // For AbortError or NotReadableError, device might be in use
-        if (err.name === 'AbortError' || err.name === 'NotReadableError') {
+        if (domErr?.name === 'AbortError' || domErr?.name === 'NotReadableError') {
           setError('La cámara está siendo usada por otra aplicación')
           continue
         }
@@ -166,10 +168,10 @@ export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps)
       onMediaReady(stream)
       setIsLoading(false)
       setError('')
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('No se pudo compartir la pantalla')
       setIsLoading(false)
-      onError?.(err)
+      onError?.(err instanceof Error ? err : new Error('Screen share failed'))
     }
   }
 
@@ -291,10 +293,10 @@ export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps)
                 })
                 onMediaReady(audioStream)
                 setIsLoading(false)
-              } catch (err: any) {
+              } catch (err: unknown) {
                 setError('No se pudo acceder al micrófono')
                 setIsLoading(false)
-                onError?.(err)
+                onError?.(err instanceof Error ? err : new Error('Microphone access failed'))
               }
             }
             getAudioOnly()

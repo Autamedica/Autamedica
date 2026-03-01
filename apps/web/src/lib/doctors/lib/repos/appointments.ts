@@ -17,7 +17,7 @@ export type NewAppointment = TablesInsert<'appointments'>;
 export type PatchAppointment = TablesUpdate<'appointments'>;
 
 // Tipo UI (camelCase) para Appointment
-interface UiAppointment {
+export interface UiAppointment {
   id: string;
   patientId: string;
   doctorId: string;
@@ -33,7 +33,7 @@ interface UiAppointment {
 }
 
 export async function listAppointments(): Promise<UiAppointment[]> {
-  const data = await selectActive<UiAppointment>('appointments', '*', {
+  const data = await selectActive<'appointments', UiAppointment>('appointments', '*', {
     orderBy: { column: 'start_time', ascending: true }
   });
   return data;
@@ -41,7 +41,7 @@ export async function listAppointments(): Promise<UiAppointment[]> {
 
 export async function getAppointment(id: string): Promise<UiAppointment | null> {
   try {
-    const data = await selectById<UiAppointment>('appointments', id);
+    const data = await selectById<'appointments', UiAppointment>('appointments', id);
     return data;
   } catch {
     return null;
@@ -54,7 +54,10 @@ export async function createAppointment(input: NewAppointment): Promise<UiAppoin
     throw new Error('duration_minutes must be a number, not a string');
   }
 
-  const data = await insertRecord<UiAppointment>('appointments', input);
+  const data = await insertRecord<'appointments', Record<string, unknown>, UiAppointment>(
+    'appointments',
+    input as unknown as Record<string, unknown>
+  );
   return data;
 }
 
@@ -64,7 +67,11 @@ export async function updateAppointment(id: string, patch: PatchAppointment): Pr
     throw new Error('duration_minutes must be a number, not a string');
   }
 
-  const data = await updateRecord<UiAppointment>('appointments', id, patch);
+  const data = await updateRecord<'appointments', Record<string, unknown>, UiAppointment>(
+    'appointments',
+    id,
+    patch as unknown as Record<string, unknown>
+  );
   return data;
 }
 

@@ -22,21 +22,23 @@ interface UseMedicalHistoryOptions {
   filters?: MedicalRecordFilters
 }
 
-// Tipo UI (camelCase) para MedicalRecord
+// Tipo UI (camelCase) for medical_records - matches DB schema after camelCase transform
+// DB columns: id, patient_id, doctor_id, appointment_id, title, type, content,
+//             date_recorded, attachments, visibility, deleted_at, created_at, updated_at
 interface UiMedicalRecord {
   id: string;
-  patientId: string;
-  doctorId: string;
-  consultationDate: string;
-  consultationType: string;
-  diagnosis: string | null;
-  treatment: string | null;
-  notes: string | null;
-  attachments: Record<string, unknown> | null;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  patientId: string | null;
+  doctorId: string | null;
+  appointmentId: string | null;
+  title: string;
+  type: string;
+  content: unknown;
+  dateRecorded: string | null;
+  attachments: unknown | null;
+  visibility: string | null;
   deletedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export function useMedicalHistory(
@@ -65,30 +67,34 @@ export function useMedicalHistory(
 
     try {
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const allRecords = await selectActive<UiMedicalRecord>('medical_records', '*', {
-        orderBy: { column: 'consultation_date', ascending: false }
+      // DB column: date_recorded (not consultation_date)
+      const allRecords = await selectActive<'medical_records', UiMedicalRecord>('medical_records', '*', {
+        orderBy: { column: 'date_recorded', ascending: false }
       });
 
       // Filtrar por patient_id
       let filtered = allRecords.filter(r => r.patientId === patientId);
 
       // Aplicar filtros adicionales
+      // DB column: type (not consultation_type)
       if (filters.consultation_type) {
-        filtered = filtered.filter(r => r.consultationType === filters.consultation_type);
+        filtered = filtered.filter(r => r.type === filters.consultation_type);
       }
 
       if (filters.date_from) {
-        filtered = filtered.filter(r => r.consultationDate >= filters.date_from!);
+        filtered = filtered.filter(r => (r.dateRecorded ?? '') >= filters.date_from!);
       }
 
       if (filters.date_to) {
-        filtered = filtered.filter(r => r.consultationDate <= filters.date_to!);
+        filtered = filtered.filter(r => (r.dateRecorded ?? '') <= filters.date_to!);
       }
 
+      // content is a JSON field that may contain diagnosis info
       if (filters.diagnosis_contains) {
-        filtered = filtered.filter(r =>
-          r.diagnosis?.toLowerCase().includes(filters.diagnosis_contains!.toLowerCase())
-        );
+        filtered = filtered.filter(r => {
+          const contentStr = typeof r.content === 'string' ? r.content : JSON.stringify(r.content);
+          return contentStr.toLowerCase().includes(filters.diagnosis_contains!.toLowerCase());
+        });
       }
 
       // Paginación manual

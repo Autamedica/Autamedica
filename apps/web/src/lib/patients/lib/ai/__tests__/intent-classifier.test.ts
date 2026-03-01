@@ -143,9 +143,9 @@ describe('IntentClassifier', () => {
       const results = intentClassifier.classifyBatch(queries);
 
       expect(results).toHaveLength(3);
-      expect(results[0].intent).toBe('medications');
-      expect(results[1].intent).toBe('vitals');
-      expect(results[2].intent).toBe('appointments');
+      expect(results[0]!.intent).toBe('medications');
+      expect(results[1]!.intent).toBe('vitals');
+      expect(results[2]!.intent).toBe('appointments');
     });
   });
 });

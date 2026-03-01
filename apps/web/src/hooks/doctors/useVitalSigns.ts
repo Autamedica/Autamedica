@@ -53,11 +53,11 @@ export function useVitalSigns(patientId: UUID | null): UseVitalSignsResult {
 
     try {
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const allVitals = await selectActive<UiVitalSigns>('vital_signs', '*', {
+      const allVitals = await selectActive<'vital_signs', UiVitalSigns>('vital_signs', '*', {
         orderBy: { column: 'recorded_at', ascending: false }
       });
 
-      // Filtrar por patient_id
+      // Filtrar por patient_id (camelCase after transform)
       const filtered = allVitals.filter(v => v.patientId === patientId);
 
       setVitalSigns(filtered as unknown as VitalSigns[])
@@ -88,11 +88,12 @@ export function useVitalSigns(patientId: UUID | null): UseVitalSignsResult {
       }
 
       // Sistema híbrido: insertRecord() auto-transforma a snake_case
-      const newVitals = await insertRecord<UiVitalSigns>('vital_signs', {
+      const insertData: Record<string, unknown> = {
         ...vitals,
         patient_id: patientId,
         bmi
-      } as any);
+      }
+      const newVitals = await insertRecord<'vital_signs', Record<string, unknown>, UiVitalSigns>('vital_signs', insertData);
 
       // Agregar a la lista local
       setVitalSigns(prev => [newVitals as unknown as VitalSigns, ...prev])
