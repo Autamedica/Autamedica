@@ -4,6 +4,7 @@ compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".open-next"
 
 [vars]
+NEXT_PUBLIC_APP_URL = "https://www.autamedica.com"
 NEXT_PUBLIC_BASE_URL_AUTH = "https://autamedica-web.pages.dev"
 NEXT_PUBLIC_BASE_URL_WEB = "https://autamedica-web.pages.dev"
 NEXT_PUBLIC_BASE_URL_PATIENTS = "https://autamedica-patients.pages.dev"

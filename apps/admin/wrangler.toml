@@ -3,6 +3,10 @@ compatibility_date = "2025-09-30"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".open-next"
 
+[vars]
+NEXT_PUBLIC_APP_URL = "https://www.autamedica.com"
+NEXT_PUBLIC_BASE_URL_AUTH = "https://autamedica-web.pages.dev"
+
 [env.production]
 name = "autamedica-admin"
 

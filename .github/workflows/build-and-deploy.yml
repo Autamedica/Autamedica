@@ -125,6 +125,7 @@ jobs:
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
           PUBLIC_WEB_URL: https://autamedica-web.pages.dev
           # Next.js portal env vars
+          NEXT_PUBLIC_APP_URL: https://www.autamedica.com
           NEXT_PUBLIC_BASE_URL_AUTH: https://autamedica-web.pages.dev
           NEXT_PUBLIC_BASE_URL_WEB: https://autamedica-web.pages.dev
           NEXT_PUBLIC_BASE_URL_PATIENTS: https://patients.autamedica.com

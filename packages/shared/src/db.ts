@@ -257,9 +257,9 @@ export async function insertRecord<Table extends TableName, TInput extends Recor
   // Transformar input a snake_case para BD
   const dbPayload = (transform ? toSnake(data) : data) as TableInsert<Table>;
 
-  const { data: inserted, error } = await supabase
-    .from(table as TableName)
-    .insert(dbPayload as unknown as Record<string, unknown>)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic CRUD over union TableName resolves to never
+  const { data: inserted, error } = await (supabase.from(table) as any)
+    .insert(dbPayload)
     .select()
     .single();
 
@@ -295,9 +295,9 @@ export async function updateRecord<Table extends TableName, TInput extends Recor
   // Transformar input a snake_case para BD
   const dbPayload = (transform ? toSnake(data) : data) as TableUpdate<Table>;
 
-  const { data: updated, error } = await supabase
-    .from(table as TableName)
-    .update(dbPayload as unknown as Record<string, unknown>)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic CRUD over union TableName resolves to never
+  const { data: updated, error } = await (supabase.from(table) as any)
+    .update(dbPayload)
     .eq('id', id)
     .select()
     .single();
@@ -331,8 +331,8 @@ export async function softDelete<Table extends TableName>(
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  const { error } = await supabase
-    .from(table as TableName)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic soft-delete over union TableName
+  const { error } = await (supabase.from(table) as any)
     .update({ deleted_at: now })
     .eq('id', id);
 
@@ -375,8 +375,8 @@ export async function restoreRecord<Table extends TableName>(
   table: Table,
   id: string
 ): Promise<void> {
-  const { error } = await supabase
-    .from(table as TableName)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic restore over union TableName
+  const { error } = await (supabase.from(table) as any)
     .update({ deleted_at: null })
     .eq('id', id);
 

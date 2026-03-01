@@ -3,6 +3,7 @@
  * Uses @supabase/ssr for session verification (compatible with ECC + HS256 keys)
  */
 
+import { buildSafeLoginUrl } from '@autamedica/shared';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -22,19 +23,6 @@ const ROBOTS_TAG_VALUE = 'noindex, nofollow, noarchive, nosnippet, noimageindex'
 function withNoIndex(response: NextResponse): NextResponse {
   response.headers.set('X-Robots-Tag', ROBOTS_TAG_VALUE);
   return response;
-}
-
-function getAuthHubUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-}
-
-function buildLoginRedirect(portal: string, returnTo?: string, error?: string): string {
-  const authHub = getAuthHubUrl();
-  const url = new URL('/auth/login', authHub);
-  url.searchParams.set('portal', portal);
-  if (returnTo) url.searchParams.set('returnTo', returnTo);
-  if (error) url.searchParams.set('error', error);
-  return url.toString();
 }
 
 export async function middleware(request: NextRequest) {
@@ -68,14 +56,14 @@ export async function middleware(request: NextRequest) {
   const { data: { user }, error } = await supabase.auth.getUser();
 
   if (error || !user) {
-    const loginUrl = buildLoginRedirect('companies', request.url, 'session_expired');
+    const loginUrl = buildSafeLoginUrl('companies', request.url, 'session_expired');
     return NextResponse.redirect(new URL(loginUrl));
   }
 
   // Check role from user metadata
   const userRole = (user.user_metadata?.role as string) || '';
   if (userRole && !ALLOWED_ROLES.includes(userRole)) {
-    const loginUrl = buildLoginRedirect('companies', undefined, 'wrong_role');
+    const loginUrl = buildSafeLoginUrl('companies', undefined, 'wrong_role');
     return NextResponse.redirect(new URL(loginUrl));
   }
 
