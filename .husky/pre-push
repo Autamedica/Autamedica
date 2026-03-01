@@ -54,7 +54,7 @@ LINT_FILES=$(git diff --name-only --diff-filter=ACM origin/main...HEAD | grep -E
 
 if [ -n "$LINT_FILES" ]; then
   echo "🔍 Linting archivos modificados..."
-  NODE_OPTIONS="--max-old-space-size=8192" npx eslint $LINT_FILES --cache --max-warnings 0 || {
+  NODE_OPTIONS="--max-old-space-size=8192" npx eslint $LINT_FILES --cache --max-warnings 0 --no-warn-ignored || {
     echo "❌ ESLint falló (0 warnings permitidos)"
     exit 1
   }
