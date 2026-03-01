@@ -8,7 +8,7 @@ console.log('=' .repeat(50))
 console.log(`
 To apply this migration, please:
 
-1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql
+1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql
 2. Open the SQL Editor
 3. Copy and paste the content from: supabase/migrations/20250929_introduce_role_system.sql
 4. Click "Run" to execute

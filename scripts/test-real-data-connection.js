@@ -8,7 +8,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Supabase client for testing
 const supabase = createClient(
-  'https://knywotiidsydsaveqkjs.supabase.co',
+  'https://qxjjrpksmwwrmubhvjew.supabase.co',
   'REPLACE_WITH_ROTATED_KEY.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4'
 );
 

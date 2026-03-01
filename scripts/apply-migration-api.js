@@ -3,7 +3,7 @@
 const { createClient } = require('@supabase/supabase-js')
 const fs = require('fs')
 
-const supabaseUrl = 'https://knywotiidsydsaveqkjs.supabase.co'
+const supabaseUrl = 'https://qxjjrpksmwwrmubhvjew.supabase.co'
 const supabaseKey = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA'
 
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -78,7 +78,7 @@ async function main() {
 
   console.log('Migration process completed.')
   console.log('\n📋 Manual migration required:')
-  console.log('1. Open Supabase Dashboard: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new')
+  console.log('1. Open Supabase Dashboard: https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql/new')
   console.log('2. Copy and paste the content from: scripts/complete-migration.sql')
   console.log('3. Execute the SQL script')
   console.log('4. Verify with the verification queries at the end')

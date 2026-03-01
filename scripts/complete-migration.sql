@@ -1,6 +1,6 @@
 -- Complete migration script with extensions
 -- Apply this in Supabase Dashboard SQL Editor
--- https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new
+-- https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql/new
 
 -- Step 0: Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

@@ -46,7 +46,7 @@ gh secret set SUPABASE_JWT_SECRET --body "$jwt_secret" && echo "✅ SUPABASE_JWT
 gh secret set NEXT_PUBLIC_SUPABASE_ANON_KEY --body "$anon_key" && echo "✅ NEXT_PUBLIC_SUPABASE_ANON_KEY configurado"
 
 # Also set for Cloudflare Pages compatibility
-gh secret set SUPABASE_URL --body "https://knywotiidsydsaveqkjs.supabase.co" && echo "✅ SUPABASE_URL configurado"
+gh secret set SUPABASE_URL --body "https://qxjjrpksmwwrmubhvjew.supabase.co" && echo "✅ SUPABASE_URL configurado"
 
 echo
 echo "📋 Verificando secrets configurados:"

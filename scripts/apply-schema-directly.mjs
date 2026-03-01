@@ -8,7 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 
-const SUPABASE_URL = 'https://knywotiidsydsaveqkjs.supabase.co';
+const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 const SUPABASE_SERVICE_KEY = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA';
 
 console.log('🏥 AUTAMEDICA - Aplicando Schema Médico');
@@ -179,7 +179,7 @@ async function main() {
     console.log('Esto es normal si no está habilitada en el proyecto.\n');
     console.log('📝 ALTERNATIVA MANUAL REQUERIDA:');
     console.log('================================');
-    console.log('1. Accede a: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql');
+    console.log('1. Accede a: https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql');
     console.log('2. Copia todo el contenido de:');
     console.log('   /root/altamedica-reboot/supabase/migrations/20250920000001_create_medical_tables.sql');
     console.log('3. Pégalo en el SQL Editor');

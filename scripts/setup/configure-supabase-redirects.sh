@@ -30,7 +30,7 @@ done
 
 echo ""
 echo "🔑 Para configurar en Supabase Dashboard:"
-echo "1. Ir a https://supabase.com/dashboard/project/knywotiidsydsaveqkjs"
+echo "1. Ir a https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew"
 echo "2. Ir a Authentication > URL Configuration"
 echo "3. En 'Redirect URLs', agregar todas las URLs listadas arriba"
 echo "4. En 'Site URL', configurar: ${WEB_APP}"

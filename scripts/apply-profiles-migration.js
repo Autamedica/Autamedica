@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Read environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://knywotiidsydsaveqkjs.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'REPLACE_WITH_ROTATED_KEY.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4';
 
 async function applyMigration() {
@@ -49,14 +49,14 @@ async function applyMigration() {
     console.log(`
 ⚠️ To create the profiles table, you need to:
 
-1. Go to Supabase Dashboard: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/editor
+1. Go to Supabase Dashboard: https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/editor
 2. Click on "SQL Editor" in the sidebar
 3. Click "New Query"
 4. Copy and paste the migration from: supabase/migrations/20250929_create_profiles_table.sql
 5. Click "Run" to execute the migration
 
 Alternatively, if you have the database password, run:
-psql "postgresql://postgres.knywotiidsydsaveqkjs:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres" -f supabase/migrations/20250929_create_profiles_table.sql
+psql "postgresql://postgres.qxjjrpksmwwrmubhvjew:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres" -f supabase/migrations/20250929_create_profiles_table.sql
 `);
 
   } catch (error) {

@@ -2,7 +2,7 @@
 
 const { createClient } = require('@supabase/supabase-js')
 
-const supabaseUrl = 'https://knywotiidsydsaveqkjs.supabase.co'
+const supabaseUrl = 'https://qxjjrpksmwwrmubhvjew.supabase.co'
 const supabaseKey = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA'
 
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -102,7 +102,7 @@ async function main() {
   } else {
     console.log('')
     console.log('⚠️  Migration needed. Apply apply-migration-direct.sql in Supabase Dashboard.')
-    console.log('URL: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new')
+    console.log('URL: https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql/new')
   }
 }
 

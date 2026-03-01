@@ -38,7 +38,7 @@ echo ""
 # Verificar configuración Supabase
 echo "3️⃣ Verificando configuración Supabase..."
 SUPABASE_CONFIG=$(curl -s -X GET \
-  "https://api.supabase.com/v1/projects/knywotiidsydsaveqkjs/config/auth" \
+  "https://api.supabase.com/v1/projects/qxjjrpksmwwrmubhvjew/config/auth" \
   -H "Authorization: Bearer sbp_aa74b7707840d07be814d4f92adde20dd35d3c16" \
   -H "Content-Type: application/json")
 
@@ -90,7 +90,7 @@ echo "      - https://patients.autamedica.com"
 echo "      - https://companies.autamedica.com"
 echo ""
 echo "   ✅ Authorized redirect URIs (debe tener):"
-echo "      - https://knywotiidsydsaveqkjs.supabase.co/auth/v1/callback"
+echo "      - https://qxjjrpksmwwrmubhvjew.supabase.co/auth/v1/callback"
 echo ""
 
 # Test final

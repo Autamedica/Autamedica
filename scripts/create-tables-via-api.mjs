@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://knywotiidsydsaveqkjs.supabase.co';
+const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 const SUPABASE_SERVICE_KEY = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA';
 
 console.log('🏥 AUTAMEDICA - Creación de Tablas vía API');
@@ -228,7 +228,7 @@ async function main() {
   
   console.log('\n📝 ALTERNATIVA RECOMENDADA:');
   console.log('===========================');
-  console.log('1. Ve a https://supabase.com/dashboard/project/knywotiidsydsaveqkjs');
+  console.log('1. Ve a https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew');
   console.log('2. Navega a SQL Editor');
   console.log('3. Copia y pega el contenido de:');
   console.log('   supabase/migrations/20250920000001_create_medical_tables.sql');

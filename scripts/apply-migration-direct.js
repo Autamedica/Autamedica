@@ -5,7 +5,7 @@ const fs = require('fs')
 const path = require('path')
 
 // Load environment variables
-const supabaseUrl = 'https://knywotiidsydsaveqkjs.supabase.co'
+const supabaseUrl = 'https://qxjjrpksmwwrmubhvjew.supabase.co'
 const supabaseKey = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA'
 
 console.log('Connecting to Supabase:', supabaseUrl)

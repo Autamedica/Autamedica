@@ -5,7 +5,7 @@
 echo "📋 URLS EXACTAS PARA CONFIGURAR EN SUPABASE DASHBOARD"
 echo "===================================================="
 echo ""
-echo "🔗 Ve a: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/auth/url-configuration"
+echo "🔗 Ve a: https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/auth/url-configuration"
 echo ""
 
 echo "1️⃣  SITE URL (cambiar el actual):"

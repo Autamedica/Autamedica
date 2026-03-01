@@ -6,7 +6,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Configuración de Supabase
-const SUPABASE_URL = 'https://knywotiidsydsaveqkjs.supabase.co';
+const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 const SUPABASE_SERVICE_KEY = 'REPLACE_WITH_ROTATED_KEY.zETc5W1OzznzfspXwd4zxA-ifW-aCKd9PGRneEs2IOk';
 
 // Crear cliente con service key para bypass de RLS

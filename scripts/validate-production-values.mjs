@@ -21,10 +21,10 @@ const productionEnv = {
   NEXTAUTH_SECRET: '7e8f9a2b4c6d8e1f3a5b9c2d4e6f8a1b2c5d7e9f1a3b6c8d0e2f4a7b9c1e3f5',
 
   // Supabase - valores reales configurados
-  NEXT_PUBLIC_SUPABASE_URL: 'https://knywotiidsydsaveqkjs.supabase.co',
+  NEXT_PUBLIC_SUPABASE_URL: 'https://qxjjrpksmwwrmubhvjew.supabase.co',
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'REPLACE_WITH_ROTATED_KEY.9wl5PXEbX7XRvDC3CjKNtaXj8fGiRCLJY4TIoQ8vKm4',
   SUPABASE_SERVICE_ROLE_KEY: 'REPLACE_WITH_ROTATED_KEY.8Vq3OGw2lFp7nY4ZxQHJ2mT5sC9wR6eN1kI8uP3vL0A',
-  DATABASE_URL: 'postgresql://postgres:R00tP@ssw0rd!@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres',
+  DATABASE_URL: 'postgresql://postgres:R00tP@ssw0rd!@db.qxjjrpksmwwrmubhvjew.supabase.co:5432/postgres',
 
   // URLs
   NEXT_PUBLIC_API_URL: 'https://api.autamedica.com',

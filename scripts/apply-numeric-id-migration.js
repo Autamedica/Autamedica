@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Supabase configuration
-const SUPABASE_URL = 'https://knywotiidsydsaveqkjs.supabase.co';
+const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_SERVICE_KEY) {

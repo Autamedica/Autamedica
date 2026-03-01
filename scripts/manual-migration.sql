@@ -1,5 +1,5 @@
 -- Manual migration script - Apply this in Supabase Dashboard SQL Editor
--- https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new
+-- https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql/new
 
 -- Step 1: Create enum for call status
 CREATE TYPE IF NOT EXISTS call_status AS ENUM (
