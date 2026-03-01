@@ -3,161 +3,114 @@
 # ===================================================================
 # AutaMedica Edge Functions Deployment Script
 # ===================================================================
+# Deploys all 4 edge functions to the active Supabase project.
+#
+# Prerequisites:
+#   - Supabase CLI installed (brew install supabase/tap/supabase)
+#   - SUPABASE_ACCESS_TOKEN env var set (Supabase Personal Access Token)
+#     e.g. export SUPABASE_ACCESS_TOKEN=sbp_f51b4...
+#
+# Usage:
+#   ./scripts/deploy/deploy-functions.sh
+# ===================================================================
 
-set -e  # Exit on any error
+set -e
 
-PROJECT_REF="knywotiidsydsaveqkjs"
-ANON_KEY="REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA"
+PROJECT_REF="qxjjrpksmwwrmubhvjew"
+FUNCTIONS=(create-call update-call-status get-meeting-token ingest-patient-observation)
 
-echo "🚀 AutaMedica Edge Functions Deployment"
-echo "======================================="
+echo "AutaMedica Edge Functions Deployment"
+echo "====================================="
 echo ""
 
-# Check if Supabase CLI is available
+# Check Supabase CLI
 if ! command -v supabase &> /dev/null; then
-    echo "❌ Error: Supabase CLI not found"
-    echo "   Install with: npm install -g supabase"
+    echo "Error: Supabase CLI not found"
+    echo "  Install: brew install supabase/tap/supabase"
     exit 1
 fi
+echo "Supabase CLI: $(supabase --version)"
 
-echo "✅ Supabase CLI found"
-
-# Check if user is logged in
+# Check authentication
 if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
     echo ""
-    echo "🔐 Authentication Required"
-    echo "-------------------------"
-    echo "You need to login to Supabase first."
+    echo "Error: SUPABASE_ACCESS_TOKEN not set"
     echo ""
-    echo "Option 1: Interactive login (recommended):"
-    echo "  npx supabase login"
+    echo "  IMPORTANT: Use a Supabase Personal Access Token (PAT)."
+    echo "  Expected format: sbp_..."
     echo ""
-    echo "Option 2: Set access token manually:"
-    echo "  export SUPABASE_ACCESS_TOKEN='your_token_here'"
-    echo ""
-    read -p "Would you like to run 'npx supabase login' now? (y/n): " -n 1 -r
-    echo ""
+    echo "  export SUPABASE_ACCESS_TOKEN=sbp_f51b440ec7..."
+    exit 1
+fi
+echo "Authentication: ready"
 
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        echo "🔑 Running supabase login..."
-        npx supabase login
-        echo ""
-    else
-        echo "❌ Cannot proceed without authentication"
-        echo "   Please login and run this script again"
+# Verify functions directory
+if [ ! -d "supabase/functions" ]; then
+    echo "Error: supabase/functions/ not found. Run from project root."
+    exit 1
+fi
+
+# Verify all functions exist
+for func in "${FUNCTIONS[@]}"; do
+    if [ ! -d "supabase/functions/$func" ]; then
+        echo "Error: supabase/functions/$func not found"
         exit 1
     fi
+done
+echo "Functions: all ${#FUNCTIONS[@]} found"
+
+# Remove incompatible deno.lock (Supabase CLI doesn't support lockfile v5)
+if [ -f "supabase/functions/deno.lock" ]; then
+    echo "Removing incompatible deno.lock (v5 not supported by CLI)..."
+    rm supabase/functions/deno.lock
 fi
 
-echo "✅ Authentication ready"
+echo ""
+echo "Deploying ${#FUNCTIONS[@]} Edge Functions..."
+echo "-------------------------------------------"
 
-# Verify functions directory exists
-if [ ! -d "supabase/functions" ]; then
-    echo "❌ Error: supabase/functions directory not found"
-    echo "   Make sure you're running this script from the project root"
-    exit 1
-fi
+DEPLOYED=0
+for func in "${FUNCTIONS[@]}"; do
+    echo ""
+    echo "[$((DEPLOYED+1))/${#FUNCTIONS[@]}] Deploying $func..."
+    if supabase functions deploy "$func" --project-ref "$PROJECT_REF" --no-verify-jwt; then
+        echo "  $func: deployed"
+        DEPLOYED=$((DEPLOYED+1))
+    else
+        echo "  $func: FAILED"
+        exit 1
+    fi
+done
 
-# Check if functions exist
-if [ ! -d "supabase/functions/create-call" ]; then
-    echo "❌ Error: create-call function not found"
-    exit 1
-fi
-
-if [ ! -d "supabase/functions/update-call-status" ]; then
-    echo "❌ Error: update-call-status function not found"
-    exit 1
-fi
-
-if [ ! -d "supabase/functions/ingest-patient-observation" ]; then
-    echo "❌ Error: ingest-patient-observation function not found"
-    exit 1
-fi
-
-echo "✅ Functions found"
+echo ""
+echo "All $DEPLOYED functions deployed."
 echo ""
 
-# Deploy functions
-echo "📦 Deploying Edge Functions"
-echo "---------------------------"
+# Verify deployment
+echo "Verifying deployment..."
+echo "---------------------"
 
-echo "🔄 Deploying create-call..."
-if npx supabase functions deploy create-call --project-ref "$PROJECT_REF"; then
-    echo "✅ create-call deployed successfully"
+ALL_OK=true
+for func in "${FUNCTIONS[@]}"; do
+    URL="https://$PROJECT_REF.supabase.co/functions/v1/$func"
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$URL")
+    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
+        echo "  $func: OK (HTTP $HTTP_CODE)"
+    else
+        echo "  $func: WARN (HTTP $HTTP_CODE)"
+        ALL_OK=false
+    fi
+done
+
+echo ""
+if $ALL_OK; then
+    echo "All functions responding correctly."
 else
-    echo "❌ Failed to deploy create-call"
-    exit 1
+    echo "Some functions may need time to start. Retry in 30s."
 fi
 
 echo ""
-echo "🔄 Deploying update-call-status..."
-if npx supabase functions deploy update-call-status --project-ref "$PROJECT_REF"; then
-    echo "✅ update-call-status deployed successfully"
-else
-    echo "❌ Failed to deploy update-call-status"
-    exit 1
-fi
-
-echo ""
-echo "🔄 Deploying ingest-patient-observation..."
-if npx supabase functions deploy ingest-patient-observation --project-ref "$PROJECT_REF"; then
-    echo "✅ ingest-patient-observation deployed successfully"
-else
-    echo "❌ Failed to deploy ingest-patient-observation"
-    exit 1
-fi
-
-echo ""
-echo "🎉 All functions deployed successfully!"
-echo ""
-
-# Test deployment
-echo "🧪 Testing Deployment"
-echo "--------------------"
-
-echo "📍 Function URLs:"
-echo "  • Create Call: https://$PROJECT_REF.supabase.co/functions/v1/create-call"
-echo "  • Update Status: https://$PROJECT_REF.supabase.co/functions/v1/update-call-status"
-echo "  • Ingest Observation: https://$PROJECT_REF.supabase.co/functions/v1/ingest-patient-observation"
-echo ""
-
-echo "🔍 Basic connectivity test..."
-
-# Test if functions are responding
-CREATE_CALL_URL="https://$PROJECT_REF.supabase.co/functions/v1/create-call"
-UPDATE_STATUS_URL="https://$PROJECT_REF.supabase.co/functions/v1/update-call-status"
-INGEST_OBSERVATION_URL="https://$PROJECT_REF.supabase.co/functions/v1/ingest-patient-observation"
-
-# Test CORS/OPTIONS request
-echo "Testing CORS..."
-if curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$CREATE_CALL_URL" | grep -q "200"; then
-    echo "✅ create-call is responding"
-else
-    echo "⚠️  create-call may not be responding correctly"
-fi
-
-if curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$UPDATE_STATUS_URL" | grep -q "200"; then
-    echo "✅ update-call-status is responding"
-else
-    echo "⚠️  update-call-status may not be responding correctly"
-fi
-
-if curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$INGEST_OBSERVATION_URL" | grep -q "200"; then
-    echo "✅ ingest-patient-observation is responding"
-else
-    echo "⚠️  ingest-patient-observation may not be responding correctly"
-fi
-
-echo ""
-echo "🎯 Next Steps"
-echo "------------"
-echo "1. Test the functions using:"
-echo "   - Open test-edge-functions.html in your browser"
-echo "   - Or use the curl commands in deploy-edge-functions-cli.md"
-echo ""
-echo "2. The frontend is already configured to use these functions automatically"
-echo ""
-echo "3. Make sure the database migration has been applied:"
-echo "   - Run apply-migration-direct.sql in Supabase SQL Editor"
-echo ""
-echo "✨ Your AutaMedica telemedicine system is ready!"
+echo "Function URLs:"
+for func in "${FUNCTIONS[@]}"; do
+    echo "  https://$PROJECT_REF.supabase.co/functions/v1/$func"
+done

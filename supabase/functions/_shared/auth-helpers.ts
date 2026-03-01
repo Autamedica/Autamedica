@@ -1,5 +1,10 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 
+// Strict CORS + auth helper used by ingestion paths that require origin whitelisting.
+// Current usage: ingest-patient-observation edge function.
+//
+// Other edge functions still use _shared/cors.ts (Access-Control-Allow-Origin: *) for
+// backwards compatibility and should be migrated only with coordinated frontend rollout.
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
