@@ -7,7 +7,7 @@
 ### 1. Abre el SQL Editor de Supabase:
 
 ```
-https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new
+https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql/new
 ```
 
 ### 2. Copia y pega todo el contenido del archivo:

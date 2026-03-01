@@ -2,14 +2,14 @@
 
 ## Opción 1: Supabase Dashboard (Recomendado)
 
-1. **Ve al SQL Editor**: https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql
+1. **Ve al SQL Editor**: https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql
 2. **Copia el contenido completo de**: `supabase/seed_role_system.sql`
 3. **Ejecuta el script**
 
 ## Opción 2: CLI (si tienes psql local)
 
 ```bash
-export SUPABASE_DB_URL="postgresql://postgres.knywotiidsydsaveqkjs:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+export SUPABASE_DB_URL="postgresql://postgres.qxjjrpksmwwrmubhvjew:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
 psql "$SUPABASE_DB_URL" -f supabase/seed_role_system.sql
 ```
 

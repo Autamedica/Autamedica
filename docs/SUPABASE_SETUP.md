@@ -8,8 +8,8 @@ AltaMedica uses Supabase as the primary Identity Provider (IdP) and database for
 
 ### Production Environment
 
-- **Project**: `knywotiidsydsaveqkjs` (already configured)
-- **URL**: `https://knywotiidsydsaveqkjs.supabase.co`
+- **Project**: `qxjjrpksmwwrmubhvjew` (already configured)
+- **URL**: `https://qxjjrpksmwwrmubhvjew.supabase.co`
 - **Domain**: `autamedica.com` and subdomains
 - **OAuth Providers**: Google, Apple, GitHub
 
@@ -25,10 +25,10 @@ AltaMedica uses Supabase as the primary Identity Provider (IdP) and database for
 The production Supabase instance is already configured with:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-DATABASE_URL=postgresql://postgres:R00tP@ssw0rd!@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres:R00tP@ssw0rd!@db.qxjjrpksmwwrmubhvjew.supabase.co:5432/postgres
 ```
 
 ## Staging Environment Setup
@@ -68,7 +68,7 @@ Copy production schema to staging:
 
 ```bash
 # Export production schema
-npx supabase db dump --db-url "postgresql://postgres:R00tP@ssw0rd!@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres" > production_schema.sql
+npx supabase db dump --db-url "postgresql://postgres:R00tP@ssw0rd!@db.qxjjrpksmwwrmubhvjew.supabase.co:5432/postgres" > production_schema.sql
 
 # Apply to staging
 npx supabase db reset --db-url "[STAGING_DATABASE_URL]"

@@ -16,7 +16,7 @@ Se identificaron **5 vulnerabilidades críticas** y **3 issues de configuración
 
 ```typescript
 // ACTUAL (VULNERABLE)
-const supabaseUrl = "https://knywotiidsydsaveqkjs.supabase.co";
+const supabaseUrl = "https://qxjjrpksmwwrmubhvjew.supabase.co";
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
 ```
 
@@ -227,7 +227,7 @@ EOF
 
 ```env
 # .env.production
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh...
 NEXT_PUBLIC_BASE_URL_PATIENTS=https://autamedica-patients.pages.dev
 NEXT_PUBLIC_BASE_URL_DOCTORS=https://autamedica-doctors.pages.dev

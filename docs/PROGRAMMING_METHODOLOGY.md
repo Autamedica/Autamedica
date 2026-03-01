@@ -13,7 +13,7 @@
 ```bash
 # ✅ CORRECTO: Todo en un comando
 cd /root/altamedica-reboot-deploy && \
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co \
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co \
 NEXT_PUBLIC_SUPABASE_ANON_KEY=NUEVA-ANON-KEY-ROTADA.. \
 SUPABASE_SERVICE_ROLE_KEY=NUEVA-ANON-KEY-ROTADA.. \
 NEXT_PUBLIC_APP_URL=https://autamedica.com \
@@ -213,7 +213,7 @@ El mismo comando debe producir el mismo resultado en cualquier máquina, en cual
 ```bash
 # Este comando despliega la app web-app con configuración completa de producción
 cd /root/altamedica-reboot-deploy && \
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co \
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co \
 NEXT_PUBLIC_SUPABASE_ANON_KEY=NUEVA-ANON-KEY-ROTADA.. \
 SUPABASE_SERVICE_ROLE_KEY=NUEVA-ANON-KEY-ROTADA.. \
 NEXT_PUBLIC_APP_URL=https://autamedica.com \

@@ -143,7 +143,7 @@ AUTH_COOKIE_DOMAIN=.autamedica.com
 **Credenciales reales (desde MCP Supabase):**
 
 ```bash
-SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 

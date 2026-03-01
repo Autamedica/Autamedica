@@ -64,7 +64,7 @@ https://autamedica-doctors.pages.dev/auth/callback
 Agregar a cada provider (Google, GitHub, etc.):
 
 ```
-https://knywotiidsydsaveqkjs.supabase.co/auth/v1/callback
+https://qxjjrpksmwwrmubhvjew.supabase.co/auth/v1/callback
 ```
 
 ### **3️⃣ Verificar Domain Wildcards**

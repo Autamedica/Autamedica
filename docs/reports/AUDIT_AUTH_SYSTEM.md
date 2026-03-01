@@ -246,7 +246,7 @@ NEXT_PUBLIC_AUTH_HUB_URL=http://localhost:3005
 
 ```bash
 # apps/auth/.env.local
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[key]
 SUPABASE_SERVICE_ROLE_KEY=[key]  # Necesario para sync de roles
 ```

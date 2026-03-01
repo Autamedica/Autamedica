@@ -156,7 +156,7 @@ NODE_ENV=production
 NEXT_PUBLIC_ENV=production
 
 # Supabase (producción)
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
 
@@ -434,7 +434,7 @@ Install Command: pnpm install
 
 ```
 # Production
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJh...
 SUPABASE_SERVICE_ROLE_KEY=secret-key
 NEXT_PUBLIC_USE_MOCK_VIDEO=false
@@ -547,7 +547,7 @@ Según tu `CLAUDE.md`, ya tienes configurado Cloudflare Pages. Aquí están las 
 # Production
 NODE_ENV=production
 NEXT_PUBLIC_ENV=production
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
 NEXT_PUBLIC_USE_MOCK_VIDEO=false

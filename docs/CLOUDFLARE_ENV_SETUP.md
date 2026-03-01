@@ -12,7 +12,7 @@ Este documento explica cómo configurar las environment variables necesarias par
 
 | Variable                        | Valor Producción                           | Valor Preview                          | Descripción                         |
 | ------------------------------- | ------------------------------------------ | -------------------------------------- | ----------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | `https://knywotiidsydsaveqkjs.supabase.co` | _(mismo)_                              | URL de Supabase                     |
+| `NEXT_PUBLIC_SUPABASE_URL`      | `https://qxjjrpksmwwrmubhvjew.supabase.co` | _(mismo)_                              | URL de Supabase                     |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | _(ver GitHub Secrets)_                     | _(mismo)_                              | Anon key de Supabase                |
 | `NEXT_PUBLIC_WEB_APP_URL`       | `https://autamedica.com`                   | `https://autamedica-web-app.pages.dev` | URL del Web App para auth redirects |
 
@@ -20,7 +20,7 @@ Este documento explica cómo configurar las environment variables necesarias par
 
 | Variable                        | Valor Producción                           | Valor Preview | Descripción          |
 | ------------------------------- | ------------------------------------------ | ------------- | -------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | `https://knywotiidsydsaveqkjs.supabase.co` | _(mismo)_     | URL de Supabase      |
+| `NEXT_PUBLIC_SUPABASE_URL`      | `https://qxjjrpksmwwrmubhvjew.supabase.co` | _(mismo)_     | URL de Supabase      |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | _(ver GitHub Secrets)_                     | _(mismo)_     | Anon key de Supabase |
 
 ---

@@ -148,7 +148,7 @@
 ```javascript
 {
   requestId: '1234.56',
-  url: 'https://knywotiidsydsaveqkjs.supabase.co/rest/v1/patients?select=*',
+  url: 'https://qxjjrpksmwwrmubhvjew.supabase.co/rest/v1/patients?select=*',
   method: 'GET',
   headers: {
     'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',

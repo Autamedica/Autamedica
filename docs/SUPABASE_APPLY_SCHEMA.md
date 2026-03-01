@@ -15,7 +15,7 @@
 **Acceder al Dashboard de Supabase:**
 
 ```
-https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/settings/api
+https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/settings/api
 ```
 
 **Copiar la clave anónima (anon/public key):**
@@ -30,7 +30,7 @@ https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/settings/api
 
 ```bash
 # Supabase (Reemplazar la clave actual)
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=***REDACTED***  # ← REEMPLAZAR AQUÍ
 SUPABASE_JWT_SECRET=l5v/qoRl8SqzvN07iMcott58d3rWp4eiFimpYsm4v6YpegKM6uG3BtQGNMjktD5egtJ1PI92tkCzp2EAkXE7gw==
 ```
@@ -42,7 +42,7 @@ SUPABASE_JWT_SECRET=l5v/qoRl8SqzvN07iMcott58d3rWp4eiFimpYsm4v6YpegKM6uG3BtQGNMjk
 1. Abrir SQL Editor en Supabase Dashboard:
 
    ```
-   https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/sql/new
+   https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/sql/new
    ```
 
 2. Copiar contenido completo de:
@@ -67,7 +67,7 @@ SUPABASE_JWT_SECRET=l5v/qoRl8SqzvN07iMcott58d3rWp4eiFimpYsm4v6YpegKM6uG3BtQGNMjk
 npm install -g supabase
 
 # Aplicar schema
-supabase db push --db-url "postgresql://postgres:[PASSWORD]@db.knywotiidsydsaveqkjs.supabase.co:5432/postgres" \
+supabase db push --db-url "postgresql://postgres:[PASSWORD]@db.qxjjrpksmwwrmubhvjew.supabase.co:5432/postgres" \
   --file docs/supabase-schema-complete.sql
 ```
 

@@ -1,7 +1,7 @@
 # AutaMedica - Production Readiness Report
 
 > Fecha: 2026-02-19
-> Proyecto Supabase: `knywotiidsydsaveqkjs`
+> Proyecto Supabase: `qxjjrpksmwwrmubhvjew`
 > Cloudflare Pages: `autamedica-web`
 > Repositorio: `ecucondorSA/Autamedica`
 
@@ -11,24 +11,24 @@
 
 ### Supabase
 
-| Recurso | Valor |
-|---|---|
-| Project ID | `knywotiidsydsaveqkjs` |
-| URL | `https://knywotiidsydsaveqkjs.supabase.co` |
-| Región | `us-east-2` (AWS) |
-| PostgreSQL | 17.6 |
-| Pooler | `aws-1-us-east-2.pooler.supabase.com:6543` (session mode) |
+| Recurso    | Valor                                                     |
+| ---------- | --------------------------------------------------------- |
+| Project ID | `qxjjrpksmwwrmubhvjew`                                    |
+| URL        | `https://qxjjrpksmwwrmubhvjew.supabase.co`                |
+| Región     | `us-east-2` (AWS)                                         |
+| PostgreSQL | 17.6                                                      |
+| Pooler     | `aws-1-us-east-2.pooler.supabase.com:6543` (session mode) |
 
 **Nota importante:** El CLI de Supabase (`supabase link`, `supabase db push`) NO tiene acceso a este proyecto. Las migraciones se aplican via `psql` directo al pooler. El token de CLI solo accesa la org de Autorentar.
 
 ### Cloudflare Pages
 
-| Proyecto | Dominio | Estado |
-|---|---|---|
-| `autamedica-web` | `autamedica-web.pages.dev` | Deployado (Astro) |
-| `autamedica-auth` | Pendiente creación | Next.js legacy |
-| `autamedica-doctors` | Pendiente creación | Next.js legacy |
-| `autamedica-companies` | Pendiente creación | Next.js legacy |
+| Proyecto               | Dominio                    | Estado            |
+| ---------------------- | -------------------------- | ----------------- |
+| `autamedica-web`       | `autamedica-web.pages.dev` | Deployado (Astro) |
+| `autamedica-auth`      | Pendiente creación         | Next.js legacy    |
+| `autamedica-doctors`   | Pendiente creación         | Next.js legacy    |
+| `autamedica-companies` | Pendiente creación         | Next.js legacy    |
 
 - **Account ID:** `5b448192fe4b369642b68ad8f53a7603`
 - **Email:** `marques.eduardo95466020@gmail.com`
@@ -53,16 +53,16 @@ NEXT_PUBLIC_BASE_URL_WEB_APP   PAGES_PROJECTS
 
 ## 2. Base de Datos - Números Finales
 
-| Métrica | Valor |
-|---|---|
-| Tablas públicas | 44 |
+| Métrica                   | Valor                                                             |
+| ------------------------- | ----------------------------------------------------------------- |
+| Tablas públicas           | 44                                                                |
 | Tablas con RLS habilitado | 43/44 (`spatial_ref_sys` es de PostGIS, no contiene datos de app) |
-| Políticas RLS (public) | 122 |
-| Políticas RLS (storage) | 16 |
-| Storage buckets | 5 |
-| Indexes | 198 |
-| Triggers | 51 |
-| CHECK constraints | 352 |
+| Políticas RLS (public)    | 122                                                               |
+| Políticas RLS (storage)   | 16                                                                |
+| Storage buckets           | 5                                                                 |
+| Indexes                   | 198                                                               |
+| Triggers                  | 51                                                                |
+| CHECK constraints         | 352                                                               |
 
 ### View de salud operativa
 
@@ -79,11 +79,13 @@ Retorna: tablas, cobertura RLS, políticas, buckets, audit entries 24h, usuarios
 ### 3.1 `20260219150000_production_hardening.sql`
 
 **RLS en tablas desprotegidas:**
+
 - `appointments` — no tenía RLS
 - `companies` — no tenía RLS
 - `doctor_patient` — no tenía RLS
 
 **Políticas para tablas bloqueadas** (RLS activo, 0 políticas = inaccesibles):
+
 - `lab_results` — 3 políticas (paciente lee propio, doctor lee asignado, doctor inserta)
 - `medication_logs` — 3 políticas
 - `patient_alerts` — 3 políticas
@@ -91,11 +93,13 @@ Retorna: tablas, cobertura RLS, políticas, buckets, audit entries 24h, usuarios
 - `vital_signs` — 3 políticas
 
 **Vulnerabilidad de escalación de roles corregida:**
+
 - `set_portal_and_role()` permitía a CUALQUIER usuario auto-asignarse rol `admin`
 - Fix: solo permite cambio de rol si el usuario no tiene rol (primera vez) o es admin existente
 - Bloqueado: no se puede asignar `admin` sin ser admin previamente
 
 **18 indexes en FK sin indexar:**
+
 - `medical_records(doctor_id)`, `medical_records(appointment_id)`, `medical_chats(appointment_id)`
 - `companies(owner_profile_id)`, `organizations(owner_profile_id)`, `appointments(created_by)`
 - `lab_results(reviewed_by)`, `lab_results(uploaded_by_id)`, `medication_logs(logged_by_id)`
@@ -104,6 +108,7 @@ Retorna: tablas, cobertura RLS, políticas, buckets, audit entries 24h, usuarios
 - Composites: `appointments(doctor_id, start_time)`, `appointments(patient_id, start_time)`, `appointments(status, start_time)`
 
 **9 CHECK constraints:**
+
 - `profiles.role` — `NULL | patient | doctor | company | admin`
 - `user_roles.role` — `patient | doctor | company | admin`
 - `appointments.status` — `scheduled | confirmed | in_progress | completed | cancelled | no_show`
@@ -115,6 +120,7 @@ Retorna: tablas, cobertura RLS, políticas, buckets, audit entries 24h, usuarios
 - `telemedicine_sessions.status` — `NULL | waiting | in_progress | completed | cancelled | failed`
 
 **Triggers duplicados eliminados:**
+
 - `update_medical_records_updated_at` (duplicado de `trigger_update_medical_records_timestamp`)
 - `update_telemedicine_sessions_updated_at` (duplicado de `trigger_update_telemedicine_sessions_timestamp`)
 
@@ -124,15 +130,16 @@ Retorna: tablas, cobertura RLS, políticas, buckets, audit entries 24h, usuarios
 
 **Storage Buckets:**
 
-| Bucket | Público | Límite | Tipos MIME |
-|---|---|---|---|
-| `avatars` | Si | 2 MB | image/jpeg, image/png, image/webp |
-| `medical-records` | No | 50 MB | image/jpeg, image/png, image/webp, application/pdf |
-| `lab-results` | No | 50 MB | image/jpeg, image/png, image/webp, application/pdf |
-| `prescriptions` | No | 10 MB | application/pdf |
-| `company-logos` | Si | 2 MB | image/jpeg, image/png, image/webp, image/svg+xml |
+| Bucket            | Público | Límite | Tipos MIME                                         |
+| ----------------- | ------- | ------ | -------------------------------------------------- |
+| `avatars`         | Si      | 2 MB   | image/jpeg, image/png, image/webp                  |
+| `medical-records` | No      | 50 MB  | image/jpeg, image/png, image/webp, application/pdf |
+| `lab-results`     | No      | 50 MB  | image/jpeg, image/png, image/webp, application/pdf |
+| `prescriptions`   | No      | 10 MB  | application/pdf                                    |
+| `company-logos`   | Si      | 2 MB   | image/jpeg, image/png, image/webp, image/svg+xml   |
 
 **16 Storage Policies:**
+
 - `avatars`: select público, insert/update/delete propio (folder = `user_id`)
 - `medical-records`: select paciente (propio) + doctor (asignado), insert doctor
 - `lab-results`: select paciente (propio) + doctor (asignado), insert autenticado
@@ -142,17 +149,20 @@ Retorna: tablas, cobertura RLS, políticas, buckets, audit entries 24h, usuarios
 **Audit System:**
 
 Bug corregido: la tabla `audit_logs` NO EXISTÍA pero 2 triggers la referenciaban:
+
 - `trigger_log_authorization_changes` en `medical_record_authorizations`
 - `trigger_log_medical_record_access` en `medical_records`
 
 Ambos fallaban silenciosamente en cada operación.
 
 Tabla `audit_logs` creada con:
+
 - `id`, `user_id`, `action`, `resource_type`, `resource_id`, `metadata` (jsonb), `ip_address`, `user_agent`, `created_at`
 - RLS: solo admins pueden leer, sistema puede insertar
 - 4 indexes: `user_id`, `(resource_type, resource_id)`, `created_at DESC`, `action`
 
 **Trigger genérico `fn_audit_sensitive_change()`:**
+
 - Registra INSERT/UPDATE/DELETE con usuario, tabla, registro, campos cambiados
 - Aplicado a 10 tablas: `appointments`, `doctor_patient`, `lab_results`, `patient_alerts`, `vital_signs`, `symptom_reports`, `medication_logs`, `user_roles`, `companies`, `telemedicine_sessions`
 
@@ -161,6 +171,7 @@ Tabla `audit_logs` creada con:
 **Consolidación de políticas duplicadas:**
 
 Eliminadas (11 total):
+
 - `profiles_select_all` — **CRITICO**: tenía `USING (true)` = cualquier usuario leía TODOS los perfiles
 - `profiles_insert_own` — duplicado de `Enable profile creation`
 - `Users can view own profile` — duplicado de `Users can read own profile`
@@ -174,6 +185,7 @@ Eliminadas (11 total):
 - `Patients can view own appointments` — cubierto por `appointments_select_participants`
 
 **doctor_patient desbloqueada:**
+
 - Estaba con RLS activado pero 0 políticas (completamente inaccesible)
 - 5 nuevas políticas: select doctor, select patient, insert doctor, delete doctor, manage admin
 
@@ -193,6 +205,7 @@ push to main → deploy-web (Astro) ✅
 ### apps/web (Astro) - Configuración que funciona
 
 `wrangler.toml`:
+
 ```toml
 name = "autamedica-web"
 compatibility_date = "2025-09-23"
@@ -205,11 +218,11 @@ pages_build_output_dir = "dist"
 
 ### Problemas resueltos en deploy
 
-| Problema | Causa | Solución |
-|---|---|---|
-| `wrangler: not found` | `npx` no resuelve en pnpm CI | Cambiar a `pnpm dlx wrangler` |
-| `Project not found` | `CLOUDFLARE_ACCOUNT_ID` apuntaba a cuenta equivocada | Actualizar secret con ID correcto |
-| `MessageChannel is not defined` | `compatibility_date` viejo + `nodejs_compat` v1 | Actualizar a `2025-09-23` + `nodejs_compat_v2` |
+| Problema                        | Causa                                                | Solución                                       |
+| ------------------------------- | ---------------------------------------------------- | ---------------------------------------------- |
+| `wrangler: not found`           | `npx` no resuelve en pnpm CI                         | Cambiar a `pnpm dlx wrangler`                  |
+| `Project not found`             | `CLOUDFLARE_ACCOUNT_ID` apuntaba a cuenta equivocada | Actualizar secret con ID correcto              |
+| `MessageChannel is not defined` | `compatibility_date` viejo + `nodejs_compat` v1      | Actualizar a `2025-09-23` + `nodejs_compat_v2` |
 
 ---
 
@@ -217,24 +230,24 @@ pages_build_output_dir = "dist"
 
 ### P0 - Crítico
 
-| # | Vulnerabilidad | Impacto | Estado |
-|---|---|---|---|
-| 1 | `set_portal_and_role()` permite escalación a admin | Cualquier usuario podía hacerse admin | Corregido |
-| 2 | `profiles_select_all` con `USING (true)` | Cualquier usuario leía todos los perfiles | Eliminada |
-| 3 | 3 tablas sin RLS (`appointments`, `companies`, `doctor_patient`) | Datos accesibles sin restricción | RLS habilitado |
-| 4 | 5 tablas con RLS pero 0 políticas | Datos completamente inaccesibles | Políticas creadas |
-| 5 | `audit_logs` no existía (2 triggers rotos) | Operaciones en medical_records fallaban silenciosamente | Tabla creada |
+| #   | Vulnerabilidad                                                   | Impacto                                                 | Estado            |
+| --- | ---------------------------------------------------------------- | ------------------------------------------------------- | ----------------- |
+| 1   | `set_portal_and_role()` permite escalación a admin               | Cualquier usuario podía hacerse admin                   | Corregido         |
+| 2   | `profiles_select_all` con `USING (true)`                         | Cualquier usuario leía todos los perfiles               | Eliminada         |
+| 3   | 3 tablas sin RLS (`appointments`, `companies`, `doctor_patient`) | Datos accesibles sin restricción                        | RLS habilitado    |
+| 4   | 5 tablas con RLS pero 0 políticas                                | Datos completamente inaccesibles                        | Políticas creadas |
+| 5   | `audit_logs` no existía (2 triggers rotos)                       | Operaciones en medical_records fallaban silenciosamente | Tabla creada      |
 
 ### P1 - Alto
 
-| # | Problema | Estado |
-|---|---|---|
-| 1 | 15 FK sin index (full table scans en JOINs) | 18 indexes creados |
-| 2 | Sin CHECK constraints en roles/status | 9 constraints creados |
-| 3 | Triggers duplicados en 2 tablas | Eliminados |
-| 4 | 11 políticas RLS duplicadas/redundantes | Consolidadas |
-| 5 | 0 storage buckets configurados | 5 buckets + 16 políticas |
-| 6 | Sin audit trail en tablas sensibles | 10 triggers de audit |
+| #   | Problema                                    | Estado                   |
+| --- | ------------------------------------------- | ------------------------ |
+| 1   | 15 FK sin index (full table scans en JOINs) | 18 indexes creados       |
+| 2   | Sin CHECK constraints en roles/status       | 9 constraints creados    |
+| 3   | Triggers duplicados en 2 tablas             | Eliminados               |
+| 4   | 11 políticas RLS duplicadas/redundantes     | Consolidadas             |
+| 5   | 0 storage buckets configurados              | 5 buckets + 16 políticas |
+| 6   | Sin audit trail en tablas sensibles         | 10 triggers de audit     |
 
 ---
 
@@ -253,26 +266,28 @@ doctor_has_patient_access(uid) -- true si el doctor actual tiene relación con e
 
 ## 7. Extensiones PostgreSQL Activas
 
-| Extensión | Versión | Uso |
-|---|---|---|
-| `pg_graphql` | 1.5.11 | API GraphQL automática |
-| `pg_stat_statements` | 1.11 | Monitoreo de queries |
-| `pgcrypto` | 1.3 | Funciones criptográficas |
-| `postgis` | 3.3.7 | Datos geoespaciales |
-| `supabase_vault` | 0.3.1 | Almacenamiento seguro de secrets |
-| `uuid-ossp` | 1.1 | Generación de UUIDs |
+| Extensión            | Versión | Uso                              |
+| -------------------- | ------- | -------------------------------- |
+| `pg_graphql`         | 1.5.11  | API GraphQL automática           |
+| `pg_stat_statements` | 1.11    | Monitoreo de queries             |
+| `pgcrypto`           | 1.3     | Funciones criptográficas         |
+| `postgis`            | 3.3.7   | Datos geoespaciales              |
+| `supabase_vault`     | 0.3.1   | Almacenamiento seguro de secrets |
+| `uuid-ossp`          | 1.1     | Generación de UUIDs              |
 
 ---
 
 ## 8. Pendientes para Siguiente Sesión
 
 ### Infraestructura
+
 - [ ] Crear API Token permanente en Cloudflare (el actual es OAuth temporal)
 - [ ] Crear proyectos CF Pages para auth, doctors, companies (o migrar a Astro primero)
 - [ ] Configurar custom domain `www.autamedica.com` → `autamedica-web`
 - [ ] Configurar SMTP personalizado en Supabase (emails de auth)
 
 ### Base de datos
+
 - [ ] Vincular Supabase CLI al proyecto (requiere acceso a la org correcta)
 - [ ] Configurar Realtime solo en tablas necesarias (actualmente deshabilitado)
 - [ ] Crear Edge Functions para operaciones sensibles
@@ -280,12 +295,14 @@ doctor_has_patient_access(uid) -- true si el doctor actual tiene relación con e
 - [ ] Agregar constraints de longitud en columnas text críticas (email, phone)
 
 ### Aplicación
+
 - [ ] Migrar apps legacy (auth, doctors, patients, companies, admin) a Astro
 - [ ] Regenerar tipos TypeScript desde DB actual (`pnpm db:sync`)
 - [ ] Configurar Sentry para monitoreo de errores en producción
 - [ ] Integrar storage buckets con componentes de upload en la app
 
 ### Seguridad
+
 - [ ] Configurar rate limiting en Edge Functions
 - [ ] Implementar PITR (Point-in-Time Recovery) en Supabase
 - [ ] Rotar el JWT secret actual por precaución (estaba en archivos de ejemplo)
@@ -297,7 +314,7 @@ doctor_has_patient_access(uid) -- true si el doctor actual tiene relación con e
 
 ```bash
 # Health check rápido
-PGPASSWORD="..." psql "postgresql://postgres.knywotiidsydsaveqkjs@aws-1-us-east-2.pooler.supabase.com:6543/postgres" \
+PGPASSWORD="..." psql "postgresql://postgres.qxjjrpksmwwrmubhvjew@aws-1-us-east-2.pooler.supabase.com:6543/postgres" \
   -c "SELECT * FROM v_db_health;"
 
 # Ver audit logs recientes
@@ -312,7 +329,7 @@ PGPASSWORD="..." psql "..." \
 cd apps/web && pnpm build && pnpm dlx wrangler pages deploy dist --project-name autamedica-web
 
 # Aplicar migración nueva
-PGPASSWORD="..." psql "postgresql://postgres.knywotiidsydsaveqkjs@aws-1-us-east-2.pooler.supabase.com:6543/postgres" \
+PGPASSWORD="..." psql "postgresql://postgres.qxjjrpksmwwrmubhvjew@aws-1-us-east-2.pooler.supabase.com:6543/postgres" \
   -f supabase/migrations/YYYYMMDD_nombre.sql
 ```
 
@@ -322,12 +339,12 @@ PGPASSWORD="..." psql "postgresql://postgres.knywotiidsydsaveqkjs@aws-1-us-east-
 
 **AutaMedica** y **Autorentar** comparten la misma cuenta de Cloudflare pero son proyectos completamente independientes:
 
-| | AutaMedica | Autorentar |
-|---|---|---|
-| Supabase Project | `knywotiidsydsaveqkjs` | `aceacpaockyxgogxsfyc` |
-| Supabase Región | us-east-2 | sa-east-1 |
-| CF Pages | `autamedica-web` | `autorentar` |
-| Dominio | autamedica.com | autorentar.com |
-| Repositorio | ecucondorSA/Autamedica | (separado) |
+|                  | AutaMedica             | Autorentar             |
+| ---------------- | ---------------------- | ---------------------- |
+| Supabase Project | `qxjjrpksmwwrmubhvjew` | `aceacpaockyxgogxsfyc` |
+| Supabase Región  | us-east-2              | sa-east-1              |
+| CF Pages         | `autamedica-web`       | `autorentar`           |
+| Dominio          | autamedica.com         | autorentar.com         |
+| Repositorio      | ecucondorSA/Autamedica | (separado)             |
 
 No hay recursos compartidos. No mezclar tokens, secrets, ni migraciones entre proyectos.

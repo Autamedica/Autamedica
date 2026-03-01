@@ -265,7 +265,7 @@ pnpm dev:capture:prod
 
 ```javascript
 {
-  url: 'https://knywotiidsydsaveqkjs.supabase.co/rest/v1/patients',
+  url: 'https://qxjjrpksmwwrmubhvjew.supabase.co/rest/v1/patients',
   method: 'GET',
   status: 200,
   headers: {

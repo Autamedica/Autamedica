@@ -167,7 +167,7 @@ curl -I https://autamedica-doctors.pages.dev/dashboard
 Para cada proyecto Pages, agregar:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 ```
 

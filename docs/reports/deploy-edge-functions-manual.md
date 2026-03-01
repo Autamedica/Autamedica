@@ -6,7 +6,7 @@
 
 - Ir a https://supabase.com/dashboard
 - Iniciar sesión con su cuenta
-- Seleccionar el proyecto `knywotiidsydsaveqkjs`
+- Seleccionar el proyecto `qxjjrpksmwwrmubhvjew`
 
 ### 2. Navegar a Edge Functions
 
@@ -286,8 +286,8 @@ Las siguientes variables se configuran automáticamente en Supabase Edge Functio
 
 Una vez desplegadas, las funciones estarán disponibles en:
 
-- **Create Call**: `https://knywotiidsydsaveqkjs.supabase.co/functions/v1/create-call`
-- **Update Call Status**: `https://knywotiidsydsaveqkjs.supabase.co/functions/v1/update-call-status`
+- **Create Call**: `https://qxjjrpksmwwrmubhvjew.supabase.co/functions/v1/create-call`
+- **Update Call Status**: `https://qxjjrpksmwwrmubhvjew.supabase.co/functions/v1/update-call-status`
 
 ## Opción 2: Despliegue via CLI (si tiene token de acceso)
 

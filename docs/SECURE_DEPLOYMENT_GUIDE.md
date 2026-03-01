@@ -33,7 +33,7 @@ Variables públicas definidas como `Environment Variables`:
 NEXT_PUBLIC_SITE_URL=https://doctors.autamedica.com
 NEXT_PUBLIC_APP_URL=https://doctors.autamedica.com
 NEXT_PUBLIC_API_URL=https://api.autamedica.com
-NEXT_PUBLIC_SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon>
 ```
 

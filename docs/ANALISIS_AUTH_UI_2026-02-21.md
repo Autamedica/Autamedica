@@ -65,7 +65,7 @@ Usuario → auth.autamedica.com/auth/select-role
 Usuario → doctors.autamedica.com
     → Middleware ejecuta getSession(request)
     → Busca cookie "sb-access-token" → NO EXISTE (Supabase usa otro nombre)
-    → Busca cookie "sb-knywotiidsydsaveqkjs-auth-token" → NO EXISTE (está chunked como .0, .1)
+    → Busca cookie "sb-qxjjrpksmwwrmubhvjew-auth-token" → NO EXISTE (está chunked como .0, .1)
     → getSession() retorna null
     → buildSafeLoginUrl('doctors', request.url, 'session_expired')
     → Redirige a ${NEXT_PUBLIC_BASE_URL_WEB_APP}/auth/login → DESTINO INCORRECTO
@@ -85,7 +85,7 @@ Usuario → auth.autamedica.com/auth/login?role=doctor
     → Cookies establecidas (chunked por Supabase SSR)
     → Redirige a / (dashboard)
     → Middleware ejecuta getSession(request) de nuevo
-    → Busca "sb-access-token" → NO (Supabase SSR pone "sb-knywotiidsydsaveqkjs-auth-token.0")
+    → Busca "sb-access-token" → NO (Supabase SSR pone "sb-qxjjrpksmwwrmubhvjew-auth-token.0")
     → getSession() retorna null OTRA VEZ
     → LOOP INFINITO de redirecciones
 ```
@@ -100,16 +100,17 @@ Usuario → auth.autamedica.com/auth/login?role=doctor
 
 ```typescript
 const token =
-  req.cookies.get('sb-access-token')?.value ||                           // ← NUNCA existe
+  req.cookies.get("sb-access-token")?.value || // ← NUNCA existe
   (legacyCookieName ? req.cookies.get(legacyCookieName)?.value : null) || // ← NO maneja chunks
-  req.cookies.get('sb-auth-token')?.value;                               // ← NUNCA existe
+  req.cookies.get("sb-auth-token")?.value; // ← NUNCA existe
 ```
 
 **Problema:** Supabase SSR (`@supabase/ssr`) almacena tokens en cookies chunked:
-- `sb-knywotiidsydsaveqkjs-auth-token.0` (primer chunk)
-- `sb-knywotiidsydsaveqkjs-auth-token.1` (segundo chunk, si el token es grande)
 
-El middleware busca `sb-access-token` (no es estándar de Supabase) y `sb-knywotiidsydsaveqkjs-auth-token` (sin el sufijo `.0`). **Nunca encuentra el token.**
+- `sb-qxjjrpksmwwrmubhvjew-auth-token.0` (primer chunk)
+- `sb-qxjjrpksmwwrmubhvjew-auth-token.1` (segundo chunk, si el token es grande)
+
+El middleware busca `sb-access-token` (no es estándar de Supabase) y `sb-qxjjrpksmwwrmubhvjew-auth-token` (sin el sufijo `.0`). **Nunca encuentra el token.**
 
 **Fix requerido:** Usar `@supabase/ssr` `createServerClient` en el middleware, o implementar reassembly de cookies chunked:
 
@@ -121,7 +122,7 @@ while (req.cookies.get(`${legacyCookieName}.${i}`)?.value) {
   chunks.push(req.cookies.get(`${legacyCookieName}.${i}`)!.value);
   i++;
 }
-const token = chunks.length > 0 ? chunks.join('') : req.cookies.get(legacyCookieName)?.value;
+const token = chunks.length > 0 ? chunks.join("") : req.cookies.get(legacyCookieName)?.value;
 ```
 
 ---
@@ -131,7 +132,7 @@ const token = chunks.length > 0 ? chunks.join('') : req.cookies.get(legacyCookie
 **Archivo:** `packages/shared/src/security/redirects.ts:87`
 
 ```typescript
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL_WEB_APP || 'http://localhost:3000';
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL_WEB_APP || "http://localhost:3000";
 ```
 
 **Problema:** Cuando el middleware necesita redirigir al login, usa `NEXT_PUBLIC_BASE_URL_WEB_APP` que apunta a la **web-app legacy** (Next.js), NO al **auth hub** (`auth.autamedica.com`).
@@ -142,7 +143,7 @@ const baseUrl = process.env.NEXT_PUBLIC_BASE_URL_WEB_APP || 'http://localhost:30
 **Fix requerido:**
 
 ```typescript
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL_AUTH || 'http://localhost:3005';
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL_AUTH || "http://localhost:3005";
 ```
 
 ---
@@ -205,10 +206,10 @@ return NextResponse.redirect(correctPortalUrl);
 
 Existen **3 mappings diferentes** en el codebase:
 
-| Portal | `role-routing.ts` | `env/portals.ts` | `roles.ts` |
-|--------|-------------------|-------------------|------------|
-| admin | `organization_admin` | `platform_admin` | — |
-| companies | `company_admin` | `company_admin` | — |
+| Portal    | `role-routing.ts`    | `env/portals.ts` | `roles.ts` |
+| --------- | -------------------- | ---------------- | ---------- |
+| admin     | `organization_admin` | `platform_admin` | —          |
+| companies | `company_admin`      | `company_admin`  | —          |
 
 **Impacto:** Si un `organization_admin` hace login, dependiendo de qué función se use, puede terminar en el portal equivocado.
 
@@ -217,11 +218,12 @@ Existen **3 mappings diferentes** en el codebase:
 ### BUG #6 (SEGURIDAD): Dev Bypass Basado en NODE_ENV
 
 **Archivos:**
+
 - `apps/doctors/src/contexts/AuthContext.tsx:34,47,104`
 - `packages/auth/src/hooks/useAuth.tsx:99`
 
 ```typescript
-if (process.env.NODE_ENV !== 'development') {
+if (process.env.NODE_ENV !== "development") {
   window.location.href = getLoginUrl();
 }
 ```
@@ -263,18 +265,18 @@ apps/doctors/src/
 
 ### Problemas UI Identificados
 
-| # | Problema | Severidad | Archivo | Líneas |
-|---|---------|-----------|---------|--------|
-| D1 | `page.tsx` es un monolito de 869 líneas con video, AI, focus mode, quick actions mezclados | Alta | `app/page.tsx` | 1-869 |
-| D2 | `DoctorsPortalShell.tsx` es otro monolito de 614 líneas — sidebar, tabs, footer, routing todo junto | Alta | `components/layout/DoctorsPortalShell.tsx` | 1-614 |
-| D3 | Settings usa datos mock hardcoded — no persiste a Supabase | Alta | `components/settings/SettingsPanel.tsx` | Todo |
-| D4 | Appointments y Patients usan datos mock — no hay integración real con DB | Alta | `components/appointments/`, `components/patients/` | Todo |
-| D5 | No hay feedback visual claro cuando la sesión expira — redirect silencioso | Media | `middleware.ts` | 37-39 |
-| D6 | Tab navigation hardcoded en shell — no extensible para nuevos tabs | Media | `DoctorsPortalShell.tsx` | ~100-150 |
-| D7 | Video controls (mic, cam, screen share) no verifican permisos del browser | Media | `app/page.tsx` | ~200-400 |
-| D8 | El diseño VSCode-style (traffic lights, tabs) puede confundir a médicos no-tech | Baja | `DoctorsPortalShell.tsx` | ~50-80 |
-| D9 | Footer muestra "API Status" que es info técnica innecesaria para médicos | Baja | `DoctorsPortalShell.tsx` | ~580-614 |
-| D10 | Consultation page (`/consultation/[id]`) tiene checklist mock de "HIPAA compliance" | Baja | `app/consultation/[id]/page.tsx` | ~120-140 |
+| #   | Problema                                                                                            | Severidad | Archivo                                            | Líneas   |
+| --- | --------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------- | -------- |
+| D1  | `page.tsx` es un monolito de 869 líneas con video, AI, focus mode, quick actions mezclados          | Alta      | `app/page.tsx`                                     | 1-869    |
+| D2  | `DoctorsPortalShell.tsx` es otro monolito de 614 líneas — sidebar, tabs, footer, routing todo junto | Alta      | `components/layout/DoctorsPortalShell.tsx`         | 1-614    |
+| D3  | Settings usa datos mock hardcoded — no persiste a Supabase                                          | Alta      | `components/settings/SettingsPanel.tsx`            | Todo     |
+| D4  | Appointments y Patients usan datos mock — no hay integración real con DB                            | Alta      | `components/appointments/`, `components/patients/` | Todo     |
+| D5  | No hay feedback visual claro cuando la sesión expira — redirect silencioso                          | Media     | `middleware.ts`                                    | 37-39    |
+| D6  | Tab navigation hardcoded en shell — no extensible para nuevos tabs                                  | Media     | `DoctorsPortalShell.tsx`                           | ~100-150 |
+| D7  | Video controls (mic, cam, screen share) no verifican permisos del browser                           | Media     | `app/page.tsx`                                     | ~200-400 |
+| D8  | El diseño VSCode-style (traffic lights, tabs) puede confundir a médicos no-tech                     | Baja      | `DoctorsPortalShell.tsx`                           | ~50-80   |
+| D9  | Footer muestra "API Status" que es info técnica innecesaria para médicos                            | Baja      | `DoctorsPortalShell.tsx`                           | ~580-614 |
+| D10 | Consultation page (`/consultation/[id]`) tiene checklist mock de "HIPAA compliance"                 | Baja      | `app/consultation/[id]/page.tsx`                   | ~120-140 |
 
 ---
 
@@ -321,18 +323,18 @@ apps/patients/src/
 
 ### Problemas UI Identificados
 
-| # | Problema | Severidad | Archivo | Descripción |
-|---|---------|-----------|---------|-------------|
-| P1 | Dashboard muestra VideoCall como vista principal — confuso para pacientes | Alta | `(dashboard)/page.tsx` | Pacientes esperan ver resumen de salud, no video |
-| P2 | Dos implementaciones de sidebar (Compact + Collapsible) — inconsistencia | Alta | `components/layout/` | Diferentes componentes usan diferente sidebar |
-| P3 | Community page usa datos hardcoded — posts y groups son mock | Alta | `community/page.tsx` | Sin integración Supabase |
-| P4 | DynamicRightPanel tiene datos mock extensivos (medicamentos, signos vitales) | Alta | `DynamicRightPanel.tsx` | Datos ficticios que confunden al paciente |
-| P5 | Onboarding no valida datos médicos (tipo sangre, altura, peso) | Media | `onboarding/page.tsx` | Puede guardar datos inválidos |
-| P6 | Anamnesis: si el usuario cierra el browser, pierde progreso parcial (solo localStorage) | Media | `anamnesis/page.tsx` | Auto-save cada 30s, pero perder cambios entre saves |
-| P7 | Medical History muestra empty state genérico — no guía al usuario | Media | `medical-history/page.tsx` | Debería decir "Complete su anamnesis" |
-| P8 | Preventive Health depende de perfil completo pero el warning es sutil (amber box) | Media | `preventive-health/page.tsx` | Debería bloquear el acceso hasta completar perfil |
-| P9 | Navigation tiene badges "NUEVO", "BETA", "HOT" que nunca se actualizan | Baja | Sidebars | Badges estáticos hardcoded |
-| P10 | Floating AI button (Auta) siempre visible pero el chat es placeholder | Baja | `AutaFloatingButton.tsx` | Modal abre pero no hay chatbot real |
+| #   | Problema                                                                                | Severidad | Archivo                      | Descripción                                         |
+| --- | --------------------------------------------------------------------------------------- | --------- | ---------------------------- | --------------------------------------------------- |
+| P1  | Dashboard muestra VideoCall como vista principal — confuso para pacientes               | Alta      | `(dashboard)/page.tsx`       | Pacientes esperan ver resumen de salud, no video    |
+| P2  | Dos implementaciones de sidebar (Compact + Collapsible) — inconsistencia                | Alta      | `components/layout/`         | Diferentes componentes usan diferente sidebar       |
+| P3  | Community page usa datos hardcoded — posts y groups son mock                            | Alta      | `community/page.tsx`         | Sin integración Supabase                            |
+| P4  | DynamicRightPanel tiene datos mock extensivos (medicamentos, signos vitales)            | Alta      | `DynamicRightPanel.tsx`      | Datos ficticios que confunden al paciente           |
+| P5  | Onboarding no valida datos médicos (tipo sangre, altura, peso)                          | Media     | `onboarding/page.tsx`        | Puede guardar datos inválidos                       |
+| P6  | Anamnesis: si el usuario cierra el browser, pierde progreso parcial (solo localStorage) | Media     | `anamnesis/page.tsx`         | Auto-save cada 30s, pero perder cambios entre saves |
+| P7  | Medical History muestra empty state genérico — no guía al usuario                       | Media     | `medical-history/page.tsx`   | Debería decir "Complete su anamnesis"               |
+| P8  | Preventive Health depende de perfil completo pero el warning es sutil (amber box)       | Media     | `preventive-health/page.tsx` | Debería bloquear el acceso hasta completar perfil   |
+| P9  | Navigation tiene badges "NUEVO", "BETA", "HOT" que nunca se actualizan                  | Baja      | Sidebars                     | Badges estáticos hardcoded                          |
+| P10 | Floating AI button (Auta) siempre visible pero el chat es placeholder                   | Baja      | `AutaFloatingButton.tsx`     | Modal abre pero no hay chatbot real                 |
 
 ---
 
@@ -401,6 +403,7 @@ Después: [Logo] AutaMedica  |  Dr. García - Cardiología  |  🟢 En línea  |
 **Estado actual:** Todo mock — nada se guarda.
 
 **Propuesta:**
+
 - Guardar configuración en `user_metadata` de Supabase Auth
 - Crear tabla `doctor_settings` para preferencias específicas
 - Hook `useDoctorSettings()` para CRUD
@@ -413,6 +416,7 @@ Después: [Logo] AutaMedica  |  Dr. García - Cardiología  |  🟢 En línea  |
 **Prioridad:** Media | **Estimación:** ~3 archivos
 
 **Propuesta:**
+
 - Crear página `/session-expired` con mensaje claro
 - Toast notification 5 minutos antes de expiración
 - Auto-refresh de token (ya existe la lógica, pero no funciona por Bug #1)
@@ -454,6 +458,7 @@ Dashboard Home (nueva estructura)
 ```
 
 **La videollamada se accede desde:**
+
 1. Card de "Próxima Cita" → botón "Iniciar videollamada"
 2. Página de citas → botón por cita
 3. Link directo `/call/[roomId]`
@@ -467,6 +472,7 @@ Dashboard Home (nueva estructura)
 **Estado actual:** `CompactSidebar.tsx` y `CollapsibleSidebar.tsx` coexisten con items diferentes.
 
 **Propuesta:**
+
 - Eliminar `CompactSidebar.tsx`
 - Usar `CollapsibleSidebar.tsx` como único sidebar
 - Unificar items de navegación en un array configuración
@@ -480,12 +486,12 @@ Dashboard Home (nueva estructura)
 
 **Propuesta por página:**
 
-| Página | Empty State Actual | Propuesta |
-|--------|-------------------|-----------|
-| Medical History | Icono + "No tienes registros" | "Tu historial se llenará con tus consultas. Agenda tu primera cita." + CTA |
-| Appointments | Icono + "No tienes citas" | "Agenda tu primera consulta con un profesional de salud." + CTA |
-| Preventive Health | Warning amber | Bloqueo con stepper: "1. Completa tu perfil → 2. Accede a tu plan preventivo" |
-| Community | Hardcoded data | Loading skeleton → Empty: "Sé el primero en compartir tu experiencia" |
+| Página            | Empty State Actual            | Propuesta                                                                     |
+| ----------------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| Medical History   | Icono + "No tienes registros" | "Tu historial se llenará con tus consultas. Agenda tu primera cita." + CTA    |
+| Appointments      | Icono + "No tienes citas"     | "Agenda tu primera consulta con un profesional de salud." + CTA               |
+| Preventive Health | Warning amber                 | Bloqueo con stepper: "1. Completa tu perfil → 2. Accede a tu plan preventivo" |
+| Community         | Hardcoded data                | Loading skeleton → Empty: "Sé el primero en compartir tu experiencia"         |
 
 ---
 
@@ -494,6 +500,7 @@ Dashboard Home (nueva estructura)
 **Prioridad:** Media | **Estimación:** ~4 archivos
 
 **Propuesta:**
+
 - Zod schema para validar datos médicos:
   - Tipo de sangre: solo valores válidos (A+, A-, B+, B-, AB+, AB-, O+, O-)
   - Altura: 50-250 cm
@@ -509,6 +516,7 @@ Dashboard Home (nueva estructura)
 **Prioridad:** Media | **Estimación:** ~3 archivos
 
 **Propuesta:**
+
 - Indicador visual de pasos completados vs pendientes (stepper con checkmarks)
 - Botón "Guardar y continuar después" prominente en cada paso
 - Al volver, mostrar modal: "Tienes progreso guardado. ¿Continuar desde el paso 7/12?"
@@ -521,6 +529,7 @@ Dashboard Home (nueva estructura)
 **Prioridad:** Baja | **Estimación:** ~2 archivos
 
 **Propuesta:** El botón `AutaFloatingButton` abre un modal vacío. Opciones:
+
 1. Remover hasta que el chatbot esté implementado
 2. Reemplazar con botón de "Ayuda" que abre FAQ/docs
 
@@ -577,42 +586,42 @@ PR #8 ──→ PR #9, PR #10
 
 ### Severidad Crítica (Bloquean login)
 
-| ID | Archivo | Línea | Descripción |
-|----|---------|-------|-------------|
-| C1 | `packages/shared/src/auth/session.ts` | 31-34 | Cookie name mismatch: busca `sb-access-token`, Supabase usa `sb-{ref}-auth-token.0` |
-| C2 | `packages/shared/src/security/redirects.ts` | 87 | `buildSafeLoginUrl` usa `NEXT_PUBLIC_BASE_URL_WEB_APP` en vez de auth hub |
-| C3 | `packages/shared/src/env/portals.ts` | 37-39 | `isCorrectPortal` compara URL origin con role string — siempre false |
-| C4 | `apps/doctors/middleware.ts` | 51-52 | `new URL(pathname, getPortalForRole(...))` — portal name no es URL válida |
+| ID  | Archivo                                     | Línea | Descripción                                                                         |
+| --- | ------------------------------------------- | ----- | ----------------------------------------------------------------------------------- |
+| C1  | `packages/shared/src/auth/session.ts`       | 31-34 | Cookie name mismatch: busca `sb-access-token`, Supabase usa `sb-{ref}-auth-token.0` |
+| C2  | `packages/shared/src/security/redirects.ts` | 87    | `buildSafeLoginUrl` usa `NEXT_PUBLIC_BASE_URL_WEB_APP` en vez de auth hub           |
+| C3  | `packages/shared/src/env/portals.ts`        | 37-39 | `isCorrectPortal` compara URL origin con role string — siempre false                |
+| C4  | `apps/doctors/middleware.ts`                | 51-52 | `new URL(pathname, getPortalForRole(...))` — portal name no es URL válida           |
 
 ### Severidad Alta (Funcionalidad rota)
 
-| ID | Archivo | Línea | Descripción |
-|----|---------|-------|-------------|
-| H1 | `packages/shared/src/role-routing.ts` | 140-144 | `PORTAL_TO_ROLE` inconsistente con `env/portals.ts` (admin→organization_admin vs platform_admin) |
-| H2 | `apps/auth/src/app/auth/select-role/actions.ts` | 44 | RPC `set_user_role` vs `set_portal_and_role` en profile-manager.ts — mismatch |
-| H3 | `apps/patients/middleware.ts` | 35 | `request as any` type cast — React version mismatch en monorepo |
-| H4 | `apps/doctors/src/components/settings/SettingsPanel.tsx` | Todo | 100% mock data — nada se persiste |
-| H5 | `apps/patients/src/app/(dashboard)/page.tsx` | Todo | Dashboard muestra VideoCall como vista principal |
+| ID  | Archivo                                                  | Línea   | Descripción                                                                                      |
+| --- | -------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| H1  | `packages/shared/src/role-routing.ts`                    | 140-144 | `PORTAL_TO_ROLE` inconsistente con `env/portals.ts` (admin→organization_admin vs platform_admin) |
+| H2  | `apps/auth/src/app/auth/select-role/actions.ts`          | 44      | RPC `set_user_role` vs `set_portal_and_role` en profile-manager.ts — mismatch                    |
+| H3  | `apps/patients/middleware.ts`                            | 35      | `request as any` type cast — React version mismatch en monorepo                                  |
+| H4  | `apps/doctors/src/components/settings/SettingsPanel.tsx` | Todo    | 100% mock data — nada se persiste                                                                |
+| H5  | `apps/patients/src/app/(dashboard)/page.tsx`             | Todo    | Dashboard muestra VideoCall como vista principal                                                 |
 
 ### Severidad Media (UX degradada)
 
-| ID | Archivo | Línea | Descripción |
-|----|---------|-------|-------------|
-| M1 | `apps/doctors/src/contexts/AuthContext.tsx` | 34,47,104 | Dev bypass desactiva redirects en development |
-| M2 | `packages/auth/src/hooks/useAuth.tsx` | 252-254 | `setTimeout(redirect, 100)` — race condition |
-| M3 | `apps/patients/src/app/(dashboard)/anamnesis/page.tsx` | — | Auto-save solo cada 30s a Supabase |
-| M4 | `packages/shared/src/security/redirects.ts` | 52-54 | Wildcard regex `.*` demasiado permisivo |
-| M5 | `apps/doctors/src/app/page.tsx` | 869 | Monolito de 869 líneas — imposible de mantener |
-| M6 | `apps/patients/src/components/layout/` | — | Dos sidebars con items diferentes |
+| ID  | Archivo                                                | Línea     | Descripción                                    |
+| --- | ------------------------------------------------------ | --------- | ---------------------------------------------- |
+| M1  | `apps/doctors/src/contexts/AuthContext.tsx`            | 34,47,104 | Dev bypass desactiva redirects en development  |
+| M2  | `packages/auth/src/hooks/useAuth.tsx`                  | 252-254   | `setTimeout(redirect, 100)` — race condition   |
+| M3  | `apps/patients/src/app/(dashboard)/anamnesis/page.tsx` | —         | Auto-save solo cada 30s a Supabase             |
+| M4  | `packages/shared/src/security/redirects.ts`            | 52-54     | Wildcard regex `.*` demasiado permisivo        |
+| M5  | `apps/doctors/src/app/page.tsx`                        | 869       | Monolito de 869 líneas — imposible de mantener |
+| M6  | `apps/patients/src/components/layout/`                 | —         | Dos sidebars con items diferentes              |
 
 ### Severidad Baja (Code quality)
 
-| ID | Archivo | Línea | Descripción |
-|----|---------|-------|-------------|
-| L1 | `apps/auth/src/lib/profile-manager.ts` | 149 | `(this.client.rpc as any)` — type safety perdida |
-| L2 | `apps/auth/src/lib/auth-service.ts` | 69 | Error message hardcoded en español — sin i18n |
-| L3 | `packages/shared/src/role-routing.ts` | 91-103 | `getCookieDomain()` silencia errores con fallback |
-| L4 | `apps/doctors/src/components/layout/DoctorsPortalShell.tsx` | ~580 | Footer muestra "API Status" — innecesario para médicos |
+| ID  | Archivo                                                     | Línea  | Descripción                                            |
+| --- | ----------------------------------------------------------- | ------ | ------------------------------------------------------ |
+| L1  | `apps/auth/src/lib/profile-manager.ts`                      | 149    | `(this.client.rpc as any)` — type safety perdida       |
+| L2  | `apps/auth/src/lib/auth-service.ts`                         | 69     | Error message hardcoded en español — sin i18n          |
+| L3  | `packages/shared/src/role-routing.ts`                       | 91-103 | `getCookieDomain()` silencia errores con fallback      |
+| L4  | `apps/doctors/src/components/layout/DoctorsPortalShell.tsx` | ~580   | Footer muestra "API Status" — innecesario para médicos |
 
 ---
 
@@ -672,6 +681,7 @@ El sistema de autenticación de AutaMedica tiene una arquitectura sólida en dis
 **Acción inmediata requerida:** PR #1 (fix de los 4 bugs críticos) es bloqueante para toda la plataforma. Sin este fix, ningún usuario puede completar el flujo de login exitosamente.
 
 Una vez que el auth funcione, las mejoras de UI propuestas (PRs #4-#12) mejorarán significativamente la experiencia tanto de médicos como de pacientes, con foco en:
+
 - Descomposición de monolitos para mantenibilidad
 - Dashboard centrado en salud para pacientes (no en video)
 - Datos reales en lugar de mocks hardcoded

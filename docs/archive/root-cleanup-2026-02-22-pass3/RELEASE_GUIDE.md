@@ -6,7 +6,7 @@
 
 ```bash
 # 1. Configurar URL de staging
-export SUPABASE_DB_URL_STAGING="postgresql://postgres.knywotiidsydsaveqkjs:3QxHm2j09k-KJ3*^@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
+export SUPABASE_DB_URL_STAGING="postgresql://postgres.qxjjrpksmwwrmubhvjew:3QxHm2j09k-KJ3*^@aws-0-us-east-1.pooler.supabase.com:6543/postgres"
 
 # 2. Ejecutar script completo
 ./scripts/release-org-roles.sh

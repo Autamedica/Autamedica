@@ -224,7 +224,7 @@ Actualizar `DEPLOYMENT_NOTES.md` con checklist de variables.
 
    ```bash
    # En Cloudflare Pages Dashboard
-   SUPABASE_URL=https://knywotiidsydsaveqkjs.supabase.co
+   SUPABASE_URL=https://qxjjrpksmwwrmubhvjew.supabase.co
    SUPABASE_ANON_KEY=<KEY>
    SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY>
    AUTH_COOKIE_DOMAIN=.autamedica.com

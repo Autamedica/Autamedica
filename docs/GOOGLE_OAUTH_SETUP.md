@@ -42,7 +42,7 @@ https://*.pages.dev
 **Debe tener configurado** (ya existe):
 
 ```
-https://knywotiidsydsaveqkjs.supabase.co/auth/v1/callback
+https://qxjjrpksmwwrmubhvjew.supabase.co/auth/v1/callback
 ```
 
 ---
@@ -66,7 +66,7 @@ https://*.pages.dev
 ### **Authorized redirect URIs:**
 
 ```
-https://knywotiidsydsaveqkjs.supabase.co/auth/v1/callback
+https://qxjjrpksmwwrmubhvjew.supabase.co/auth/v1/callback
 ```
 
 ---
