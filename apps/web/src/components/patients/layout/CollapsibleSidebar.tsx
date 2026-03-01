@@ -1,32 +1,34 @@
 'use client'
 
 import {
-  BarChart3,
-  Bot,
-  Brain,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardList,
-  FileText,
-  Heart,
-  HelpCircle,
-  Home,
-  MessageSquare,
-  Settings,
-  Shield,
-  ShieldCheck,
-  User,
-  Users,
-  Video,
+    BarChart3,
+    Bot,
+    Brain,
+    Calendar,
+    ChevronLeft,
+    ChevronRight,
+    ClipboardList,
+    FileText,
+    Heart,
+    HelpCircle,
+    Home,
+    MessageSquare,
+    Settings,
+    Shield,
+    ShieldCheck,
+    User,
+    Users,
+    Video,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
 import type { MouseEvent } from 'react'
+import { useEffect, useState } from 'react'
 
 type NavigationItem = {
   icon: typeof Home
   label: string
   href: string
+  /** Optional custom PNG icon path (overrides Lucide icon) */
+  customIcon?: string
 }
 
 type BottomItem = NavigationItem & {
@@ -35,13 +37,13 @@ type BottomItem = NavigationItem & {
 }
 
 const navigationItems: NavigationItem[] = [
-  { icon: Home, label: 'Inicio', href: '/' },
+  { icon: Home, label: 'Inicio', href: '/', customIcon: '/images/premium/sidebar/home.png' },
   { icon: ClipboardList, label: 'Anamnesis', href: '/anamnesis' },
-  { icon: FileText, label: 'Historia clínica', href: '/medical-history' },
+  { icon: FileText, label: 'Historia clínica', href: '/medical-history', customIcon: '/images/premium/sidebar/medical_history.png' },
   { icon: Heart, label: 'Salud Reproductiva', href: '/reproductive-health' },
-  { icon: ShieldCheck, label: 'Prevención Embarazo', href: '/pregnancy-prevention' },
-  { icon: Shield, label: 'Salud Preventiva', href: '/preventive-health' },
-  { icon: Calendar, label: 'Citas', href: '/appointments' },
+  { icon: ShieldCheck, label: 'Prevención Embarazo', href: '/pregnancy-prevention', customIcon: '/images/premium/sidebar/pregnancy.png' },
+  { icon: Shield, label: 'Salud Preventiva', href: '/preventive-health', customIcon: '/images/premium/sidebar/preventive_health.png' },
+  { icon: Calendar, label: 'Citas', href: '/appointments', customIcon: '/images/premium/sidebar/appointments.png' },
   { icon: Video, label: 'Videollamada', href: '/appointments' },
   { icon: MessageSquare, label: 'Comunidad', href: '/community' },
   { icon: Brain, label: 'IA Diagnóstico', href: '/demo/symptom-analyzer' },
@@ -145,7 +147,17 @@ export function CollapsibleSidebar() {
                 onMouseEnter={() => setHoveredItem(item.label)}
                 onMouseLeave={() => setHoveredItem(null)}
               >
-                <Icon className="h-5 w-5 flex-shrink-0" />
+                {item.customIcon ? (
+                  <img
+                    src={item.customIcon}
+                    alt={item.label}
+                    className={`h-5 w-5 flex-shrink-0 object-contain ${
+                      isCurrent ? 'brightness-200' : 'opacity-80 group-hover:opacity-100'
+                    }`}
+                  />
+                ) : (
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                )}
                 {!isCollapsed && <span className="truncate text-sm font-medium">{item.label}</span>}
               </a>
 
