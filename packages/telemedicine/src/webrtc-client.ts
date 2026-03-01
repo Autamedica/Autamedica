@@ -30,6 +30,15 @@ export interface WebRTCEvents {
   'error': (error: Error) => void
 }
 
+type ServerSignalingMessage =
+  | { type: 'room-state'; data: { users: Array<{ id: string; userType: string }> } }
+  | { type: 'user-joined'; from: string; data: { userType: string } }
+  | { type: 'user-left'; from: string }
+  | { type: 'offer'; from: string; data: RTCSessionDescriptionInit }
+  | { type: 'answer'; from: string; data: RTCSessionDescriptionInit }
+  | { type: 'ice-candidate'; from: string; data: RTCIceCandidateInit }
+  | { type: 'error'; data: string }
+
 interface PeerState {
   pc: RTCPeerConnection
   pendingIceCandidates: RTCIceCandidateInit[]
@@ -54,7 +63,7 @@ export class WebRTCClient {
     const iceServers = config.iceServers || (envServers.length > 0 ? envServers : ICE_STUN_ONLY)
 
     this.config = {
-      signalingUrl: 'wss://autamedica-signaling-server.ecucondor.workers.dev/signaling',
+      signalingUrl: 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling',
       iceServers,
       roomId: 'default-room',
       ...config
@@ -63,10 +72,12 @@ export class WebRTCClient {
 
   // Event listener methods
   on<T extends keyof WebRTCEvents>(event: T, listener: WebRTCEvents[T]): () => void {
-    if (!this.eventListeners.has(event)) {
-      this.eventListeners.set(event, [])
+    let listeners = this.eventListeners.get(event)
+    if (!listeners) {
+      listeners = []
+      this.eventListeners.set(event, listeners)
     }
-    this.eventListeners.get(event)!.push(listener)
+    listeners.push(listener)
 
     // Return unsubscribe function
     return () => {
@@ -112,7 +123,7 @@ export class WebRTCClient {
     this.setConnectionState('connecting')
 
     try {
-      const finalRoomId = roomId || this.config.roomId!
+      const finalRoomId = roomId || this.config.roomId || 'default-room'
       const wsUrl = `${this.config.signalingUrl}?roomId=${encodeURIComponent(finalRoomId)}`
 
       this.ws = new WebSocket(wsUrl)
@@ -128,7 +139,7 @@ export class WebRTCClient {
       }
 
       this.ws.onmessage = (event) => {
-        this.handleSignalingMessage(JSON.parse(event.data))
+        this.handleSignalingMessage(JSON.parse(event.data) as ServerSignalingMessage)
       }
 
       this.ws.onerror = (error) => {
@@ -144,22 +155,23 @@ export class WebRTCClient {
       }
 
       // Wait for connection
+      const ws = this.ws
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('Connection timeout'))
         }, 10000)
 
-        const originalOnOpen = this.ws!.onopen
-        this.ws!.onopen = (event) => {
+        const originalOnOpen = ws.onopen
+        ws.onopen = (event) => {
           clearTimeout(timeout)
-          originalOnOpen?.call(this.ws!, event)
+          originalOnOpen?.call(ws, event)
           resolve()
         }
 
-        const originalOnError = this.ws!.onerror
-        this.ws!.onerror = (error) => {
+        const originalOnError = ws.onerror
+        ws.onerror = (error) => {
           clearTimeout(timeout)
-          originalOnError?.call(this.ws!, error)
+          originalOnError?.call(ws, error)
           reject(new Error('WebSocket connection failed'))
         }
       })
@@ -218,13 +230,13 @@ export class WebRTCClient {
     this.stopLocalStream()
   }
 
-  private sendSignalingMessage(message: any): void {
+  private sendSignalingMessage(message: Record<string, unknown>): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message))
     }
   }
 
-  private async handleSignalingMessage(message: any): Promise<void> {
+  private async handleSignalingMessage(message: ServerSignalingMessage): Promise<void> {
     logger.info('Received signaling message:', message)
 
     switch (message.type) {
@@ -265,7 +277,7 @@ export class WebRTCClient {
 
       case 'error':
         logger.error('Signaling error:', message.data)
-        this.emit('error', new Error(message.data))
+        this.emit('error', new Error(String(message.data)))
         break
     }
   }
@@ -319,7 +331,7 @@ export class WebRTCClient {
       }
 
       try {
-        peerState!.isMakingOffer = true
+        peerState.isMakingOffer = true
         await pc.setLocalDescription()
 
         if (pc.localDescription) {
@@ -436,7 +448,8 @@ export class WebRTCClient {
     }
 
     while (peerState.pendingIceCandidates.length > 0) {
-      const candidateInit = peerState.pendingIceCandidates.shift()!
+      const candidateInit = peerState.pendingIceCandidates.shift()
+      if (!candidateInit) break
       try {
         await peerState.pc.addIceCandidate(new RTCIceCandidate(candidateInit))
       } catch (error) {

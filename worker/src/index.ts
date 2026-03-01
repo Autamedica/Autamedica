@@ -1,93 +1,69 @@
-export default {
-  fetch: (req: Request, env: any) => {
-    const url = new URL(req.url)
-    if (url.pathname === '/connect') return handleWS(req, env)
-    return new Response(JSON.stringify({
-      error: 'Not Found',
-      availableEndpoints: ['/connect?roomId&userId&userType']
-    }), { status: 404, headers: { 'content-type': 'application/json' }})
-  }
-}
+import { SignalingRoom } from './signaling-room'
+import { corsHeaders, corsResponse } from './cors'
+import type { Env } from './types'
 
-type Meta = { userId?: string; userType?: 'doctor'|'patient'|'unknown'; roomId?: string }
+// Re-export Durable Object class (required by Wrangler)
+export { SignalingRoom }
 
-const users = new Map<string, WebSocket>()                 // userId -> ws
-const rooms = new Map<string, Set<WebSocket>>()            // roomId -> set<ws>
-const metas = new WeakMap<WebSocket, Meta>()
-
-function handleWS(req: Request, _env: any) {
-  const url = new URL(req.url)
-  const userId = url.searchParams.get('userId') || undefined
-  const userType = (url.searchParams.get('userType') as Meta['userType']) || 'unknown'
-  const roomId = url.searchParams.get('roomId') || undefined
-  const upgradeHeader = req.headers.get('Upgrade') || ''
-  if (upgradeHeader.toLowerCase() !== 'websocket') return new Response('Expected websocket', { status: 400 })
-
-  const { socket, response } = new WebSocketPair()
-  const ws = socket as unknown as WebSocket
-  ws.accept()
-
-  metas.set(ws, { userId, userType, roomId })
-  if (userId) users.set(userId, ws)
-  if (roomId) {
-    let set = rooms.get(roomId); if (!set) { set = new Set(); rooms.set(roomId, set) }
-    set.add(ws)
-  }
-
-  ws.addEventListener('message', (evt: MessageEvent) => {
-    try {
-      const meta = metas.get(ws) || {}
-      const msg = JSON.parse(String(evt.data))
-      switch (msg.type) {
-        // Control 1:1 (invite/accept/decline/cancel/end)
-        case 'invite':
-        case 'accept':
-        case 'decline':
-        case 'cancel':
-        case 'end': {
-          const to = users.get(msg.toUserId)
-          if (to) to.send(JSON.stringify({ ...msg, fromUserId: meta.userId }))
-          break
-        }
-        // Señalización sala (offer/answer/candidate/join/leave)
-        case 'join': {
-          broadcast(meta.roomId, { type: 'peer-joined', userId: meta.userId }, ws)
-          break
-        }
-        case 'offer':
-        case 'answer':
-        case 'candidate': {
-          broadcast(meta.roomId, { ...msg, fromUserId: meta.userId }, ws)
-          break
-        }
-        default:
-          // opcional: echo para debug
-          ws.send(JSON.stringify({ ok: true, echo: msg.type }))
-      }
-    } catch (_e) {
-      try { ws.send(JSON.stringify({ error: 'bad-json' })) } catch {}
-    }
+function json(payload: unknown, status: number, origin?: string | null): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
   })
-
-  ws.addEventListener('close', () => cleanup(ws))
-  ws.addEventListener('error', () => cleanup(ws))
-
-  return response
 }
 
-function cleanup(ws: WebSocket) {
-  const meta = metas.get(ws) || {}
-  if (meta.userId) users.delete(meta.userId)
-  if (meta.roomId) rooms.get(meta.roomId)?.delete(ws)
-  metas.delete(ws)
-}
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const origin = request.headers.get('Origin')
 
-function broadcast(roomId: string | undefined, payload: any, exclude?: WebSocket) {
-  if (!roomId) return
-  const set = rooms.get(roomId); if (!set) return
-  const raw = JSON.stringify(payload)
-  for (const client of set) {
-    if (client === exclude) continue
-    try { client.send(raw) } catch { set.delete(client) }
-  }
-}
+    if (request.method === 'OPTIONS') {
+      return corsResponse(origin)
+    }
+
+    // Health check
+    if (url.pathname === '/health') {
+      return json(
+        {
+          status: 'ok',
+          service: 'autamedica-signaling-server',
+          mode: 'websocket-durable-objects',
+          timestamp: new Date().toISOString(),
+        },
+        200,
+        origin
+      )
+    }
+
+    // WebSocket signaling: /signaling (primary) and /connect (legacy)
+    if (url.pathname === '/signaling' || url.pathname === '/connect') {
+      const roomId = url.searchParams.get('roomId')
+      if (!roomId) {
+        return json({ type: 'error', data: 'Missing roomId query parameter' }, 400, origin)
+      }
+
+      // Route to the Durable Object for this room
+      const doId = env.SIGNALING_ROOM.idFromName(roomId)
+      const stub = env.SIGNALING_ROOM.get(doId)
+      return stub.fetch(request)
+    }
+
+    // Info endpoint
+    if (url.pathname === '/') {
+      return json(
+        {
+          service: 'autamedica-signaling-server',
+          endpoints: {
+            '/signaling?roomId=xxx': 'WebSocket signaling (primary)',
+            '/connect?roomId=xxx': 'WebSocket signaling (legacy)',
+            '/health': 'Health check',
+          },
+        },
+        200,
+        origin
+      )
+    }
+
+    return json({ error: 'Not found' }, 404, origin)
+  },
+} satisfies ExportedHandler<Env>
