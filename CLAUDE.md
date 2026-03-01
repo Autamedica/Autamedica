@@ -144,7 +144,7 @@ Obligatorio:
 - **Repo:** `ecucondorSA/Autamedica` (GitHub)
 - **Package Manager:** `pnpm` ONLY
 - **Build Orchestrator:** Turborepo 2.x
-- **Supabase Project:** `knywotiidsydsaveqkjs`
+- **Supabase Project:** `qxjjrpksmwwrmubhvjew`
 - **Deployment:** Cloudflare Pages (por app)
 
 URLs de producción:
@@ -262,9 +262,9 @@ packages/
 
 **IMPORTANTE: NO CONFUNDIR CON OTROS PROYECTOS (ej: autorentar)**
 
-- **Project ID:** `knywotiidsydsaveqkjs`
-- **URL:** https://knywotiidsydsaveqkjs.supabase.co
-- **Dashboard:** https://supabase.com/dashboard/project/knywotiidsydsaveqkjs/settings/api
+- **Project ID:** `qxjjrpksmwwrmubhvjew`
+- **URL:** https://qxjjrpksmwwrmubhvjew.supabase.co
+- **Dashboard:** https://supabase.com/dashboard/project/qxjjrpksmwwrmubhvjew/settings/api
 - **Directorio:** `/supabase/` en repo
 
 **Estructura DB:**
@@ -300,7 +300,7 @@ Reglas:
 
 ```bash
 # 1. Regenerar tipos a archivo temporal
-supabase gen types typescript --project-id knywotiidsydsaveqkjs > /tmp/fresh-db-types.ts
+supabase gen types typescript --project-id qxjjrpksmwwrmubhvjew > /tmp/fresh-db-types.ts
 
 # 2. Buscar la tabla que vas a consultar
 grep -A 30 "Tables: {" /tmp/fresh-db-types.ts | grep -A 25 "doctors:"
@@ -517,7 +517,7 @@ pnpm deploy:admin
 
 ### Supabase
 
-- Supabase Project: `knywotiidsydsaveqkjs`
+- Supabase Project: `qxjjrpksmwwrmubhvjew`
 - `pnpm db:sync` — regenerar tipos desde DB
 - `pnpm db:validate` — validar schema
 - `pnpm docs:db` — actualizar glosario DB
