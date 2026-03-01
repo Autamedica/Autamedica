@@ -1,8 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@autamedica/types';
+type CreateBrowserClientFn = typeof import('@autamedica/auth')['createBrowserClient'];
+type CreateServerClientFn = typeof import('@autamedica/auth')['createServerClient'];
 
-// Reuse Supabase database generics across the app
-export type AppSupabaseClient = SupabaseClient<Database>;
+export type AppSupabaseClient = ReturnType<CreateBrowserClientFn>;
+export type AppSupabaseServerClient = Awaited<ReturnType<CreateServerClientFn>>;
 
 let browserClient: AppSupabaseClient | null = null;
 
@@ -18,8 +18,10 @@ export function getSupabaseBrowserClient(): AppSupabaseClient {
   if (!browserClient) {
     // Require root export to avoid fragile subpath resolution during package builds.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createBrowserClient } = require('@autamedica/auth');
-    browserClient = createBrowserClient() as AppSupabaseClient;
+    const { createBrowserClient } = require('@autamedica/auth') as {
+      createBrowserClient: CreateBrowserClientFn;
+    };
+    browserClient = createBrowserClient();
   }
 
   return browserClient;
@@ -37,14 +39,14 @@ export function getOptionalSupabaseBrowserClient(): AppSupabaseClient | null {
  * Get server client for SSR operations
  * Creates new instance with server-side cookie handling
  */
-export async function getSupabaseServerClient(): Promise<AppSupabaseClient> {
+export async function getSupabaseServerClient(): Promise<AppSupabaseServerClient> {
   if (typeof window !== 'undefined') {
     throw new Error('getSupabaseServerClient() can only be used in server context');
   }
 
   // Dynamic import to avoid bundling server code in client
   const { createServerClient } = await import('@autamedica/auth');
-  return (await createServerClient()) as AppSupabaseClient;
+  return createServerClient();
 }
 
 /**
