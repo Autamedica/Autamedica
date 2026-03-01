@@ -2,9 +2,7 @@
 
 import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-// import { Button } from '@altamedica/ui';
-// Temporary workaround for TypeScript module resolution
-import { Button } from '../../../../../packages/ui/dist/index.js';
+import { Button } from '@autamedica/ui';
 import Link from 'next/link';
 
 import { logger } from '@autamedica/shared';
