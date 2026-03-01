@@ -83,5 +83,11 @@ generated-docs/*.production.local.txt
 /generated-docs/*.json
 /monitoring-results/*.json
 
+# Turbo logs
+**/.turbo/*.log
+
+# Type error logs
+**/type-errors.log
+
 # Astro build cache
 **/.astro/
