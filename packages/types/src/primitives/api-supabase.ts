@@ -12,7 +12,7 @@
 /**
  * Wrapper estándar para respuestas de API Supabase con error handling
  */
-export interface SupabaseApiResponse<T = any> {
+export interface SupabaseApiResponse<T = unknown> {
   data: T | null;
   error: {
     message: string;
@@ -28,7 +28,7 @@ export interface SupabaseApiResponse<T = any> {
 /**
  * Respuesta paginada de Supabase con metadatos de navegación
  */
-export interface SupabasePaginatedResponse<T = any> extends SupabaseApiResponse<T[]> {
+export interface SupabasePaginatedResponse<T = unknown> extends SupabaseApiResponse<T[]> {
   pagination: {
     page: number;
     per_page: number;
@@ -51,7 +51,7 @@ export const isSupabaseApiResponse = <T>(v: unknown): v is SupabaseApiResponse<T
     'status' in v;
 };
 
-export const isSupabaseError = (response: SupabaseApiResponse<any>): boolean => {
+export const isSupabaseError = (response: SupabaseApiResponse<unknown>): boolean => {
   return response.error !== null;
 };
 
@@ -59,6 +59,6 @@ export const isSupabaseSuccess = <T>(response: SupabaseApiResponse<T>): response
   return response.error === null && response.data !== null;
 };
 
-export const getSupabaseErrorMessage = (response: SupabaseApiResponse<any>): string => {
+export const getSupabaseErrorMessage = (response: SupabaseApiResponse<unknown>): string => {
   return response.error?.message || 'Unknown error occurred';
 };

@@ -164,11 +164,10 @@ export interface AppointmentWithDetails extends Appointment {
  * ACTUALIZADO para usar nombres de campos reales (snake_case)
  */
 export const isAppointment = (v: unknown): v is Appointment => {
-  return !!v &&
-    typeof v === 'object' &&
-    'id' in v &&
-    'start_time' in v &&  // CORREGIDO: era startTime
-    typeof (v as any).id === "string";
+  if (!v || typeof v !== 'object') return false;
+  const obj = v as Record<string, unknown>;
+  return typeof obj.id === "string" &&
+    'start_time' in v;  // CORREGIDO: era startTime
 };
 
 export const isAppointmentType = (v: unknown): v is AppointmentType => {

@@ -21,7 +21,8 @@
     "clean": "rimraf dist *.tsbuildinfo"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "@supabase/supabase-js": "^2.57.4"
   },
   "dependencies": {
     "@autamedica/types": "workspace:*",

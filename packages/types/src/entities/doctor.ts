@@ -74,24 +74,19 @@ export interface DoctorUpdate {
 // ==========================================
 
 export const isDoctor = (v: unknown): v is Doctor => {
-  return !!v &&
-    typeof v === 'object' &&
-    'id' in v &&
-    'licenseNumber' in v &&
-    'specialties' in v &&
-    typeof (v as any).id === "string" &&
-    typeof (v as any).licenseNumber === "string";
+  if (!v || typeof v !== 'object') return false;
+  const obj = v as Record<string, unknown>;
+  return typeof obj.id === "string" &&
+    typeof obj.licenseNumber === "string" &&
+    'specialties' in v;
 };
 
 export const isDoctorEducation = (v: unknown): v is DoctorEducation => {
-  return !!v &&
-    typeof v === 'object' &&
-    'institution' in v &&
-    'degree' in v &&
-    'year' in v &&
-    typeof (v as any).institution === "string" &&
-    typeof (v as any).degree === "string" &&
-    typeof (v as any).year === "number";
+  if (!v || typeof v !== 'object') return false;
+  const obj = v as Record<string, unknown>;
+  return typeof obj.institution === "string" &&
+    typeof obj.degree === "string" &&
+    typeof obj.year === "number";
 };
 
 export type { DoctorId };

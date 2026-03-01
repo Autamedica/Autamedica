@@ -3,7 +3,7 @@
  */
 
 import type { Database } from '@autamedica/types'
-import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
+import { createBrowserClient as createSupabaseBrowserClient, type CookieOptions } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getDomainConfig, getSessionConfig, getSupabaseConfig } from '../utils/config'
 
@@ -40,7 +40,7 @@ export function createBrowserClient(): SupabaseClient<Database> {
         }
         return undefined
       },
-      set(name: string, value: string, options: any) {
+      set(name: string, value: string, options: CookieOptions) {
         if (typeof window !== 'undefined') {
           // Set cookie with domain for SSO
           const cookieOptions = [

@@ -5,6 +5,7 @@
 
 import type { Database } from '@autamedica/types'
 import { createServerClient } from '@supabase/ssr'
+import type { User } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { isUserRole, ROLES } from '../roles'
 import {
@@ -88,7 +89,7 @@ function normalizeRole(role: unknown): UserRole {
   return ROLES.PATIENT
 }
 
-function extractUserProfile(user: any): UserProfile {
+function extractUserProfile(user: User): UserProfile {
   const role = normalizeRole(user.user_metadata?.role)
 
   if (!role) {

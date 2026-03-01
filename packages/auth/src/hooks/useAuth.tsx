@@ -12,7 +12,7 @@ import React, {
   useCallback,
   useMemo
 } from 'react'
-import { User } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 import {
   AuthState,
   UserProfile,
@@ -145,29 +145,37 @@ export function AuthProvider({
       const role = params.get('as') === 'patient' ? ROLES.PATIENT : ROLES.DOCTOR
 
       // Create mock user for dev mode
-      const mockUser = {
+      const mockUser: User = {
         id: `dev-${role}-1`,
         email: `${role}@dev.local`,
+        aud: 'authenticated',
+        app_metadata: { provider: 'dev' },
         user_metadata: { role },
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      } as any
+      }
 
       const mockProfile: UserProfile = {
         id: mockUser.id,
-        email: mockUser.email,
+        email: mockUser.email!,
         role,
         first_name: 'Dev',
         last_name: role === ROLES.DOCTOR ? 'Doctor' : 'Patient',
         created_at: mockUser.created_at,
-        updated_at: mockUser.updated_at,
+        updated_at: mockUser.updated_at!,
         last_path: '/dashboard'
       }
 
       setState({
         user: mockUser,
         profile: mockProfile,
-        session: { access_token: 'dev-token', user: mockUser } as any,
+        session: {
+          access_token: 'dev-token',
+          refresh_token: 'dev-refresh-token',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: mockUser
+        } as Session,
         loading: false,
         error: null
       })

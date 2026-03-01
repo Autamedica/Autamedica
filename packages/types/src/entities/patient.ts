@@ -134,13 +134,12 @@ export interface PatientUpdate {
 // ==========================================
 
 export const isPatient = (v: unknown): v is Patient => {
-  return !!v &&
-    typeof v === 'object' &&
-    'id' in v &&
-    'userId' in v &&
-    'firstName' in v &&
-    'lastName' in v &&
-    typeof (v as any).id === "string";
+  if (!v || typeof v !== 'object') return false;
+  const obj = v as Record<string, unknown>;
+  return typeof obj.id === "string" &&
+    typeof obj.userId === "string" &&
+    typeof obj.firstName === "string" &&
+    typeof obj.lastName === "string";
 };
 
 export const isPatientCareTeamRole = (v: unknown): v is PatientCareTeamRole => {

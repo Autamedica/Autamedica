@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { Patient, Appointment } from "@autamedica/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Patient, Appointment, AppointmentWithDetails } from "@autamedica/types";
 import { logger } from '@autamedica/shared';
 
 /**
  * Hook para obtener pacientes del doctor actual
  * Requiere cliente de Supabase con sesión activa
  */
-export function usePatients(supabaseClient?: any) {
+export function usePatients(supabaseClient?: SupabaseClient) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export function usePatients(supabaseClient?: any) {
  * Hook para obtener citas del doctor actual
  * Requiere cliente de Supabase con sesión activa
  */
-export function useAppointments(supabaseClient?: any, doctorId?: string) {
+export function useAppointments(supabaseClient?: SupabaseClient, doctorId?: string) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,8 +114,8 @@ export function useAppointments(supabaseClient?: any, doctorId?: string) {
  * Hook para obtener citas con detalles de paciente y doctor
  * Realiza join con tablas relacionadas
  */
-export function useAppointmentsWithDetails(supabaseClient?: any, doctorId?: string) {
-  const [appointments, setAppointments] = useState<any[]>([]);
+export function useAppointmentsWithDetails(supabaseClient?: SupabaseClient, doctorId?: string) {
+  const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
