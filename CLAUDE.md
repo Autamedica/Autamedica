@@ -5,7 +5,7 @@
 
 ## 0) Filosofía Operativa
 
-**Operar SIEMPRE como senior engineer.** Tomar decisiones autónomamente — no pedir permiso para decisiones de implementación, elección de herramientas, o decisiones estándar de ingeniería. Cuando ves un problema, arreglalo. Nunca dejar `TODO(human)` — investigar e implementar la solución directamente. Default a acción, no a preguntas.
+**Operar SIEMPRE como senior engineer.** Tomar decisiones autónomamente — no pedir permiso para decisiones de implementación, elección de herramientas, o decisiones estándar de ingeniería. Cuando ves un problema, arreglalo. Nunca dejar `TODO(human)` — investigar e implementar la solución directamente. <!-- ticket:ZERO-DEBT --> Default a acción, no a preguntas.
 
 ### Análisis Profundo
 
@@ -119,16 +119,21 @@ Checklist de higiene:
 
 ### REGLA #5: Todo se Hace AHORA — Cero Deuda Diferida
 
+Operar como senior significa que **nada queda para después**. Cada sesión entrega valor completo o escala explícitamente.
+
 Prohibido:
 
-- Diferir trabajo a "futuro", "próxima sesión", "refactor posterior".
-- Dejar `TODO`, `FIXME`, `HACK`, `TEMP`, `any` sin resolver.
-- Declarar "listo" si falta migración, deploy, types actualizados o verificación.
+- Diferir trabajo a "futuro", "próxima sesión", "sprint siguiente", "refactor posterior" o "TODO para después". <!-- ticket:ZERO-DEBT -->
+- Dejar TODOs, FIXMEs, `// HACK`, `// TEMP` ni "pendientes" sin resolver en el código. <!-- ticket:ZERO-DEBT -->
+- Declarar "listo" si falta migración, deploy, verificación o regeneración de tipos.
+- Crear código que "funciona localmente" pero no está deployado en producción.
 
 Obligatorio:
 
-- Si se detecta problema durante la tarea → corregirlo AHORA o escalar con contexto.
-- Cada tarea cierra completa: **código + tipos + build + verificación**.
+- Si se detecta un problema durante la tarea actual → corregirlo AHORA o escalar al usuario con contexto.
+- Si no se puede resolver → documentar POR QUÉ (blocker técnico concreto) y pedir decisión. No abandonar.
+- Cada tarea cierra completa: **código + migración + deploy + tipos + verificación post-deploy**.
+- Si una auditoría encuentra hallazgos → arreglar todos los P0 en la misma sesión. P1/P2 documentar y empezar.
 
 ---
 
@@ -204,6 +209,16 @@ packages/
 - **`ISODateString`** en lugar de `Date` en APIs y tipos de DB.
 - **`APIResponse<T>`** como discriminated union en todas las respuestas de API.
 
+### Zero Debt Policy (Tolerancia Cero)
+
+- **PROHIBIDO:** `// TODO`, `// FIXME`, `// HACK`, `// TEMP`, `any`, warnings de lint sin resolver. <!-- ticket:ZERO-DEBT -->
+- **Lint DEBE pasar siempre:** `pnpm lint` con 0 errores Y 0 warnings. Warnings son errores diferidos.
+- **Excepciones únicas** (formato obligatorio `// TODO(tipo): [Contexto] Razón`): <!-- ticket:ZERO-DEBT -->
+  - `blocked`: Bloqueo externo real (API de terceros caída/inexistente).
+  - `risk`: Migración masiva peligrosa que requiere planificación.
+  - `flag`: Código detrás de Feature Flag explícito.
+- **Cualquier otro TODO se considera error.** <!-- ticket:ZERO-DEBT -->
+
 ### Anti-Patrones Prohibidos
 
 - `console.*` en prod → usar `logger` de `@autamedica/shared`.
@@ -277,6 +292,73 @@ Reglas:
 - `auth.uid()` requiere JWT de usuario reenviado en `Authorization`.
 - RLS user-scoped no evaluar con service role sin forwarded JWT.
 
+### Schema Verification Before Coding (Obligatorio)
+
+**Problema:** Código que asume columnas/tablas basándose en memoria o docs desactualizados → errores en runtime.
+
+**Protocolo obligatorio antes de cualquier query a Supabase:**
+
+```bash
+# 1. Regenerar tipos a archivo temporal
+supabase gen types typescript --project-id knywotiidsydsaveqkjs > /tmp/fresh-db-types.ts
+
+# 2. Buscar la tabla que vas a consultar
+grep -A 30 "Tables: {" /tmp/fresh-db-types.ts | grep -A 25 "doctors:"
+
+# 3. Verificar que la columna existe en el output
+# Si la columna no existe:
+#   a) Buscar en tabla relacionada
+#   b) O crear migración para agregarla
+#   c) NUNCA asumir que existe y codificar contra ella
+```
+
+**Patrón seguro de query:**
+
+```typescript
+// ❌ INSEGURO - Asume schema sin verificar
+const { data } = await supabase
+  .from("profiles")
+  .select("specialty") // ¿Existe realmente esta columna?
+  .eq("id", doctorId);
+
+// ✅ SEGURO - Verificado contra schema real
+// Paso 1: Verificado en /tmp/fresh-db-types.ts
+// Paso 2: specialty NO está en profiles, está en doctors
+const { data } = await supabase
+  .from("doctors")
+  .select("specialty") // ✅ Verificado que existe
+  .eq("user_id", doctorId);
+```
+
+**Checklist de verificación de schema:**
+
+- [ ] Tipos regenerados a archivo temporal (últimas 24h).
+- [ ] Tabla buscada en tipos generados.
+- [ ] Columna confirmada en tipo Row.
+- [ ] Si columna no existe → encontrada alternativa o creada migración.
+
+### Enum Sync Protocol (DB ↔ TypeScript)
+
+**Problema:** TypeScript types que driftan de DB enums = errores en runtime en producción.
+
+```bash
+# ANTES de modificar cualquier tipo que mapea a un DB enum:
+
+# 1. Verificar valores actuales del enum en DB
+psql $DATABASE_URL -c "SELECT unnest(enum_range(NULL::public.user_role));"
+
+# 2. Comparar con el tipo TypeScript
+grep "type UserRole" packages/types/src/
+
+# 3. Si hay mismatch:
+#    a) Actualizar DB primero (migración para agregar/remover valores)
+#    b) Luego actualizar tipo TypeScript
+#    c) Buscar y reemplazar todos los usos de valores viejos
+#    d) Regenerar tipos: pnpm db:sync
+```
+
+**Regla:** DB es la fuente de verdad. TypeScript refleja, no define.
+
 ### Roles de Usuario
 
 - `patient` → redirige `/dashboard`
@@ -327,6 +409,7 @@ Reglas:
 
 - `pnpm lint` DEBE dar **0 errores Y 0 warnings**.
 - Si hay warnings pre-existentes en archivos que tocás, **arreglarlos en el mismo commit**.
+- No dejar warnings como "deuda aceptable". Un warning es un error que no explotó todavía.
 - `pnpm check` en `apps/web` (astro check) debe dar **0 errors**.
 
 ### Comandos base por scope
@@ -359,7 +442,7 @@ pnpm lint && pnpm typecheck && pnpm build:packages:core
 - [ ] `pnpm lint` con 0 errores y 0 warnings.
 - [ ] `pnpm check` (astro check) sin errores en `apps/web`.
 - [ ] `pnpm build:packages:core` exitoso.
-- [ ] Sin `any`, `TODO`, `FIXME`, `HACK`, `TEMP` nuevos.
+- [ ] Sin `any`, `TODO`, `FIXME`, `HACK`, `TEMP` nuevos. <!-- ticket:ZERO-DEBT -->
 - [ ] Sin archivos fuera de lugar en `git status`.
 - [ ] Si hubo cambio de schema: `pnpm db:sync` ejecutado.
 - [ ] Si hubo cambio de comportamiento: verificación end-to-end ejecutada.
