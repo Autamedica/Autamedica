@@ -68,7 +68,7 @@ export function getAppEnv(appName: AppName): AppEnvironmentConfig {
     supabase: {
       url: getClientEnvOrDefault(
         'NEXT_PUBLIC_SUPABASE_URL',
-        'https://knywotiidsydsaveqkjs.supabase.co',
+        'https://qxjjrpksmwwrmubhvjew.supabase.co',
       ),
       anonKey: getClientEnvOrDefault(
         'NEXT_PUBLIC_SUPABASE_ANON_KEY',

@@ -55,7 +55,7 @@
     "db:generate": "node scripts/generate-db-types.mjs",
     "db:sync": "node scripts/generate-db-types.mjs && node scripts/validate-database-schema.mjs",
     "db:test": "node scripts/test-db-generation.mjs",
-    "types:db:gen": "supabase gen types typescript --project-id knywotiidsydsaveqkjs > packages/types/src/supabase/database.types.ts && cp packages/types/src/supabase/database.types.ts packages/shared/src/types/database.types.ts && tsx scripts/postprocess-db-types.ts",
+    "types:db:gen": "supabase gen types typescript --project-id qxjjrpksmwwrmubhvjew > packages/types/src/supabase/database.types.ts && cp packages/types/src/supabase/database.types.ts packages/shared/src/types/database.types.ts && tsx scripts/postprocess-db-types.ts",
     "types:db:postprocess": "tsx scripts/postprocess-db-types.ts",
     "docs:sync": "node scripts/docs-sync.mjs",
     "docs:sync:watch": "node scripts/docs-watch.mjs",
@@ -121,6 +121,9 @@
     "smoke:all": "bash scripts/smoke-all.sh",
     "db:apply:ai": "bash scripts/db/apply-ai-personalization.sh",
     "db:probe": "node scripts/db/probe-supabase-schema.mjs",
+    "dev:mobile": "pnpm -C apps/mobile start",
+    "android:mobile": "pnpm -C apps/mobile android",
+    "ios:mobile": "pnpm -C apps/mobile ios",
     "dev:patients+web": "concurrently -k -n WEB,PATIENTS \"pnpm -C apps/web dev\" \"pnpm -C apps/patients dev\"",
     "dev:patients+auth": "pnpm run dev:patients+web",
     "e2e:patients": "node scripts/e2e/patients-login.mjs"

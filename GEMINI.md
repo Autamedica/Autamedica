@@ -173,8 +173,8 @@ Para cualquier feature o bug de datos, analizar y validar siempre en dos niveles
 
 ### Supabase Project
 
-- **Project ID:** `knywotiidsydsaveqkjs`
-- **URL:** `https://knywotiidsydsaveqkjs.supabase.co`
+- **Project ID:** `qxjjrpksmwwrmubhvjew`
+- **URL:** `https://qxjjrpksmwwrmubhvjew.supabase.co`
 
 ---
 

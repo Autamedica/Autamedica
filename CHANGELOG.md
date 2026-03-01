@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### 🚀 Nuevas Funcionalidades
+
 - 815d6d0 feat(seo): harden parity checks and social metadata assets
 - 2053d6d feat: update auth flow and portal entrypoints
 - cd4cbaa feat: ship astro migration slices with seo and routing hardening
@@ -15,6 +16,7 @@
 - fb40253 feat(db): storage buckets, audit system, RLS cleanup
 
 ### 🔧 Mejoras y Optimizaciones
+
 - 7b25d04 chore(ci): harden workflows and fix broken action configs
 - 04d6c49 chore: persist post-commit auth layout/style updates
 - e4579f6 chore(auth): add workflow to seed QA login users
@@ -23,6 +25,7 @@
 - 159ae48 chore: agregar apps/web/.env.example como referencia
 
 ### 🐛 Correcciones
+
 - 9d70e2d fix(seo): allow indexing for companies landing route
 - 57290a4 fix(ci): disable legacy shellcheck noise in workflow lint gate
 - c122733 fix(ci): grant status permission to pr-size guard
@@ -66,9 +69,11 @@
 - 6c76619 fix(ci): corregir workflow CI/CD Monorepo y dependencias ESLint
 
 ### 🔒 Seguridad
+
 - 00f73fa security: hardening producción - RLS, índices, CHECK constraints
 
 ### 📚 Documentación
+
 - 2979710 📝 docs: actualizar changelog automático
 - a86a7e6 📝 docs: actualizar changelog automático
 - 2961e7e docs: add seo benchmark and 100-point senior roadmap
@@ -127,13 +132,15 @@
 - 4e1b7af 📝 docs: actualizar changelog automático
 
 ### ⚙️ DevOps e Infraestructura
+
 - 49f4039 ci: link autamedica.com custom domain to Cloudflare Pages on deploy
 - 77e094f ci: trigger supabase telemedicine deploy on main pushes
 
 ---
 
 ### 🔄 Otros Cambios
-- 3740074 test(auth): update legacy auth domain references
-- 4b36803 infra: migrar a Supabase knywotiidsydsaveqkjs + Cloudflare Pages autamedica-web
 
-*Generado automáticamente el 2026-02-22 06:00:16*
+- 3740074 test(auth): update legacy auth domain references
+- 4b36803 infra: migrar a Supabase qxjjrpksmwwrmubhvjew + Cloudflare Pages autamedica-web
+
+_Generado automáticamente el 2026-02-22 06:00:16_

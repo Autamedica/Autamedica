@@ -61,14 +61,14 @@ describe('shared auth/session + security/redirects', () => {
 
   it('rebuilds chunked Supabase cookies and verifies JWT session', async () => {
     process.env.SUPABASE_JWT_SECRET = 'test-secret';
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://knywotiidsydsaveqkjs.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 
     const token = await signToken('test-secret', { role: 'doctor', email: 'doctor@autamedica.com' });
     const midpoint = Math.floor(token.length / 2);
 
     const request = createMockRequest({
-      'sb-knywotiidsydsaveqkjs-auth-token.0': token.slice(0, midpoint),
-      'sb-knywotiidsydsaveqkjs-auth-token.1': token.slice(midpoint),
+      'sb-qxjjrpksmwwrmubhvjew-auth-token.0': token.slice(0, midpoint),
+      'sb-qxjjrpksmwwrmubhvjew-auth-token.1': token.slice(midpoint),
     });
 
     const session = await getSession(request);
@@ -81,7 +81,7 @@ describe('shared auth/session + security/redirects', () => {
 
   it('extracts access_token from base64 encoded session cookie payload', async () => {
     process.env.SUPABASE_JWT_SECRET = 'test-secret';
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://knywotiidsydsaveqkjs.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 
     const token = await signToken('test-secret', {
       app_metadata: { role: 'company_admin' },
@@ -90,7 +90,7 @@ describe('shared auth/session + security/redirects', () => {
     const encodedSession = Buffer.from(JSON.stringify({ access_token: token }), 'utf-8').toString('base64url');
 
     const request = createMockRequest({
-      'sb-knywotiidsydsaveqkjs-auth-token': encodeURIComponent(`base64-${encodedSession}`),
+      'sb-qxjjrpksmwwrmubhvjew-auth-token': encodeURIComponent(`base64-${encodedSession}`),
     });
 
     const session = await getSession(request);
