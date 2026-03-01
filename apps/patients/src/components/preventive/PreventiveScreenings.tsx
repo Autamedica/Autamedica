@@ -49,7 +49,7 @@ export function PreventiveScreenings({ screenings }: PreventiveScreeningsProps) 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {screenings.map((screening) => {
-        const status = statusConfig[screening.status];
+        const status = statusConfig[screening.status as keyof typeof statusConfig];
         const Icon = status.icon;
 
         return (
@@ -97,7 +97,7 @@ export function PreventiveScreenings({ screenings }: PreventiveScreeningsProps) 
                       : 'bg-stone-200 text-stone-900'
                   }`}
                 >
-                  {priorityConfig[screening.priority]}
+                  {priorityConfig[screening.priority as keyof typeof priorityConfig]}
                 </span>
               </div>
             </div>

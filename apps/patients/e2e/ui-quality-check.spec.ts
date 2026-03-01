@@ -33,7 +33,8 @@ test.describe('Enterprise Quality Assurance - Portal Patients Landing', () => {
     await page.goto('/');
     
     // Perform accessibility scan using axe-core
-    const accessibilityScanResults = await new AxeBuilder({ page })
+    // Cast needed: @axe-core/playwright depends on playwright-core@1.58 while @playwright/test uses playwright-core@1.55
+    const accessibilityScanResults = await new AxeBuilder({ page } as unknown as ConstructorParameters<typeof AxeBuilder>[0])
       // We can disable specific rules if there are known third-party violations that we cannot fix
       // .disableRules(['color-contrast']) 
       .analyze();

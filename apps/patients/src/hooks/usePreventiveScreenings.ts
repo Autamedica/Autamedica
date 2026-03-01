@@ -52,6 +52,10 @@ export function usePreventiveScreenings(
       return;
     }
 
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -152,6 +156,10 @@ export function usePreventiveScreenings(
       return;
     }
 
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoadingRecommendations(true);
 
@@ -199,6 +207,10 @@ export function usePreventiveScreenings(
   ) => {
     if (!options.patientId) {
       return { success: false, error: 'Patient ID required' };
+    }
+
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
     }
 
     try {
@@ -260,6 +272,10 @@ export function usePreventiveScreenings(
     patientScreeningId: string,
     resultSummary?: string
   ) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
 
       // Get screening details to calculate next due date
@@ -274,7 +290,7 @@ export function usePreventiveScreenings(
 
       // Calculate next due date based on frequency
       if ((screening?.screening as any)?.recommended_frequency) {
-        const freq = (screening.screening as any).recommended_frequency;
+        const freq = (screening!.screening as any).recommended_frequency;
         nextDueDate = new Date(completedDate);
 
         switch (freq) {
@@ -334,6 +350,10 @@ export function usePreventiveScreenings(
 
   // Cancel screening
   const cancelScreening = useCallback(async (patientScreeningId: string) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
 
       const { error: updateError } = await supabase

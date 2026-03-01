@@ -32,6 +32,10 @@ export function useReproductiveHealthSpecialists(
   const [error, setError] = useState<string | null>(null);
 
   const fetchSpecialists = useCallback(async () => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -133,6 +137,10 @@ export function useSpecialistById(specialistId: string | null) {
     }
 
     const fetchSpecialist = async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized');
+      }
+
       try {
         setIsLoading(true);
         setError(null);
@@ -204,6 +212,10 @@ export function useUpdateSpecialistAvailability() {
     specialistId: string,
     status: SpecialistAvailabilityStatus
   ) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsUpdating(true);
       setError(null);

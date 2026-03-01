@@ -3,6 +3,7 @@ import {
   RemoteTrack,
   RemoteTrackPublication,
   Track,
+  TrackPublication,
 } from 'livekit-client';
 import { useEffect, useState } from 'react';
 
@@ -66,13 +67,13 @@ export function useRealRemoteStream(
     /**
      * Handler cuando cambia el estado de mute
      */
-    const handleTrackMuted = (publication: RemoteTrackPublication) => {
+    const handleTrackMuted = (publication: TrackPublication) => {
       if (publication.kind === Track.Kind.Video) {
         console.log('🔇 Video remoto muteado');
       }
     };
 
-    const handleTrackUnmuted = (publication: RemoteTrackPublication) => {
+    const handleTrackUnmuted = (publication: TrackPublication) => {
       if (publication.kind === Track.Kind.Video) {
         console.log('🔊 Video remoto desmuteado');
       }

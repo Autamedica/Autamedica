@@ -75,6 +75,10 @@ export function useHealthCentersGeolocation(
     location: Coordinates,
     radiusKm: number = 50
   ) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -149,6 +153,10 @@ export function useHealthCentersGeolocation(
 
   // Fetch all centers (fallback when no location available)
   const fetchAllCenters = useCallback(async () => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -238,6 +246,10 @@ export function useHealthCenterById(centerId: string | null) {
     }
 
     const fetchCenter = async () => {
+      if (!supabase) {
+        throw new Error('Supabase client not initialized');
+      }
+
       try {
         setIsLoading(true);
         setError(null);

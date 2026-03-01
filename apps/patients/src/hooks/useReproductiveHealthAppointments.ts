@@ -33,6 +33,10 @@ export function useReproductiveHealthAppointments(
   const [error, setError] = useState<string | null>(null);
 
   const fetchAppointments = useCallback(async () => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -122,6 +126,10 @@ export function useReproductiveHealthAppointments(
   }, [supabase, options.patientId, options.status, options.upcoming]);
 
   const createAppointment = useCallback(async (data: ReproductiveHealthAppointmentInsert) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
 
       const insertData = {
@@ -168,6 +176,10 @@ export function useReproductiveHealthAppointments(
     id: string,
     data: ReproductiveHealthAppointmentUpdate
   ) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
 
       const { error: updateError } = await supabase

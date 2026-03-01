@@ -32,6 +32,10 @@ export function useMedicalChats(
   const [error, setError] = useState<string | null>(null);
 
   const fetchChats = useCallback(async () => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -112,6 +116,10 @@ export function useMedicalChats(
   }, [supabase, options.patientId, options.activeOnly]);
 
   const createChat = useCallback(async (data: MedicalChatInsert) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
 
       const insertData = {
@@ -153,6 +161,10 @@ export function useMedicalChats(
     chatId: string,
     status: ChatStatusType
   ) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
 
       const { error: updateError } = await supabase
@@ -218,6 +230,10 @@ export function useChatMessages(
       return;
     }
 
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -248,6 +264,10 @@ export function useChatMessages(
         success: false,
         error: 'Missing chatId or userId'
       };
+    }
+
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
     }
 
     try {
@@ -292,6 +312,10 @@ export function useChatMessages(
   }, [supabase, chatId, userId]);
 
   const markAsRead = useCallback(async (messageId: string) => {
+    if (!supabase) {
+      return;
+    }
+
     try {
 
       await supabase

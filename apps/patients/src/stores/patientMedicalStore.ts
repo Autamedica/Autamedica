@@ -128,7 +128,7 @@ class PatientMedicalStore {
     await this.syncWithBackend()
   }
 
-  async recordVitalSigns(vitals: PatientMedicalEntry['metadata']['vitals'], patientId: string) {
+  async recordVitalSigns(vitals: NonNullable<PatientMedicalEntry['metadata']>['vitals'], patientId: string) {
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'vital_sign',

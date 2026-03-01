@@ -15,6 +15,10 @@ export function useMedicalHistory(patientId?: PatientId) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchMedicalHistory = useCallback(async () => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized')
+    }
+
     try {
       setLoading(true)
       setError(null)

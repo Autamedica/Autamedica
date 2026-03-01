@@ -46,8 +46,8 @@ export function AppointmentsTable({ appointments }: AppointmentsTableProps) {
   return (
     <div className="space-y-4">
       {appointments.map((appointment) => {
-        const status = statusConfig[appointment.status];
-        const type = typeConfig[appointment.appointment_type];
+        const status = statusConfig[appointment.status as keyof typeof statusConfig];
+        const type = typeConfig[appointment.appointment_type as keyof typeof typeConfig];
 
         return (
           <div

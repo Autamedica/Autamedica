@@ -7,9 +7,10 @@ export function generateStaticParams() {
 }
 
 interface PatientCallPageProps {
-  params: { roomId: string }
+  params: Promise<{ roomId: string }>
 }
 
-export default function PatientCallPage({ params }: PatientCallPageProps) {
-  return <CallPageClient roomId={params.roomId} />
+export default async function PatientCallPage({ params }: PatientCallPageProps) {
+  const { roomId } = await params
+  return <CallPageClient roomId={roomId} />
 }

@@ -135,7 +135,7 @@ export class MedicalTokenizer {
     return {
       tokens,
       attentionMask,
-      length: attentionMask.reduce((sum, val) => sum + val, 0)
+      length: attentionMask.reduce<number>((sum, val) => sum + val, 0)
     };
   }
 

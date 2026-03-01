@@ -11,6 +11,10 @@ interface AuthenticatedPatientContext {
 async function resolveAuthenticatedPatientContext(
   supabase: ReturnType<typeof useSupabase>,
 ): Promise<AuthenticatedPatientContext> {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized');
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -46,6 +50,10 @@ export function useVitalSigns() {
   const [error, setError] = useState<string | null>(null);
 
   const recordBloodPressure = async (systolic: number, diastolic: number, notes?: string) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -92,6 +100,10 @@ export function useMedicationLog() {
     notes?: string,
     status: 'taken' | 'skipped' | 'late' = 'taken',
   ) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -139,6 +151,10 @@ export function useSymptomReport() {
     isUrgent?: boolean;
     bodyLocation?: string;
   }) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -188,6 +204,10 @@ export function useLabResults() {
     fileType?: string;
     notes?: string;
   }) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -234,6 +254,10 @@ export function useCommunityPost() {
     isAnonymous?: boolean;
     tags?: string[];
   }) => {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
     try {
       setLoading(true);
       setError(null);

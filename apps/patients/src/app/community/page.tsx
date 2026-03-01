@@ -141,8 +141,8 @@ export default function CommunityPage() {
                 key={group.id}
                 name={group.name}
                 members={group.member_count}
-                icon={getCategoryIcon(group.category)}
-                description={group.description}
+                icon={getCategoryIcon(group.category ?? '')}
+                description={group.description ?? ''}
               />
             ))}
           </div>
@@ -168,7 +168,7 @@ export default function CommunityPage() {
             return (
               <PostCard
                 key={post.id}
-                author={post.author_display_name}
+                author={post.author_display_name ?? 'Paciente'}
                 group={group?.name || 'Grupo desconocido'}
                 groupMembers={group?.member_count || 0}
                 timeAgo={timeAgo}
