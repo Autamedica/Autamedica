@@ -1,16 +1,22 @@
 "use client";
 
-import { createContext, useContext, useState, type PropsWithChildren } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import type { AuthState } from "./types";
+export type { AuthState } from "./types";
 import { logger } from '@autamedica/shared';
 
 interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
 }
 
+interface AuthProviderProps {
+  children: ReactNode;
+  onAuthStateChange?: (state: AuthState) => void;
+}
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: PropsWithChildren) {
+export function AuthProvider({ children }: AuthProviderProps) {
   const [state] = useState<AuthState>({
     user: null,
     profile: null,

@@ -3,28 +3,54 @@
  * Alternativa a Anthropic Claude
  */
 
-import { getServerEnvOrDefault } from '@autamedica/shared';
-import { featureFlags } from '@autamedica/shared/config/feature-flags';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getServerEnvOrDefault, featureFlags } from '@autamedica/shared';
 import type { AnalysisRequest, MedicalAnalysis } from './ai-analysis-service';
+
+// Gemini SDK types - loaded dynamically to avoid hard dependency
+interface GeminiResponse {
+  text(): string;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+  };
+}
+
+interface GeminiResult {
+  response: GeminiResponse;
+}
+
+interface GeminiModel {
+  generateContent(params: Record<string, unknown>): Promise<GeminiResult>;
+}
+
+interface GeminiClient {
+  getGenerativeModel(params: { model: string }): GeminiModel;
+}
 
 /**
  * Servicio de Análisis Médico con Google Gemini
  */
 export class GeminiAIService {
-  private genAI: GoogleGenerativeAI | null = null;
+  private genAI: GeminiClient | null = null;
   private readonly model = 'gemini-2.5-flash-preview-05-20'; // Más rápido y económico
   // private readonly model = 'gemini-2.5-pro-preview-03-25'; // Más potente
 
   constructor() {
     const googleApiKey = getServerEnvOrDefault('GOOGLE_AI_API_KEY', '');
     if (!featureFlags.USE_MOCK_AI && googleApiKey) {
-      this.genAI = new GoogleGenerativeAI(googleApiKey);
-      console.log('✅ GeminiAIService inicializado con Gemini 2.5');
+      try {
+        // Dynamic require to avoid hard dependency on @google/generative-ai
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        this.genAI = new GoogleGenerativeAI(googleApiKey) as GeminiClient;
+        console.log('GeminiAIService inicializado con Gemini 2.5');
+      } catch {
+        console.warn('GeminiAIService: @google/generative-ai not installed');
+      }
     } else if (featureFlags.USE_MOCK_AI) {
-      console.log('⚠️  GeminiAIService en modo MOCK (desarrollo)');
+      console.log('GeminiAIService en modo MOCK (desarrollo)');
     } else {
-      console.warn('⚠️  GeminiAIService: No API key found');
+      console.warn('GeminiAIService: No API key found');
     }
   }
 
@@ -75,9 +101,9 @@ export class GeminiAIService {
         ],
       });
 
-      const response = await result.response;
+      const response = result.response;
       const text = response.text();
-      const processingTime = Date.now() - startTime;
+      const _processingTime = Date.now() - startTime;
 
       // Parsear respuesta JSON
       const analysis = this.parseGeminiResponse(text);
@@ -85,14 +111,16 @@ export class GeminiAIService {
       return {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        ...analysis,
+        summary: analysis.summary || 'Análisis completado',
+        recommendations: analysis.recommendations || [],
+        severity: analysis.severity || 'low',
+        confidence: analysis.confidence || 0,
         metadata: {
           modelUsed: this.model,
           tokensUsed: {
             input: response.usageMetadata?.promptTokenCount || 0,
             output: response.usageMetadata?.candidatesTokenCount || 0,
           },
-          processingTimeMs: processingTime,
         },
       };
     } catch (error) {
@@ -318,21 +346,23 @@ SOLO responde con el JSON, sin texto adicional.`;
         },
       });
 
-      const response = await result.response;
+      const response = result.response;
       const text = response.text();
       const analysis = this.parseGeminiResponse(text);
 
       return {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
-        ...analysis,
+        summary: analysis.summary || 'Análisis completado',
+        recommendations: analysis.recommendations || [],
+        severity: analysis.severity || 'low',
+        confidence: analysis.confidence || 0,
         metadata: {
           modelUsed: this.model,
           tokensUsed: {
             input: response.usageMetadata?.promptTokenCount || 0,
             output: response.usageMetadata?.candidatesTokenCount || 0,
           },
-          multimodal: true,
         },
       };
     } catch (error) {

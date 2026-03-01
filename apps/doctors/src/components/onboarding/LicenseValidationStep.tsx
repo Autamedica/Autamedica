@@ -102,8 +102,10 @@ export function LicenseValidationStep({
       // Para demo, usar primer resultado (válido) si la licencia tiene más de 4 dígitos
       const result = licenseNum.length >= 5 ? mockResults[0] : mockResults[1];
 
-      setValidationResult(result);
-      onUpdate(licenseNum, result.isValid);
+      if (result) {
+        setValidationResult(result);
+        onUpdate(licenseNum, result.isValid);
+      }
 
     } catch (error) {
       setValidationResult({

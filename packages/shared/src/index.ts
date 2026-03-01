@@ -141,3 +141,14 @@ export {
   type AppEnvironmentConfig,
   type LoginUrlBuilder
 } from './env/app-config';
+
+// Feature flags
+export {
+  featureFlags,
+  getAIProvider,
+  isMockMode,
+  isProductionMode as isProductionModeFF,
+  validateFeatureFlags,
+  logFeatureFlags,
+  type FeatureFlags
+} from './config/feature-flags';

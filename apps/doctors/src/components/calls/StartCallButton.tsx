@@ -66,11 +66,13 @@ export function StartCallButton({
       // logger.info('Navigating to waiting room...')
       router.push(`/call/${call.room_id}?callId=${call.id}&waiting=true`)
 
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error('Failed to start call - detailed error:', err)
-      logger.error('Error name:', err?.constructor?.name)
-      logger.error('Error message:', err?.message)
-      logger.error('Error stack:', err?.stack)
+      if (err instanceof Error) {
+        logger.error('Error name:', err.constructor.name)
+        logger.error('Error message:', err.message)
+        logger.error('Error stack:', err.stack)
+      }
 
       let errorMessage = 'Error al iniciar la llamada'
       if (err instanceof Error) {

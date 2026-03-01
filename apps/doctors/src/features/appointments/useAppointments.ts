@@ -6,7 +6,7 @@ import {
   createAppointment,
   updateAppointment,
   deleteAppointment,
-  type Appointment,
+  type UiAppointment,
   type NewAppointment,
   type PatchAppointment,
 } from '@/lib/repos/appointments';
@@ -16,7 +16,7 @@ type Status = 'idle' | 'loading' | 'error' | 'success';
 export function useAppointments() {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [rows, setRows] = useState<Appointment[]>([]);
+  const [rows, setRows] = useState<UiAppointment[]>([]);
 
   const refresh = useCallback(async () => {
     try {

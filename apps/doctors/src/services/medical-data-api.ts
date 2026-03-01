@@ -12,8 +12,7 @@ import type {
   UUID,
   VitalSigns
 } from '@/types/medical';
-import { getOptionalClientEnv } from '@autamedica/shared';
-import { featureFlags, logger } from '@autamedica/shared/config/feature-flags';
+import { getOptionalClientEnv, featureFlags, logger } from '@autamedica/shared';
 import type { Database } from '@autamedica/types';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -34,6 +33,7 @@ const supabase: SupabaseClient<Database> | null = !featureFlags.USE_MOCK_MEDICAL
 // API Client
 class MedicalDataAPI {
   private supabase = supabase
+  private readonly baseUrl = '/api'
 
   constructor() {
     if (featureFlags.USE_MOCK_MEDICAL_DATA) {

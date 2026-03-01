@@ -91,6 +91,11 @@ const ALLOWED_INTERNAL_EXPORTS = [
   'PatientPublicProfile', 'PatientMedicalView', 'PatientAdminView', 'PatientPrivateData',
   'PatientAPIResponse', 'PatientMedicalAPIResponse', 'PatientListAPIResponse',
 
+  // Feature flags and AI provider config (internal)
+  'featureFlags', 'getAIProvider', 'isMockMode', 'isProductionMode',
+  'validateFeatureFlags', 'logFeatureFlags', 'FeatureFlags', 'typeFeatureFlags',
+  'createAdminClient',
+
   // Rating/Review system (feature-specific)
   'RatingScore', 'PatientCount', 'ReviewId', 'Percent0to100',
   'PatientReview', 'PatientVolumeMetrics', 'AutamedicaRecognition',

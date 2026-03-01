@@ -30,10 +30,10 @@ export default function AppointmentsView() {
         <tbody>
           {rows.map(r => (
             <tr key={r.id}>
-              <td className="border p-2">{r.patient_id}</td>
-              <td className="border p-2">{r.doctor_id}</td>
-              <td className="border p-2">{new Date(r.start_time).toLocaleString()}</td>
-              <td className="border p-2">{r.duration_minutes} min</td>
+              <td className="border p-2">{r.patientId}</td>
+              <td className="border p-2">{r.doctorId}</td>
+              <td className="border p-2">{new Date(r.startTime).toLocaleString()}</td>
+              <td className="border p-2">{r.durationMinutes} min</td>
               <td className="border p-2">
                 <span className={`px-2 py-1 rounded text-xs ${
                   r.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :

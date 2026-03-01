@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { DoctorInsert, DoctorEducation, MedicalCertification, WeeklySchedule } from '@autamedica/types';
+import { DoctorInsert, DoctorEducation, MedicalCertification, WeeklySchedule, type UUID } from '@autamedica/types';
 import { LicenseValidationStep } from './LicenseValidationStep';
 import { SpecialtySelectionStep } from './SpecialtySelectionStep';
 import { EducationCertificationStep } from './EducationCertificationStep';
@@ -76,8 +76,11 @@ export function DoctorOnboardingWizard({
   const goToNextStep = useCallback(() => {
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < STEPS.length) {
-      setCurrentStepIndex(nextIndex);
-      setCurrentStep(STEPS[nextIndex]);
+      const nextStep = STEPS[nextIndex];
+      if (nextStep) {
+        setCurrentStepIndex(nextIndex);
+        setCurrentStep(nextStep);
+      }
     } else {
       handleComplete();
     }
@@ -86,8 +89,11 @@ export function DoctorOnboardingWizard({
   const goToPreviousStep = useCallback(() => {
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
-      setCurrentStepIndex(prevIndex);
-      setCurrentStep(STEPS[prevIndex]);
+      const prevStep = STEPS[prevIndex];
+      if (prevStep) {
+        setCurrentStepIndex(prevIndex);
+        setCurrentStep(prevStep);
+      }
     }
   }, [currentStepIndex]);
 
@@ -102,7 +108,7 @@ export function DoctorOnboardingWizard({
       }
 
       const doctorProfile: DoctorInsert = {
-        user_id: userId,
+        user_id: userId as UUID,
         license_number: formData.license_number,
         specialty: formData.specialty,
         subspecialty: formData.subspecialty || null,

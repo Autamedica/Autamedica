@@ -2,6 +2,7 @@
  * Store centralizado para el historial médico con sincronización automática
  */
 
+import { logger } from '@autamedica/shared'
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
 

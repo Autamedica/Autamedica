@@ -3,7 +3,7 @@
  * Provides common HTTP methods for all API services
  */
 
-import { getAppEnv } from '@autamedica/config'
+import { getAppEnv } from '@autamedica/shared'
 
 export class BaseAPIService {
   protected baseURL: string

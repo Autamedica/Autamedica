@@ -47,8 +47,8 @@ function DoctorControls() {
     if (!localParticipant) return;
 
     try {
-      const enabled = await localParticipant.setScreenShareEnabled(!isScreenSharing);
-      setIsScreenSharing(enabled);
+      const publication = await localParticipant.setScreenShareEnabled(!isScreenSharing);
+      setIsScreenSharing(!!publication);
     } catch (error) {
       console.error('Error toggling screen share:', error);
       alert('No se pudo compartir la pantalla. Verifica los permisos.');

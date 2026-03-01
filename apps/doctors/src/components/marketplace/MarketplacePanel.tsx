@@ -36,7 +36,6 @@ export function MarketplacePanel() {
       title: 'Cardiólogo - Hospital Italiano',
       company: 'Hospital Italiano',
       specialty: 'Cardiología',
-      hospital: 'Hospital Italiano',
       location: {
         city: 'Buenos Aires',
         province: 'CABA',
@@ -66,7 +65,6 @@ export function MarketplacePanel() {
       title: 'Pediatra - Sanatorio Otamendi',
       company: 'Sanatorio Otamendi',
       specialty: 'Pediatría',
-      hospital: 'Sanatorio Otamendi',
       location: {
         city: 'Buenos Aires',
         province: 'CABA',

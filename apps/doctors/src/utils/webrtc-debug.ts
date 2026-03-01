@@ -295,29 +295,29 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
 
   // Attach event listeners for automatic logging
   const originalOnTrack = pc.ontrack
-  pc.ontrack = (event) => {
+  pc.ontrack = function(this: RTCPeerConnection, event: RTCTrackEvent) {
     webrtcDebugger.logTrackEvent(event)
-    if (originalOnTrack) originalOnTrack(event)
+    if (originalOnTrack) originalOnTrack.call(this, event)
   }
 
   const originalOnIceCandidate = pc.onicecandidate
-  pc.onicecandidate = (event) => {
+  pc.onicecandidate = function(this: RTCPeerConnection, event: RTCPeerConnectionIceEvent) {
     if (event.candidate) {
       webrtcDebugger.logICECandidate(event.candidate, 'sending')
     }
-    if (originalOnIceCandidate) originalOnIceCandidate(event)
+    if (originalOnIceCandidate) originalOnIceCandidate.call(this, event)
   }
 
   const originalOnConnectionStateChange = pc.onconnectionstatechange
-  pc.onconnectionstatechange = () => {
+  pc.onconnectionstatechange = function(this: RTCPeerConnection, event: Event) {
     webrtcDebugger.info(`Connection state changed to: ${pc.connectionState}`)
-    if (originalOnConnectionStateChange) originalOnConnectionStateChange()
+    if (originalOnConnectionStateChange) originalOnConnectionStateChange.call(this, event)
   }
 
   const originalOnIceConnectionStateChange = pc.oniceconnectionstatechange
-  pc.oniceconnectionstatechange = () => {
+  pc.oniceconnectionstatechange = function(this: RTCPeerConnection, event: Event) {
     webrtcDebugger.info(`ICE connection state changed to: ${pc.iceConnectionState}`)
-    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange()
+    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange.call(this, event)
   }
 
   return webrtcDebugger

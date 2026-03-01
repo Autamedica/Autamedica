@@ -15,23 +15,29 @@ import type {
   UUID
 } from '@/types/medical'
 
-// Tipo UI (camelCase) para VitalSigns
+// Tipo UI (camelCase) matching actual DB columns from vital_signs table
 interface UiVitalSigns {
   id: string;
   patientId: string;
   recordedAt: string;
+  measuredAt: string;
+  measurementContext: string;
+  type: string;
+  unit: string | null;
   bloodPressureSystolic: number | null;
   bloodPressureDiastolic: number | null;
   heartRate: number | null;
   temperature: number | null;
   respiratoryRate: number | null;
   oxygenSaturation: number | null;
+  painScale: number | null;
   weight: number | null;
   height: number | null;
   bmi: number | null;
   notes: string | null;
-  active: boolean;
+  recordedById: string | null;
   createdAt: string;
+  updatedAt: string;
   deletedAt: string | null;
 }
 
@@ -53,7 +59,7 @@ export function useVitalSigns(patientId: UUID | null): UseVitalSignsResult {
 
     try {
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const allVitals = await selectActive<UiVitalSigns>('vital_signs', '*', {
+      const allVitals = await selectActive<'vital_signs', UiVitalSigns>('vital_signs', '*', {
         orderBy: { column: 'recorded_at', ascending: false }
       });
 
@@ -88,11 +94,11 @@ export function useVitalSigns(patientId: UUID | null): UseVitalSignsResult {
       }
 
       // Sistema híbrido: insertRecord() auto-transforma a snake_case
-      const newVitals = await insertRecord<UiVitalSigns>('vital_signs', {
+      const newVitals = await insertRecord<'vital_signs', Record<string, unknown>, UiVitalSigns>('vital_signs', {
         ...vitals,
         patient_id: patientId,
         bmi
-      } as any);
+      } as Record<string, unknown>);
 
       // Agregar a la lista local
       setVitalSigns(prev => [newVitals as unknown as VitalSigns, ...prev])

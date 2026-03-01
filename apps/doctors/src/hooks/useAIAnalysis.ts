@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { selectActive, logger } from '@autamedica/shared'
+import { logger } from '@autamedica/shared'
 import { createBrowserClient } from '@autamedica/auth/client'
 import type {
   AIAnalysis,
@@ -18,27 +18,6 @@ import type {
   AIDiagnosis,
   AITreatmentSuggestion
 } from '@/types/medical'
-
-// Tipo UI (camelCase) para AIAnalysis
-interface UiAIAnalysis {
-  id: string;
-  patientId: string;
-  doctorId: string;
-  medicalRecordId: string | null;
-  inputSymptoms: string[];
-  inputText: string;
-  additionalContext: string | null;
-  primaryDiagnosis: AIDiagnosis;
-  differentialDiagnoses: AIDiagnosis[];
-  treatmentSuggestions: AITreatmentSuggestion[];
-  riskFactors: string[];
-  modelVersion: string;
-  confidenceScore: number;
-  processingTimeMs: number;
-  active: boolean;
-  createdAt: string;
-  deletedAt: string | null;
-}
 
 export function useAIAnalysis(patientId: UUID | null): UseAIAnalysisResult {
   const [analyses, setAnalyses] = useState<AIAnalysis[]>([])
@@ -55,16 +34,10 @@ export function useAIAnalysis(patientId: UUID | null): UseAIAnalysisResult {
     setError(null)
 
     try {
-      // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const allAnalyses = await selectActive<UiAIAnalysis>('ai_analyses', '*', {
-        orderBy: { column: 'created_at', ascending: false }
-      });
-
-      // Filtrar por patient_id
-      const filtered = allAnalyses.filter(a => a.patientId === patientId);
-
-      setAnalyses(filtered as unknown as AIAnalysis[])
-
+      // Note: ai_analyses table does not exist in DB yet.
+      // Analyses are currently managed in local state only (simulation mode).
+      // When the table is created, replace this with a proper selectActive() call.
+      setAnalyses(prev => prev.filter(a => a.patient_id === patientId))
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(`Error al cargar análisis de IA: ${errorMessage}`)
@@ -104,7 +77,7 @@ export function useAIAnalysis(patientId: UUID | null): UseAIAnalysisResult {
 
       const newAnalysis = {
         patient_id: patientId,
-        doctor_id: user.id,
+        doctor_id: user.id as UUID,
         medical_record_id: null,
         input_symptoms: input.symptoms,
         input_text: input.text,
@@ -121,9 +94,9 @@ export function useAIAnalysis(patientId: UUID | null): UseAIAnalysisResult {
 
       // Nota: En un entorno de producción real, esto se guardaría en la base de datos
       // Por ahora, solo agregamos a la lista local para pruebas
-      const mockData = {
+      const mockData: AIAnalysis = {
         ...newAnalysis,
-        id: crypto.randomUUID()
+        id: crypto.randomUUID() as UUID
       }
 
       // Agregar a la lista local

@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthProvider } from '@autamedica/auth/react';
+import type { AuthState } from '@autamedica/auth/react';
 import type { ReactNode } from 'react';
 import { SessionSync } from './SessionSync';
 
@@ -11,16 +12,12 @@ interface ClientWrapperProps {
 }
 
 export function ClientWrapper({ children }: ClientWrapperProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleAuthStateChange = (event: string, session: any) => {
-    if (event === 'SIGNED_OUT') {
+  const handleAuthStateChange = (state: AuthState) => {
+    if (!state.session && !state.loading) {
       const authOrigin = getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', isProduction() ? 'https://www.autamedica.com' : 'http://localhost:3000');
       const loginUrl = new URL('/auth/login', authOrigin)
       loginUrl.searchParams.set('portal', 'doctors')
       window.location.href = loginUrl.toString()
-    }
-    if (event === 'SIGNED_IN' && session?.user) {
-      // logger.info('🔐 Doctor authenticated:', session.user.email)
     }
   }
 

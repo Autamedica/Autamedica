@@ -22,20 +22,20 @@ interface UseMedicalHistoryOptions {
   filters?: MedicalRecordFilters
 }
 
-// Tipo UI (camelCase) para MedicalRecord
+// Tipo UI (camelCase) matching actual DB columns from medical_records table
 interface UiMedicalRecord {
   id: string;
-  patientId: string;
-  doctorId: string;
-  consultationDate: string;
-  consultationType: string;
-  diagnosis: string | null;
-  treatment: string | null;
-  notes: string | null;
-  attachments: Record<string, unknown> | null;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  patientId: string | null;
+  doctorId: string | null;
+  appointmentId: string | null;
+  dateRecorded: string | null;
+  type: string;
+  title: string;
+  content: unknown;
+  attachments: unknown | null;
+  visibility: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
   deletedAt: string | null;
 }
 
@@ -65,8 +65,8 @@ export function useMedicalHistory(
 
     try {
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const allRecords = await selectActive<UiMedicalRecord>('medical_records', '*', {
-        orderBy: { column: 'consultation_date', ascending: false }
+      const allRecords = await selectActive<'medical_records', UiMedicalRecord>('medical_records', '*', {
+        orderBy: { column: 'date_recorded', ascending: false }
       });
 
       // Filtrar por patient_id
@@ -74,21 +74,22 @@ export function useMedicalHistory(
 
       // Aplicar filtros adicionales
       if (filters.consultation_type) {
-        filtered = filtered.filter(r => r.consultationType === filters.consultation_type);
+        filtered = filtered.filter(r => r.type === filters.consultation_type);
       }
 
       if (filters.date_from) {
-        filtered = filtered.filter(r => r.consultationDate >= filters.date_from!);
+        filtered = filtered.filter(r => r.dateRecorded != null && r.dateRecorded >= filters.date_from!);
       }
 
       if (filters.date_to) {
-        filtered = filtered.filter(r => r.consultationDate <= filters.date_to!);
+        filtered = filtered.filter(r => r.dateRecorded != null && r.dateRecorded <= filters.date_to!);
       }
 
       if (filters.diagnosis_contains) {
-        filtered = filtered.filter(r =>
-          r.diagnosis?.toLowerCase().includes(filters.diagnosis_contains!.toLowerCase())
-        );
+        filtered = filtered.filter(r => {
+          const contentStr = typeof r.content === 'string' ? r.content : JSON.stringify(r.content);
+          return contentStr?.toLowerCase().includes(filters.diagnosis_contains!.toLowerCase());
+        });
       }
 
       // Paginación manual

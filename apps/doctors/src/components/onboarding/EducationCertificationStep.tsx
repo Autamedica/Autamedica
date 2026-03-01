@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { DoctorEducation, MedicalCertification } from '@autamedica/types';
+import { DoctorEducation, MedicalCertification, type ISODateString } from '@autamedica/types';
 
 interface EducationCertificationStepProps {
   education: DoctorEducation[];
@@ -51,7 +51,7 @@ export function EducationCertificationStep({
     const newCertification: MedicalCertification = {
       name: '',
       issuer: '',
-      date_issued: new Date().toISOString().split('T')[0],
+      date_issued: new Date().toISOString().split('T')[0] as ISODateString,
       certificate_number: ''
     };
     const updated = [...certificationsList, newCertification];

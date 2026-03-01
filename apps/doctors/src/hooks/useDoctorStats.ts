@@ -20,6 +20,25 @@ interface UseDoctorStatsReturn {
   refresh: () => Promise<void>
 }
 
+/** Shape returned by the appointments select query */
+interface AppointmentRow {
+  id: string
+  start_time: string
+  status: string | null
+  patient_id: string | null
+}
+
+/** Shape returned by the patients select query */
+interface PatientRow {
+  user_id: string | null
+}
+
+/** Shape returned by the profiles select query */
+interface ProfileRow {
+  first_name: string | null
+  last_name: string | null
+}
+
 /**
  * Hook para obtener estadísticas de consultas del doctor autenticado
  *
@@ -56,22 +75,14 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
       const now = new Date().toISOString()
 
       // Query appointments for this doctor
-      const { data: appointments, error: apptError } = await supabase
+      const { data, error: apptError } = await supabase
         .from('appointments')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          patient:patients!inner(
-            profile:profiles!inner(
-              first_name,
-              last_name
-            )
-          )
-        `)
+        .select('id, start_time, status, patient_id')
         .eq('doctor_id', doctorId)
-        .gte('scheduled_at', startOfDay)
-        .order('scheduled_at', { ascending: true })
+        .gte('start_time', startOfDay)
+        .order('start_time', { ascending: true })
+
+      const appointments = data as unknown as AppointmentRow[] | null
 
       if (apptError) {
         throw apptError
@@ -83,22 +94,45 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
       ) || []
 
       const todayAppointments = appointments?.filter(apt =>
-        apt.scheduled_at >= startOfDay && apt.scheduled_at <= endOfDay
+        apt.start_time >= startOfDay && apt.start_time <= endOfDay
       ) || []
 
       // Find next appointment
       const nextAppt = appointments?.find(apt =>
-        apt.scheduled_at >= now &&
+        apt.start_time >= now &&
         (apt.status === 'scheduled' || apt.status === 'confirmed')
       )
 
+      // If we have a next appointment, try to fetch the patient name via profiles
+      let patientName = 'Paciente'
+      if (nextAppt?.patient_id) {
+        const { data: rawPatient } = await supabase
+          .from('patients')
+          .select('user_id')
+          .eq('id', nextAppt.patient_id)
+          .single()
+        const patientData = rawPatient as unknown as PatientRow | null
+
+        if (patientData?.user_id) {
+          const { data: rawProfile } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('user_id', patientData.user_id)
+            .single()
+          const profileData = rawProfile as unknown as ProfileRow | null
+
+          if (profileData) {
+            patientName = `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Paciente'
+          }
+        }
+      }
+
       const nextAppointment = nextAppt ? {
-        time: new Date(nextAppt.scheduled_at).toLocaleTimeString('es-AR', {
+        time: new Date(nextAppt.start_time).toLocaleTimeString('es-AR', {
           hour: '2-digit',
           minute: '2-digit'
         }),
-        patientName: `${nextAppt.patient?.profile?.first_name || ''} ${nextAppt.patient?.profile?.last_name || ''}`.trim() ||
-          'Paciente'
+        patientName
       } : null
 
       setStats({

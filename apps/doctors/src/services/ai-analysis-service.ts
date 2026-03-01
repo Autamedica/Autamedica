@@ -1,6 +1,17 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { getServerEnvOrDefault } from '@autamedica/shared';
-import { featureFlags } from '@autamedica/shared/config/feature-flags';
+import { getServerEnvOrDefault, featureFlags } from '@autamedica/shared';
+
+// Anthropic SDK types - loaded dynamically to avoid hard dependency
+interface AnthropicMessage {
+  content: Array<{ type: string; text: string }>;
+  usage: { input_tokens: number; output_tokens: number };
+}
+
+interface AnthropicClient {
+  messages: {
+    create(params: Record<string, unknown>): Promise<AnthropicMessage>;
+  };
+}
+
 /**
  * Tipos para el servicio de AI
  */
@@ -37,7 +48,7 @@ export interface AnalysisRequest {
  * Usa Claude (Anthropic) en producción, mocks en desarrollo
  */
 export class AIAnalysisService {
-  private anthropic: Anthropic | null = null;
+  private anthropic: AnthropicClient | null = null;
   private readonly model = 'claude-sonnet-4-5-20250929';
 
   constructor() {
@@ -45,16 +56,25 @@ export class AIAnalysisService {
     // y tenemos API key disponible
     const anthropicKey = getServerEnvOrDefault('ANTHROPIC_API_KEY', '');
     if (!featureFlags.USE_MOCK_AI && anthropicKey) {
-      this.anthropic = new Anthropic({
-        apiKey: anthropicKey,
-      });
+      try {
+        // Dynamic require to avoid hard dependency on @anthropic-ai/sdk
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const Anthropic = require('@anthropic-ai/sdk').default;
+        this.anthropic = new Anthropic({
+          apiKey: anthropicKey,
+        }) as AnthropicClient;
 
-      console.log('✅ AIAnalysisService inicializado con Claude API');
+        console.log('AIAnalysisService inicializado con Claude API');
+      } catch {
+        console.warn(
+          'AIAnalysisService: @anthropic-ai/sdk not installed, usando modo mock'
+        );
+      }
     } else if (featureFlags.USE_MOCK_AI) {
-      console.log('⚠️  AIAnalysisService en modo MOCK (desarrollo)');
+      console.log('AIAnalysisService en modo MOCK (desarrollo)');
     } else {
       console.warn(
-        '⚠️  AIAnalysisService: No API key found, usando modo mock'
+        'AIAnalysisService: No API key found, usando modo mock'
       );
     }
   }
@@ -143,8 +163,9 @@ FORMATO DE RESPUESTA (JSON):
       });
 
       // Extraer respuesta
+      const firstContent = message.content[0];
       const responseText =
-        message.content[0].type === 'text' ? message.content[0].text : '';
+        firstContent?.type === 'text' ? firstContent.text : '';
 
       // Parsear JSON de la respuesta
       const analysis = this.parseClaudeResponse(responseText);

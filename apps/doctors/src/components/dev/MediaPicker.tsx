@@ -45,10 +45,10 @@ export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps)
       setMicrophones(mics)
 
       // Auto-select first device if none selected
-      if (!selectedCamera && cams.length > 0) {
+      if (!selectedCamera && cams.length > 0 && cams[0]) {
         setSelectedCamera(cams[0].deviceId)
       }
-      if (!selectedMic && mics.length > 0) {
+      if (!selectedMic && mics.length > 0 && mics[0]) {
         setSelectedMic(mics[0].deviceId)
       }
     } catch (err) {
