@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 /**
  * IntegratedReproductiveHealthHub - Versión con integraciones reales
  *

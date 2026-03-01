@@ -1,21 +1,51 @@
 ---
-import { buildAuthPath, buildRoleAuthPath } from '../lib/auth-flow';
 import { TextReveal } from './ui/TextReveal';
 import { MagneticButton } from './ui/MagneticButton';
 
-const title = "Atención médica,\nsin salas de espera.";
-const subtitle = "Una consulta de guardia puede tomar 3 horas entre traslados. Una videoconsulta, 15 minutos.";
-const metrics = [
-  { value: '15 min', label: 'tiempo promedio' },
-  { value: '0', label: 'salas de espera' },
-  { value: '94%', label: 'casos resueltos' },
-];
+interface Metric {
+  value: string;
+  label: string;
+}
 
-const roleQuickAccess = [
-  { label: 'Paciente', href: buildRoleAuthPath('login', 'patient'), accent: 'var(--portal-patients)' },
-  { label: 'Médico', href: buildRoleAuthPath('login', 'doctor'), accent: 'var(--portal-doctors)' },
-  { label: 'Empresa', href: buildRoleAuthPath('login', 'company_admin'), accent: 'var(--portal-companies)' },
-];
+interface RoleShortcut {
+  label: string;
+  href: string;
+  accent: string;
+}
+
+interface Props {
+  badge: string;
+  title: string;
+  subtitle: string;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
+  metrics: Metric[];
+  roleQuickAccess: RoleShortcut[];
+}
+
+const {
+  badge,
+  title,
+  subtitle,
+  primaryCtaLabel,
+  primaryCtaHref,
+  secondaryCtaLabel,
+  secondaryCtaHref,
+  metrics,
+  roleQuickAccess,
+} = Astro.props as Partial<Props>;
+
+const safeBadge = badge ?? '';
+const safeTitle = title ?? '';
+const safeSubtitle = subtitle ?? '';
+const safePrimaryCtaLabel = primaryCtaLabel ?? '';
+const safePrimaryCtaHref = primaryCtaHref ?? '';
+const safeSecondaryCtaLabel = secondaryCtaLabel ?? '';
+const safeSecondaryCtaHref = secondaryCtaHref ?? '';
+const metricItems = Array.isArray(metrics) ? metrics : [];
+const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
 ---
 
 <section class="hero" aria-label="Presentacion principal">
@@ -34,45 +64,49 @@ const roleQuickAccess = [
   <div class="hero-overlay"></div>
 
   <div class="hero-content">
-    <p class="hero-badge">Plataforma HIPAA-compliant</p>
-    <TextReveal text={title} className="hero-title" client:load delay={0.4} />
-    <p class="hero-subtitle">{subtitle}</p>
+    <p class="hero-badge">{safeBadge}</p>
+    <TextReveal text={safeTitle} className="hero-title" client:load delay={0.4} />
+    <p class="hero-subtitle">{safeSubtitle}</p>
     <div class="hero-actions">
       <MagneticButton client:load>
-        <a href="#portales" class="btn-primary">
-          Descubrir la plataforma
+        <a href={safePrimaryCtaHref} class="btn-primary">
+          {safePrimaryCtaLabel}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 5v14M19 12l-7 7-7-7" />
           </svg>
         </a>
       </MagneticButton>
       <MagneticButton client:load>
-        <a href={buildAuthPath('select-role', { returnTo: '/platform' })} class="btn-secondary">
-          Acceder a mi perfil
+        <a href={safeSecondaryCtaHref} class="btn-secondary">
+          {safeSecondaryCtaLabel}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </a>
       </MagneticButton>
     </div>
-    <div class="hero-role-shortcuts" aria-label="Acceso rápido por perfil">
-      {roleQuickAccess.map((item) => (
-        <a href={item.href} class="role-shortcut" style={`--shortcut-accent: ${item.accent};`}>
-          {item.label}
-        </a>
-      ))}
-    </div>
+    {shortcutItems.length > 0 && (
+      <div class="hero-role-shortcuts" aria-label="Acceso rápido por perfil">
+        {shortcutItems.map((item) => (
+          <a href={item.href} class="role-shortcut" style={`--shortcut-accent: ${item.accent};`}>
+            {item.label}
+          </a>
+        ))}
+      </div>
+    )}
 
-    <div class="hero-metrics" aria-label="Metricas de la plataforma">
-      {metrics.map((m, i) => (
-        <>
-          {i > 0 && <span class="hero-metrics-dot" aria-hidden="true" />}
-          <span class="hero-metric">
-            <strong>{m.value}</strong> {m.label}
-          </span>
-        </>
-      ))}
-    </div>
+    {metricItems.length > 0 && (
+      <div class="hero-metrics" aria-label="Metricas de la plataforma">
+        {metricItems.map((m, i) => (
+          <>
+            {i > 0 && <span class="hero-metrics-dot" aria-hidden="true" />}
+            <span class="hero-metric">
+              <strong>{m.value}</strong> {m.label}
+            </span>
+          </>
+        ))}
+      </div>
+    )}
   </div>
 
   <div class="hero-scroll-hint" aria-hidden="true">
@@ -100,20 +134,23 @@ const roleQuickAccess = [
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.42;
-    filter: brightness(1.08) saturate(1.06);
+    opacity: 0.5;
+    filter: brightness(1.18) saturate(0.92) contrast(0.96);
     pointer-events: none;
   }
 
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      to bottom,
-      rgba(9, 9, 11, 0.22) 0%,
-      rgba(9, 9, 11, 0.1) 40%,
-      rgba(9, 9, 11, 0.75) 100%
-    );
+    background:
+      radial-gradient(80% 55% at 50% 0%, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 68%),
+      linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.16) 0%,
+        rgba(255, 255, 255, 0.06) 22%,
+        rgba(9, 9, 11, 0.08) 48%,
+        rgba(9, 9, 11, 0.66) 100%
+      );
   }
 
   .hero-content {

@@ -1,0 +1,97 @@
+{
+  "defaultVariant": "a",
+  "variants": {
+    "a": {
+      "seo": {
+        "title": "Consulta medica online en 15 minutos | AutaMedica",
+        "description": "Consulta medica online, telemedicina para empresas y portal para medicos. Agenda inmediata, receta digital y seguimiento clinico en AutaMedica."
+      },
+      "hero": {
+        "badge": "Plataforma HIPAA-compliant",
+        "title": "Atencion medica,\\nsin salas de espera.",
+        "subtitle": "Una consulta de guardia puede tomar 3 horas entre traslados. Una videoconsulta, 15 minutos.",
+        "primaryCtaLabel": "Descubrir la plataforma",
+        "primaryCtaHref": "#portales",
+        "secondaryCtaLabel": "Acceder a mi perfil",
+        "secondaryCtaHref": "/auth/select-role",
+        "metrics": [
+          { "value": "15 min", "label": "tiempo promedio" },
+          { "value": "0", "label": "salas de espera" },
+          { "value": "94%", "label": "casos resueltos" }
+        ],
+        "roleQuickAccess": [
+          {
+            "label": "Paciente",
+            "role": "patient",
+            "authPage": "login",
+            "accent": "var(--portal-patients)"
+          },
+          {
+            "label": "Medico",
+            "role": "doctor",
+            "authPage": "login",
+            "accent": "var(--portal-doctors)"
+          },
+          {
+            "label": "Empresa",
+            "role": "company_admin",
+            "authPage": "login",
+            "accent": "var(--portal-companies)"
+          }
+        ]
+      },
+      "cta": {
+        "title": "los medicos\\nestan aca.",
+        "subtitle": "Consultas medicas remotas en Full HD. Infraestructura de atencion disponible 24/7.",
+        "buttonLabel": "Acceder a la plataforma",
+        "buttonHref": "/auth/select-role"
+      }
+    },
+    "b": {
+      "seo": {
+        "title": "Habla con un medico ahora | AutaMedica",
+        "description": "Consulta online en minutos con receta digital y seguimiento clinico. Telemedicina inmediata para pacientes, medicos y empresas."
+      },
+      "hero": {
+        "badge": "Atencion medica disponible 24/7",
+        "title": "Consulta online en 15 minutos,\\ncon receta digital.",
+        "subtitle": "Habla con un medico ahora, sin traslados y con seguimiento clinico desde tu perfil.",
+        "primaryCtaLabel": "Reservar mi consulta",
+        "primaryCtaHref": "/auth/select-role",
+        "secondaryCtaLabel": "Ver como funciona",
+        "secondaryCtaHref": "#necesidades",
+        "metrics": [
+          { "value": "15 min", "label": "inicio promedio" },
+          { "value": "24/7", "label": "atencion remota" },
+          { "value": "94%", "label": "resolucion de casos" }
+        ],
+        "roleQuickAccess": [
+          {
+            "label": "Paciente",
+            "role": "patient",
+            "authPage": "login",
+            "accent": "var(--portal-patients)"
+          },
+          {
+            "label": "Medico",
+            "role": "doctor",
+            "authPage": "login",
+            "accent": "var(--portal-doctors)"
+          },
+          {
+            "label": "Empresa",
+            "role": "company_admin",
+            "authPage": "login",
+            "accent": "var(--portal-companies)"
+          }
+        ]
+      },
+      "cta": {
+        "title": "tu consulta\\nempieza hoy.",
+        "subtitle": "Agenda en minutos y recibi indicaciones clinicas sin esperar en una guardia.",
+        "buttonLabel": "Quiero mi primera consulta",
+        "buttonHref": "/auth/select-role"
+      }
+    }
+  }
+}

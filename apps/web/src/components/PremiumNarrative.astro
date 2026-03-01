@@ -1,0 +1,150 @@
+---
+const pillars = [
+  {
+    title: 'Atencion continua',
+    detail: 'Seguimiento clinico antes, durante y despues de cada consulta.',
+  },
+  {
+    title: 'Medicos verificados',
+    detail: 'Profesionales matriculados con experiencia en atencion digital.',
+  },
+  {
+    title: 'Operacion segura',
+    detail: 'Infraestructura HIPAA-compliant y trazabilidad de cada evento.',
+  },
+];
+---
+
+<section class="premium-narrative" aria-label="Experiencia clinica premium">
+  <div class="narrative-inner">
+    <p class="narrative-kicker animate-on-scroll">Experiencia clinica, no solo videollamada</p>
+    <div class="narrative-grid">
+      <div class="narrative-main animate-on-scroll">
+        <h2 class="narrative-title">Disenada para sentirse humana desde el primer clic</h2>
+        <p class="narrative-copy">
+          AutaMedica combina velocidad de atencion con calidad medica real.
+          Menos friccion administrativa, mas tiempo para diagnosticar y acompanar.
+        </p>
+      </div>
+
+      <aside class="narrative-side animate-on-scroll">
+        <h3 class="narrative-side-title">Principios de producto</h3>
+        <ul class="narrative-list">
+          {pillars.map((pillar) => (
+            <li class="narrative-item">
+              <strong>{pillar.title}</strong>
+              <span>{pillar.detail}</span>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<style>
+  .premium-narrative {
+    padding: var(--section-py) var(--section-px);
+    background:
+      radial-gradient(90% 120% at 0% 20%, rgba(255, 255, 255, 0.06), transparent 60%),
+      radial-gradient(80% 120% at 100% 0%, rgba(148, 163, 184, 0.08), transparent 58%),
+      var(--au-bg);
+  }
+
+  .narrative-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .narrative-kicker {
+    margin: 0 0 var(--space-6);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--au-text-tertiary);
+  }
+
+  .narrative-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .narrative-main {
+    padding: var(--space-8);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+    box-shadow: var(--shadow-glow);
+  }
+
+  .narrative-title {
+    margin: 0 0 var(--space-4);
+    font-size: clamp(2rem, 4.2vw, 3.2rem);
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    color: var(--au-text-primary);
+  }
+
+  .narrative-copy {
+    margin: 0;
+    font-size: var(--text-lg);
+    color: var(--au-text-secondary);
+    max-width: 38ch;
+  }
+
+  .narrative-side {
+    padding: var(--space-6);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .narrative-side-title {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--au-text-tertiary);
+  }
+
+  .narrative-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .narrative-item {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.015);
+  }
+
+  .narrative-item strong {
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+  }
+
+  .narrative-item span {
+    font-size: var(--text-sm);
+    color: var(--au-text-secondary);
+    line-height: 1.55;
+  }
+
+  @media (max-width: 920px) {
+    .narrative-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .narrative-main {
+      padding: var(--space-6);
+    }
+  }
+</style>

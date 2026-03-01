@@ -15,12 +15,12 @@ export default function VSCodeLayout({ children }: VSCodeLayoutProps) {
 
   // Production-ready hooks for real data
   const { user, loading: authLoading } = useAuthenticatedUser()
-  const { doctor, loading: doctorLoading } = useCurrentDoctor(user?.id)
+  const { doctor, loading: _doctorLoading } = useCurrentDoctor(user?.id)
   const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
 
   // Real userName from authenticated user or doctor profile
-  const userName = doctor?.profile ? getPatientDisplayName(doctor.profile as any) :
-                   user?.profile ? getPatientDisplayName(user.profile as any) :
+  const userName = doctor?.profile ? getPatientDisplayName(doctor.profile) :
+                   user?.profile ? getPatientDisplayName(user.profile) :
                    `Dr. ${user?.email?.split('@')[0] || 'Médico'}`
 
   useEffect(() => {

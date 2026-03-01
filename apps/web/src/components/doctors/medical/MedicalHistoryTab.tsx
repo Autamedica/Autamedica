@@ -31,6 +31,12 @@ const CONSULTATION_TYPES: { value: ConsultationType; label: string; color: strin
   { value: 'especialidad', label: 'Especialidad', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' }
 ]
 
+const DEFAULT_CONSULTATION_TYPE = {
+  value: 'general' as ConsultationType,
+  label: 'General',
+  color: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+}
+
 export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.Element {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<ConsultationType | ''>('')
@@ -44,7 +50,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
   })
 
   const getConsultationTypeInfo = (type: ConsultationType) => {
-    return CONSULTATION_TYPES.find(t => t.value === type) || CONSULTATION_TYPES[0]!
+    return CONSULTATION_TYPES.find(t => t.value === type) ?? DEFAULT_CONSULTATION_TYPE
   }
 
   const formatDate = (dateString: string) => {

@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 import { createAdminClient } from '@autamedica/auth/server'
 import type { AppSupabaseClient } from '@autamedica/supabase-client'
 

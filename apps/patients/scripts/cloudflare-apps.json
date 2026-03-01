@@ -18,7 +18,11 @@
         "apps/patients/.env.production"
       ],
       "dns": [
-        { "type": "CNAME", "name": "patients", "target": "autamedica-patients.pages.dev" }
+        {
+          "type": "CNAME",
+          "name": "patients",
+          "target": "autamedica-patients-82t.pages.dev"
+        }
       ]
     },
     {
@@ -30,10 +34,7 @@
       "buildCommand": "pnpm --filter @autamedica/auth build",
       "deployCommand": "pnpm deploy:auth",
       "outputDir": "apps/auth/.vercel/output/static",
-      "envFiles": [
-        "apps/auth/.env.example",
-        "apps/auth/.env.production"
-      ],
+      "envFiles": ["apps/auth/.env.example", "apps/auth/.env.production"],
       "dns": [
         { "type": "CNAME", "name": "www", "target": "autamedica-web.pages.dev" }
       ]

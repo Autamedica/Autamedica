@@ -5,16 +5,20 @@
 
 export type AppTarget = 'patients' | 'doctors' | 'companies' | 'admin';
 
-function readPublicEnv(key: keyof ImportMetaEnv, fallback: string): string {
+function readRequiredPublicEnv(key: keyof ImportMetaEnv): string {
   const value = import.meta.env[key];
-  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim();
+  }
+
+  throw new Error(`[env] Missing required environment variable: ${key}`);
 }
 
-const BASE_URLS: Record<AppTarget, string> = {
-  doctors: readPublicEnv('PUBLIC_DOCTORS_URL', 'https://autamedica-doctors.pages.dev'),
-  patients: readPublicEnv('PUBLIC_PATIENTS_URL', 'https://autamedica-patients.pages.dev'),
-  companies: readPublicEnv('PUBLIC_COMPANIES_URL', 'https://autamedica-companies.pages.dev'),
-  admin: readPublicEnv('PUBLIC_ADMIN_URL', 'https://autamedica-admin.pages.dev'),
+const BASE_URL_ENV_KEYS: Record<AppTarget, keyof ImportMetaEnv> = {
+  doctors: 'PUBLIC_DOCTORS_URL',
+  patients: 'PUBLIC_PATIENTS_URL',
+  companies: 'PUBLIC_COMPANIES_URL',
+  admin: 'PUBLIC_ADMIN_URL',
 } as const;
 
 const ROUTE_TO_APP: Array<[string, AppTarget]> = [
@@ -29,18 +33,18 @@ function joinUrl(base: string, path: string): string {
 }
 
 export function getAppBaseUrl(app: AppTarget): string {
-  return BASE_URLS[app];
+  return readRequiredPublicEnv(BASE_URL_ENV_KEYS[app]);
 }
 
 export function getAppUrl(path: string = '', app?: AppTarget): string {
   if (app) {
-    return joinUrl(BASE_URLS[app], path);
+    return joinUrl(getAppBaseUrl(app), path);
   }
 
   for (const [route, target] of ROUTE_TO_APP) {
     if (path.startsWith(route)) {
       const portalPath = path.slice(route.length) || '/';
-      return joinUrl(BASE_URLS[target], portalPath);
+      return joinUrl(getAppBaseUrl(target), portalPath);
     }
   }
 

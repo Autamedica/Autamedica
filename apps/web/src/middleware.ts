@@ -119,12 +119,18 @@ function normalizePath(pathname: string): string {
   return pathname;
 }
 
-function parseExternalBase(value: string | undefined, fallback: string): URL {
-  const raw = value?.trim() || fallback;
+function parseExternalBase(value: string | undefined, envKey: keyof ImportMetaEnv): URL | null {
+  const raw = value?.trim();
+  if (!raw) {
+    logger.error(`Missing required env var for portal bridge: ${envKey}`);
+    return null;
+  }
+
   try {
     return new URL(raw);
   } catch {
-    return new URL(fallback);
+    logger.error(`Invalid URL in env var ${envKey}: ${raw}`);
+    return null;
   }
 }
 
@@ -311,7 +317,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
         }
 
         const envKey = PORTAL_BRIDGE_TARGETS[bridge.prefix];
-        const externalBase = parseExternalBase(import.meta.env[envKey], `https://${bridge.prefix.slice(1)}.autamedica.com`);
+        const externalBase = parseExternalBase(import.meta.env[envKey], envKey);
+        if (!externalBase) {
+          return context.redirect('/auth/select-role');
+        }
         const targetUrl = buildExternalUrl(externalBase, bridge.rest, requestUrl.search);
         return context.redirect(targetUrl, 307);
       }

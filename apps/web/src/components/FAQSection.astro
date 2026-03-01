@@ -1,0 +1,114 @@
+---
+const faqs = [
+  {
+    question: 'Cuanto tarda una consulta medica online?',
+    answer: 'La atencion suele comenzar en minutos y la consulta promedio dura alrededor de 15 minutos.',
+  },
+  {
+    question: 'Puedo obtener receta digital al finalizar?',
+    answer: 'Si. Los profesionales habilitados pueden emitir recetas digitales y dejar indicaciones en tu perfil.',
+  },
+  {
+    question: 'La plataforma sirve para equipos medicos y empresas?',
+    answer: 'Si. AutaMedica tiene portales especificos para medicos, pacientes y empresas, con flujos adaptados.',
+  },
+  {
+    question: 'Que nivel de seguridad tiene la plataforma?',
+    answer: 'Se opera con estandares HIPAA-compliant, cifrado TLS y controles de acceso por rol.',
+  },
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.answer,
+    },
+  })),
+};
+---
+
+<section id="faq" class="landing-faq" aria-label="Preguntas frecuentes">
+  <div class="faq-inner">
+    <div class="faq-header animate-on-scroll">
+      <h2 class="faq-title">Preguntas frecuentes</h2>
+      <p class="faq-subtitle">Respuestas rapidas para decidir tu primera consulta.</p>
+    </div>
+
+    <div class="faq-list">
+      {faqs.map((item) => (
+        <details class="faq-item animate-on-scroll">
+          <summary>{item.question}</summary>
+          <p>{item.answer}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(faqJsonLd)} />
+
+<style>
+  .landing-faq {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-bg);
+  }
+
+  .faq-inner {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .faq-header {
+    text-align: center;
+    margin-bottom: var(--space-10);
+  }
+
+  .faq-title {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-3xl);
+    color: var(--au-text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  .faq-subtitle {
+    margin: 0;
+    color: var(--au-text-secondary);
+    font-size: var(--text-lg);
+  }
+
+  .faq-list {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .faq-item {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.02);
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .faq-item summary {
+    cursor: pointer;
+    color: var(--au-text-primary);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    list-style: none;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item p {
+    margin: var(--space-3) 0 0;
+    color: var(--au-text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+  }
+</style>

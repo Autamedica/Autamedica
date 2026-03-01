@@ -49,6 +49,11 @@ type PatientNameCandidate = {
   lastName?: string | null
 }
 
+type PatientAgeCandidate = {
+  birthDate?: string | null
+  date_of_birth?: string | null
+}
+
 export function getPatientDisplayName(patient: unknown): string {
   if (!patient || typeof patient !== 'object') {
     return 'Paciente'
@@ -62,11 +67,17 @@ export function getPatientDisplayName(patient: unknown): string {
   return fullName || 'Paciente'
 }
 
-function getPatientAge(patient: any): string {
-  if (!patient || !patient.birthDate) {
+function getPatientAge(patient: unknown): string {
+  if (!patient || typeof patient !== 'object') {
     return '—'
   }
-  const birthDate = new Date(patient.birthDate)
+
+  const candidate = patient as PatientAgeCandidate
+  const birthDateValue = candidate.birthDate ?? candidate.date_of_birth
+  if (!birthDateValue) {
+    return '—'
+  }
+  const birthDate = new Date(birthDateValue)
   const ageDifMs = Date.now() - birthDate.getTime()
   const ageDate = new Date(ageDifMs)
   return Math.abs(ageDate.getUTCFullYear() - 1970).toString()

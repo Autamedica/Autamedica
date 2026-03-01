@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Hero from '../components/Hero.astro';
+import PremiumNarrative from '../components/PremiumNarrative.astro';
 import ProductShowcase from '../components/ProductShowcase.astro';
 import DoctorDirectory from '../components/DoctorDirectory.astro';
 import SymptomChecker from '../components/SymptomChecker';
@@ -10,23 +11,35 @@ import HorizontalScroll from '../components/HorizontalScroll';
 import Process from '../components/Process.astro';
 import Testimonials from '../components/Testimonials.astro';
 import HealthContent from '../components/HealthContent.astro';
+import IntentLinks from '../components/IntentLinks.astro';
+import FAQSection from '../components/FAQSection.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
 import ValueProps from '../components/ValueProps.astro';
+import { resolveLandingCopy } from '../lib/landing-copy';
+
+const {
+  variant: copyVariant,
+  hero: heroCopy,
+  cta: ctaCopy,
+  seo: seoCopy,
+} = resolveLandingCopy(Astro.url, import.meta.env.PUBLIC_LANDING_COPY_VARIANT);
 ---
 
 <Layout
-  title="AutaMedica - Telemedicina sin fricciones"
-  description="Agenda inmediata, receta digital al finalizar y resultados en tu movil. Plataforma de telemedicina HIPAA-compliant."
+  title={seoCopy.title}
+  description={seoCopy.description}
   canonical="https://www.autamedica.com"
   ogImage="/images/seo/og-main.png"
 >
   <Navbar />
-  <main>
-    <Hero />
+  <main data-copy-variant={copyVariant}>
+    <Hero {...heroCopy} />
+    <PremiumNarrative />
     <ValueProps />
     <ProductShowcase />
     <DoctorDirectory />
+    <IntentLinks />
 
     <!-- Symptom Checker: herramienta interactiva sin login -->
     <section id="sintomas" class="symptom-section">
@@ -41,7 +54,7 @@ import ValueProps from '../components/ValueProps.astro';
 
     <!-- Desktop: scroll horizontal con GSAP. Mobile: fallback a cards estaticas -->
     <div class="desktop-only">
-      <HorizontalScroll client:only="react" />
+      <HorizontalScroll client:visible />
     </div>
     <div class="mobile-only">
       <Portals />
@@ -50,7 +63,8 @@ import ValueProps from '../components/ValueProps.astro';
     <Process />
     <Testimonials />
     <HealthContent />
-    <CTAFinal />
+    <FAQSection />
+    <CTAFinal {...ctaCopy} />
   </main>
   <Footer />
 </Layout>
@@ -87,171 +101,181 @@ import ValueProps from '../components/ValueProps.astro';
 </style>
 
 <script>
-  import { gsap } from 'gsap';
-  import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-  gsap.registerPlugin(ScrollTrigger);
-
-  ScrollTrigger.config({ ignoreMobileResize: true });
-  if ('ontouchstart' in window) {
-    ScrollTrigger.normalizeScroll({ allowNestedScroll: true });
-  }
+  const revealWithoutMotion = () => {
+    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+      if (el instanceof HTMLElement) {
+        el.style.opacity = '1';
+      }
+    });
+  };
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-  if (reduced) {
-    // Instant reveal — no animation
-    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
-      (el as HTMLElement).style.opacity = '1';
-    });
+  if (reduced || isMobile) {
+    revealWithoutMotion();
   } else {
-    // ─── Hero entrance timeline ───
-    const heroContent = document.querySelector('.hero-content');
-    if (heroContent) {
-      const tl = gsap.timeline({ delay: 0.2 });
-      tl.from('.hero-badge', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' })
-        .from('.hero-subtitle', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, '-=0.4')
-        .from('.hero-metrics', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' }, '-=0.2')
-        .from('.hero-scroll-hint', { opacity: 0, duration: 0.4 }, '-=0.1');
+    const initAnimations = async () => {
+      const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+        import('gsap'),
+        import('gsap/ScrollTrigger'),
+      ]);
+
+      gsap.registerPlugin(ScrollTrigger);
+      ScrollTrigger.config({ ignoreMobileResize: true });
+
+      if ('ontouchstart' in window) {
+        ScrollTrigger.normalizeScroll({ allowNestedScroll: true });
+      }
+
+      const heroContent = document.querySelector('.hero-content');
+      if (heroContent) {
+        const tl = gsap.timeline({ delay: 0.2 });
+        tl.from('.hero-badge', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' })
+          .from('.hero-subtitle', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, '-=0.4')
+          .from('.hero-metrics', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' }, '-=0.2')
+          .from('.hero-scroll-hint', { opacity: 0, duration: 0.4 }, '-=0.1');
+      }
+
+      const valuePropsInner = document.querySelector('.value-props-inner');
+      if (valuePropsInner) {
+        gsap.fromTo(
+          valuePropsInner.querySelectorAll('.value-card'),
+          { opacity: 0, y: 30, scale: 0.97 },
+          {
+            opacity: 1, y: 0, scale: 1,
+            duration: 0.6,
+            stagger: 0.12,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: valuePropsInner, start: 'top 85%', toggleActions: 'play none none none' },
+          }
+        );
+      }
+
+      document.querySelectorAll('.showcase-header, .directory-header, .process-header, .testimonials-header').forEach((el) => {
+        gsap.fromTo(el,
+          { opacity: 0, y: 30 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.8,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
+          }
+        );
+      });
+
+      document.querySelectorAll('.showcase-row').forEach((row) => {
+        const fromX = row.classList.contains('reversed') ? 50 : -50;
+        gsap.fromTo(row,
+          { opacity: 0, x: fromX },
+          {
+            opacity: 1, x: 0,
+            duration: 1,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: row, start: 'top 80%', toggleActions: 'play none none none' },
+          }
+        );
+      });
+
+      const doctorGrid = document.querySelector('.doctor-grid');
+      if (doctorGrid) {
+        gsap.fromTo(
+          doctorGrid.querySelectorAll('.doctor-card'),
+          { opacity: 0, y: 30, scale: 0.96 },
+          {
+            opacity: 1, y: 0, scale: 1,
+            duration: 0.6,
+            stagger: 0.08,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: doctorGrid, start: 'top 80%', toggleActions: 'play none none none' },
+          }
+        );
+      }
+
+      const symptomHeader = document.querySelector('.symptom-header');
+      if (symptomHeader) {
+        gsap.fromTo(symptomHeader,
+          { opacity: 0, y: 30 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.8,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: symptomHeader, start: 'top 85%', toggleActions: 'play none none none' },
+          }
+        );
+      }
+
+      const processTimeline = document.querySelector('.process-timeline');
+      if (processTimeline) {
+        gsap.fromTo(
+          processTimeline.querySelectorAll('.step'),
+          { opacity: 0, y: 30 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.6,
+            stagger: 0.12,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: processTimeline, start: 'top 80%', toggleActions: 'play none none none' },
+          }
+        );
+      }
+
+      const testimonialGrid = document.querySelector('.testimonials-grid');
+      if (testimonialGrid) {
+        gsap.fromTo(
+          testimonialGrid.querySelectorAll('.testimonial-card'),
+          { opacity: 0, y: 30, scale: 0.96 },
+          {
+            opacity: 1, y: 0, scale: 1,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: testimonialGrid, start: 'top 80%', toggleActions: 'play none none none' },
+          }
+        );
+      }
+
+      const ctaInner = document.querySelector('.cta-inner');
+      if (ctaInner) {
+        gsap.fromTo(ctaInner,
+          { opacity: 0, y: 40, scale: 0.95 },
+          {
+            opacity: 1, y: 0, scale: 1,
+            duration: 1,
+            ease: 'power3.out',
+            scrollTrigger: { trigger: ctaInner, start: 'top 85%', toggleActions: 'play none none none' },
+          }
+        );
+      }
+
+      const handled = new Set<Element>();
+      document.querySelectorAll(
+        '.showcase-header, .directory-header, .process-header, .testimonials-header, ' +
+        '.showcase-row, .doctor-card, .value-card, .step, .testimonial-card, .cta-inner, .symptom-header'
+      ).forEach((el) => handled.add(el));
+
+      document.querySelectorAll('.animate-on-scroll').forEach((el) => {
+        if (handled.has(el)) return;
+        gsap.fromTo(el,
+          { opacity: 0, y: 25 },
+          {
+            opacity: 1, y: 0,
+            duration: 0.7,
+            ease: 'power2.out',
+            scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
+          }
+        );
+      });
+    };
+
+    const boot = () => {
+      void initAnimations().catch(() => revealWithoutMotion());
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(boot, { timeout: 1200 });
+    } else {
+      window.setTimeout(boot, 1);
     }
-
-    // ─── Value props — stagger ───
-    const valuePropsInner = document.querySelector('.value-props-inner');
-    if (valuePropsInner) {
-      gsap.fromTo(
-        valuePropsInner.querySelectorAll('.value-card'),
-        { opacity: 0, y: 30, scale: 0.97 },
-        {
-          opacity: 1, y: 0, scale: 1,
-          duration: 0.6,
-          stagger: 0.12,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: valuePropsInner, start: 'top 85%', toggleActions: 'play none none none' },
-        }
-      );
-    }
-
-    // ─── Section headers ───
-    document.querySelectorAll('.showcase-header, .directory-header, .process-header, .testimonials-header').forEach((el) => {
-      gsap.fromTo(el,
-        { opacity: 0, y: 30 },
-        {
-          opacity: 1, y: 0,
-          duration: 0.8,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
-        }
-      );
-    });
-
-    // ─── Showcase rows — alternate left/right ───
-    document.querySelectorAll('.showcase-row').forEach((row, i) => {
-      const fromX = row.classList.contains('reversed') ? 50 : -50;
-      gsap.fromTo(row,
-        { opacity: 0, x: fromX },
-        {
-          opacity: 1, x: 0,
-          duration: 1,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: row, start: 'top 80%', toggleActions: 'play none none none' },
-        }
-      );
-    });
-
-    // ─── Doctor cards — stagger ───
-    const doctorGrid = document.querySelector('.doctor-grid');
-    if (doctorGrid) {
-      gsap.fromTo(
-        doctorGrid.querySelectorAll('.doctor-card'),
-        { opacity: 0, y: 30, scale: 0.96 },
-        {
-          opacity: 1, y: 0, scale: 1,
-          duration: 0.6,
-          stagger: 0.08,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: doctorGrid, start: 'top 80%', toggleActions: 'play none none none' },
-        }
-      );
-    }
-
-    // ─── Symptom checker header ───
-    const symptomHeader = document.querySelector('.symptom-header');
-    if (symptomHeader) {
-      gsap.fromTo(symptomHeader,
-        { opacity: 0, y: 30 },
-        {
-          opacity: 1, y: 0,
-          duration: 0.8,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: symptomHeader, start: 'top 85%', toggleActions: 'play none none none' },
-        }
-      );
-    }
-
-    // ─── Process steps — stagger ───
-    const processTimeline = document.querySelector('.process-timeline');
-    if (processTimeline) {
-      gsap.fromTo(
-        processTimeline.querySelectorAll('.step'),
-        { opacity: 0, y: 30 },
-        {
-          opacity: 1, y: 0,
-          duration: 0.6,
-          stagger: 0.12,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: processTimeline, start: 'top 80%', toggleActions: 'play none none none' },
-        }
-      );
-    }
-
-    // ─── Testimonial cards — stagger ───
-    const testimonialGrid = document.querySelector('.testimonials-grid');
-    if (testimonialGrid) {
-      gsap.fromTo(
-        testimonialGrid.querySelectorAll('.testimonial-card'),
-        { opacity: 0, y: 30, scale: 0.96 },
-        {
-          opacity: 1, y: 0, scale: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: testimonialGrid, start: 'top 80%', toggleActions: 'play none none none' },
-        }
-      );
-    }
-
-    // ─── CTA Final — scale up ───
-    const ctaInner = document.querySelector('.cta-inner');
-    if (ctaInner) {
-      gsap.fromTo(ctaInner,
-        { opacity: 0, y: 40, scale: 0.95 },
-        {
-          opacity: 1, y: 0, scale: 1,
-          duration: 1,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: ctaInner, start: 'top 85%', toggleActions: 'play none none none' },
-        }
-      );
-    }
-
-    // ─── Remaining .animate-on-scroll not handled above ───
-    const handled = new Set<Element>();
-    document.querySelectorAll(
-      '.showcase-header, .directory-header, .process-header, .testimonials-header, ' +
-      '.showcase-row, .doctor-card, .value-card, .step, .testimonial-card, .cta-inner, .symptom-header'
-    ).forEach((el) => handled.add(el));
-
-    document.querySelectorAll('.animate-on-scroll').forEach((el) => {
-      if (handled.has(el)) return;
-      gsap.fromTo(el,
-        { opacity: 0, y: 25 },
-        {
-          opacity: 1, y: 0,
-          duration: 0.7,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
-        }
-      );
-    });
   }
 </script>

@@ -6,6 +6,7 @@
 
 import { useState } from 'react'
 import type { JSX } from 'react'
+import type { UUID } from '@/types/medical'
 import {
   User,
   Calendar,
@@ -21,11 +22,55 @@ import {
 import { usePatientData } from '@/hooks/doctors/usePatientData'
 
 interface PatientInfoTabProps {
-  patientId: string | null
+  patientId: UUID | null
+}
+
+type PatientInfoData = {
+  first_name?: string | null
+  last_name?: string | null
+  full_name?: string | null
+  age?: number | null
+  gender?: string | null
+  blood_type?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  emergency_contact_name?: string | null
+  emergency_contact_phone?: string | null
+  allergies?: string[] | string | null
+  chronic_conditions?: string[] | string | null
+  insurance_provider?: string | null
+  insurance_number?: string | null
+  date_of_birth?: string | null
+  created_at?: string | null
+}
+
+function parseList(value: string[] | string | null | undefined): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+  }
+  return []
+}
+
+function formatDisplayDate(dateValue: string | null | undefined): string {
+  if (!dateValue) {
+    return 'No registrado'
+  }
+  return new Date(dateValue).toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
 }
 
 export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element {
-  const { patient, loading, error, refresh } = usePatientData(patientId as any)
+  const { patient, loading, error, refresh } = usePatientData(patientId)
   const [isEditing, setIsEditing] = useState(false)
 
   if (loading) {
@@ -81,6 +126,15 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
     )
   }
 
+  const patientData = patient as unknown as PatientInfoData
+  const patientInitials = `${patientData.first_name?.[0] ?? ''}${patientData.last_name?.[0] ?? ''}`.trim() || 'P'
+  const patientName =
+    patientData.full_name
+    || `${patientData.first_name ?? ''} ${patientData.last_name ?? ''}`.trim()
+    || 'Paciente'
+  const patientAllergies = parseList(patientData.allergies)
+  const patientChronicConditions = parseList(patientData.chronic_conditions)
+
   return (
     <div className="h-full overflow-y-auto bg-[#0a1525] p-6">
       <div className="mx-auto max-w-4xl space-y-6">
@@ -90,14 +144,14 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-2xl font-bold text-slate-900">
-                {(patient as any).first_name[0]}{(patient as any).last_name[0]}
+                {patientInitials}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-100">{(patient as any).full_name}</h1>
-                <p className="text-slate-400">{(patient as any).age} años • {(patient as any).gender}</p>
+                <h1 className="text-2xl font-bold text-slate-100">{patientName}</h1>
+                <p className="text-slate-400">{patientData.age ?? '—'} años • {patientData.gender ?? 'No especificado'}</p>
                 <div className="mt-1 flex items-center gap-2 text-sm text-emerald-400">
                   <Heart className="h-4 w-4" />
-                  <span>Tipo de sangre: {(patient as any).blood_type}</span>
+                  <span>Tipo de sangre: {patientData.blood_type ?? 'No registrado'}</span>
                 </div>
               </div>
             </div>
@@ -135,7 +189,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
                 <Phone className="h-4 w-4 text-slate-400" />
                 <div>
                   <p className="text-sm font-medium text-slate-300">Teléfono</p>
-                  <p className="text-slate-400">{(patient as any).phone || 'No registrado'}</p>
+                  <p className="text-slate-400">{patientData.phone || 'No registrado'}</p>
                 </div>
               </div>
 
@@ -143,7 +197,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
                 <Mail className="h-4 w-4 text-slate-400" />
                 <div>
                   <p className="text-sm font-medium text-slate-300">Email</p>
-                  <p className="text-slate-400">{(patient as any).email || 'No registrado'}</p>
+                  <p className="text-slate-400">{patientData.email || 'No registrado'}</p>
                 </div>
               </div>
 
@@ -151,7 +205,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
                 <MapPin className="h-4 w-4 text-slate-400 mt-1" />
                 <div>
                   <p className="text-sm font-medium text-slate-300">Dirección</p>
-                  <p className="text-slate-400">{(patient as any).address || 'No registrada'}</p>
+                  <p className="text-slate-400">{patientData.address || 'No registrada'}</p>
                 </div>
               </div>
             </div>
@@ -167,12 +221,12 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-300">Nombre</p>
-                <p className="text-slate-400">{(patient as any).emergency_contact_name || 'No registrado'}</p>
+                <p className="text-slate-400">{patientData.emergency_contact_name || 'No registrado'}</p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-slate-300">Teléfono</p>
-                <p className="text-slate-400">{(patient as any).emergency_contact_phone || 'No registrado'}</p>
+                <p className="text-slate-400">{patientData.emergency_contact_phone || 'No registrado'}</p>
               </div>
             </div>
           </div>
@@ -187,9 +241,9 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-300 mb-2">Alergias</p>
-                {(patient as any).allergies?.length > 0 ? (
+                {patientAllergies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {(patient as any).allergies.map((allergy: string, index: number) => (
+                    {patientAllergies.map((allergy, index) => (
                       <span
                         key={index}
                         className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-medium text-red-300 border border-red-500/30"
@@ -205,9 +259,9 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
 
               <div>
                 <p className="text-sm font-medium text-slate-300 mb-2">Condiciones Crónicas</p>
-                {(patient as any).chronic_conditions?.length > 0 ? (
+                {patientChronicConditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {(patient as any).chronic_conditions.map((condition: string, index: number) => (
+                    {patientChronicConditions.map((condition, index) => (
                       <span
                         key={index}
                         className="rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-300 border border-yellow-500/30"
@@ -233,13 +287,13 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-300">Proveedor</p>
-                <p className="text-slate-400">{(patient as any).insurance_provider || 'No registrado'}</p>
+                <p className="text-slate-400">{patientData.insurance_provider || 'No registrado'}</p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-slate-300">Número de póliza</p>
                 <p className="text-slate-400 font-mono">
-                  {(patient as any).insurance_number || 'No registrado'}
+                  {patientData.insurance_number || 'No registrado'}
                 </p>
               </div>
             </div>
@@ -256,24 +310,12 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <p className="text-sm font-medium text-slate-300">Fecha de nacimiento</p>
-              <p className="text-slate-400">
-                {new Date((patient as any).date_of_birth).toLocaleDateString('es-ES', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
+              <p className="text-slate-400">{formatDisplayDate(patientData.date_of_birth)}</p>
             </div>
 
             <div>
               <p className="text-sm font-medium text-slate-300">Registrado</p>
-              <p className="text-slate-400">
-                {new Date((patient as any).created_at).toLocaleDateString('es-ES', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
+              <p className="text-slate-400">{formatDisplayDate(patientData.created_at)}</p>
             </div>
           </div>
         </div>

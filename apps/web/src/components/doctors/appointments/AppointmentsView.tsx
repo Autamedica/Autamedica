@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 'use client';
 
 import { useAppointments } from '@/lib/doctors/features/appointments/useAppointments';

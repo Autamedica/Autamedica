@@ -135,20 +135,18 @@ export function SubscriptionPanel(): JSX.Element {
     setShowCheckout(true)
   }
 
-  const handlePaymentSuccess = (paymentData: any) => {
-    // logger.info('Pago exitoso:', paymentData)
+  const handlePaymentSuccess = (_paymentData: unknown) => {
     setShowCheckout(false)
     setCheckoutPlan(null)
     // Aquí actualizarías el plan del usuario en el backend
   }
 
-  const handlePaymentError = (error: any) => {
+  const handlePaymentError = (error: unknown) => {
     logger.error('Error en el pago:', error)
     // Mostrar notificación de error al usuario
   }
 
-  const handlePlanChange = (action: string) => {
-    // logger.info('Acción de plan:', action)
+  const handlePlanChange = (_action: string) => {
     // Manejar cambios en la suscripción
   }
 
@@ -333,12 +331,19 @@ export function SubscriptionPanel(): JSX.Element {
               ))}
             </ul>
 
-            <button
-              type="button"
-              onClick={() => plan.id === currentPlan?.id ? setShowSubscriptionManager(true) : handlePlanUpgrade(plan)}
-              className={`w-full rounded-lg px-4 py-3 text-sm font-medium transition ${
-                plan.id === currentPlan?.id
-                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPlan(plan.id)
+                  if (plan.id === currentPlan?.id) {
+                    setShowSubscriptionManager(true)
+                  } else {
+                    handlePlanUpgrade(plan)
+                  }
+                }}
+                className={`w-full rounded-lg px-4 py-3 text-sm font-medium transition ${
+                  plan.id === currentPlan?.id
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                   : getColorClasses(plan.color, 'button') + ' text-white'
               }`}
             >

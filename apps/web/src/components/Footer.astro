@@ -65,8 +65,8 @@ const columns = [
     </div>
 
     {/* Massive Footer Typography */}
-    <div class="footer-massive-type overflow-hidden flex items-center justify-center mt-32 mb-16 select-none opacity-5">
-      <h2 class="text-[14vw] sm:text-[13.5vw] font-bold tracking-tighter leading-none whitespace-nowrap">AUTAMEDICA</h2>
+    <div class="footer-massive-type overflow-hidden flex items-center justify-center mt-32 mb-16 select-none">
+      <h2 class="footer-massive-word text-[14vw] sm:text-[13.5vw] font-bold tracking-tighter leading-none whitespace-nowrap">AUTAMEDICA</h2>
     </div>
 
     <div class="footer-bottom-bar flex flex-col md:flex-row justify-between items-center py-8 border-t border-white/5 mt-16">
@@ -120,6 +120,11 @@ const columns = [
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 4rem;
+  }
+
+  .footer-massive-word {
+    color: rgba(255, 255, 255, 0.14);
+    text-shadow: 0 0 24px rgba(255, 255, 255, 0.06);
   }
   
   @media (max-width: 640px) {

@@ -1,26 +1,45 @@
 ---
 import { TextReveal } from './ui/TextReveal';
 import { MagneticButton } from './ui/MagneticButton';
+
+interface Props {
+  title: string;
+  subtitle: string;
+  buttonLabel: string;
+  buttonHref: string;
+}
+
+const {
+  title,
+  subtitle,
+  buttonLabel,
+  buttonHref,
+} = Astro.props as Partial<Props>;
+
+const safeTitle = title ?? '';
+const safeSubtitle = subtitle ?? '';
+const safeButtonLabel = buttonLabel ?? '';
+const safeButtonHref = buttonHref ?? '';
 ---
 
 <section class="cta-final" aria-label="Llamada a la accion">
   <div class="cta-inner">
     <div class="cta-text-wrapper min-h-[50vh] flex flex-col items-center justify-center relative z-10">
       <TextReveal 
-        text="los médicos\nestán acá." 
+        text={safeTitle} 
         className="cta-huge-title text-[12vw] leading-[0.85] tracking-tighter sm:text-[10vw] md:text-[8vw] font-bold text-center text-white mix-blend-difference" 
         client:visible 
         delay={0.1}
       />
       
       <p class="cta-subtitle mt-12 mb-16 text-xl md:text-2xl text-[var(--au-text-secondary)] font-light max-w-2xl text-center">
-        Consultas médicas remotas en Full HD. Infraestructura de atención disponible 24/7.
+        {safeSubtitle}
       </p>
 
       <MagneticButton client:visible stiffness={200} damping={10}>
-        <a href="/auth/select-role" class="cta-btn-premium group">
+        <a href={safeButtonHref} class="cta-btn-premium group">
           <span class="relative z-10 flex items-center gap-3">
-            Acceder a la plataforma
+            {safeButtonLabel}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 group-hover:translate-x-1"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </span>
           <div class="absolute inset-0 bg-white scale-y-[0.01] origin-bottom group-hover:scale-y-100 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)]" />

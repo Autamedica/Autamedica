@@ -5,7 +5,7 @@
 import { DEMO_PATIENT_ID } from '@/lib/doctors/data/demoData'
 import type { UUID } from '@/types/medical'
 import { logger } from '@autamedica/shared'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export interface ActiveSessionData {
   patientId: UUID | null
@@ -28,7 +28,20 @@ export function useActiveSession(): UseActiveSessionResult {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchActiveSession = async () => {
+  const createGuestSession = useCallback(async () => {
+    // Usar datos de invitado con UUID válido predefinido
+    const guestSessionId = crypto.randomUUID() as UUID
+
+    setSession({
+      patientId: DEMO_PATIENT_ID,
+      sessionId: guestSessionId,
+      sessionType: 'general',
+      startTime: new Date().toISOString(),
+      status: 'en_progreso'
+    })
+  }, [])
+
+  const fetchActiveSession = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -46,20 +59,7 @@ export function useActiveSession(): UseActiveSessionResult {
     } finally {
       setLoading(false)
     }
-  }
-
-  const createGuestSession = async () => {
-    // Usar datos de invitado con UUID válido predefinido
-    const guestSessionId = crypto.randomUUID() as UUID
-
-    setSession({
-      patientId: DEMO_PATIENT_ID,
-      sessionId: guestSessionId,
-      sessionType: 'general',
-      startTime: new Date().toISOString(),
-      status: 'en_progreso'
-    })
-  }
+  }, [createGuestSession])
 
   const startSession = async (patientId: UUID, sessionType: ActiveSessionData['sessionType']) => {
     try {
@@ -102,7 +102,7 @@ export function useActiveSession(): UseActiveSessionResult {
 
   useEffect(() => {
     fetchActiveSession()
-  }, [])
+  }, [fetchActiveSession])
 
   return {
     session,

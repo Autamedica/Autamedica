@@ -120,14 +120,14 @@ jobs:
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           # Portal URLs for cross-app auth redirects
           PUBLIC_DOCTORS_URL: https://autamedica-doctors.pages.dev
-          PUBLIC_PATIENTS_URL: https://autamedica-patients.pages.dev
+          PUBLIC_PATIENTS_URL: https://patients.autamedica.com
           PUBLIC_COMPANIES_URL: https://autamedica-companies.pages.dev
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
           PUBLIC_WEB_URL: https://autamedica-web.pages.dev
           # Next.js portal env vars
           NEXT_PUBLIC_BASE_URL_AUTH: https://autamedica-web.pages.dev
           NEXT_PUBLIC_BASE_URL_WEB: https://autamedica-web.pages.dev
-          NEXT_PUBLIC_BASE_URL_PATIENTS: https://autamedica-patients.pages.dev
+          NEXT_PUBLIC_BASE_URL_PATIENTS: https://patients.autamedica.com
           NEXT_PUBLIC_BASE_URL_DOCTORS: https://autamedica-doctors.pages.dev
           NEXT_PUBLIC_BASE_URL_COMPANIES: https://autamedica-companies.pages.dev
           NEXT_PUBLIC_BASE_URL_ADMIN: https://autamedica-admin.pages.dev

@@ -9,6 +9,7 @@ interface ImportMetaEnv {
   readonly PUBLIC_PATIENTS_URL: string;
   readonly PUBLIC_COMPANIES_URL: string;
   readonly PUBLIC_ADMIN_URL: string;
+  readonly PUBLIC_LANDING_COPY_VARIANT?: string;
 }
 
 interface ImportMeta {

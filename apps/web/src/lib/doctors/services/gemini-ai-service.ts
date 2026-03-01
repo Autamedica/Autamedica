@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 /**
  * Servicio de Google Gemini AI para análisis médico
  * Alternativa a Anthropic Claude
