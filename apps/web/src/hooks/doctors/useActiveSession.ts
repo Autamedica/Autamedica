@@ -2,7 +2,7 @@
  * Hook para manejar la sesión activa de consulta médica
  */
 
-import { DEMO_PATIENT_ID } from '@/data/demoData'
+import { DEMO_PATIENT_ID } from '@/lib/doctors/data/demoData'
 import type { UUID } from '@/types/medical'
 import { logger } from '@autamedica/shared'
 import { useEffect, useState } from 'react'

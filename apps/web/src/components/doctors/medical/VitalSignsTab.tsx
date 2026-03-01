@@ -22,7 +22,7 @@ import {
   Edit3,
   BarChart3
 } from 'lucide-react'
-import { useVitalSigns } from '@/hooks'
+import { useVitalSigns } from '@/hooks/doctors/useVitalSigns'
 
 interface VitalSignsTabProps {
   patientId: string | null

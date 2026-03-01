@@ -1,12 +1,12 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
-import type { Profile } from '@/lib/zod/profiles';
+import type { Profile } from '@/lib/patients/lib/zod/profiles';
 import type {
   Patient,
   PatientProfileUpdateInput,
-} from '@/lib/zod/patients';
-import type { ProfileUpdateInput } from '@/lib/zod/profiles';
+} from '@/lib/patients/lib/zod/patients';
+import type { ProfileUpdateInput } from '@/lib/patients/lib/zod/profiles';
 
 export interface PatientProfileFormPayload {
   profile: ProfileUpdateInput;

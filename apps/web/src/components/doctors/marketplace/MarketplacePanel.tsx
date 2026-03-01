@@ -1,7 +1,7 @@
 'use client'
 
-import { useRealDoctors } from '@/hooks/useRealDoctors'
-import { ARGENTINE_PROVINCES, MarketplaceDoctor, MarketplaceJobOffer } from '@/types/marketplace'
+import { useRealDoctors } from '@/hooks/doctors/useRealDoctors'
+import { ARGENTINE_PROVINCES, MarketplaceDoctor, MarketplaceJobOffer } from '@/lib/doctors/types/marketplace'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import {
     Briefcase,

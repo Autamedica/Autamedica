@@ -4,7 +4,7 @@
 
 'use client'
 
-import { usePrescriptions } from '@/hooks'
+import { usePrescriptions } from '@/hooks/doctors/usePrescriptions'
 import type { PrescriptionStatus, UUID } from '@/types/medical'
 import {
     AlertTriangle,

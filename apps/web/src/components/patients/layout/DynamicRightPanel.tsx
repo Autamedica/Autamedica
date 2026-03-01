@@ -6,7 +6,7 @@ import {
     LabResultModal,
     MedicationModal,
     SymptomModal,
-} from '@/components/quick-actions/QuickActionModals'
+} from '@/components/patients/quick-actions/QuickActionModals'
 import { type CommunityPost, useCommunityPosts } from '@/hooks/patients/useCommunity'
 import { usePatientScreenings } from '@/hooks/patients/usePatientScreenings'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'

@@ -1,9 +1,9 @@
 'use client'
 
-import { getPatientDisplayName } from '@/app/page'
-import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
-import { useDoctorStats } from '@/hooks/useDoctorStats'
-import { useCurrentDoctor } from '@/hooks/useRealDoctors'
+import { getPatientDisplayName } from '@/components/doctors/DoctorsHomePage'
+import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useDoctorStats } from '@/hooks/doctors/useDoctorStats'
+import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { ReactNode, useEffect, useState } from 'react'
 
 interface VSCodeLayoutProps {

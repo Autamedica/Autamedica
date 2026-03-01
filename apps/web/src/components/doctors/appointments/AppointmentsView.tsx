@@ -1,6 +1,6 @@
 'use client';
 
-import { useAppointments } from '@/features/appointments/useAppointments';
+import { useAppointments } from '@/lib/doctors/features/appointments/useAppointments';
 
 export default function AppointmentsView() {
   const { status, error, rows, refresh } = useAppointments();

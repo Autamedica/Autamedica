@@ -5,9 +5,10 @@ import { useDoctorsPortal } from '@/components/doctors/layout/DoctorsPortalShell
 import { PrescriptionModal } from '@/components/doctors/medical/PrescriptionModal'
 import { QuickNotesModal } from '@/components/doctors/medical/QuickNotesModal'
 import { TelemedicineSignalingPanel } from '@/components/doctors/telemedicine/TelemedicineSignalingPanel'
-import { useActiveSession, usePatientData } from '@autamedica/hooks'
-import { useAuthenticatedUser } from '@autamedica/hooks'
-import { useMedicalHistoryStore } from '@/stores/medicalHistoryStore'
+import { useActiveSession } from '@/hooks/doctors/useActiveSession'
+import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { usePatientData } from '@/hooks/doctors/usePatientData'
+import { useMedicalHistoryStore } from '@/lib/doctors/stores/medicalHistoryStore'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import {
     Activity,

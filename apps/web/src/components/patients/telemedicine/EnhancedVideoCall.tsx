@@ -5,7 +5,7 @@ import React from 'react';
 import { usePatientPortal } from '@/components/layout/PatientPortalShell';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import { useVideoCall } from '@/hooks/patients/useVideoCall';
-import { useTelemedicine } from '@/hooks';
+import { useTelemedicine } from '@/hooks/patients/useTelemedicine';
 import { useMockRemoteStream } from '@/hooks/patients/useMockRemoteStream';
 import { useRealRemoteStream } from '@/hooks/patients/useRealRemoteStream';
 import { VideoLayout, ViewModeSelector } from '@/components/telemedicine/VideoLayout';

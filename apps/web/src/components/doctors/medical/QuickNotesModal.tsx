@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { JSX } from 'react'
 import { X, Save, Clock, FileText, AlertCircle, ChevronDown } from 'lucide-react'
-import { useMedicalHistoryStore } from '@/stores/medicalHistoryStore'
+import { useMedicalHistoryStore } from '@/lib/doctors/stores/medicalHistoryStore'
 
 interface QuickNotesModalProps {
   patientName: string

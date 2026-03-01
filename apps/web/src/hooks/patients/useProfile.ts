@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from 'react';
 import { logger } from '@autamedica/shared';
-import type { ProfileUpdateInput, Profile } from '@/lib/zod/profiles';
-import type { PatientProfileUpdateInput, Patient } from '@/lib/zod/patients';
+import type { ProfileUpdateInput, Profile } from '@/lib/patients/lib/zod/profiles';
+import type { PatientProfileUpdateInput, Patient } from '@/lib/patients/lib/zod/patients';
 
 export interface PatientProfileUpdateResult {
   profile: Profile | null;

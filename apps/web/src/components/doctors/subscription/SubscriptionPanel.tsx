@@ -1,6 +1,6 @@
 "use client"
 
-import { MercadoPagoCheckout, MercadoPagoSubscriptionManager } from '@/components/payment/MercadoPagoIntegration'
+import { MercadoPagoCheckout, MercadoPagoSubscriptionManager } from '@/components/doctors/payment/MercadoPagoIntegration'
 import { logger } from '@autamedica/shared'
 import {
     ArrowLeft,

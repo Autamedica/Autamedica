@@ -18,7 +18,7 @@ import {
   Edit3,
   X
 } from 'lucide-react'
-import { usePatientData } from '../../hooks/usePatientData'
+import { usePatientData } from '@/hooks/doctors/usePatientData'
 
 interface PatientInfoTabProps {
   patientId: string | null

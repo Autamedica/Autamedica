@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useAIAnalysis } from '@/hooks'
+import { useAIAnalysis } from '@/hooks/doctors/useAIAnalysis'
 import type { DiagnosticConfidence, UUID } from '@/types/medical'
 import {
     Activity,
