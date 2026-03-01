@@ -1,6 +1,7 @@
 /**
  * Store médico específico para pacientes - Vista desde perspectiva del paciente
  */
+import { logger } from '@autamedica/shared'
 
 // Usando una implementación simple sin zustand por ahora
 interface PatientMedicalEntry {
@@ -126,7 +127,7 @@ class PatientMedicalStore {
     await this.syncWithBackend()
   }
 
-  async recordVitalSigns(vitals: PatientMedicalEntry['metadata']['vitals'], patientId: string) {
+  async recordVitalSigns(vitals: { weight?: number; bloodPressure?: string; heartRate?: number; temperature?: number }, patientId: string) {
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'vital_sign',
@@ -173,7 +174,6 @@ class PatientMedicalStore {
   }
 
   getHealthSummary() {
-    const symptoms = this.getSymptomTrends()
     const medication = this.getMedicationAdherence()
     const vitals = this.state.vitals.slice(-1)[0] // Últimos signos vitales
 
@@ -261,4 +261,4 @@ export function usePatientMedicalStore() {
 }
 
 // Necesario para useState
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'

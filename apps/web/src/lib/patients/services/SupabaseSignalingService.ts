@@ -11,8 +11,8 @@
  * - Real-time bidireccional
  */
 
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@autamedica/shared';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 export type SignalingMessageType =
   | 'offer'
@@ -84,14 +84,14 @@ export class SupabaseSignalingService {
       });
 
       // Suscribirse a eventos de presencia
-      this.channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      this.channel.on('presence', { event: 'join' }, ({ key }) => {
         logger.info('[Signaling] Peer joined:', key);
         if (key !== this.userId && this.callbacks.onPeerJoined) {
           this.callbacks.onPeerJoined(key);
         }
       });
 
-      this.channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+      this.channel.on('presence', { event: 'leave' }, ({ key }) => {
         logger.info('[Signaling] Peer left:', key);
         if (key !== this.userId && this.callbacks.onPeerLeft) {
           this.callbacks.onPeerLeft(key);
@@ -99,7 +99,7 @@ export class SupabaseSignalingService {
       });
 
       // Suscribirse al canal
-      await this.channel.subscribe(async (status) => {
+      this.channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           logger.info('[Signaling] Subscribed to room:', roomId);
 

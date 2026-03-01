@@ -2,6 +2,7 @@
  * WebRTC Debug Utility
  * Provides detailed logging for WebRTC connections
  */
+import { logger } from '@autamedica/shared';
 
 export class WebRTCDebugger {
   private prefix: string
@@ -22,7 +23,7 @@ export class WebRTCDebugger {
     return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`
   }
 
-  private log(level: 'info' | 'warn' | 'error' | 'success', message: string, data?: any) {
+  private log(message: string, data?: any) {
     if (!this.enabled) return
 
     const time = this.formatTime()
@@ -40,31 +41,23 @@ export class WebRTCDebugger {
       this.logHistory = this.logHistory.slice(-100)
     }
 
-    // Console output with styling
-    const styles = {
-      info: 'color: #3B82F6; font-weight: bold;',
-      warn: 'color: #F59E0B; font-weight: bold;',
-      error: 'color: #EF4444; font-weight: bold;',
-      success: 'color: #10B981; font-weight: bold;'
-    }
-
     // logger.info(`%c${fullMessage}`, styles[level], data || '')
   }
 
   info(message: string, data?: any) {
-    this.log('info', message, data)
+    this.log(message, data)
   }
 
   warn(message: string, data?: any) {
-    this.log('warn', message, data)
+    this.log(message, data)
   }
 
   error(message: string, data?: any) {
-    this.log('error', message, data)
+    this.log(message, data)
   }
 
   success(message: string, data?: any) {
-    this.log('success', message, data)
+    this.log(message, data)
   }
 
   // Track detailed state
@@ -297,7 +290,7 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
   const originalOnTrack = pc.ontrack
   pc.ontrack = (event) => {
     webrtcDebugger.logTrackEvent(event)
-    if (originalOnTrack) originalOnTrack(event)
+    if (originalOnTrack) originalOnTrack.call(pc, event)
   }
 
   const originalOnIceCandidate = pc.onicecandidate
@@ -305,19 +298,19 @@ export function attachWebRTCDebugger(pc: RTCPeerConnection, role: 'doctor' | 'pa
     if (event.candidate) {
       webrtcDebugger.logICECandidate(event.candidate, 'sending')
     }
-    if (originalOnIceCandidate) originalOnIceCandidate(event)
+    if (originalOnIceCandidate) originalOnIceCandidate.call(pc, event)
   }
 
   const originalOnConnectionStateChange = pc.onconnectionstatechange
-  pc.onconnectionstatechange = () => {
+  pc.onconnectionstatechange = (event) => {
     webrtcDebugger.info(`Connection state changed to: ${pc.connectionState}`)
-    if (originalOnConnectionStateChange) originalOnConnectionStateChange()
+    if (originalOnConnectionStateChange) originalOnConnectionStateChange.call(pc, event)
   }
 
   const originalOnIceConnectionStateChange = pc.oniceconnectionstatechange
-  pc.oniceconnectionstatechange = () => {
+  pc.oniceconnectionstatechange = (event) => {
     webrtcDebugger.info(`ICE connection state changed to: ${pc.iceConnectionState}`)
-    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange()
+    if (originalOnIceConnectionStateChange) originalOnIceConnectionStateChange.call(pc, event)
   }
 
   return webrtcDebugger
