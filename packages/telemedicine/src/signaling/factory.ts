@@ -15,7 +15,7 @@ export function createSignaling(
     userType,
     ...(roomId ? { roomId } : {}),
   })
-  const wsUrl = `${base}?${qs.toString()}`
-  const debug = getOptionalClientEnv('NEXT_PUBLIC_WEBRTC_DEBUG') === '1'
+  const _wsUrl = `${base}?${qs.toString()}`
+  const _debug = getOptionalClientEnv('NEXT_PUBLIC_WEBRTC_DEBUG') === '1'
   return new SignalingClient(userId, userType, roomId)
 }

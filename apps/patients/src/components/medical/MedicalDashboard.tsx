@@ -29,7 +29,6 @@ export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
     lastSymptom: 'Ninguno',
     lastVitals: null
   };
-  const symptomTrends = store.getSymptomTrends?.() || [];
   const medicationAdherence = store.getMedicationAdherence?.() || { adherenceScore: 0 };
 
   // Quick actions for medical tracking

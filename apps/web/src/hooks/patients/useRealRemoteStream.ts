@@ -129,7 +129,7 @@ export function useMultipleRemoteStreams(
     remoteParticipants.forEach((participant) => {
       const handleTrackSubscribed = (
         track: RemoteTrack,
-        publication: RemoteTrackPublication
+        _publication: RemoteTrackPublication
       ) => {
         if (track.kind === Track.Kind.Video) {
           const mediaStream = new MediaStream([track.mediaStreamTrack]);

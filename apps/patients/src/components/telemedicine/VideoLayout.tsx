@@ -105,7 +105,7 @@ function SpeakerLayout({
   isSwapped: boolean;
   pipPosition: PIPPosition;
   onSwap: () => void;
-  onPIPPositionChange: (pos: PIPPosition) => void;
+  onPIPPositionChange: (_pos: PIPPosition) => void;
   className: string;
 }) {
   // Si está swapped, invertir cuál es grande y cuál es PIP
@@ -249,7 +249,7 @@ export function ViewModeSelector({
   onChange,
 }: {
   currentMode: VideoViewMode;
-  onChange: (mode: VideoViewMode) => void;
+  onChange: (_mode: VideoViewMode) => void;
 }) {
   const modes: { value: VideoViewMode; icon: React.ReactNode; label: string }[] = [
     { value: 'speaker', icon: <Maximize className="h-4 w-4" />, label: 'Speaker' },

@@ -26,7 +26,7 @@ export function SessionChat({ sessionId, userId, userRole, className = '' }: Ses
     error,
     sendMessage,
     deleteMessage,
-    markAsRead,
+    _markAsRead,
     setTyping,
   } = useSessionChat({
     sessionId,

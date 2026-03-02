@@ -19,9 +19,6 @@ export default function AnamnesisPage() {
   // Hook de Supabase para anamnesis
   const {
     anamnesis,
-    progress: _dbProgress,
-    loading: _loading,
-    error: _error,
     createAnamnesis,
     updateSection,
     updateAnamnesis,

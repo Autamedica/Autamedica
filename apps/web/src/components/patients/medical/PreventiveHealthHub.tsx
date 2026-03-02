@@ -77,7 +77,7 @@ export function PreventiveHealthHub({ patientId }: PreventiveHealthHubProps) {
     recommendations,
     isLoading,
     isLoadingRecommendations,
-    error,
+    error: _error,
     scheduleScreening,
     markAsCompleted,
     cancelScreening

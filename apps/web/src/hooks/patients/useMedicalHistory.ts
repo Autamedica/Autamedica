@@ -39,7 +39,7 @@ export function useMedicalHistory(patientId?: PatientId) {
       if (recordsError) throw recordsError
 
       // Fetch from anamnesis table for chronic conditions and allergies
-      const { data: anamnesisData } = await supabase
+      const { data: _anamnesisData } = await supabase
         .from('anamnesis')
         .select('*')
         .eq('patient_id', userId)

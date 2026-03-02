@@ -4,7 +4,7 @@ import React from 'react';
 
 interface NavigationProps {
   selectedView: string;
-  onViewChange: (view: string) => void;
+  onViewChange: React.Dispatch<string>;
 }
 
 const navigationItems = [

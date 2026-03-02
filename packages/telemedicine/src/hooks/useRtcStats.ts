@@ -88,10 +88,10 @@ export function useRtcStats(
     try {
       const peerConnections = client.getPeerConnections()
       const statsData = createEmptyStats()
-      let validConnections = 0
+      let _validConnections = 0
 
       // Aggregate stats from all peer connections
-      for (const [userId, pc] of peerConnections) {
+      for (const [_userId, pc] of peerConnections) {
         if (pc.connectionState !== 'connected') continue
 
         const stats = await pc.getStats()
@@ -157,7 +157,7 @@ export function useRtcStats(
 
         // Store current stats for next calculation
         previousStatsRef.current = currentStats
-        validConnections++
+        _validConnections++
       }
 
       // Calculate connection quality
@@ -271,7 +271,7 @@ export function useRtcStats(
 
   // Auto-start collection when client becomes available
   useEffect(() => {
-    if (opts.autoStart && client && client.getConnectionState() === 'connected') {
+    if (opts.autoStart && client?.getConnectionState() === 'connected') {
       startCollection()
     }
 

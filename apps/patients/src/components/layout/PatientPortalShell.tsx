@@ -4,11 +4,11 @@ import React, { createContext, useContext, useState } from 'react';
 
 interface PatientPortalContextType {
   isFocusMode: boolean;
-  setFocusMode: (focus: boolean) => void;
+  setFocusMode: (_focus: boolean) => void;
   activePanel: string | null;
-  setActivePanel: (panel: string | null) => void;
+  setActivePanel: (_panel: string | null) => void;
   isQuickActionsVisible: boolean;
-  setQuickActionsVisible: (visible: boolean) => void;
+  setQuickActionsVisible: (_visible: boolean) => void;
 }
 
 const PatientPortalContext = createContext<PatientPortalContextType | null>(null);

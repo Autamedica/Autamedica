@@ -98,7 +98,7 @@ export async function uploadSessionFile(
   file: File,
   userId: string,
   sessionId: string,
-  onProgress?: (progress: number) => void
+  _onProgress?: (progress: number) => void
 ): Promise<FileUploadResult> {
   const supabase = getSupabaseClient();
 

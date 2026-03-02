@@ -37,7 +37,7 @@ export function FileSharing({
     uploadFile,
     uploadFiles,
     deleteFile,
-    refreshFiles,
+    _refreshFiles,
     downloadFile,
   } = useSessionFiles({ userId, sessionId });
 

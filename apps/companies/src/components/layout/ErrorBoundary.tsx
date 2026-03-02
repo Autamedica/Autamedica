@@ -89,7 +89,7 @@ interface ErrorFallbackProps {
   resetErrorBoundary: () => void;
 }
 
-export function ErrorFallback({ error: _error, resetErrorBoundary }: ErrorFallbackProps) {
+export function ErrorFallback({ resetErrorBoundary }: ErrorFallbackProps) {
   return (
     <div className="min-h-[400px] flex items-center justify-center p-4">
       <div className="text-center max-w-md mx-auto">

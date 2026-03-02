@@ -9,7 +9,7 @@ import { useModalAccessibility } from '@/hooks/useModalAccessibility';
 interface CreateAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateAppointmentInput) => Promise<void>;
+  onSubmit: (_data: CreateAppointmentInput) => Promise<void>;
 }
 
 export function CreateAppointmentModal({

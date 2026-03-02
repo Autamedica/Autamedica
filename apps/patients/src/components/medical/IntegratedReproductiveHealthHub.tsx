@@ -52,15 +52,12 @@ export function IntegratedReproductiveHealthHub({
   const {
     specialists,
     isLoading: loadingSpecialists,
-    refetch: refetchSpecialists
   } = useReproductiveHealthSpecialists({
     availableOnly: false,
     certifiedOnly: true
   });
 
   const {
-    appointments,
-    isLoading: loadingAppointments,
     createAppointment
   } = useReproductiveHealthAppointments({
     patientId,
@@ -450,7 +447,6 @@ function CentersTabIntegrated({
 function ChatTabIntegrated({
   chats,
   isLoading,
-  patientId
 }: any) {
   if (isLoading) {
     return (
@@ -513,7 +509,7 @@ function ChatTabIntegrated({
 }
 
 // Modal de Agendar Cita
-function AppointmentModal({ onClose, onCreate, specialistId }: any) {
+function AppointmentModal({ onClose, onCreate }: any) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-stone-300 rounded-2xl max-w-md w-full p-6">

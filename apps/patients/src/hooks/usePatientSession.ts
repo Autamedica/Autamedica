@@ -42,7 +42,7 @@ export function usePatientSession(): UsePatientSessionResult {
   const isMountedRef = useRef(false);
 
   const safeSetState = useCallback(
-    (updater: (prev: PatientSessionState) => PatientSessionState) => {
+    (updater: (_prev: PatientSessionState) => PatientSessionState) => {
       if (isMountedRef.current) {
         setState(updater);
       }

@@ -16,9 +16,9 @@ interface UseAppointmentsResult {
   appointments: AppointmentWithDoctor[];
   loading: boolean;
   error: string | null;
-  createAppointment: (data: CreateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
-  updateAppointment: (id: string, data: UpdateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
-  cancelAppointment: (id: string) => Promise<boolean>;
+  createAppointment: (_data: CreateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
+  updateAppointment: (_id: string, _data: UpdateAppointmentInput) => Promise<AppointmentWithDoctor | null>;
+  cancelAppointment: (_id: string) => Promise<boolean>;
   refreshAppointments: () => Promise<void>;
 }
 

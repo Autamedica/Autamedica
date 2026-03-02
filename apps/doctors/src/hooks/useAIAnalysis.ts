@@ -114,10 +114,6 @@ export function useAIAnalysis(patientId: UUID | null): UseAIAnalysisResult {
     }
   }, [patientId])
 
-  const refresh = useCallback(async () => {
-    await fetchAnalyses()
-  }, [fetchAnalyses])
-
   useEffect(() => {
     fetchAnalyses()
   }, [fetchAnalyses])

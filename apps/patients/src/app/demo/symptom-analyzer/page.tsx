@@ -260,7 +260,7 @@ function textToFeatures(text: string): number[] {
   return features;
 }
 
-function simulateMLPrediction(features: number[], text: string): SymptomAnalysis {
+function simulateMLPrediction(features: number[], _text: string): SymptomAnalysis {
   const urgentScore = features[0];
   const painScore = features[1];
   const feverScore = features[2];

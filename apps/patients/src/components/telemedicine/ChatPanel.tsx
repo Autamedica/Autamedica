@@ -17,7 +17,7 @@ export interface ChatPanelProps {
   messages: ChatMessage[]
   localUserId: string
   localUserName: string
-  onSendMessage: (message: string) => void | Promise<void>
+  onSendMessage: (_message: string) => void | Promise<void>
   onClose: () => void
   isOpen: boolean
   className?: string
@@ -47,7 +47,6 @@ export interface ChatPanelProps {
 export function ChatPanel({
   messages,
   localUserId,
-  localUserName,
   onSendMessage,
   onClose,
   isOpen,

@@ -29,7 +29,7 @@ interface RootLayoutProps {
 
 function LayoutContent({ children }: RootLayoutProps) {
   const [activeProfile, setActiveProfile] = useState('emergency');
-  const [notifications, _setNotifications] = useState(3);
+  const [notifications] = useState(3);
 
   // Get user data from context
   const { companyName, adminName, userMemberRole } = useUser();

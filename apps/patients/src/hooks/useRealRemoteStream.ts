@@ -32,7 +32,7 @@ export function useRealRemoteStream(
      */
     const handleTrackSubscribed = (
       track: RemoteTrack,
-      publication: RemoteTrackPublication
+      _publication: RemoteTrackPublication
     ) => {
       // Solo nos interesan los tracks de video
       if (track.kind === Track.Kind.Video) {
@@ -53,7 +53,7 @@ export function useRealRemoteStream(
      */
     const handleTrackUnsubscribed = (
       track: RemoteTrack,
-      publication: RemoteTrackPublication
+      _publication: RemoteTrackPublication
     ) => {
       if (track.kind === Track.Kind.Video) {
         setRemoteStream(null);
@@ -130,7 +130,7 @@ export function useMultipleRemoteStreams(
     remoteParticipants.forEach((participant) => {
       const handleTrackSubscribed = (
         track: RemoteTrack,
-        publication: RemoteTrackPublication
+        _publication: RemoteTrackPublication
       ) => {
         if (track.kind === Track.Kind.Video) {
           const mediaStream = new MediaStream([track.mediaStreamTrack]);

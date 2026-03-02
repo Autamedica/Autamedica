@@ -8,7 +8,7 @@ interface AnthropicMessage {
 
 interface AnthropicClient {
   messages: {
-    create(params: Record<string, unknown>): Promise<AnthropicMessage>;
+    create(_params: Record<string, unknown>): Promise<AnthropicMessage>;
   };
 }
 
@@ -58,7 +58,7 @@ export class AIAnalysisService {
     if (!featureFlags.USE_MOCK_AI && anthropicKey) {
       try {
         // Dynamic require to avoid hard dependency on @anthropic-ai/sdk
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+         
         const Anthropic = require('@anthropic-ai/sdk').default;
         this.anthropic = new Anthropic({
           apiKey: anthropicKey,

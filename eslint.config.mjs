@@ -354,9 +354,42 @@ js.configs.recommended,
     'no-restricted-syntax': 'off',
     'import/no-anonymous-default-export': 'off',
     'unused-imports/no-unused-imports': 'warn',
-    'unused-imports/no-unused-vars': 'warn',
-    'no-unused-vars': 'warn',
-    '@typescript-eslint/no-unused-vars': 'warn'
+    'unused-imports/no-unused-vars': [
+      'warn',
+      {
+        vars: 'all',
+        varsIgnorePattern: '^_',
+        args: 'after-used',
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+        caughtErrors: 'none'
+      }
+    ],
+    'no-unused-vars': [
+      'warn',
+      {
+        vars: 'all',
+        varsIgnorePattern: '^_',
+        args: 'after-used',
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+        caughtErrors: 'none'
+      }
+    ],
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        vars: 'all',
+        varsIgnorePattern: '^_',
+        args: 'after-used',
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+        caughtErrors: 'none'
+      }
+    ]
   }
 }, // Script files
 {

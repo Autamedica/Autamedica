@@ -17,7 +17,7 @@ type WaitingState = 'ringing' | 'accepted' | 'declined' | 'canceled' | 'timeout'
 export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
   const [state, setState] = useState<WaitingState>('ringing')
   const [timeLeft, setTimeLeft] = useState(45) // 45 seconds timeout
-  const [call, setCall] = useState<Call | null>(null)
+  const [_call, setCall] = useState<Call | null>(null)
   const router = useRouter()
 
   useEffect(() => {

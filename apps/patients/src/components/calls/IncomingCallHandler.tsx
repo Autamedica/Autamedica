@@ -11,7 +11,7 @@ interface IncomingCallHandlerProps {
   patientName?: string
 }
 
-export function IncomingCallHandler({ patientId, patientName: _patientName = 'Paciente' }: IncomingCallHandlerProps) {
+export function IncomingCallHandler({ patientId }: IncomingCallHandlerProps) {
   const [incomingCall, setIncomingCall] = useState<InviteMessage | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const router = useRouter()

@@ -22,9 +22,9 @@ export interface WaitingRoomProps {
 type DeviceTestStatus = 'untested' | 'testing' | 'success' | 'failed';
 
 export function WaitingRoom({
-  sessionId,
-  userId,
-  userRole,
+  sessionId: _sessionId,
+  userId: _userId,
+  userRole: _userRole,
   onReady,
   estimatedWaitTime = 5,
   className = '',

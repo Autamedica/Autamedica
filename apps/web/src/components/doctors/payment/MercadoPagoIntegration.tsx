@@ -63,7 +63,7 @@ export function MercadoPagoCheckout({
   const initializeMercadoPago = async () => {
     try {
       // En producción, esto se cargaría desde las variables de entorno
-      const publicKey = 'TEST-your-public-key'
+      const _publicKey = 'TEST-your-public-key'
 
       // Simulación de inicialización del SDK
       // logger.info('Inicializando MercadoPago SDK con clave:', publicKey)
@@ -373,12 +373,12 @@ export function MercadoPagoCheckout({
 }
 
 export function MercadoPagoSubscriptionManager({
-  currentPlanId,
+  currentPlanId: _currentPlanId,
   onPlanChange
 }: MercadoPagoSubscriptionManagerProps) {
-  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'cancelled' | 'past_due'>('active')
-  const [nextBillingDate, setNextBillingDate] = useState('2024-10-15')
-  const [paymentHistory, setPaymentHistory] = useState([
+  const [subscriptionStatus, _setSubscriptionStatus] = useState<'active' | 'cancelled' | 'past_due'>('active')
+  const [nextBillingDate, _setNextBillingDate] = useState('2024-10-15')
+  const [paymentHistory, _setPaymentHistory] = useState([
     {
       id: 'pay_001',
       date: '2024-09-15',

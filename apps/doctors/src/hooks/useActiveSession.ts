@@ -19,7 +19,7 @@ export interface UseActiveSessionResult {
   session: ActiveSessionData | null
   loading: boolean
   error: string | null
-  startSession: (patientId: UUID, sessionType: ActiveSessionData['sessionType']) => Promise<void>
+  startSession: (_patientId: UUID, _sessionType: ActiveSessionData['sessionType']) => Promise<void>
   endSession: () => Promise<void>
 }
 

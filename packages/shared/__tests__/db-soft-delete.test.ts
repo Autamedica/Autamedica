@@ -95,7 +95,7 @@ describe('DB Wrapper - Soft Delete Safety', () => {
       { patient_id: '123', start_time: '10:00', end_time: null }
     ];
 
-    const mockQuery = setupMockQuery(mockData);
+    setupMockQuery(mockData);
 
     const result = await selectActive('appointments');
 
@@ -110,7 +110,7 @@ describe('DB Wrapper - Soft Delete Safety', () => {
       { patient_id: '123', start_time: '10:00' }
     ];
 
-    const mockQuery = setupMockQuery(mockData);
+    setupMockQuery(mockData);
 
     const result = await selectActive('appointments', '*', { transform: false });
 
@@ -176,7 +176,7 @@ describe('DB Wrapper - Soft Delete Safety', () => {
       created_at: '2025-01-01T00:00:00Z'
     };
 
-    const mockQuery = setupMockQuery(mockInserted);
+    setupMockQuery(mockInserted);
 
     const result = await insertRecord('appointments', {
       patientId: '123',
@@ -267,7 +267,7 @@ describe('DB Wrapper - Data Integrity', () => {
       deleted_at: null
     };
 
-    const mockQuery = setupMockQuery([mockData]);
+    setupMockQuery([mockData]);
 
     // Leer de BD (snake_case → camelCase)
     const camelData = await selectActive('appointments');

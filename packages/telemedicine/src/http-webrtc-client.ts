@@ -151,7 +151,7 @@ export class HttpWebRTCClient {
       this.emit('local-stream', this.localStream)
 
       // Add tracks to all existing peer connections
-      for (const [userId, pc] of this.peerConnections) {
+      for (const [_userId, pc] of this.peerConnections) {
         this.localStream.getTracks().forEach(track => {
           pc.addTrack(track, this.localStream!)
         })
@@ -201,7 +201,7 @@ export class HttpWebRTCClient {
 
   private cleanup(): void {
     // Close all peer connections
-    for (const [userId, pc] of this.peerConnections) {
+    for (const [_userId, pc] of this.peerConnections) {
       pc.close()
     }
     this.peerConnections.clear()

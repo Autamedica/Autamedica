@@ -265,15 +265,15 @@ export interface UsePrescriptionsResult {
   prescriptions: Prescription[]
   loading: boolean
   error: string | null
-  addPrescription: (prescription: Omit<Prescription, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
-  updatePrescription: (id: UUID, updates: Partial<Prescription>) => Promise<void>
+  addPrescription: (_prescription: Omit<Prescription, 'id' | 'created_at' | 'updated_at'>) => Promise<void>
+  updatePrescription: (_id: UUID, _updates: Partial<Prescription>) => Promise<void>
 }
 
 export interface UseVitalSignsResult {
   vitalSigns: VitalSigns[]
   loading: boolean
   error: string | null
-  addVitalSigns: (vitals: Omit<VitalSigns, 'id' | 'created_at'>) => Promise<void>
+  addVitalSigns: (_vitals: Omit<VitalSigns, 'id' | 'created_at'>) => Promise<void>
   latest: VitalSigns | null
 }
 
@@ -281,7 +281,7 @@ export interface UseAIAnalysisResult {
   analyses: AIAnalysis[]
   loading: boolean
   error: string | null
-  createAnalysis: (input: {
+  createAnalysis: (_input: {
     symptoms: string[]
     text: string
     context?: string

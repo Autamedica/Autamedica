@@ -19,9 +19,9 @@ interface UseAppointmentsResult {
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  createAppointment: (data: ReproductiveHealthAppointmentInsert) => Promise<{ success: boolean; appointmentId?: string; error?: unknown }>;
-  updateAppointment: (id: string, data: ReproductiveHealthAppointmentUpdate) => Promise<{ success: boolean; error?: unknown }>;
-  cancelAppointment: (id: string) => Promise<{ success: boolean; error?: unknown }>;
+  createAppointment: (_data: ReproductiveHealthAppointmentInsert) => Promise<{ success: boolean; appointmentId?: string; error?: unknown }>;
+  updateAppointment: (_id: string, _data: ReproductiveHealthAppointmentUpdate) => Promise<{ success: boolean; error?: unknown }>;
+  cancelAppointment: (_id: string) => Promise<{ success: boolean; error?: unknown }>;
 }
 
 export function useReproductiveHealthAppointments(

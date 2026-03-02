@@ -54,9 +54,9 @@ interface UseAnamnesisReturn {
   progress: ApiProgress | null;
   loading: boolean;
   error: string | null;
-  createAnamnesis: (initial?: Partial<ApiAnamnesis>) => Promise<ApiAnamnesis | null>;
-  updateAnamnesis: (update: Partial<ApiAnamnesis>) => Promise<boolean>;
-  updateSection: (section: AnamnesisSection, data: Record<string, AnamnesisFieldValue>) => Promise<boolean>;
+  createAnamnesis: (_initial?: Partial<ApiAnamnesis>) => Promise<ApiAnamnesis | null>;
+  updateAnamnesis: (_update: Partial<ApiAnamnesis>) => Promise<boolean>;
+  updateSection: (_section: AnamnesisSection, _data: Record<string, AnamnesisFieldValue>) => Promise<boolean>;
   refreshAnamnesis: () => Promise<void>;
 }
 

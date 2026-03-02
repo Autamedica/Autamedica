@@ -49,7 +49,7 @@ const CURRENT_MEDICATIONS: MedicationEntry[] = [
 ];
 
 export function MedicationTrackerModal({ isOpen, onClose, patientId = 'current-patient' }: MedicationTrackerModalProps) {
-  const { recordMedicationTaken, isLoading } = usePatientMedicalStore();
+  const { recordMedicationTaken } = usePatientMedicalStore();
 
   const [medications, setMedications] = useState<MedicationEntry[]>(CURRENT_MEDICATIONS);
   const [showAddForm, setShowAddForm] = useState(false);

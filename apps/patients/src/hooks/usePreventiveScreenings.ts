@@ -28,9 +28,9 @@ interface UsePreventiveScreeningsResult {
   error: string | null;
 
   // Acciones
-  scheduleScreening: (screeningId: string, scheduledDate: Date) => Promise<{ success: boolean; error?: unknown }>;
-  markAsCompleted: (patientScreeningId: string, resultSummary?: string) => Promise<{ success: boolean; error?: unknown }>;
-  cancelScreening: (patientScreeningId: string) => Promise<{ success: boolean; error?: unknown }>;
+  scheduleScreening: (_screeningId: string, _scheduledDate: Date) => Promise<{ success: boolean; error?: unknown }>;
+  markAsCompleted: (_patientScreeningId: string, _resultSummary?: string) => Promise<{ success: boolean; error?: unknown }>;
+  cancelScreening: (_patientScreeningId: string) => Promise<{ success: boolean; error?: unknown }>;
   refetch: () => Promise<void>;
 }
 

@@ -31,8 +31,6 @@ export default function CommunityPage() {
     error,
     loadGroups,
     loadPosts,
-    createPost: _createPost,
-    addReaction: _addReaction,
   } = useCommunity();
 
   // Cargar datos iniciales

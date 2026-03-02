@@ -22,7 +22,7 @@ export interface CreateMedicalAllergyInput {
 }
 
 interface AnamnesisFormProps {
-  onSubmit: (data: AnamnesisFormData) => void;
+  onSubmit: (_data: AnamnesisFormData) => void;
   className?: string;
 }
 

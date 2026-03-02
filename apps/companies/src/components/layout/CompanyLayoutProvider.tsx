@@ -6,11 +6,11 @@ import { ErrorBoundary } from './ErrorBoundary';
 
 interface CompanyLayoutContextType {
   sidebarCollapsed: boolean;
-  setSidebarCollapsed: (collapsed: boolean) => void;
+  setSidebarCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
   currentPath: string;
   breadcrumbs: BreadcrumbItem[];
   isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface BreadcrumbItem {

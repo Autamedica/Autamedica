@@ -262,7 +262,7 @@ export class SignalingService extends EventEmitter {
    * Enviar mensaje al servidor
    */
   private send(message: SignalingMessage): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
       logger.error('[SignalingService] Cannot send message: WebSocket not connected');
       return;
     }
@@ -335,7 +335,7 @@ export class SignalingService extends EventEmitter {
    */
   private startHeartbeat(): void {
     this.heartbeatTimer = setInterval(() => {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({ type: 'ping' }));
       }
     }, this.config.heartbeatInterval);

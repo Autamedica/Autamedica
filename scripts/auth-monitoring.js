@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-require-imports */
+ 
 
 /**
  * AutaMedica Auth SSO Monitoring Script

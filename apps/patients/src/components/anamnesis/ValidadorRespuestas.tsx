@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 interface ValidadorRespuestasProps {
   value: string;
   fieldType: string;
-  onWarning: (warning: string | null) => void;
+  onWarning: (_warning: string | null) => void;
 }
 
 export function ValidadorRespuestas({ value, fieldType, onWarning }: ValidadorRespuestasProps) {

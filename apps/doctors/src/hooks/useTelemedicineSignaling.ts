@@ -38,9 +38,9 @@ export interface TelemedicineSignalingState {
 export interface TelemedicineSignalingControls {
   connect: () => Promise<void>
   disconnect: () => void
-  sendOffer: (description: RTCSessionDescriptionInit, targetId?: string) => void
-  sendAnswer: (description: RTCSessionDescriptionInit, targetId?: string) => void
-  sendIceCandidate: (candidate: RTCIceCandidateInit, targetId?: string) => void
+  sendOffer: (_description: RTCSessionDescriptionInit, _targetId?: string) => void
+  sendAnswer: (_description: RTCSessionDescriptionInit, _targetId?: string) => void
+  sendIceCandidate: (_candidate: RTCIceCandidateInit, _targetId?: string) => void
   sendLeave: () => void
 }
 

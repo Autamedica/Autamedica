@@ -18,7 +18,7 @@ interface PatientProfileFormProps {
   patient: Patient | null;
   isSaving: boolean;
   onCancel: () => void;
-  onSubmit: (payload: PatientProfileFormPayload) => Promise<void> | void;
+  onSubmit: (_payload: PatientProfileFormPayload) => Promise<void> | void;
 }
 
 interface FormState {

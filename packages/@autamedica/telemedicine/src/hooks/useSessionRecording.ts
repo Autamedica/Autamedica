@@ -150,7 +150,7 @@ export function useSessionRecording(options: UseSessionRecordingOptions): UseSes
       }
 
       // Stop MediaRecorder if exists
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      if (mediaRecorderRef.current?.state === 'recording') {
         mediaRecorderRef.current.stop();
       }
 

@@ -6,7 +6,7 @@ import { DoctorEducation, MedicalCertification, type ISODateString } from '@auta
 interface EducationCertificationStepProps {
   education: DoctorEducation[];
   certifications: MedicalCertification[];
-  onUpdate: (education: DoctorEducation[], certifications: MedicalCertification[]) => void;
+  onUpdate: (_education: DoctorEducation[], _certifications: MedicalCertification[]) => void;
   onNext: () => void;
   onBack: () => void;
 }

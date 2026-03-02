@@ -14,7 +14,7 @@ export interface UsePatientProfileReturn {
   isSaving: boolean;
   error: string | null;
   success: boolean;
-  updateProfile: (input: {
+  updateProfile: (_input: {
     profile?: ProfileUpdateInput;
     patient?: PatientProfileUpdateInput;
   }) => Promise<PatientProfileUpdateResult | null>;

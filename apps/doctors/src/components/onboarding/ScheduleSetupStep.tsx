@@ -7,7 +7,7 @@ interface ScheduleSetupStepProps {
   schedule: WeeklySchedule;
   consultationFee?: number;
   acceptedInsurance: string[];
-  onUpdate: (schedule: WeeklySchedule, consultationFee?: number, acceptedInsurance?: string[]) => void;
+  onUpdate: (_schedule: WeeklySchedule, _consultationFee?: number, _acceptedInsurance?: string[]) => void;
   onNext: () => void;
   onBack: () => void;
 }

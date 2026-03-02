@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 interface PersonalizedScreeningCalculatorProps {
   defaultAge?: number;
   defaultGender?: 'male' | 'female';
-  onCalculate?: (age: number, gender: 'male' | 'female') => void;
+  onCalculate?: (_age: number, _gender: 'male' | 'female') => void;
 }
 
 export function PersonalizedScreeningCalculator({

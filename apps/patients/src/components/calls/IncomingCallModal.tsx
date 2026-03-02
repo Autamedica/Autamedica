@@ -14,8 +14,8 @@ interface IncomingCall {
 }
 
 interface IncomingCallModalProps {
-  onAccept: (callId: string, roomId: string) => void
-  onDecline: (callId: string) => void
+  onAccept: (_callId: string, _roomId: string) => void
+  onDecline: (_callId: string) => void
 }
 
 export function IncomingCallModal({ onAccept, onDecline }: IncomingCallModalProps) {

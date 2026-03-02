@@ -33,12 +33,12 @@ export interface SignalingMessage {
 }
 
 export interface SignalingCallbacks {
-  onOffer?: (offer: RTCSessionDescriptionInit, from: string) => void;
-  onAnswer?: (answer: RTCSessionDescriptionInit, from: string) => void;
-  onIceCandidate?: (candidate: RTCIceCandidateInit, from: string) => void;
-  onPeerJoined?: (peerId: string) => void;
-  onPeerLeft?: (peerId: string) => void;
-  onError?: (error: Error) => void;
+  onOffer?: (_offer: RTCSessionDescriptionInit, _from: string) => void;
+  onAnswer?: (_answer: RTCSessionDescriptionInit, _from: string) => void;
+  onIceCandidate?: (_candidate: RTCIceCandidateInit, _from: string) => void;
+  onPeerJoined?: (_peerId: string) => void;
+  onPeerLeft?: (_peerId: string) => void;
+  onError?: (_error: Error) => void;
 }
 
 export class SupabaseSignalingService {
@@ -84,14 +84,14 @@ export class SupabaseSignalingService {
       });
 
       // Suscribirse a eventos de presencia
-      this.channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
+      this.channel.on('presence', { event: 'join' }, ({ key }) => {
         logger.info('[Signaling] Peer joined:', key);
         if (key !== this.userId && this.callbacks.onPeerJoined) {
           this.callbacks.onPeerJoined(key);
         }
       });
 
-      this.channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+      this.channel.on('presence', { event: 'leave' }, ({ key }) => {
         logger.info('[Signaling] Peer left:', key);
         if (key !== this.userId && this.callbacks.onPeerLeft) {
           this.callbacks.onPeerLeft(key);

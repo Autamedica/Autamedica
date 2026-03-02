@@ -28,7 +28,7 @@ function createMockNextRequest(url: string, opts?: { host?: string }) {
   }
 }
 
-const mockNextResponse = {
+const _mockNextResponse = {
   cookies: new MockCookieStore(),
   headers: new Headers(),
 }
@@ -154,7 +154,7 @@ describe('Auth Middleware', () => {
     it('should allow access to public paths without auth', async () => {
       const request = createMockNextRequest('http://localhost:3000/api/health')
 
-      const result = await authMiddleware(request as never, {
+      await authMiddleware(request as never, {
         publicPaths: ['/api/health'],
       })
 
@@ -165,7 +165,7 @@ describe('Auth Middleware', () => {
     it('should allow access to nested public paths', async () => {
       const request = createMockNextRequest('http://localhost:3000/auth/login')
 
-      const result = await authMiddleware(request as never, {
+      await authMiddleware(request as never, {
         publicPaths: ['/auth'],
       })
 
@@ -197,7 +197,7 @@ describe('Auth Middleware', () => {
 
       mockGetSession.mockResolvedValue({ data: { session: null }, error: null })
 
-      const result = await authMiddleware(request as never, {
+      await authMiddleware(request as never, {
         requireAuth: false,
       })
 
@@ -262,7 +262,7 @@ describe('Auth Middleware', () => {
       mockGetSession.mockResolvedValue({ data: { session }, error: null })
       mockGetUser.mockResolvedValue({ data: { user }, error: null })
 
-      const result = await authMiddleware(request as never, {
+      await authMiddleware(request as never, {
         requireAuth: true,
         allowedRoles: ['doctor'],
       })
@@ -287,7 +287,7 @@ describe('Auth Middleware', () => {
       mockGetUser.mockResolvedValue({ data: { user }, error: null })
 
       // admin app allows organization_admin (which is what company_admin normalizes to)
-      const result = await authMiddleware(request as never, {
+      await authMiddleware(request as never, {
         requireAuth: true,
         allowedRoles: ['organization_admin', 'admin', 'platform_admin'],
       })
@@ -306,7 +306,7 @@ describe('Auth Middleware', () => {
       mockGetUser.mockResolvedValue({ data: { user }, error: null })
 
       // Since unknown_role normalizes to patient, and patients portal allows patient role
-      const result = await authMiddleware(request as never, {
+      await authMiddleware(request as never, {
         requireAuth: true,
         allowedRoles: ['patient'],
       })

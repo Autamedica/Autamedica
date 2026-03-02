@@ -155,7 +155,7 @@ export async function authMiddleware(
   const { supabase, response } = createMiddlewareClient(request)
 
   // Get session
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
   // If auth is not required and no session, allow access
   if (!options?.requireAuth && !session) {

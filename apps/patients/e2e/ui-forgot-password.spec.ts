@@ -10,7 +10,7 @@ test.describe('UI Forgot Password', () => {
   test.beforeAll(async () => {
     // Asegurar que el email existe para evitar error en reset
     const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-    const { data: created, error } = await admin.auth.admin.createUser({
+    const { data: _created, error } = await admin.auth.admin.createUser({
       email: USER.email,
       password: USER.password,
       email_confirm: true,

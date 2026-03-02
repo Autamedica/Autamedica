@@ -53,7 +53,7 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
   const [expandedAnalysis, setExpandedAnalysis] = useState<string | null>(null)
   const [showNewAnalysisForm, setShowNewAnalysisForm] = useState(false)
 
-  const { analyses, loading, error, createAnalysis } = useAIAnalysis(patientId)
+  const { analyses, loading, error, createAnalysis: _createAnalysis } = useAIAnalysis(patientId)
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {

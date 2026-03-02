@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 interface ProfileCompletionStepProps {
   bio: string;
   languages: string[];
-  onUpdate: (bio: string, languages: string[]) => void;
+  onUpdate: (_bio: string, _languages: string[]) => void;
   onComplete: () => void;
   onBack: () => void;
   isSubmitting: boolean;

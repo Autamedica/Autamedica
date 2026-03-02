@@ -32,7 +32,7 @@ export async function PATCH(request: Request) {
         const upd = await (admin as any).from('profiles').update(snake).eq('id', userId).select('*').single();
         if (upd.error) throw upd.error;
         updatedProfile = upd.data;
-      } catch (err: any) {
+      } catch {
         // Fallback to legacy: full_name
         const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || null;
         const legacy = await (admin as any).from('profiles').update({ full_name: fullName }).eq('id', userId).select('*').single();

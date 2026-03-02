@@ -16,13 +16,11 @@ import {
 } from 'lucide-react';
 import { PatientProfileForm, type PatientProfileFormPayload } from '@/components/forms/PatientProfileForm';
 import { usePatientSession } from '@/hooks/usePatientSession';
-import { useSupabase } from '@autamedica/auth/react';
 import { usePatientProfile } from '@/hooks/useProfile';
 import { ensureClientEnv, logger } from '@autamedica/shared';
 
 export default function ProfilePage() {
   const { user, profile, patient, loading, error, refresh } = usePatientSession();
-  const supabase = useSupabase();
   const { updateProfile, isSaving, success, error: updateError, resetStatus } = usePatientProfile(user?.id ?? null);
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);

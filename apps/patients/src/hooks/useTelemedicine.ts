@@ -37,16 +37,16 @@ interface UseTelemedicineReturn {
   connectionQuality: ConnectionQuality;
   loading: boolean;
   error: string | null;
-  startSession: (appointmentId: string, doctorId: string) => Promise<StartSessionResponse | null>;
+  startSession: (_appointmentId: string, _doctorId: string) => Promise<StartSessionResponse | null>;
   endSession: () => Promise<boolean>;
   toggleVideo: () => Promise<boolean>;
   toggleAudio: () => Promise<boolean>;
   toggleScreenShare: () => Promise<boolean>;
-  updateConnectionQuality: (quality: ConnectionQuality) => void;
+  updateConnectionQuality: (_quality: ConnectionQuality) => void;
   refreshSession: () => Promise<void>;
-  joinSession: (role?: string, sessionIdOverride?: string) => Promise<boolean>;
-  leaveSession: (sessionIdOverride?: string) => Promise<boolean>;
-  logEvent: (eventType: string, details?: string, sessionIdOverride?: string) => Promise<void>;
+  joinSession: (_role?: string, _sessionIdOverride?: string) => Promise<boolean>;
+  leaveSession: (_sessionIdOverride?: string) => Promise<boolean>;
+  logEvent: (_eventType: string, _details?: string, _sessionIdOverride?: string) => Promise<void>;
   livekit: LiveKitConfig | null;
 }
 

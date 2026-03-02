@@ -19,8 +19,8 @@ interface UseMedicalChatsResult {
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  createChat: (data: MedicalChatInsert) => Promise<{ success: boolean; chatId?: string; error?: unknown }>;
-  updateChatStatus: (chatId: string, status: ChatStatusType) => Promise<{ success: boolean; error?: unknown }>;
+  createChat: (_data: MedicalChatInsert) => Promise<{ success: boolean; chatId?: string; error?: unknown }>;
+  updateChatStatus: (_chatId: string, _status: ChatStatusType) => Promise<{ success: boolean; error?: unknown }>;
 }
 
 export function useMedicalChats(
@@ -209,8 +209,8 @@ interface UseChatMessagesResult {
   messages: MedicalMessage[];
   isLoading: boolean;
   error: string | null;
-  sendMessage: (content: string, contentType?: 'text' | 'image' | 'document') => Promise<{ success: boolean; error?: unknown }>;
-  markAsRead: (messageId: string) => Promise<void>;
+  sendMessage: (_content: string, _contentType?: 'text' | 'image' | 'document') => Promise<{ success: boolean; error?: unknown }>;
+  markAsRead: (_messageId: string) => Promise<void>;
 }
 
 export function useChatMessages(

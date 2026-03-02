@@ -42,14 +42,6 @@ export class WebRTCDebugger {
       this.logHistory = this.logHistory.slice(-100)
     }
 
-    // Console output with styling
-    const styles = {
-      info: 'color: #3B82F6; font-weight: bold;',
-      warn: 'color: #F59E0B; font-weight: bold;',
-      error: 'color: #EF4444; font-weight: bold;',
-      success: 'color: #10B981; font-weight: bold;'
-    }
-
     logger.info(`${fullMessage}`, data || '')
   }
 

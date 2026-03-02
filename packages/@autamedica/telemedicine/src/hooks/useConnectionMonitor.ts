@@ -82,7 +82,7 @@ export function useConnectionMonitor(options: UseConnectionMonitorOptions): UseC
 
   // On stats update callback
   const handleStatsUpdate = useCallback(
-    (stats: ConnectionStats) => {
+    (_stats: ConnectionStats) => {
       // Stats updated - will be reported on interval
     },
     []

@@ -160,7 +160,7 @@ async function parseStats(pc: RTCPeerConnection): Promise<{
   };
 
   let bitrateCount = 0;
-  let latencyCount = 0;
+  let _latencyCount = 0;
 
   stats.forEach((report) => {
     // Outbound RTP (sent)
@@ -235,7 +235,7 @@ async function parseStats(pc: RTCPeerConnection): Promise<{
       if (report.currentRoundTripTime) {
         latency = report.currentRoundTripTime * 1000; // Convert to ms
         connection.currentRoundTripTime = latency;
-        latencyCount++;
+        _latencyCount++;
       }
       if (report.availableOutgoingBitrate) {
         connection.availableOutgoingBitrate = report.availableOutgoingBitrate / 1000; // kbps
@@ -333,7 +333,7 @@ export function useConnectionQuality(options: UseConnectionQualityOptions): UseC
 
   // Auto-start monitoring when peerConnection becomes available
   useEffect(() => {
-    if (peerConnection && peerConnection.connectionState === 'connected') {
+    if (peerConnection?.connectionState === 'connected') {
       startMonitoring();
     }
 

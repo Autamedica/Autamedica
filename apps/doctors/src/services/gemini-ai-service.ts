@@ -20,11 +20,11 @@ interface GeminiResult {
 }
 
 interface GeminiModel {
-  generateContent(params: Record<string, unknown>): Promise<GeminiResult>;
+  generateContent(_params: Record<string, unknown>): Promise<GeminiResult>;
 }
 
 interface GeminiClient {
-  getGenerativeModel(params: { model: string }): GeminiModel;
+  getGenerativeModel(_params: { model: string }): GeminiModel;
 }
 
 /**
@@ -40,7 +40,7 @@ export class GeminiAIService {
     if (!featureFlags.USE_MOCK_AI && googleApiKey) {
       try {
         // Dynamic require to avoid hard dependency on @google/generative-ai
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+         
         const { GoogleGenerativeAI } = require('@google/generative-ai');
         this.genAI = new GoogleGenerativeAI(googleApiKey) as GeminiClient;
         logger.info('GeminiAIService inicializado con Gemini 2.5');
@@ -83,8 +83,6 @@ export class GeminiAIService {
     const prompt = this.buildMedicalPrompt(request);
 
     try {
-      const startTime = Date.now();
-
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
@@ -103,7 +101,7 @@ export class GeminiAIService {
 
       const response = result.response;
       const text = response.text();
-      const _processingTime = Date.now() - startTime;
+      // Processing time: Date.now() - startTime (available for future metrics)
 
       // Parsear respuesta JSON
       const analysis = this.parseGeminiResponse(text);

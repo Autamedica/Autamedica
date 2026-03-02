@@ -34,7 +34,7 @@ type SubscriptionPlan = {
 }
 
 export function SubscriptionPanel(): JSX.Element {
-  const [selectedPlan, setSelectedPlan] = useState('pro')
+  const [selectedPlan] = useState('pro')
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const [showCheckout, setShowCheckout] = useState(false)
   const [showSubscriptionManager, setShowSubscriptionManager] = useState(false)
@@ -135,7 +135,7 @@ export function SubscriptionPanel(): JSX.Element {
     setShowCheckout(true)
   }
 
-  const handlePaymentSuccess = (paymentData: any) => {
+  const handlePaymentSuccess = (_paymentData: any) => {
     // logger.info('Pago exitoso:', paymentData)
     setShowCheckout(false)
     setCheckoutPlan(null)
@@ -147,7 +147,7 @@ export function SubscriptionPanel(): JSX.Element {
     // Mostrar notificación de error al usuario
   }
 
-  const handlePlanChange = (action: string) => {
+  const handlePlanChange = (_action: string) => {
     // logger.info('Acción de plan:', action)
     // Manejar cambios en la suscripción
   }

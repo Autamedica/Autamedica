@@ -40,15 +40,15 @@ interface MedicalHistoryState {
   lastSync: string | null
 
   // Actions
-  addEntry: (entry: Omit<MedicalEntry, 'id' | 'timestamp'>) => Promise<void>
-  updateEntry: (id: string, updates: Partial<MedicalEntry>) => Promise<void>
-  deleteEntry: (id: string) => Promise<void>
+  addEntry: (_entry: Omit<MedicalEntry, 'id' | 'timestamp'>) => Promise<void>
+  updateEntry: (_id: string, _updates: Partial<MedicalEntry>) => Promise<void>
+  deleteEntry: (_id: string) => Promise<void>
   syncWithCentral: () => Promise<void>
 
   // AI-powered actions
-  generateAISummary: (patientId: string) => Promise<string>
-  suggestPrescriptions: (diagnosis: string) => Promise<string[]>
-  analyzeVitals: (vitals: any) => Promise<string>
+  generateAISummary: (_patientId: string) => Promise<string>
+  suggestPrescriptions: (_diagnosis: string) => Promise<string[]>
+  analyzeVitals: (_vitals: any) => Promise<string>
 }
 
 // Simular llamada a IA (en producción conectar con API real)
@@ -80,8 +80,7 @@ export const useMedicalHistoryStore = create<MedicalHistoryState>()(
 
       // Si es una prescripción o diagnóstico, generar análisis IA
       if (entry.type === 'diagnosis' || entry.type === 'prescription') {
-        const aiAnalysis = await get().generateAISummary(entry.patientId)
-        // logger.info('[AI Analysis]', aiAnalysis)
+        await get().generateAISummary(entry.patientId)
       }
     },
 
@@ -138,7 +137,7 @@ export const useMedicalHistoryStore = create<MedicalHistoryState>()(
       return summary
     },
 
-    suggestPrescriptions: async (diagnosis) => {
+    suggestPrescriptions: async (_diagnosis) => {
       // Simular sugerencias de IA basadas en el diagnóstico
       const suggestions = await simulateAICall([
         'Ibuprofeno 400mg cada 8 horas',
@@ -184,7 +183,7 @@ export const useMedicalHistoryStore = create<MedicalHistoryState>()(
 // Middleware para auto-sincronización
 useMedicalHistoryStore.subscribe(
   (state) => state.entries,
-  (entries) => {
+  (_entries) => {
     // logger.info('[Medical History] Auto-sync triggered, entries:', entries.length)
   }
 )

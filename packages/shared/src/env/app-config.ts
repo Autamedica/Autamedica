@@ -89,7 +89,7 @@ export function getAppEnv(appName: AppName): AppEnvironmentConfig {
  * @param appName - The application name
  * @returns Login URL builder with build() method
  */
-export function getLoginUrlBuilder(appName: AppName): LoginUrlBuilder {
+export function getLoginUrlBuilder(_appName: AppName): LoginUrlBuilder {
   const authHubOrigin = getAuthHubOrigin();
 
   return {

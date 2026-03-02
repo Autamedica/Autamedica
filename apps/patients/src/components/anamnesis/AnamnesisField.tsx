@@ -7,7 +7,7 @@ import type { AnamnesisFieldValue, AnamnesisField as FieldType } from '../../typ
 interface AnamnesisFieldProps {
   field: FieldType;
   value: AnamnesisFieldValue;
-  onChange: (value: AnamnesisFieldValue) => void;
+  onChange: (_value: AnamnesisFieldValue) => void;
   onComplete?: () => void;
 }
 

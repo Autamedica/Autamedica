@@ -1,6 +1,6 @@
 import { SignalingEvent, SignalingService, getSignalingService } from '@/lib/patients/services/SignalingService';
 import { getOptionalClientEnv, logger } from '@autamedica/shared';
-/* eslint-disable no-unused-vars, @typescript-eslint/no-unused-vars */
+ 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useWebRTC } from './useWebRTC';
 

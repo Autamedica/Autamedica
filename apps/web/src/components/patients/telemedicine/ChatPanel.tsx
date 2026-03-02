@@ -47,7 +47,7 @@ export interface ChatPanelProps {
 export function ChatPanel({
   messages,
   localUserId,
-  localUserName,
+  localUserName: _localUserName,
   onSendMessage,
   onClose,
   isOpen,

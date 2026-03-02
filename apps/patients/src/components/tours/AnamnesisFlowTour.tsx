@@ -13,7 +13,7 @@ interface AnamnesisFlowTourProps {
  * Tour guiado para el proceso de Anamnesis
  * Se activa automáticamente en la primera visita o manualmente
  */
-export function AnamnesisFlowTour({ autoStart = false, currentStep = 0 }: AnamnesisFlowTourProps) {
+export function AnamnesisFlowTour({ autoStart = false }: AnamnesisFlowTourProps) {
   const [hasSeenTour, setHasSeenTour] = useState(true);
 
   useEffect(() => {

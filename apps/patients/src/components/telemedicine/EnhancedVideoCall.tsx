@@ -24,12 +24,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * Versión modular con hooks y componentes separados
  * INTEGRADO con Supabase para registro de sesiones
  */
-export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, className = '' }: EnhancedVideoCallProps & { sessionId?: string }) {
+export function EnhancedVideoCall({ sessionId, className = '' }: EnhancedVideoCallProps & { sessionId?: string }) {
   // Context del portal
   const { isFocusMode, setFocusMode } = usePatientPortal();
-
-  // Sesión del paciente
-  const patientSession = usePatientSession();
 
   // Custom hook para lógica de video
   const videoCall = useVideoCall();
@@ -65,7 +62,7 @@ export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, classNam
 
   // Estados locales de UI
   const [showControls, setShowControls] = useState(true);
-  const [showQualityOverlay, setShowQualityOverlay] = useState(false);
+  const [_showQualityOverlay, setShowQualityOverlay] = useState(false);
   const [mouseTimer, setMouseTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Estados de layout
@@ -73,17 +70,12 @@ export function EnhancedVideoCall({ roomId = 'patient-room', sessionId, classNam
   const [pipPosition, setPipPosition] = useState<PIPPosition>('bottom-right');
 
   // Remote stream - usa mock en desarrollo, LiveKit en producción
-  // Controlado por feature flag NEXT_PUBLIC_USE_MOCK_VIDEO
-  const mockStream = process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === 'true'
-    ? useMockRemoteStream(videoCall.callStatus === 'live')
-    : null;
-
-  // TODO: Pasar remoteParticipant de LiveKit cuando esté disponible
-  const realStream = process.env.NEXT_PUBLIC_USE_MOCK_VIDEO !== 'true'
-    ? useRealRemoteStream(undefined) // Pasar remoteParticipant aquí
-    : null;
-
-  const remoteStream = process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === 'true' ? mockStream : realStream;
+  // Ambos hooks se llaman incondicionalmente (Rules of Hooks)
+  const isMockVideo = process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === 'true';
+  const mockStream = useMockRemoteStream(isMockVideo && videoCall.callStatus === 'live');
+  // TODO(blocked): [LiveKit] Pasar remoteParticipant de LiveKit cuando esté disponible ticket:BACKLOG
+  const realStream = useRealRemoteStream(undefined);
+  const remoteStream = isMockVideo ? mockStream : realStream;
 
   // Calidad de la llamada
   // Auto-activar focus mode durante llamadas

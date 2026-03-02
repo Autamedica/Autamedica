@@ -18,8 +18,8 @@ import MarketplaceDashboard from '../components/marketplace/MarketplaceDashboard
 
 export default function CompaniesHomePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [crisisLevel, _setCrisisLevel] = useState('HIGH');
-  const [activeIncidents, _setActiveIncidents] = useState(3);
+  const [crisisLevel] = useState('HIGH');
+  const [activeIncidents] = useState(3);
   const [activeSection, setActiveSection] = useState<'crisis' | 'marketplace'>('crisis');
 
   useEffect(() => {

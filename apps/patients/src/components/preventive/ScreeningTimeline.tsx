@@ -79,13 +79,12 @@ export function ScreeningTimeline({ currentAge, gender }: ScreeningTimelineProps
         <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-stone-300" />
 
         <div className="space-y-4">
-          {milestones.map((age, index) => {
+          {milestones.map((age) => {
             const startingScreenings = getScreeningsStartingAtAge(age);
             const endingScreenings = getScreeningsEndingAtAge(age);
             const isExpanded = expandedAges.has(age);
             const isCurrentAge = currentAge === age;
             const isPastAge = currentAge !== undefined && age < currentAge;
-            const isFutureAge = currentAge !== undefined && age > currentAge;
 
             if (startingScreenings.length === 0 && endingScreenings.length === 0) {
               return null;

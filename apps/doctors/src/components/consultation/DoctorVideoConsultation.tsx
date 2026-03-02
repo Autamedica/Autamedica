@@ -40,7 +40,7 @@ function DoctorControls() {
   const [isRecording, setIsRecording] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
 
-  const tracks = useTracks([
+  const _tracks = useTracks([
     { source: Track.Source.ScreenShare, withPlaceholder: false },
   ]);
 

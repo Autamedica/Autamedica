@@ -179,7 +179,7 @@ export async function refreshKVSession(
 /**
  * Get all active sessions for a user (for security/audit)
  */
-export async function getUserSessions(userId: string): Promise<string[]> {
+export async function getUserSessions(_userId: string): Promise<string[]> {
   if (typeof AUTH_SESSIONS === 'undefined') {
     logger.warn('AUTH_SESSIONS KV namespace not available')
     return []

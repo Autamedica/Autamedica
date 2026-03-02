@@ -18,7 +18,7 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const calculateAge = (dateOfBirth: string): number => {
+  const _calculateAge = (dateOfBirth: string): number => {
     const birth = new Date(dateOfBirth)
     const today = new Date()
     let age = today.getFullYear() - birth.getFullYear()

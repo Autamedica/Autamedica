@@ -8,7 +8,6 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 
 console.log('🔐 Starting comprehensive security validation...\n');
 

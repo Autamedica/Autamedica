@@ -29,7 +29,7 @@ interface VitalSignField {
   placeholder: string;
   type: 'number' | 'text';
   normalRange: string;
-  getStatusColor: (value: any) => string;
+  getStatusColor: (_value: any) => string;
 }
 
 const VITAL_SIGN_FIELDS: VitalSignField[] = [
@@ -132,7 +132,7 @@ const VITAL_SIGN_FIELDS: VitalSignField[] = [
 ];
 
 export function VitalSignsModal({ isOpen, onClose, patientId = 'current-patient' }: VitalSignsModalProps) {
-  const { recordVitalSigns, isLoading } = usePatientMedicalStore();
+  const { recordVitalSigns } = usePatientMedicalStore();
 
   const [vitalSigns, setVitalSigns] = useState<VitalSignsData>({});
   const [isSubmitting, setIsSubmitting] = useState(false);

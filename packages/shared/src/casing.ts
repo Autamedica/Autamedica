@@ -21,7 +21,6 @@
  * ```
  */
 
-type Primitive = string | number | boolean | null | undefined | Date;
 type AnyRecord = Record<string, unknown>;
 
 /**

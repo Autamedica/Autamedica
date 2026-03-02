@@ -20,7 +20,7 @@ interface UseHealthCentersResult {
   error: string | null;
   userLocation: Coordinates | null;
   requestLocation: () => Promise<void>;
-  searchNearby: (location: Coordinates, radiusKm?: number) => Promise<void>;
+  searchNearby: (_location: Coordinates, _radiusKm?: number) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -201,7 +201,7 @@ export function useHealthCentersGeolocation(
       if (options.autoDetectLocation) {
         try {
           await requestLocation();
-        } catch (err) {
+        } catch {
           // Fallback to all centers if location denied
           await fetchAllCenters();
         }

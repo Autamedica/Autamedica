@@ -7,8 +7,7 @@
 
 import {
   validateEnvironmentSecurity,
-  validateStagingEnvironment,
-  validateEnvironmentByType
+  validateStagingEnvironment
 } from '../packages/shared/dist/env.js';
 
 console.log('🔧 Validating staging environment configuration...\n');

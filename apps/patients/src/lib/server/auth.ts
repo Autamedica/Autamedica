@@ -12,7 +12,7 @@ export async function getUserIdFromRequest(): Promise<string | null> {
       const admin = createAdminClient();
       const { data: userRes } = await admin.auth.getUser(token);
       if (userRes?.user) return userRes.user.id;
-    } catch (_) { return null; }
+    } catch { return null; }
   }
 
   const { data: userData } = await supabase.auth.getUser();

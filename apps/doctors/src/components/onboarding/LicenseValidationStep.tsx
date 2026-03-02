@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 interface LicenseValidationStepProps {
   licenseNumber: string;
-  onUpdate: (licenseNumber: string, isValid: boolean) => void;
+  onUpdate: (_licenseNumber: string, _isValid: boolean) => void;
   onNext: () => void;
   onCancel?: () => void;
 }
@@ -107,7 +107,7 @@ export function LicenseValidationStep({
         onUpdate(licenseNum, result.isValid);
       }
 
-    } catch (error) {
+    } catch (_error) {
       setValidationResult({
         isValid: false,
         message: 'Error al validar licencia. Intenta nuevamente.'

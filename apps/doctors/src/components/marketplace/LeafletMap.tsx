@@ -38,7 +38,7 @@ interface LeafletMapProps {
   jobs: MarketplaceJobOffer[]
   doctors: MarketplaceDoctor[]
   selectedItem?: string
-  onItemSelect: (item: MarketplaceJobOffer | MarketplaceDoctor) => void
+  onItemSelect: (_item: MarketplaceJobOffer | MarketplaceDoctor) => void
   filters?: {
     specialty?: string
     location?: string
@@ -46,7 +46,7 @@ interface LeafletMapProps {
   }
 }
 
-export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters }: LeafletMapProps) {
+export function LeafletMap({ jobs, doctors, selectedItem: _selectedItem, onItemSelect, filters: _filters }: LeafletMapProps) {
   const [isClient, setIsClient] = useState(false)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
 
@@ -78,7 +78,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters 
   const createCustomIcon = (type: 'job' | 'doctor', urgent: boolean = false) => {
     if (typeof window === 'undefined') return null
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const L = require('leaflet')
 
     const color = urgent ? '#ef4444' : type === 'job' ? '#3b82f6' : '#10b981'

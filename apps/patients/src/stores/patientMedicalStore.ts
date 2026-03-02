@@ -48,10 +48,10 @@ class PatientMedicalStore {
     vitals: []
   }
 
-  private listeners: Array<(state: PatientMedicalState) => void> = []
+  private listeners: Array<(_state: PatientMedicalState) => void> = []
 
   // Subscribe to state changes
-  subscribe(listener: (state: PatientMedicalState) => void) {
+  subscribe(listener: (_state: PatientMedicalState) => void) {
     this.listeners.push(listener)
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener)
@@ -175,7 +175,6 @@ class PatientMedicalStore {
   }
 
   getHealthSummary() {
-    const symptoms = this.getSymptomTrends()
     const medication = this.getMedicationAdherence()
     const vitals = this.state.vitals.slice(-1)[0] // Últimos signos vitales
 

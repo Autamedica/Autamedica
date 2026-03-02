@@ -10,7 +10,7 @@ import { ProfileCompletionStep } from './ProfileCompletionStep';
 
 interface DoctorOnboardingWizardProps {
   userId: string;
-  onComplete?: (doctorProfile: DoctorInsert) => void;
+  onComplete?: (_doctorProfile: DoctorInsert) => void;
   onCancel?: () => void;
 }
 
@@ -137,7 +137,7 @@ export function DoctorOnboardingWizard({
         throw new Error(errorData.error || 'Error al crear perfil de doctor');
       }
 
-      const result = await response.json();
+      await response.json();
 
       // Notificar completación
       onComplete?.(doctorProfile);

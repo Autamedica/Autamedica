@@ -22,9 +22,7 @@ export function AutaMiniChat({ stepId, tip, suggestedQuestions }: AutaMiniChatPr
     setIsExpanded(true);
   };
 
-  const response = selectedQuestion
-    ? useAutaOnboardingResponse(stepId, selectedQuestion)
-    : null;
+  const response = useAutaOnboardingResponse(stepId, selectedQuestion || '');
 
   return (
     <div className="mt-4 rounded-xl border-2 border-stone-200 bg-gradient-to-br from-stone-50 to-white overflow-hidden">
@@ -83,7 +81,7 @@ export function AutaMiniChat({ stepId, tip, suggestedQuestions }: AutaMiniChatPr
           </div>
 
           {/* Answer */}
-          {response && (
+          {selectedQuestion && response && (
             <div className="rounded-lg border-2 border-green-200 bg-green-50 p-3">
               <div className="flex items-start gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-white flex-shrink-0">

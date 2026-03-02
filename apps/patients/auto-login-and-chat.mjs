@@ -51,7 +51,7 @@ import { chromium } from '@playwright/test';
       // Esperar a que salga de la página de login
       await page.waitForURL((url) => !url.pathname.includes('/auth/login'), { timeout: 10000 });
       console.log('✅ ¡Salimos de la página de login!');
-    } catch (e) {
+    } catch (_e) {
       console.log('⚠️  No detecté navegación automática, esperando 3 seg...');
       await page.waitForTimeout(3000);
     }
@@ -123,7 +123,7 @@ import { chromium } from '@playwright/test';
           console.log(`  ✅ ¡Encontrado con selector: ${selector}!`);
           break;
         }
-      } catch (e) {
+      } catch (_e) {
         // Ignorar errores de selectores inválidos
       }
     }

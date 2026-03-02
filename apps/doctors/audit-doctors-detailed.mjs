@@ -18,7 +18,7 @@ const SCREENSHOTS_DIR = '/tmp/playwright_audit';
 // Crear directorio para screenshots
 try {
   mkdirSync(SCREENSHOTS_DIR, { recursive: true });
-} catch (e) {
+} catch (_e) {
   // Directory exists
 }
 
@@ -121,7 +121,7 @@ async function searchVideoElements(page) {
             visible: el.offsetParent !== null
           });
         });
-      } catch (e) {
+      } catch (_e) {
         // Selector no válido, ignorar
       }
     });
@@ -245,7 +245,7 @@ async function main() {
             found = true;
             break;
           }
-        } catch (e) {
+        } catch (_e) {
           // Selector no encontró nada, continuar
         }
       }

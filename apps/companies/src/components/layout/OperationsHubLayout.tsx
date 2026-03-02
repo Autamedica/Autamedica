@@ -37,16 +37,12 @@ export interface OperationsHubLayoutProps {
 }
 
 export function OperationsHubLayout({
-  theme: _theme = 'autamedica',
-  showCommandPalette: _showCommandPalette = false,
-  onCommandPalette: _onCommandPalette,
-  children: _children
+  children
 }: OperationsHubLayoutProps) {
   // State local
-  const [_activeProfile, _setActiveProfile] = useState('normal');
   const [emergencyMode, setEmergencyMode] = useState(false);
   const [activeTab, setActiveTab] = useState('crisis-map');
-  const [sidebarOpen, _setSidebarOpen] = useState(true);
+  const [sidebarOpen] = useState(true);
 
   // Mock data para crisis management
   const [crisisData] = useState({
@@ -304,6 +300,7 @@ export function OperationsHubLayout({
                   </div>
                 </div>
               )}
+              {children}
             </div>
           </div>
         </div>

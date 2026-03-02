@@ -9,13 +9,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ ses
 
     const body = await request.json().catch(() => ({})) as { event_type?: string; event_data?: any }
     const eventType = typeof body.event_type === 'string' ? body.event_type.trim() : ''
-    const eventData = body.event_data ?? null
-
     if (!eventType) {
       return NextResponse.json({ ok: false, error: 'event_type_required' }, { status: 400 })
     }
 
-    const { data: event, error } = await (supabase as any)
+    const { error } = await (supabase as any)
       .from('telemedicine_session_events')
       .insert([{
         session_id: sessionId,

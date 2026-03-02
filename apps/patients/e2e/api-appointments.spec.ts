@@ -25,7 +25,7 @@ test.describe('API /api/appointments/[id] protegido (autenticado)', () => {
       if (candidate) {
         await supabaseAdmin.auth.admin.deleteUser(candidate.id)
       }
-    } catch (_) { void 0 }
+    } catch { void 0 }
 
     const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
       email: TEST_USER.email,
@@ -57,10 +57,10 @@ test.describe('API /api/appointments/[id] protegido (autenticado)', () => {
     // Crear registro de paciente mínimo vinculado
     try {
       await supabaseAdmin.from('patients').insert({ user_id: userId! }).single()
-    } catch (_) { void 0 }
+    } catch { void 0 }
   })
 
-  test('devuelve 404 (no 401) al estar autenticado', async ({ page, request, baseURL }) => {
+  test('devuelve 404 (no 401) al estar autenticado', async ({ page, request: _request, baseURL: _baseURL }) => {
     // 1) Autenticarse vía Supabase (cliente público) para obtener tokens
     const supabasePublic = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

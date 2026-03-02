@@ -15,7 +15,7 @@ interface InteractiveMapProps {
   jobs: MarketplaceJobOffer[]
   doctors: MarketplaceDoctor[]
   selectedItem?: string
-  onItemSelect: (item: MarketplaceJobOffer | MarketplaceDoctor) => void
+  onItemSelect: (_item: MarketplaceJobOffer | MarketplaceDoctor) => void
   filters?: {
     specialty?: string
     location?: string
@@ -23,8 +23,8 @@ interface InteractiveMapProps {
   }
 }
 
-export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filters }: InteractiveMapProps) {
-  const [mapCenter, setMapCenter] = useState<Coordinates>(ARGENTINE_CITIES['Ciudad Autónoma de Buenos Aires'])
+export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filters: _filters }: InteractiveMapProps) {
+  const [_mapCenter, setMapCenter] = useState<Coordinates>(ARGENTINE_CITIES['Ciudad Autónoma de Buenos Aires'])
   const [zoomLevel, setZoomLevel] = useState(6)
   const [markers, setMarkers] = useState<MarkerData[]>([])
   const [hoveredMarker, setHoveredMarker] = useState<string | null>(null)

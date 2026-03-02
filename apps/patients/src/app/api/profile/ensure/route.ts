@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         const admin = createAdminClient();
         const { data: userRes, error: userErr } = await admin.auth.getUser(token);
         if (!userErr && userRes?.user) userId = userRes.user.id;
-      } catch (_) { void 0 }
+      } catch { void 0 }
     }
 
     if (!userId) {
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
     // Ensure profiles row (id PK) exists with minimal fields
     try {
-      const { data: profile, error: profileErr } = await (supabase as any)
+      const { error: profileErr } = await (supabase as any)
         .from('profiles')
         .upsert({
           id: userId,
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
     // Optionally ensure patients row exists
     try {
-      const { data: patient, error: patientErr } = await (supabase as any)
+      const { error: patientErr } = await (supabase as any)
         .from('patients')
         .upsert({
           user_id: userId,

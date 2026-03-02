@@ -27,7 +27,7 @@ export function MarketplacePanel() {
   const [showUrgentOnly, setShowUrgentOnly] = useState(false)
   const [sortBy, setSortBy] = useState<'date' | 'salary' | 'applications'>('date')
 
-  const { doctors, loading: doctorsLoading, error: doctorsError } = useRealDoctors()
+  const { doctors, loading: _doctorsLoading, error: _doctorsError } = useRealDoctors()
 
   // Mock job offers
   const jobOffers: MarketplaceJobOffer[] = [

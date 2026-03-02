@@ -6,7 +6,7 @@ interface SpecialtySelectionStepProps {
   specialty: string;
   subspecialty?: string;
   yearsExperience: number;
-  onUpdate: (specialty: string, subspecialty?: string, yearsExperience?: number) => void;
+  onUpdate: (_specialty: string, _subspecialty?: string, _yearsExperience?: number) => void;
   onNext: () => void;
   onBack: () => void;
 }

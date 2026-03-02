@@ -106,7 +106,7 @@ export interface VideoLayoutProps {
   viewMode: VideoViewMode;
   pipPosition: PIPPosition;
   onSwapVideos: () => void;
-  onPIPPositionChange: (position: PIPPosition) => void;
+  onPIPPositionChange: (_position: PIPPosition) => void;
   className?: string;
 }
 
@@ -129,7 +129,7 @@ export interface LocalVideoPIPProps {
   isVideoEnabled: boolean;
   position: PIPPosition;
   isDraggable?: boolean;
-  onPositionChange?: (position: PIPPosition) => void;
+  onPositionChange?: (_position: PIPPosition) => void;
   onSwap?: () => void;
   className?: string;
 }

@@ -5,8 +5,8 @@ import { Camera, Mic, Monitor, RefreshCw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface MediaPickerProps {
-  onMediaReady: (stream: MediaStream) => void
-  onError?: (error: Error) => void
+  onMediaReady: (_stream: MediaStream) => void
+  onError?: (_error: Error) => void
 }
 
 export default function MediaPicker({ onMediaReady, onError }: MediaPickerProps) {

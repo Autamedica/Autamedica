@@ -126,7 +126,7 @@ export function useMedicalHistory(
     await fetchRecords(currentPage + 1, false)
   }, [fetchRecords, currentPage, hasMore, loading])
 
-  const refresh = useCallback(async () => {
+  const _refresh = useCallback(async () => {
     await fetchRecords(0, true)
   }, [fetchRecords])
 

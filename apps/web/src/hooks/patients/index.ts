@@ -32,7 +32,7 @@ export function useActiveSession() {
   return { session: null };
 }
 
-export function usePatientData(patientId: string | null) {
+export function usePatientData(_patientId: string | null) {
   return { patient: null };
 }
 
