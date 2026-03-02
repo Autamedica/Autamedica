@@ -44,12 +44,6 @@ class DashboardViewModel @Inject constructor(
         loadAppointments()
     }
 
-    fun logout() {
-        viewModelScope.launch {
-            authRepository.logout()
-        }
-    }
-
     private fun loadUserInfo() {
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: ""
         val userRole = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: ""
@@ -67,20 +61,6 @@ class DashboardViewModel @Inject constructor(
                     )
                 }
             }
-        }
-    }
-
-    private fun sanitizeErrorMessage(raw: String?): String {
-        if (raw == null) return "Error al cargar consultas"
-        val firstLine = raw.lineSequence().firstOrNull()?.take(120) ?: raw.take(120)
-        return when {
-            "infinite recursion" in raw -> "Error temporal del servidor. Intenta de nuevo."
-            "network" in raw.lowercase() || "timeout" in raw.lowercase() ->
-                "Error de conexion. Verifica tu internet."
-            "unauthorized" in raw.lowercase() || "JWT" in raw ->
-                "Sesion expirada. Inicia sesion nuevamente."
-            raw.contains("URL:") || raw.contains("Headers:") -> "Error al cargar consultas"
-            else -> firstLine
         }
     }
 
@@ -106,6 +86,19 @@ class DashboardViewModel @Inject constructor(
                         )
                     }
                 }
+        }
+    }
+
+    private fun sanitizeErrorMessage(raw: String?): String {
+        if (raw == null) return "Error al cargar consultas"
+        return when {
+            "infinite recursion" in raw -> "Error temporal del servidor. Intenta de nuevo."
+            "network" in raw.lowercase() || "timeout" in raw.lowercase() ->
+                "Error de conexion. Verifica tu internet."
+            "unauthorized" in raw.lowercase() || "JWT" in raw ->
+                "Sesion expirada. Inicia sesion nuevamente."
+            raw.contains("URL:") || raw.contains("Headers:") -> "Error al cargar consultas"
+            else -> raw.lineSequence().firstOrNull()?.take(120) ?: raw.take(120)
         }
     }
 }

@@ -23,7 +23,7 @@
     <string name="profile_title">Perfil</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_appointments">Turnos</string>
-    <string name="nav_chat">Chat</string>
+    <string name="nav_health">Salud</string>
     <string name="nav_profile">Perfil</string>
     <string name="notification_call_channel">Llamada en curso</string>
     <string name="notification_call_title">Consulta medica en curso</string>

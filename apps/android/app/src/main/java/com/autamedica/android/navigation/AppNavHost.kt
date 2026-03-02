@@ -7,8 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.autamedica.android.presentation.auth.LoginScreen
-import com.autamedica.android.presentation.dashboard.DashboardScreen
-import com.autamedica.android.presentation.profile.ProfileScreen
+import com.autamedica.android.presentation.main.MainScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
 
 @Composable
@@ -26,23 +25,25 @@ fun AppNavHost(
         composable<Route.Login> {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Route.Dashboard) {
+                    navController.navigate(Route.Main) {
                         popUpTo(Route.Login) { inclusive = true }
                     }
                 }
             )
         }
 
-        composable<Route.Dashboard> {
-            DashboardScreen(
+        composable<Route.Main> {
+            MainScreen(
                 onNavigateToVideoCall = { appointmentId, userId, userType, userName ->
                     navController.navigate(
                         Route.VideoCall(appointmentId, userId, userType, userName)
                     )
                 },
-                onNavigateToProfile = {
-                    navController.navigate(Route.Profile)
-                }
+                onNavigateToLogin = {
+                    navController.navigate(Route.Login) {
+                        popUpTo(Route.Main) { inclusive = true }
+                    }
+                },
             )
         }
 
@@ -55,12 +56,6 @@ fun AppNavHost(
                 userName = route.userName,
                 onCallEnd = { navController.popBackStack() },
                 isInPipMode = isInPipMode,
-            )
-        }
-
-        composable<Route.Profile> {
-            ProfileScreen(
-                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

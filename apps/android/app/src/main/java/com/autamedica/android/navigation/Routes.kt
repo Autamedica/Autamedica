@@ -8,7 +8,7 @@ sealed interface Route {
     data object Login : Route
 
     @Serializable
-    data object Dashboard : Route
+    data object Main : Route
 
     @Serializable
     data class VideoCall(
@@ -17,7 +17,4 @@ sealed interface Route {
         val userType: String,
         val userName: String = "",
     ) : Route
-
-    @Serializable
-    data object Profile : Route
 }
