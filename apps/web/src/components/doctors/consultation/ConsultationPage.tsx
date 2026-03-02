@@ -10,9 +10,9 @@ export default function ConsultationPage({
 }) {
   const [showConsultation, setShowConsultation] = useState(false);
 
-  // TODO: Obtener IDs reales del usuario autenticado
-  const doctorId = 'doctor-current-user'; // Reemplazar con el ID real del doctor
-  const patientId = 'patient-assigned'; // Reemplazar con el ID real del paciente asignado
+  // TODO(blocked): [Auth] Requiere integración con useAuthenticatedUser hook para IDs reales ticket:BACKLOG
+  const doctorId = 'doctor-current-user';
+  const patientId = 'patient-assigned';
 
   const handleEndConsultation = () => {
     setShowConsultation(false);

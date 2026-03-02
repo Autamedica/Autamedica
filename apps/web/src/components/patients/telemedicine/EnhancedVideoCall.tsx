@@ -81,7 +81,7 @@ export function EnhancedVideoCall({ roomId: _roomId = 'patient-room', sessionId,
     featureFlags.USE_MOCK_VIDEO && videoCall.callStatus === 'live'
   );
 
-  // TODO: Pasar remoteParticipant de LiveKit cuando esté disponible
+  // TODO(blocked): [LiveKit] Requiere integración de LiveKit RemoteParticipant cuando esté configurado ticket:BACKLOG
   const realStream = useRealRemoteStream(undefined);
 
   const remoteStream = featureFlags.USE_MOCK_VIDEO ? mockStream : realStream;

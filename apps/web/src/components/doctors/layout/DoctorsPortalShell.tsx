@@ -126,9 +126,9 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const doctorLicense = doctor?.license_number || 'No registrado'
 
   // Contadores reales (se actualizarán con stats cuando estén disponibles)
-  const patientsCount = 0 // TODO: Conectar con patients stats
+  const patientsCount = 0 // TODO(blocked): [Stats] Requiere endpoint/query de conteo de pacientes del doctor ticket:BACKLOG
   const appointmentsCount = stats?.todayCount || 0
-  const historyCount = 0 // TODO: Conectar con medical records count
+  const historyCount = 0 // TODO(blocked): [Stats] Requiere endpoint/query de conteo de historiales médicos ticket:BACKLOG
 
   // Efecto para plegar el sidebar automáticamente cuando inicia una videollamada
   useEffect(() => {

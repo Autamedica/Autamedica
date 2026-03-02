@@ -160,7 +160,7 @@ export function useWebRTC(config: WebRTCConfig = {}): [WebRTCState, WebRTCAction
         // Auto-reconnect si falla
         if (autoReconnect && pc.connectionState === 'failed') {
           logger.warn('[useWebRTC] Connection failed, attempting reconnect...');
-          // TODO: Implementar lógica de reconexión
+          // TODO(blocked): [WebRTC] Requiere lógica de reconexión con exponential backoff vía signaling server ticket:BACKLOG
         }
       };
 
@@ -184,8 +184,7 @@ export function useWebRTC(config: WebRTCConfig = {}): [WebRTCState, WebRTCAction
 
       // Event: Negotiation needed (renegotiar SDP)
       pc.onnegotiationneeded = async () => {
-        // logger.info('[useWebRTC] Negotiation needed');
-        // TODO: Trigger renegotiación vía signaling
+        // TODO(blocked): [WebRTC] Renegociación automática requiere integración con signaling server ticket:BACKLOG
       };
 
       peerConnectionRef.current = pc;

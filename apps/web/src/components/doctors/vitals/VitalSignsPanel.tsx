@@ -2,14 +2,22 @@
 
 import type { JSX } from 'react'
 import { Activity, Heart, Thermometer, Wind, TrendingUp, Plus, Calendar } from 'lucide-react'
-// TODO: Fix import - hook doesn't exist yet
-// import { useVitalSigns } from '@/hooks'
+
+interface VitalRecord {
+  id: string
+  systolic_bp: number
+  diastolic_bp: number
+  heart_rate: number
+  temperature: number
+  oxygen_saturation: number
+  recorded_at: string
+}
 
 export function VitalSignsPanel(): JSX.Element {
-  // Por ahora usar patientId de ejemplo (María González)
-  const patientId = '550e8400-e29b-41d4-a716-446655440000'
-  // TODO: Replace with actual hook
-  const { vitals, loading, error } = { vitals: [], loading: false, error: null } as any
+  // TODO(blocked): [Vitals] Requiere hook useVitalSigns conectado a tabla vital_signs en DB ticket:BACKLOG
+  const vitals: VitalRecord[] = []
+  const loading = false
+  const error: string | null = null
 
   if (loading) {
     return (
@@ -209,7 +217,7 @@ export function VitalSignsPanel(): JSX.Element {
         ) : (
           <div className="h-full overflow-auto">
             <div className="grid gap-4">
-              {vitals.map((vital: any) => (
+              {vitals.map((vital) => (
                 <div
                   key={vital.id}
                   className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 transition hover:border-slate-600 hover:bg-slate-800/50"

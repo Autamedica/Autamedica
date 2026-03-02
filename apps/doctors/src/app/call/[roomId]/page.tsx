@@ -4,6 +4,7 @@ import { CallPageClient } from './CallPageClient'
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true
 
-export default function DoctorCallPage({ params }: { params: { roomId: string } }) {
-  return <CallPageClient roomId={params.roomId} />
+export default async function DoctorCallPage({ params }: { params: Promise<{ roomId: string }> }) {
+  const { roomId } = await params
+  return <CallPageClient roomId={roomId} />
 }

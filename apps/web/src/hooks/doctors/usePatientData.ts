@@ -6,7 +6,6 @@ import { logger, selectById } from '@autamedica/shared';
 import type { PatientProfile, UUID } from '@autamedica/types';
 import { useCallback, useEffect, useState } from 'react';
 
-// TODO: Define this interface
 interface UsePatientDataResult {
   patient: PatientProfile | null;
   loading: boolean;

@@ -236,8 +236,7 @@ export function useSpecialistAvailableSlots(specialistId: string | null) {
         setIsLoading(true);
         setError(null);
 
-        // TODO: Implementar lógica para obtener slots disponibles
-        // Por ahora, generar slots mock para los próximos 7 días
+        // TODO(blocked): [Appointments] Requiere tabla de disponibilidad de especialistas en DB - usando mock slots ticket:BACKLOG
         const slots = generateMockSlots(new Date(), 7);
         setAvailableSlots(slots);
       } catch (err) {

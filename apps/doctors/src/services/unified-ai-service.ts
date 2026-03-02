@@ -77,7 +77,7 @@ export class UnifiedAIService {
       logger.warn(
         'Anthropic soporta imagenes pero requiere implementacion especial'
       );
-      // TODO: Implementar soporte de imágenes para Anthropic si es necesario
+      // TODO(blocked): [AI] Anthropic Vision API requiere conversión de payload a content blocks con image_url ticket:BACKLOG
       return this.anthropicService.analyzeMedicalData(request);
     }
 

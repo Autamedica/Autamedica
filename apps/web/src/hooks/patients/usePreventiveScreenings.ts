@@ -133,7 +133,7 @@ export function usePreventiveScreenings(
             id: item.assigned_doctor.id,
             first_name: item.assigned_doctor.first_name,
             last_name: item.assigned_doctor.last_name,
-            specialty: '' // TODO: Add specialty when available
+            specialty: '' // TODO(blocked): [Screenings] specialty no disponible en la join actual con doctors ticket:BACKLOG
           } : null
         } as unknown as PatientScreeningWithDetails;
       });

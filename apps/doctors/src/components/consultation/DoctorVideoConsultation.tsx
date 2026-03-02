@@ -57,7 +57,7 @@ function DoctorControls() {
   };
 
   const startRecording = async () => {
-    // TODO: Implementar cuando S3 esté configurado
+    // TODO(blocked): [Recording] Requiere configuración de S3/storage para grabación de consultas ticket:BACKLOG
     logger.info('Recording requested - S3 configuration needed');
     setIsRecording(true);
     alert('Grabación iniciada (mock - requiere configuración S3)');

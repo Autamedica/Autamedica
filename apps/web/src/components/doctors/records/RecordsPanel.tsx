@@ -1,16 +1,22 @@
 "use client"
 
 import type { JSX } from 'react'
-import { useState } from 'react'
 import { FileText, Search, Plus, Eye, Edit, Calendar, User } from 'lucide-react'
-// TODO: Fix import - hook doesn't exist yet
-// import { useMedicalHistory } from '@/hooks'
+
+interface MedicalRecord {
+  id: string
+  record_type: string
+  record_date: string
+  chief_complaint?: string
+  assessment?: string
+  plan?: string
+}
 
 export function RecordsPanel(): JSX.Element {
-  // Por ahora usar patientId de ejemplo (María González)
-  const [selectedPatientId] = useState<string>('550e8400-e29b-41d4-a716-446655440000')
-  // TODO: Replace with actual hook
-  const { history, loading, error } = { history: [], loading: false, error: null } as any
+  // TODO(blocked): [Records] Requiere hook useMedicalHistory conectado a tabla medical_records en DB ticket:BACKLOG
+  const history: MedicalRecord[] = []
+  const loading = false
+  const error: string | null = null
 
   if (loading) {
     return (
@@ -100,7 +106,7 @@ export function RecordsPanel(): JSX.Element {
             <div>
               <p className="text-sm text-slate-400">Consultas</p>
               <p className="text-xl font-semibold text-slate-100">
-                {history.filter((record: any) => record.record_type === 'consultation').length}
+                {history.filter((record) => record.record_type === 'consultation').length}
               </p>
             </div>
           </div>
@@ -114,7 +120,7 @@ export function RecordsPanel(): JSX.Element {
             <div>
               <p className="text-sm text-slate-400">Este Mes</p>
               <p className="text-xl font-semibold text-slate-100">
-                {history.filter((record: any) =>
+                {history.filter((record) =>
                   new Date(record.record_date).getMonth() === new Date().getMonth()
                 ).length}
               </p>
@@ -169,7 +175,7 @@ export function RecordsPanel(): JSX.Element {
         ) : (
           <div className="h-full overflow-auto">
             <div className="grid gap-4">
-              {history.map((record: any) => (
+              {history.map((record) => (
                 <div
                   key={record.id}
                   className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-6 transition hover:border-slate-600 hover:bg-slate-800/50"
