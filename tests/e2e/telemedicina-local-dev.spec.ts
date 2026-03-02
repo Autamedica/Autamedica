@@ -227,7 +227,7 @@ test.describe('Telemedicina - Local Development Servers', () => {
             status.textContent = 'Local stream active';
 
             // Test WebSocket connection to signaling server
-            const ws = new WebSocket('wss://autamedica-signaling-server.ecucondor.workers.dev/signaling');
+            const ws = new WebSocket('wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling');
 
             ws.onopen = () => {
               status.textContent = 'Local stream + Signaling server connected';

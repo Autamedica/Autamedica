@@ -8,7 +8,7 @@ export function createSignaling(
 ) {
   const base = getClientEnvOrDefault(
     'NEXT_PUBLIC_SIGNALING_URL',
-    'wss://autamedica-signaling-server.ecucondor.workers.dev/connect'
+    'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling'
   )
   const qs = new URLSearchParams({
     userId,

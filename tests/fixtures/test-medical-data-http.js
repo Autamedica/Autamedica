@@ -127,7 +127,7 @@ async function runMedicalDataTests() {
 
     // Verificar también el HTTP signaling server
     console.log('\n🔄 Testing HTTP WebRTC Signaling...');
-    const signaling = await fetch('https://autamedica-http-signaling-server.ecucondor.workers.dev/health')
+    const signaling = await fetch('https://autamedica-signaling-server.marques-eduardo95466020.workers.dev/health')
       .then(r => r.json());
     console.log(`✅ HTTP Signaling Server: ${signaling.status}`);
     console.log(`📡 Service: ${signaling.service}`);

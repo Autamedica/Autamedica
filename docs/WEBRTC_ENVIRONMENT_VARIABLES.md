@@ -5,16 +5,18 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
 ## 🔧 Variables de Signaling Server
 
 ### `NEXT_PUBLIC_WEBRTC_SIGNALING_URL`
+
 - **Descripción**: URL del servidor de signaling WebSocket
 - **Tipo**: `string`
 - **Requerido**: Opcional
-- **Default**: `wss://autamedica-signaling-server.ecucondor.workers.dev/signaling`
+- **Default**: `wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling`
 - **Ejemplo**:
   ```bash
   NEXT_PUBLIC_WEBRTC_SIGNALING_URL=wss://your-signaling-server.com/signaling
   ```
 
 ### `NEXT_PUBLIC_SIGNALING_IMPL`
+
 - **Descripción**: Implementación de signaling a usar
 - **Tipo**: `'node' | 'cloudflare' | 'auto'`
 - **Requerido**: Opcional
@@ -27,6 +29,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
 ## 🧊 Variables de ICE Servers (STUN/TURN)
 
 ### `NEXT_PUBLIC_ICE_SERVERS` (Recomendado)
+
 - **Descripción**: Configuración completa de servidores ICE en formato JSON
 - **Tipo**: `string` (JSON válido)
 - **Requerido**: Opcional
@@ -51,6 +54,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
   ```
 
 ### `NEXT_PUBLIC_STUN_SERVER` (Fallback)
+
 - **Descripción**: Servidor STUN único (usado si `NEXT_PUBLIC_ICE_SERVERS` no está configurado)
 - **Tipo**: `string`
 - **Requerido**: Opcional
@@ -63,6 +67,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
 ## 🔄 Variables de TURN Server
 
 ### `TURN_SERVER_URL`
+
 - **Descripción**: URL del servidor TURN
 - **Tipo**: `string`
 - **Requerido**: Opcional (recomendado para producción)
@@ -73,6 +78,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
   ```
 
 ### `TURN_USERNAME`
+
 - **Descripción**: Usuario para autenticación TURN (credenciales estáticas)
 - **Tipo**: `string`
 - **Requerido**: Opcional
@@ -82,6 +88,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
   ```
 
 ### `TURN_PASSWORD`
+
 - **Descripción**: Contraseña para autenticación TURN (credenciales estáticas)
 - **Tipo**: `string`
 - **Requerido**: Opcional
@@ -91,6 +98,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
   ```
 
 ### `TURN_SECRET`
+
 - **Descripción**: Secreto compartido para generar credenciales TURN temporales
 - **Tipo**: `string`
 - **Requerido**: Opcional (alternativa a credenciales estáticas)
@@ -100,6 +108,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
   ```
 
 ### `TURN_REALM`
+
 - **Descripción**: Realm del servidor TURN
 - **Tipo**: `string`
 - **Requerido**: Opcional
@@ -112,6 +121,7 @@ Esta guía documenta todas las variables de entorno necesarias para configurar l
 ## 🔧 Configuraciones por Entorno
 
 ### Desarrollo Local
+
 ```bash
 # .env.local
 NEXT_PUBLIC_WEBRTC_SIGNALING_URL=ws://localhost:8080/signaling
@@ -120,6 +130,7 @@ NEXT_PUBLIC_ICE_SERVERS='[{"urls":"stun:stun.l.google.com:19302"}]'
 ```
 
 ### Staging
+
 ```bash
 # .env.staging
 NEXT_PUBLIC_WEBRTC_SIGNALING_URL=wss://staging-signaling.autamedica.com/signaling
@@ -128,6 +139,7 @@ NEXT_PUBLIC_ICE_SERVERS='[{"urls":"stun:stun.l.google.com:19302"},{"urls":"turn:
 ```
 
 ### Producción
+
 ```bash
 # .env.production (Cloudflare Pages)
 NEXT_PUBLIC_WEBRTC_SIGNALING_URL=wss://signaling.autamedica.com/signaling
@@ -139,6 +151,7 @@ TURN_SECRET=your-production-turn-secret
 ## 🧪 Configuración de Testing
 
 ### Para Tests E2E
+
 ```bash
 # .env.test
 NEXT_PUBLIC_WEBRTC_SIGNALING_URL=ws://localhost:8081/signaling
@@ -151,30 +164,33 @@ NEXT_PUBLIC_ICE_SERVERS='[{"urls":"stun:stun.l.google.com:19302"}]'
 Para validar que las variables están correctamente configuradas, usa el helper de validación:
 
 ```typescript
-import { getIceServersConfig, validateIceServersConfig } from '@autamedica/telemedicine'
+import { getIceServersConfig, validateIceServersConfig } from "@autamedica/telemedicine";
 
 // Obtener configuración actual
-const servers = getIceServersConfig()
+const servers = getIceServersConfig();
 
 // Validar configuración
-const isValid = validateIceServersConfig(servers)
+const isValid = validateIceServersConfig(servers);
 
 if (!isValid) {
-  console.error('ICE servers configuration is invalid')
+  console.error("ICE servers configuration is invalid");
 }
 ```
 
 ## 🚨 Troubleshooting
 
 ### Error: "Connection failed behind NAT"
+
 - **Causa**: No hay servidores TURN configurados
 - **Solución**: Configurar `TURN_SERVER_URL` y credenciales
 
 ### Error: "Invalid ICE servers JSON"
+
 - **Causa**: JSON malformado en `NEXT_PUBLIC_ICE_SERVERS`
 - **Solución**: Validar JSON usando `JSON.parse()` o herramientas online
 
 ### Error: "TURN authentication failed"
+
 - **Causa**: Credenciales TURN incorrectas o expiradas
 - **Solución**: Verificar `TURN_USERNAME`/`TURN_PASSWORD` o `TURN_SECRET`
 

@@ -3,7 +3,7 @@ console.log('🧪 Testing HTTP WebRTC Client...');
 
 const testHttpClient = {
   config: {
-    signalingUrl: 'https://autamedica-http-signaling-server.ecucondor.workers.dev',
+    signalingUrl: 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev',
     roomId: 'test-room-node',
     userId: 'test-doctor',
     userType: 'doctor',

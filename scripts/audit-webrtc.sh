@@ -4,7 +4,7 @@ set -euo pipefail
 APP="${1:-doctors}"   # usar: scripts/audit-webrtc.sh doctors|patients
 APP_DIR="apps/${APP}"
 PKG_TELE="packages/telemedicine"
-SIGNAL_URL_DEFAULT="wss://autamedica-signaling-server.ecucondor.workers.dev/connect"
+SIGNAL_URL_DEFAULT="wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling"
 ROOM="diagnostic-$(date +%s)"
 
 echo "== App objetivo: ${APP} ========================="

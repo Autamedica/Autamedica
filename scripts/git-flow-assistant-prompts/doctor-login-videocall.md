@@ -13,7 +13,7 @@ Validar de extremo a extremo el flujo clínico del portal de doctores en producc
 
 - Portales productivos (`*.autamedica.com`).
 - Autenticación: Supabase (JWT en `localStorage`).
-- Señalización WebRTC: `wss://autamedica-signaling-server.ecucondor.workers.dev/signaling`.
+- Señalización WebRTC: `wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling`.
 - Paciente de prueba: Juan Pérez (`patient_001`).
 - Herramienta de ejecución: `./git-flow-assistant` (Claude Opus 4.1).
 

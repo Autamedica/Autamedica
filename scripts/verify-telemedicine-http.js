@@ -22,7 +22,7 @@ const URLS = {
     patients: 'http://localhost:3002'
   },
   infrastructure: {
-    signalingServer: 'wss://autamedica-signaling-server.ecucondor.workers.dev/signaling'
+    signalingServer: 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling'
   }
 };
 

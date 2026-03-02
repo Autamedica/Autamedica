@@ -13,7 +13,7 @@ interface TelemedicineSignalingPanelProps {
 }
 
 export function TelemedicineSignalingPanel(props: TelemedicineSignalingPanelProps) {
-  const signalingUrl = getClientEnvOrDefault('PUBLIC_SIGNALING_URL', 'ws://localhost:3005/signal');
+  const signalingUrl = getClientEnvOrDefault('NEXT_PUBLIC_SIGNALING_URL', 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling');
 
   return <SharedPanel {...props} signalingUrl={signalingUrl} />;
 }

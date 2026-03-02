@@ -4,7 +4,7 @@
  */
 
 import { logger } from '@autamedica/shared'
-import { loadIceServers, ICE_STUN_ONLY } from './config/ice-servers'
+import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -122,7 +122,7 @@ export class WebRTCClient {
     const iceServers = config.iceServers || (envServers.length > 0 ? envServers : ICE_STUN_ONLY)
 
     this.config = {
-      signalingUrl: 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling',
+      signalingUrl: loadSignalingUrl(),
       iceServers,
       roomId: 'default-room',
       ...config

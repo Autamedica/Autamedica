@@ -81,7 +81,7 @@ export function useTelemedicineClient(
     clientRef.current = client
 
     // Set up event listeners
-    client.on('connection-state', (connectionState: any) => {
+    client.on('connection-state', (connectionState: ConnectionState) => {
       logger.info(`[useTelemedicineClient] Connection state:`, connectionState)
       setState(prev => ({
         ...prev,
@@ -113,24 +113,24 @@ export function useTelemedicineClient(
       }
     })
 
-    client.on('local-stream', (stream: any) => {
+    client.on('local-stream', (stream: MediaStream) => {
       logger.info(`[useTelemedicineClient] Got local stream`)
       setState(prev => ({ ...prev, localStream: stream }))
     })
 
-    client.on('remote-stream', (stream: any, userId: any) => {
-      logger.info(`[useTelemedicineClient] Got remote stream from:`, userId)
+    client.on('remote-stream', (stream: MediaStream, remoteUserId: string) => {
+      logger.info(`[useTelemedicineClient] Got remote stream from:`, remoteUserId)
       setState(prev => ({
         ...prev,
-        remoteStreams: new Map(prev.remoteStreams).set(userId, stream)
+        remoteStreams: new Map(prev.remoteStreams).set(remoteUserId, stream)
       }))
     })
 
-    client.on('user-left', (userId: any) => {
-      logger.info(`[useTelemedicineClient] User left:`, userId)
+    client.on('user-left', (leftUserId: string) => {
+      logger.info(`[useTelemedicineClient] User left:`, leftUserId)
       setState(prev => {
         const newRemoteStreams = new Map(prev.remoteStreams)
-        newRemoteStreams.delete(userId)
+        newRemoteStreams.delete(leftUserId)
         return { ...prev, remoteStreams: newRemoteStreams }
       })
     })

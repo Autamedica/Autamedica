@@ -61,7 +61,7 @@
             }
 
             const roomId = document.getElementById('roomId').value || 'default-room';
-            const wsUrl = `wss://autamedica-signaling-server.ecucondor.workers.dev/signaling?roomId=${encodeURIComponent(roomId)}`;
+            const wsUrl = `wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling?roomId=${encodeURIComponent(roomId)}`;
 
             addMessage('Connecting to: ' + wsUrl, 'info');
             updateStatus('Connecting...', 'connecting');

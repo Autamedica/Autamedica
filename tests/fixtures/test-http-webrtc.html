@@ -122,7 +122,7 @@
         <div class="info">
             <strong>🚀 Nueva implementación HTTP-based</strong><br>
             Usa fetch y polling en lugar de WebSockets para mayor confiabilidad.<br>
-            <strong>Servidor:</strong> https://autamedica-http-signaling-server.ecucondor.workers.dev
+            <strong>Servidor:</strong> https://autamedica-signaling-server.marques-eduardo95466020.workers.dev
         </div>
 
         <div id="status" class="status disconnected">🔌 Desconectado</div>
@@ -163,7 +163,7 @@
         class HttpWebRTCClient {
             constructor(config) {
                 this.config = {
-                    signalingUrl: 'https://autamedica-http-signaling-server.ecucondor.workers.dev',
+                    signalingUrl: 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev',
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
                         { urls: 'stun:stun1.l.google.com:19302' }

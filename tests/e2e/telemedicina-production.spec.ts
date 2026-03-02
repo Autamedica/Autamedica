@@ -132,7 +132,7 @@ test.describe('Telemedicina - Production URLs', () => {
 
     // Test del servidor de señalización
     const signalingTest = await page.evaluate(async () => {
-      const SIGNALING_SERVER = 'wss://autamedica-signaling-server.ecucondor.workers.dev/signaling';
+      const SIGNALING_SERVER = 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling';
 
       return new Promise((resolve) => {
         const ws = new WebSocket(SIGNALING_SERVER);

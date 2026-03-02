@@ -12,7 +12,7 @@ interface TelemedicineSignalingPanelProps {
 }
 
 export function TelemedicineSignalingPanel(props: TelemedicineSignalingPanelProps) {
-  const signalingUrl = 'ws://localhost:3005/signal';
+  const signalingUrl = 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling';
   const iceCandidateStyle = {
     bg: 'bg-purple-500/10',
     text: 'text-purple-200',

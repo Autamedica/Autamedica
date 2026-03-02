@@ -73,7 +73,7 @@ export const ICE_WITH_TURN: RTCIceServer[] = getProductionICEServers()
 export function loadSignalingUrl(): string {
   return getClientEnvOrDefault(
     'NEXT_PUBLIC_SIGNALING_URL',
-    'wss://autamedica-signaling-server.ecucondor.workers.dev/connect'
+    'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling'
   )
 }
 

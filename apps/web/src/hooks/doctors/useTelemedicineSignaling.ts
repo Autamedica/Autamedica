@@ -4,9 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   TelemedicineClient,
   type TelemedicineRole,
-  type OfferMessage,
-  type AnswerMessage,
-  type IceCandidateMessage,
+  type ConnectionState,
 } from '@autamedica/telemedicine'
 
 export type SignalingConnectionState =
@@ -29,28 +27,37 @@ export interface UseTelemedicineSignalingConfig {
 export interface TelemedicineSignalingState {
   connectionState: SignalingConnectionState
   participants: Array<{ id: string; userType: TelemedicineRole }>
-  lastOffer: OfferMessage | null
-  lastAnswer: AnswerMessage | null
-  lastCandidate: IceCandidateMessage | null
+  remoteStream: MediaStream | null
   error: Error | null
 }
 
 export interface TelemedicineSignalingControls {
   connect: () => Promise<void>
   disconnect: () => void
-  sendOffer: (description: RTCSessionDescriptionInit, targetId?: string) => void
-  sendAnswer: (description: RTCSessionDescriptionInit, targetId?: string) => void
-  sendIceCandidate: (candidate: RTCIceCandidateInit, targetId?: string) => void
-  sendLeave: () => void
+}
+
+function mapConnectionState(state: ConnectionState, autoReconnect: boolean): SignalingConnectionState {
+  switch (state) {
+    case 'connecting':
+      return 'connecting'
+    case 'connected':
+      return 'connected'
+    case 'disconnected':
+      return autoReconnect ? 'reconnecting' : 'disconnected'
+    case 'failed':
+      return 'disconnected'
+    case 'closed':
+      return 'disconnected'
+    default:
+      return 'idle'
+  }
 }
 
 export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig) {
   const [state, setState] = useState<TelemedicineSignalingState>({
     connectionState: 'idle',
     participants: [],
-    lastOffer: null,
-    lastAnswer: null,
-    lastCandidate: null,
+    remoteStream: null,
     error: null,
   })
 
@@ -58,15 +65,14 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
 
   const normalizedConfig = useMemo(
     () => ({
-      url: config.signalingUrl ?? (typeof window !== 'undefined' ? window.location.hostname === 'localhost' ? 'ws://localhost:3005/signal' : 'wss://api.autamedica.com/signal' : 'ws://localhost:3005/signal'),
+      signalingUrl:
+        config.signalingUrl ?? 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling',
       roomId: config.roomId,
       userId: config.userId,
-      userType: config.userType,
-      metadata: config.metadata,
-      token: config.token,
+      userType: config.userType as 'doctor' | 'patient' | 'nurse',
       autoReconnect: config.autoReconnect ?? true,
     }),
-    [config.autoReconnect, config.metadata, config.roomId, config.signalingUrl, config.token, config.userId, config.userType],
+    [config.autoReconnect, config.roomId, config.signalingUrl, config.userId, config.userType],
   )
 
   useEffect(() => {
@@ -74,45 +80,42 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
       return undefined
     }
 
-    const client = new (TelemedicineClient as any)(normalizedConfig as any)
+    const client = new TelemedicineClient({
+      signalingUrl: normalizedConfig.signalingUrl,
+      roomId: normalizedConfig.roomId,
+      userId: normalizedConfig.userId,
+      userType: normalizedConfig.userType,
+    })
     clientRef.current = client
 
     const unsubscribes = [
-      client.on('open', () => {
-        setState((prev) => ({ ...prev, connectionState: 'connected', error: null }))
-      }),
-      client.on('close', () => {
+      client.on('connection-state', (connectionState: ConnectionState) => {
         setState((prev) => ({
           ...prev,
-          connectionState: normalizedConfig.autoReconnect ? 'reconnecting' : 'disconnected',
+          connectionState: mapConnectionState(connectionState, normalizedConfig.autoReconnect),
+          error: connectionState === 'connected' ? null : prev.error,
         }))
       }),
-      client.on('error', (error: any) => {
+      client.on('error', (error: Error) => {
         setState((prev) => ({ ...prev, error }))
       }),
-      client.on('user-joined', (message: any) => {
+      client.on('user-joined', (userId: string, userType: string) => {
         setState((prev) => ({
           ...prev,
           participants: addOrUpdateParticipant(prev.participants, {
-            id: (message as any).from,
-            userType: (message as any).data?.userType ?? 'unknown',
+            id: userId,
+            userType: (userType as TelemedicineRole) ?? 'unknown',
           }),
         }))
       }),
-      client.on('user-left', (message: any) => {
+      client.on('user-left', (userId: string) => {
         setState((prev) => ({
           ...prev,
-          participants: prev.participants.filter((participant) => participant.id !== (message as any).from),
+          participants: prev.participants.filter((participant) => participant.id !== userId),
         }))
       }),
-      client.on('offer', (message: any) => {
-        setState((prev) => ({ ...prev, lastOffer: message }))
-      }),
-      client.on('answer', (message: any) => {
-        setState((prev) => ({ ...prev, lastAnswer: message }))
-      }),
-      client.on('ice-candidate', (message: any) => {
-        setState((prev) => ({ ...prev, lastCandidate: message }))
+      client.on('remote-stream', (stream: MediaStream) => {
+        setState((prev) => ({ ...prev, remoteStream: stream }))
       }),
     ]
 
@@ -128,7 +131,7 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
       throw new Error('Telemedicine client not initialized')
     }
     setState((prev) => ({ ...prev, connectionState: 'connecting', error: null }))
-    await clientRef.current.connect()
+    await clientRef.current.connect(normalizedConfig.roomId)
   }
 
   const disconnect = () => {
@@ -139,31 +142,11 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
     }))
   }
 
-  const sendOffer = (description: RTCSessionDescriptionInit, targetId?: string) => {
-    (clientRef.current as any)?.sendOffer(description, targetId)
-  }
-
-  const sendAnswer = (description: RTCSessionDescriptionInit, targetId?: string) => {
-    (clientRef.current as any)?.sendAnswer(description, targetId)
-  }
-
-  const sendIceCandidate = (candidate: RTCIceCandidateInit, targetId?: string) => {
-    (clientRef.current as any)?.sendIceCandidate(candidate, targetId)
-  }
-
-  const sendLeave = () => {
-    (clientRef.current as any)?.sendLeave()
-  }
-
   return {
     state,
     controls: {
       connect,
       disconnect,
-      sendOffer,
-      sendAnswer,
-      sendIceCandidate,
-      sendLeave,
     },
   }
 }

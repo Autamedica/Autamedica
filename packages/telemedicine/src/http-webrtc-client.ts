@@ -44,7 +44,7 @@ export class HttpWebRTCClient {
 
   constructor(config: Partial<HttpWebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
     this.config = {
-      signalingUrl: 'https://autamedica-http-signaling-server.ecucondor.workers.dev',
+      signalingUrl: 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev',
       iceServers: ICE_STUN_ONLY,
       roomId: 'default-room',
       pollInterval: 1000, // Poll every second

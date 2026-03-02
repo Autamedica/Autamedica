@@ -1,10 +1,9 @@
 /**
- * Hook migrado al sistema híbrido
+ * usePrescriptions - Stub
  *
- * CAMBIOS:
- * - Usa selectActive() e insertRecord() en lugar de supabase directo
- * - Datos retornados en camelCase automáticamente
- * - Auto-filtrado de soft-deleted (deleted_at IS NULL)
+ * La tabla `prescriptions` aún no existe en la base de datos.
+ * Este hook retorna datos vacíos para que la UI funcione sin errores.
+ * Cuando la tabla se cree, reemplazar con la implementación real.
  */
 
 import type {
@@ -12,155 +11,40 @@ import type {
   PrescriptionFilters,
   UsePrescriptionsResult,
   UUID
-} from '@/types/medical';
-import { insertRecord, logger, selectActive, updateRecord } from '@autamedica/shared';
-import { useCallback, useEffect, useState } from 'react';
+} from '@/types/medical'
+import { logger } from '@autamedica/shared'
+import { useCallback, useState } from 'react'
 
 interface UsePrescriptionsOptions {
   filters?: PrescriptionFilters
 }
 
-// Tipo UI (camelCase) para Prescription
-interface UiPrescription {
-  id: string;
-  patientId: string;
-  doctorId: string;
-  medicationName: string;
-  dosage: string;
-  frequency: string;
-  prescribedDate: string;
-  startDate: string;
-  endDate: string | null;
-  status: string;
-  notes: string | null;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-
 export function usePrescriptions(
   patientId: UUID | null,
-  options: UsePrescriptionsOptions = {}
+  _options: UsePrescriptionsOptions = {}
 ): UsePrescriptionsResult {
-  const { filters = {} } = options
-
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchPrescriptions = useCallback(async () => {
-    if (!patientId) {
-      setPrescriptions([])
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const allPrescriptions = await selectActive<'prescriptions', UiPrescription>('prescriptions', '*', {
-        orderBy: { column: 'created_at', ascending: false }
-      });
-
-      // Filtrar por patient_id
-      let filtered = allPrescriptions.filter(p => p.patientId === patientId);
-
-      // Aplicar filtros
-      if (filters.status) {
-        filtered = filtered.filter(p => p.status === filters.status);
-      }
-
-      if (filters.medication_name) {
-        filtered = filtered.filter(p =>
-          p.medicationName.toLowerCase().includes(filters.medication_name!.toLowerCase())
-        );
-      }
-
-      if (filters.active_only) {
-        const today = new Date().toISOString();
-        filtered = filtered.filter(p =>
-          p.status === 'activa' &&
-          p.startDate <= today &&
-          (!p.endDate || p.endDate >= today)
-        );
-      }
-
-      setPrescriptions(filtered as unknown as Prescription[])
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(`Error al cargar prescripciones: ${errorMessage}`)
-      logger.error('[usePrescriptions] Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [patientId, filters])
+  const [prescriptions] = useState<Prescription[]>([])
+  const [loading] = useState(false)
+  const [error] = useState<string | null>(null)
 
   const addPrescription = useCallback(async (
-    prescription: Omit<Prescription, 'id' | 'created_at' | 'updated_at'>
+    _prescription: Omit<Prescription, 'id' | 'created_at' | 'updated_at'>
   ): Promise<void> => {
-    if (!patientId) {
-      throw new Error('ID de paciente requerido')
-    }
-
-    try {
-      // Sistema híbrido: insertRecord() auto-transforma a snake_case
-      await insertRecord<'prescriptions', any, UiPrescription>('prescriptions', {
-        ...prescription,
-        patient_id: patientId
-      } as any);
-
-      // Refrescar la lista
-      await fetchPrescriptions()
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(`Error al agregar prescripción: ${errorMessage}`)
-      logger.error('[usePrescriptions] addPrescription error:', err)
-      throw err
-    }
-  }, [patientId, fetchPrescriptions])
-
-  const updatePrescriptionFn = useCallback(async (
-    id: UUID,
-    updates: Partial<Prescription>
-  ): Promise<void> => {
-    try {
-      // Sistema híbrido: updateRecord() auto-transforma a snake_case
-      await updateRecord<'prescriptions', any, UiPrescription>('prescriptions', id, updates as any);
-
-      // Actualizar la lista local
-      setPrescriptions(prev =>
-        prev.map(prescription =>
-          prescription.id === id
-            ? { ...prescription, ...updates, updated_at: new Date().toISOString() }
-            : prescription
-        )
-      )
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(`Error al actualizar prescripción: ${errorMessage}`)
-      logger.error('[usePrescriptions] updatePrescription error:', err)
-      throw err
-    }
+    logger.warn('[usePrescriptions] Tabla prescriptions no existe aún en la DB. Operación ignorada.')
   }, [])
 
-  const refresh = useCallback(async () => {
-    await fetchPrescriptions()
-  }, [fetchPrescriptions])
-
-  useEffect(() => {
-    fetchPrescriptions()
-  }, [fetchPrescriptions])
+  const updatePrescription = useCallback(async (
+    _id: UUID,
+    _updates: Partial<Prescription>
+  ): Promise<void> => {
+    logger.warn('[usePrescriptions] Tabla prescriptions no existe aún en la DB. Operación ignorada.')
+  }, [])
 
   return {
     prescriptions,
     loading,
     error,
     addPrescription,
-    updatePrescription: updatePrescriptionFn
+    updatePrescription,
   }
 }

@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  * - UnifiedVideoCall component en @autamedica/telemedicine
  * - Integración en doctors app (puerto 3001)
  * - Integración en patients app (puerto 3002)
- * - WebRTC signaling server: wss://autamedica-signaling-server.ecucondor.workers.dev/signaling
+ * - WebRTC signaling server: wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling
  */
 
 test.describe('Telemedicina - Video Calling System', () => {
@@ -110,7 +110,7 @@ test.describe('Telemedicina - Video Calling System', () => {
     await page.goto('data:text/html,<html><head><title>WebRTC Test</title></head><body><h1>Testing WebRTC Connection</h1></body></html>');
 
     // Probar conexión WebSocket al servidor de señalización
-    const signalingServerUrl = 'wss://autamedica-signaling-server.ecucondor.workers.dev/signaling';
+    const signalingServerUrl = 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling';
 
     const wsTestResult = await page.evaluate(async (url) => {
       return new Promise((resolve) => {
