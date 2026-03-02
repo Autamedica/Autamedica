@@ -182,7 +182,7 @@ export function RealVideoCall({ roomId, className = '' }: RealVideoCallProps) {
       </div>
 
       {/* Debug Info (solo en development) */}
-      {process.env.NODE_ENV === 'development' && (
+      {import.meta.env.DEV && (
         <div className="absolute bottom-24 left-4 px-3 py-2 bg-black/70 backdrop-blur-sm rounded-lg text-white text-xs font-mono">
           <div>Room: {roomId}</div>
           <div>User: {userId.slice(0, 8)}...</div>

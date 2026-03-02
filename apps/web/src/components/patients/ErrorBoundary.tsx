@@ -74,7 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             {/* Error details (only in development) */}
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <div className="bg-stone-100 rounded-lg p-4 overflow-auto max-h-32">
                 <p className="text-xs font-mono text-stone-700 break-all">
                   {this.state.error.message}

@@ -120,7 +120,7 @@ export function PausaCognitiva({ stepNumber, onContinue }: PausaCognitivaProps) 
         {/* Footer info */}
         <p className="text-xs text-stone-600 mt-6">
           💡 <strong>¿Por qué estas pausas?</strong> El agotamiento cognitivo hace que respondas
-          "en piloto automático", lo que puede generar información imprecisa. Estas pausas
+          {'"en piloto automático"'}, lo que puede generar información imprecisa. Estas pausas
           garantizan respuestas reflexivas y de calidad.
         </p>
       </div>

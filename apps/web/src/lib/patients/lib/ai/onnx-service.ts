@@ -71,7 +71,7 @@ export class ONNXService {
     }
 
     // Modo de desarrollo/producción
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       ort.env.logLevel = 'verbose';
     } else {
       ort.env.logLevel = 'warning';
@@ -197,7 +197,7 @@ export class ONNXService {
         feeds['input_ids'] = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(n => BigInt(n) as unknown as number)), [1, this.maxLen]);
         feeds['attention_mask'] = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(n => BigInt(n) as unknown as number)), [1, this.maxLen]);
         // Algunos modelos no usan token_type_ids
-        try { feeds['token_type_ids'] = new ort.Tensor('int64', BigInt64Array.from(tokenTypeIds.map(n => BigInt(n) as unknown as number)), [1, this.maxLen]); } catch { }
+        try { feeds['token_type_ids'] = new ort.Tensor('int64', BigInt64Array.from(tokenTypeIds.map(n => BigInt(n) as unknown as number)), [1, this.maxLen]); } catch (e) { logger.debug('[ONNX] token_type_ids not supported by model', e instanceof Error ? e.message : String(e)); }
 
         const results = await this.session.run(feeds);
         // Tomar el primer output como logits
