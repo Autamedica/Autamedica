@@ -12,7 +12,10 @@ import com.autamedica.android.presentation.profile.ProfileScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
 
 @Composable
-fun AppNavHost(modifier: Modifier = Modifier) {
+fun AppNavHost(
+    isInPipMode: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -50,7 +53,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 userId = route.userId,
                 userType = route.userType,
                 userName = route.userName,
-                onCallEnd = { navController.popBackStack() }
+                onCallEnd = { navController.popBackStack() },
+                isInPipMode = isInPipMode,
             )
         }
 

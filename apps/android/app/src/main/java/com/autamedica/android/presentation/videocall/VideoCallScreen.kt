@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,6 +46,7 @@ fun VideoCallScreen(
     userType: String,
     userName: String,
     onCallEnd: () -> Unit,
+    isInPipMode: Boolean = false,
     modifier: Modifier = Modifier,
     viewModel: VideoCallViewModel = hiltViewModel(),
 ) {
@@ -72,7 +72,7 @@ fun VideoCallScreen(
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
-            ) { viewModel.toggleControlsVisibility() },
+            ) { if (!isInPipMode) viewModel.toggleControlsVisibility() },
     ) {
         // Remote video (full screen)
         if (remoteTrack != null) {
@@ -115,7 +115,7 @@ fun VideoCallScreen(
                         }
                         ConnectionState.FAILED -> {
                             Text(
-                                text = "Error de conexión",
+                                text = "Error de conexion",
                                 color = Color.Red,
                                 style = MaterialTheme.typography.bodyLarge,
                             )
@@ -125,6 +125,9 @@ fun VideoCallScreen(
                 }
             }
         }
+
+        // In PiP mode, hide all overlays
+        if (isInPipMode) return@Box
 
         // Local video (picture-in-picture, top-right)
         if (localTrack != null && uiState.isVideoEnabled) {
@@ -163,7 +166,7 @@ fun VideoCallScreen(
             }
         }
 
-        // Chat panel (slide from right)
+        // Chat panel (slide from bottom)
         AnimatedVisibility(
             visible = uiState.isChatOpen,
             enter = fadeIn() + slideInVertically { it },
@@ -192,9 +195,11 @@ fun VideoCallScreen(
             CallControls(
                 isAudioEnabled = uiState.isAudioEnabled,
                 isVideoEnabled = uiState.isVideoEnabled,
+                isSpeakerOn = uiState.isSpeakerOn,
                 isChatOpen = uiState.isChatOpen,
                 onToggleAudio = viewModel::toggleAudio,
                 onToggleVideo = viewModel::toggleVideo,
+                onToggleSpeaker = viewModel::toggleSpeaker,
                 onToggleChat = viewModel::toggleChat,
                 onEndCall = {
                     viewModel.endCall()

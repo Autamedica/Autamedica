@@ -25,6 +25,7 @@ activity-compose = "1.9.3"
 core-ktx = "1.15.0"
 credentials = "1.3.0"
 googleid = "1.1.1"
+core-splashscreen = "1.0.1"
 
 [libraries]
 # Compose
@@ -96,6 +97,9 @@ truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+
+# Splash screen
+core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

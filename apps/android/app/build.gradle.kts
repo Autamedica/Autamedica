@@ -51,6 +51,18 @@ android {
         )
     }
 
+    signingConfigs {
+        create("release") {
+            val ksFile = localProperties.getProperty("RELEASE_STORE_FILE")
+            if (ksFile != null) {
+                storeFile = file(ksFile)
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "autamedica")
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -59,6 +71,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val releaseConfig = signingConfigs.findByName("release")
+            if (releaseConfig?.storeFile != null) {
+                signingConfig = releaseConfig
+            }
         }
     }
 
@@ -94,6 +110,7 @@ dependencies {
     // Core
     implementation(libs.core.ktx)
     implementation(libs.activity.compose)
+    implementation(libs.core.splashscreen)
 
     // Navigation
     implementation(libs.navigation.compose)

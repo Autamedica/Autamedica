@@ -1,9 +1,13 @@
 package com.autamedica.android.presentation.videocall
 
 import android.content.Context
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
+import android.os.Build
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.MainActivity
 import com.autamedica.android.data.remote.SignalingWebSocket
 import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
@@ -11,6 +15,7 @@ import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualitySummary
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.presentation.videocall.webrtc.WebRTCEngine
+import com.autamedica.android.service.CallNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +34,7 @@ data class VideoCallUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val isVideoEnabled: Boolean = true,
     val isAudioEnabled: Boolean = true,
+    val isSpeakerOn: Boolean = true,
     val chatMessages: List<ChatMessage> = emptyList(),
     val isChatOpen: Boolean = false,
     val chatReady: Boolean = false,
@@ -55,6 +61,8 @@ class VideoCallViewModel @Inject constructor(
     val userType: String = savedStateHandle["userType"] ?: ""
     val userName: String = savedStateHandle["userName"] ?: ""
 
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
     private val signalingWebSocket = SignalingWebSocket(
         signalingUrl = WebRTCEngine.SIGNALING_URL_HTTP,
         json = json,
@@ -80,11 +88,14 @@ class VideoCallViewModel @Inject constructor(
     private var timerJob: kotlinx.coroutines.Job? = null
 
     init {
-        // Initially disconnected until we fetch the session
         _uiState.update { it.copy(connectionState = ConnectionState.CONNECTING) }
+        setupAudioForCall()
     }
 
     fun startCall() {
+        MainActivity.isInVideoCall = true
+        CallNotificationService.start(context)
+
         viewModelScope.launch {
             val sessionResult = if (userType == "doctor") {
                 telemedicineRepository.createSession(userId, appointmentId)
@@ -107,6 +118,8 @@ class VideoCallViewModel @Inject constructor(
             }.onFailure { error ->
                 Timber.e(error, "Failed to initialize telemedicine session")
                 _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
+                CallNotificationService.stop(context)
+                MainActivity.isInVideoCall = false
             }
         }
     }
@@ -114,6 +127,9 @@ class VideoCallViewModel @Inject constructor(
     fun endCall() {
         timerJob?.cancel()
         engine.disconnect()
+        restoreAudio()
+        CallNotificationService.stop(context)
+        MainActivity.isInVideoCall = false
     }
 
     fun toggleVideo() {
@@ -122,6 +138,27 @@ class VideoCallViewModel @Inject constructor(
 
     fun toggleAudio() {
         engine.toggleAudio()
+    }
+
+    fun toggleSpeaker() {
+        val newState = !_uiState.value.isSpeakerOn
+        setSpeakerEnabled(newState)
+        _uiState.update { it.copy(isSpeakerOn = newState) }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun setSpeakerEnabled(enabled: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (enabled) {
+                val speaker = audioManager.availableCommunicationDevices
+                    .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+                if (speaker != null) audioManager.setCommunicationDevice(speaker)
+            } else {
+                audioManager.clearCommunicationDevice()
+            }
+        } else {
+            audioManager.isSpeakerphoneOn = enabled
+        }
     }
 
     fun toggleChat() {
@@ -149,6 +186,16 @@ class VideoCallViewModel @Inject constructor(
 
     fun toggleControlsVisibility() {
         _uiState.update { it.copy(showControls = !it.showControls) }
+    }
+
+    private fun setupAudioForCall() {
+        audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+        setSpeakerEnabled(true)
+    }
+
+    private fun restoreAudio() {
+        audioManager.mode = AudioManager.MODE_NORMAL
+        setSpeakerEnabled(false)
     }
 
     private fun observeEngine() {
@@ -216,5 +263,8 @@ class VideoCallViewModel @Inject constructor(
         super.onCleared()
         timerJob?.cancel()
         engine.disconnect()
+        restoreAudio()
+        CallNotificationService.stop(context)
+        MainActivity.isInVideoCall = false
     }
 }

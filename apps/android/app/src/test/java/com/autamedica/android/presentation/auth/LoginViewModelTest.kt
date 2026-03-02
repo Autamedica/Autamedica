@@ -28,6 +28,7 @@ class FakeAuthRepository : AuthRepository {
         lastLoginEmail = email
         return loginResult
     }
+    override suspend fun loginWithGoogle(idToken: String): Result<User> = loginResult
     override suspend fun logout() {}
     override suspend fun getCurrentUser(): User? = currentUser
 }
@@ -89,7 +90,7 @@ class LoginViewModelTest {
 
     @Test
     fun `failed login shows error`() = runTest(testDispatcher.scheduler) {
-        fakeRepo.loginResult = Result.failure(Exception("Invalid credentials"))
+        fakeRepo.loginResult = Result.failure(Exception("invalid_credentials"))
 
         val viewModel = LoginViewModel(fakeRepo)
         viewModel.onEmailChange("wrong@email.com")
@@ -98,7 +99,7 @@ class LoginViewModelTest {
 
         assertThat(viewModel.uiState.value.loggedInUser).isNull()
         assertThat(viewModel.uiState.value.isLoading).isFalse()
-        assertThat(viewModel.uiState.value.error).isEqualTo("Invalid credentials")
+        assertThat(viewModel.uiState.value.error).isEqualTo("Correo o contrasena incorrectos")
     }
 
     @Test
@@ -112,7 +113,7 @@ class LoginViewModelTest {
 
     @Test
     fun `email change clears error`() = runTest(testDispatcher.scheduler) {
-        fakeRepo.loginResult = Result.failure(Exception("Error"))
+        fakeRepo.loginResult = Result.failure(Exception("invalid_credentials"))
 
         val viewModel = LoginViewModel(fakeRepo)
         viewModel.onEmailChange("a@b.com")

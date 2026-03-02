@@ -100,3 +100,4 @@ apps/android/local.properties
 *.apk
 *.aab
 apps/android/.kotlin/
+apps/android/keystore/

@@ -18,6 +18,8 @@
     <string name="videocall_camera_on">Activar camara</string>
     <string name="videocall_camera_off">Desactivar camara</string>
     <string name="videocall_chat">Chat</string>
+    <string name="videocall_speaker_on">Altavoz activado</string>
+    <string name="videocall_speaker_off">Altavoz desactivado</string>
     <string name="profile_title">Perfil</string>
     <string name="nav_home">Inicio</string>
     <string name="nav_appointments">Turnos</string>
@@ -26,4 +28,5 @@
     <string name="notification_call_channel">Llamada en curso</string>
     <string name="notification_call_title">Consulta medica en curso</string>
     <string name="notification_call_text">Toca para volver a la llamada</string>
+    <string name="notification_end_call">Finalizar</string>
 </resources>
