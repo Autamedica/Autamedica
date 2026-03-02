@@ -1,7 +1,7 @@
-import { ensureClientEnv } from '@autamedica/shared';
 /**
  * Secure middleware for Admin portal
  * Implements session validation and admin role verification
+ * Uses getUser() for server-side JWT validation (consistent with other portals)
  */
 
 import { buildSafeLoginUrl } from '@autamedica/shared';
@@ -27,66 +27,48 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Create Supabase client for middleware
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  const response = NextResponse.next();
 
   try {
     const supabase = createServerClient(
-      ensureClientEnv("NEXT_PUBLIC_SUPABASE_URL"),
-      ensureClientEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return request.cookies.get(name)?.value;
+          getAll() {
+            return request.cookies.getAll();
           },
-          set(name: string, value: string, options: any) {
-            request.cookies.set({ name, value, ...options });
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            });
-            response.cookies.set({ name, value, ...options });
-          },
-          remove(name: string, options: any) {
-            request.cookies.set({ name, value: '', ...options });
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            });
-            response.cookies.set({ name, value: '', ...options });
+          setAll(cookiesToSet) {
+            for (const { name, value, options } of cookiesToSet) {
+              request.cookies.set(name, value);
+              response.cookies.set(name, value, options);
+            }
           },
         },
       }
     );
 
-    // Get session
-    const { data: { session }, error } = await supabase.auth.getSession();
+    // getUser() validates the JWT server-side (unlike getSession() which only decodes locally)
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-    // If no session, redirect to auth
-    if (!session || error) {
+    // If no user, redirect to auth
+    if (!user || error) {
       const loginUrl = buildSafeLoginUrl('admin', request.url, 'session_expired');
       return NextResponse.redirect(new URL(loginUrl));
     }
 
     // Verify admin role
-    const userRole = session.user.user_metadata?.role || session.user.app_metadata?.role;
+    const userRole = (user.user_metadata?.role as string) || (user.app_metadata?.role as string) || '';
 
     if (!userRole || !ALLOWED_ADMIN_ROLES.has(userRole)) {
-      // Not an admin - redirect to unauthorized or their portal
       const unauthorizedUrl = new URL('/unauthorized', request.url);
       return NextResponse.redirect(unauthorizedUrl);
     }
 
     // Admin verified - allow access
     return response;
-  } catch (error) {
-    // If anything fails (like environment vars missing), fallback to login
+  } catch (_err) {
+    // If anything fails, fallback to login
     const loginUrl = buildSafeLoginUrl('admin', request.url, 'auth_error');
     return NextResponse.redirect(new URL(loginUrl));
   }
@@ -94,14 +76,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, manifest.webmanifest (metadata files)
-     * - public folder
-     * - api/health (health check endpoint)
-     */
     '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|public|api/health).*)',
   ],
 };

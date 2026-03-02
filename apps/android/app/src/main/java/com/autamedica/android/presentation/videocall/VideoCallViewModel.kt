@@ -7,8 +7,8 @@ import android.os.Build
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.autamedica.android.MainActivity
 import com.autamedica.android.data.remote.SignalingWebSocket
+import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.domain.model.StreamQualityLevel
@@ -54,6 +54,7 @@ class VideoCallViewModel @Inject constructor(
     private val json: Json,
     savedStateHandle: SavedStateHandle,
     private val telemedicineRepository: TelemedicineRepository,
+    private val videoCallStateHolder: VideoCallStateHolder,
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
@@ -93,7 +94,7 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun startCall() {
-        MainActivity.isInVideoCall = true
+        videoCallStateHolder.setInVideoCall(true)
         CallNotificationService.start(context)
 
         viewModelScope.launch {
@@ -119,7 +120,7 @@ class VideoCallViewModel @Inject constructor(
                 Timber.e(error, "Failed to initialize telemedicine session")
                 _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
                 CallNotificationService.stop(context)
-                MainActivity.isInVideoCall = false
+                videoCallStateHolder.setInVideoCall(false)
             }
         }
     }
@@ -129,7 +130,7 @@ class VideoCallViewModel @Inject constructor(
         engine.disconnect()
         restoreAudio()
         CallNotificationService.stop(context)
-        MainActivity.isInVideoCall = false
+        videoCallStateHolder.setInVideoCall(false)
     }
 
     fun toggleVideo() {
@@ -265,6 +266,6 @@ class VideoCallViewModel @Inject constructor(
         engine.disconnect()
         restoreAudio()
         CallNotificationService.stop(context)
-        MainActivity.isInVideoCall = false
+        videoCallStateHolder.setInVideoCall(false)
     }
 }

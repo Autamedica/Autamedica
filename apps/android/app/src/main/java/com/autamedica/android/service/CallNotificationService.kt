@@ -35,7 +35,7 @@ class CallNotificationService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        MainActivity.isInVideoCall = false
+        // VideoCallStateHolder is updated by VideoCallViewModel.endCall()/onCleared()
     }
 
     private fun createNotificationChannel() {

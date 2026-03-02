@@ -28,8 +28,8 @@ export function createNextAppConfig({
   extraTranspile = [],
   aliasAuthHooks = true,
   includeImagesConfig = true,
-  ignoreLintDuringBuild = true,
-  ignoreTypeErrorsDuringBuild = true,
+  ignoreLintDuringBuild = false,
+  ignoreTypeErrorsDuringBuild = false,
   extendWebpack,
   ...extendConfig
 } = {}) {

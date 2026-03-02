@@ -3,6 +3,7 @@ package com.autamedica.android
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
+import java.io.File
 
 @HiltAndroidApp
 class AutamedicaApplication : Application() {
@@ -12,7 +13,8 @@ class AutamedicaApplication : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         } else {
-            Timber.plant(CrashReportingTree())
+            val logsDir = File(filesDir, "logs")
+            Timber.plant(CrashReportingTree(logsDir))
         }
     }
 }

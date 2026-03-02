@@ -603,20 +603,39 @@ class WebRTCEngine(
 
         override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
             Timber.i("[WebRTC] ICE connection: $state for $userId")
-            if (state == PeerConnection.IceConnectionState.FAILED) {
-                Timber.w("[WebRTC] ICE failed, restarting for $userId")
-                peers[userId]?.pc?.restartIce()
+            when (state) {
+                PeerConnection.IceConnectionState.FAILED -> {
+                    Timber.w("[WebRTC] ICE failed, restarting for $userId")
+                    peers[userId]?.let { peerState ->
+                        peerState.pc.restartIce()
+                        // restartIce() sets a flag; onRenegotiationNeeded will fire
+                        // and create a new offer with iceRestart=true in SDP
+                    }
+                }
+                PeerConnection.IceConnectionState.DISCONNECTED -> {
+                    // Transient disconnection (e.g. WiFi→4G handoff)
+                    // WebRTC will auto-recover via ICE; if not, FAILED fires next
+                    Timber.w("[WebRTC] ICE disconnected for $userId, waiting for recovery...")
+                }
+                else -> {}
             }
         }
 
         override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {
             Timber.i("[WebRTC] Connection: $state for $userId")
-            if (state == PeerConnection.PeerConnectionState.FAILED ||
-                state == PeerConnection.PeerConnectionState.CLOSED
-            ) {
-                peers.remove(userId)
-                qualityMonitor.removePeer(userId)
-                emitChatReady()
+            when (state) {
+                PeerConnection.PeerConnectionState.FAILED -> {
+                    // Don't remove peer — ICE restart is in progress via onIceConnectionChange.
+                    // If restartIce() succeeds, onRenegotiationNeeded creates new offer.
+                    // The peer only gets removed on CLOSED (terminal state).
+                    Timber.w("[WebRTC] PeerConnection FAILED for $userId, ICE restart in progress")
+                }
+                PeerConnection.PeerConnectionState.CLOSED -> {
+                    peers.remove(userId)
+                    qualityMonitor.removePeer(userId)
+                    emitChatReady()
+                }
+                else -> {}
             }
         }
 

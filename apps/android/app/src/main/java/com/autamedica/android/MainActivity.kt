@@ -12,12 +12,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.navigation.AppNavHost
 import com.autamedica.android.presentation.theme.AutamedicaTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var videoCallStateHolder: VideoCallStateHolder
 
     var isInPipMode by mutableStateOf(false)
         private set
@@ -35,7 +40,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (isInVideoCall) {
+        if (videoCallStateHolder.isInVideoCall.value) {
             enterPipMode()
         }
     }
@@ -55,9 +60,5 @@ class MainActivity : ComponentActivity() {
                 .build()
             enterPictureInPictureMode(params)
         }
-    }
-
-    companion object {
-        var isInVideoCall: Boolean = false
     }
 }
