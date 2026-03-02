@@ -1,0 +1,128 @@
+package com.autamedica.android.presentation.videocall.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun CallControls(
+    isAudioEnabled: Boolean,
+    isVideoEnabled: Boolean,
+    isChatOpen: Boolean,
+    onToggleAudio: () -> Unit,
+    onToggleVideo: () -> Unit,
+    onToggleChat: () -> Unit,
+    onEndCall: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = 0.6f))
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Mic toggle
+        ControlButton(
+            icon = {
+                Icon(
+                    imageVector = if (isAudioEnabled) Icons.Filled.Mic else Icons.Filled.MicOff,
+                    contentDescription = if (isAudioEnabled) "Silenciar" else "Activar micrófono",
+                    tint = Color.White,
+                )
+            },
+            onClick = onToggleAudio,
+            containerColor = if (isAudioEnabled) Color.DarkGray else Color.Red.copy(alpha = 0.8f),
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Video toggle
+        ControlButton(
+            icon = {
+                Icon(
+                    imageVector = if (isVideoEnabled) Icons.Filled.Videocam else Icons.Filled.VideocamOff,
+                    contentDescription = if (isVideoEnabled) "Desactivar cámara" else "Activar cámara",
+                    tint = Color.White,
+                )
+            },
+            onClick = onToggleVideo,
+            containerColor = if (isVideoEnabled) Color.DarkGray else Color.Red.copy(alpha = 0.8f),
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Chat toggle
+        ControlButton(
+            icon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Chat,
+                    contentDescription = "Chat",
+                    tint = Color.White,
+                )
+            },
+            onClick = onToggleChat,
+            containerColor = if (isChatOpen) MaterialTheme.colorScheme.primary else Color.DarkGray,
+        )
+
+        Spacer(modifier = Modifier.width(24.dp))
+
+        // End call
+        FilledIconButton(
+            onClick = onEndCall,
+            modifier = Modifier.size(56.dp),
+            shape = CircleShape,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = Color.Red,
+                contentColor = Color.White,
+            ),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CallEnd,
+                contentDescription = "Finalizar llamada",
+            )
+        }
+    }
+}
+
+@Composable
+private fun ControlButton(
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    containerColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(48.dp)
+            .background(containerColor, CircleShape),
+    ) {
+        icon()
+    }
+}

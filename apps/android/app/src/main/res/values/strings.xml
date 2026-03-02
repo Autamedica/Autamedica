@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AutaMedica</string>
+    <string name="login_title">Iniciar Sesion</string>
+    <string name="login_email_label">Correo electronico</string>
+    <string name="login_password_label">Contrasena</string>
+    <string name="login_button">Ingresar</string>
+    <string name="login_error_invalid_credentials">Credenciales invalidas</string>
+    <string name="login_error_network">Error de conexion. Verifica tu internet.</string>
+    <string name="dashboard_title">Inicio</string>
+    <string name="dashboard_upcoming">Proximas consultas</string>
+    <string name="dashboard_no_appointments">No tienes consultas programadas</string>
+    <string name="videocall_connecting">Conectando...</string>
+    <string name="videocall_connected">Conectado</string>
+    <string name="videocall_end">Finalizar llamada</string>
+    <string name="videocall_mute">Silenciar</string>
+    <string name="videocall_unmute">Activar audio</string>
+    <string name="videocall_camera_on">Activar camara</string>
+    <string name="videocall_camera_off">Desactivar camara</string>
+    <string name="videocall_chat">Chat</string>
+    <string name="profile_title">Perfil</string>
+    <string name="nav_home">Inicio</string>
+    <string name="nav_appointments">Turnos</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="notification_call_channel">Llamada en curso</string>
+    <string name="notification_call_title">Consulta medica en curso</string>
+    <string name="notification_call_text">Toca para volver a la llamada</string>
+</resources>

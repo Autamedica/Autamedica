@@ -1,0 +1,206 @@
+package com.autamedica.android.presentation.videocall
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.autamedica.android.domain.model.ConnectionState
+import com.autamedica.android.presentation.videocall.components.CallControls
+import com.autamedica.android.presentation.videocall.components.CallTimer
+import com.autamedica.android.presentation.videocall.components.ChatPanel
+import com.autamedica.android.presentation.videocall.components.ManagedVideoRenderer
+import com.autamedica.android.presentation.videocall.components.QualityIndicator
+
+@Composable
+fun VideoCallScreen(
+    roomId: String,
+    userId: String,
+    userType: String,
+    userName: String,
+    onCallEnd: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: VideoCallViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val localTrack by viewModel.localVideoTrack.collectAsState()
+    val remoteTrack by viewModel.remoteVideoTrack.collectAsState()
+
+    DisposableEffect(Unit) {
+        viewModel.startCall()
+        onDispose { viewModel.endCall() }
+    }
+
+    // Handle call end
+    if (uiState.connectionState == ConnectionState.DISCONNECTED && uiState.callDurationSeconds > 0) {
+        onCallEnd()
+        return
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+            ) { viewModel.toggleControlsVisibility() },
+    ) {
+        // Remote video (full screen)
+        if (remoteTrack != null) {
+            ManagedVideoRenderer(
+                videoTrack = remoteTrack,
+                eglContext = viewModel.eglContext,
+                modifier = Modifier.fillMaxSize(),
+                mirror = false,
+            )
+        } else {
+            // Placeholder when no remote video
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1A1A2E)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    when (uiState.connectionState) {
+                        ConnectionState.CONNECTING -> {
+                            CircularProgressIndicator(
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(48.dp),
+                            )
+                            Text(
+                                text = "Conectando...",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                        ConnectionState.CONNECTED -> {
+                            Text(
+                                text = "Esperando al otro participante...",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                        ConnectionState.FAILED -> {
+                            Text(
+                                text = "Error de conexión",
+                                color = Color.Red,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
+                        else -> {}
+                    }
+                }
+            }
+        }
+
+        // Local video (picture-in-picture, top-right)
+        if (localTrack != null && uiState.isVideoEnabled) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 80.dp, end = 16.dp)
+                    .size(width = 120.dp, height = 160.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+            ) {
+                ManagedVideoRenderer(
+                    videoTrack = localTrack,
+                    eglContext = viewModel.eglContext,
+                    modifier = Modifier.fillMaxSize(),
+                    mirror = true,
+                )
+            }
+        }
+
+        // Top bar: timer + quality
+        AnimatedVisibility(
+            visible = uiState.showControls,
+            enter = fadeIn() + slideInVertically(),
+            exit = fadeOut() + slideOutVertically(),
+            modifier = Modifier.align(Alignment.TopStart),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                CallTimer(durationSeconds = uiState.callDurationSeconds)
+                QualityIndicator(level = uiState.qualitySummary.overallLevel)
+            }
+        }
+
+        // Chat panel (slide from right)
+        AnimatedVisibility(
+            visible = uiState.isChatOpen,
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .fillMaxWidth()
+                .fillMaxHeight(0.45f)
+                .padding(bottom = 80.dp),
+        ) {
+            ChatPanel(
+                messages = uiState.chatMessages,
+                currentUserId = viewModel.userId,
+                chatReady = uiState.chatReady,
+                onSendMessage = viewModel::sendMessage,
+            )
+        }
+
+        // Bottom controls
+        AnimatedVisibility(
+            visible = uiState.showControls,
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            CallControls(
+                isAudioEnabled = uiState.isAudioEnabled,
+                isVideoEnabled = uiState.isVideoEnabled,
+                isChatOpen = uiState.isChatOpen,
+                onToggleAudio = viewModel::toggleAudio,
+                onToggleVideo = viewModel::toggleVideo,
+                onToggleChat = viewModel::toggleChat,
+                onEndCall = {
+                    viewModel.endCall()
+                    onCallEnd()
+                },
+            )
+        }
+    }
+}

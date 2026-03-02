@@ -1,0 +1,114 @@
+package com.autamedica.android.data.remote
+
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Singleton
+
+data class AuthUser(
+    val id: String,
+    val email: String,
+    val role: String?,
+)
+
+@Singleton
+class SupabaseAuthDataSource @Inject constructor(
+    private val supabase: SupabaseClient,
+) {
+    private val auth: Auth get() = supabase.auth
+
+    fun observeSessionStatus(): Flow<SessionStatus> = auth.sessionStatus
+
+    fun observeAuthUser(): Flow<AuthUser?> = auth.sessionStatus.map { status ->
+        when (status) {
+            is SessionStatus.Authenticated -> {
+                val user = status.session.user
+                if (user != null) {
+                    val role = user.userMetadata
+                        ?.jsonObject
+                        ?.get("role")
+                        ?.jsonPrimitive
+                        ?.content
+                    AuthUser(
+                        id = user.id,
+                        email = user.email ?: "",
+                        role = role,
+                    )
+                } else null
+            }
+            else -> null
+        }
+    }
+
+    suspend fun signIn(email: String, password: String): AuthUser {
+        auth.signInWith(Email) {
+            this.email = email
+            this.password = password
+        }
+
+        val session = auth.currentSessionOrNull()
+            ?: throw IllegalStateException("Session is null after sign-in")
+        val user = session.user
+            ?: throw IllegalStateException("User is null after sign-in")
+
+        val role = user.userMetadata
+            ?.jsonObject
+            ?.get("role")
+            ?.jsonPrimitive
+            ?.content
+
+        return AuthUser(
+            id = user.id,
+            email = user.email ?: email,
+            role = role,
+        )
+    }
+
+    suspend fun signOut() {
+        auth.signOut()
+    }
+
+    suspend fun getCurrentUser(): AuthUser? {
+        val session = auth.currentSessionOrNull() ?: return null
+        val user = session.user ?: return null
+        val role = user.userMetadata
+            ?.jsonObject
+            ?.get("role")
+            ?.jsonPrimitive
+            ?.content
+        return AuthUser(
+            id = user.id,
+            email = user.email ?: "",
+            role = role,
+        )
+    }
+
+    suspend fun fetchUserRole(userId: String): String? {
+        return try {
+            val result = supabase.postgrest.from("profiles")
+                .select {
+                    filter { eq("id", userId) }
+                }
+                .decodeSingleOrNull<ProfileRow>()
+            result?.role
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to fetch user role from profiles table")
+            null
+        }
+    }
+}
+
+@kotlinx.serialization.Serializable
+private data class ProfileRow(
+    val id: String,
+    val role: String? = null,
+)

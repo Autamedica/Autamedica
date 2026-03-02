@@ -1,0 +1,60 @@
+package com.autamedica.android.di
+
+import com.autamedica.android.BuildConfig
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideSupabaseClient(): SupabaseClient {
+        return createSupabaseClient(
+            supabaseUrl = BuildConfig.SUPABASE_URL,
+            supabaseKey = BuildConfig.SUPABASE_ANON_KEY,
+        ) {
+            install(Auth)
+            install(Postgrest)
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideJson(): Json {
+        return Json {
+            ignoreUnknownKeys = true
+            encodeDefaults = true
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+
+        if (BuildConfig.DEBUG) {
+            val logging = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+            builder.addInterceptor(logging)
+        }
+
+        return builder.build()
+    }
+}
