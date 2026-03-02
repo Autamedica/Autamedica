@@ -70,6 +70,20 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    private fun sanitizeErrorMessage(raw: String?): String {
+        if (raw == null) return "Error al cargar consultas"
+        val firstLine = raw.lineSequence().firstOrNull()?.take(120) ?: raw.take(120)
+        return when {
+            "infinite recursion" in raw -> "Error temporal del servidor. Intenta de nuevo."
+            "network" in raw.lowercase() || "timeout" in raw.lowercase() ->
+                "Error de conexion. Verifica tu internet."
+            "unauthorized" in raw.lowercase() || "JWT" in raw ->
+                "Sesion expirada. Inicia sesion nuevamente."
+            raw.contains("URL:") || raw.contains("Headers:") -> "Error al cargar consultas"
+            else -> firstLine
+        }
+    }
+
     private fun loadAppointments() {
         viewModelScope.launch {
             appointmentRepository.getUpcomingAppointments()
@@ -88,7 +102,7 @@ class DashboardViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
-                            error = error.message ?: "Error cargando citas",
+                            error = sanitizeErrorMessage(error.message),
                         )
                     }
                 }

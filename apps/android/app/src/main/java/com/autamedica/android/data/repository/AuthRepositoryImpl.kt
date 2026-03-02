@@ -47,6 +47,28 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun loginWithGoogle(idToken: String): Result<User> {
+        return try {
+            val authUser = authDataSource.signInWithGoogle(idToken)
+            val role = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
+
+            securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
+            if (role != null) {
+                securePrefs.putString(SecurePreferences.KEY_USER_ROLE, role)
+            }
+
+            val user = User(
+                id = authUser.id,
+                email = authUser.email,
+                role = parseRole(role),
+            )
+            Result.success(user)
+        } catch (e: Exception) {
+            Timber.e(e, "Google login failed")
+            Result.failure(e)
+        }
+    }
+
     override suspend fun logout() {
         try {
             authDataSource.signOut()

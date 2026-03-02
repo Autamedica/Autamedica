@@ -32,9 +32,9 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 
         composable<Route.Dashboard> {
             DashboardScreen(
-                onNavigateToVideoCall = { roomId, userId, userType, userName ->
+                onNavigateToVideoCall = { appointmentId, userId, userType, userName ->
                     navController.navigate(
-                        Route.VideoCall(roomId, userId, userType, userName)
+                        Route.VideoCall(appointmentId, userId, userType, userName)
                     )
                 },
                 onNavigateToProfile = {
@@ -46,7 +46,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         composable<Route.VideoCall> { backStackEntry ->
             val route = backStackEntry.toRoute<Route.VideoCall>()
             VideoCallScreen(
-                roomId = route.roomId,
+                appointmentId = route.appointmentId,
                 userId = route.userId,
                 userType = route.userType,
                 userName = route.userName,

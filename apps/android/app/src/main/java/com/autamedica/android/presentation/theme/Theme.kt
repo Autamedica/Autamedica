@@ -1,62 +1,81 @@
 package com.autamedica.android.presentation.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-private val LightColorScheme = lightColorScheme(
-    primary = Primary,
-    onPrimary = OnPrimary,
-    primaryContainer = PrimaryLight,
-    secondary = Secondary,
-    onSecondary = OnPrimary,
-    secondaryContainer = SecondaryDark,
-    background = Background,
-    onBackground = OnBackground,
-    surface = Surface,
-    onSurface = OnSurface,
-    surfaceVariant = SurfaceVariant,
-    onSurfaceVariant = OnSurfaceVariant,
-    error = Error,
-    onError = OnPrimary,
-)
+/**
+ * AutaMedica dark theme — matching the landing page design.
+ * Uses Zinc palette + portal accent colors.
+ */
+private val AutamedicaDarkScheme = darkColorScheme(
+    // Core surfaces
+    background = AuBackground,
+    surface = AuSurface,
+    surfaceVariant = AuSurfaceHover,
+    surfaceDim = AuHover,
 
-private val DarkColorScheme = darkColorScheme(
+    // Text
+    onBackground = AuTextPrimary,
+    onSurface = AuTextPrimary,
+    onSurfaceVariant = AuTextSecondary,
+
+    // Primary (blue — portals/CTAs)
     primary = PrimaryLight,
-    onPrimary = OnBackground,
-    primaryContainer = PrimaryDark,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = PrimaryLight,
+
+    // Secondary (sky — patient accent)
     secondary = Secondary,
     onSecondary = OnPrimary,
-    secondaryContainer = SecondaryDark,
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    surface = DarkSurface,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = OnSurfaceVariant,
-    error = Error,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = Secondary,
+
+    // Tertiary (violet — doctor accent)
+    tertiary = Tertiary,
+    onTertiary = OnPrimary,
+    tertiaryContainer = TertiaryContainer,
+    onTertiaryContainer = Tertiary,
+
+    // Error
+    error = AuDanger,
     onError = OnPrimary,
+    errorContainer = ErrorContainer,
+    onErrorContainer = AuDanger,
+
+    // Borders/outlines
+    outline = AuBorder,
+    outlineVariant = AuBorderHover,
+
+    // Inverse (for snackbars, etc.)
+    inverseSurface = AuAccent,
+    inverseOnSurface = AuBackground,
+    inversePrimary = Primary,
 )
 
 @Composable
 fun AutamedicaTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val colorScheme = AutamedicaDarkScheme
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = AuBackground.toArgb()
+            window.navigationBarColor = AuBackground.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
     }
 
     MaterialTheme(

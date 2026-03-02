@@ -42,7 +42,7 @@ import com.autamedica.android.presentation.videocall.components.QualityIndicator
 
 @Composable
 fun VideoCallScreen(
-    roomId: String,
+    appointmentId: String,
     userId: String,
     userType: String,
     userName: String,

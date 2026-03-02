@@ -396,7 +396,7 @@ export default function DoctorsHomePage(): JSX.Element {
               />
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center gap-5 bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-8 text-center">
-                <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-fuchsia-500/20">
+                <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-violet-500/20 bg-violet-500/10 text-violet-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-violet-500/20">
                   <VideoOff className="h-12 w-12" />
                 </div>
                 <div>
@@ -414,7 +414,7 @@ export default function DoctorsHomePage(): JSX.Element {
                       doctorId={user.id}
                       patientId={session?.patientId || 'demo-patient-1'}
                       patientName={getPatientDisplayName(patient)}
-                      className="group relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40 active:scale-95"
+                      className="group relative inline-flex items-center justify-center rounded-xl bg-violet-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-violet-600/20 transition-all hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-violet-600/30 active:scale-95"
                     />
                   ) : (
                     <div className="flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm backdrop-blur-md">
@@ -497,8 +497,8 @@ export default function DoctorsHomePage(): JSX.Element {
                   onClick={toggleFocusMode}
                   className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${
                     isFocusMode
-                      ? 'border-emerald-400/50 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
-                      : 'border-slate-700 bg-slate-900/80 text-slate-200 hover:border-emerald-400/60 hover:text-white'
+                      ? 'border-violet-400/50 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20'
+                      : 'border-slate-700 bg-slate-900/80 text-slate-200 hover:border-violet-400/60 hover:text-white'
                   }`}
                 >
                   {isFocusMode ? 'Salir modo foco' : 'Activar modo foco'}
@@ -566,8 +566,8 @@ export default function DoctorsHomePage(): JSX.Element {
           <button
             type="button"
             onClick={toggleQuickActionsVisibility}
-            className={`call-area__quickActionsHandle hidden flex-col items-center gap-1 rounded-2xl border border-slate-700/70 bg-slate-900/85 px-3 py-3 text-xs font-medium text-slate-200 shadow-lg transition hover:border-emerald-500/60 hover:text-white lg:flex ${
-              isQuickActionsVisible ? 'ring-1 ring-emerald-400/60' : ''
+            className={`call-area__quickActionsHandle hidden flex-col items-center gap-1 rounded-2xl border border-slate-700/70 bg-slate-900/85 px-3 py-3 text-xs font-medium text-slate-200 shadow-lg transition hover:border-violet-500/60 hover:text-white lg:flex ${
+              isQuickActionsVisible ? 'ring-1 ring-violet-400/60' : ''
             }`}
             aria-expanded={isQuickActionsVisible}
             aria-label="Herramientas rápidas de la consulta"
@@ -579,7 +579,7 @@ export default function DoctorsHomePage(): JSX.Element {
               </>
             ) : (
               <>
-                <span className="flex items-center gap-1 text-emerald-300">
+                <span className="flex items-center gap-1 text-violet-300">
                   <FileText className="h-3 w-3" />
                   <Pill className="h-3 w-3" />
                   <Activity className="h-3 w-3" />
@@ -721,60 +721,60 @@ export default function DoctorsHomePage(): JSX.Element {
       )}
 
       {showDiagnosisPanel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur">
-          <div className="w-full max-w-3xl rounded-3xl border border-slate-800/80 bg-[#0f1f35] p-5 shadow-2xl sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
             <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3 text-slate-100">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-blue-200">
+              <div className="flex items-center gap-3 text-slate-900">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-violet-600">
                   <Brain className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold">Análisis IA · {getPatientDisplayName(patient)}</h2>
-                  <p className="text-xs text-slate-400">Carga un resumen de síntomas para generar diagnósticos asistidos.</p>
+                  <h2 className="text-lg font-semibold">Analisis IA · {getPatientDisplayName(patient)}</h2>
+                  <p className="text-xs text-slate-500">Carga un resumen de sintomas para generar diagnosticos asistidos.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowDiagnosisPanel(false)}
-                className="self-start rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 transition hover:border-slate-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:self-auto"
+                className="self-start rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 sm:self-auto"
               >
                 Cerrar
               </button>
             </header>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-slate-200">
-                <span>Síntomas principales</span>
+              <label className="space-y-2 text-sm text-slate-700">
+                <span>Sintomas principales</span>
                 <textarea
-                  defaultValue="Dolor de garganta severo, fiebre de 38.5°C, dificultad para tragar"
-                  className="min-h-[120px] w-full rounded-xl border border-slate-700 bg-slate-900/70 p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  defaultValue="Dolor de garganta severo, fiebre de 38.5C, dificultad para tragar"
+                  className="min-h-[120px] w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                 />
               </label>
-              <label className="space-y-2 text-sm text-slate-200">
-                <span>Duración de síntomas</span>
+              <label className="space-y-2 text-sm text-slate-700">
+                <span>Duracion de sintomas</span>
                 <input
-                  defaultValue="2 días"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-900/70 p-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  defaultValue="2 dias"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                 />
               </label>
             </div>
 
             {aiProcessing && (
-              <div className="mt-6 flex items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-4">
-                <Loader2 className="h-5 w-5 animate-spin text-blue-300" />
-                <p className="text-sm text-blue-200">Analizando síntomas con IA...</p>
+              <div className="mt-6 flex items-center gap-3 rounded-lg border border-violet-200 bg-violet-50 p-4">
+                <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
+                <p className="text-sm text-violet-700">Analizando sintomas con IA...</p>
               </div>
             )}
 
             <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 Datos encriptados y auditados.
               </div>
               <button
                 type="button"
                 disabled={aiProcessing}
-                className="flex items-center gap-2 self-stretch rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50 sm:self-auto"
+                className="flex items-center gap-2 self-stretch rounded-xl bg-violet-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50 sm:self-auto"
               >
                 <Brain className="h-4 w-4" />
                 {aiProcessing ? 'Analizando...' : 'Analizar con IA'}

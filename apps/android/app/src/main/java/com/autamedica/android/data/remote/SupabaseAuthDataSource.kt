@@ -3,7 +3,9 @@ package com.autamedica.android.data.remote
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.Google
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.Flow
@@ -69,6 +71,30 @@ class SupabaseAuthDataSource @Inject constructor(
         return AuthUser(
             id = user.id,
             email = user.email ?: email,
+            role = role,
+        )
+    }
+
+    suspend fun signInWithGoogle(googleIdToken: String): AuthUser {
+        auth.signInWith(IDToken) {
+            idToken = googleIdToken
+            provider = Google
+        }
+
+        val session = auth.currentSessionOrNull()
+            ?: throw IllegalStateException("Session is null after Google sign-in")
+        val user = session.user
+            ?: throw IllegalStateException("User is null after Google sign-in")
+
+        val role = user.userMetadata
+            ?.jsonObject
+            ?.get("role")
+            ?.jsonPrimitive
+            ?.content
+
+        return AuthUser(
+            id = user.id,
+            email = user.email ?: "",
             role = role,
         )
     }

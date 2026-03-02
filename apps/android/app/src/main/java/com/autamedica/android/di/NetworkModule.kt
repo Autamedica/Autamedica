@@ -8,6 +8,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.postgrest.Postgrest
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -28,6 +29,7 @@ object NetworkModule {
         ) {
             install(Auth)
             install(Postgrest)
+            install(Functions)
         }
     }
 

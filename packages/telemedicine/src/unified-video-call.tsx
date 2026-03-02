@@ -1,13 +1,36 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import type { JSX } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import type { FormEvent, JSX, KeyboardEvent } from 'react'
 import { logger } from '@autamedica/shared'
-import { WebRTCClient, type ConnectionState, type MediaConstraints } from './webrtc-client'
 import {
-  Video, VideoOff, Mic, MicOff, PhoneOff, Phone, Users,
-  ScreenShare, ScreenShareOff, Loader2, Camera
+  WebRTCClient,
+  type ChatMessage,
+  type ConnectionState,
+  type MediaConstraints,
+  type StreamQualityLevel,
+} from './webrtc-client'
+import {
+  Video,
+  VideoOff,
+  Mic,
+  MicOff,
+  PhoneOff,
+  Phone,
+  Users,
+  ScreenShare,
+  ScreenShareOff,
+  Loader2,
+  MessageSquare,
+  Send,
+  X,
+  Wifi,
+  WifiOff,
+  Clock,
+  UserCircle,
 } from 'lucide-react'
+
+/* ── Props ── */
 
 export interface UnifiedVideoCallProps {
   roomId: string
@@ -22,12 +45,47 @@ export interface UnifiedVideoCallProps {
   theme?: 'doctor' | 'patient'
 }
 
+/* ── Internal types ── */
+
 interface RemoteUser {
   userId: string
   userType: string
   userName?: string
   stream?: MediaStream
 }
+
+interface UiChatMessage extends ChatMessage {
+  mine: boolean
+  senderLabel: string
+}
+
+/* ── Helpers ── */
+
+function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`
+}
+
+const qualityColor: Record<StreamQualityLevel, string> = {
+  excellent: 'text-emerald-400',
+  good: 'text-emerald-400',
+  fair: 'text-amber-400',
+  poor: 'text-red-400',
+  unknown: 'text-slate-400',
+}
+
+const qualityLabel: Record<StreamQualityLevel, string> = {
+  excellent: 'Excelente',
+  good: 'Buena',
+  fair: 'Regular',
+  poor: 'Mala',
+  unknown: '',
+}
+
+/* ── Component ── */
 
 export function UnifiedVideoCall({
   roomId,
@@ -39,9 +97,9 @@ export function UnifiedVideoCall({
   onStatusChange,
   onError,
   className = '',
-  theme = userType === 'doctor' ? 'doctor' : 'patient'
+  theme = userType === 'doctor' ? 'doctor' : 'patient',
 }: UnifiedVideoCallProps): JSX.Element {
-  // WebRTC client state
+  /* ── State ── */
   const [client, setClient] = useState<WebRTCClient | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
@@ -49,473 +107,714 @@ export function UnifiedVideoCall({
   const [isScreenSharing, setIsScreenSharing] = useState(false)
   const [remoteUsers, setRemoteUsers] = useState<Map<string, RemoteUser>>(new Map())
   const [callError, setCallError] = useState<string | null>(null)
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null)
+  const [isChatReady, setIsChatReady] = useState(false)
+  const [isChatPanelOpen, setIsChatPanelOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<UiChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [connectedAt, setConnectedAt] = useState<number | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [qualityLevel, setQualityLevel] = useState<StreamQualityLevel>('unknown')
+  const [controlsVisible, setControlsVisible] = useState(true)
 
-  // Video refs
+  /* ── Refs ── */
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideosRef = useRef<Map<string, HTMLVideoElement>>(new Map())
   const screenShareRef = useRef<HTMLVideoElement>(null)
+  const chatMessagesRef = useRef<HTMLDivElement>(null)
+  const chatPanelOpenRef = useRef(false)
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Screen sharing state
-  const [screenStream, setScreenStream] = useState<MediaStream | null>(null)
+  /* ── Derived ── */
+  const accentColor = theme === 'doctor' ? 'violet' : 'sky'
+  const totalParticipants = remoteUsers.size + 1
+  const isActive = connectionState === 'connected'
+  const isIdle = connectionState === 'disconnected' || connectionState === 'failed'
+  const firstRemote = remoteUsers.size > 0 ? Array.from(remoteUsers.entries())[0] : null
 
-  // Theme colors
-  const themeColors = {
-    doctor: {
-      primary: 'bg-[#ee58a6] hover:bg-[#d44a92]',
-      accent: 'text-[#ee58a6]',
-      surface: 'bg-[#101d32]',
-      connected: 'bg-emerald-500'
-    },
-    patient: {
-      primary: 'bg-[#4fd1c5] hover:bg-[#2c7a7b]',
-      accent: 'text-[#4fd1c5]',
-      surface: 'bg-[#161b22]',
-      connected: 'bg-[#4fd1c5]'
+  /* ── Controls auto-hide ── */
+  const resetControlsTimer = useCallback(() => {
+    setControlsVisible(true)
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
+    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 5000)
+  }, [])
+
+  useEffect(() => {
+    if (!isActive) {
+      setControlsVisible(true)
+      return
     }
-  }
+    resetControlsTimer()
+    return () => {
+      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
+    }
+  }, [isActive, resetControlsTimer])
 
-  const colors = themeColors[theme]
+  /* ── WebRTC setup ── */
+  useEffect(() => {
+    chatPanelOpenRef.current = isChatPanelOpen
+  }, [isChatPanelOpen])
 
-  // Initialize WebRTC client
   useEffect(() => {
     logger.info(`[UnifiedVideoCall] Initializing for ${userType}: ${userId} in room ${roomId}`)
 
-    const webrtcClient = new WebRTCClient({
-      userId,
-      userType,
-      roomId
-    })
+    const webrtcClient = new WebRTCClient({ userId, userName, userType, roomId })
+    const unsubs: Array<() => void> = []
 
-    // Set up event listeners
-    webrtcClient.on('connection-state', (state) => {
-      logger.info(`[UnifiedVideoCall] Connection state changed:`, state)
-      setConnectionState(state)
-      onStatusChange?.(state)
-      if (state === 'failed') {
-        setCallError('Error de conexión. Verifica tu internet.')
-      } else if (state === 'connected') {
-        setCallError(null)
-        onCallStart?.()
-      }
-    })
-
-    webrtcClient.on('local-stream', (stream) => {
-      logger.info(`[UnifiedVideoCall] Got local stream`)
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream
-      }
-    })
-
-    webrtcClient.on('remote-stream', (stream, remoteUserId) => {
-      logger.info(`[UnifiedVideoCall] Got remote stream from:`, remoteUserId)
-
-      setRemoteUsers(prev => {
-        const updated = new Map(prev)
-        const existingUser = updated.get(remoteUserId) || {
-          userId: remoteUserId,
-          userType: 'unknown',
-          userName: remoteUserId
+    unsubs.push(
+      webrtcClient.on('connection-state', (state) => {
+        setConnectionState(state)
+        onStatusChange?.(state)
+        if (state === 'failed') {
+          setCallError('Error de conexión. Verifica tu internet.')
+        } else if (state === 'connected') {
+          setCallError(null)
+          onCallStart?.()
+        } else if (state === 'disconnected' || state === 'closed') {
+          setIsChatReady(false)
         }
-        updated.set(remoteUserId, { ...existingUser, stream })
-        return updated
       })
+    )
 
-      // Set video element source
-      setTimeout(() => {
-        const videoElement = remoteVideosRef.current.get(remoteUserId)
-        if (videoElement && videoElement.srcObject !== stream) {
-          videoElement.srcObject = stream
-        }
-      }, 100)
-    })
+    unsubs.push(
+      webrtcClient.on('local-stream', (stream) => {
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream
+      })
+    )
 
-    webrtcClient.on('user-joined', (remoteUserId, remoteUserType) => {
-      logger.info(`[UnifiedVideoCall] User joined:`, remoteUserId, remoteUserType)
-      setRemoteUsers(prev => {
-        const updated = new Map(prev)
-        const existingUser = updated.get(remoteUserId)
-        updated.set(remoteUserId, {
-          userId: remoteUserId,
-          userType: remoteUserType,
-          userName: remoteUserId,
-          stream: existingUser?.stream
+    unsubs.push(
+      webrtcClient.on('remote-stream', (stream, remoteUserId) => {
+        setRemoteUsers((prev) => {
+          const updated = new Map(prev)
+          const existing = updated.get(remoteUserId) || {
+            userId: remoteUserId,
+            userType: 'unknown',
+            userName: remoteUserId,
+          }
+          updated.set(remoteUserId, { ...existing, stream })
+          return updated
         })
-        return updated
+        setTimeout(() => {
+          const el = remoteVideosRef.current.get(remoteUserId)
+          if (el && el.srcObject !== stream) el.srcObject = stream
+        }, 100)
       })
-    })
+    )
 
-    webrtcClient.on('user-left', (remoteUserId) => {
-      logger.info(`[UnifiedVideoCall] User left:`, remoteUserId)
-      setRemoteUsers(prev => {
-        const updated = new Map(prev)
-        updated.delete(remoteUserId)
-        return updated
+    unsubs.push(
+      webrtcClient.on('user-joined', (remoteUserId, remoteUserType) => {
+        setRemoteUsers((prev) => {
+          const updated = new Map(prev)
+          const existing = updated.get(remoteUserId)
+          updated.set(remoteUserId, {
+            userId: remoteUserId,
+            userType: remoteUserType,
+            userName: remoteUserId,
+            stream: existing?.stream,
+          })
+          return updated
+        })
       })
-      remoteVideosRef.current.delete(remoteUserId)
-    })
+    )
 
-    webrtcClient.on('error', (error) => {
-      logger.error(`[UnifiedVideoCall] WebRTC error:`, error)
-      setCallError(`Error de videollamada: ${error.message}`)
-      onError?.(error)
-    })
+    unsubs.push(
+      webrtcClient.on('user-left', (remoteUserId) => {
+        setRemoteUsers((prev) => {
+          const updated = new Map(prev)
+          updated.delete(remoteUserId)
+          return updated
+        })
+        remoteVideosRef.current.delete(remoteUserId)
+      })
+    )
+
+    unsubs.push(webrtcClient.on('chat-ready', (ready) => setIsChatReady(ready)))
+
+    unsubs.push(
+      webrtcClient.on('chat-message', (message) => {
+        setChatMessages((prev) => [
+          ...prev,
+          { ...message, mine: false, senderLabel: message.senderName || message.senderId },
+        ])
+        if (!chatPanelOpenRef.current) setUnreadMessages((prev) => prev + 1)
+      })
+    )
+
+    unsubs.push(
+      webrtcClient.on('stream-quality', (summary) => {
+        setQualityLevel(summary.overallLevel)
+      })
+    )
+
+    unsubs.push(
+      webrtcClient.on('error', (error) => {
+        logger.error('[UnifiedVideoCall] WebRTC error:', error)
+        const msg = error instanceof Error ? error.message : 'Error desconocido'
+        setCallError(`Error de videollamada: ${msg}`)
+        onError?.(error)
+      })
+    )
 
     setClient(webrtcClient)
-
     return () => {
-      logger.info(`[UnifiedVideoCall] Cleaning up`)
-      webrtcClient.disconnect()
+      unsubs.forEach((u) => u())
+      void webrtcClient.disconnect()
     }
-  }, [userId, userType, roomId, onCallStart, onStatusChange, onError])
+  }, [onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
 
-  // Start call
+  /* ── Duration timer ── */
+  useEffect(() => {
+    if (connectionState === 'connected') {
+      setConnectedAt((prev) => prev ?? Date.now())
+    } else {
+      setConnectedAt(null)
+      setElapsedSeconds(0)
+    }
+  }, [connectionState])
+
+  useEffect(() => {
+    if (connectedAt === null) return
+    const tick = () => setElapsedSeconds(Math.floor((Date.now() - connectedAt) / 1000))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [connectedAt])
+
+  /* ── Stream sync effects ── */
+  useEffect(() => {
+    remoteUsers.forEach((user, uid) => {
+      if (!user.stream) return
+      const el = remoteVideosRef.current.get(uid)
+      if (el && el.srcObject !== user.stream) el.srcObject = user.stream
+    })
+  }, [remoteUsers])
+
+  useEffect(() => {
+    if (screenShareRef.current && screenStream) screenShareRef.current.srcObject = screenStream
+  }, [screenStream])
+
+  useEffect(() => {
+    if (chatMessagesRef.current) chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight
+  }, [chatMessages, isChatPanelOpen])
+
+  const formattedDuration = useMemo(() => formatDuration(elapsedSeconds), [elapsedSeconds])
+
+  /* ── Actions ── */
   const startCall = useCallback(async () => {
     if (!client || connectionState === 'connected') return
-
     try {
-      logger.info(`[UnifiedVideoCall] Starting call...`)
       setCallError(null)
-
-      await client.connect(roomId)
-
-      // Start local stream
       const constraints: MediaConstraints = {
         video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 60 }
         },
-        audio: true
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       }
-
       await client.startLocalStream(constraints)
+      await client.connect(roomId)
       setIsVideoEnabled(true)
       setIsAudioEnabled(true)
-
     } catch (error) {
-      logger.error(`[UnifiedVideoCall] Failed to start call:`, error)
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-      setCallError(`No se pudo iniciar la videollamada: ${errorMessage}`)
+      const msg = error instanceof Error ? error.message : 'Error desconocido'
+      setCallError(`No se pudo iniciar: ${msg}`)
     }
-  }, [client, roomId, connectionState])
+  }, [client, connectionState, roomId])
 
-  // End call
   const endCall = useCallback(async () => {
     if (!client) return
-
     try {
-      logger.info(`[UnifiedVideoCall] Ending call...`)
       await client.disconnect()
-
-      // Stop screen sharing if active
       if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop())
+        screenStream.getTracks().forEach((t) => t.stop())
         setScreenStream(null)
         setIsScreenSharing(false)
       }
-
       onCallEnd?.()
-    } catch (error) {
-      logger.error(`[UnifiedVideoCall] Failed to end call:`, error)
+    } catch {
+      /* swallow */
     }
-  }, [client, screenStream, onCallEnd])
+  }, [client, onCallEnd, screenStream])
 
-  // Toggle video
   const toggleVideo = useCallback(() => {
     if (!client) return
-
-    const newState = client.toggleVideo()
-    setIsVideoEnabled(newState)
-    logger.info(`[UnifiedVideoCall] Video ${newState ? 'enabled' : 'disabled'}`)
+    setIsVideoEnabled(client.toggleVideo())
   }, [client])
 
-  // Toggle audio
   const toggleAudio = useCallback(() => {
     if (!client) return
-
-    const newState = client.toggleAudio()
-    setIsAudioEnabled(newState)
-    logger.info(`[UnifiedVideoCall] Audio ${newState ? 'enabled' : 'disabled'}`)
+    setIsAudioEnabled(client.toggleAudio())
   }, [client])
 
-  // Toggle screen sharing
   const toggleScreenShare = useCallback(async () => {
     if (isScreenSharing) {
-      // Stop screen sharing
-      if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop())
-        setScreenStream(null)
-        setIsScreenSharing(false)
-      }
+      screenStream?.getTracks().forEach((t) => t.stop())
+      setScreenStream(null)
+      setIsScreenSharing(false)
       return
     }
-
-    // Start screen sharing
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false
-      })
-
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
       setScreenStream(stream)
       setIsScreenSharing(true)
-
-      // Handle when user stops screen sharing via browser
-      const videoTrack = stream.getVideoTracks()[0]
-      if (videoTrack) {
-        videoTrack.onended = () => {
-          setScreenStream(null)
-          setIsScreenSharing(false)
-        }
-      }
-
-    } catch (error) {
-      logger.warn(`[UnifiedVideoCall] Screen sharing cancelled:`, error)
+      stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+        setScreenStream(null)
+        setIsScreenSharing(false)
+      })
+    } catch {
       setIsScreenSharing(false)
     }
   }, [isScreenSharing, screenStream])
 
-  // Update video element refs when remote users change
-  useEffect(() => {
-    remoteUsers.forEach((user, userId) => {
-      if (user.stream) {
-        const videoElement = remoteVideosRef.current.get(userId)
-        if (videoElement && videoElement.srcObject !== user.stream) {
-          videoElement.srcObject = user.stream
-        }
-      }
+  const toggleChatPanel = useCallback(() => {
+    setIsChatPanelOpen((prev) => {
+      if (!prev) setUnreadMessages(0)
+      return !prev
     })
-  }, [remoteUsers])
+  }, [])
 
-  // Update screen share video element
-  useEffect(() => {
-    if (screenShareRef.current && screenStream) {
-      screenShareRef.current.srcObject = screenStream
+  const sendChat = useCallback(() => {
+    if (!client) return
+    const text = chatInput.trim()
+    if (!text) return
+
+    if (!client.sendChatMessage(text)) {
+      setCallError('Chat aún no listo. Espera la conexión del otro participante.')
+      return
     }
-  }, [screenStream])
 
-  const totalParticipants = remoteUsers.size + 1
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: `${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        text,
+        senderId: userId,
+        senderType: userType,
+        senderName: userName,
+        senderLabel: 'Tú',
+        timestamp: Date.now(),
+        mine: true,
+      },
+    ])
+    setChatInput('')
+    setCallError(null)
+  }, [chatInput, client, userId, userName, userType])
 
+  const handleChatSubmit = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      sendChat()
+    },
+    [sendChat]
+  )
+
+  const handleChatKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        sendChat()
+      }
+    },
+    [sendChat]
+  )
+
+  /* ── Render ── */
   return (
-    <div className={`h-full flex flex-col ${colors.surface} text-white ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gray-800/90 border-b border-gray-700/60">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${
-              connectionState === 'connected' ? colors.connected :
-              connectionState === 'connecting' ? 'bg-yellow-500' :
-              'bg-red-500'
-            }`} />
-            <span className="text-sm font-medium">
-              {connectionState === 'connected' ? 'Conectado' :
-               connectionState === 'connecting' ? 'Conectando...' :
-               connectionState === 'failed' ? 'Error de conexión' :
-               'Desconectado'}
-            </span>
-          </div>
-          <div className="flex items-center space-x-1 text-sm text-gray-400">
-            <Users className="w-4 h-4" />
-            <span>{totalParticipants} {totalParticipants === 1 ? 'participante' : 'participantes'}</span>
-          </div>
-          {userName && (
-            <div className="text-sm text-gray-400">
-              {userName} ({userType === 'doctor' ? 'Doctor' : 'Paciente'})
-            </div>
-          )}
-        </div>
-
-        <div className="text-sm text-gray-400">
-          Sala: {roomId}
-        </div>
-      </div>
-
-      {/* Error Banner */}
-      {callError && (
-        <div className="bg-red-600/90 border-b border-red-500/60 px-4 py-2">
-          <p className="text-sm text-white">{callError}</p>
-        </div>
-      )}
-
-      {/* Video Grid */}
-      <div className="flex-1 p-4 relative">
-        <div className={`h-full grid gap-4 ${
-          remoteUsers.size === 0 ? 'grid-cols-1' :
-          remoteUsers.size === 1 ? 'grid-cols-2' :
-          remoteUsers.size <= 3 ? 'grid-cols-2 grid-rows-2' :
-          'grid-cols-2 grid-rows-3'
-        }`}>
-          {/* Local Video */}
-          <div className="relative bg-gray-800 rounded-lg overflow-hidden">
-            {connectionState === 'connected' ? (
-              <>
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className={`w-full h-full object-cover transition-opacity duration-300 ${
-                    isVideoEnabled ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-                {!isVideoEnabled && (
-                  <div className="absolute inset-0 bg-gray-700 flex items-center justify-center">
-                    <VideoOff className="w-12 h-12 text-gray-400" />
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                {connectionState === 'connecting' ? (
-                  <div className="text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-white/60" />
-                    <p className="text-sm text-white/60">Conectando...</p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <Camera className="w-12 h-12 mx-auto mb-2 text-white/40" />
-                    <p className="text-sm text-white/60">Tu video aparecerá aquí</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-sm backdrop-blur-sm">
-              Tú ({userType === 'doctor' ? 'Doctor' : 'Paciente'})
-              {!isAudioEnabled && <MicOff className="inline w-4 h-4 ml-1 text-red-400" />}
-            </div>
-          </div>
-
-          {/* Remote Videos */}
-          {Array.from(remoteUsers.entries()).map(([remoteUserId, user]) => (
-            <div key={remoteUserId} className="relative bg-gray-800 rounded-lg overflow-hidden">
+    <div
+      className={`relative h-full w-full overflow-hidden bg-slate-900 text-white ${className}`}
+      onMouseMove={isActive ? resetControlsTimer : undefined}
+    >
+      {/* ── Main video area ── */}
+      <div className="absolute inset-0">
+        {/* Idle/disconnected state */}
+        {isIdle && (
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900">
+            {/* Camera preview */}
+            <div className="relative mb-8 h-48 w-64 overflow-hidden rounded-2xl bg-slate-800 shadow-2xl ring-1 ring-white/10 sm:h-56 sm:w-80">
               <video
                 ref={(el) => {
-                  if (el) {
-                    remoteVideosRef.current.set(remoteUserId, el)
-                    if (user.stream) {
-                      el.srcObject = user.stream
-                    }
-                  } else {
-                    remoteVideosRef.current.delete(remoteUserId)
+                  localVideoRef.current = el
+                  if (el && client) {
+                    const s = client.getLocalStream()
+                    if (s && el.srcObject !== s) el.srcObject = s
                   }
                 }}
                 autoPlay
+                muted
                 playsInline
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover"
               />
-              <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-sm backdrop-blur-sm">
-                {user.userName || user.userId} ({user.userType === 'doctor' ? 'Doctor' : 'Paciente'})
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-800/60">
+                <UserCircle className="h-16 w-16 text-slate-500" />
               </div>
             </div>
-          ))}
 
-          {/* Empty slots when no remote users */}
-          {remoteUsers.size === 0 && connectionState === 'connected' && (
-            <div className="bg-gray-800 rounded-lg flex items-center justify-center">
-              <div className="text-center text-gray-400">
-                <Users className="w-12 h-12 mx-auto mb-2" />
-                <p>Esperando a otros participantes...</p>
-              </div>
-            </div>
-          )}
-        </div>
+            <h2 className="mb-2 text-xl font-semibold text-white sm:text-2xl">Consulta médica</h2>
+            <p className="mb-6 text-sm text-slate-400">
+              Sala: {roomId} {userName && `• ${userName}`}
+            </p>
 
-        {/* Screen Share Preview */}
-        {isScreenSharing && screenStream && (
-          <div className="absolute top-6 right-6 w-48 h-32 bg-black rounded-lg border-2 border-blue-500 overflow-hidden">
-            <video
-              ref={screenShareRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-contain"
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-              <div className="flex items-center text-xs text-white">
-                <ScreenShare className="w-3 h-3 mr-1" />
-                Compartiendo pantalla
-              </div>
-            </div>
+            {callError && (
+              <div className="mb-4 rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-300">{callError}</div>
+            )}
+
+            <button
+              onClick={startCall}
+              className={`inline-flex items-center gap-3 rounded-full px-8 py-4 text-lg font-semibold text-white shadow-xl transition-all hover:scale-105 active:scale-95 ${
+                accentColor === 'violet'
+                  ? 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
+                  : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/30'
+              }`}
+              title="Iniciar videollamada"
+            >
+              <Phone className="h-6 w-6" />
+              {userType === 'doctor' ? 'Iniciar consulta' : 'Unirse a consulta'}
+            </button>
+
+            {connectionState === 'failed' && (
+              <p className="mt-3 text-sm text-red-400">Error de conexión. Intenta nuevamente.</p>
+            )}
           </div>
+        )}
+
+        {/* Connecting state */}
+        {connectionState === 'connecting' && (
+          <div className="flex h-full flex-col items-center justify-center bg-slate-900">
+            <Loader2 className="mb-4 h-12 w-12 animate-spin text-blue-400" />
+            <p className="text-lg font-medium text-slate-300">Estableciendo conexión...</p>
+            <p className="mt-1 text-sm text-slate-500">Conectando con el servidor de señalización</p>
+          </div>
+        )}
+
+        {/* Connected — PiP layout */}
+        {isActive && (
+          <>
+            {/* Remote video (full area) or waiting */}
+            {firstRemote ? (
+              <div className="h-full w-full bg-slate-900">
+                {Array.from(remoteUsers.entries()).map(([remoteUserId, remoteUser]) => (
+                  <div key={remoteUserId} className="relative h-full w-full">
+                    <video
+                      ref={(el) => {
+                        if (el) {
+                          remoteVideosRef.current.set(remoteUserId, el)
+                          if (remoteUser.stream) el.srcObject = remoteUser.stream
+                        } else {
+                          remoteVideosRef.current.delete(remoteUserId)
+                        }
+                      }}
+                      autoPlay
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                    {/* Remote user label */}
+                    <div
+                      className={`absolute left-4 top-4 flex items-center gap-2 rounded-lg bg-black/50 px-3 py-1.5 text-sm backdrop-blur-md transition-opacity ${
+                        controlsVisible ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    >
+                      <UserCircle className="h-4 w-4" />
+                      <span>{remoteUser.userName || remoteUser.userId}</span>
+                      <span className="text-slate-400">
+                        ({remoteUser.userType === 'doctor' ? 'Doctor' : 'Paciente'})
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center bg-slate-900">
+                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-800 ring-1 ring-white/10">
+                  <Users className="h-10 w-10 text-slate-500" />
+                </div>
+                <p className="text-lg font-medium text-slate-300">Esperando al participante...</p>
+                <p className="mt-1 text-sm text-slate-500">La consulta comenzará cuando se una</p>
+              </div>
+            )}
+
+            {/* Local video PiP (bottom-right) */}
+            <div className="absolute bottom-24 right-4 z-10 h-32 w-44 overflow-hidden rounded-xl bg-slate-800 shadow-2xl ring-1 ring-white/20 transition-all sm:h-40 sm:w-56">
+              <video
+                ref={(el) => {
+                  localVideoRef.current = el
+                  if (el && client) {
+                    const s = client.getLocalStream()
+                    if (s && el.srcObject !== s) el.srcObject = s
+                  }
+                }}
+                autoPlay
+                muted
+                playsInline
+                className={`h-full w-full object-cover transition-opacity ${isVideoEnabled ? 'opacity-100' : 'opacity-0'}`}
+              />
+              {!isVideoEnabled && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+                  <VideoOff className="h-8 w-8 text-slate-500" />
+                </div>
+              )}
+              <div className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-xs backdrop-blur-sm">
+                Tú {!isAudioEnabled && <MicOff className="ml-1 inline h-3 w-3 text-red-400" />}
+              </div>
+            </div>
+
+            {/* Screen share overlay */}
+            {isScreenSharing && screenStream && (
+              <div className="absolute left-4 top-4 z-10 h-36 w-52 overflow-hidden rounded-xl border-2 border-blue-500/60 bg-black shadow-lg">
+                <video ref={screenShareRef} autoPlay muted playsInline className="h-full w-full object-contain" />
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+                  <span className="flex items-center gap-1 text-xs">
+                    <ScreenShare className="h-3 w-3" /> Compartiendo
+                  </span>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* Controls */}
-      <div className="p-4 bg-gray-800/90 border-t border-gray-700/60">
-        <div className="flex items-center justify-center space-x-4">
-          {/* Video Toggle */}
-          <button
-            onClick={toggleVideo}
-            disabled={connectionState !== 'connected'}
-            className={`p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              isVideoEnabled
-                ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                : 'bg-red-600 hover:bg-red-500 text-white'
-            }`}
-            title={isVideoEnabled ? 'Desactivar cámara' : 'Activar cámara'}
-          >
-            {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-          </button>
+      {/* ── Top bar (overlay, visible during active call) ── */}
+      {isActive && (
+        <div
+          className={`absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 py-3 transition-opacity duration-300 ${
+            controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            {/* Connection indicator */}
+            <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-md">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-medium">Conectado</span>
+            </div>
 
-          {/* Audio Toggle */}
-          <button
-            onClick={toggleAudio}
-            disabled={connectionState !== 'connected'}
-            className={`p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              isAudioEnabled
-                ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                : 'bg-red-600 hover:bg-red-500 text-white'
-            }`}
-            title={isAudioEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
-          >
-            {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-          </button>
+            {/* Quality */}
+            {qualityLevel !== 'unknown' && (
+              <div className={`flex items-center gap-1 text-xs ${qualityColor[qualityLevel]}`}>
+                <Wifi className="h-3.5 w-3.5" />
+                <span>{qualityLabel[qualityLevel]}</span>
+              </div>
+            )}
+          </div>
 
-          {/* Screen Share Toggle (only for desktop) */}
-          {typeof window !== 'undefined' && typeof navigator?.mediaDevices?.getDisplayMedia === 'function' && (
+          <div className="flex items-center gap-3">
+            {/* Duration */}
+            <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-md">
+              <Clock className="h-3.5 w-3.5 text-slate-300" />
+              <span className="font-mono">{formattedDuration}</span>
+            </div>
+
+            {/* Participants */}
+            <div className="flex items-center gap-1 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-md">
+              <Users className="h-3.5 w-3.5" />
+              <span>{totalParticipants}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Error toast ── */}
+      {callError && isActive && (
+        <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
+          <div className="rounded-lg bg-red-500/90 px-4 py-2 text-sm shadow-lg backdrop-blur-sm">
+            {callError}
+          </div>
+        </div>
+      )}
+
+      {/* ── Floating controls (bottom) ── */}
+      {isActive && (
+        <div
+          className={`absolute inset-x-0 bottom-0 z-20 flex flex-col items-center pb-4 pt-8 bg-gradient-to-t from-black/60 to-transparent transition-opacity duration-300 ${
+            controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="flex items-center gap-2 rounded-full bg-black/50 px-3 py-2 backdrop-blur-xl sm:gap-3 sm:px-4">
+            {/* Mic */}
             <button
-              onClick={toggleScreenShare}
-              disabled={connectionState !== 'connected'}
-              className={`p-3 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                isScreenSharing
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white'
-                  : 'bg-gray-600 hover:bg-gray-500 text-white'
+              onClick={toggleAudio}
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+                isAudioEnabled
+                  ? 'bg-white/15 text-white hover:bg-white/25'
+                  : 'bg-red-500 text-white hover:bg-red-400'
               }`}
-              title={isScreenSharing ? 'Detener compartir pantalla' : 'Compartir pantalla'}
+              title={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
             >
-              {isScreenSharing ? <ScreenShare className="w-5 h-5" /> : <ScreenShareOff className="w-5 h-5" />}
+              {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
             </button>
-          )}
 
-          {/* Start/End Call Button */}
-          {connectionState === 'disconnected' || connectionState === 'failed' ? (
+            {/* Camera */}
             <button
-              onClick={startCall}
-              className={`p-4 ${colors.primary} rounded-full transition-colors text-white shadow-lg`}
-              title="Iniciar videollamada"
+              onClick={toggleVideo}
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+                isVideoEnabled
+                  ? 'bg-white/15 text-white hover:bg-white/25'
+                  : 'bg-red-500 text-white hover:bg-red-400'
+              }`}
+              title={isVideoEnabled ? 'Desactivar cámara' : 'Activar cámara'}
             >
-              <Phone className="w-6 h-6" />
+              {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
             </button>
-          ) : (
+
+            {/* Screen share */}
+            {typeof window !== 'undefined' && typeof navigator?.mediaDevices?.getDisplayMedia === 'function' && (
+              <button
+                onClick={toggleScreenShare}
+                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+                  isScreenSharing
+                    ? 'bg-blue-500 text-white hover:bg-blue-400'
+                    : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+                title={isScreenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}
+              >
+                {isScreenSharing ? <ScreenShare className="h-5 w-5" /> : <ScreenShareOff className="h-5 w-5" />}
+              </button>
+            )}
+
+            {/* Chat */}
+            <button
+              onClick={toggleChatPanel}
+              className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+                isChatPanelOpen
+                  ? accentColor === 'violet'
+                    ? 'bg-violet-600 text-white'
+                    : 'bg-sky-600 text-white'
+                  : 'bg-white/15 text-white hover:bg-white/25'
+              }`}
+              title={isChatPanelOpen ? 'Cerrar chat' : 'Abrir chat'}
+            >
+              <MessageSquare className="h-5 w-5" />
+              {!isChatPanelOpen && unreadMessages > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold">
+                  {unreadMessages > 99 ? '99+' : unreadMessages}
+                </span>
+              )}
+            </button>
+
+            {/* Divider */}
+            <div className="mx-1 h-8 w-px bg-white/20" />
+
+            {/* End call */}
             <button
               onClick={endCall}
-              className="p-4 bg-red-600 hover:bg-red-500 rounded-full transition-colors text-white shadow-lg"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-all hover:bg-red-500 hover:scale-105 active:scale-95 sm:h-14 sm:w-14"
               title="Terminar videollamada"
             >
-              <PhoneOff className="w-6 h-6" />
+              <PhoneOff className="h-6 w-6" />
             </button>
-          )}
-        </div>
+          </div>
 
-        {/* Status text */}
-        <div className="text-center mt-3 text-sm text-gray-400">
-          {connectionState === 'disconnected' && 'Presiona el botón para iniciar la videollamada'}
-          {connectionState === 'connecting' && 'Estableciendo conexión...'}
-          {connectionState === 'connected' && `Videollamada activa • ${totalParticipants} participante${totalParticipants !== 1 ? 's' : ''}`}
-          {connectionState === 'failed' && 'Error de conexión. Intenta nuevamente.'}
+          {/* Status text */}
+          <p className="mt-2 text-xs text-slate-400">
+            Videollamada activa &bull; {totalParticipants} participante{totalParticipants !== 1 ? 's' : ''}
+            {isChatReady ? ' \u2022 chat listo' : ''}
+          </p>
         </div>
-      </div>
+      )}
+
+      {/* ── Chat panel (slide-in from right) ── */}
+      {isActive && (
+        <aside
+          className={`absolute right-0 top-0 bottom-0 z-30 flex w-full flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur-lg transition-transform duration-300 ease-out md:w-96 ${
+            isChatPanelOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          {/* Chat header */}
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <div>
+              <h3 className="font-semibold text-white">Chat de consulta</h3>
+              <p className="text-xs text-slate-400">
+                {isChatReady ? (
+                  <span className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Canal activo
+                  </span>
+                ) : (
+                  'Conectando canal...'
+                )}
+              </p>
+            </div>
+            <button
+              onClick={() => setIsChatPanelOpen(false)}
+              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              title="Cerrar chat"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+            {chatMessages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <MessageSquare className="mb-3 h-10 w-10 text-slate-600" />
+                <p className="text-sm text-slate-500">Sin mensajes aún</p>
+                <p className="mt-1 text-xs text-slate-600">
+                  Usa el chat para coordinar durante la consulta
+                </p>
+              </div>
+            )}
+
+            {chatMessages.map((msg) => (
+              <div key={msg.id} className={`flex ${msg.mine ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                    msg.mine
+                      ? accentColor === 'violet'
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-sky-600 text-white'
+                      : 'bg-slate-800 text-slate-100'
+                  }`}
+                >
+                  <p className="text-[11px] font-semibold opacity-80">{msg.senderLabel}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+                  <p className="mt-1 text-[10px] opacity-60">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Input */}
+          <form onSubmit={handleChatSubmit} className="border-t border-white/10 p-3">
+            <div className="flex items-end gap-2">
+              <textarea
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={handleChatKeyDown}
+                rows={1}
+                placeholder="Escribe un mensaje..."
+                className="flex-1 resize-none rounded-xl border border-white/10 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-white/20 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={!isChatReady || chatInput.trim().length === 0}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                  accentColor === 'violet'
+                    ? 'bg-violet-600 hover:bg-violet-500 text-white'
+                    : 'bg-sky-600 hover:bg-sky-500 text-white'
+                }`}
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-1.5 text-[10px] text-slate-600">Enter enviar &bull; Shift+Enter nueva línea</p>
+          </form>
+        </aside>
+      )}
+
+      {/* ── Quality badge (poor/fair) ── */}
+      {isActive && (qualityLevel === 'poor' || qualityLevel === 'fair') && (
+        <div className="absolute left-4 bottom-24 z-20 flex items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-xs backdrop-blur-md">
+          <WifiOff className={`h-3.5 w-3.5 ${qualityColor[qualityLevel]}`} />
+          <span className={qualityColor[qualityLevel]}>Conexión {qualityLabel[qualityLevel].toLowerCase()}</span>
+        </div>
+      )}
     </div>
   )
 }

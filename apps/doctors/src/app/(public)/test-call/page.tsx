@@ -9,89 +9,77 @@ export default function TestCallPage() {
   const [userId] = useState('doctor-test-001')
   const [callStarted, setCallStarted] = useState(false)
 
+  if (callStarted) {
+    return (
+      <div className="h-screen w-screen">
+        <UnifiedVideoCall
+          roomId={roomId}
+          userId={userId}
+          userType="doctor"
+          userName="Dr. Test"
+          onCallEnd={() => setCallStarted(false)}
+          onCallStart={() => logger.info('Llamada iniciada exitosamente')}
+          theme="doctor"
+          className="h-full w-full"
+        />
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gray-900 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6 text-white">
-          <h1 className="text-2xl font-bold mb-2">🩺 Test de Videollamada - Portal Médicos</h1>
-          <p className="text-gray-400">Prueba del sistema de telemedicina Doctor ↔ Paciente</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+      <div className="w-full max-w-lg">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
+            <svg className="h-8 w-8 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Test de Videollamada</h1>
+          <p className="mt-1 text-sm text-slate-500">Portal Medicos</p>
         </div>
 
-        {!callStarted ? (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Configurar Llamada de Prueba</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Room ID
-                </label>
-                <input
-                  type="text"
-                  value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
-                  placeholder="Ej: test-room-001"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  User ID (Doctor)
-                </label>
-                <input
-                  type="text"
-                  value={userId}
-                  disabled
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-600 rounded-lg text-gray-400"
-                />
-              </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Room ID</label>
+              <input
+                type="text"
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-violet-500"
+                placeholder="Ej: test-room-001"
+              />
             </div>
 
-            <div className="bg-blue-600/20 border border-blue-500/50 rounded-lg p-4 mb-6">
-              <h3 className="text-blue-200 font-medium mb-2">📋 Instrucciones de Prueba:</h3>
-              <ol className="text-blue-100 text-sm space-y-1">
-                <li>1. Click &quot;Iniciar Videollamada&quot; para comenzar</li>
-                <li>2. Permite acceso a cámara y micrófono cuando lo solicite</li>
-                <li>3. Abre otra pestaña en http://localhost:3002 (portal pacientes)</li>
-                <li>4. Usa el mismo Room ID en ambas ventanas</li>
-                <li>5. Verifica que se establezca la conexión WebRTC</li>
-              </ol>
-            </div>
-
-            <button
-              onClick={() => setCallStarted(true)}
-              className="w-full bg-[#ee58a6] hover:bg-[#d44a92] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-            >
-              🚀 Iniciar Videollamada de Prueba
-            </button>
-          </div>
-        ) : (
-          <div className="bg-gray-800 rounded-lg overflow-hidden" style={{ height: '600px' }}>
-            <UnifiedVideoCall
-              roomId={roomId}
-              userId={userId}
-              userType="doctor"
-              userName="Dr. Test"
-              onCallEnd={() => setCallStarted(false)}
-              onCallStart={() => logger.info('✅ Llamada iniciada exitosamente')}
-              theme="doctor"
-              className="h-full"
-            />
-          </div>
-        )}
-
-        {callStarted && (
-          <div className="mt-6 bg-gray-800 rounded-lg p-4">
-            <h3 className="text-white font-medium mb-2">🔧 Debug Info</h3>
-            <div className="text-sm text-gray-300 space-y-1">
-              <p><strong>Room ID:</strong> {roomId}</p>
-              <p><strong>User ID:</strong> {userId}</p>
-              <p><strong>Role:</strong> Doctor</p>
-              <p><strong>WebRTC Status:</strong> <span className="text-green-400">Activo</span></p>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">User ID (Doctor)</label>
+              <input
+                type="text"
+                value={userId}
+                disabled
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400"
+              />
             </div>
           </div>
-        )}
+
+          <div className="mb-6 rounded-lg bg-violet-50 p-4">
+            <h3 className="mb-2 text-sm font-medium text-violet-900">Instrucciones</h3>
+            <ol className="space-y-1 text-sm text-violet-700">
+              <li>1. Click &quot;Iniciar Consulta&quot; para comenzar</li>
+              <li>2. Permite acceso a camara y microfono</li>
+              <li>3. Abre el portal pacientes en otra pestana</li>
+              <li>4. Usa el mismo Room ID en ambas ventanas</li>
+            </ol>
+          </div>
+
+          <button
+            onClick={() => setCallStarted(true)}
+            className="w-full rounded-lg bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
+          >
+            Iniciar Consulta
+          </button>
+        </div>
       </div>
     </div>
   )

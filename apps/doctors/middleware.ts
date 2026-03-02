@@ -16,6 +16,7 @@ const PUBLIC_ROUTES = [
   '/manifest.webmanifest',
   '/auth/callback',
   '/consultation',
+  '/call',
   '/test-call',
 ];
 
@@ -69,6 +70,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|public|api/health|consultation|test-call).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|public|api/health|consultation|call|test-call).*)',
   ],
 };

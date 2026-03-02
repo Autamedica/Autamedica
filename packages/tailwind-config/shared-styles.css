@@ -1,75 +1,86 @@
 /**
- * Estilos compartidos de AutaMedica
+ * AutaMedica Shared Styles
  *
- * Este archivo contiene las variables CSS que se utilizan
- * en toda la suite de aplicaciones AutaMedica.
+ * CSS custom properties consumed across all apps.
+ * New design system: Doctolib-inspired medical professional.
  *
- * ⚠️ IMPORTANTE: No importar @tailwind aquí para evitar duplicación.
- * Las directivas @tailwind deben estar únicamente en cada app.
+ * ⚠️ No @tailwind directives here — each app owns those.
  */
 
-/* Variables CSS para temas dinámicos de AutaMedica */
+/* ── Design System Variables ── */
 :root {
   /* Background system */
-  --background: #fdfdf9;
-  --foreground: #171717;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
 
-  /* AutaMedica Brand Colors */
+  /* Legacy brand (kept for backward compat) */
   --ivory: #f5f5dc;
   --beige: #f5e6d3;
   --negro: #1a1a1a;
   --blanco: #ffffff;
 
-  /* UI Color System */
-  --primary: #d4af37;        /* Oro AutaMedica */
-  --primary-dark: #b8941f;   /* Oro oscuro */
-  --secondary: #8b7355;      /* Beige secundario */
-  --accent: #e8c547;         /* Acento dorado */
+  /* Primary palette (blue) */
+  --primary: #2563EB;
+  --primary-dark: #1D4ED8;
+  --secondary: #64748B;
+  --accent: #3B82F6;
 
-  /* Text Colors */
-  --text-primary: #1a1a1a;
-  --text-secondary: #6b7280;
-  --text-light: #9ca3af;
+  /* Text */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-light: #94A3B8;
+
+  /* Role accents */
+  --doctor-accent: #7C3AED;
+  --patient-accent: #0EA5E9;
+
+  /* Surfaces */
+  --surface-bg: #F8FAFC;
+  --surface-card: #FFFFFF;
+  --surface-border: #E2E8F0;
+  --surface-hover: #F1F5F9;
 }
 
-/* Tema oscuro */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1a1a1a;
-    --foreground: #fdfdf9;
-    --text-primary: #fdfdf9;
-    --text-secondary: #d1d5db;
-    --text-light: #9ca3af;
-  }
-}
-
-/* Clases utility adicionales para aplicaciones médicas */
+/* ── Utility classes ── */
 .medical-card {
-  @apply bg-white border border-stone-200 rounded-lg shadow-sm p-6;
+  @apply bg-white border border-slate-200 rounded-xl shadow-sm p-6;
 }
 
 .medical-button {
-  @apply bg-amber-600 hover:bg-amber-500 text-white font-medium px-4 py-2 rounded-lg transition-colors;
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors;
+}
+
+.medical-button-secondary {
+  @apply bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium px-4 py-2 rounded-lg transition-colors;
 }
 
 .medical-input {
-  @apply border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent;
+  @apply border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
 }
 
-/* Animaciones para carga de datos médicos */
-.loading-skeleton {
-  @apply animate-pulse bg-gray-200 rounded;
-}
-
-/* Indicadores de estado médico */
+/* ── Status indicators ── */
 .status-critical {
-  @apply bg-red-100 text-red-800 border border-red-200;
+  @apply bg-red-50 text-red-800 border border-red-200;
 }
 
 .status-stable {
-  @apply bg-green-100 text-green-800 border border-green-200;
+  @apply bg-emerald-50 text-emerald-800 border border-emerald-200;
 }
 
 .status-warning {
-  @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+  @apply bg-amber-50 text-amber-800 border border-amber-200;
+}
+
+/* ── Loading ── */
+.loading-skeleton {
+  @apply animate-pulse bg-slate-200 rounded;
+}
+
+/* ── Glassmorphism (video call overlays) ── */
+.glass {
+  @apply bg-black/40 backdrop-blur-xl;
+}
+
+.glass-light {
+  @apply bg-white/80 backdrop-blur-lg border border-white/20;
 }

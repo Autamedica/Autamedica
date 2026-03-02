@@ -24,15 +24,26 @@ class AppointmentRepositoryImpl @Inject constructor(
     override suspend fun getUpcomingAppointments(): Result<List<Appointment>> = runCatching {
         val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
             ?: throw IllegalStateException("No user ID found")
+        val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
+
+        // Resolve record IDs: appointments.patient_id → patients.id, appointments.doctor_id → doctors.id
+        val recordId = if (role == "doctor") {
+            supabaseClient.postgrest.from("doctors")
+                .select(Columns.list("id")) { filter { eq("user_id", userId) } }
+                .decodeSingle<RecordIdDto>().id
+        } else {
+            supabaseClient.postgrest.from("patients")
+                .select(Columns.list("id")) { filter { eq("user_id", userId) } }
+                .decodeSingle<RecordIdDto>().id
+        }
+
+        val filterColumn = if (role == "doctor") "doctor_id" else "patient_id"
 
         val dtos = supabaseClient.postgrest
             .from("appointments")
             .select(Columns.ALL) {
                 filter {
-                    or {
-                        eq("patient_id", userId)
-                        eq("doctor_id", userId)
-                    }
+                    eq(filterColumn, recordId)
                     isIn("status", listOf("scheduled", "confirmed", "in_progress"))
                 }
                 order("start_time", Order.ASCENDING)
@@ -57,6 +68,9 @@ class AppointmentRepositoryImpl @Inject constructor(
         Timber.e(it, "[Appointments] Failed fetching appointment $id")
     }
 }
+
+@Serializable
+private data class RecordIdDto(val id: String)
 
 @Serializable
 private data class AppointmentDto(

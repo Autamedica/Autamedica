@@ -2,36 +2,30 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
+
 html, body {
   height: 100%;
 }
 
 body {
-  @apply bg-slate-950 text-slate-100 antialiased;
+  @apply bg-slate-50 text-slate-900 antialiased;
 }
 
-
-/* Videollamada focus layout */
+/* Layout grid */
 .app {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: 40px 40px 1fr;
+  grid-template-rows: 56px 44px 1fr;
   contain: layout style paint;
   will-change: transform;
 }
 
 .app--focus {
-  grid-template-rows: 40px 0 1fr;
+  grid-template-rows: 56px 0 1fr;
 }
 
-.header {
-  height: 40px;
-}
-
-.tabs {
-  height: 40px;
-  overflow: hidden;
-}
+.header { height: 56px; }
+.tabs { height: 44px; overflow: hidden; }
 
 .call-area {
   display: flex;
@@ -43,7 +37,7 @@ body {
   flex: 1;
   margin: 0;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 12px;
   box-shadow: none;
   background: transparent;
 }
@@ -56,7 +50,7 @@ body {
 
 .left-rail {
   width: 72px;
-  transition: width 0.3s ease;
+  transition: width 0.2s ease;
 }
 
 .left-rail--expanded {
@@ -80,7 +74,6 @@ body {
   width: 240px;
 }
 
-/* Layout principal que faltaba */
 .app__layout {
   display: flex;
   flex: 1;
@@ -89,7 +82,6 @@ body {
   overflow: hidden;
 }
 
-/* Fix para paneles que ocupen altura completa */
 .panel-container {
   display: flex;
   flex-direction: column;
@@ -98,22 +90,12 @@ body {
   container-type: inline-size;
 }
 
-/* Responsive para equipos médicos 2025 */
-@media (min-width: 1920px) {
-  .app {
-    grid-template-rows: 50px 50px 1fr;
-  }
-  .header { height: 50px; }
-  .tabs { height: 50px; }
-}
-
 @media (max-width: 768px) {
   .app--focus {
-    grid-template-rows: 40px 0 1fr;
+    grid-template-rows: 56px 0 1fr;
   }
 }
 
-/* Container queries para paneles médicos */
 @container (min-width: 400px) {
   .settings-grid {
     grid-template-columns: 1fr 1fr;
@@ -188,28 +170,20 @@ body {
   opacity: 1;
 }
 
-/* Estados de urgencia médica - 2025 Standards */
-.urgent {
-  border-left: 4px solid #dc2626;
-}
+/* Medical urgency indicators */
+.urgent { border-left: 4px solid #dc2626; }
+.normal { border-left: 4px solid #10b981; }
+.critical { border-left: 4px solid #f59e0b; }
 
-.normal {
-  border-left: 4px solid #10b981;
-}
-
-.critical {
-  border-left: 4px solid #f59e0b;
-}
-
-/* Touch targets para equipos médicos */
+/* Touch targets */
 .sidebar-button {
   min-height: 44px;
   min-width: 44px;
 }
 
-/* Loading states profesionales */
+/* Loading states */
 .skeleton {
-  @apply animate-pulse bg-slate-800/60 rounded-lg;
+  @apply animate-pulse bg-slate-200 rounded-lg;
 }
 
 .skeleton-text {

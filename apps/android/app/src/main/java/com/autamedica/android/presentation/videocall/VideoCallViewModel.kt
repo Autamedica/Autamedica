@@ -9,6 +9,7 @@ import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualitySummary
+import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.presentation.videocall.webrtc.WebRTCEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,9 +47,10 @@ class VideoCallViewModel @Inject constructor(
     private val eglBase: EglBase,
     private val json: Json,
     savedStateHandle: SavedStateHandle,
+    private val telemedicineRepository: TelemedicineRepository,
 ) : ViewModel() {
 
-    val roomId: String = savedStateHandle["roomId"] ?: ""
+    val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
     val userId: String = savedStateHandle["userId"] ?: ""
     val userType: String = savedStateHandle["userType"] ?: ""
     val userName: String = savedStateHandle["userName"] ?: ""
@@ -78,21 +80,35 @@ class VideoCallViewModel @Inject constructor(
     private var timerJob: kotlinx.coroutines.Job? = null
 
     init {
-        engine.initialize(
-            WebRTCEngine.Config(
-                roomId = roomId,
-                userId = userId,
-                userType = userType,
-                userName = userName,
-            )
-        )
-
-        observeEngine()
+        // Initially disconnected until we fetch the session
+        _uiState.update { it.copy(connectionState = ConnectionState.CONNECTING) }
     }
 
     fun startCall() {
-        engine.startLocalMedia()
-        engine.connect()
+        viewModelScope.launch {
+            val sessionResult = if (userType == "doctor") {
+                telemedicineRepository.createSession(userId, appointmentId)
+            } else {
+                telemedicineRepository.getSession(appointmentId)
+            }
+
+            sessionResult.onSuccess { sessionInfo ->
+                engine.initialize(
+                    WebRTCEngine.Config(
+                        roomId = sessionInfo.roomId,
+                        userId = userId,
+                        userType = userType,
+                        userName = userName,
+                    )
+                )
+                observeEngine()
+                engine.startLocalMedia()
+                engine.connect(sessionInfo.roomId)
+            }.onFailure { error ->
+                Timber.e(error, "Failed to initialize telemedicine session")
+                _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
+            }
+        }
     }
 
     fun endCall() {

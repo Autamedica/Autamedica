@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+}
+
+val localProperties = Properties().apply {
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) {
+        load(localPropsFile.inputStream())
+    }
 }
 
 android {
@@ -23,17 +32,22 @@ android {
         buildConfigField(
             "String",
             "SUPABASE_URL",
-            "\"https://qxjjrpksmwwrmubhvjew.supabase.co\""
+            "\"${localProperties.getProperty("SUPABASE_URL", "https://qxjjrpksmwwrmubhvjew.supabase.co")}\""
         )
         buildConfigField(
             "String",
             "SUPABASE_ANON_KEY",
-            "\"${project.findProperty("SUPABASE_ANON_KEY") ?: ""}\""
+            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\""
         )
         buildConfigField(
             "String",
             "SIGNALING_URL",
-            "\"wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling\""
+            "\"${localProperties.getProperty("SIGNALING_URL", "wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling")}\""
+        )
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "491151556566-6h58b6279rdq05rs65smol0lq8uoue48.apps.googleusercontent.com")}\""
         )
     }
 
@@ -98,6 +112,7 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.realtime)
+    implementation(libs.supabase.functions)
 
     // Ktor (required by supabase-kt)
     implementation(libs.ktor.client.android)
@@ -114,6 +129,11 @@ dependencies {
 
     // Coroutines
     implementation(libs.coroutines.android)
+
+    // Google Sign-In (Credential Manager)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services)
+    implementation(libs.googleid)
 
     // Security
     implementation(libs.security.crypto)
