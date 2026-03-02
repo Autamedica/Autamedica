@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface CompanyLayoutContextType {
@@ -34,9 +33,18 @@ interface CompanyLayoutProviderProps {
 }
 
 export function CompanyLayoutProvider({ children }: CompanyLayoutProviderProps) {
-  const pathname = usePathname();
+  const [pathname, setPathname] = useState(() =>
+    typeof window !== 'undefined' ? window.location.pathname : '/'
+  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Sync pathname on navigation (Astro doesn't have usePathname)
+  useEffect(() => {
+    const updatePathname = () => setPathname(window.location.pathname);
+    window.addEventListener('popstate', updatePathname);
+    return () => window.removeEventListener('popstate', updatePathname);
+  }, []);
 
   // Generate breadcrumbs based on current path
   const generateBreadcrumbs = (path: string): BreadcrumbItem[] => {

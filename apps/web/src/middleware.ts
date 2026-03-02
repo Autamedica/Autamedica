@@ -48,6 +48,8 @@ const ROLE_REDIRECTS: Record<string, string> = {
   admin: '/admin',
 };
 
+// Unified legacy redirects: handles both exact match (/empresa → /companies)
+// and prefix+subpath (/empresa/foo → /companies/foo) in a single loop.
 const LEGACY_REDIRECTS: Record<string, string> = {
   '/app': '/platform',
   '/web-app': '/platform',
@@ -76,18 +78,6 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/portals/medicos': '/doctors',
   '/portals/companies': '/companies',
   '/portals/empresas': '/companies',
-};
-
-const LEGACY_PREFIX_REDIRECTS: Record<string, string> = {
-  '/empresa': '/companies',
-  '/empresas': '/companies',
-  '/patient': '/patients',
-  '/paciente': '/patients',
-  '/pacientes': '/patients',
-  '/doctor': '/doctors',
-  '/medico': '/doctors',
-  '/medicos': '/doctors',
-  '/doctores': '/doctors',
 };
 
 const PORTAL_BRIDGE_TARGETS = {
@@ -183,43 +173,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(canonicalUrl.toString(), 308);
   }
 
-  if (pathname.startsWith('/app/')) {
-    const redirected = new URL(`/platform${pathname.slice('/app'.length)}`, context.request.url);
-    redirected.search = requestUrl.search;
-    return context.redirect(redirected.toString(), 301);
-  }
-
-  if (pathname.startsWith('/web-app/')) {
-    const redirected = new URL(`/platform${pathname.slice('/web-app'.length)}`, context.request.url);
-    redirected.search = requestUrl.search;
-    return context.redirect(redirected.toString(), 301);
-  }
-
-  if (pathname.startsWith('/webapp/')) {
-    const redirected = new URL(`/platform${pathname.slice('/webapp'.length)}`, context.request.url);
-    redirected.search = requestUrl.search;
-    return context.redirect(redirected.toString(), 301);
-  }
-
-  if (pathname.startsWith('/company/')) {
-    const redirected = new URL(`/companies${pathname.slice('/company'.length)}`, context.request.url);
-    redirected.search = requestUrl.search;
-    return context.redirect(redirected.toString(), 301);
-  }
-
-  for (const [legacyPrefix, targetPrefix] of Object.entries(LEGACY_PREFIX_REDIRECTS)) {
-    if (pathname.startsWith(`${legacyPrefix}/`)) {
-      const redirected = new URL(`${targetPrefix}${pathname.slice(legacyPrefix.length)}`, context.request.url);
+  // Unified legacy redirect: exact match + prefix+subpath in one pass
+  for (const [legacy, target] of Object.entries(LEGACY_REDIRECTS)) {
+    if (pathname === legacy) {
+      const redirectUrl = new URL(target, context.request.url);
+      redirectUrl.search = requestUrl.search;
+      return context.redirect(redirectUrl.toString(), 301);
+    }
+    if (pathname.startsWith(`${legacy}/`)) {
+      const rest = pathname.slice(legacy.length);
+      const redirected = new URL(`${target}${rest}`, context.request.url);
       redirected.search = requestUrl.search;
       return context.redirect(redirected.toString(), 301);
     }
-  }
-
-  const legacyTarget = LEGACY_REDIRECTS[pathname];
-  if (legacyTarget) {
-    const redirectUrl = new URL(legacyTarget, context.request.url);
-    redirectUrl.search = requestUrl.search;
-    return context.redirect(redirectUrl.toString(), 301);
   }
 
   // Interceptar redirects de OAuth o Magic Links que caen fuera del callback
