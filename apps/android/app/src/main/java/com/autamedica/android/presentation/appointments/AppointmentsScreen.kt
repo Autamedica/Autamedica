@@ -184,7 +184,7 @@ fun AppointmentsScreen(
                                 onJoinCall = if (appointment.meetingUrl != null) {
                                     {
                                         onNavigateToVideoCall(
-                                            appointment.id,
+                                            appointment.meetingUrl?.substringAfterLast("/") ?: "",
                                             uiState.userId,
                                             uiState.userRole,
                                             uiState.userName,

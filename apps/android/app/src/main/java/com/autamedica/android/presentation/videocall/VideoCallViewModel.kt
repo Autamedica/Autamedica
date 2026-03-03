@@ -98,11 +98,7 @@ class VideoCallViewModel @Inject constructor(
         CallNotificationService.start(context)
 
         viewModelScope.launch {
-            val sessionResult = if (userType == "doctor") {
-                telemedicineRepository.createSession(userId, appointmentId)
-            } else {
-                telemedicineRepository.getSession(appointmentId)
-            }
+            val sessionResult = telemedicineRepository.getSession(appointmentId)
 
             sessionResult.onSuccess { sessionInfo ->
                 engine.initialize(

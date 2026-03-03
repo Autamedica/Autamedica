@@ -149,7 +149,7 @@ fun DashboardScreen(
                                     ) {
                                         {
                                             onNavigateToVideoCall(
-                                                nextAppointment.id,
+                                                nextAppointment.meetingUrl?.substringAfterLast("/") ?: "",
                                                 uiState.userId,
                                                 uiState.userRole,
                                                 uiState.userName,
@@ -232,7 +232,7 @@ fun DashboardScreen(
                                         ) {
                                             {
                                                 onNavigateToVideoCall(
-                                                    appointment.id,
+                                                    appointment.meetingUrl?.substringAfterLast("/") ?: "",
                                                     uiState.userId,
                                                     uiState.userRole,
                                                     uiState.userName,

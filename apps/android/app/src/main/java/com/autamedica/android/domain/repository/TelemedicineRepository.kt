@@ -14,6 +14,5 @@ data class IceServerInfo(
 )
 
 interface TelemedicineRepository {
-    suspend fun createSession(doctorId: String, appointmentId: String? = null): Result<TelemedicineSessionInfo>
     suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo>
 }
