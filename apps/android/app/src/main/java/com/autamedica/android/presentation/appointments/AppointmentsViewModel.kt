@@ -2,7 +2,6 @@ package com.autamedica.android.presentation.appointments
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
@@ -20,7 +19,7 @@ data class AppointmentsUiState(
     val error: String? = null,
     val isRefreshing: Boolean = false,
     val userId: String = "",
-    val userRole: String = "",
+    val userRole: String = "patient",
     val userName: String = "",
 )
 
@@ -28,7 +27,6 @@ data class AppointmentsUiState(
 class AppointmentsViewModel @Inject constructor(
     private val appointmentRepository: AppointmentRepository,
     private val authRepository: AuthRepository,
-    private val securePreferences: SecurePreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AppointmentsUiState())
@@ -45,16 +43,13 @@ class AppointmentsViewModel @Inject constructor(
     }
 
     private fun loadUserInfo() {
-        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: ""
-        val userRole = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: ""
-        _uiState.update { it.copy(userId = userId, userRole = userRole) }
-
         viewModelScope.launch {
             val user = authRepository.getCurrentUser()
             if (user != null) {
                 _uiState.update { state ->
                     state.copy(
                         userId = user.id,
+                        userRole = user.role.wireName,
                         userName = listOfNotNull(user.firstName, user.lastName)
                             .joinToString(" ")
                             .ifBlank { user.email },

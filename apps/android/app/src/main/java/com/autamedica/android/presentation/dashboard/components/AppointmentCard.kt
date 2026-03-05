@@ -210,8 +210,7 @@ private fun AppointmentType.displayName(): String = when (this) {
 }
 
 private fun Appointment.canJoinCall(): Boolean {
-    return meetingUrl != null &&
-        (type == AppointmentType.TELEMEDICINE || type == AppointmentType.CONSULTATION) &&
+    return (type == AppointmentType.TELEMEDICINE || type == AppointmentType.CONSULTATION) &&
         (status == AppointmentStatus.SCHEDULED || status == AppointmentStatus.CONFIRMED || status == AppointmentStatus.IN_PROGRESS)
 }
 

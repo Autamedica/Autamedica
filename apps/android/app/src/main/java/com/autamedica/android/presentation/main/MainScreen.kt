@@ -26,7 +26,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.R
 import com.autamedica.android.presentation.appointments.AppointmentsScreen
 import com.autamedica.android.presentation.dashboard.DashboardScreen
@@ -89,11 +89,10 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
-    val isLoggedOut by viewModel.isLoggedOut.collectAsState()
-    val userRole by viewModel.userRole.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
-    val isDoctor = userRole == "doctor"
+    val isDoctor = uiState.userRole.wireName == "doctor"
     val tabs = if (isDoctor) doctorTabs else patientTabs
     val accentColor = if (isDoctor) PortalDoctors else AuAccent
 
@@ -117,8 +116,8 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(isLoggedOut) {
-        if (isLoggedOut) {
+    LaunchedEffect(uiState.isLoggedOut) {
+        if (uiState.isLoggedOut) {
             onNavigateToLogin()
         }
     }

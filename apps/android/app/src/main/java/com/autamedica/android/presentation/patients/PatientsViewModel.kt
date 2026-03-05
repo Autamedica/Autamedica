@@ -2,16 +2,16 @@ package com.autamedica.android.presentation.patients
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.PatientSummary
+import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 
 data class PatientsUiState(
@@ -24,7 +24,7 @@ data class PatientsUiState(
 @HiltViewModel
 class PatientsViewModel @Inject constructor(
     private val doctorRepository: DoctorRepository,
-    private val securePreferences: SecurePreferences,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PatientsUiState())
@@ -41,8 +41,19 @@ class PatientsViewModel @Inject constructor(
 
     private fun loadPatients() {
         viewModelScope.launch {
-            val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: ""
-            doctorRepository.getDoctorProfile(userId).onSuccess { profile ->
+            val user = authRepository.getCurrentUser()
+            if (user == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = "Error de autenticacion",
+                    )
+                }
+                return@launch
+            }
+
+            doctorRepository.getDoctorProfile(user.id).onSuccess { profile ->
                 doctorRepository.getDoctorPatients(profile.id).onSuccess { patients ->
                     _uiState.update {
                         it.copy(
@@ -53,7 +64,7 @@ class PatientsViewModel @Inject constructor(
                         )
                     }
                 }.onFailure { error ->
-                    Timber.e(error, "[Patients] Failed fetching patients")
+                    SecureLog.error("[Patients] Failed fetching patients", error)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -63,7 +74,7 @@ class PatientsViewModel @Inject constructor(
                     }
                 }
             }.onFailure { error ->
-                Timber.e(error, "[Patients] Failed fetching doctor profile")
+                SecureLog.error("[Patients] Failed fetching doctor profile", error)
                 _uiState.update {
                     it.copy(
                         isLoading = false,

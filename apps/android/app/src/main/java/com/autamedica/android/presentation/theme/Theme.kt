@@ -69,7 +69,9 @@ fun AutamedicaTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            @Suppress("DEPRECATION")
             window.statusBarColor = AuBackground.toArgb()
+            @Suppress("DEPRECATION")
             window.navigationBarColor = AuBackground.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = false

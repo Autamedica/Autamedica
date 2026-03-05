@@ -5,6 +5,7 @@ import com.autamedica.android.data.remote.SupabaseAuthDataSource
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.logging.SecureLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -42,7 +43,7 @@ class AuthRepositoryImpl @Inject constructor(
             )
             Result.success(user)
         } catch (e: Exception) {
-            Timber.e(e, "Login failed")
+            SecureLog.error("Login failed", e)
             Result.failure(e)
         }
     }
@@ -64,7 +65,7 @@ class AuthRepositoryImpl @Inject constructor(
             )
             Result.success(user)
         } catch (e: Exception) {
-            Timber.e(e, "Google login failed")
+            SecureLog.error("Google login failed", e)
             Result.failure(e)
         }
     }
@@ -73,7 +74,7 @@ class AuthRepositoryImpl @Inject constructor(
         try {
             authDataSource.signOut()
         } catch (e: Exception) {
-            Timber.w(e, "Sign out error (clearing local state anyway)")
+            SecureLog.warn("Sign out error (clearing local state anyway)", e)
         }
         securePrefs.clear()
     }
@@ -91,7 +92,7 @@ class AuthRepositoryImpl @Inject constructor(
 
             authUser.toDomainUser()
         } catch (e: Exception) {
-            Timber.w(e, "Failed to get current user")
+            SecureLog.warn("Failed to get current user", e)
             null
         }
     }

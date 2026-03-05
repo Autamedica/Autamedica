@@ -23,4 +23,15 @@ enum class UserRole {
             ADMIN -> "Administrador"
             PLATFORM_ADMIN -> "Admin Plataforma"
         }
+
+    val wireName: String
+        get() = when (this) {
+            PATIENT -> "patient"
+            DOCTOR -> "doctor"
+            COMPANY -> "company"
+            COMPANY_ADMIN -> "company_admin"
+            ORGANIZATION_ADMIN -> "organization_admin"
+            ADMIN -> "admin"
+            PLATFORM_ADMIN -> "platform_admin"
+        }
 }

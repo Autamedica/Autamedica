@@ -2,7 +2,6 @@ package com.autamedica.android.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.DoctorProfile
 import com.autamedica.android.domain.model.DoctorStats
@@ -10,6 +9,7 @@ import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 
 data class DoctorDashboardUiState(
@@ -38,7 +37,6 @@ class DoctorDashboardViewModel @Inject constructor(
     private val doctorRepository: DoctorRepository,
     private val appointmentRepository: AppointmentRepository,
     private val authRepository: AuthRepository,
-    private val securePreferences: SecurePreferences,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorDashboardUiState())
@@ -55,23 +53,28 @@ class DoctorDashboardViewModel @Inject constructor(
 
     private fun loadAll() {
         viewModelScope.launch {
-            val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: ""
-            _uiState.update { it.copy(userId = userId) }
-
-            // Load user name
             val user = authRepository.getCurrentUser()
-            if (user != null) {
-                _uiState.update { state ->
-                    state.copy(
-                        userName = listOfNotNull(user.firstName, user.lastName)
-                            .joinToString(" ")
-                            .ifBlank { user.email },
+            if (user == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = "Error de autenticacion",
                     )
                 }
+                return@launch
+            }
+            _uiState.update { state ->
+                state.copy(
+                    userId = user.id,
+                    userName = listOfNotNull(user.firstName, user.lastName)
+                        .joinToString(" ")
+                        .ifBlank { user.email },
+                )
             }
 
             // Load doctor profile to get doctor record ID
-            val profileResult = doctorRepository.getDoctorProfile(userId)
+            val profileResult = doctorRepository.getDoctorProfile(user.id)
             profileResult.onSuccess { profile ->
                 _uiState.update { it.copy(doctorProfile = profile, doctorId = profile.id) }
 
@@ -95,7 +98,7 @@ class DoctorDashboardViewModel @Inject constructor(
                     )
                 }
             }.onFailure { error ->
-                Timber.e(error, "[DoctorDashboard] Failed loading doctor profile")
+                SecureLog.error("[DoctorDashboard] Failed loading doctor profile", error)
                 _uiState.update {
                     it.copy(
                         isLoading = false,

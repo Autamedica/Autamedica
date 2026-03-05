@@ -20,4 +20,7 @@ interface ChatRepository {
 
     /** Returns the total number of unread messages across all chats. */
     suspend fun getTotalUnreadCount(): Result<Int>
+
+    /** Unsubscribes from realtime channels and clears cached state. Call on logout. */
+    suspend fun cleanup()
 }

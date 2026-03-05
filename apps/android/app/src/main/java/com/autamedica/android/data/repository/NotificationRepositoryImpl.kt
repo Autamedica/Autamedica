@@ -2,6 +2,7 @@ package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.repository.NotificationRepository
+import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.SerialName
@@ -27,9 +28,9 @@ class NotificationRepositoryImpl @Inject constructor(
             }
 
         securePreferences.putString(KEY_FCM_TOKEN, token)
-        Timber.d("[Notifications] FCM token registered for user $userId")
+        Timber.d("[Notifications] FCM token registered")
     }.onFailure {
-        Timber.e(it, "[Notifications] Failed to register FCM token")
+        SecureLog.error("[Notifications] Failed to register FCM token", it)
     }
 
     override suspend fun clearFcmToken(): Result<Unit> = runCatching {
@@ -44,7 +45,7 @@ class NotificationRepositoryImpl @Inject constructor(
         securePreferences.remove(KEY_FCM_TOKEN)
         Timber.d("[Notifications] FCM token cleared")
     }.onFailure {
-        Timber.e(it, "[Notifications] Failed to clear FCM token")
+        SecureLog.error("[Notifications] Failed to clear FCM token", it)
     }
 
     override fun getCachedToken(): String? =

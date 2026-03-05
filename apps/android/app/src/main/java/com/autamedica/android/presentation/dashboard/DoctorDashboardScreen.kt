@@ -33,7 +33,7 @@ import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.MedicalServices
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,7 +47,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -90,7 +90,7 @@ fun DoctorDashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -115,14 +115,14 @@ fun DoctorDashboardScreen(
                     }
                 },
                 actions = {
-                    if (uiState.doctorProfile != null) {
+                    uiState.doctorProfile?.let { doctorProfile ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = PortalDoctors.copy(alpha = 0.15f),
                             modifier = Modifier.padding(end = 12.dp),
                         ) {
                             Text(
-                                text = uiState.doctorProfile!!.specialty
+                                text = doctorProfile.specialty
                                     .replaceFirstChar { it.uppercase() },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = PortalDoctors,
@@ -638,7 +638,7 @@ private fun WeeklySummaryCard(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Outlined.TrendingUp,
+                            Icons.AutoMirrored.Outlined.TrendingUp,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
                             tint = PortalDoctors,

@@ -6,6 +6,47 @@ import { SignJWT } from 'https://esm.sh/jose@4.14.4'
 
 console.info('get-meeting-token started')
 
+type TelemedicineSessionRow = {
+  id: string
+  appointment_id: string | null
+  patient_id: string
+  doctor_id: string
+  room_id: string | null
+  consultation_rooms?: Array<{ id: string; room_sid: string | null }>
+}
+
+async function resolveConsultationByIdentifiers(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  consultationId?: string,
+  sessionId?: string,
+  appointmentId?: string,
+): Promise<TelemedicineSessionRow | null> {
+  const idCandidates = [consultationId, sessionId].map((value) => value?.trim()).filter(Boolean) as string[]
+
+  for (const candidate of idCandidates) {
+    const { data } = await supabaseAdmin
+      .from('telemedicine_sessions')
+      .select('id, appointment_id, patient_id, doctor_id, room_id, consultation_rooms(id, room_sid)')
+      .eq('id', candidate)
+      .maybeSingle()
+
+    if (data) return data as TelemedicineSessionRow
+  }
+
+  const appointmentCandidate = appointmentId?.trim() || consultationId?.trim() || sessionId?.trim()
+  if (!appointmentCandidate) return null
+
+  const { data } = await supabaseAdmin
+    .from('telemedicine_sessions')
+    .select('id, appointment_id, patient_id, doctor_id, room_id, consultation_rooms(id, room_sid)')
+    .eq('appointment_id', appointmentCandidate)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return (data as TelemedicineSessionRow | null) ?? null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -17,9 +58,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { consultationId } = await req.json()
-    if (!consultationId) {
-      return new Response(JSON.stringify({ error: 'Missing consultationId' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const { consultationId, sessionId, appointmentId } = await req.json()
+    if (!consultationId && !sessionId && !appointmentId) {
+      return new Response(JSON.stringify({ error: 'Missing consultationId/sessionId/appointmentId' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // Initialize Supabase Clients
@@ -36,14 +77,17 @@ Deno.serve(async (req) => {
     // 2. Admin client to enforce DB operations
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
 
-    // Fetch the consultation and verify user participation
-    const { data: consultation, error: consultationError } = await supabaseAdmin
-      .from('telemedicine_sessions')
-      .select('*, consultation_rooms(*)')
-      .eq('id', consultationId)
-      .single()
+    // Fetch the consultation/session and verify user participation.
+    // Supports direct session id and appointment id to avoid client-side coupling
+    // to a specific identifier type.
+    const consultation = await resolveConsultationByIdentifiers(
+      supabaseAdmin,
+      consultationId,
+      sessionId,
+      appointmentId,
+    )
 
-    if (consultationError || !consultation) {
+    if (!consultation) {
       return new Response(JSON.stringify({ error: 'Consultation not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
@@ -53,7 +97,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Forbidden. You are not a participant of this consultation.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const roomName = consultation.room_id || `room_${consultationId}`
+    const roomName = consultation.room_id || `room_${consultation.id}`
     let _roomSid = null
 
     // If room does not exist in consultation_rooms, create it in a transaction-like manner
@@ -61,7 +105,7 @@ Deno.serve(async (req) => {
       const { data: newRoom, error: roomError } = await supabaseAdmin
         .from('consultation_rooms')
         .insert({
-          consultation_id: consultationId,
+          consultation_id: consultation.id,
           room_name: roomName,
           patient_id: consultation.patient_id,
           doctor_id: consultation.doctor_id,
@@ -77,7 +121,7 @@ Deno.serve(async (req) => {
       
       // Update telemedicine_session with the generated room_id if it was missing
       if (!consultation.room_id) {
-          await supabaseAdmin.from('telemedicine_sessions').update({ room_id: roomName }).eq('id', consultationId)
+          await supabaseAdmin.from('telemedicine_sessions').update({ room_id: roomName }).eq('id', consultation.id)
       }
     } else {
       _roomSid = consultation.consultation_rooms[0].room_sid || consultation.consultation_rooms[0].id

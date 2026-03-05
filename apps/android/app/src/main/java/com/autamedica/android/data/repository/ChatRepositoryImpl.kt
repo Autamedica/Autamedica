@@ -1,12 +1,14 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
+import com.autamedica.android.di.IoDispatcher
 import com.autamedica.android.domain.model.AuthorType
 import com.autamedica.android.domain.model.ChatStatus
 import com.autamedica.android.domain.model.MedicalChat
 import com.autamedica.android.domain.model.MedicalMessage
 import com.autamedica.android.domain.model.MessageContentType
 import com.autamedica.android.domain.repository.ChatRepository
+import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -17,8 +19,8 @@ import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,9 +39,10 @@ import javax.inject.Singleton
 class ChatRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val securePreferences: SecurePreferences,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ChatRepository {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     // --- Cached state flows ---
     private val _chats = MutableStateFlow<List<MedicalChat>>(emptyList())
@@ -87,9 +90,9 @@ class ChatRepositoryImpl @Inject constructor(
                 )
             )
 
-        Timber.d("[Chat] Message sent to chat=$chatId")
+        Timber.d("[Chat] Message sent")
     }.onFailure {
-        Timber.e(it, "[Chat] Failed to send message")
+        SecureLog.error("[Chat] Failed to send message", it)
     }
 
     override suspend fun markAsRead(chatId: String): Result<Unit> = runCatching {
@@ -105,9 +108,9 @@ class ChatRepositoryImpl @Inject constructor(
                 }
             }
 
-        Timber.d("[Chat] Marked as read: chat=$chatId")
+        Timber.d("[Chat] Marked as read")
     }.onFailure {
-        Timber.e(it, "[Chat] Failed to mark as read")
+        SecureLog.error("[Chat] Failed to mark as read", it)
     }
 
     override suspend fun getTotalUnreadCount(): Result<Int> = runCatching {
@@ -130,7 +133,7 @@ class ChatRepositoryImpl @Inject constructor(
 
         messages.size
     }.onFailure {
-        Timber.e(it, "[Chat] Failed to get unread count")
+        SecureLog.error("[Chat] Failed to get unread count", it)
     }
 
     // ────────────────────────────────────────────────────────────
@@ -155,7 +158,7 @@ class ChatRepositoryImpl @Inject constructor(
             _chats.value = dtos.map { it.toDomain() }
             Timber.d("[Chat] Loaded ${dtos.size} chats")
         }.onFailure {
-            Timber.e(it, "[Chat] Failed to load chats")
+            SecureLog.error("[Chat] Failed to load chats", it)
         }
     }
 
@@ -170,9 +173,9 @@ class ChatRepositoryImpl @Inject constructor(
                 .decodeList<MedicalMessageDto>()
 
             getOrCreateMessageFlow(chatId).value = dtos.map { it.toDomain() }
-            Timber.d("[Chat] Loaded ${dtos.size} messages for chat=$chatId")
+            Timber.d("[Chat] Loaded ${dtos.size} messages")
         }.onFailure {
-            Timber.e(it, "[Chat] Failed to load messages for chat=$chatId")
+            SecureLog.error("[Chat] Failed to load messages", it)
         }
     }
 
@@ -199,7 +202,7 @@ class ChatRepositoryImpl @Inject constructor(
                 loadChats() // Reload all chats on any change
             }
         }.onFailure {
-            Timber.e(it, "[Chat] Failed to subscribe to chat updates")
+            SecureLog.error("[Chat] Failed to subscribe to chat updates", it)
         }
     }
 
@@ -219,7 +222,7 @@ class ChatRepositoryImpl @Inject constructor(
             messageChannels[chatId] = channel
 
             changeFlow.collect { action ->
-                Timber.d("[Chat] Realtime new message in chat=$chatId")
+                Timber.d("[Chat] Realtime new message")
                 // Parse the new record from the realtime payload
                 val record = action.record
                 val newMessage = MedicalMessage(
@@ -244,8 +247,22 @@ class ChatRepositoryImpl @Inject constructor(
                 }
             }
         }.onFailure {
-            Timber.e(it, "[Chat] Failed to subscribe to messages for chat=$chatId")
+            SecureLog.error("[Chat] Failed to subscribe to messages", it)
         }
+    }
+
+    override suspend fun cleanup() {
+        chatListChannel?.let {
+            runCatching { supabaseClient.realtime.removeChannel(it) }
+            chatListChannel = null
+        }
+        messageChannels.values.forEach { channel ->
+            runCatching { supabaseClient.realtime.removeChannel(channel) }
+        }
+        messageChannels.clear()
+        _messagesByChat.clear()
+        _chats.value = emptyList()
+        Timber.d("[Chat] Cleanup complete — channels and caches cleared")
     }
 
     // ────────────────────────────────────────────────────────────

@@ -7,6 +7,12 @@ data class TelemedicineSessionInfo(
     val iceServers: List<IceServerInfo>,
 )
 
+data class LiveKitCredentials(
+    val token: String,
+    val roomName: String,
+    val wsUrl: String,
+)
+
 data class IceServerInfo(
     val urls: List<String>,
     val username: String? = null,
@@ -15,4 +21,5 @@ data class IceServerInfo(
 
 interface TelemedicineRepository {
     suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo>
+    suspend fun getLiveKitCredentials(sessionId: String): Result<LiveKitCredentials>
 }

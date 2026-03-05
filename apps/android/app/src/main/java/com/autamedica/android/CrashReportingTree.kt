@@ -1,7 +1,7 @@
 package com.autamedica.android
 
-import android.util.Log
 import timber.log.Timber
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -26,34 +26,31 @@ class CrashReportingTree(private val logsDir: File) : Timber.Tree() {
     }
 
     override fun isLoggable(tag: String?, priority: Int): Boolean {
-        return priority >= Log.WARN
+        return priority >= WARN_PRIORITY
     }
 
     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-        when (priority) {
-            Log.WARN -> Log.w(tag, message)
-            Log.ERROR -> {
-                Log.e(tag, message, t)
-                persistToFile("ERROR", tag, message, t)
-            }
-            Log.ASSERT -> {
-                Log.wtf(tag, message, t)
-                persistToFile("WTF", tag, message, t)
-            }
+        val level = when (priority) {
+            WARN_PRIORITY -> "WARN"
+            ERROR_PRIORITY -> "ERROR"
+            ASSERT_PRIORITY -> "WTF"
+            else -> return
         }
+        persistToFile(level, tag, message, t)
     }
 
     private fun persistToFile(level: String, tag: String?, message: String, t: Throwable?) {
         try {
-            rotateIfNeeded()
-            FileWriter(logFile, true).use { writer ->
-                val timestamp = dateFormat.format(Date())
-                writer.appendLine("[$timestamp] $level/$tag: $message")
-                if (t != null) {
-                    val pw = PrintWriter(writer)
-                    t.printStackTrace(pw)
-                    pw.flush()
-                }
+            val crashlytics = FirebaseCrashlytics.getInstance()
+            crashlytics.log("[$level/${tag ?: "General"}]: $message")
+            
+            if (t != null) {
+                crashlytics.recordException(t)
+            } else if (level == "ERROR" || level == "WTF") {
+                // If there's no throwable but it's an error, log a synthetic exception
+                // to trigger a non-fatal report in the Crashlytics dashboard.
+                val syntheticException = Exception(message)
+                crashlytics.recordException(syntheticException)
             }
         } catch (_: Exception) {
             // Logging must never crash the app
@@ -69,6 +66,9 @@ class CrashReportingTree(private val logsDir: File) : Timber.Tree() {
     }
 
     companion object {
+        private const val WARN_PRIORITY = 5
+        private const val ERROR_PRIORITY = 6
+        private const val ASSERT_PRIORITY = 7
         private const val MAX_FILE_SIZE_BYTES = 1_048_576L // 1 MB
     }
 }

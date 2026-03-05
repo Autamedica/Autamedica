@@ -3,6 +3,7 @@ package com.autamedica.android.presentation.auth
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.NotificationRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -33,11 +34,24 @@ class FakeAuthRepository : AuthRepository {
     override suspend fun getCurrentUser(): User? = currentUser
 }
 
+class FakeNotificationRepository : NotificationRepository {
+    var registerResult: Result<Unit> = Result.success(Unit)
+    var registeredToken: String? = null
+
+    override suspend fun registerFcmToken(token: String): Result<Unit> {
+        registeredToken = token
+        return registerResult
+    }
+    override suspend fun clearFcmToken(): Result<Unit> = Result.success(Unit)
+    override fun getCachedToken(): String? = registeredToken
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var fakeRepo: FakeAuthRepository
+    private lateinit var fakeNotificationRepo: FakeNotificationRepository
 
     private val testUser = User(
         id = "user-123",
@@ -49,6 +63,7 @@ class LoginViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakeRepo = FakeAuthRepository()
+        fakeNotificationRepo = FakeNotificationRepository()
     }
 
     @After
@@ -59,7 +74,7 @@ class LoginViewModelTest {
     @Test
     fun `initial state checks existing session and finds none`() =
         runTest(testDispatcher.scheduler) {
-            val viewModel = LoginViewModel(fakeRepo)
+            val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
 
             assertThat(viewModel.uiState.value.isCheckingSession).isFalse()
             assertThat(viewModel.uiState.value.loggedInUser).isNull()
@@ -68,7 +83,7 @@ class LoginViewModelTest {
     @Test
     fun `auto-login when session exists`() = runTest(testDispatcher.scheduler) {
         fakeRepo.currentUser = testUser
-        val viewModel = LoginViewModel(fakeRepo)
+        val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
 
         assertThat(viewModel.uiState.value.loggedInUser).isEqualTo(testUser)
     }
@@ -77,7 +92,7 @@ class LoginViewModelTest {
     fun `successful login sets loggedInUser`() = runTest(testDispatcher.scheduler) {
         fakeRepo.loginResult = Result.success(testUser)
 
-        val viewModel = LoginViewModel(fakeRepo)
+        val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
         viewModel.onEmailChange("test@autamedica.com")
         viewModel.onPasswordChange("password123")
         viewModel.onLogin()
@@ -92,7 +107,7 @@ class LoginViewModelTest {
     fun `failed login shows error`() = runTest(testDispatcher.scheduler) {
         fakeRepo.loginResult = Result.failure(Exception("invalid_credentials"))
 
-        val viewModel = LoginViewModel(fakeRepo)
+        val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
         viewModel.onEmailChange("wrong@email.com")
         viewModel.onPasswordChange("wrongpassword")
         viewModel.onLogin()
@@ -104,7 +119,7 @@ class LoginViewModelTest {
 
     @Test
     fun `empty email prevents login`() = runTest(testDispatcher.scheduler) {
-        val viewModel = LoginViewModel(fakeRepo)
+        val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
         viewModel.onPasswordChange("password123")
         viewModel.onLogin()
 
@@ -115,7 +130,7 @@ class LoginViewModelTest {
     fun `email change clears error`() = runTest(testDispatcher.scheduler) {
         fakeRepo.loginResult = Result.failure(Exception("invalid_credentials"))
 
-        val viewModel = LoginViewModel(fakeRepo)
+        val viewModel = LoginViewModel(fakeRepo, fakeNotificationRepo)
         viewModel.onEmailChange("a@b.com")
         viewModel.onPasswordChange("pass")
         viewModel.onLogin()

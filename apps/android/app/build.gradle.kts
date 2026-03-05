@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.firebase.perf)
 }
 
 val localProperties = Properties().apply {
@@ -15,6 +17,25 @@ val localProperties = Properties().apply {
     if (localPropsFile.exists()) {
         load(localPropsFile.inputStream())
     }
+}
+
+fun requiredBuildProperty(name: String): String {
+    return localProperties.getProperty(name)
+        ?: providers.gradleProperty(name).orNull
+        ?: System.getenv(name)
+        ?: throw GradleException("Missing required build property: $name")
+}
+
+fun optionalBuildProperty(name: String, defaultValue: String): String {
+    return localProperties.getProperty(name)
+        ?: providers.gradleProperty(name).orNull
+        ?: System.getenv(name)
+        ?: defaultValue
+}
+
+fun quoteForBuildConfig(value: String): String {
+    val sanitized = value.trim().removeSurrounding("\"")
+    return "\"$sanitized\""
 }
 
 android {
@@ -33,22 +54,47 @@ android {
         buildConfigField(
             "String",
             "SUPABASE_URL",
-            "\"${localProperties.getProperty("SUPABASE_URL", "https://qxjjrpksmwwrmubhvjew.supabase.co")}\""
+            quoteForBuildConfig(requiredBuildProperty("SUPABASE_URL"))
         )
         buildConfigField(
             "String",
             "SUPABASE_ANON_KEY",
-            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\""
+            quoteForBuildConfig(requiredBuildProperty("SUPABASE_ANON_KEY"))
         )
         buildConfigField(
             "String",
             "SIGNALING_URL",
-            "\"${localProperties.getProperty("SIGNALING_URL", "wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling")}\""
+            quoteForBuildConfig(
+                optionalBuildProperty(
+                    "SIGNALING_URL",
+                    "wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling"
+                )
+            )
         )
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
-            "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "491151556566-6h58b6279rdq05rs65smol0lq8uoue48.apps.googleusercontent.com")}\""
+            quoteForBuildConfig(
+                optionalBuildProperty(
+                    "GOOGLE_WEB_CLIENT_ID",
+                    "491151556566-6h58b6279rdq05rs65smol0lq8uoue48.apps.googleusercontent.com"
+                )
+            )
+        )
+        buildConfigField(
+            "boolean",
+            "USE_LIVEKIT",
+            optionalBuildProperty("USE_LIVEKIT", "false").trim().removeSurrounding("\"")
+        )
+        buildConfigField(
+            "String",
+            "LIVEKIT_WS_URL",
+            quoteForBuildConfig(optionalBuildProperty("LIVEKIT_WS_URL", ""))
+        )
+        buildConfigField(
+            "String",
+            "LIVEKIT_TOKEN_FUNCTION",
+            quoteForBuildConfig(optionalBuildProperty("LIVEKIT_TOKEN_FUNCTION", "get-meeting-token"))
         )
     }
 
@@ -131,9 +177,10 @@ dependencies {
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.realtime)
     implementation(libs.supabase.functions)
+    implementation(libs.supabase.storage)
 
     // Ktor (required by supabase-kt)
-    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.okhttp)
 
     // Network
     implementation(libs.okhttp)
@@ -141,6 +188,8 @@ dependencies {
 
     // WebRTC
     implementation(libs.webrtc)
+    implementation(libs.livekit.android.sdk)
+    implementation(libs.livekit.compose.components)
 
     // Serialization
     implementation(libs.kotlinx.serialization)
@@ -166,6 +215,18 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.perf)
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
+
+    // ML Kit (Phase 4)
+    implementation(libs.mlkit.face.detection)
+
+    // Room Database (Offline First)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 
     // Testing
     testImplementation(libs.junit)

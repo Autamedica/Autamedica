@@ -11,6 +11,8 @@ import com.autamedica.android.domain.repository.DoctorRepository
 import com.autamedica.android.domain.repository.NotificationRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
+import com.autamedica.android.domain.repository.StorageRepository
+import com.autamedica.android.data.repository.StorageRepositoryImpl
 import com.autamedica.android.data.repository.TelemedicineRepositoryImpl
 import dagger.Binds
 import dagger.Module
@@ -49,5 +51,9 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindChatRepository(impl: com.autamedica.android.data.repository.ChatRepositoryImpl): com.autamedica.android.domain.repository.ChatRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStorageRepository(impl: StorageRepositoryImpl): StorageRepository
 }
 

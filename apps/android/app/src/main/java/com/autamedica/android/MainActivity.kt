@@ -45,6 +45,23 @@ class MainActivity : ComponentActivity() {
                 val chatId = intent.getStringExtra("chat_room_id")
                 if (!chatId.isNullOrEmpty()) {
                     startDestination = Route.ChatConversation(chatId)
+                    return@LaunchedEffect
+                }
+
+                // Allow direct launch into video call from notification/ADB.
+                // Useful for debugging telemedicine flow without navigating tabs.
+                val appointmentId = intent.getStringExtra("appointment_id")
+                if (!appointmentId.isNullOrEmpty()) {
+                    val userId = intent.getStringExtra("user_id").orEmpty()
+                    val userType = intent.getStringExtra("user_type") ?: "patient"
+                    val userName = intent.getStringExtra("user_name").orEmpty()
+                    startDestination = Route.Main
+                    navigateTo = Route.VideoCall(
+                        appointmentId = appointmentId,
+                        userId = userId,
+                        userType = userType,
+                        userName = userName,
+                    )
                 }
             }
 

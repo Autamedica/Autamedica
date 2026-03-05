@@ -11,3 +11,7 @@
 local.properties
 *.apk
 *.aab
+*.log
+screenshot*.png
+/io/
+/keystore/

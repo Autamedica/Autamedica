@@ -8,13 +8,13 @@ import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.PatientDetail
 import com.autamedica.android.domain.model.PatientSummary
 import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import timber.log.Timber
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -37,7 +37,7 @@ class DoctorRepositoryImpl @Inject constructor(
 
         dto.toDomain()
     }.onFailure {
-        Timber.e(it, "[DoctorRepo] Failed fetching doctor profile for user $userId")
+        SecureLog.error("[DoctorRepo] Failed fetching doctor profile", it)
     }
 
     override suspend fun getDoctorStats(doctorId: String): Result<DoctorStats> = runCatching {
@@ -122,7 +122,7 @@ class DoctorRepositoryImpl @Inject constructor(
             cancelledToday = cancelledToday,
         )
     }.onFailure {
-        Timber.e(it, "[DoctorRepo] Failed fetching doctor stats")
+        SecureLog.error("[DoctorRepo] Failed fetching doctor stats", it)
     }
 
     override suspend fun getDoctorPatients(doctorId: String): Result<List<PatientSummary>> = runCatching {
@@ -207,7 +207,7 @@ class DoctorRepositoryImpl @Inject constructor(
             )
         }.sortedByDescending { it.appointmentCount }
     }.onFailure {
-        Timber.e(it, "[DoctorRepo] Failed fetching doctor patients")
+        SecureLog.error("[DoctorRepo] Failed fetching doctor patients", it)
     }
 
     override suspend fun getPatientDetail(doctorId: String, patientId: String): Result<PatientDetail> = runCatching {
@@ -287,7 +287,7 @@ class DoctorRepositoryImpl @Inject constructor(
             nextAppointment = futureAppointments.lastOrNull()?.startTime,
         )
     }.onFailure {
-        Timber.e(it, "[DoctorRepo] Failed fetching patient detail for $patientId")
+        SecureLog.error("[DoctorRepo] Failed fetching patient detail", it)
     }
 }
 
@@ -423,4 +423,3 @@ private data class AppointmentFullDto(
         else -> AppointmentStatus.SCHEDULED
     }
 }
-

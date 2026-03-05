@@ -1,7 +1,10 @@
 package com.autamedica.android.data.remote
 
-import com.autamedica.android.data.model.ClientSignalingMessage
-import com.autamedica.android.data.model.ServerSignalingMessage
+import com.autamedica.android.domain.signaling.ClientSignalingMessage
+import com.autamedica.android.domain.signaling.ServerSignalingMessage
+import com.autamedica.android.domain.signaling.SignalingClient
+import com.autamedica.android.domain.signaling.SignalingConnectionState
+import com.autamedica.android.logging.SecureLog
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -26,7 +29,7 @@ import java.util.concurrent.TimeUnit
 class SignalingWebSocket(
     private val signalingUrl: String,
     private val json: Json = Json { ignoreUnknownKeys = true },
-) {
+) : SignalingClient {
     private var webSocket: WebSocket? = null
     private val client = OkHttpClient.Builder()
         .pingInterval(30, TimeUnit.SECONDS)
@@ -38,30 +41,30 @@ class SignalingWebSocket(
         extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
-    val messages: SharedFlow<ServerSignalingMessage> = _messages.asSharedFlow()
+    override val messages: SharedFlow<ServerSignalingMessage> = _messages.asSharedFlow()
 
     private val _connectionState = MutableSharedFlow<SignalingConnectionState>(
         replay = 1,
         extraBufferCapacity = 8,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
-    val connectionState: SharedFlow<SignalingConnectionState> = _connectionState.asSharedFlow()
+    override val connectionState: SharedFlow<SignalingConnectionState> = _connectionState.asSharedFlow()
 
     private var isConnected = false
 
-    fun connect(roomId: String) {
+    override fun connect(roomId: String) {
         if (isConnected) return
 
         val encodedRoomId = URLEncoder.encode(roomId, "UTF-8")
         val url = "$signalingUrl?roomId=$encodedRoomId"
-        Timber.i("[Signaling] Connecting to: $url")
+        SecureLog.info("[Signaling] Connecting")
 
         val request = Request.Builder().url(url).build()
         webSocket = client.newWebSocket(request, SignalingListener())
         _connectionState.tryEmit(SignalingConnectionState.CONNECTING)
     }
 
-    fun send(message: ClientSignalingMessage) {
+    override fun send(message: ClientSignalingMessage) {
         val ws = webSocket
         if (ws == null || !isConnected) {
             Timber.w("[Signaling] Cannot send: not connected")
@@ -71,7 +74,7 @@ class SignalingWebSocket(
         ws.send(payload)
     }
 
-    fun disconnect() {
+    override fun disconnect() {
         Timber.i("[Signaling] Disconnecting")
         webSocket?.close(1000, "Client disconnect")
         webSocket = null
@@ -91,7 +94,7 @@ class SignalingWebSocket(
                 val message = json.decodeFromString<ServerSignalingMessage>(text)
                 _messages.tryEmit(message)
             } catch (e: Exception) {
-                Timber.e(e, "[Signaling] Failed to parse message: ${text.take(200)}")
+                SecureLog.error("[Signaling] Failed to parse message", e)
             }
         }
 
@@ -107,16 +110,9 @@ class SignalingWebSocket(
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            Timber.e(t, "[Signaling] Connection failed: ${response?.code}")
+            SecureLog.error("[Signaling] Connection failed: ${response?.code}", t)
             isConnected = false
             _connectionState.tryEmit(SignalingConnectionState.FAILED)
         }
     }
-}
-
-enum class SignalingConnectionState {
-    DISCONNECTED,
-    CONNECTING,
-    CONNECTED,
-    FAILED,
 }

@@ -7,13 +7,14 @@ import android.os.Build
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.autamedica.android.data.remote.SignalingWebSocket
 import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualitySummary
 import com.autamedica.android.domain.repository.TelemedicineRepository
+import com.autamedica.android.domain.signaling.SignalingClient
+import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.presentation.videocall.webrtc.WebRTCEngine
 import com.autamedica.android.service.CallNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,6 +54,7 @@ class VideoCallViewModel @Inject constructor(
     private val eglBase: EglBase,
     private val json: Json,
     savedStateHandle: SavedStateHandle,
+    private val signalingClient: SignalingClient,
     private val telemedicineRepository: TelemedicineRepository,
     private val videoCallStateHolder: VideoCallStateHolder,
 ) : ViewModel() {
@@ -64,16 +66,11 @@ class VideoCallViewModel @Inject constructor(
 
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-    private val signalingWebSocket = SignalingWebSocket(
-        signalingUrl = WebRTCEngine.SIGNALING_URL_HTTP,
-        json = json,
-    )
-
     val engine = WebRTCEngine(
         context = context,
         peerConnectionFactory = peerConnectionFactory,
         eglBase = eglBase,
-        signalingWebSocket = signalingWebSocket,
+        signalingClient = signalingClient,
         scope = viewModelScope,
         json = json,
     )
@@ -113,7 +110,7 @@ class VideoCallViewModel @Inject constructor(
                 engine.startLocalMedia()
                 engine.connect(sessionInfo.roomId)
             }.onFailure { error ->
-                Timber.e(error, "Failed to initialize telemedicine session")
+                SecureLog.error("Failed to initialize telemedicine session", error)
                 _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
                 CallNotificationService.stop(context)
                 videoCallStateHolder.setInVideoCall(false)

@@ -1,5 +1,10 @@
 package com.autamedica.android.presentation.videocall
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,21 +23,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.content.ContextCompat
+import com.autamedica.android.BuildConfig
 import com.autamedica.android.domain.model.ConnectionState
+import com.autamedica.android.presentation.videocall.livekit.LiveKitVideoCallScreen
 import com.autamedica.android.presentation.videocall.components.CallControls
 import com.autamedica.android.presentation.videocall.components.CallTimer
 import com.autamedica.android.presentation.videocall.components.ChatPanel
@@ -50,11 +65,78 @@ fun VideoCallScreen(
     modifier: Modifier = Modifier,
     viewModel: VideoCallViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val localTrack by viewModel.localVideoTrack.collectAsState()
-    val remoteTrack by viewModel.remoteVideoTrack.collectAsState()
+    var useLiveKitRuntime by rememberSaveable { mutableStateOf(BuildConfig.USE_LIVEKIT) }
+    val context = LocalContext.current
+    var hasMediaPermissions by remember { mutableStateOf(context.hasTelemedicineMediaPermissions()) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) {
+        hasMediaPermissions = context.hasTelemedicineMediaPermissions()
+    }
 
-    DisposableEffect(Unit) {
+    LaunchedEffect(Unit) {
+        if (!hasMediaPermissions) {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.CAMERA,
+                    Manifest.permission.RECORD_AUDIO,
+                ),
+            )
+        }
+    }
+
+    if (!hasMediaPermissions) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(horizontal = 24.dp),
+            ) {
+                Text(
+                    text = "Se requieren permisos de camara y microfono para iniciar la videollamada.",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+                Button(
+                    onClick = {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.CAMERA,
+                                Manifest.permission.RECORD_AUDIO,
+                            ),
+                        )
+                    },
+                ) {
+                    Text("Conceder permisos")
+                }
+                Button(onClick = onCallEnd) {
+                    Text("Volver")
+                }
+            }
+        }
+        return
+    }
+
+    if (useLiveKitRuntime) {
+        LiveKitVideoCallScreen(
+            onCallEnd = onCallEnd,
+            onFallbackToLegacy = { useLiveKitRuntime = false },
+            modifier = modifier,
+        )
+        return
+    }
+
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val localTrack by viewModel.localVideoTrack.collectAsStateWithLifecycle()
+    val remoteTrack by viewModel.remoteVideoTrack.collectAsStateWithLifecycle()
+
+    DisposableEffect(hasMediaPermissions) {
         viewModel.startCall()
         onDispose { viewModel.endCall() }
     }
@@ -208,4 +290,17 @@ fun VideoCallScreen(
             )
         }
     }
+}
+
+private fun Context.hasTelemedicineMediaPermissions(): Boolean {
+    val cameraGranted = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.CAMERA,
+    ) == PackageManager.PERMISSION_GRANTED
+    val audioGranted = ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.RECORD_AUDIO,
+    ) == PackageManager.PERMISSION_GRANTED
+
+    return cameraGranted && audioGranted
 }

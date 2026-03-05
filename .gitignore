@@ -80,7 +80,7 @@ generated-docs/*.production.local.txt
 /*.zip
 
 # Generated run outputs
-/generated-docs/*.json
+/generated-docs/
 /monitoring-results/*.json
 
 # Turbo logs
@@ -108,6 +108,9 @@ firebase-debug.log
 
 # Temporary scripts
 md2pdf.js
+
+# Supabase temp files
+supabase/.temp/
 
 # Experimental apps (not in active development)
 apps/mobile/

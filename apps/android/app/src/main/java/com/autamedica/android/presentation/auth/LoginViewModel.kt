@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.logging.SecureLog
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.NotificationRepository
@@ -53,10 +54,10 @@ class LoginViewModel @Inject constructor(
                 }
                 // If session exists, register FCM token
                 if (user != null) {
-                    registerFcmToken(user.id)
+                    registerFcmToken()
                 }
             } catch (e: Exception) {
-                Timber.e(e, "[Auth] checkExistingSession failed")
+                SecureLog.error("[Auth] checkExistingSession failed", e)
                 _uiState.update { it.copy(isCheckingSession = false) }
             }
         }
@@ -71,7 +72,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun mapErrorMessage(error: Throwable): String {
-        Timber.e(error, "[Auth] Login error: ${error.javaClass.simpleName} - ${error.message}")
+        SecureLog.error("[Auth] Login error", error)
         val msg = error.message?.lowercase() ?: return "Error desconocido al iniciar sesion"
         return when {
             "invalid_credentials" in msg || "invalid login" in msg ->
@@ -102,7 +103,7 @@ class LoginViewModel @Inject constructor(
             result.fold(
                 onSuccess = { user ->
                     _uiState.update { it.copy(isLoading = false, loggedInUser = user) }
-                    registerFcmToken(user.id)
+                    registerFcmToken()
                 },
                 onFailure = { error ->
                     _uiState.update {
@@ -126,7 +127,7 @@ class LoginViewModel @Inject constructor(
             result.fold(
                 onSuccess = { user ->
                     _uiState.update { it.copy(isGoogleLoading = false, loggedInUser = user) }
-                    registerFcmToken(user.id)
+                    registerFcmToken()
                 },
                 onFailure = { error ->
                     _uiState.update {
@@ -141,7 +142,7 @@ class LoginViewModel @Inject constructor(
     }
 
     fun onGoogleSignInError(error: Throwable) {
-        Timber.e(error, "[Auth] Google sign-in error")
+        SecureLog.error("[Auth] Google sign-in error", error)
         _uiState.update {
             it.copy(
                 isGoogleLoading = false,
@@ -151,16 +152,15 @@ class LoginViewModel @Inject constructor(
     }
 
     /** Register FCM token in Supabase after successful login (fire-and-forget) */
-    private fun registerFcmToken(userId: String) {
+    private fun registerFcmToken() {
         viewModelScope.launch {
             try {
                 val token = FirebaseMessaging.getInstance().token.await()
                 notificationRepository.registerFcmToken(token)
-                Timber.d("[FCM] Token registered for user $userId")
+                Timber.d("[FCM] Token registered")
             } catch (e: Exception) {
-                Timber.w(e, "[FCM] Failed to register FCM token (non-fatal)")
+                SecureLog.warn("[FCM] Failed to register FCM token (non-fatal)", e)
             }
         }
     }
 }
-

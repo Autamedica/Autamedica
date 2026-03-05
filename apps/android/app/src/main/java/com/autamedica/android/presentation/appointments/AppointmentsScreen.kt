@@ -26,13 +26,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.presentation.dashboard.components.AppointmentCard
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -50,7 +50,7 @@ fun AppointmentsScreen(
     modifier: Modifier = Modifier,
     viewModel: AppointmentsViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -181,16 +181,14 @@ fun AppointmentsScreen(
                         items(uiState.appointments, key = { it.id }) { appointment ->
                             AppointmentCard(
                                 appointment = appointment,
-                                onJoinCall = if (appointment.meetingUrl != null) {
-                                    {
-                                        onNavigateToVideoCall(
-                                            appointment.meetingUrl?.substringAfterLast("/") ?: "",
-                                            uiState.userId,
-                                            uiState.userRole,
-                                            uiState.userName,
-                                        )
-                                    }
-                                } else null,
+                                onJoinCall = {
+                                    onNavigateToVideoCall(
+                                        appointment.id,
+                                        uiState.userId,
+                                        uiState.userRole,
+                                        uiState.userName,
+                                    )
+                                },
                             )
                         }
                     }

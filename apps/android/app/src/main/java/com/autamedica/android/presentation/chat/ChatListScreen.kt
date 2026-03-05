@@ -19,7 +19,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.presentation.chat.components.ChatListItem
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -41,8 +41,7 @@ fun ChatListScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatListViewModel = hiltViewModel(),
 ) {
-    val chats by viewModel.chats.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -59,7 +58,7 @@ fun ChatListScreen(
         )
 
         when {
-            isLoading -> {
+            uiState.isLoading -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
@@ -68,7 +67,7 @@ fun ChatListScreen(
                 }
             }
 
-            chats.isEmpty() -> {
+            uiState.chats.isEmpty() -> {
                 EmptyChatsState(modifier = Modifier.fillMaxSize())
             }
 
@@ -77,7 +76,7 @@ fun ChatListScreen(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    items(chats, key = { it.id }) { chat ->
+                    items(uiState.chats, key = { it.id }) { chat ->
                         ChatListItem(
                             chat = chat,
                             onClick = { onNavigateToConversation(chat.id) },

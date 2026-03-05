@@ -2,9 +2,9 @@ package com.autamedica.android.presentation.videocall.webrtc
 
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualityMetrics
+import com.autamedica.android.logging.SecureLog
 import org.webrtc.PeerConnection
 import org.webrtc.RTCStatsReport
-import timber.log.Timber
 import kotlin.math.min
 import kotlin.math.round
 
@@ -34,7 +34,7 @@ class QualityMonitor {
             val report = getStatsSync(pc) ?: return null
             buildMetrics(userId, report)
         } catch (e: Exception) {
-            Timber.w(e, "[QualityMonitor] Failed collecting stats for $userId")
+            SecureLog.warn("[QualityMonitor] Failed collecting stats for peer", e)
             null
         }
     }

@@ -1,5 +1,6 @@
 package com.autamedica.android.data.remote
 
+import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
@@ -12,7 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -127,7 +127,7 @@ class SupabaseAuthDataSource @Inject constructor(
                 .decodeSingleOrNull<ProfileRow>()
             result?.role
         } catch (e: Exception) {
-            Timber.w(e, "Failed to fetch user role from profiles table")
+            SecureLog.warn("Failed to fetch user role from profiles table", e)
             null
         }
     }

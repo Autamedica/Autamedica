@@ -1,4 +1,4 @@
-package com.autamedica.android.data.model
+package com.autamedica.android.domain.signaling
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

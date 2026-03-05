@@ -5,20 +5,27 @@ import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.repository.AppointmentRepository
+import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import timber.log.Timber
+import kotlinx.coroutines.flow.firstOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.autamedica.android.data.local.room.dao.AppointmentDao
+import com.autamedica.android.data.local.room.entity.toDomain
+import com.autamedica.android.data.local.room.entity.toEntity
+
+private const val KEY_CACHED_RECORD_ID = "cached_record_id"
 
 @Singleton
 class AppointmentRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val securePreferences: SecurePreferences,
+    private val appointmentDao: AppointmentDao,
 ) : AppointmentRepository {
 
     override suspend fun getUpcomingAppointments(): Result<List<Appointment>> = runCatching {
@@ -37,6 +44,9 @@ class AppointmentRepositoryImpl @Inject constructor(
                 .decodeSingle<RecordIdDto>().id
         }
 
+        // Cache recordId for offline fallback
+        securePreferences.putString(KEY_CACHED_RECORD_ID, recordId)
+
         val filterColumn = if (role == "doctor") "doctor_id" else "patient_id"
 
         val dtos = supabaseClient.postgrest
@@ -50,9 +60,28 @@ class AppointmentRepositoryImpl @Inject constructor(
             }
             .decodeList<AppointmentDto>()
 
-        dtos.map { it.toDomain() }
-    }.onFailure {
-        Timber.e(it, "[Appointments] Failed fetching upcoming")
+        val domainModels = dtos.map { it.toDomain() }
+        
+        // Phase 3: Cache data to Room for offline access
+        appointmentDao.insertAppointments(domainModels.map { it.toEntity() })
+        
+        domainModels
+    }.recoverCatching {
+        SecureLog.error("[Appointments] Network failed, falling back to offline cache", it)
+        val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
+        val cachedRecordId = securePreferences.getString(KEY_CACHED_RECORD_ID)
+
+        val cachedEntities = if (cachedRecordId != null) {
+            val flow = if (role == "doctor") {
+                appointmentDao.getAppointmentsForDoctor(cachedRecordId)
+            } else {
+                appointmentDao.getAppointmentsForPatient(cachedRecordId)
+            }
+            flow.firstOrNull() ?: emptyList()
+        } else {
+            appointmentDao.getAllAppointments().firstOrNull() ?: emptyList()
+        }
+        cachedEntities.map { entity -> entity.toDomain() }
     }
 
     override suspend fun getAppointmentById(id: String): Result<Appointment> = runCatching {
@@ -65,7 +94,7 @@ class AppointmentRepositoryImpl @Inject constructor(
 
         dto.toDomain()
     }.onFailure {
-        Timber.e(it, "[Appointments] Failed fetching appointment $id")
+        SecureLog.error("[Appointments] Failed fetching appointment", it)
     }
 }
 

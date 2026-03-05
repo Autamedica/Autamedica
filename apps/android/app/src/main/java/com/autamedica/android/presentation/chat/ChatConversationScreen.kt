@@ -32,7 +32,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.presentation.chat.components.MessageBubble
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
@@ -61,16 +61,14 @@ fun ChatConversationScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatConversationViewModel = hiltViewModel(),
 ) {
-    val messages by viewModel.messages.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isSending by viewModel.isSending.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     var inputText by remember { mutableStateOf("") }
 
     // Auto-scroll to bottom on new messages
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.lastIndex)
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.lastIndex)
         }
     }
 
@@ -106,7 +104,7 @@ fun ChatConversationScreen(
 
         // Messages
         when {
-            isLoading -> {
+            uiState.isLoading -> {
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -117,7 +115,7 @@ fun ChatConversationScreen(
                 }
             }
 
-            messages.isEmpty() -> {
+            uiState.messages.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -142,10 +140,10 @@ fun ChatConversationScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
                 ) {
-                    items(messages, key = { it.id }) { message ->
+                    items(uiState.messages, key = { it.id }) { message ->
                         MessageBubble(
                             message = message,
-                            isOwn = message.authorId == viewModel.currentUserId,
+                            isOwn = message.authorId == uiState.currentUserId,
                         )
                     }
                 }
@@ -197,9 +195,9 @@ fun ChatConversationScreen(
                         inputText = ""
                     }
                 },
-                enabled = inputText.isNotBlank() && !isSending,
+                enabled = inputText.isNotBlank() && !uiState.isSending,
             ) {
-                if (isSending) {
+                if (uiState.isSending) {
                     CircularProgressIndicator(
                         modifier = Modifier.width(20.dp).height(20.dp),
                         color = AuAccent,

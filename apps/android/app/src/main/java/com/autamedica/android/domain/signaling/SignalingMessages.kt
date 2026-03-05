@@ -1,4 +1,4 @@
-package com.autamedica.android.data.model
+package com.autamedica.android.domain.signaling
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

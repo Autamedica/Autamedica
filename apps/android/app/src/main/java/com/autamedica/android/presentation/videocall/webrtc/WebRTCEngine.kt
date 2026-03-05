@@ -1,18 +1,19 @@
 package com.autamedica.android.presentation.videocall.webrtc
 
 import android.content.Context
-import com.autamedica.android.data.model.ClientSignalingMessage
-import com.autamedica.android.data.model.IceCandidatePayload
-import com.autamedica.android.data.model.JoinData
-import com.autamedica.android.data.model.SdpPayload
-import com.autamedica.android.data.model.ServerSignalingMessage
-import com.autamedica.android.data.remote.SignalingConnectionState
-import com.autamedica.android.data.remote.SignalingWebSocket
 import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualityMetrics
 import com.autamedica.android.domain.model.StreamQualitySummary
+import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.domain.signaling.ClientSignalingMessage
+import com.autamedica.android.domain.signaling.IceCandidatePayload
+import com.autamedica.android.domain.signaling.JoinData
+import com.autamedica.android.domain.signaling.SdpPayload
+import com.autamedica.android.domain.signaling.ServerSignalingMessage
+import com.autamedica.android.domain.signaling.SignalingClient
+import com.autamedica.android.domain.signaling.SignalingConnectionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -61,12 +62,11 @@ class WebRTCEngine(
     private val context: Context,
     private val peerConnectionFactory: PeerConnectionFactory,
     private val eglBase: EglBase,
-    private val signalingWebSocket: SignalingWebSocket,
+    private val signalingClient: SignalingClient,
     private val scope: CoroutineScope,
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) {
     data class Config(
-        val signalingUrl: String = SIGNALING_URL,
         val iceServers: List<PeerConnection.IceServer> = DEFAULT_ICE_SERVERS,
         val roomId: String = "default-room",
         val userId: String,
@@ -129,16 +129,16 @@ class WebRTCEngine(
         this.config = config
 
         scope.launch {
-            signalingWebSocket.messages.collect { message ->
+            signalingClient.messages.collect { message ->
                 handleSignalingMessage(message)
             }
         }
 
         scope.launch {
-            signalingWebSocket.connectionState.collect { state ->
+            signalingClient.connectionState.collect { state ->
                 when (state) {
                     SignalingConnectionState.CONNECTED -> {
-                        signalingWebSocket.send(
+                        signalingClient.send(
                             ClientSignalingMessage.Join(
                                 from = config.userId,
                                 data = JoinData(userType = config.userType),
@@ -166,13 +166,13 @@ class WebRTCEngine(
 
         setConnectionState(ConnectionState.CONNECTING)
         val finalRoomId = roomId ?: config.roomId
-        signalingWebSocket.connect(finalRoomId)
+        signalingClient.connect(finalRoomId)
     }
 
     fun disconnect() {
         Timber.i("[WebRTC] Disconnect requested")
-        signalingWebSocket.send(ClientSignalingMessage.Leave)
-        signalingWebSocket.disconnect()
+        signalingClient.send(ClientSignalingMessage.Leave)
+        signalingClient.disconnect()
         setConnectionState(ConnectionState.DISCONNECTED)
         cleanup()
     }
@@ -279,18 +279,18 @@ class WebRTCEngine(
         when (message) {
             is ServerSignalingMessage.RoomState -> {
                 for (user in message.data.users) {
-                    Timber.i("[WebRTC] User in room: ${user.id}")
+                    Timber.i("[WebRTC] User present in room")
                 }
                 setConnectionState(ConnectionState.CONNECTED)
             }
 
             is ServerSignalingMessage.UserJoined -> {
-                Timber.i("[WebRTC] User joined: ${message.from}")
+                Timber.i("[WebRTC] Peer joined room")
                 ensurePeerConnection(message.from)
             }
 
             is ServerSignalingMessage.UserLeft -> {
-                Timber.i("[WebRTC] User left: ${message.from}")
+                Timber.i("[WebRTC] Peer left room")
                 val peerState = peers.remove(message.from)
                 peerState?.dataChannel?.close()
                 peerState?.pc?.close()
@@ -311,7 +311,7 @@ class WebRTCEngine(
         peers[userId]?.let { return it }
 
         val isPolite = config.userType != "doctor"
-        Timber.i("[WebRTC] Creating peer connection for $userId (polite=$isPolite)")
+        Timber.i("[WebRTC] Creating peer connection (polite=$isPolite)")
 
         val rtcConfig = PeerConnection.RTCConfiguration(config.iceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
@@ -375,14 +375,14 @@ class WebRTCEngine(
 
         peerState.ignoreOffer = !peerState.isPolite && offerCollision
         if (peerState.ignoreOffer) {
-            Timber.w("[WebRTC] Ignoring offer from $userId (impolite, collision)")
+            Timber.w("[WebRTC] Ignoring offer (impolite, collision)")
             return
         }
 
         val remoteSdp = SessionDescription(SessionDescription.Type.OFFER, sdpPayload.sdp)
 
         if (offerCollision) {
-            Timber.i("[WebRTC] Offer collision, rolling back for $userId")
+            Timber.i("[WebRTC] Offer collision, rolling back")
             pc.setLocalDescription(NoOpSdpObserver())
         }
 
@@ -396,7 +396,7 @@ class WebRTCEngine(
                                 val answerPayload: JsonElement = json.encodeToJsonElement(
                                     SdpPayload(type = "answer", sdp = sdp.description)
                                 )
-                                signalingWebSocket.send(
+                                signalingClient.send(
                                     ClientSignalingMessage.Answer(to = userId, data = answerPayload)
                                 )
                                 flushPendingIceCandidates(peerState)
@@ -424,7 +424,7 @@ class WebRTCEngine(
 
             override fun onSetFailure(error: String?) {
                 peerState.isSettingRemoteAnswerPending = false
-                Timber.e("[WebRTC] Failed setting remote answer from $userId: $error")
+                Timber.e("[WebRTC] Failed setting remote answer: $error")
             }
         }, remoteSdp)
     }
@@ -441,7 +441,7 @@ class WebRTCEngine(
         if (peerState.pc.remoteDescription != null) {
             peerState.pc.addIceCandidate(candidate)
         } else {
-            Timber.d("[WebRTC] Buffering ICE candidate for $userId")
+            Timber.d("[WebRTC] Buffering ICE candidate")
             peerState.pendingIceCandidates.add(candidate)
         }
     }
@@ -471,7 +471,7 @@ class WebRTCEngine(
             override fun onBufferedAmountChange(previousAmount: Long) {}
 
             override fun onStateChange() {
-                Timber.i("[WebRTC] DataChannel state: ${channel.state()} with $remoteUserId")
+                Timber.i("[WebRTC] DataChannel state: ${channel.state()}")
                 if (channel.state() == DataChannel.State.CLOSED) {
                     if (peerState.dataChannel === channel) {
                         peerState.dataChannel = null
@@ -489,7 +489,7 @@ class WebRTCEngine(
                         _chatMessages.tryEmit(msg)
                     }
                 } catch (e: Exception) {
-                    Timber.w(e, "[WebRTC] Invalid chat payload")
+                    SecureLog.warn("[WebRTC] Invalid chat payload", e)
                 }
             }
         })
@@ -584,28 +584,28 @@ class WebRTCEngine(
                     sdpMid = candidate.sdpMid,
                 )
             )
-            signalingWebSocket.send(
+            signalingClient.send(
                 ClientSignalingMessage.IceCandidate(to = userId, data = payload)
             )
         }
 
         override fun onAddStream(stream: MediaStream) {
-            val videoTrack = stream.videoTracks.firstOrNull()
+                val videoTrack = stream.videoTracks.firstOrNull()
             if (videoTrack != null) {
                 _remoteVideoTrack.value = videoTrack
-                Timber.i("[WebRTC] Remote video track received from $userId")
+                Timber.i("[WebRTC] Remote video track received")
             }
         }
 
         override fun onSignalingChange(state: PeerConnection.SignalingState) {
-            Timber.d("[WebRTC] Signaling state: $state for $userId")
+            Timber.d("[WebRTC] Signaling state: $state")
         }
 
         override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
-            Timber.i("[WebRTC] ICE connection: $state for $userId")
+            Timber.i("[WebRTC] ICE connection: $state")
             when (state) {
                 PeerConnection.IceConnectionState.FAILED -> {
-                    Timber.w("[WebRTC] ICE failed, restarting for $userId")
+                    Timber.w("[WebRTC] ICE failed, restarting")
                     peers[userId]?.let { peerState ->
                         peerState.pc.restartIce()
                         // restartIce() sets a flag; onRenegotiationNeeded will fire
@@ -615,20 +615,20 @@ class WebRTCEngine(
                 PeerConnection.IceConnectionState.DISCONNECTED -> {
                     // Transient disconnection (e.g. WiFi→4G handoff)
                     // WebRTC will auto-recover via ICE; if not, FAILED fires next
-                    Timber.w("[WebRTC] ICE disconnected for $userId, waiting for recovery...")
+                    Timber.w("[WebRTC] ICE disconnected, waiting for recovery...")
                 }
                 else -> {}
             }
         }
 
         override fun onConnectionChange(state: PeerConnection.PeerConnectionState) {
-            Timber.i("[WebRTC] Connection: $state for $userId")
+            Timber.i("[WebRTC] Connection: $state")
             when (state) {
                 PeerConnection.PeerConnectionState.FAILED -> {
                     // Don't remove peer — ICE restart is in progress via onIceConnectionChange.
                     // If restartIce() succeeds, onRenegotiationNeeded creates new offer.
                     // The peer only gets removed on CLOSED (terminal state).
-                    Timber.w("[WebRTC] PeerConnection FAILED for $userId, ICE restart in progress")
+                    Timber.w("[WebRTC] PeerConnection FAILED, ICE restart in progress")
                 }
                 PeerConnection.PeerConnectionState.CLOSED -> {
                     peers.remove(userId)
@@ -655,7 +655,7 @@ class WebRTCEngine(
                                     val offerPayload: JsonElement = json.encodeToJsonElement(
                                         SdpPayload(type = "offer", sdp = sdp.description)
                                     )
-                                    signalingWebSocket.send(
+                                    signalingClient.send(
                                         ClientSignalingMessage.Offer(to = userId, data = offerPayload)
                                     )
                                     peerState.isMakingOffer = false
@@ -670,7 +670,7 @@ class WebRTCEngine(
                     }, MediaConstraints())
                 } catch (e: Exception) {
                     peerState.isMakingOffer = false
-                    Timber.e(e, "[WebRTC] Negotiation needed error")
+                    SecureLog.error("[WebRTC] Negotiation needed error", e)
                 }
             }
         }
@@ -681,10 +681,6 @@ class WebRTCEngine(
     }
 
     companion object {
-        private const val SIGNALING_URL =
-            "wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling"
-        const val SIGNALING_URL_HTTP =
-            "wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling"
         private const val CHAT_CHANNEL_LABEL = "autamedica-chat"
         private const val QUALITY_POLL_INTERVAL_MS = 5000L
 

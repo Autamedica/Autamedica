@@ -4,12 +4,12 @@ import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.ProfileRepository
+import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,7 +32,7 @@ class ProfileRepositoryImpl @Inject constructor(
 
         dto.toDomain()
     }.onFailure {
-        Timber.e(it, "[Profile] Failed fetching profile")
+        SecureLog.error("[Profile] Failed fetching profile", it)
     }
 
     override suspend fun updateProfile(
@@ -57,7 +57,7 @@ class ProfileRepositoryImpl @Inject constructor(
 
         dto.toDomain()
     }.onFailure {
-        Timber.e(it, "[Profile] Failed updating profile")
+        SecureLog.error("[Profile] Failed updating profile", it)
     }
 }
 

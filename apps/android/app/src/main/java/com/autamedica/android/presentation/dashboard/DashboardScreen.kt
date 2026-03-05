@@ -39,7 +39,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -75,7 +75,7 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -144,12 +144,10 @@ fun DashboardScreen(
                             item {
                                 NextAppointmentCard(
                                     appointment = nextAppointment,
-                                    onJoinCall = if (nextAppointment.meetingUrl != null &&
-                                        nextAppointment.canJoinCall()
-                                    ) {
+                                    onJoinCall = if (nextAppointment.canJoinCall()) {
                                         {
                                             onNavigateToVideoCall(
-                                                nextAppointment.meetingUrl?.substringAfterLast("/") ?: "",
+                                                nextAppointment.id,
                                                 uiState.userId,
                                                 uiState.userRole,
                                                 uiState.userName,
@@ -227,12 +225,10 @@ fun DashboardScreen(
                                 item(key = appointment.id) {
                                     CompactAppointmentRow(
                                         appointment = appointment,
-                                        onClick = if (appointment.meetingUrl != null &&
-                                            appointment.canJoinCall()
-                                        ) {
+                                        onClick = if (appointment.canJoinCall()) {
                                             {
                                                 onNavigateToVideoCall(
-                                                    appointment.meetingUrl?.substringAfterLast("/") ?: "",
+                                                    appointment.id,
                                                     uiState.userId,
                                                     uiState.userRole,
                                                     uiState.userName,
@@ -461,8 +457,7 @@ private fun CompactAppointmentRow(
 }
 
 private fun Appointment.canJoinCall(): Boolean {
-    return meetingUrl != null &&
-        (type == AppointmentType.TELEMEDICINE || type == AppointmentType.CONSULTATION) &&
+    return (type == AppointmentType.TELEMEDICINE || type == AppointmentType.CONSULTATION) &&
         (status == AppointmentStatus.SCHEDULED || status == AppointmentStatus.CONFIRMED || status == AppointmentStatus.IN_PROGRESS)
 }
 

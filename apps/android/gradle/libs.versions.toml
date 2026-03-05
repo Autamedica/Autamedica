@@ -27,6 +27,12 @@ credentials = "1.3.0"
 googleid = "1.1.1"
 core-splashscreen = "1.0.1"
 firebase-bom = "33.8.0"
+firebase-crashlytics-plugin = "3.0.2"
+firebase-perf-plugin = "1.4.2"
+room = "2.6.1"
+livekit-sdk = "2.23.5"
+livekit-compose-components = "2.2.0"
+mlkit-face = "16.1.7"
 
 [libraries]
 # Compose
@@ -62,11 +68,12 @@ supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
 supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
 supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
 supabase-functions = { group = "io.github.jan-tennert.supabase", name = "functions-kt" }
+supabase-storage = { group = "io.github.jan-tennert.supabase", name = "storage-kt" }
 
 # Network
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
-ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 
 # WebRTC
 webrtc = { group = "io.github.webrtc-sdk", name = "android", version.ref = "webrtc" }
@@ -105,6 +112,22 @@ core-splashscreen = { group = "androidx.core", name = "core-splashscreen", versi
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+firebase-perf = { group = "com.google.firebase", name = "firebase-perf" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config" }
+
+# ML Kit (Phase 4)
+mlkit-face-detection = { group = "com.google.mlkit", name = "face-detection", version.ref = "mlkit-face" }
+
+# Database (Offline First - Room)
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+# LiveKit
+livekit-android-sdk = { group = "io.livekit", name = "livekit-android", version.ref = "livekit-sdk" }
+livekit-compose-components = { group = "io.livekit", name = "livekit-android-compose-components", version.ref = "livekit-compose-components" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -114,3 +137,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin" }
+firebase-perf = { id = "com.google.firebase.firebase-perf", version.ref = "firebase-perf-plugin" }

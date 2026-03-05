@@ -3,43 +3,50 @@ package com.autamedica.android.presentation.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.MedicalMessage
+import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ChatRepository
+import com.autamedica.android.logging.SecureLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
+
+data class ChatConversationUiState(
+    val messages: List<MedicalMessage> = emptyList(),
+    val isLoading: Boolean = true,
+    val isSending: Boolean = false,
+    val currentUserId: String = "",
+)
 
 @HiltViewModel
 class ChatConversationViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val chatRepository: ChatRepository,
-    private val securePreferences: SecurePreferences,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     val chatId: String = savedStateHandle.get<String>("chatId") ?: ""
 
-    private val _messages = MutableStateFlow<List<MedicalMessage>>(emptyList())
-    val messages: StateFlow<List<MedicalMessage>> = _messages.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-    private val _isSending = MutableStateFlow(false)
-    val isSending: StateFlow<Boolean> = _isSending.asStateFlow()
-
-    val currentUserId: String
-        get() = securePreferences.getString(SecurePreferences.KEY_USER_ID) ?: ""
+    private val _uiState = MutableStateFlow(ChatConversationUiState())
+    val uiState: StateFlow<ChatConversationUiState> = _uiState.asStateFlow()
 
     init {
+        loadCurrentUser()
         if (chatId.isNotEmpty()) {
             observeMessages()
             markAsRead()
+        }
+    }
+
+    private fun loadCurrentUser() {
+        viewModelScope.launch {
+            val user = authRepository.getCurrentUser()
+            _uiState.update { it.copy(currentUserId = user?.id.orEmpty()) }
         }
     }
 
@@ -47,24 +54,23 @@ class ChatConversationViewModel @Inject constructor(
         viewModelScope.launch {
             chatRepository.observeMessages(chatId)
                 .catch { e ->
-                    Timber.e(e, "[ChatConversation] Error observing messages")
-                    _isLoading.value = false
+                    SecureLog.error("[ChatConversation] Error observing messages", e)
+                    _uiState.update { it.copy(isLoading = false) }
                 }
                 .collect { messageList ->
-                    _messages.value = messageList
-                    _isLoading.value = false
+                    _uiState.update { it.copy(messages = messageList, isLoading = false) }
                 }
         }
     }
 
     fun sendMessage(content: String) {
-        if (content.isBlank() || _isSending.value) return
+        if (content.isBlank() || _uiState.value.isSending) return
 
         viewModelScope.launch {
-            _isSending.value = true
+            _uiState.update { it.copy(isSending = true) }
             chatRepository.sendMessage(chatId, content.trim())
-                .onFailure { Timber.e(it, "[ChatConversation] Failed to send") }
-            _isSending.value = false
+                .onFailure { SecureLog.error("[ChatConversation] Failed to send", it) }
+            _uiState.update { it.copy(isSending = false) }
         }
     }
 

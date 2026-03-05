@@ -3,11 +3,12 @@ package com.autamedica.android.service
 import com.autamedica.android.domain.model.NotificationType
 import com.autamedica.android.domain.model.PushPayload
 import com.autamedica.android.domain.repository.NotificationRepository
+import com.autamedica.android.di.IoDispatcher
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -35,7 +36,16 @@ class PushNotificationService : FirebaseMessagingService() {
     @Inject
     lateinit var notificationRepository: NotificationRepository
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    @Inject
+    @IoDispatcher
+    lateinit var ioDispatcher: CoroutineDispatcher
+
+    private lateinit var serviceScope: CoroutineScope
+
+    override fun onCreate() {
+        super.onCreate()
+        serviceScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
