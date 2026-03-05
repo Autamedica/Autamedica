@@ -68,7 +68,7 @@ const editorialReading = [
   {
     section: 'Seguridad',
     title: 'Que datos compartir en comunidad y cuales reservar para consulta',
-    summary: 'Participa con confianza sin exponer informacion clinica sensible.',
+    summary: 'Participa con confianza sin exponer informacion clínica sensible.',
   },
 ]
 

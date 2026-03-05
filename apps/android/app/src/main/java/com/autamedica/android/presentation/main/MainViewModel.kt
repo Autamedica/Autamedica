@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,13 +15,22 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val securePreferences: SecurePreferences,
 ) : ViewModel() {
 
     private val _isLoggedOut = MutableStateFlow(false)
     val isLoggedOut: StateFlow<Boolean> = _isLoggedOut.asStateFlow()
 
+    private val _userRole = MutableStateFlow("")
+    val userRole: StateFlow<String> = _userRole.asStateFlow()
+
     init {
+        loadRole()
         observeSession()
+    }
+
+    private fun loadRole() {
+        _userRole.value = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: ""
     }
 
     private fun observeSession() {
@@ -29,6 +39,8 @@ class MainViewModel @Inject constructor(
             authRepository.observeSession().collect { user ->
                 if (user != null) {
                     hasBeenAuthenticated = true
+                    // Refresh role when session changes
+                    _userRole.value = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: ""
                 } else if (hasBeenAuthenticated) {
                     Timber.d("[Auth] Session lost — navigating to login")
                     _isLoggedOut.value = true

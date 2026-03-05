@@ -4,8 +4,8 @@ import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
 
-const pageTitle = 'Portal para Medicos';
-const pageDescription = 'Agenda clinica, teleconsulta y herramientas de productividad medica en el portal de profesionales AutaMedica.';
+const pageTitle = 'Portal para Médicos';
+const pageDescription = 'Agenda clínica, teleconsulta y herramientas de productividad medica en el portal de profesionales AutaMedica.';
 ---
 
 <Layout
@@ -23,7 +23,7 @@ const pageDescription = 'Agenda clinica, teleconsulta y herramientas de producti
 
   <PortalLanding
     badge="Doctors Slice"
-    title="Portal Medico en Astro"
+    title="Portal Médico en Astro"
     subtitle="Optimizado para acciones frecuentes de consulta y seguimiento, con foco en densidad informativa equilibrada."
     accent="var(--portal-doctors)"
     stats={[
@@ -47,7 +47,7 @@ const pageDescription = 'Agenda clinica, teleconsulta y herramientas de producti
     ]}
     primaryCta={{
       href: buildRoleAuthPath('login', 'doctor'),
-      label: 'Entrar como medico',
+      label: 'Entrar como médico',
     }}
     secondaryCta={{
       href: buildRoleAuthPath('register', 'doctor'),

@@ -101,3 +101,13 @@ apps/android/local.properties
 *.aab
 apps/android/.kotlin/
 apps/android/keystore/
+
+# Firebase
+firebase-debug.log
+**/google-services.json
+
+# Temporary scripts
+md2pdf.js
+
+# Experimental apps (not in active development)
+apps/mobile/

@@ -2,9 +2,13 @@ package com.autamedica.android.di
 
 import com.autamedica.android.data.repository.AppointmentRepositoryImpl
 import com.autamedica.android.data.repository.AuthRepositoryImpl
+import com.autamedica.android.data.repository.DoctorRepositoryImpl
+import com.autamedica.android.data.repository.NotificationRepositoryImpl
 import com.autamedica.android.data.repository.ProfileRepositoryImpl
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.DoctorRepository
+import com.autamedica.android.domain.repository.NotificationRepository
 import com.autamedica.android.domain.repository.ProfileRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.data.repository.TelemedicineRepositoryImpl
@@ -33,4 +37,13 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTelemedicineRepository(impl: TelemedicineRepositoryImpl): TelemedicineRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDoctorRepository(impl: DoctorRepositoryImpl): DoctorRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationRepository(impl: NotificationRepositoryImpl): NotificationRepository
 }
+

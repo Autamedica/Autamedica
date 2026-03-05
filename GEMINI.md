@@ -176,6 +176,29 @@ Para cualquier feature o bug de datos, analizar y validar siempre en dos niveles
 - **Project ID:** `qxjjrpksmwwrmubhvjew`
 - **URL:** `https://qxjjrpksmwwrmubhvjew.supabase.co`
 
+### Firebase Project (Android Push Notifications)
+
+- **Cuenta Gmail:** `autamedica@gmail.com` ← DUEÑA del proyecto Firebase
+- **Project ID:** `autamedica-e54fa`
+- **Project Number (Sender ID):** `653971537811`
+- **Android App ID:** `1:653971537811:android:08a5441d27cef1d7f37266`
+- **Package Name:** `com.autamedica.android`
+- **API Key (Android):** `AIzaSyAS-c0uUDU0hyUVJFIb5A8Xndq3FXHKRZs`
+- **Plan:** Spark (gratuito)
+- **Console:** `https://console.firebase.google.com/u/1/project/autamedica-e54fa`
+
+### Cuentas y Servicios (Referencia Rápida)
+
+| Servicio                 | Cuenta/Email             | Notas                           |
+| ------------------------ | ------------------------ | ------------------------------- |
+| **Firebase (FCM, Auth)** | `autamedica@gmail.com`   | Proyecto `autamedica-e54fa`     |
+| **Supabase**             | (verificar en dashboard) | Proyecto `qxjjrpksmwwrmubhvjew` |
+| **Google Cloud (GCP)**   | `autamedica@gmail.com`   | Mismo proyecto que Firebase     |
+| **Cloudflare Pages**     | (verificar en dashboard) | Deploy de apps web              |
+| **GitHub**               | (verificar en settings)  | Repo monorepo AutaMedica        |
+
+> **REGLA:** Nunca asumir en qué cuenta está un servicio. Consultar esta tabla primero.
+
 ---
 
 ## 4b. Estrategia de Ramas (Trunk-Based Development)

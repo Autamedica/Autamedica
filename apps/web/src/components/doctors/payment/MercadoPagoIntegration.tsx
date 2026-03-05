@@ -2,7 +2,7 @@
 
 import { logger } from '@autamedica/shared'
 import { AlertCircle, CheckCircle, CreditCard, Loader, Lock, Shield } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface PaymentMethod {
   id: string
@@ -19,14 +19,30 @@ interface PaymentMethod {
   }
 }
 
+interface PaymentData {
+  id: string
+  status: 'approved' | 'pending' | 'rejected'
+  status_detail: string
+  operation_type: string
+  date_approved: string
+  transaction_amount: number
+  currency_id: string
+  description: string
+  payment_method_id: string
+  payer: {
+    id: string
+    email: string
+  }
+}
+
 interface MercadoPagoCheckoutProps {
   _planId: string
   amount: number
   currency: string
   description: string
-  onSuccess: (paymentData: any) => void
-  onError: (error: any) => void
-  onPending?: (paymentData: any) => void
+  onSuccess: (paymentData: PaymentData) => void
+  onError: (error: unknown) => void
+  onPending?: (paymentData: PaymentData) => void
 }
 
 interface MercadoPagoSubscriptionManagerProps {
@@ -55,12 +71,7 @@ export function MercadoPagoCheckout({
     identificationNumber: ''
   })
 
-  useEffect(() => {
-    initializeMercadoPago()
-    loadSavedPaymentMethods()
-  }, [])
-
-  const initializeMercadoPago = async () => {
+  const initializeMercadoPago = useCallback(async () => {
     try {
       // En producción, esto se cargaría desde las variables de entorno
       const _publicKey = 'TEST-your-public-key'
@@ -75,9 +86,9 @@ export function MercadoPagoCheckout({
       logger.error('Error inicializando MercadoPago:', error)
       onError(error)
     }
-  }
+  }, [onError])
 
-  const loadSavedPaymentMethods = async () => {
+  const loadSavedPaymentMethods = useCallback(async () => {
     try {
       // Simulación de carga de métodos de pago guardados
       const mockPaymentMethods: PaymentMethod[] = [
@@ -101,7 +112,12 @@ export function MercadoPagoCheckout({
     } catch (error) {
       logger.error('Error cargando métodos de pago:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    initializeMercadoPago()
+    loadSavedPaymentMethods()
+  }, [initializeMercadoPago, loadSavedPaymentMethods])
 
   const processPayment = async () => {
     if (!selectedPaymentMethod && !cardData.cardNumber) {
@@ -127,7 +143,7 @@ export function MercadoPagoCheckout({
         payment_method_id: selectedPaymentMethod || 'visa',
         payer: {
           id: 'payer_' + Date.now(),
-          email: 'medico@autamedica.com'
+          email: 'médico@autamedica.com'
         }
       }
 

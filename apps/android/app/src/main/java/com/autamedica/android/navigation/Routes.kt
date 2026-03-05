@@ -17,4 +17,9 @@ sealed interface Route {
         val userType: String,
         val userName: String = "",
     ) : Route
+
+    @Serializable
+    data class PatientDetail(
+        val patientId: String,
+    ) : Route
 }

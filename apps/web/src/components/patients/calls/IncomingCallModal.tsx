@@ -2,10 +2,10 @@
 // @ts-nocheck
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 // useRouter removed - using window.location for Astro compatibility
 import { logger } from '@autamedica/shared'
-import { patientsEnv } from '@/lib/env'
+
 
 interface IncomingCall {
   id: string
@@ -25,7 +25,7 @@ export function IncomingCallModal({ onAccept, onDecline }: IncomingCallModalProp
   const [isVisible, setIsVisible] = useState(false)
   useEffect(() => {
     // Listen for incoming calls via WebSocket
-    const signalingUrl = patientsEnv.signalingUrl
+    const signalingUrl = import.meta.env.PUBLIC_SIGNALING_URL as string | undefined
     if (!signalingUrl) return
 
     // Get current user ID from Supabase session
@@ -135,12 +135,12 @@ export function IncomingCallModal({ onAccept, onDecline }: IncomingCallModalProp
         return
       }
 
-      const response = await fetch(`${patientsEnv.supabase.url}/functions/v1/update-call-status`, {
+      const response = await fetch(`${import.meta.env.PUBLIC_SUPABASE_URL}/functions/v1/update-call-status`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
-          'apikey': patientsEnv.supabase.anonKey,
+          'apikey': import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
         },
         body: JSON.stringify({
           callId: incomingCall.id,
@@ -185,12 +185,12 @@ export function IncomingCallModal({ onAccept, onDecline }: IncomingCallModalProp
         return
       }
 
-      const response = await fetch(`${patientsEnv.supabase.url}/functions/v1/update-call-status`, {
+      const response = await fetch(`${import.meta.env.PUBLIC_SUPABASE_URL}/functions/v1/update-call-status`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
-          'apikey': patientsEnv.supabase.anonKey,
+          'apikey': import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
         },
         body: JSON.stringify({
           callId: incomingCall.id,

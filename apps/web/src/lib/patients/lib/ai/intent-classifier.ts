@@ -46,9 +46,9 @@ const INTENT_PATTERNS: Record<MedicalIntent, string[]> = {
     'peso', 'altura', 'imc', 'glucosa', 'azucar', 'pa'
   ],
   appointments: [
-    'cita', 'consulta', 'turno', 'agendar', 'reservar', 'doctor', 'medico',
+    'cita', 'consulta', 'turno', 'agendar', 'reservar', 'doctor', 'médico',
     'horario', 'disponible', 'proximo', 'proxima',
-    'agenda', 'reunion', 'visita', 'atencion', 'ver medico', 'especialista'
+    'agenda', 'reunion', 'visita', 'atención', 'ver médico', 'especialista'
   ],
   screenings: [
     'screening', 'chequeo', 'analisis', 'estudio', 'examen', 'control',
@@ -90,7 +90,7 @@ const INTENT_PATTERNS: Record<MedicalIntent, string[]> = {
   ],
   general: [
     'informacion', 'que es', 'como funciona', 'explicar', 'ayuda',
-    'necesito', 'quiero saber', 'dime', 'cuentame', 'historia clinica',
+    'necesito', 'quiero saber', 'dime', 'cuentame', 'historia clínica',
     'historial', 'anamnesis', 'expediente', 'registro', 'datos',
     'salud', 'plataforma', 'sistema', 'autamedica', 'funcionalidad',
     'puede ayudar', 'puede hacer', 'puedes ayudar', 'puedes hacer',

@@ -1675,8 +1675,10 @@ export type Database = {
           active: boolean | null
           avatar_url: string | null
           created_at: string | null
+          device_platform: string | null
           email: string | null
           external_id: string | null
+          fcm_token: string | null
           first_name: string | null
           last_name: string | null
           numeric_id: number
@@ -1689,8 +1691,10 @@ export type Database = {
           active?: boolean | null
           avatar_url?: string | null
           created_at?: string | null
+          device_platform?: string | null
           email?: string | null
           external_id?: string | null
+          fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
           numeric_id?: number
@@ -1703,8 +1707,10 @@ export type Database = {
           active?: boolean | null
           avatar_url?: string | null
           created_at?: string | null
+          device_platform?: string | null
           email?: string | null
           external_id?: string | null
+          fcm_token?: string | null
           first_name?: string | null
           last_name?: string | null
           numeric_id?: number

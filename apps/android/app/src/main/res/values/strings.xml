@@ -24,9 +24,12 @@
     <string name="nav_home">Inicio</string>
     <string name="nav_appointments">Turnos</string>
     <string name="nav_health">Salud</string>
+    <string name="nav_patients">Pacientes</string>
     <string name="nav_profile">Perfil</string>
     <string name="notification_call_channel">Llamada en curso</string>
     <string name="notification_call_title">Consulta medica en curso</string>
     <string name="notification_call_text">Toca para volver a la llamada</string>
     <string name="notification_end_call">Finalizar</string>
+    <string name="notification_permission_title">Activar notificaciones</string>
+    <string name="notification_permission_message">Recibiras avisos de nuevos turnos, mensajes y recetas</string>
 </resources>

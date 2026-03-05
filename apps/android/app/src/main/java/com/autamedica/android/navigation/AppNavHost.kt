@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.autamedica.android.presentation.auth.LoginScreen
 import com.autamedica.android.presentation.main.MainScreen
+import com.autamedica.android.presentation.patients.PatientDetailScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
 
 @Composable
@@ -44,6 +45,9 @@ fun AppNavHost(
                         popUpTo(Route.Main) { inclusive = true }
                     }
                 },
+                onNavigateToPatientDetail = { patientId ->
+                    navController.navigate(Route.PatientDetail(patientId))
+                },
             )
         }
 
@@ -58,5 +62,18 @@ fun AppNavHost(
                 isInPipMode = isInPipMode,
             )
         }
+
+        composable<Route.PatientDetail> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.PatientDetail>()
+            PatientDetailScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToVideoCall = { appointmentId, userId, userType, userName ->
+                    navController.navigate(
+                        Route.VideoCall(appointmentId, userId, userType, userName)
+                    )
+                },
+            )
+        }
     }
 }
+

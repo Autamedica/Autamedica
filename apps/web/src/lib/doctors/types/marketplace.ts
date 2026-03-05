@@ -79,7 +79,7 @@ export interface MarketplaceCompany {
   urgentJobs: number
   isActivelyHiring: boolean
   totalHires: number
-  companyType: 'hospital' | 'clinica' | 'laboratorio' | 'farmacia' | 'mutual' | 'prepaga' | 'otro'
+  companyType: 'hospital' | 'clínica' | 'laboratorio' | 'farmacia' | 'mutual' | 'prepaga' | 'otro'
   employees: string
   foundedYear: number
   website?: string
