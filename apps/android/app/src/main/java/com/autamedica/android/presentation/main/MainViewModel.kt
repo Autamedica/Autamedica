@@ -35,14 +35,11 @@ class MainViewModel @Inject constructor(
 
     private fun observeSession() {
         viewModelScope.launch {
-            var hasBeenAuthenticated = false
             authRepository.observeSession().collect { user ->
                 if (user != null) {
-                    hasBeenAuthenticated = true
-                    // Refresh role when session changes
                     _userRole.value = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: ""
-                } else if (hasBeenAuthenticated) {
-                    Timber.d("[Auth] Session lost — navigating to login")
+                } else {
+                    Timber.d("[Auth] No session — navigating to login")
                     _isLoggedOut.value = true
                 }
             }

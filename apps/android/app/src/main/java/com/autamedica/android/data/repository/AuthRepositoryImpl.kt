@@ -81,6 +81,14 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun getCurrentUser(): User? {
         return try {
             val authUser = authDataSource.getCurrentUser() ?: return null
+
+            // Ensure SecurePreferences are hydrated for restored sessions
+            securePrefs.putString(SecurePreferences.KEY_USER_ID, authUser.id)
+            val role = authUser.role ?: authDataSource.fetchUserRole(authUser.id)
+            if (role != null) {
+                securePrefs.putString(SecurePreferences.KEY_USER_ROLE, role)
+            }
+
             authUser.toDomainUser()
         } catch (e: Exception) {
             Timber.w(e, "Failed to get current user")

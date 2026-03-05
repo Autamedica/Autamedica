@@ -53,6 +53,9 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PortalDoctors
 import timber.log.Timber
 
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.outlined.Email
+
 private data class TabItem(
     val labelRes: Int,
     val selectedIcon: ImageVector,
@@ -62,14 +65,16 @@ private data class TabItem(
 // Patient tabs
 private val patientTabs = listOf(
     TabItem(R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
+    TabItem(R.string.nav_messages, Icons.Filled.Email, Icons.Outlined.Email),
     TabItem(R.string.nav_appointments, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
     TabItem(R.string.nav_health, Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
     TabItem(R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person),
 )
 
-// Doctor tabs — "Pacientes" instead of "Mi Salud"
+// Doctor tabs
 private val doctorTabs = listOf(
     TabItem(R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
+    TabItem(R.string.nav_messages, Icons.Filled.Email, Icons.Outlined.Email),
     TabItem(R.string.nav_appointments, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
     TabItem(R.string.nav_patients, Icons.Filled.Groups, Icons.Outlined.Groups),
     TabItem(R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person),
@@ -80,6 +85,7 @@ fun MainScreen(
     onNavigateToVideoCall: (appointmentId: String, userId: String, userType: String, userName: String) -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToPatientDetail: (patientId: String) -> Unit = {},
+    onNavigateToChatConversation: (chatId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
@@ -162,13 +168,16 @@ fun MainScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                         onNavigateToTab = { selectedTab = it },
                     )
-                    1 -> AppointmentsScreen(
+                    1 -> com.autamedica.android.presentation.chat.ChatListScreen(
+                        onNavigateToConversation = onNavigateToChatConversation,
+                    )
+                    2 -> AppointmentsScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                     )
-                    2 -> PatientsScreen(
+                    3 -> PatientsScreen(
                         onNavigateToPatientDetail = onNavigateToPatientDetail,
                     )
-                    3 -> ProfileScreen(
+                    4 -> ProfileScreen(
                         onLogout = viewModel::logout,
                     )
                 }
@@ -179,11 +188,14 @@ fun MainScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                         onNavigateToTab = { selectedTab = it },
                     )
-                    1 -> AppointmentsScreen(
+                    1 -> com.autamedica.android.presentation.chat.ChatListScreen(
+                        onNavigateToConversation = onNavigateToChatConversation,
+                    )
+                    2 -> AppointmentsScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                     )
-                    2 -> HealthScreen()
-                    3 -> ProfileScreen(
+                    3 -> HealthScreen()
+                    4 -> ProfileScreen(
                         onLogout = viewModel::logout,
                     )
                 }

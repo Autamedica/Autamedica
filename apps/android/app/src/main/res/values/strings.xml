@@ -22,6 +22,7 @@
     <string name="videocall_speaker_off">Altavoz desactivado</string>
     <string name="profile_title">Perfil</string>
     <string name="nav_home">Inicio</string>
+    <string name="nav_messages">Mensajes</string>
     <string name="nav_appointments">Turnos</string>
     <string name="nav_health">Salud</string>
     <string name="nav_patients">Pacientes</string>

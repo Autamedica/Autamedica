@@ -45,5 +45,9 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindNotificationRepository(impl: NotificationRepositoryImpl): NotificationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChatRepository(impl: com.autamedica.android.data.repository.ChatRepositoryImpl): com.autamedica.android.domain.repository.ChatRepository
 }
 

@@ -22,4 +22,12 @@ sealed interface Route {
     data class PatientDetail(
         val patientId: String,
     ) : Route
+
+    @Serializable
+    data object ChatList : Route
+
+    @Serializable
+    data class ChatConversation(
+        val chatId: String,
+    ) : Route
 }

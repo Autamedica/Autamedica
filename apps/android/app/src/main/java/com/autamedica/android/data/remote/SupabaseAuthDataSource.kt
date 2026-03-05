@@ -122,7 +122,7 @@ class SupabaseAuthDataSource @Inject constructor(
         return try {
             val result = supabase.postgrest.from("profiles")
                 .select {
-                    filter { eq("id", userId) }
+                    filter { eq("user_id", userId) }
                 }
                 .decodeSingleOrNull<ProfileRow>()
             result?.role
@@ -135,6 +135,6 @@ class SupabaseAuthDataSource @Inject constructor(
 
 @kotlinx.serialization.Serializable
 private data class ProfileRow(
-    val id: String,
+    @kotlinx.serialization.SerialName("user_id") val id: String,
     val role: String? = null,
 )

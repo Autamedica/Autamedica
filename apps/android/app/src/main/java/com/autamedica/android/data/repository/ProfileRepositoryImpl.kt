@@ -26,7 +26,7 @@ class ProfileRepositoryImpl @Inject constructor(
         val dto = supabaseClient.postgrest
             .from("profiles")
             .select(Columns.ALL) {
-                filter { eq("id", userId) }
+                filter { eq("user_id", userId) }
             }
             .decodeSingle<ProfileDto>()
 
@@ -50,7 +50,7 @@ class ProfileRepositoryImpl @Inject constructor(
                 set("last_name", lastName)
                 if (phone != null) set("phone", phone)
             }) {
-                filter { eq("id", userId) }
+                filter { eq("user_id", userId) }
                 select(Columns.ALL)
             }
             .decodeSingle<ProfileDto>()
@@ -63,7 +63,7 @@ class ProfileRepositoryImpl @Inject constructor(
 
 @Serializable
 private data class ProfileDto(
-    val id: String,
+    @SerialName("user_id") val id: String,
     val email: String? = null,
     val role: String? = null,
     @SerialName("first_name") val firstName: String? = null,

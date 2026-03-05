@@ -2,25 +2,28 @@ package com.autamedica.android.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.autamedica.android.presentation.auth.LoginScreen
+import com.autamedica.android.presentation.chat.ChatConversationScreen
+import com.autamedica.android.presentation.chat.ChatListScreen
 import com.autamedica.android.presentation.main.MainScreen
 import com.autamedica.android.presentation.patients.PatientDetailScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
 
 @Composable
 fun AppNavHost(
+    startDestination: Route = Route.Login,
     isInPipMode: Boolean = false,
+    navController: NavHostController = rememberNavController(),
     modifier: Modifier = Modifier,
 ) {
-    val navController = rememberNavController()
-
     NavHost(
         navController = navController,
-        startDestination = Route.Login,
+        startDestination = startDestination,
         modifier = modifier,
     ) {
         composable<Route.Login> {
@@ -48,6 +51,9 @@ fun AppNavHost(
                 onNavigateToPatientDetail = { patientId ->
                     navController.navigate(Route.PatientDetail(patientId))
                 },
+                onNavigateToChatConversation = { chatId ->
+                    navController.navigate(Route.ChatConversation(chatId))
+                },
             )
         }
 
@@ -72,6 +78,22 @@ fun AppNavHost(
                         Route.VideoCall(appointmentId, userId, userType, userName)
                     )
                 },
+            )
+        }
+
+        composable<Route.ChatList> {
+            ChatListScreen(
+                onNavigateToConversation = { chatId ->
+                    navController.navigate(Route.ChatConversation(chatId))
+                },
+            )
+        }
+
+        composable<Route.ChatConversation> { backStackEntry ->
+            val route = backStackEntry.toRoute<Route.ChatConversation>()
+            ChatConversationScreen(
+                chatId = route.chatId,
+                onBack = { navController.popBackStack() },
             )
         }
     }

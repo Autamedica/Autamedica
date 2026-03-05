@@ -12,8 +12,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import android.content.Intent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.compose.rememberNavController
 import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.navigation.AppNavHost
+import com.autamedica.android.navigation.Route
 import com.autamedica.android.presentation.theme.AutamedicaTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -32,10 +36,38 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val navController = rememberNavController()
+            var startDestination: Route by mutableStateOf(Route.Login)
+            var navigateTo: Route? by mutableStateOf(null)
+
+            LaunchedEffect(intent) {
+                // If the app is launched via notification
+                val chatId = intent.getStringExtra("chat_room_id")
+                if (!chatId.isNullOrEmpty()) {
+                    startDestination = Route.ChatConversation(chatId)
+                }
+            }
+
+            LaunchedEffect(navigateTo) {
+                navigateTo?.let {
+                    navController.navigate(it)
+                    navigateTo = null
+                }
+            }
+
             AutamedicaTheme {
-                AppNavHost(isInPipMode = isInPipMode)
+                AppNavHost(
+                    startDestination = startDestination,
+                    isInPipMode = isInPipMode,
+                    navController = navController, // Need to pass this down
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onUserLeaveHint() {

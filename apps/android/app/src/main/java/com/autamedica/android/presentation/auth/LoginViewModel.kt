@@ -71,8 +71,8 @@ class LoginViewModel @Inject constructor(
     }
 
     private fun mapErrorMessage(error: Throwable): String {
-        Timber.w("[Auth] mapErrorMessage called: ${error.javaClass.simpleName} - ${error.message?.take(100)}")
-        val msg = error.message?.lowercase() ?: return "Error al iniciar sesion"
+        Timber.e(error, "[Auth] Login error: ${error.javaClass.simpleName} - ${error.message}")
+        val msg = error.message?.lowercase() ?: return "Error desconocido al iniciar sesion"
         return when {
             "invalid_credentials" in msg || "invalid login" in msg ->
                 "Correo o contrasena incorrectos"
@@ -86,7 +86,7 @@ class LoginViewModel @Inject constructor(
                 "Inicio de sesion cancelado"
             "no credentials available" in msg || "no credential" in msg ->
                 "No se encontraron cuentas de Google en este dispositivo"
-            else -> "Error al iniciar sesion"
+            else -> "Error: ${error.message?.take(80) ?: "desconocido"}"
         }
     }
 
