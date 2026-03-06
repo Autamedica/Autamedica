@@ -195,6 +195,17 @@ fun VideoCallScreen(
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
+                        ConnectionState.RECONNECTING -> {
+                            CircularProgressIndicator(
+                                color = Color(0xFFFFA726),
+                                modifier = Modifier.size(48.dp),
+                            )
+                            Text(
+                                text = "Reconectando...",
+                                color = Color(0xFFFFA726),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
                         ConnectionState.FAILED -> {
                             Text(
                                 text = "Error de conexion",

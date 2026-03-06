@@ -139,11 +139,18 @@ Deno.serve(async (req) => {
     }
 
     const participantName = user.user_metadata?.first_name || user.email || user.id
+    const isDoctor = user.id === consultation.doctor_id
 
     const token = await new SignJWT({
         video: {
           room: roomName,
-          roomJoin: true
+          roomJoin: true,
+          canPublish: true,
+          canSubscribe: true,
+          canPublishData: true,
+          canPublishSources: isDoctor
+            ? ['camera', 'microphone', 'screen_share']
+            : ['camera', 'microphone'],
         }
       })
       .setProtectedHeader({ alg: 'HS256' })

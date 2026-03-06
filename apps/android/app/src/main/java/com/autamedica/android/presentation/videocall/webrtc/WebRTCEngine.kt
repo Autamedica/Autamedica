@@ -112,6 +112,7 @@ class WebRTCEngine(
     private var surfaceTextureHelper: SurfaceTextureHelper? = null
     private var qualityJob: Job? = null
     private val qualityMonitor = QualityMonitor()
+    private var remoteVideoOwnerId: String? = null
 
     // -- Peer state (mirrors PeerState from TS) --
 
@@ -148,6 +149,9 @@ class WebRTCEngine(
                     SignalingConnectionState.FAILED -> {
                         setConnectionState(ConnectionState.FAILED)
                     }
+                    SignalingConnectionState.RECONNECTING -> {
+                        setConnectionState(ConnectionState.RECONNECTING)
+                    }
                     SignalingConnectionState.DISCONNECTED -> {
                         if (_connectionState.value != ConnectionState.DISCONNECTED) {
                             setConnectionState(ConnectionState.DISCONNECTED)
@@ -162,7 +166,8 @@ class WebRTCEngine(
 
     fun connect(roomId: String? = null) {
         val state = _connectionState.value
-        if (state == ConnectionState.CONNECTING || state == ConnectionState.CONNECTED) return
+        if (state == ConnectionState.CONNECTING || state == ConnectionState.CONNECTED
+            || state == ConnectionState.RECONNECTING) return
 
         setConnectionState(ConnectionState.CONNECTING)
         val finalRoomId = roomId ?: config.roomId
@@ -294,6 +299,7 @@ class WebRTCEngine(
                 val peerState = peers.remove(message.from)
                 peerState?.dataChannel?.close()
                 peerState?.pc?.close()
+                clearRemoteVideoForPeer(message.from)
                 emitChatReady()
                 qualityMonitor.removePeer(message.from)
             }
@@ -502,6 +508,13 @@ class WebRTCEngine(
         _chatReady.value = ready
     }
 
+    private fun clearRemoteVideoForPeer(peerUserId: String) {
+        if (remoteVideoOwnerId == peerUserId || peers.isEmpty()) {
+            _remoteVideoTrack.value = null
+            remoteVideoOwnerId = null
+        }
+    }
+
     // -- Quality monitoring --
 
     private fun startQualityMonitor() {
@@ -566,6 +579,7 @@ class WebRTCEngine(
         peers.clear()
         _chatReady.value = false
         _remoteVideoTrack.value = null
+        remoteVideoOwnerId = null
 
         stopLocalMedia()
     }
@@ -590,8 +604,9 @@ class WebRTCEngine(
         }
 
         override fun onAddStream(stream: MediaStream) {
-                val videoTrack = stream.videoTracks.firstOrNull()
+            val videoTrack = stream.videoTracks.firstOrNull()
             if (videoTrack != null) {
+                remoteVideoOwnerId = userId
                 _remoteVideoTrack.value = videoTrack
                 Timber.i("[WebRTC] Remote video track received")
             }
@@ -633,6 +648,7 @@ class WebRTCEngine(
                 PeerConnection.PeerConnectionState.CLOSED -> {
                     peers.remove(userId)
                     qualityMonitor.removePeer(userId)
+                    clearRemoteVideoForPeer(userId)
                     emitChatReady()
                 }
                 else -> {}

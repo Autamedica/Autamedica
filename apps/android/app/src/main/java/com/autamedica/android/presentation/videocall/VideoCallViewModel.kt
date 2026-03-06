@@ -175,6 +175,18 @@ class VideoCallViewModel @Inject constructor(
             _uiState.update { state ->
                 state.copy(chatMessages = state.chatMessages + msg)
             }
+        } else {
+            val systemMessage = ChatMessage(
+                id = "system-${System.currentTimeMillis()}",
+                text = "No se pudo enviar. Verifica la conexion del chat.",
+                senderId = "system",
+                senderType = "system",
+                senderName = "Sistema",
+                timestamp = System.currentTimeMillis(),
+            )
+            _uiState.update { state ->
+                state.copy(chatMessages = state.chatMessages + systemMessage)
+            }
         }
     }
 

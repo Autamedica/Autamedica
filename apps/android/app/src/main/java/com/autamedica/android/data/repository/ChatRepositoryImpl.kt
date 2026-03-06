@@ -25,13 +25,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -47,6 +48,9 @@ class ChatRepositoryImpl @Inject constructor(
     // --- Cached state flows ---
     private val _chats = MutableStateFlow<List<MedicalChat>>(emptyList())
     private val _messagesByChat = mutableMapOf<String, MutableStateFlow<List<MedicalMessage>>>()
+
+    // --- Name cache (auth user_id → "First Last") ---
+    private val nameCache = mutableMapOf<String, String>()
 
     // --- Realtime channels ---
     private var chatListChannel: RealtimeChannel? = null
@@ -97,10 +101,12 @@ class ChatRepositoryImpl @Inject constructor(
 
     override suspend fun markAsRead(chatId: String): Result<Unit> = runCatching {
         val userId = requireUserId()
+        val readAt = OffsetDateTime.now(ZoneOffset.UTC)
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
         supabaseClient.postgrest
             .from("medical_messages")
-            .update(mapOf("is_read" to true, "read_at" to "now()")) {
+            .update(mapOf("is_read" to true, "read_at" to readAt)) {
                 filter {
                     eq("chat_id", chatId)
                     eq("is_read", false)
@@ -117,14 +123,25 @@ class ChatRepositoryImpl @Inject constructor(
         val userId = requireUserId()
         val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
 
-        // Get all chat IDs for this user
         val filterColumn = if (role == "doctor") "specialist_id" else "patient_id"
         val recordId = resolveRecordId(userId, role)
+        val chatIds = supabaseClient.postgrest
+            .from("medical_chats")
+            .select(Columns.list("id")) {
+                filter { eq(filterColumn, recordId) }
+            }
+            .decodeList<ChatIdDto>()
+            .map { it.id }
+
+        if (chatIds.isEmpty()) {
+            return@runCatching 0
+        }
 
         val messages = supabaseClient.postgrest
             .from("medical_messages")
             .select(Columns.list("id", "chat_id")) {
                 filter {
+                    isIn("chat_id", chatIds)
                     eq("is_read", false)
                     neq("author_id", userId)
                 }
@@ -155,8 +172,73 @@ class ChatRepositoryImpl @Inject constructor(
                 }
                 .decodeList<MedicalChatDto>()
 
-            _chats.value = dtos.map { it.toDomain() }
-            Timber.d("[Chat] Loaded ${dtos.size} chats")
+            if (dtos.isEmpty()) {
+                _chats.value = emptyList()
+                return@runCatching
+            }
+
+            val chatIds = dtos.map { it.id }
+
+            // Resolve other participant: patient sees doctor name, doctor sees patient name
+            val otherRecordIds = if (role == "doctor") {
+                dtos.map { it.patientId }.toSet()
+            } else {
+                dtos.map { it.specialistId }.toSet()
+            }
+            val otherTable = if (role == "doctor") "patients" else "doctors"
+            val otherUserIds = resolveUserIdsFromRecords(otherTable, otherRecordIds)
+            batchResolveNames(otherUserIds.values.toSet())
+
+            // Map recordId → display name
+            val recordToName = otherUserIds.mapValues { (_, authId) -> nameCache[authId] }
+
+            // Per-chat unread counts + last message preview
+            val unreadMessages = supabaseClient.postgrest
+                .from("medical_messages")
+                .select(Columns.list("id", "chat_id")) {
+                    filter {
+                        isIn("chat_id", chatIds)
+                        eq("is_read", false)
+                        neq("author_id", userId)
+                    }
+                }
+                .decodeList<UnreadCountDto>()
+
+            val unreadByChatId = unreadMessages.groupBy { it.chatId }
+                .mapValues { (_, msgs) -> msgs.size }
+
+            // Last message per chat — fetch recent messages, deduplicate below
+            val previewLimit = (chatIds.size * 20).toLong().coerceAtLeast(100)
+            val lastMessages = supabaseClient.postgrest
+                .from("medical_messages")
+                .select(Columns.list("chat_id", "content", "content_type")) {
+                    filter { isIn("chat_id", chatIds) }
+                    order("created_at", Order.DESCENDING)
+                    limit(previewLimit)
+                }
+                .decodeList<LastMessageDto>()
+
+            val lastMessageByChatId = mutableMapOf<String, String>()
+            for (msg in lastMessages) {
+                if (!lastMessageByChatId.containsKey(msg.chatId)) {
+                    lastMessageByChatId[msg.chatId] = when (msg.contentType) {
+                        "image" -> "\uD83D\uDCF7 Imagen"
+                        "audio" -> "\uD83C\uDFA4 Audio"
+                        "document" -> "\uD83D\uDCC4 Documento"
+                        else -> msg.content.take(80)
+                    }
+                }
+            }
+
+            _chats.value = dtos.map { dto ->
+                val otherRecordId = if (role == "doctor") dto.patientId else dto.specialistId
+                dto.toDomain().copy(
+                    otherParticipantName = recordToName[otherRecordId],
+                    unreadCount = unreadByChatId[dto.id] ?: 0,
+                    lastMessagePreview = lastMessageByChatId[dto.id],
+                )
+            }
+            Timber.d("[Chat] Loaded ${dtos.size} chats with names and unread counts")
         }.onFailure {
             SecureLog.error("[Chat] Failed to load chats", it)
         }
@@ -172,8 +254,13 @@ class ChatRepositoryImpl @Inject constructor(
                 }
                 .decodeList<MedicalMessageDto>()
 
-            getOrCreateMessageFlow(chatId).value = dtos.map { it.toDomain() }
-            Timber.d("[Chat] Loaded ${dtos.size} messages")
+            val authorIds = dtos.map { it.authorId }.toSet()
+            batchResolveNames(authorIds)
+
+            getOrCreateMessageFlow(chatId).value = dtos.map { dto ->
+                dto.toDomain().copy(senderName = nameCache[dto.authorId])
+            }
+            Timber.d("[Chat] Loaded ${dtos.size} messages with sender names")
         }.onFailure {
             SecureLog.error("[Chat] Failed to load messages", it)
         }
@@ -223,20 +310,26 @@ class ChatRepositoryImpl @Inject constructor(
 
             changeFlow.collect { action ->
                 Timber.d("[Chat] Realtime new message")
-                // Parse the new record from the realtime payload
                 val record = action.record
+                val authorId = record["author_id"]?.jsonPrimitive?.content ?: ""
+
+                // Resolve sender name (uses cache, only queries if missing)
+                if (authorId.isNotEmpty() && !nameCache.containsKey(authorId)) {
+                    batchResolveNames(setOf(authorId))
+                }
+
                 val newMessage = MedicalMessage(
                     id = record["id"]?.jsonPrimitive?.content ?: return@collect,
                     chatId = record["chat_id"]?.jsonPrimitive?.content ?: chatId,
                     authorType = AuthorType.fromString(record["author_type"]?.jsonPrimitive?.content),
-                    authorId = record["author_id"]?.jsonPrimitive?.content ?: "",
+                    authorId = authorId,
                     contentType = MessageContentType.fromString(record["content_type"]?.jsonPrimitive?.content),
                     content = record["content"]?.jsonPrimitive?.content ?: "",
                     attachmentUrl = record["attachment_url"]?.jsonPrimitive?.content,
                     isRead = record["is_read"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: false,
                     readAt = record["read_at"]?.jsonPrimitive?.content,
                     createdAt = record["created_at"]?.jsonPrimitive?.content ?: "",
-                    senderName = null,
+                    senderName = nameCache[authorId],
                 )
 
                 val flow = getOrCreateMessageFlow(chatId)
@@ -261,6 +354,7 @@ class ChatRepositoryImpl @Inject constructor(
         }
         messageChannels.clear()
         _messagesByChat.clear()
+        nameCache.clear()
         _chats.value = emptyList()
         Timber.d("[Chat] Cleanup complete — channels and caches cleared")
     }
@@ -281,6 +375,43 @@ class ChatRepositoryImpl @Inject constructor(
             .decodeSingle<RecordIdDto>().id
     }
 
+    private suspend fun resolveUserIdsFromRecords(
+        table: String,
+        recordIds: Set<String>,
+    ): Map<String, String> {
+        if (recordIds.isEmpty()) return emptyMap()
+        val rows = supabaseClient.postgrest
+            .from(table)
+            .select(Columns.list("id", "user_id")) {
+                filter { isIn("id", recordIds.toList()) }
+            }
+            .decodeList<RecordUserIdDto>()
+        return rows.associate { it.id to it.userId }
+    }
+
+    private suspend fun batchResolveNames(authUserIds: Set<String>) {
+        val missing = authUserIds.filter { it.isNotEmpty() && !nameCache.containsKey(it) }
+        if (missing.isEmpty()) return
+
+        runCatching {
+            val profiles = supabaseClient.postgrest
+                .from("profiles")
+                .select(Columns.list("user_id", "first_name", "last_name")) {
+                    filter { isIn("user_id", missing) }
+                }
+                .decodeList<ProfileNameDto>()
+
+            for (p in profiles) {
+                val name = listOfNotNull(p.firstName, p.lastName)
+                    .joinToString(" ")
+                    .ifBlank { "Usuario" }
+                nameCache[p.userId] = name
+            }
+        }.onFailure {
+            SecureLog.error("[Chat] Failed to resolve names", it)
+        }
+    }
+
     private fun getOrCreateMessageFlow(chatId: String): MutableStateFlow<List<MedicalMessage>> =
         _messagesByChat.getOrPut(chatId) { MutableStateFlow(emptyList()) }
 
@@ -292,7 +423,30 @@ class ChatRepositoryImpl @Inject constructor(
     private data class RecordIdDto(val id: String)
 
     @Serializable
+    private data class RecordUserIdDto(
+        val id: String,
+        @SerialName("user_id") val userId: String,
+    )
+
+    @Serializable
+    private data class ChatIdDto(val id: String)
+
+    @Serializable
     private data class UnreadCountDto(val id: String, @SerialName("chat_id") val chatId: String)
+
+    @Serializable
+    private data class ProfileNameDto(
+        @SerialName("user_id") val userId: String,
+        @SerialName("first_name") val firstName: String? = null,
+        @SerialName("last_name") val lastName: String? = null,
+    )
+
+    @Serializable
+    private data class LastMessageDto(
+        @SerialName("chat_id") val chatId: String,
+        val content: String,
+        @SerialName("content_type") val contentType: String = "text",
+    )
 
     @Serializable
     private data class SendMessageDto(

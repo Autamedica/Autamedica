@@ -10,6 +10,7 @@ import androidx.navigation.toRoute
 import com.autamedica.android.presentation.auth.LoginScreen
 import com.autamedica.android.presentation.chat.ChatConversationScreen
 import com.autamedica.android.presentation.chat.ChatListScreen
+import com.autamedica.android.presentation.health.AnamnesisFormScreen
 import com.autamedica.android.presentation.main.MainScreen
 import com.autamedica.android.presentation.patients.PatientDetailScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
@@ -54,6 +55,9 @@ fun AppNavHost(
                 onNavigateToChatConversation = { chatId ->
                     navController.navigate(Route.ChatConversation(chatId))
                 },
+                onNavigateToAnamnesisForm = {
+                    navController.navigate(Route.AnamnesisForm)
+                },
             )
         }
 
@@ -93,6 +97,12 @@ fun AppNavHost(
             val route = backStackEntry.toRoute<Route.ChatConversation>()
             ChatConversationScreen(
                 chatId = route.chatId,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.AnamnesisForm> {
+            AnamnesisFormScreen(
                 onBack = { navController.popBackStack() },
             )
         }

@@ -86,6 +86,7 @@ fun MainScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToPatientDetail: (patientId: String) -> Unit = {},
     onNavigateToChatConversation: (chatId: String) -> Unit = {},
+    onNavigateToAnamnesisForm: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
@@ -193,7 +194,9 @@ fun MainScreen(
                     2 -> AppointmentsScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                     )
-                    3 -> HealthScreen()
+                    3 -> HealthScreen(
+                        onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
+                    )
                     4 -> ProfileScreen(
                         onLogout = viewModel::logout,
                     )

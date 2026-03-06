@@ -7,33 +7,27 @@ import { logger } from '@autamedica/shared';
 
 interface VideoConsultationProps {
   consultationId: string;
-  patientId: string;
-  doctorId: string;
   onEnd?: () => void;
 }
 
-interface ConsultationData {
-  success: boolean;
+interface ConsultationSessionResponse {
+  ok: boolean;
   data: {
-    consultationId: string;
-    roomName: string;
-    roomSid: string;
-    patientId: string;
-    doctorId: string;
-    patientToken: string;
-    doctorToken: string;
-    livekitUrl: string;
-    createdAt: string;
-  };
+    livekit?: LiveKitSession | null;
+  } | null;
+}
+
+interface LiveKitSession {
+  token: string;
+  url: string;
+  roomName?: string;
 }
 
 export function VideoConsultation({
   consultationId,
-  patientId,
-  doctorId,
   onEnd
 }: VideoConsultationProps) {
-  const [consultationData, setConsultationData] = useState<ConsultationData | null>(null);
+  const [consultationData, setConsultationData] = useState<LiveKitSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -41,26 +35,23 @@ export function VideoConsultation({
     async function initializeConsultation() {
       try {
         setIsLoading(true);
+        setError(null);
 
-        // Crear sala de consulta en el backend
-        const response = await fetch('http://localhost:8888/api/consultations/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            consultationId,
-            patientId,
-            doctorId,
-          }),
+        // Obtener bootstrap de sesión desde backend (incluye token LiveKit si está disponible)
+        const response = await fetch(`/api/telemedicine/session?sessionId=${encodeURIComponent(consultationId)}`, {
+          credentials: 'include',
         });
 
         if (!response.ok) {
-          throw new Error('Error al crear la sala de consulta');
+          throw new Error('Error al obtener la sesión de videoconsulta');
         }
 
-        const data: ConsultationData = await response.json();
-        setConsultationData(data);
+        const data: ConsultationSessionResponse = await response.json();
+        if (!data?.ok || !data?.data?.livekit?.token || !data?.data?.livekit?.url) {
+          throw new Error('La sesión todavía no tiene credenciales de video disponibles');
+        }
+
+        setConsultationData(data.data.livekit);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error desconocido');
         logger.error('Error initializing consultation:', err);
@@ -70,7 +61,7 @@ export function VideoConsultation({
     }
 
     initializeConsultation();
-  }, [consultationId, patientId, doctorId]);
+  }, [consultationId]);
 
   const handleDisconnect = () => {
     logger.info('Disconnected from consultation room');
@@ -108,8 +99,8 @@ export function VideoConsultation({
   return (
     <div className="h-screen bg-gray-900">
       <LiveKitRoom
-        token={consultationData.data.patientToken}
-        serverUrl={consultationData.data.livekitUrl}
+        token={consultationData.token}
+        serverUrl={consultationData.url}
         connect={true}
         video={true}
         audio={true}

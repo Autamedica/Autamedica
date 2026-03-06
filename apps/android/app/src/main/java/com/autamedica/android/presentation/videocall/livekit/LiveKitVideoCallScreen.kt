@@ -89,7 +89,7 @@ class LiveKitVideoCallViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = "No se pudo iniciar la sala LiveKit",
+                            error = error.message ?: "No se pudo iniciar la sala LiveKit",
                         )
                     }
                 }

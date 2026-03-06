@@ -18,11 +18,14 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import timber.log.Timber
 import java.net.URLEncoder
+import java.util.Timer
+import java.util.TimerTask
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
 
 /**
  * WebSocket connection to the AutaMedica signaling server.
- * Handles connection lifecycle, message serialization, and reconnection.
+ * Handles connection lifecycle, message serialization, and reconnection with exponential backoff.
  *
  * Protocol matches: wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling
  */
@@ -51,17 +54,31 @@ class SignalingWebSocket(
     override val connectionState: SharedFlow<SignalingConnectionState> = _connectionState.asSharedFlow()
 
     private var isConnected = false
+    private var currentRoomId: String? = null
+    private var reconnectAttempt = 0
+    private var reconnectTimer: Timer? = null
+    private var intentionalDisconnect = false
 
     override fun connect(roomId: String) {
         if (isConnected) return
 
+        currentRoomId = roomId
+        intentionalDisconnect = false
+        reconnectAttempt = 0
+        connectInternal(roomId)
+    }
+
+    private fun connectInternal(roomId: String) {
         val encodedRoomId = URLEncoder.encode(roomId, "UTF-8")
         val url = "$signalingUrl?roomId=$encodedRoomId"
         SecureLog.info("[Signaling] Connecting")
 
         val request = Request.Builder().url(url).build()
         webSocket = client.newWebSocket(request, SignalingListener())
-        _connectionState.tryEmit(SignalingConnectionState.CONNECTING)
+        _connectionState.tryEmit(
+            if (reconnectAttempt > 0) SignalingConnectionState.RECONNECTING
+            else SignalingConnectionState.CONNECTING
+        )
     }
 
     override fun send(message: ClientSignalingMessage) {
@@ -76,16 +93,54 @@ class SignalingWebSocket(
 
     override fun disconnect() {
         Timber.i("[Signaling] Disconnecting")
+        intentionalDisconnect = true
+        cancelReconnect()
         webSocket?.close(1000, "Client disconnect")
         webSocket = null
         isConnected = false
+        currentRoomId = null
         _connectionState.tryEmit(SignalingConnectionState.DISCONNECTED)
+    }
+
+    private fun scheduleReconnect() {
+        val roomId = currentRoomId ?: return
+        if (intentionalDisconnect) return
+        if (reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
+            Timber.e("[Signaling] Max reconnect attempts ($MAX_RECONNECT_ATTEMPTS) reached")
+            _connectionState.tryEmit(SignalingConnectionState.FAILED)
+            return
+        }
+
+        val delayMs = min(
+            INITIAL_BACKOFF_MS * (1L shl reconnectAttempt),
+            MAX_BACKOFF_MS,
+        )
+        reconnectAttempt++
+        Timber.i("[Signaling] Reconnecting in ${delayMs}ms (attempt $reconnectAttempt/$MAX_RECONNECT_ATTEMPTS)")
+        _connectionState.tryEmit(SignalingConnectionState.RECONNECTING)
+
+        cancelReconnect()
+        reconnectTimer = Timer("signaling-reconnect", true).apply {
+            schedule(object : TimerTask() {
+                override fun run() {
+                    if (!intentionalDisconnect) {
+                        connectInternal(roomId)
+                    }
+                }
+            }, delayMs)
+        }
+    }
+
+    private fun cancelReconnect() {
+        reconnectTimer?.cancel()
+        reconnectTimer = null
     }
 
     private inner class SignalingListener : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
             Timber.i("[Signaling] Connected")
             isConnected = true
+            reconnectAttempt = 0
             _connectionState.tryEmit(SignalingConnectionState.CONNECTED)
         }
 
@@ -106,13 +161,27 @@ class SignalingWebSocket(
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
             Timber.i("[Signaling] Closed: code=$code reason=$reason")
             isConnected = false
-            _connectionState.tryEmit(SignalingConnectionState.DISCONNECTED)
+            if (code != 1000 && !intentionalDisconnect) {
+                scheduleReconnect()
+            } else {
+                _connectionState.tryEmit(SignalingConnectionState.DISCONNECTED)
+            }
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             SecureLog.error("[Signaling] Connection failed: ${response?.code}", t)
             isConnected = false
-            _connectionState.tryEmit(SignalingConnectionState.FAILED)
+            if (!intentionalDisconnect) {
+                scheduleReconnect()
+            } else {
+                _connectionState.tryEmit(SignalingConnectionState.FAILED)
+            }
         }
+    }
+
+    companion object {
+        private const val MAX_RECONNECT_ATTEMPTS = 6
+        private const val INITIAL_BACKOFF_MS = 1000L
+        private const val MAX_BACKOFF_MS = 32_000L
     }
 }

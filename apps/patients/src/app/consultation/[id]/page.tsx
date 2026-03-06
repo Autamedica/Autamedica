@@ -3,7 +3,6 @@
 import { use, useState } from 'react';
 import { VideoConsultation } from '../../../components/consultation/VideoConsultation';
 import { useRouter } from 'next/navigation';
-import { usePatientSession } from '@/hooks/usePatientSession';
 
 export default function ConsultationPage({
   params,
@@ -13,11 +12,6 @@ export default function ConsultationPage({
   const { id: consultationId } = use(params);
   const router = useRouter();
   const [showConsultation, setShowConsultation] = useState(false);
-
-  const { user } = usePatientSession();
-  const patientId = user?.id ?? '';
-  // Doctor ID will be resolved from the consultation session
-  const doctorId = '';
 
   const handleEndConsultation = () => {
     setShowConsultation(false);
@@ -106,8 +100,6 @@ export default function ConsultationPage({
   return (
     <VideoConsultation
       consultationId={consultationId}
-      patientId={patientId}
-      doctorId={doctorId}
       onEnd={handleEndConsultation}
     />
   );

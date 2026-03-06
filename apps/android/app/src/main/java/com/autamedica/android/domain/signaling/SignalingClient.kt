@@ -15,5 +15,6 @@ enum class SignalingConnectionState {
     DISCONNECTED,
     CONNECTING,
     CONNECTED,
+    RECONNECTING,
     FAILED,
 }

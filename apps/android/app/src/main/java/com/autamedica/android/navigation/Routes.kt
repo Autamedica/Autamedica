@@ -30,4 +30,7 @@ sealed interface Route {
     data class ChatConversation(
         val chatId: String,
     ) : Route
+
+    @Serializable
+    data object AnamnesisForm : Route
 }
