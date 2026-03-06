@@ -46,6 +46,8 @@ data class VideoCallUiState(
     val callDurationSeconds: Long = 0,
     val showControls: Boolean = true,
     val hasRemoteVideo: Boolean = false,
+    val isWaitingRoom: Boolean = false,
+    val sessionStatusMessage: String? = null,
 )
 
 @HiltViewModel
@@ -85,6 +87,7 @@ class VideoCallViewModel @Inject constructor(
 
     private var callStartTimeMs: Long = 0L
     private var timerJob: kotlinx.coroutines.Job? = null
+    private var sessionRetryJob: kotlinx.coroutines.Job? = null
     private var engineObserversBound = false
     private var callStarted = false
     private var callUserId: String = ""
@@ -99,9 +102,13 @@ class VideoCallViewModel @Inject constructor(
     fun startCall() {
         if (callStarted) return
         callStarted = true
-        _uiState.update { it.copy(connectionState = ConnectionState.CONNECTING) }
-        videoCallStateHolder.setInVideoCall(true)
-        CallNotificationService.start(context)
+        _uiState.update {
+            it.copy(
+                connectionState = ConnectionState.CONNECTING,
+                isWaitingRoom = false,
+                sessionStatusMessage = "Preparando tu camara...",
+            )
+        }
 
         viewModelScope.launch {
             runCatching {
@@ -111,33 +118,32 @@ class VideoCallViewModel @Inject constructor(
                 callUserType = currentUser.role.wireName
                 callUserName = currentUser.displayName
 
-                telemedicineRepository.getSession(appointmentId).getOrThrow()
-            }.onSuccess { sessionInfo ->
-                runCatching {
-                    engine.initialize(
-                        WebRTCEngine.Config(
-                            roomId = sessionInfo.roomId,
-                            userId = callUserId,
-                            userType = callUserType,
-                            userName = callUserName,
-                        )
+                engine.initialize(
+                    WebRTCEngine.Config(
+                        roomId = appointmentId,
+                        userId = callUserId,
+                        userType = callUserType,
+                        userName = callUserName,
                     )
-                    observeEngine()
-                    engine.startLocalMedia()
-                    engine.connect(sessionInfo.roomId)
-                }.onFailure { error ->
-                    SecureLog.error("Failed to start telemedicine engine", error)
-                    _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
-                    CallNotificationService.stop(context)
-                    videoCallStateHolder.setInVideoCall(false)
-                    callStarted = false
-                }
+                )
+                observeEngine()
+                engine.startLocalMedia()
             }.onFailure { error ->
-                SecureLog.error("Failed to initialize telemedicine session", error)
-                _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
+                SecureLog.error("Failed to start telemedicine preview", error)
+                _uiState.update {
+                    it.copy(
+                        connectionState = ConnectionState.FAILED,
+                        isWaitingRoom = false,
+                        sessionStatusMessage = "No se pudo activar la camara.",
+                    )
+                }
                 CallNotificationService.stop(context)
                 videoCallStateHolder.setInVideoCall(false)
                 callStarted = false
+            }.onSuccess {
+                videoCallStateHolder.setInVideoCall(true)
+                CallNotificationService.start(context)
+                attemptSessionConnection(manualRetry = false)
             }
         }
     }
@@ -145,10 +151,19 @@ class VideoCallViewModel @Inject constructor(
     fun endCall() {
         callStarted = false
         timerJob?.cancel()
+        sessionRetryJob?.cancel()
         engine.disconnect()
         restoreAudio()
         CallNotificationService.stop(context)
         videoCallStateHolder.setInVideoCall(false)
+    }
+
+    fun retryConnection() {
+        if (!callStarted) return
+        sessionRetryJob?.cancel()
+        viewModelScope.launch {
+            attemptSessionConnection(manualRetry = true)
+        }
     }
 
     fun toggleVideo() {
@@ -235,8 +250,25 @@ class VideoCallViewModel @Inject constructor(
 
         viewModelScope.launch {
             engine.connectionState.collect { state ->
-                _uiState.update { it.copy(connectionState = state) }
+                _uiState.update { current ->
+                    current.copy(
+                        connectionState = state,
+                        isWaitingRoom = when (state) {
+                            ConnectionState.CONNECTING,
+                            ConnectionState.CONNECTED,
+                            ConnectionState.RECONNECTING -> false
+                            else -> current.isWaitingRoom
+                        },
+                        sessionStatusMessage = when (state) {
+                            ConnectionState.CONNECTING -> "Conectando con la sala..."
+                            ConnectionState.CONNECTED -> null
+                            ConnectionState.RECONNECTING -> "Recuperando la conexion..."
+                            else -> current.sessionStatusMessage
+                        },
+                    )
+                }
                 if (state == ConnectionState.CONNECTED && callStartTimeMs == 0L) {
+                    sessionRetryJob?.cancel()
                     callStartTimeMs = System.currentTimeMillis()
                     startTimer()
                 }
@@ -297,9 +329,83 @@ class VideoCallViewModel @Inject constructor(
         super.onCleared()
         callStarted = false
         timerJob?.cancel()
+        sessionRetryJob?.cancel()
         engine.disconnect()
         restoreAudio()
         CallNotificationService.stop(context)
         videoCallStateHolder.setInVideoCall(false)
+    }
+
+    private suspend fun attemptSessionConnection(manualRetry: Boolean) {
+        if (!callStarted) return
+
+        _uiState.update { current ->
+            current.copy(
+                connectionState = ConnectionState.CONNECTING,
+                isWaitingRoom = false,
+                sessionStatusMessage = if (manualRetry) {
+                    "Intentando conectar con la sala..."
+                } else {
+                    current.sessionStatusMessage
+                },
+            )
+        }
+
+        telemedicineRepository.getSession(appointmentId)
+            .onSuccess { sessionInfo ->
+                sessionRetryJob?.cancel()
+                _uiState.update {
+                    it.copy(
+                        connectionState = ConnectionState.CONNECTING,
+                        isWaitingRoom = false,
+                        sessionStatusMessage = "Conectando con la sala...",
+                    )
+                }
+                engine.connect(sessionInfo.roomId)
+            }
+            .onFailure { error ->
+                val logContext = if (manualRetry) {
+                    "Failed resolving telemedicine session after manual retry"
+                } else {
+                    "Telemedicine session unavailable, keeping local preview active"
+                }
+                SecureLog.warn(logContext, error)
+                enterWaitingRoom(error)
+            }
+    }
+
+    private fun enterWaitingRoom(error: Throwable) {
+        _uiState.update {
+            it.copy(
+                connectionState = ConnectionState.DISCONNECTED,
+                isWaitingRoom = true,
+                sessionStatusMessage = waitingRoomMessage(error.message),
+            )
+        }
+        scheduleSessionRetry()
+    }
+
+    private fun scheduleSessionRetry() {
+        if (sessionRetryJob?.isActive == true) return
+
+        sessionRetryJob = viewModelScope.launch {
+            while (callStarted) {
+                kotlinx.coroutines.delay(8_000)
+                if (!_uiState.value.isWaitingRoom) break
+                attemptSessionConnection(manualRetry = false)
+            }
+        }
+    }
+
+    private fun waitingRoomMessage(raw: String?): String {
+        val normalized = raw?.lowercase().orEmpty()
+        return when {
+            "network" in normalized || "timeout" in normalized ->
+                "Tu camara ya esta activa. La sala todavia no responde; vamos a reintentar automaticamente."
+            "no telemedicine call found" in normalized || "no telemedicine" in normalized ->
+                "Tu camara ya esta activa. Todavia no hay otra persona conectada en la sala."
+            else ->
+                "Tu camara ya esta activa. Estamos esperando que la sala quede disponible."
+        }
     }
 }

@@ -59,9 +59,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.Appointment
+import com.autamedica.android.domain.model.PatientDetail
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
-import com.autamedica.android.domain.model.PatientDetail
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
 import com.autamedica.android.presentation.theme.AuDanger
@@ -202,7 +202,7 @@ fun PatientDetailScreen(
                         ) { appointment ->
                             AppointmentHistoryRow(
                                 appointment = appointment,
-                                onJoinCall = if (canJoinCall(appointment)) {
+                                onJoinCall = if (appointment.id in uiState.joinableAppointmentIds) {
                                     {
                                         onNavigateToVideoCall(appointment.id)
                                     }
@@ -238,6 +238,16 @@ fun PatientDetailScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+
+                    uiState.telemedicineError?.let { telemedicineError ->
+                        item {
+                            Text(
+                                text = telemedicineError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AuTextSecondary,
+                            )
                         }
                     }
                 }
@@ -523,11 +533,6 @@ private fun AppointmentHistoryRow(
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
-
-private fun canJoinCall(appointment: Appointment): Boolean {
-    return (appointment.type == AppointmentType.TELEMEDICINE || appointment.type == AppointmentType.CONSULTATION) &&
-        (appointment.status == AppointmentStatus.SCHEDULED || appointment.status == AppointmentStatus.CONFIRMED || appointment.status == AppointmentStatus.IN_PROGRESS)
-}
 
 private fun statusColor(status: AppointmentStatus): Color = when (status) {
     AppointmentStatus.IN_PROGRESS -> PortalDoctors

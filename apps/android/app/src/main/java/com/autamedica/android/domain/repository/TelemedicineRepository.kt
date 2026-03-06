@@ -1,5 +1,7 @@
 package com.autamedica.android.domain.repository
 
+import com.autamedica.android.domain.model.Appointment
+
 data class TelemedicineSessionInfo(
     val sessionId: String,
     val roomId: String,
@@ -22,4 +24,5 @@ data class IceServerInfo(
 interface TelemedicineRepository {
     suspend fun getSession(sessionId: String): Result<TelemedicineSessionInfo>
     suspend fun getLiveKitCredentials(sessionId: String): Result<LiveKitCredentials>
+    suspend fun getJoinableAppointmentIds(appointments: List<Appointment>): Result<Set<String>>
 }

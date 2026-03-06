@@ -11,6 +11,7 @@ import com.autamedica.android.presentation.auth.LoginScreen
 import com.autamedica.android.presentation.chat.ChatConversationScreen
 import com.autamedica.android.presentation.chat.ChatListScreen
 import com.autamedica.android.presentation.health.AnamnesisFormScreen
+import com.autamedica.android.presentation.health.PreventiveHealthScreen
 import com.autamedica.android.presentation.main.MainScreen
 import com.autamedica.android.presentation.patients.PatientDetailScreen
 import com.autamedica.android.presentation.videocall.VideoCallScreen
@@ -67,6 +68,11 @@ fun AppNavHost(
                 onNavigateToAnamnesisForm = {
                     navController.navigate(Route.AnamnesisForm)
                 },
+                onNavigateToPreventiveHealth = {
+                    navController.navigate(Route.PreventiveHealth) {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
 
@@ -109,6 +115,12 @@ fun AppNavHost(
 
         composable<Route.AnamnesisForm> {
             AnamnesisFormScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable<Route.PreventiveHealth> {
+            PreventiveHealthScreen(
                 onBack = { navController.popBackStack() },
             )
         }

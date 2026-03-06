@@ -3,6 +3,12 @@ package com.autamedica.android.data.repository
 import com.autamedica.android.data.local.SecurePreferences
 import com.autamedica.android.domain.model.AnamnesisSection
 import com.autamedica.android.domain.model.AnamnesisSummary
+import com.autamedica.android.domain.model.ANAMNESIS_STATUS_COMPLETED
+import com.autamedica.android.domain.model.ANAMNESIS_STATUS_UNDER_REVIEW
+import com.autamedica.android.domain.model.PatientPreventiveProfile
+import com.autamedica.android.domain.model.anamnesisReadOnlyReason
+import com.autamedica.android.domain.model.deriveEditableAnamnesisStatus
+import com.autamedica.android.domain.model.isAnamnesisSummaryReadOnly
 import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
@@ -45,6 +51,21 @@ class HealthRepositoryImpl @Inject constructor(
             ?.toDomain()
     }.onFailure {
         SecureLog.error("[Health] Failed fetching anamnesis summary", it)
+    }
+
+    override suspend fun getPreventiveProfile(): Result<PatientPreventiveProfile> = runCatching {
+        val patientId = resolvePatientId()
+
+        supabaseClient.postgrest
+            .from("patients")
+            .select(Columns.list("id", "birth_date", "gender")) {
+                filter { eq("id", patientId) }
+                limit(1)
+            }
+            .decodeSingle<PatientPreventiveProfileDto>()
+            .toDomain()
+    }.onFailure {
+        SecureLog.error("[Health] Failed fetching preventive profile", it)
     }
 
     override suspend fun getOrCreateAnamnesis(): Result<AnamnesisSummary> = runCatching {
@@ -117,6 +138,7 @@ class HealthRepositoryImpl @Inject constructor(
         section: String,
         data: Map<String, String>,
     ): Result<Unit> = runCatching {
+        requireEditableAnamnesis(anamnesisId)
         val jsonData = JsonObject(data.mapValues { JsonPrimitive(it.value) })
         val now = OffsetDateTime.now(ZoneOffset.UTC)
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -138,6 +160,7 @@ class HealthRepositoryImpl @Inject constructor(
         anamnesisId: String,
         section: String,
     ): Result<Unit> = runCatching {
+        val currentSummary = requireEditableAnamnesis(anamnesisId)
         val now = OffsetDateTime.now(ZoneOffset.UTC)
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
@@ -151,30 +174,20 @@ class HealthRepositoryImpl @Inject constructor(
             }
 
         // Update sections_status JSONB in parent anamnesis
-        val sections = supabaseClient.postgrest
-            .from("anamnesis_sections")
-            .select(Columns.list("section", "completed")) {
-                filter { eq("anamnesis_id", anamnesisId) }
-            }
-            .decodeList<SectionStatusDto>()
+        val sections = fetchSectionStatuses(anamnesisId)
 
         val total = sections.size.coerceAtLeast(1)
         val completed = sections.count { it.completed }
         val percentage = (completed.toDouble() / total * 100).roundToInt()
-
-        val statusMap = JsonObject(sections.associate { s ->
-            s.section to JsonPrimitive(if (s.completed) "completed" else "pending")
-        })
+        val nextStatus = deriveEditableAnamnesisStatus(
+            currentStatus = currentSummary.status,
+            completedSections = completed,
+            totalSections = total,
+        )
 
         supabaseClient.postgrest
             .from("anamnesis")
-            .update(
-                mapOf(
-                    "sections_status" to statusMap,
-                    "completion_percentage" to percentage,
-                    "updated_at" to now,
-                )
-            ) {
+            .update(buildProgressUpdatePayload(sections, percentage, nextStatus, now)) {
                 filter { eq("id", anamnesisId) }
             }
         Unit
@@ -183,6 +196,14 @@ class HealthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun submitAnamnesis(anamnesisId: String): Result<Unit> = runCatching {
+        requireEditableAnamnesis(anamnesisId)
+        val sections = fetchSectionStatuses(anamnesisId)
+        val total = sections.size.coerceAtLeast(1)
+        val completed = sections.count { it.completed }
+        if (completed != total) {
+            throw IllegalStateException("Complete todas las secciones antes de enviar la anamnesis.")
+        }
+
         val now = OffsetDateTime.now(ZoneOffset.UTC)
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
@@ -190,9 +211,10 @@ class HealthRepositoryImpl @Inject constructor(
             .from("anamnesis")
             .update(
                 mapOf(
-                    "status" to "under_review",
+                    "status" to ANAMNESIS_STATUS_UNDER_REVIEW,
                     "locked" to true,
                     "completion_percentage" to 100,
+                    "sections_status" to buildSectionsStatus(sections),
                     "completed_at" to now,
                     "updated_at" to now,
                 )
@@ -220,12 +242,76 @@ class HealthRepositoryImpl @Inject constructor(
             .id
     }
 
+    private suspend fun requireEditableAnamnesis(anamnesisId: String): AnamnesisSummary {
+        val summary = fetchAnamnesisById(anamnesisId)
+        if (isAnamnesisSummaryReadOnly(summary)) {
+            throw IllegalStateException(
+                anamnesisReadOnlyReason(summary) ?: "La anamnesis se encuentra en solo lectura."
+            )
+        }
+        return summary
+    }
+
+    private suspend fun fetchAnamnesisById(anamnesisId: String): AnamnesisSummary =
+        supabaseClient.postgrest
+            .from("anamnesis")
+            .select(Columns.ALL) {
+                filter { eq("id", anamnesisId) }
+                limit(1)
+            }
+            .decodeSingle<AnamnesisDto>()
+            .toDomain()
+
+    private suspend fun fetchSectionStatuses(anamnesisId: String): List<SectionStatusDto> =
+        supabaseClient.postgrest
+            .from("anamnesis_sections")
+            .select(Columns.list("section", "completed")) {
+                filter { eq("anamnesis_id", anamnesisId) }
+            }
+            .decodeList<SectionStatusDto>()
+
+    private fun buildSectionsStatus(sections: List<SectionStatusDto>): JsonObject =
+        JsonObject(sections.associate { status ->
+            status.section to JsonPrimitive(if (status.completed) "completed" else "pending")
+        })
+
+    private fun buildProgressUpdatePayload(
+        sections: List<SectionStatusDto>,
+        completionPercentage: Int,
+        status: String,
+        now: String,
+    ): Map<String, Any?> {
+        val payload = mutableMapOf<String, Any?>(
+            "sections_status" to buildSectionsStatus(sections),
+            "completion_percentage" to completionPercentage,
+            "status" to status,
+            "updated_at" to now,
+        )
+        if (status == ANAMNESIS_STATUS_COMPLETED) {
+            payload["completed_at"] = now
+        }
+        return payload
+    }
+
     // ────────────────────────────────────────────────────────────
     //  DTOs
     // ────────────────────────────────────────────────────────────
 
     @Serializable
-    private data class RecordIdDto(val id: String)
+private data class RecordIdDto(val id: String)
+
+@Serializable
+private data class PatientPreventiveProfileDto(
+    val id: String,
+    @SerialName("birth_date") val birthDate: String? = null,
+    val gender: String? = null,
+) {
+    fun toDomain() = PatientPreventiveProfile(
+        patientId = id,
+        birthDate = birthDate,
+        gender = gender,
+    )
+}
 
     @Serializable
     private data class AnamnesisDto(

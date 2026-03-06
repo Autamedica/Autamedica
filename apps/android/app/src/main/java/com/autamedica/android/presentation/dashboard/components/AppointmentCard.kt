@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -141,7 +142,7 @@ fun AppointmentCard(
                     )
                 }
 
-                if (onJoinCall != null && appointment.canJoinCall()) {
+                if (onJoinCall != null && appointment.isTelemedicineJoinCandidate()) {
                     Spacer(modifier = Modifier.height(14.dp))
                     Button(
                         onClick = onJoinCall,
@@ -207,11 +208,6 @@ private fun AppointmentType.displayName(): String = when (this) {
     AppointmentType.TELEMEDICINE -> "Telemedicina"
     AppointmentType.LAB_TEST -> "Laboratorio"
     AppointmentType.CHECKUP -> "Chequeo"
-}
-
-private fun Appointment.canJoinCall(): Boolean {
-    return (type == AppointmentType.TELEMEDICINE || type == AppointmentType.CONSULTATION) &&
-        (status == AppointmentStatus.SCHEDULED || status == AppointmentStatus.CONFIRMED || status == AppointmentStatus.IN_PROGRESS)
 }
 
 private fun formatDate(isoString: String): String {

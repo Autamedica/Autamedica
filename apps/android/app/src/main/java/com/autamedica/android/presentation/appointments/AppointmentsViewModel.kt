@@ -3,8 +3,10 @@ package com.autamedica.android.presentation.appointments
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.Appointment
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.TelemedicineRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,8 +17,10 @@ import javax.inject.Inject
 
 data class AppointmentsUiState(
     val appointments: List<Appointment> = emptyList(),
+    val joinableAppointmentIds: Set<String> = emptySet(),
     val isLoading: Boolean = true,
     val error: String? = null,
+    val telemedicineError: String? = null,
     val isRefreshing: Boolean = false,
     val userId: String = "",
     val userRole: String = "patient",
@@ -27,6 +31,7 @@ data class AppointmentsUiState(
 class AppointmentsViewModel @Inject constructor(
     private val appointmentRepository: AppointmentRepository,
     private val authRepository: AuthRepository,
+    private val telemedicineRepository: TelemedicineRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AppointmentsUiState())
@@ -63,12 +68,15 @@ class AppointmentsViewModel @Inject constructor(
         viewModelScope.launch {
             appointmentRepository.getUpcomingAppointments()
                 .onSuccess { appointments ->
+                    val (joinableIds, telemedicineError) = resolveJoinableAppointmentIds(appointments)
                     _uiState.update {
                         it.copy(
                             appointments = appointments,
+                            joinableAppointmentIds = joinableIds,
                             isLoading = false,
                             isRefreshing = false,
                             error = null,
+                            telemedicineError = telemedicineError,
                         )
                     }
                 }
@@ -77,11 +85,24 @@ class AppointmentsViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
+                            joinableAppointmentIds = emptySet(),
                             error = sanitizeError(error.message),
                         )
                     }
                 }
         }
+    }
+
+    private suspend fun resolveJoinableAppointmentIds(
+        appointments: List<Appointment>,
+    ): Pair<Set<String>, String?> {
+        val candidates = appointments.filter { it.isTelemedicineJoinCandidate() }
+        if (candidates.isEmpty()) return emptySet<String>() to null
+
+        return telemedicineRepository.getJoinableAppointmentIds(candidates).fold(
+            onSuccess = { ids -> ids to null },
+            onFailure = { emptySet<String>() to "No se pudo validar la disponibilidad de videollamada." },
+        )
     }
 
     private fun sanitizeError(raw: String?): String {

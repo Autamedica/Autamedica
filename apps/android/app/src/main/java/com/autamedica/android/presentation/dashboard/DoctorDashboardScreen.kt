@@ -65,6 +65,7 @@ import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.DoctorStats
 import com.autamedica.android.domain.model.PatientSummary
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -82,6 +83,7 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+private const val DOCTOR_TAB_APPOINTMENTS = 2
 private const val DOCTOR_TAB_PATIENTS = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -160,6 +162,11 @@ fun DoctorDashboardScreen(
                 }
 
                 else -> {
+                    val telemedicineCandidate = uiState.todayAppointments.firstOrNull { it.isTelemedicineJoinCandidate() }
+                    val telemedicineAppointment = uiState.todayAppointments.firstOrNull {
+                        it.id in uiState.joinableAppointmentIds
+                    }
+                    val previewAppointment = telemedicineAppointment ?: telemedicineCandidate
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -187,9 +194,25 @@ fun DoctorDashboardScreen(
                             item {
                                 TodayScheduleSection(
                                     appointments = uiState.todayAppointments,
+                                    joinableAppointmentIds = uiState.joinableAppointmentIds,
                                     onJoinCall = onNavigateToVideoCall,
                                 )
                             }
+                        }
+
+                        item {
+                            DoctorTelemedicineCard(
+                                candidateAppointment = telemedicineCandidate,
+                                appointment = telemedicineAppointment,
+                                onJoinCall = telemedicineAppointment?.let { appointment ->
+                                    { onNavigateToVideoCall(appointment.id) }
+                                },
+                                onOpenWaitingRoom = previewAppointment?.let { appointment ->
+                                    { onNavigateToVideoCall(appointment.id) }
+                                },
+                                onViewAgenda = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
+                                validationError = uiState.telemedicineError,
+                            )
                         }
 
                         // Recent patients
@@ -207,6 +230,141 @@ fun DoctorDashboardScreen(
                             WeeklySummaryCard(stats = uiState.stats)
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DoctorTelemedicineCard(
+    candidateAppointment: Appointment?,
+    appointment: Appointment?,
+    onJoinCall: (() -> Unit)?,
+    onOpenWaitingRoom: (() -> Unit)?,
+    onViewAgenda: () -> Unit,
+    validationError: String?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, AuBorder),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        color = PortalDoctors.copy(alpha = 0.15f),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Videocam,
+                            contentDescription = null,
+                            modifier = Modifier.padding(10.dp),
+                            tint = PortalDoctors,
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Telemedicina",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = AuTextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = when {
+                                appointment != null -> "Consulta lista para iniciar"
+                                candidateAppointment != null -> "Sala de espera disponible"
+                                else -> "Sin videoconsultas activas"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextTertiary,
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (appointment != null) PortalDoctors.copy(alpha = 0.15f) else AuSurfaceHover,
+                ) {
+                    Text(
+                        text = when {
+                            appointment != null -> "Disponible"
+                            candidateAppointment != null -> "Preview"
+                            else -> "Pendiente"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (appointment != null) PortalDoctors else AuTextSecondary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                }
+            }
+
+            if (appointment != null) {
+                Text(
+                    text = "Hay una ${displayAppointmentType(appointment.type).lowercase()} habilitada para video a las ${formatTime(appointment.startTime)}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+                Button(
+                    onClick = { onJoinCall?.invoke() ?: onViewAgenda() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PortalDoctors,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text("Iniciar videoconsulta", fontWeight = FontWeight.SemiBold)
+                }
+            } else if (candidateAppointment != null) {
+                Text(
+                    text = validationError
+                        ?: "Hay un turno compatible con video. Podes encender tu camara y esperar aunque el paciente todavia no se conecte.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+                Button(
+                    onClick = { onOpenWaitingRoom?.invoke() ?: onViewAgenda() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PortalDoctors,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text("Abrir sala de espera", fontWeight = FontWeight.Medium)
+                }
+            } else {
+                Text(
+                    text = "La app solo habilita ingreso directo cuando el turno es de consulta o telemedicina y esta programado, confirmado o en curso.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+                Button(
+                    onClick = onViewAgenda,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuSurfaceHover,
+                        contentColor = AuTextPrimary,
+                    ),
+                ) {
+                    Text("Ver agenda", fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -358,6 +516,7 @@ private fun StatCard(
 @Composable
 private fun TodayScheduleSection(
     appointments: List<Appointment>,
+    joinableAppointmentIds: Set<String>,
     onJoinCall: (appointmentId: String) -> Unit,
 ) {
     Column {
@@ -390,7 +549,7 @@ private fun TodayScheduleSection(
         appointments.take(5).forEach { appointment ->
             DoctorAppointmentRow(
                 appointment = appointment,
-                onJoinCall = if (canJoinCall(appointment)) {
+                onJoinCall = if (appointment.id in joinableAppointmentIds) {
                     { onJoinCall(appointment.id) }
                 } else null,
             )
@@ -673,11 +832,6 @@ private fun WeeklySummaryCard(
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
-
-private fun canJoinCall(appointment: Appointment): Boolean {
-    return (appointment.type == AppointmentType.TELEMEDICINE || appointment.type == AppointmentType.CONSULTATION) &&
-        (appointment.status == AppointmentStatus.SCHEDULED || appointment.status == AppointmentStatus.CONFIRMED || appointment.status == AppointmentStatus.IN_PROGRESS)
-}
 
 private fun displayAppointmentType(type: AppointmentType): String = when (type) {
     AppointmentType.CONSULTATION -> "Consulta"

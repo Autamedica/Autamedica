@@ -158,7 +158,8 @@ fun VideoCallScreen(
                 interactionSource = remember { MutableInteractionSource() },
             ) { if (!isInPipMode) viewModel.toggleControlsVisibility() },
     ) {
-        // Remote video (full screen)
+        val showLocalPreviewFullscreen = remoteTrack == null && localTrack != null && uiState.isVideoEnabled
+
         if (remoteTrack != null) {
             ManagedVideoRenderer(
                 videoTrack = remoteTrack,
@@ -166,8 +167,14 @@ fun VideoCallScreen(
                 modifier = Modifier.fillMaxSize(),
                 mirror = false,
             )
+        } else if (showLocalPreviewFullscreen) {
+            ManagedVideoRenderer(
+                videoTrack = localTrack,
+                eglContext = viewModel.eglContext,
+                modifier = Modifier.fillMaxSize(),
+                mirror = true,
+            )
         } else {
-            // Placeholder when no remote video
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -185,14 +192,7 @@ fun VideoCallScreen(
                                 modifier = Modifier.size(48.dp),
                             )
                             Text(
-                                text = "Conectando...",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        }
-                        ConnectionState.CONNECTED -> {
-                            Text(
-                                text = "Esperando al otro participante...",
+                                text = uiState.sessionStatusMessage ?: "Conectando...",
                                 color = Color.White,
                                 style = MaterialTheme.typography.bodyLarge,
                             )
@@ -203,19 +203,79 @@ fun VideoCallScreen(
                                 modifier = Modifier.size(48.dp),
                             )
                             Text(
-                                text = "Reconectando...",
+                                text = uiState.sessionStatusMessage ?: "Reconectando...",
                                 color = Color(0xFFFFA726),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
                         ConnectionState.FAILED -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Text(
+                                    text = uiState.sessionStatusMessage ?: "Error de conexion",
+                                    color = Color.Red,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = TextAlign.Center,
+                                )
+                                Button(onClick = viewModel::retryConnection) {
+                                    Text("Reintentar conexion")
+                                }
+                            }
+                        }
+                        else -> {
                             Text(
-                                text = "Error de conexion",
-                                color = Color.Red,
+                                text = uiState.sessionStatusMessage ?: "Esperando al otro participante...",
+                                color = Color.White,
                                 style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center,
                             )
                         }
-                        else -> {}
+                    }
+                }
+            }
+        }
+
+        if (remoteTrack == null) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .safeDrawingPadding()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                val overlayText = when {
+                    uiState.isWaitingRoom ->
+                        uiState.sessionStatusMessage ?: "Tu camara ya esta activa. Esperando que la sala este disponible."
+                    uiState.connectionState == ConnectionState.CONNECTING ->
+                        uiState.sessionStatusMessage ?: "Conectando con la sala..."
+                    uiState.connectionState == ConnectionState.RECONNECTING ->
+                        uiState.sessionStatusMessage ?: "Recuperando la conexion..."
+                    uiState.connectionState == ConnectionState.FAILED ->
+                        uiState.sessionStatusMessage ?: "No se pudo conectar la llamada."
+                    showLocalPreviewFullscreen ->
+                        "Tu camara esta encendida. Falta que se conecte la otra persona."
+                    else -> null
+                }
+
+                if (overlayText != null) {
+                    Text(
+                        text = overlayText,
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                }
+
+                if (uiState.isWaitingRoom || uiState.connectionState == ConnectionState.FAILED) {
+                    Button(onClick = viewModel::retryConnection) {
+                        Text("Intentar conectar")
                     }
                 }
             }
@@ -225,7 +285,7 @@ fun VideoCallScreen(
         if (isInPipMode) return@Box
 
         // Local video (picture-in-picture, top-right)
-        if (localTrack != null && uiState.isVideoEnabled) {
+        if (!showLocalPreviewFullscreen && localTrack != null && uiState.isVideoEnabled) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -258,7 +318,11 @@ fun VideoCallScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CallTimer(durationSeconds = uiState.callDurationSeconds)
+                if (uiState.callDurationSeconds > 0) {
+                    CallTimer(durationSeconds = uiState.callDurationSeconds)
+                } else {
+                    Box(modifier = Modifier)
+                }
                 QualityIndicator(level = uiState.qualitySummary.overallLevel)
             }
         }

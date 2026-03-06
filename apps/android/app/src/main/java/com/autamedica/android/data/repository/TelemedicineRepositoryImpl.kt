@@ -1,6 +1,8 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.BuildConfig
+import com.autamedica.android.domain.model.Appointment
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.IceServerInfo
 import com.autamedica.android.domain.repository.LiveKitCredentials
 import com.autamedica.android.domain.repository.TelemedicineRepository
@@ -80,6 +82,64 @@ class TelemedicineRepositoryImpl @Inject constructor(
         SecureLog.error("[Telemedicine] Failed fetching LiveKit credentials", it)
     }
 
+    override suspend fun getJoinableAppointmentIds(appointments: List<Appointment>): Result<Set<String>> = runCatching {
+        val candidateAppointments = appointments
+            .filter { it.isTelemedicineJoinCandidate() }
+            .distinctBy { it.id }
+
+        if (candidateAppointments.isEmpty()) {
+            return@runCatching emptySet()
+        }
+
+        val liveSessions = supabaseClient.postgrest
+            .from("telemedicine_sessions")
+            .select(Columns.list("appointment_id", "status")) {
+                filter { isIn("appointment_id", candidateAppointments.map { it.id }) }
+            }
+            .decodeList<LiveSessionAvailabilityDto>()
+            .map { LiveSessionReference(appointmentId = it.appointmentId, status = it.status) }
+
+        val identifiers = candidateAppointments
+            .mapNotNull { extractMeetingIdentifier(it.meetingUrl) }
+            .distinct()
+
+        val uuidIdentifiers = identifiers.filter { it.isUuid() }
+
+        val legacyCalls = buildList {
+            if (uuidIdentifiers.isNotEmpty()) {
+                addAll(
+                    supabaseClient.postgrest
+                        .from("calls")
+                        .select(Columns.list("id", "room_id", "status")) {
+                            filter { isIn("id", uuidIdentifiers) }
+                        }
+                        .decodeList<CallAvailabilityDto>()
+                        .map { it.toReference() }
+                )
+            }
+
+            if (identifiers.isNotEmpty()) {
+                addAll(
+                    supabaseClient.postgrest
+                        .from("calls")
+                        .select(Columns.list("id", "room_id", "status")) {
+                            filter { isIn("room_id", identifiers) }
+                        }
+                        .decodeList<CallAvailabilityDto>()
+                        .map { it.toReference() }
+                )
+            }
+        }.distinctBy { it.id }
+
+        deriveJoinableAppointmentIds(
+            appointments = candidateAppointments,
+            legacyCalls = legacyCalls,
+            liveSessions = liveSessions,
+        )
+    }.onFailure {
+        SecureLog.error("[Telemedicine] Failed resolving joinable appointments", it)
+    }
+
     private suspend fun findCallForIdentifier(identifier: String): CallDto? {
         if (identifier.isUuid()) {
             val byCallId = findCallByColumn(column = "id", value = identifier)
@@ -123,19 +183,7 @@ class TelemedicineRepositoryImpl @Inject constructor(
             ?.meetingUrl
             ?: return null
 
-        return parseSessionIdentifier(meetingUrl)
-    }
-
-    private fun parseSessionIdentifier(meetingUrl: String): String? {
-        val trimmed = meetingUrl.trim()
-        if (trimmed.isEmpty()) return null
-
-        return trimmed
-            .substringAfterLast('/')
-            .substringBefore('?')
-            .substringBefore('#')
-            .trim()
-            .ifEmpty { null }
+        return extractMeetingIdentifier(meetingUrl)
     }
 
     private fun String.isUuid(): Boolean {
@@ -168,8 +216,27 @@ private data class CallDto(
 )
 
 @Serializable
+private data class CallAvailabilityDto(
+    val id: String,
+    @SerialName("room_id") val roomId: String,
+    val status: String,
+) {
+    fun toReference() = LegacyCallReference(
+        id = id,
+        roomId = roomId,
+        status = status,
+    )
+}
+
+@Serializable
 private data class AppointmentMeetingDto(
     @SerialName("meeting_url") val meetingUrl: String? = null,
+)
+
+@Serializable
+private data class LiveSessionAvailabilityDto(
+    @SerialName("appointment_id") val appointmentId: String? = null,
+    val status: String,
 )
 
 @Serializable

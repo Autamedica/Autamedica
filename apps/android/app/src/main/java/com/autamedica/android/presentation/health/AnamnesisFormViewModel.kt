@@ -174,14 +174,20 @@ class AnamnesisFormViewModel @Inject constructor(
                         .onFailure { e ->
                             SecureLog.error("[Anamnesis] Failed completing section", e)
                             _uiState.update {
-                                it.copy(isSaving = false, error = "No se pudo guardar la seccion")
+                                it.copy(
+                                    isSaving = false,
+                                    error = e.message ?: "No se pudo guardar la seccion",
+                                )
                             }
                         }
                 }
                 .onFailure { e ->
                     SecureLog.error("[Anamnesis] Failed saving section", e)
                     _uiState.update {
-                        it.copy(isSaving = false, error = "No se pudo guardar la seccion")
+                        it.copy(
+                            isSaving = false,
+                            error = e.message ?: "No se pudo guardar la seccion",
+                        )
                     }
                 }
         }
@@ -271,7 +277,10 @@ class AnamnesisFormViewModel @Inject constructor(
                 .onFailure { e ->
                     SecureLog.error("[Anamnesis] Failed submitting", e)
                     _uiState.update {
-                        it.copy(isSubmitting = false, error = "No se pudo enviar la anamnesis")
+                        it.copy(
+                            isSubmitting = false,
+                            error = e.message ?: "No se pudo enviar la anamnesis",
+                        )
                     }
                 }
         }

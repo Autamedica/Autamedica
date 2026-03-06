@@ -54,6 +54,7 @@ import com.autamedica.android.presentation.theme.AuTextTertiary
 import com.autamedica.android.presentation.theme.PrimaryLight
 import com.autamedica.android.presentation.theme.PortalPatients
 import com.autamedica.android.presentation.theme.Secondary
+import com.autamedica.android.presentation.theme.SuccessContainer
 import com.autamedica.android.presentation.theme.Tertiary
 
 private data class HealthFeature(
@@ -62,6 +63,8 @@ private data class HealthFeature(
     val icon: ImageVector,
     val iconColor: Color,
     val iconBgColor: Color,
+    val statusLabel: String = "Pronto",
+    val isEnabled: Boolean = false,
 )
 
 private val otherHealthFeatures = listOf(
@@ -78,6 +81,8 @@ private val otherHealthFeatures = listOf(
         icon = Icons.Outlined.HealthAndSafety,
         iconColor = PortalPatients,
         iconBgColor = Color(0xFF052E16),
+        statusLabel = "Nuevo",
+        isEnabled = true,
     ),
     HealthFeature(
         title = "Vacunas",
@@ -92,6 +97,7 @@ private val otherHealthFeatures = listOf(
 @Composable
 fun HealthScreen(
     onNavigateToAnamnesisForm: () -> Unit = {},
+    onNavigateToPreventiveHealth: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HealthViewModel = hiltViewModel(),
 ) {
@@ -150,7 +156,10 @@ fun HealthScreen(
             }
 
             items(otherHealthFeatures) { feature ->
-                HealthFeatureCard(feature)
+                HealthFeatureCard(
+                    feature = feature,
+                    onClick = if (feature.isEnabled) onNavigateToPreventiveHealth else null,
+                )
             }
         }
     }
@@ -159,60 +168,78 @@ fun HealthScreen(
 @Composable
 private fun HealthFeatureCard(
     feature: HealthFeature,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = AuSurface,
+            border = BorderStroke(1.dp, AuBorder),
         ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-                color = feature.iconBgColor,
-            ) {
-                Icon(
-                    imageVector = feature.icon,
-                    contentDescription = null,
-                    modifier = Modifier.padding(12.dp),
-                    tint = feature.iconColor,
-                )
-            }
+            HealthFeatureCardContent(feature = feature)
+        }
+    } else {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = AuSurface,
+            border = BorderStroke(1.dp, AuBorder),
+        ) {
+            HealthFeatureCardContent(feature = feature)
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.width(16.dp))
+@Composable
+private fun HealthFeatureCardContent(feature: HealthFeature) {
+    Row(
+        modifier = Modifier.padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = CircleShape,
+            color = feature.iconBgColor,
+        ) {
+            Icon(
+                imageVector = feature.icon,
+                contentDescription = null,
+                modifier = Modifier.padding(12.dp),
+                tint = feature.iconColor,
+            )
+        }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = feature.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = feature.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = AuTextTertiary,
-                )
-            }
+        Spacer(modifier = Modifier.width(16.dp))
 
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = AuSurfaceHover,
-            ) {
-                Text(
-                    text = "Pronto",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = AuTextTertiary,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                )
-            }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = feature.title,
+                style = MaterialTheme.typography.titleSmall,
+                color = AuTextPrimary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = feature.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = AuTextTertiary,
+            )
+        }
+
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = if (feature.isEnabled) SuccessContainer else AuSurfaceHover,
+        ) {
+            Text(
+                text = feature.statusLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (feature.isEnabled) AuAccent else AuTextTertiary,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
         }
     }
 }

@@ -50,8 +50,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.autamedica.android.domain.model.Appointment
-import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
@@ -119,6 +119,12 @@ fun DashboardScreen(
                 }
 
                 else -> {
+                    val nextAppointment = uiState.appointments.firstOrNull()
+                    val telemedicineCandidate = uiState.appointments.firstOrNull { it.isTelemedicineJoinCandidate() }
+                    val telemedicineAppointment = uiState.appointments.firstOrNull {
+                        it.id in uiState.joinableAppointmentIds
+                    }
+                    val previewAppointment = telemedicineAppointment ?: telemedicineCandidate
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -143,18 +149,32 @@ fun DashboardScreen(
                         }
 
                         // Next appointment highlight
-                        val nextAppointment = uiState.appointments.firstOrNull()
                         if (nextAppointment != null) {
                             item {
                                 NextAppointmentCard(
                                     appointment = nextAppointment,
-                                    onJoinCall = if (nextAppointment.canJoinCall()) {
+                                    onJoinCall = if (nextAppointment.id in uiState.joinableAppointmentIds) {
                                         {
                                             onNavigateToVideoCall(nextAppointment.id)
                                         }
                                     } else null,
                                 )
                             }
+                        }
+
+                        item {
+                            TelemedicineAccessCard(
+                                candidateAppointment = telemedicineCandidate,
+                                appointment = telemedicineAppointment,
+                                onJoinCall = telemedicineAppointment?.let { appointment ->
+                                    { onNavigateToVideoCall(appointment.id) }
+                                },
+                                onOpenWaitingRoom = previewAppointment?.let { appointment ->
+                                    { onNavigateToVideoCall(appointment.id) }
+                                },
+                                onBrowseAppointments = { onNavigateToTab(PATIENT_TAB_APPOINTMENTS) },
+                                validationError = uiState.telemedicineError,
+                            )
                         }
 
                         // Quick actions
@@ -224,7 +244,7 @@ fun DashboardScreen(
                                 item(key = appointment.id) {
                                     CompactAppointmentRow(
                                         appointment = appointment,
-                                        onClick = if (appointment.canJoinCall()) {
+                                        onClick = if (appointment.id in uiState.joinableAppointmentIds) {
                                             {
                                                 onNavigateToVideoCall(appointment.id)
                                             }
@@ -253,6 +273,141 @@ fun DashboardScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TelemedicineAccessCard(
+    candidateAppointment: Appointment?,
+    appointment: Appointment?,
+    onJoinCall: (() -> Unit)?,
+    onOpenWaitingRoom: (() -> Unit)?,
+    onBrowseAppointments: () -> Unit,
+    validationError: String?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, AuBorder),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        color = PortalPatients.copy(alpha = 0.15f),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Videocam,
+                            contentDescription = null,
+                            modifier = Modifier.padding(10.dp),
+                            tint = PortalPatients,
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Telemedicina",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = AuTextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = when {
+                                appointment != null -> "Videoconsulta disponible"
+                                candidateAppointment != null -> "Sala de espera disponible"
+                                else -> "Sin videoconsulta activa"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AuTextTertiary,
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (appointment != null) PortalPatients.copy(alpha = 0.15f) else AuSurfaceHover,
+                ) {
+                    Text(
+                        text = when {
+                            appointment != null -> "Lista"
+                            candidateAppointment != null -> "Preview"
+                            else -> "Pendiente"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (appointment != null) PortalPatients else AuTextSecondary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                }
+            }
+
+            if (appointment != null) {
+                Text(
+                    text = "Tenes una ${appointment.type.displayName().lowercase()} habilitada para video el ${formatDate(appointment.startTime)} a las ${formatTime(appointment.startTime)}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+                Button(
+                    onClick = { onJoinCall?.invoke() ?: onBrowseAppointments() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PortalPatients,
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text("Entrar a la videoconsulta", fontWeight = FontWeight.SemiBold)
+                }
+            } else if (candidateAppointment != null) {
+                Text(
+                    text = validationError
+                        ?: "Tu turno es compatible con video. Podes encender tu camara y esperar aunque la otra persona todavia no este conectada.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+                Button(
+                    onClick = { onOpenWaitingRoom?.invoke() ?: onBrowseAppointments() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PortalPatients.copy(alpha = 0.9f),
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text("Abrir sala de espera", fontWeight = FontWeight.Medium)
+                }
+            } else {
+                Text(
+                    text = "La telemedicina aparece cuando existe un turno de consulta o telemedicina en estado programado, confirmado o en curso.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+                Button(
+                    onClick = onBrowseAppointments,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuSurfaceHover,
+                        contentColor = AuTextPrimary,
+                    ),
+                ) {
+                    Text("Ver mis turnos", fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -448,11 +603,6 @@ private fun CompactAppointmentRow(
             }
         }
     }
-}
-
-private fun Appointment.canJoinCall(): Boolean {
-    return (type == AppointmentType.TELEMEDICINE || type == AppointmentType.CONSULTATION) &&
-        (status == AppointmentStatus.SCHEDULED || status == AppointmentStatus.CONFIRMED || status == AppointmentStatus.IN_PROGRESS)
 }
 
 private fun AppointmentType.displayName(): String = when (this) {

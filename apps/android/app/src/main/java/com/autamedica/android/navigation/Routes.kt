@@ -30,4 +30,7 @@ sealed interface Route {
 
     @Serializable
     data object AnamnesisForm : Route
+
+    @Serializable
+    data object PreventiveHealth : Route
 }

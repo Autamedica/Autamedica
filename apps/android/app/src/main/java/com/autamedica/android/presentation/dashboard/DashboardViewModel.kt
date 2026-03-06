@@ -3,8 +3,10 @@ package com.autamedica.android.presentation.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.Appointment
+import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.TelemedicineRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,8 +17,10 @@ import javax.inject.Inject
 
 data class DashboardUiState(
     val appointments: List<Appointment> = emptyList(),
+    val joinableAppointmentIds: Set<String> = emptySet(),
     val isLoading: Boolean = true,
     val error: String? = null,
+    val telemedicineError: String? = null,
     val isRefreshing: Boolean = false,
     val userId: String = "",
     val userRole: String = "patient",
@@ -27,6 +31,7 @@ data class DashboardUiState(
 class DashboardViewModel @Inject constructor(
     private val appointmentRepository: AppointmentRepository,
     private val authRepository: AuthRepository,
+    private val telemedicineRepository: TelemedicineRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -63,12 +68,15 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             appointmentRepository.getUpcomingAppointments()
                 .onSuccess { appointments ->
+                    val (joinableIds, telemedicineError) = resolveJoinableAppointmentIds(appointments)
                     _uiState.update {
                         it.copy(
                             appointments = appointments,
+                            joinableAppointmentIds = joinableIds,
                             isLoading = false,
                             isRefreshing = false,
                             error = null,
+                            telemedicineError = telemedicineError,
                         )
                     }
                 }
@@ -77,11 +85,24 @@ class DashboardViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
+                            joinableAppointmentIds = emptySet(),
                             error = sanitizeErrorMessage(error.message),
                         )
                     }
                 }
         }
+    }
+
+    private suspend fun resolveJoinableAppointmentIds(
+        appointments: List<Appointment>,
+    ): Pair<Set<String>, String?> {
+        val candidates = appointments.filter { it.isTelemedicineJoinCandidate() }
+        if (candidates.isEmpty()) return emptySet<String>() to null
+
+        return telemedicineRepository.getJoinableAppointmentIds(candidates).fold(
+            onSuccess = { ids -> ids to null },
+            onFailure = { error -> emptySet<String>() to sanitizeTelemedicineError(error.message) },
+        )
     }
 
     private fun sanitizeErrorMessage(raw: String?): String {
@@ -94,6 +115,17 @@ class DashboardViewModel @Inject constructor(
                 "Sesion expirada. Inicia sesion nuevamente."
             raw.contains("URL:") || raw.contains("Headers:") -> "Error al cargar consultas"
             else -> raw.lineSequence().firstOrNull()?.take(120) ?: raw.take(120)
+        }
+    }
+
+    private fun sanitizeTelemedicineError(raw: String?): String {
+        if (raw == null) return "No se pudo validar la sala de telemedicina."
+        return when {
+            "network" in raw.lowercase() || "timeout" in raw.lowercase() ->
+                "No se pudo validar la sala por un problema de conexion."
+            "forbidden" in raw.lowercase() || "unauthorized" in raw.lowercase() ->
+                "La sesion de telemedicina requiere validar nuevamente tus permisos."
+            else -> "No se pudo confirmar la sala de telemedicina."
         }
     }
 }

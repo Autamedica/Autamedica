@@ -1,6 +1,9 @@
 package com.autamedica.android.presentation.health
 
 import com.autamedica.android.domain.model.AnamnesisSummary
+import com.autamedica.android.domain.model.anamnesisDisplayStatus
+import com.autamedica.android.domain.model.anamnesisReadOnlyReason
+import com.autamedica.android.domain.model.isAnamnesisSummaryReadOnly
 
 data class AnamnesisFieldDefinition(
     val key: String,
@@ -199,9 +202,6 @@ private val sectionRules: Map<String, SectionRule> = mapOf(
     ),
 )
 
-private val editableFinalStatuses = setOf("in_progress", "draft", "not_started")
-private val readOnlyStatuses = setOf("completed", "under_review", "approved")
-
 fun getSectionFieldDefinitions(section: String): List<AnamnesisFieldDefinition> =
     sectionRules[section]?.fields ?: listOf(
         AnamnesisFieldDefinition("notes", "Notas", "Ingrese informacion relevante", required = true),
@@ -246,33 +246,14 @@ fun validateSection(section: String, fieldValues: Map<String, String>): SectionV
 }
 
 fun isAnamnesisReadOnly(summary: AnamnesisSummary?): Boolean {
-    if (summary == null) return false
-    return summary.locked || summary.status.trim().lowercase() in readOnlyStatuses
+    return isAnamnesisSummaryReadOnly(summary)
 }
 
 fun anamnesisReadOnlyMessage(summary: AnamnesisSummary?): String? {
-    if (summary == null) return null
-    val normalizedStatus = summary.status.trim().lowercase()
-    return when {
-        normalizedStatus == "approved" ->
-            "La anamnesis ya fue aprobada por el equipo clinico y queda en solo lectura."
-        normalizedStatus == "under_review" || summary.locked ->
-            "La anamnesis ya fue enviada y esta en revision. No se permiten cambios."
-        normalizedStatus == "completed" ->
-            "La anamnesis figura como completada. Se muestra en solo lectura para evitar cambios accidentales."
-        else -> null
-    }
+    return anamnesisReadOnlyReason(summary)
 }
 
-fun anamnesisStatusLabel(summary: AnamnesisSummary?): String = when {
-    summary == null -> "Sin datos"
-    summary.status.trim().lowercase() == "approved" -> "Aprobada"
-    summary.status.trim().lowercase() == "under_review" -> "En revision"
-    summary.locked -> "Bloqueada"
-    summary.status.trim().lowercase() == "completed" -> "Completada"
-    summary.status.trim().lowercase() in editableFinalStatuses -> "En progreso"
-    else -> "En progreso"
-}
+fun anamnesisStatusLabel(summary: AnamnesisSummary?): String = anamnesisDisplayStatus(summary)
 
 private fun validateFallback(fieldValues: Map<String, String>): SectionValidationResult {
     return if (fieldValues.values.any(::hasMeaningfulAnswer)) {
