@@ -46,7 +46,7 @@ import com.autamedica.android.presentation.theme.ErrorContainer
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppointmentsScreen(
-    onNavigateToVideoCall: (appointmentId: String, userId: String, userType: String, userName: String) -> Unit,
+    onNavigateToVideoCall: (appointmentId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AppointmentsViewModel = hiltViewModel(),
 ) {
@@ -182,12 +182,7 @@ fun AppointmentsScreen(
                             AppointmentCard(
                                 appointment = appointment,
                                 onJoinCall = {
-                                    onNavigateToVideoCall(
-                                        appointment.id,
-                                        uiState.userId,
-                                        uiState.userRole,
-                                        uiState.userName,
-                                    )
+                                    onNavigateToVideoCall(appointment.id)
                                 },
                             )
                         }

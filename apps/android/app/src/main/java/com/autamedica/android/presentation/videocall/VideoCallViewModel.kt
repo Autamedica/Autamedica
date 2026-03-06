@@ -12,6 +12,7 @@ import com.autamedica.android.domain.model.ChatMessage
 import com.autamedica.android.domain.model.ConnectionState
 import com.autamedica.android.domain.model.StreamQualityLevel
 import com.autamedica.android.domain.model.StreamQualitySummary
+import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.signaling.SignalingClient
 import com.autamedica.android.logging.SecureLog
@@ -54,15 +55,13 @@ class VideoCallViewModel @Inject constructor(
     private val eglBase: EglBase,
     private val json: Json,
     savedStateHandle: SavedStateHandle,
+    private val authRepository: AuthRepository,
     private val signalingClient: SignalingClient,
     private val telemedicineRepository: TelemedicineRepository,
     private val videoCallStateHolder: VideoCallStateHolder,
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
-    val userId: String = savedStateHandle["userId"] ?: ""
-    val userType: String = savedStateHandle["userType"] ?: ""
-    val userName: String = savedStateHandle["userName"] ?: ""
 
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -81,9 +80,16 @@ class VideoCallViewModel @Inject constructor(
     val localVideoTrack: StateFlow<VideoTrack?> = engine.localVideoTrack
     val remoteVideoTrack: StateFlow<VideoTrack?> = engine.remoteVideoTrack
     val eglContext: EglBase.Context get() = eglBase.eglBaseContext
+    val currentUserId: String
+        get() = callUserId
 
     private var callStartTimeMs: Long = 0L
     private var timerJob: kotlinx.coroutines.Job? = null
+    private var engineObserversBound = false
+    private var callStarted = false
+    private var callUserId: String = ""
+    private var callUserType: String = ""
+    private var callUserName: String = ""
 
     init {
         _uiState.update { it.copy(connectionState = ConnectionState.CONNECTING) }
@@ -91,34 +97,53 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun startCall() {
+        if (callStarted) return
+        callStarted = true
+        _uiState.update { it.copy(connectionState = ConnectionState.CONNECTING) }
         videoCallStateHolder.setInVideoCall(true)
         CallNotificationService.start(context)
 
         viewModelScope.launch {
-            val sessionResult = telemedicineRepository.getSession(appointmentId)
+            runCatching {
+                val currentUser = authRepository.getCurrentUser()
+                    ?: throw IllegalStateException("No authenticated user available for video call")
+                callUserId = currentUser.id
+                callUserType = currentUser.role.wireName
+                callUserName = currentUser.displayName
 
-            sessionResult.onSuccess { sessionInfo ->
-                engine.initialize(
-                    WebRTCEngine.Config(
-                        roomId = sessionInfo.roomId,
-                        userId = userId,
-                        userType = userType,
-                        userName = userName,
+                telemedicineRepository.getSession(appointmentId).getOrThrow()
+            }.onSuccess { sessionInfo ->
+                runCatching {
+                    engine.initialize(
+                        WebRTCEngine.Config(
+                            roomId = sessionInfo.roomId,
+                            userId = callUserId,
+                            userType = callUserType,
+                            userName = callUserName,
+                        )
                     )
-                )
-                observeEngine()
-                engine.startLocalMedia()
-                engine.connect(sessionInfo.roomId)
+                    observeEngine()
+                    engine.startLocalMedia()
+                    engine.connect(sessionInfo.roomId)
+                }.onFailure { error ->
+                    SecureLog.error("Failed to start telemedicine engine", error)
+                    _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
+                    CallNotificationService.stop(context)
+                    videoCallStateHolder.setInVideoCall(false)
+                    callStarted = false
+                }
             }.onFailure { error ->
                 SecureLog.error("Failed to initialize telemedicine session", error)
                 _uiState.update { it.copy(connectionState = ConnectionState.FAILED) }
                 CallNotificationService.stop(context)
                 videoCallStateHolder.setInVideoCall(false)
+                callStarted = false
             }
         }
     }
 
     fun endCall() {
+        callStarted = false
         timerJob?.cancel()
         engine.disconnect()
         restoreAudio()
@@ -165,11 +190,11 @@ class VideoCallViewModel @Inject constructor(
 
         if (engine.sendChatMessage(trimmed)) {
             val msg = ChatMessage(
-                id = "$userId-${System.currentTimeMillis()}",
+                id = "local-${System.currentTimeMillis()}",
                 text = trimmed,
-                senderId = userId,
-                senderType = userType,
-                senderName = userName,
+                senderId = callUserId,
+                senderType = callUserType,
+                senderName = callUserName,
                 timestamp = System.currentTimeMillis(),
             )
             _uiState.update { state ->
@@ -205,6 +230,9 @@ class VideoCallViewModel @Inject constructor(
     }
 
     private fun observeEngine() {
+        if (engineObserversBound) return
+        engineObserversBound = true
+
         viewModelScope.launch {
             engine.connectionState.collect { state ->
                 _uiState.update { it.copy(connectionState = state) }
@@ -267,6 +295,7 @@ class VideoCallViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        callStarted = false
         timerJob?.cancel()
         engine.disconnect()
         restoreAudio()

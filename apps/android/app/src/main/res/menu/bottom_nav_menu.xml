@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_home"
+        android:icon="@drawable/ic_home_outline"
+        android:title="Inicio" />
+
+    <item
+        android:id="@+id/navigation_calendar"
+        android:icon="@drawable/ic_calendar_outline"
+        android:title="Citas" />
+
+    <item
+        android:id="@+id/navigation_consult"
+        android:icon="@drawable/ic_medical_cross_outline"
+        android:title="Consulta" />
+
+    <item
+        android:id="@+id/navigation_chat"
+        android:icon="@drawable/ic_chat_outline"
+        android:title="Chat" />
+
+    <item
+        android:id="@+id/navigation_profile"
+        android:icon="@drawable/ic_profile_outline"
+        android:title="Perfil" />
+
+</menu>

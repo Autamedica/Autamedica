@@ -13,9 +13,6 @@ sealed interface Route {
     @Serializable
     data class VideoCall(
         val appointmentId: String,
-        val userId: String,
-        val userType: String,
-        val userName: String = "",
     ) : Route
 
     @Serializable

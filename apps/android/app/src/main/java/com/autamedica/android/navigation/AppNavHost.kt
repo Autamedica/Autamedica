@@ -18,6 +18,8 @@ import com.autamedica.android.presentation.videocall.VideoCallScreen
 @Composable
 fun AppNavHost(
     startDestination: Route = Route.Login,
+    postLoginRoute: Route? = null,
+    onPostLoginRouteConsumed: () -> Unit = {},
     isInPipMode: Boolean = false,
     navController: NavHostController = rememberNavController(),
     modifier: Modifier = Modifier,
@@ -32,6 +34,13 @@ fun AppNavHost(
                 onLoginSuccess = {
                     navController.navigate(Route.Main) {
                         popUpTo(Route.Login) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    postLoginRoute?.let { route ->
+                        navController.navigate(route) {
+                            launchSingleTop = true
+                        }
+                        onPostLoginRouteConsumed()
                     }
                 }
             )
@@ -39,10 +48,10 @@ fun AppNavHost(
 
         composable<Route.Main> {
             MainScreen(
-                onNavigateToVideoCall = { appointmentId, userId, userType, userName ->
-                    navController.navigate(
-                        Route.VideoCall(appointmentId, userId, userType, userName)
-                    )
+                onNavigateToVideoCall = { appointmentId ->
+                    navController.navigate(Route.VideoCall(appointmentId)) {
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToLogin = {
                     navController.navigate(Route.Login) {
@@ -65,9 +74,6 @@ fun AppNavHost(
             val route = backStackEntry.toRoute<Route.VideoCall>()
             VideoCallScreen(
                 appointmentId = route.appointmentId,
-                userId = route.userId,
-                userType = route.userType,
-                userName = route.userName,
                 onCallEnd = { navController.popBackStack() },
                 isInPipMode = isInPipMode,
             )
@@ -77,10 +83,10 @@ fun AppNavHost(
             val route = backStackEntry.toRoute<Route.PatientDetail>()
             PatientDetailScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToVideoCall = { appointmentId, userId, userType, userName ->
-                    navController.navigate(
-                        Route.VideoCall(appointmentId, userId, userType, userName)
-                    )
+                onNavigateToVideoCall = { appointmentId ->
+                    navController.navigate(Route.VideoCall(appointmentId)) {
+                        launchSingleTop = true
+                    }
                 },
             )
         }
@@ -108,4 +114,3 @@ fun AppNavHost(
         }
     }
 }
-

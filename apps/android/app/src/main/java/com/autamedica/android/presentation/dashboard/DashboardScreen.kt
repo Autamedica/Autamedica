@@ -67,10 +67,14 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+private const val PATIENT_TAB_APPOINTMENTS = 2
+private const val PATIENT_TAB_HEALTH = 3
+private const val PATIENT_TAB_PROFILE = 4
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    onNavigateToVideoCall: (appointmentId: String, userId: String, userType: String, userName: String) -> Unit,
+    onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -146,12 +150,7 @@ fun DashboardScreen(
                                     appointment = nextAppointment,
                                     onJoinCall = if (nextAppointment.canJoinCall()) {
                                         {
-                                            onNavigateToVideoCall(
-                                                nextAppointment.id,
-                                                uiState.userId,
-                                                uiState.userRole,
-                                                uiState.userName,
-                                            )
+                                            onNavigateToVideoCall(nextAppointment.id)
                                         }
                                     } else null,
                                 )
@@ -176,14 +175,14 @@ fun DashboardScreen(
                                         icon = Icons.Outlined.CalendarMonth,
                                         label = "Mis Turnos",
                                         iconColor = PrimaryLight,
-                                        onClick = { onNavigateToTab(1) },
+                                        onClick = { onNavigateToTab(PATIENT_TAB_APPOINTMENTS) },
                                         modifier = Modifier.weight(1f),
                                     )
                                     QuickActionCard(
                                         icon = Icons.Outlined.FavoriteBorder,
                                         label = "Mi Salud",
                                         iconColor = PortalPatients,
-                                        onClick = { onNavigateToTab(2) },
+                                        onClick = { onNavigateToTab(PATIENT_TAB_HEALTH) },
                                         modifier = Modifier.weight(1f),
                                     )
                                 }
@@ -196,7 +195,7 @@ fun DashboardScreen(
                                         icon = Icons.Outlined.Person,
                                         label = "Mi Perfil",
                                         iconColor = Secondary,
-                                        onClick = { onNavigateToTab(3) },
+                                        onClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
                                         modifier = Modifier.weight(1f),
                                     )
                                     QuickActionCard(
@@ -227,12 +226,7 @@ fun DashboardScreen(
                                         appointment = appointment,
                                         onClick = if (appointment.canJoinCall()) {
                                             {
-                                                onNavigateToVideoCall(
-                                                    appointment.id,
-                                                    uiState.userId,
-                                                    uiState.userRole,
-                                                    uiState.userName,
-                                                )
+                                                onNavigateToVideoCall(appointment.id)
                                             }
                                         } else null,
                                     )
@@ -243,7 +237,7 @@ fun DashboardScreen(
                                     Surface(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { onNavigateToTab(1) },
+                                            .clickable { onNavigateToTab(PATIENT_TAB_APPOINTMENTS) },
                                         shape = RoundedCornerShape(8.dp),
                                         color = Color.Transparent,
                                     ) {

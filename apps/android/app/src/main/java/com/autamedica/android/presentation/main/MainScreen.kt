@@ -56,33 +56,34 @@ import timber.log.Timber
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.outlined.Email
 
+import androidx.compose.ui.res.painterResource
+
 private data class TabItem(
     val labelRes: Int,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
+    val iconRes: Int,
 )
 
 // Patient tabs
 private val patientTabs = listOf(
-    TabItem(R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
-    TabItem(R.string.nav_messages, Icons.Filled.Email, Icons.Outlined.Email),
-    TabItem(R.string.nav_appointments, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    TabItem(R.string.nav_health, Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
-    TabItem(R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person),
+    TabItem(R.string.nav_home, R.drawable.ic_home_outline),
+    TabItem(R.string.nav_messages, R.drawable.ic_chat_outline),
+    TabItem(R.string.nav_appointments, R.drawable.ic_calendar_outline),
+    TabItem(R.string.nav_health, R.drawable.ic_medical_cross_outline),
+    TabItem(R.string.nav_profile, R.drawable.ic_profile_outline),
 )
 
 // Doctor tabs
 private val doctorTabs = listOf(
-    TabItem(R.string.nav_home, Icons.Filled.Home, Icons.Outlined.Home),
-    TabItem(R.string.nav_messages, Icons.Filled.Email, Icons.Outlined.Email),
-    TabItem(R.string.nav_appointments, Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    TabItem(R.string.nav_patients, Icons.Filled.Groups, Icons.Outlined.Groups),
-    TabItem(R.string.nav_profile, Icons.Filled.Person, Icons.Outlined.Person),
+    TabItem(R.string.nav_home, R.drawable.ic_home_outline),
+    TabItem(R.string.nav_messages, R.drawable.ic_chat_outline),
+    TabItem(R.string.nav_appointments, R.drawable.ic_calendar_outline),
+    TabItem(R.string.nav_patients, R.drawable.ic_medical_cross_outline),
+    TabItem(R.string.nav_profile, R.drawable.ic_profile_outline),
 )
 
 @Composable
 fun MainScreen(
-    onNavigateToVideoCall: (appointmentId: String, userId: String, userType: String, userName: String) -> Unit,
+    onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToPatientDetail: (patientId: String) -> Unit = {},
     onNavigateToChatConversation: (chatId: String) -> Unit = {},
@@ -134,8 +135,7 @@ fun MainScreen(
                         onClick = { selectedTab = index },
                         icon = {
                             Icon(
-                                imageVector = if (selectedTab == index) tab.selectedIcon
-                                else tab.unselectedIcon,
+                                painter = painterResource(id = tab.iconRes),
                                 contentDescription = stringResource(tab.labelRes),
                             )
                         },

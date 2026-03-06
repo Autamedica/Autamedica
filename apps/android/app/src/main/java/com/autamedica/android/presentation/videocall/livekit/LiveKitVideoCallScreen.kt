@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -132,7 +135,8 @@ fun LiveKitVideoCallScreen(
             Box(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(Color.Black),
+                    .background(Color.Black)
+                    .safeDrawingPadding(),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator()
@@ -143,7 +147,8 @@ fun LiveKitVideoCallScreen(
             Box(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(Color.Black),
+                    .background(Color.Black)
+                    .safeDrawingPadding(),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(
@@ -259,7 +264,8 @@ private fun LiveKitRoomContent(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 64.dp, end = 12.dp)
+                        .statusBarsPadding()
+                        .padding(top = 12.dp, end = 12.dp)
                         .size(width = 120.dp, height = 170.dp),
                 ) {
                     VideoTrackView(
@@ -273,6 +279,7 @@ private fun LiveKitRoomContent(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {

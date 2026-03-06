@@ -12,6 +12,7 @@ import com.autamedica.android.MainActivity
 import com.autamedica.android.R
 import com.autamedica.android.domain.model.NotificationType
 import com.autamedica.android.domain.model.PushPayload
+import com.autamedica.android.navigation.NotificationRouteResolver
 
 /**
  * Centralizes notification channel creation and notification building.
@@ -125,10 +126,19 @@ object NotificationHelper {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             // Pass extras so MainActivity can deep-link internally
-            payload.appointmentId?.let { putExtra("appointment_id", it) }
-            payload.chatRoomId?.let { putExtra("chat_room_id", it) }
-            payload.prescriptionId?.let { putExtra("prescription_id", it) }
-            putExtra("notification_type", payload.type.name)
+            payload.appointmentId?.let {
+                putExtra(NotificationRouteResolver.EXTRA_APPOINTMENT_ID, it)
+            }
+            payload.chatRoomId?.let {
+                putExtra(NotificationRouteResolver.EXTRA_CHAT_ROOM_ID, it)
+            }
+            payload.prescriptionId?.let {
+                putExtra(NotificationRouteResolver.EXTRA_PRESCRIPTION_ID, it)
+            }
+            payload.deepLink?.let {
+                putExtra(NotificationRouteResolver.EXTRA_DEEP_LINK, it)
+            }
+            putExtra(NotificationRouteResolver.EXTRA_NOTIFICATION_TYPE, payload.type.name)
         }
         return PendingIntent.getActivity(
             context,

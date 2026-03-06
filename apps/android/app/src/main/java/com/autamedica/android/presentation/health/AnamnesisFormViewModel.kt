@@ -20,6 +20,7 @@ data class AnamnesisFormUiState(
     val sections: List<AnamnesisSection> = emptyList(),
     val currentSectionIndex: Int = 0,
     val fieldValues: Map<String, String> = emptyMap(),
+    val fieldErrors: Map<String, String> = emptyMap(),
     val isSaving: Boolean = false,
     val isSubmitting: Boolean = false,
     val error: String? = null,
@@ -36,6 +37,15 @@ data class AnamnesisFormUiState(
 
     val allSectionsCompleted: Boolean
         get() = sections.isNotEmpty() && sections.all { it.completed }
+
+    val hasUnsavedChanges: Boolean
+        get() = currentSection?.data.orEmpty() != fieldValues
+
+    val isReadOnly: Boolean
+        get() = isAnamnesisReadOnly(summary)
+
+    val readOnlyMessage: String?
+        get() = anamnesisReadOnlyMessage(summary)
 }
 
 @HiltViewModel
@@ -58,16 +68,18 @@ class AnamnesisFormViewModel @Inject constructor(
                 .onSuccess { summary ->
                     healthRepository.getAnamnesisSections(summary.id)
                         .onSuccess { sections ->
-                            val firstIncomplete = sections.indexOfFirst { !it.completed }
-                                .takeIf { it >= 0 } ?: 0
-                            val currentSection = sections.getOrNull(firstIncomplete)
+                            val selectedIndex = sections.indexOfFirst { !it.completed }
+                                .takeIf { it >= 0 }
+                                ?: sections.lastIndex.coerceAtLeast(0)
+                            val currentSection = sections.getOrNull(selectedIndex)
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
                                     summary = summary,
                                     sections = sections,
-                                    currentSectionIndex = firstIncomplete,
+                                    currentSectionIndex = selectedIndex,
                                     fieldValues = currentSection?.data ?: emptyMap(),
+                                    fieldErrors = emptyMap(),
                                 )
                             }
                         }
@@ -88,8 +100,13 @@ class AnamnesisFormViewModel @Inject constructor(
     }
 
     fun updateField(key: String, value: String) {
+        if (_uiState.value.isReadOnly) return
         _uiState.update { state ->
-            state.copy(fieldValues = state.fieldValues + (key to value))
+            state.copy(
+                fieldValues = state.fieldValues + (key to value),
+                fieldErrors = state.fieldErrors - key,
+                error = null,
+            )
         }
     }
 
@@ -97,9 +114,29 @@ class AnamnesisFormViewModel @Inject constructor(
         val state = _uiState.value
         val section = state.currentSection ?: return
         val summary = state.summary ?: return
+        if (state.isReadOnly) {
+            _uiState.update {
+                it.copy(
+                    error = state.readOnlyMessage ?: "La anamnesis se encuentra en solo lectura",
+                    fieldErrors = emptyMap(),
+                )
+            }
+            return
+        }
+
+        val validation = validateSection(section.section, state.fieldValues)
+        if (!validation.isValid) {
+            _uiState.update {
+                it.copy(
+                    error = validation.message,
+                    fieldErrors = validation.fieldErrors,
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isSaving = true, error = null) }
+            _uiState.update { it.copy(isSaving = true, error = null, fieldErrors = emptyMap()) }
 
             healthRepository.saveSection(summary.id, section.section, state.fieldValues)
                 .onSuccess {
@@ -120,6 +157,16 @@ class AnamnesisFormViewModel @Inject constructor(
                                             sections = updatedSections,
                                             currentSectionIndex = nextIndex,
                                             fieldValues = nextSection?.data ?: emptyMap(),
+                                            fieldErrors = emptyMap(),
+                                        )
+                                    }
+                                }
+                                .onFailure { e ->
+                                    SecureLog.error("[Anamnesis] Failed reloading sections", e)
+                                    _uiState.update {
+                                        it.copy(
+                                            isSaving = false,
+                                            error = "La seccion se guardo, pero no se pudo refrescar el formulario",
                                         )
                                     }
                                 }
@@ -150,6 +197,7 @@ class AnamnesisFormViewModel @Inject constructor(
             it.copy(
                 currentSectionIndex = prevIndex,
                 fieldValues = prevSection?.data ?: emptyMap(),
+                fieldErrors = emptyMap(),
                 error = null,
             )
         }
@@ -161,20 +209,64 @@ class AnamnesisFormViewModel @Inject constructor(
             it.copy(
                 currentSectionIndex = index,
                 fieldValues = section.data,
+                fieldErrors = emptyMap(),
                 error = null,
             )
         }
     }
 
     fun submitAnamnesis() {
-        val summary = _uiState.value.summary ?: return
+        val state = _uiState.value
+        val summary = state.summary ?: return
+        if (state.isReadOnly) {
+            _uiState.update {
+                it.copy(
+                    error = state.readOnlyMessage ?: "La anamnesis se encuentra en solo lectura",
+                    fieldErrors = emptyMap(),
+                )
+            }
+            return
+        }
+        if (state.hasUnsavedChanges) {
+            _uiState.update {
+                it.copy(
+                    error = "Guarde la seccion actual antes de enviar la anamnesis.",
+                    fieldErrors = emptyMap(),
+                )
+            }
+            return
+        }
+
+        val invalidSection = state.sections.firstOrNull { section ->
+            !section.completed || !validateSection(section.section, section.data).isValid
+        }
+        if (invalidSection != null) {
+            _uiState.update {
+                it.copy(
+                    error = "No puede enviar la anamnesis hasta completar ${AnamnesisSection.displayName(invalidSection.section)}.",
+                    fieldErrors = emptyMap(),
+                )
+            }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true, error = null) }
 
             healthRepository.submitAnamnesis(summary.id)
                 .onSuccess {
-                    _uiState.update { it.copy(isSubmitting = false, submitted = true) }
+                    _uiState.update {
+                        it.copy(
+                            isSubmitting = false,
+                            submitted = true,
+                            summary = it.summary?.copy(
+                                status = "under_review",
+                                locked = true,
+                                completionPercentage = 100,
+                            ),
+                            fieldErrors = emptyMap(),
+                        )
+                    }
                 }
                 .onFailure { e ->
                     SecureLog.error("[Anamnesis] Failed submitting", e)

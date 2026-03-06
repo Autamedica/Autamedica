@@ -9,6 +9,7 @@ import com.autamedica.android.domain.model.AppointmentType
 @Entity(tableName = "appointments")
 data class AppointmentEntity(
     @PrimaryKey val id: String,
+    val ownerUserId: String?,
     val patientId: String?,
     val doctorId: String?,
     val startTime: String,
@@ -35,8 +36,9 @@ fun AppointmentEntity.toDomain() = Appointment(
     meetingUrl = meetingUrl
 )
 
-fun Appointment.toEntity() = AppointmentEntity(
+fun Appointment.toEntity(ownerUserId: String) = AppointmentEntity(
     id = id,
+    ownerUserId = ownerUserId,
     patientId = patientId,
     doctorId = doctorId,
     startTime = startTime,

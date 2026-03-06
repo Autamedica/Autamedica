@@ -82,10 +82,12 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+private const val DOCTOR_TAB_PATIENTS = 3
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DoctorDashboardScreen(
-    onNavigateToVideoCall: (appointmentId: String, userId: String, userType: String, userName: String) -> Unit,
+    onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DoctorDashboardViewModel = hiltViewModel(),
@@ -185,8 +187,6 @@ fun DoctorDashboardScreen(
                             item {
                                 TodayScheduleSection(
                                     appointments = uiState.todayAppointments,
-                                    userId = uiState.userId,
-                                    userName = uiState.userName,
                                     onJoinCall = onNavigateToVideoCall,
                                 )
                             }
@@ -197,7 +197,7 @@ fun DoctorDashboardScreen(
                             item {
                                 RecentPatientsSection(
                                     patients = uiState.recentPatients,
-                                    onViewAll = { onNavigateToTab(1) },
+                                    onViewAll = { onNavigateToTab(DOCTOR_TAB_PATIENTS) },
                                 )
                             }
                         }
@@ -358,9 +358,7 @@ private fun StatCard(
 @Composable
 private fun TodayScheduleSection(
     appointments: List<Appointment>,
-    userId: String,
-    userName: String,
-    onJoinCall: (appointmentId: String, userId: String, userType: String, userName: String) -> Unit,
+    onJoinCall: (appointmentId: String) -> Unit,
 ) {
     Column {
         Row(
@@ -393,14 +391,7 @@ private fun TodayScheduleSection(
             DoctorAppointmentRow(
                 appointment = appointment,
                 onJoinCall = if (canJoinCall(appointment)) {
-                    {
-                        onJoinCall(
-                            appointment.id,
-                            userId,
-                            "doctor",
-                            userName,
-                        )
-                    }
+                    { onJoinCall(appointment.id) }
                 } else null,
             )
             Spacer(modifier = Modifier.height(8.dp))

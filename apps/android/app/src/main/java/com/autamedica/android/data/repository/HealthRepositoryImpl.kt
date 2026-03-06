@@ -190,7 +190,8 @@ class HealthRepositoryImpl @Inject constructor(
             .from("anamnesis")
             .update(
                 mapOf(
-                    "status" to "completed",
+                    "status" to "under_review",
+                    "locked" to true,
                     "completion_percentage" to 100,
                     "completed_at" to now,
                     "updated_at" to now,

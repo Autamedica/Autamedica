@@ -61,26 +61,16 @@ class AppointmentRepositoryImpl @Inject constructor(
             .decodeList<AppointmentDto>()
 
         val domainModels = dtos.map { it.toDomain() }
-        
+
         // Phase 3: Cache data to Room for offline access
-        appointmentDao.insertAppointments(domainModels.map { it.toEntity() })
-        
+        appointmentDao.insertAppointments(domainModels.map { it.toEntity(ownerUserId = userId) })
+
         domainModels
     }.recoverCatching {
         SecureLog.error("[Appointments] Network failed, falling back to offline cache", it)
-        val role = securePreferences.getString(SecurePreferences.KEY_USER_ROLE) ?: "patient"
-        val cachedRecordId = securePreferences.getString(KEY_CACHED_RECORD_ID)
-
-        val cachedEntities = if (cachedRecordId != null) {
-            val flow = if (role == "doctor") {
-                appointmentDao.getAppointmentsForDoctor(cachedRecordId)
-            } else {
-                appointmentDao.getAppointmentsForPatient(cachedRecordId)
-            }
-            flow.firstOrNull() ?: emptyList()
-        } else {
-            appointmentDao.getAllAppointments().firstOrNull() ?: emptyList()
-        }
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No authenticated user available for offline appointments")
+        val cachedEntities = appointmentDao.getAppointmentsForUser(userId).firstOrNull() ?: emptyList()
         cachedEntities.map { entity -> entity.toDomain() }
     }
 
@@ -95,6 +85,15 @@ class AppointmentRepositoryImpl @Inject constructor(
         dto.toDomain()
     }.onFailure {
         SecureLog.error("[Appointments] Failed fetching appointment", it)
+    }
+
+    override suspend fun clearCachedAppointmentsForCurrentUser(): Result<Unit> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: return@runCatching
+        appointmentDao.clearAppointmentsForUser(userId)
+        securePreferences.remove(KEY_CACHED_RECORD_ID)
+    }.onFailure {
+        SecureLog.error("[Appointments] Failed clearing cached appointments", it)
     }
 }
 

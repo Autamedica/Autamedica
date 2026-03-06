@@ -83,7 +83,7 @@ import java.util.Locale
 @Composable
 fun PatientDetailScreen(
     onBack: () -> Unit,
-    onNavigateToVideoCall: (appointmentId: String, userId: String, userType: String, userName: String) -> Unit,
+    onNavigateToVideoCall: (appointmentId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PatientDetailViewModel = hiltViewModel(),
 ) {
@@ -204,12 +204,7 @@ fun PatientDetailScreen(
                                 appointment = appointment,
                                 onJoinCall = if (canJoinCall(appointment)) {
                                     {
-                                        onNavigateToVideoCall(
-                                            appointment.id,
-                                            uiState.userId,
-                                            "doctor",
-                                            uiState.userName,
-                                        )
+                                        onNavigateToVideoCall(appointment.id)
                                     }
                                 } else null,
                             )

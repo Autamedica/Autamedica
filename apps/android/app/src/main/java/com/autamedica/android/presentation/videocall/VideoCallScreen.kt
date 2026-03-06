@@ -20,8 +20,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,9 +60,6 @@ import com.autamedica.android.presentation.videocall.components.QualityIndicator
 @Composable
 fun VideoCallScreen(
     appointmentId: String,
-    userId: String,
-    userType: String,
-    userName: String,
     onCallEnd: () -> Unit,
     isInPipMode: Boolean = false,
     modifier: Modifier = Modifier,
@@ -95,7 +95,9 @@ fun VideoCallScreen(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(horizontal = 24.dp),
+                modifier = Modifier
+                    .safeDrawingPadding()
+                    .padding(horizontal = 24.dp),
             ) {
                 Text(
                     text = "Se requieren permisos de camara y microfono para iniciar la videollamada.",
@@ -227,7 +229,8 @@ fun VideoCallScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 80.dp, end = 16.dp)
+                    .statusBarsPadding()
+                    .padding(top = 16.dp, end = 16.dp)
                     .size(width = 120.dp, height = 160.dp)
                     .clip(RoundedCornerShape(12.dp)),
             ) {
@@ -250,7 +253,8 @@ fun VideoCallScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+                    .statusBarsPadding()
+                    .padding(top = 12.dp, start = 16.dp, end = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -268,11 +272,12 @@ fun VideoCallScreen(
                 .align(Alignment.BottomEnd)
                 .fillMaxWidth()
                 .fillMaxHeight(0.45f)
+                .navigationBarsPadding()
                 .padding(bottom = 80.dp),
         ) {
             ChatPanel(
                 messages = uiState.chatMessages,
-                currentUserId = viewModel.userId,
+                currentUserId = viewModel.currentUserId,
                 chatReady = uiState.chatReady,
                 onSendMessage = viewModel::sendMessage,
             )
@@ -283,7 +288,9 @@ fun VideoCallScreen(
             visible = uiState.showControls,
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding(),
         ) {
             CallControls(
                 isAudioEnabled = uiState.isAudioEnabled,

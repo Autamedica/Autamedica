@@ -184,6 +184,9 @@ private fun AnamnesisFormContent(
         // Section content
         val currentSection = uiState.currentSection
         if (currentSection != null) {
+            val sectionFields = getSectionFieldDefinitions(currentSection.section)
+            val validationHint = getSectionValidationHint(currentSection.section)
+            val readOnlyMessage = uiState.readOnlyMessage
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -204,16 +207,51 @@ private fun AnamnesisFormContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = AuTextTertiary,
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    StatusChip(
+                        text = anamnesisStatusLabel(uiState.summary),
+                        color = when {
+                            uiState.summary?.status.equals("approved", ignoreCase = true) -> Color(0xFF14532D)
+                            uiState.summary?.status.equals("under_review", ignoreCase = true) -> Color(0xFF1D4ED8)
+                            uiState.summary?.locked == true -> Color(0xFF7F1D1D)
+                            else -> AuSurfaceHover
+                        },
+                    )
                 }
 
-                val fields = getSectionFields(currentSection.section)
-                items(fields.size) { index ->
-                    val (key, label, hint) = fields[index]
+                if (readOnlyMessage != null) {
+                    item {
+                        InlineNotice(
+                            text = readOnlyMessage,
+                            backgroundColor = Color(0xFF1E293B),
+                            contentColor = Color(0xFFE2E8F0),
+                        )
+                    }
+                }
+
+                if (validationHint != null && !uiState.isReadOnly) {
+                    item {
+                        InlineNotice(
+                            text = validationHint,
+                            backgroundColor = AuSurfaceHover,
+                            contentColor = AuTextSecondary,
+                        )
+                    }
+                }
+
+                items(sectionFields.size) { index ->
+                    val field = sectionFields[index]
                     SectionField(
-                        label = label,
-                        value = uiState.fieldValues[key] ?: "",
-                        hint = hint,
-                        onValueChange = { onFieldChange(key, it) },
+                        label = buildString {
+                            append(field.label)
+                            if (field.required) append(" *")
+                        },
+                        value = uiState.fieldValues[field.key] ?: "",
+                        hint = field.hint,
+                        isError = uiState.fieldErrors.containsKey(field.key),
+                        errorText = uiState.fieldErrors[field.key],
+                        enabled = !uiState.isReadOnly,
+                        onValueChange = { onFieldChange(field.key, it) },
                     )
                 }
 
@@ -253,7 +291,14 @@ private fun AnamnesisFormContent(
                         Spacer(modifier = Modifier.width(1.dp))
                     }
 
-                    if (uiState.isLastSection && uiState.allSectionsCompleted) {
+                    if (uiState.isReadOnly) {
+                        Text(
+                            text = "Solo lectura",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = AuTextTertiary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    } else if (uiState.isLastSection && uiState.allSectionsCompleted && !uiState.hasUnsavedChanges) {
                         Button(
                             onClick = onSubmit,
                             enabled = !uiState.isSubmitting,
@@ -284,7 +329,11 @@ private fun AnamnesisFormContent(
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
                             Text(
-                                text = if (uiState.isLastSection) "Guardar" else "Siguiente",
+                                text = when {
+                                    uiState.isLastSection && uiState.hasUnsavedChanges -> "Guardar cambios"
+                                    uiState.isLastSection -> "Guardar"
+                                    else -> "Siguiente"
+                                },
                                 color = Color.White,
                             )
                         }
@@ -351,21 +400,33 @@ private fun SectionField(
     label: String,
     value: String,
     hint: String,
+    isError: Boolean,
+    errorText: String?,
+    enabled: Boolean,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
+        enabled = enabled,
         label = { Text(label) },
         placeholder = { Text(hint, color = AuTextTertiary) },
         modifier = modifier.fillMaxWidth(),
+        isError = isError,
+        supportingText = {
+            if (errorText != null) {
+                Text(errorText, color = Color(0xFFDC2626))
+            }
+        },
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = AuTextPrimary,
             unfocusedTextColor = AuTextPrimary,
             cursorColor = AuAccent,
             focusedBorderColor = AuAccent,
             unfocusedBorderColor = AuBorder,
+            errorBorderColor = Color(0xFFDC2626),
+            errorLabelColor = Color(0xFFDC2626),
             focusedLabelColor = AuAccent,
             unfocusedLabelColor = AuTextSecondary,
             focusedContainerColor = AuSurface,
@@ -375,51 +436,42 @@ private fun SectionField(
     )
 }
 
-private data class FieldDef(val key: String, val label: String, val hint: String)
+@Composable
+private fun StatusChip(
+    text: String,
+    color: Color,
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f)),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+        )
+    }
+}
 
-private fun getSectionFields(section: String): List<FieldDef> = when (section) {
-    "personal_info" -> listOf(
-        FieldDef("blood_type", "Grupo Sanguineo", "Ej: A+, O-, AB+"),
-        FieldDef("emergency_contact_name", "Contacto de Emergencia", "Nombre completo"),
-        FieldDef("emergency_contact_phone", "Telefono de Emergencia", "+54 11 1234-5678"),
-        FieldDef("occupation", "Ocupacion", "Ej: Ingeniero, Docente"),
-    )
-    "allergies" -> listOf(
-        FieldDef("medication_allergies", "Alergias a Medicamentos", "Ej: Penicilina, Ibuprofeno"),
-        FieldDef("food_allergies", "Alergias Alimentarias", "Ej: Frutos secos, Mariscos"),
-        FieldDef("environmental_allergies", "Alergias Ambientales", "Ej: Polen, Polvo, Acaros"),
-        FieldDef("other_allergies", "Otras Alergias", "Latex, Picaduras, etc."),
-    )
-    "current_medications" -> listOf(
-        FieldDef("medications", "Medicamentos Actuales", "Nombre, dosis, frecuencia"),
-        FieldDef("supplements", "Suplementos y Vitaminas", "Ej: Vitamina D, Omega 3"),
-        FieldDef("natural_remedies", "Remedios Naturales", "Ej: Valeriana, Melatonina"),
-    )
-    "medical_conditions" -> listOf(
-        FieldDef("chronic_conditions", "Enfermedades Cronicas", "Ej: Diabetes, Hipertension"),
-        FieldDef("past_conditions", "Enfermedades Pasadas Relevantes", "Ej: Hepatitis, Dengue"),
-        FieldDef("mental_health", "Salud Mental", "Ej: Ansiedad, Depresion (tratada/actual)"),
-        FieldDef("disabilities", "Discapacidades", "Si aplica"),
-    )
-    "surgical_history" -> listOf(
-        FieldDef("surgeries", "Cirugias Previas", "Tipo, fecha aproximada, hospital"),
-        FieldDef("hospitalizations", "Internaciones", "Motivo, duracion, fecha"),
-        FieldDef("anesthesia_reactions", "Reacciones a Anestesia", "Si tuvo alguna reaccion"),
-    )
-    "family_history" -> listOf(
-        FieldDef("cardiovascular", "Enfermedades Cardiovasculares", "Familiar y parentesco"),
-        FieldDef("cancer", "Cancer", "Tipo, familiar y parentesco"),
-        FieldDef("diabetes_family", "Diabetes", "Familiar y parentesco"),
-        FieldDef("other_hereditary", "Otras Enfermedades Hereditarias", "Detalle"),
-    )
-    "lifestyle" -> listOf(
-        FieldDef("smoking", "Tabaquismo", "No fumador / Ex fumador / Actual (cantidad)"),
-        FieldDef("alcohol", "Alcohol", "No consume / Ocasional / Regular"),
-        FieldDef("exercise", "Actividad Fisica", "Tipo, frecuencia semanal"),
-        FieldDef("diet", "Alimentacion", "Tipo de dieta, restricciones"),
-        FieldDef("sleep", "Patron de Sueno", "Horas promedio, calidad"),
-    )
-    else -> listOf(
-        FieldDef("notes", "Notas", "Ingrese informacion relevante"),
-    )
+@Composable
+private fun InlineNotice(
+    text: String,
+    backgroundColor: Color,
+    contentColor: Color,
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, AuBorder),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = contentColor,
+            modifier = Modifier.padding(12.dp),
+        )
+    }
 }

@@ -3,8 +3,10 @@ package com.autamedica.android.presentation.main
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.autamedica.android.domain.model.UserRole
+import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.ChatRepository
+import com.autamedica.android.domain.repository.NotificationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +25,8 @@ data class MainUiState(
 class MainViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val chatRepository: ChatRepository,
+    private val notificationRepository: NotificationRepository,
+    private val appointmentRepository: AppointmentRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -48,6 +52,8 @@ class MainViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             chatRepository.cleanup()
+            notificationRepository.clearFcmToken()
+            appointmentRepository.clearCachedAppointmentsForCurrentUser()
             authRepository.logout()
         }
     }

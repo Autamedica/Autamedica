@@ -7,4 +7,10 @@ data class User(
     val firstName: String = "",
     val lastName: String = "",
     val avatarUrl: String? = null,
-)
+) {
+    val displayName: String
+        get() = listOf(firstName, lastName)
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+            .ifBlank { email }
+}

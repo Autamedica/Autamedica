@@ -1,6 +1,7 @@
 package com.autamedica.android
 
 import android.app.PictureInPictureParams
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -11,12 +12,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import android.content.Intent
 import androidx.compose.runtime.LaunchedEffect
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
+import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.model.VideoCallStateHolder
 import com.autamedica.android.navigation.AppNavHost
+import com.autamedica.android.navigation.NotificationRouteResolver
 import com.autamedica.android.navigation.Route
 import com.autamedica.android.presentation.theme.AutamedicaTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -28,55 +30,59 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var videoCallStateHolder: VideoCallStateHolder
 
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     var isInPipMode by mutableStateOf(false)
         private set
+    private var incomingIntent by mutableStateOf<Intent?>(null)
+    private var pendingPostLoginRoute by mutableStateOf<Route?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        incomingIntent = intent
         setContent {
             val navController = rememberNavController()
-            var startDestination: Route by mutableStateOf(Route.Login)
-            var navigateTo: Route? by mutableStateOf(null)
+            val activeIntent = incomingIntent
 
-            LaunchedEffect(intent) {
-                // If the app is launched via notification
-                val chatId = intent.getStringExtra("chat_room_id")
-                if (!chatId.isNullOrEmpty()) {
-                    startDestination = Route.ChatConversation(chatId)
-                    return@LaunchedEffect
-                }
+            LaunchedEffect(activeIntent) {
+                val route = NotificationRouteResolver.resolve(
+                    appointmentId = activeIntent?.getStringExtra(
+                        NotificationRouteResolver.EXTRA_APPOINTMENT_ID,
+                    ),
+                    chatRoomId = activeIntent?.getStringExtra(
+                        NotificationRouteResolver.EXTRA_CHAT_ROOM_ID,
+                    ),
+                    deepLink = activeIntent?.getStringExtra(
+                        NotificationRouteResolver.EXTRA_DEEP_LINK,
+                    ),
+                )
 
-                // Allow direct launch into video call from notification/ADB.
-                // Useful for debugging telemedicine flow without navigating tabs.
-                val appointmentId = intent.getStringExtra("appointment_id")
-                if (!appointmentId.isNullOrEmpty()) {
-                    val userId = intent.getStringExtra("user_id").orEmpty()
-                    val userType = intent.getStringExtra("user_type") ?: "patient"
-                    val userName = intent.getStringExtra("user_name").orEmpty()
-                    startDestination = Route.Main
-                    navigateTo = Route.VideoCall(
-                        appointmentId = appointmentId,
-                        userId = userId,
-                        userType = userType,
-                        userName = userName,
-                    )
+                if (route != null) {
+                    if (authRepository.getCurrentUser() != null) {
+                        navController.navigate(Route.Main) {
+                            popUpTo(Route.Login) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                        navController.navigate(route) {
+                            launchSingleTop = true
+                        }
+                    } else {
+                        pendingPostLoginRoute = route
+                    }
                 }
-            }
-
-            LaunchedEffect(navigateTo) {
-                navigateTo?.let {
-                    navController.navigate(it)
-                    navigateTo = null
-                }
+                incomingIntent = null
             }
 
             AutamedicaTheme {
                 AppNavHost(
-                    startDestination = startDestination,
+                    startDestination = Route.Login,
+                    postLoginRoute = pendingPostLoginRoute,
+                    onPostLoginRouteConsumed = { pendingPostLoginRoute = null },
                     isInPipMode = isInPipMode,
-                    navController = navController, // Need to pass this down
+                    navController = navController,
                 )
             }
         }
@@ -85,6 +91,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        incomingIntent = intent
     }
 
     override fun onUserLeaveHint() {

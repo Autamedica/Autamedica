@@ -226,19 +226,13 @@ private fun AnamnesisFeatureCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val statusText = when {
-        isLoading -> "Cargando"
-        summary == null -> "Sin datos"
-        summary.locked -> "Bloqueada"
-        summary.status.equals("completed", ignoreCase = true) -> "Completada"
-        summary.status.equals("approved", ignoreCase = true) -> "Aprobada"
-        else -> "En progreso"
-    }
+    val statusText = if (isLoading) "Cargando" else anamnesisStatusLabel(summary)
 
     val statusColor = when {
+        summary?.status.equals("approved", ignoreCase = true) -> Color(0xFF14532D)
+        summary?.status.equals("under_review", ignoreCase = true) -> Color(0xFF1D4ED8)
         summary?.locked == true -> Color(0xFF7F1D1D)
-        summary?.status.equals("completed", ignoreCase = true) ||
-            summary?.status.equals("approved", ignoreCase = true) -> Color(0xFF14532D)
+        summary?.status.equals("completed", ignoreCase = true) -> Color(0xFF14532D)
         else -> AuSurfaceHover
     }
 
