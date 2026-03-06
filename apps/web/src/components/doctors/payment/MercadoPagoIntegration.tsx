@@ -131,7 +131,7 @@ export function MercadoPagoCheckout({
       // Simulación del proceso de pago con MercadoPago
       await new Promise(resolve => setTimeout(resolve, 2000))
 
-      const paymentData = {
+      const paymentData: PaymentData = {
         id: 'payment_' + Date.now(),
         status: 'approved',
         status_detail: 'accredited',
