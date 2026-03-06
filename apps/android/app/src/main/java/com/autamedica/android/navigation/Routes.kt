@@ -2,6 +2,8 @@ package com.autamedica.android.navigation
 
 import kotlinx.serialization.Serializable
 
+const val VIDEO_PREVIEW_APPOINTMENT_ID = "__preview__"
+
 sealed interface Route {
 
     @Serializable

@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentStatus
 import com.autamedica.android.domain.model.AppointmentType
@@ -210,6 +211,7 @@ fun DoctorDashboardScreen(
                                 onOpenWaitingRoom = previewAppointment?.let { appointment ->
                                     { onNavigateToVideoCall(appointment.id) }
                                 },
+                                onOpenPreview = { onNavigateToVideoCall(VIDEO_PREVIEW_APPOINTMENT_ID) },
                                 onViewAgenda = { onNavigateToTab(DOCTOR_TAB_APPOINTMENTS) },
                                 validationError = uiState.telemedicineError,
                             )
@@ -242,6 +244,7 @@ private fun DoctorTelemedicineCard(
     appointment: Appointment?,
     onJoinCall: (() -> Unit)?,
     onOpenWaitingRoom: (() -> Unit)?,
+    onOpenPreview: () -> Unit,
     onViewAgenda: () -> Unit,
     validationError: String?,
     modifier: Modifier = Modifier,
@@ -351,20 +354,20 @@ private fun DoctorTelemedicineCard(
                 }
             } else {
                 Text(
-                    text = "La app solo habilita ingreso directo cuando el turno es de consulta o telemedicina y esta programado, confirmado o en curso.",
+                    text = "No hay una videoconsulta activa, pero igual podes probar tu camara desde la app.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                 )
                 Button(
-                    onClick = onViewAgenda,
+                    onClick = onOpenPreview,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AuSurfaceHover,
-                        contentColor = AuTextPrimary,
+                        containerColor = PortalDoctors,
+                        contentColor = Color.White,
                     ),
                 ) {
-                    Text("Ver agenda", fontWeight = FontWeight.Medium)
+                    Text("Probar mi camara", fontWeight = FontWeight.Medium)
                 }
             }
         }

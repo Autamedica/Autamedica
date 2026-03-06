@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentType
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
@@ -172,6 +173,7 @@ fun DashboardScreen(
                                 onOpenWaitingRoom = previewAppointment?.let { appointment ->
                                     { onNavigateToVideoCall(appointment.id) }
                                 },
+                                onOpenPreview = { onNavigateToVideoCall(VIDEO_PREVIEW_APPOINTMENT_ID) },
                                 onBrowseAppointments = { onNavigateToTab(PATIENT_TAB_APPOINTMENTS) },
                                 validationError = uiState.telemedicineError,
                             )
@@ -285,6 +287,7 @@ private fun TelemedicineAccessCard(
     appointment: Appointment?,
     onJoinCall: (() -> Unit)?,
     onOpenWaitingRoom: (() -> Unit)?,
+    onOpenPreview: () -> Unit,
     onBrowseAppointments: () -> Unit,
     validationError: String?,
     modifier: Modifier = Modifier,
@@ -394,20 +397,20 @@ private fun TelemedicineAccessCard(
                 }
             } else {
                 Text(
-                    text = "La telemedicina aparece cuando existe un turno de consulta o telemedicina en estado programado, confirmado o en curso.",
+                    text = "No tenes una videoconsulta activa, pero igual podes probar tu camara desde la app.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                 )
                 Button(
-                    onClick = onBrowseAppointments,
+                    onClick = onOpenPreview,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AuSurfaceHover,
-                        contentColor = AuTextPrimary,
+                        containerColor = PortalPatients.copy(alpha = 0.9f),
+                        contentColor = Color.White,
                     ),
                 ) {
-                    Text("Ver mis turnos", fontWeight = FontWeight.Medium)
+                    Text("Probar mi camara", fontWeight = FontWeight.Medium)
                 }
             }
         }

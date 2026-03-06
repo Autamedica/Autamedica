@@ -16,6 +16,7 @@ import com.autamedica.android.domain.repository.AuthRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import com.autamedica.android.domain.signaling.SignalingClient
 import com.autamedica.android.logging.SecureLog
+import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.videocall.webrtc.WebRTCEngine
 import com.autamedica.android.service.CallNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +48,7 @@ data class VideoCallUiState(
     val showControls: Boolean = true,
     val hasRemoteVideo: Boolean = false,
     val isWaitingRoom: Boolean = false,
+    val isPreviewOnlyMode: Boolean = false,
     val sessionStatusMessage: String? = null,
 )
 
@@ -64,6 +66,7 @@ class VideoCallViewModel @Inject constructor(
 ) : ViewModel() {
 
     val appointmentId: String = savedStateHandle["appointmentId"] ?: ""
+    private val previewOnlyMode: Boolean = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
 
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -143,7 +146,18 @@ class VideoCallViewModel @Inject constructor(
             }.onSuccess {
                 videoCallStateHolder.setInVideoCall(true)
                 CallNotificationService.start(context)
-                attemptSessionConnection(manualRetry = false)
+                if (previewOnlyMode) {
+                    _uiState.update {
+                        it.copy(
+                            connectionState = ConnectionState.DISCONNECTED,
+                            isPreviewOnlyMode = true,
+                            isWaitingRoom = false,
+                            sessionStatusMessage = "Vista previa local activa. Podes probar tu camara aunque no haya nadie conectado.",
+                        )
+                    }
+                } else {
+                    attemptSessionConnection(manualRetry = false)
+                }
             }
         }
     }
@@ -159,7 +173,7 @@ class VideoCallViewModel @Inject constructor(
     }
 
     fun retryConnection() {
-        if (!callStarted) return
+        if (!callStarted || previewOnlyMode) return
         sessionRetryJob?.cancel()
         viewModelScope.launch {
             attemptSessionConnection(manualRetry = true)
@@ -342,6 +356,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update { current ->
             current.copy(
                 connectionState = ConnectionState.CONNECTING,
+                isPreviewOnlyMode = false,
                 isWaitingRoom = false,
                 sessionStatusMessage = if (manualRetry) {
                     "Intentando conectar con la sala..."
@@ -357,6 +372,7 @@ class VideoCallViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         connectionState = ConnectionState.CONNECTING,
+                        isPreviewOnlyMode = false,
                         isWaitingRoom = false,
                         sessionStatusMessage = "Conectando con la sala...",
                     )
@@ -378,6 +394,7 @@ class VideoCallViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 connectionState = ConnectionState.DISCONNECTED,
+                isPreviewOnlyMode = false,
                 isWaitingRoom = true,
                 sessionStatusMessage = waitingRoomMessage(error.message),
             )

@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import com.autamedica.android.BuildConfig
 import com.autamedica.android.domain.model.ConnectionState
+import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
 import com.autamedica.android.presentation.videocall.livekit.LiveKitVideoCallScreen
 import com.autamedica.android.presentation.videocall.components.CallControls
 import com.autamedica.android.presentation.videocall.components.CallTimer
@@ -65,13 +66,22 @@ fun VideoCallScreen(
     modifier: Modifier = Modifier,
     viewModel: VideoCallViewModel = hiltViewModel(),
 ) {
-    var useLiveKitRuntime by rememberSaveable { mutableStateOf(BuildConfig.USE_LIVEKIT) }
+    val isPreviewRoute = appointmentId == VIDEO_PREVIEW_APPOINTMENT_ID
+    var useLiveKitRuntime by rememberSaveable(appointmentId) {
+        mutableStateOf(BuildConfig.USE_LIVEKIT && !isPreviewRoute)
+    }
     val context = LocalContext.current
     var hasMediaPermissions by remember { mutableStateOf(context.hasTelemedicineMediaPermissions()) }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) {
         hasMediaPermissions = context.hasTelemedicineMediaPermissions()
+    }
+
+    LaunchedEffect(isPreviewRoute) {
+        if (isPreviewRoute && useLiveKitRuntime) {
+            useLiveKitRuntime = false
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -247,6 +257,8 @@ fun VideoCallScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 val overlayText = when {
+                    uiState.isPreviewOnlyMode ->
+                        uiState.sessionStatusMessage ?: "Vista previa local activa."
                     uiState.isWaitingRoom ->
                         uiState.sessionStatusMessage ?: "Tu camara ya esta activa. Esperando que la sala este disponible."
                     uiState.connectionState == ConnectionState.CONNECTING ->
