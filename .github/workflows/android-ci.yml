@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - 'apps/android/**'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,7 +17,6 @@ jobs:
     defaults:
       run:
         working-directory: apps/android
-
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
