@@ -15,3 +15,4 @@ local.properties
 screenshot*.png
 /io/
 /keystore/
+*.keystore

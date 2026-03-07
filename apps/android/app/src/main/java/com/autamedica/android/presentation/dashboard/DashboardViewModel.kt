@@ -2,12 +2,17 @@ package com.autamedica.android.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.model.Appointment
+import com.autamedica.android.domain.model.PatientPreventiveProfile
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
 import com.autamedica.android.domain.repository.AppointmentRepository
 import com.autamedica.android.domain.repository.AuthRepository
+import com.autamedica.android.domain.repository.HealthRepository
 import com.autamedica.android.domain.repository.TelemedicineRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,16 +26,20 @@ data class DashboardUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val telemedicineError: String? = null,
+    val preventiveError: String? = null,
     val isRefreshing: Boolean = false,
     val userId: String = "",
     val userRole: String = "patient",
     val userName: String = "",
+    val anamnesisSummary: AnamnesisSummary? = null,
+    val preventiveProfile: PatientPreventiveProfile? = null,
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val appointmentRepository: AppointmentRepository,
     private val authRepository: AuthRepository,
+    private val healthRepository: HealthRepository,
     private val telemedicineRepository: TelemedicineRepository,
 ) : ViewModel() {
 
@@ -39,12 +48,11 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadUserInfo()
-        loadAppointments()
+        refreshData(initialLoad = true)
     }
 
     fun refresh() {
-        _uiState.update { it.copy(isRefreshing = true) }
-        loadAppointments()
+        refreshData(initialLoad = false)
     }
 
     private fun loadUserInfo() {
@@ -64,32 +72,49 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    private fun loadAppointments() {
+    private fun refreshData(initialLoad: Boolean) {
         viewModelScope.launch {
-            appointmentRepository.getUpcomingAppointments()
-                .onSuccess { appointments ->
-                    val (joinableIds, telemedicineError) = resolveJoinableAppointmentIds(appointments)
-                    _uiState.update {
-                        it.copy(
-                            appointments = appointments,
-                            joinableAppointmentIds = joinableIds,
-                            isLoading = false,
-                            isRefreshing = false,
-                            error = null,
-                            telemedicineError = telemedicineError,
-                        )
-                    }
+            _uiState.update {
+                it.copy(
+                    isLoading = if (initialLoad) true else it.isLoading,
+                    isRefreshing = !initialLoad,
+                    error = null,
+                    telemedicineError = null,
+                    preventiveError = null,
+                )
+            }
+
+            coroutineScope {
+                val appointmentsDeferred = async { appointmentRepository.getUpcomingAppointments() }
+                val anamnesisDeferred = async { healthRepository.getAnamnesisSummary() }
+                val preventiveDeferred = async { healthRepository.getPreventiveProfile() }
+
+                val appointmentsResult = appointmentsDeferred.await()
+                val anamnesisResult = anamnesisDeferred.await()
+                val preventiveResult = preventiveDeferred.await()
+
+                val appointments = appointmentsResult.getOrNull()
+                val resolvedAppointments = appointments ?: _uiState.value.appointments
+                val joinableResult = if (appointments != null) {
+                    resolveJoinableAppointmentIds(appointments)
+                } else {
+                    _uiState.value.joinableAppointmentIds to _uiState.value.telemedicineError
                 }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            joinableAppointmentIds = emptySet(),
-                            error = sanitizeErrorMessage(error.message),
-                        )
-                    }
+
+                _uiState.update { current ->
+                    current.copy(
+                        appointments = resolvedAppointments,
+                        joinableAppointmentIds = joinableResult.first,
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = appointmentsResult.exceptionOrNull()?.let { sanitizeErrorMessage(it.message) },
+                        telemedicineError = joinableResult.second,
+                        preventiveError = preventiveResult.exceptionOrNull()?.let { sanitizePreventiveError(it.message) },
+                        anamnesisSummary = anamnesisResult.getOrNull() ?: current.anamnesisSummary,
+                        preventiveProfile = preventiveResult.getOrNull() ?: current.preventiveProfile,
+                    )
                 }
+            }
         }
     }
 
@@ -126,6 +151,17 @@ class DashboardViewModel @Inject constructor(
             "forbidden" in raw.lowercase() || "unauthorized" in raw.lowercase() ->
                 "La sesion de telemedicina requiere validar nuevamente tus permisos."
             else -> "No se pudo confirmar la sala de telemedicina."
+        }
+    }
+
+    private fun sanitizePreventiveError(raw: String?): String {
+        if (raw == null) return "No se pudo cargar tu perfil preventivo."
+        return when {
+            "network" in raw.lowercase() || "timeout" in raw.lowercase() ->
+                "No se pudo conectar el perfil preventivo por un problema de red."
+            "unauthorized" in raw.lowercase() || "jwt" in raw.lowercase() ->
+                "La sesion expiro antes de cargar tu perfil preventivo."
+            else -> "No pudimos actualizar tu informacion preventiva por ahora."
         }
     }
 }

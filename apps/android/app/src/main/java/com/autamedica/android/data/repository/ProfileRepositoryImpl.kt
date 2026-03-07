@@ -1,6 +1,7 @@
 package com.autamedica.android.data.repository
 
 import com.autamedica.android.data.local.SecurePreferences
+import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.ProfileRepository
@@ -8,6 +9,9 @@ import com.autamedica.android.logging.SecureLog
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
@@ -35,6 +39,22 @@ class ProfileRepositoryImpl @Inject constructor(
         SecureLog.error("[Profile] Failed fetching profile", it)
     }
 
+    override suspend fun getPatientProfileSnapshot(): Result<PatientProfileSnapshot?> = runCatching {
+        val userId = securePreferences.getString(SecurePreferences.KEY_USER_ID)
+            ?: throw IllegalStateException("No user ID found")
+
+        supabaseClient.postgrest
+            .from("patients")
+            .select(Columns.ALL) {
+                filter { eq("user_id", userId) }
+            }
+            .decodeList<PatientProfileDto>()
+            .firstOrNull()
+            ?.toDomain()
+    }.onFailure {
+        SecureLog.error("[Profile] Failed fetching patient snapshot", it)
+    }
+
     override suspend fun updateProfile(
         firstName: String,
         lastName: String,
@@ -48,7 +68,7 @@ class ProfileRepositoryImpl @Inject constructor(
             .update({
                 set("first_name", firstName)
                 set("last_name", lastName)
-                if (phone != null) set("phone", phone)
+                set("phone", phone)
             }) {
                 filter { eq("user_id", userId) }
                 select(Columns.ALL)
@@ -77,6 +97,7 @@ private data class ProfileDto(
         role = parseRole(role),
         firstName = firstName ?: "",
         lastName = lastName ?: "",
+        phone = phone,
         avatarUrl = avatarUrl,
     )
 
@@ -90,4 +111,34 @@ private data class ProfileDto(
         "platform_admin" -> UserRole.PLATFORM_ADMIN
         else -> UserRole.PATIENT
     }
+}
+
+@Serializable
+private data class PatientProfileDto(
+    @SerialName("birth_date") val birthDate: String? = null,
+    val gender: String? = null,
+    @SerialName("blood_type") val bloodType: String? = null,
+    @SerialName("height_cm") val heightCm: Double? = null,
+    @SerialName("weight_kg") val weightKg: Double? = null,
+    @SerialName("emergency_contact") val emergencyContact: JsonObject? = null,
+) {
+    fun toDomain() = PatientProfileSnapshot(
+        birthDate = birthDate,
+        gender = gender,
+        bloodType = bloodType,
+        heightCm = heightCm,
+        weightKg = weightKg,
+        emergencyContactName = emergencyContact?.stringValue("name"),
+        emergencyContactRelationship = emergencyContact?.stringValue("relationship")
+            ?: emergencyContact?.stringValue("relation"),
+        emergencyContactPhone = emergencyContact?.stringValue("phone"),
+        emergencyContactEmail = emergencyContact?.stringValue("email"),
+    )
+}
+
+private fun JsonObject.stringValue(key: String): String? {
+    return this[key]
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.takeIf { it.isNotBlank() }
 }

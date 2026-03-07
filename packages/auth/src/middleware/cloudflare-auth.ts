@@ -129,6 +129,6 @@ export const middlewareConfig = {
   'web-app': {
     allowedRoles: ['patient', 'doctor', 'company', 'company_admin', 'organization_admin', 'admin', 'platform_admin'],
     requireAuth: false,
-    publicPaths: ['/', '/auth', '/terms', '/privacy', '/api/health']
+    publicPaths: ['/', '/auth', '/terms', '/privacy', '/privacidad', '/api/health']
   }
 }

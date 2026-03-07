@@ -6,7 +6,7 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/doctors', priority: '0.9', changefreq: 'weekly' },
   { path: '/companies', priority: '0.8', changefreq: 'weekly' },
   { path: '/platform', priority: '0.7', changefreq: 'weekly' },
-  { path: '/privacy', priority: '0.4', changefreq: 'yearly' },
+  { path: '/privacidad', priority: '0.4', changefreq: 'yearly' },
   { path: '/terms', priority: '0.4', changefreq: 'yearly' },
 ];
 

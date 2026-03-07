@@ -11,8 +11,24 @@
         "url": "https://dash.cloudflare.com/5b448192fe4b369642b68ad8f53a7603/autamedica.com/dns/records",
         "waitUntil": "domcontentloaded"
       }
+    },
+    {
+      "id": "dismiss_cookie_center_if_present",
+      "action": "evaluate",
+      "description": "Cerrar el centro de preferencias/cookies si aparece",
+      "args": {
+        "script": "(async () => { const labels = ['allow all', 'close preference center', 'aceptar', 'allow']; const findButton = () => [...document.querySelectorAll('button,[role=\"button\"],a')].find((el) => { const text = (el.innerText || el.textContent || '').trim().toLowerCase(); return labels.some((label) => text.includes(label)); }); const button = findButton(); if (button) { button.click(); await new Promise((r) => setTimeout(r, 750)); return 'cookie preferences dismissed'; } return 'cookie preferences not present'; })()"
+      }
+    },
+    {
+      "id": "assert_dns_or_fail_with_login",
+      "action": "evaluate",
+      "description": "Validar que se llego a DNS y no a login",
+      "args": {
+        "script": "(async () => { const start = Date.now(); while (Date.now() - start < 15000) { const text = (document.body.innerText || '').toLowerCase(); const hasLogin = text.includes('iniciar sesión en cloudflare') || !!document.querySelector('input[type=\"email\"], input[name=\"email\"]'); if (hasLogin) { throw new Error('Cloudflare login required in persistent profile'); } const hasDnsSignals = text.includes('dns') || text.includes('records') || text.includes('agregar registro') || text.includes('add record'); if (hasDnsSignals) { return 'dns page visible'; } await new Promise((r) => setTimeout(r, 500)); } throw new Error('DNS page did not become visible'); })()"
+      }
     }
   ],
   "createdAt": "2026-02-21T13:29:23.476Z",
-  "updatedAt": "2026-02-21T13:29:23.476Z"
+  "updatedAt": "2026-03-06T17:52:00.000Z"
 }

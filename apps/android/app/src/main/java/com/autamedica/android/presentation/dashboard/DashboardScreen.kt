@@ -1,6 +1,7 @@
 package com.autamedica.android.presentation.dashboard
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,21 +49,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
+import com.autamedica.android.domain.model.AnamnesisSummary
 import com.autamedica.android.domain.model.Appointment
 import com.autamedica.android.domain.model.AppointmentType
+import com.autamedica.android.domain.model.PatientPreventiveProfile
+import com.autamedica.android.domain.model.anamnesisDisplayStatus
+import com.autamedica.android.domain.model.isAnamnesisSummaryReadOnly
 import com.autamedica.android.domain.model.isTelemedicineJoinCandidate
+import com.autamedica.android.navigation.VIDEO_PREVIEW_APPOINTMENT_ID
+import com.autamedica.android.presentation.health.normalizePreventiveGender
 import com.autamedica.android.presentation.theme.AuAccent
 import com.autamedica.android.presentation.theme.AuBackground
 import com.autamedica.android.presentation.theme.AuBorder
+import com.autamedica.android.presentation.theme.AuDanger
 import com.autamedica.android.presentation.theme.AuSurface
 import com.autamedica.android.presentation.theme.AuSurfaceHover
 import com.autamedica.android.presentation.theme.AuTextPrimary
 import com.autamedica.android.presentation.theme.AuTextSecondary
 import com.autamedica.android.presentation.theme.AuTextTertiary
-import com.autamedica.android.presentation.theme.PrimaryLight
+import com.autamedica.android.presentation.theme.AuWarning
+import com.autamedica.android.presentation.theme.ErrorContainer
 import com.autamedica.android.presentation.theme.PortalPatients
+import com.autamedica.android.presentation.theme.PrimaryLight
 import com.autamedica.android.presentation.theme.Secondary
+import com.autamedica.android.presentation.theme.SecondaryContainer
+import com.autamedica.android.presentation.theme.SuccessContainer
+import com.autamedica.android.presentation.theme.WarningContainer
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -72,11 +83,20 @@ private const val PATIENT_TAB_APPOINTMENTS = 2
 private const val PATIENT_TAB_HEALTH = 3
 private const val PATIENT_TAB_PROFILE = 4
 
+private data class HomeStat(
+    val label: String,
+    val value: String,
+    val accent: Color,
+    val container: Color,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateToVideoCall: (appointmentId: String) -> Unit,
     onNavigateToTab: (Int) -> Unit = {},
+    onNavigateToAnamnesisForm: () -> Unit = {},
+    onNavigateToPreventiveHealth: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
@@ -87,16 +107,14 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "AutaMedica",
+                        text = "Inicio",
                         style = MaterialTheme.typography.titleLarge,
                         color = AuTextPrimary,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp,
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AuBackground,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AuBackground),
             )
         },
         containerColor = AuBackground,
@@ -122,135 +140,138 @@ fun DashboardScreen(
                 else -> {
                     val nextAppointment = uiState.appointments.firstOrNull()
                     val telemedicineCandidate = uiState.appointments.firstOrNull { it.isTelemedicineJoinCandidate() }
-                    val telemedicineAppointment = uiState.appointments.firstOrNull {
-                        it.id in uiState.joinableAppointmentIds
-                    }
-                    val previewAppointment = telemedicineAppointment ?: telemedicineCandidate
+                    val telemedicineAppointment = uiState.appointments.firstOrNull { it.id in uiState.joinableAppointmentIds }
+                    val priorityText = buildPriorityMessage(
+                        nextAppointment = nextAppointment,
+                        telemedicineAppointment = telemedicineAppointment,
+                        preventiveProfile = uiState.preventiveProfile,
+                        anamnesisSummary = uiState.anamnesisSummary,
+                    )
+                    val stats = buildHomeStats(
+                        appointments = uiState.appointments,
+                        joinableCount = uiState.joinableAppointmentIds.size,
+                        anamnesisSummary = uiState.anamnesisSummary,
+                    )
+
                     LazyColumn(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        // Greeting
                         item {
-                            Column {
-                                Text(
-                                    text = if (uiState.userName.isNotBlank()) "Hola, ${uiState.userName.split(" ").first()}"
-                                    else "Bienvenido",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = AuTextPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Tu salud, conectada",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = AuTextTertiary,
-                                )
-                            }
-                        }
-
-                        // Next appointment highlight
-                        if (nextAppointment != null) {
-                            item {
-                                NextAppointmentCard(
-                                    appointment = nextAppointment,
-                                    onJoinCall = if (nextAppointment.id in uiState.joinableAppointmentIds) {
-                                        {
-                                            onNavigateToVideoCall(nextAppointment.id)
-                                        }
-                                    } else null,
-                                )
-                            }
-                        }
-
-                        item {
-                            TelemedicineAccessCard(
-                                candidateAppointment = telemedicineCandidate,
-                                appointment = telemedicineAppointment,
-                                onJoinCall = telemedicineAppointment?.let { appointment ->
-                                    { onNavigateToVideoCall(appointment.id) }
-                                },
-                                onOpenWaitingRoom = previewAppointment?.let { appointment ->
-                                    { onNavigateToVideoCall(appointment.id) }
-                                },
-                                onOpenPreview = { onNavigateToVideoCall(VIDEO_PREVIEW_APPOINTMENT_ID) },
-                                onBrowseAppointments = { onNavigateToTab(PATIENT_TAB_APPOINTMENTS) },
-                                validationError = uiState.telemedicineError,
+                            HeaderSection(
+                                userName = uiState.userName,
+                                priorityText = priorityText,
                             )
                         }
 
-                        // Quick actions
-                        item {
-                            Column {
-                                Text(
-                                    text = "Acceso rapido",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = AuTextSecondary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(bottom = 12.dp),
+                        if (uiState.error != null) {
+                            item {
+                                DashboardBanner(
+                                    title = "No pudimos actualizar tu agenda",
+                                    message = uiState.error ?: "Error desconocido.",
+                                    accent = AuDanger,
+                                    container = ErrorContainer,
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    QuickActionCard(
-                                        icon = Icons.Outlined.CalendarMonth,
-                                        label = "Mis Turnos",
-                                        iconColor = PrimaryLight,
-                                        onClick = { onNavigateToTab(PATIENT_TAB_APPOINTMENTS) },
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    QuickActionCard(
-                                        icon = Icons.Outlined.FavoriteBorder,
-                                        label = "Mi Salud",
-                                        iconColor = PortalPatients,
-                                        onClick = { onNavigateToTab(PATIENT_TAB_HEALTH) },
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                ) {
-                                    QuickActionCard(
-                                        icon = Icons.Outlined.Person,
-                                        label = "Mi Perfil",
-                                        iconColor = Secondary,
-                                        onClick = { onNavigateToTab(PATIENT_TAB_PROFILE) },
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    QuickActionCard(
-                                        icon = Icons.AutoMirrored.Outlined.HelpOutline,
-                                        label = "Ayuda",
-                                        iconColor = AuTextSecondary,
-                                        onClick = { },
+                            }
+                        }
+
+                        item {
+                            PriorityActionCard(
+                                nextAppointment = nextAppointment,
+                                joinableNow = nextAppointment?.id?.let { id ->
+                                    id in uiState.joinableAppointmentIds
+                                } == true,
+                                onOpenAppointments = { onNavigateToTab(PATIENT_TAB_APPOINTMENTS) },
+                                onJoinCall = nextAppointment?.let { appointment ->
+                                    { onNavigateToVideoCall(appointment.id) }
+                                },
+                            )
+                        }
+
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                stats.forEach { stat ->
+                                    MetricCard(
+                                        stat = stat,
                                         modifier = Modifier.weight(1f),
                                     )
                                 }
                             }
                         }
 
-                        // Remaining appointments
-                        if (uiState.appointments.size > 1) {
-                            item {
-                                Text(
-                                    text = "Proximos turnos",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = AuTextSecondary,
-                                    fontWeight = FontWeight.SemiBold,
+                        item {
+                            SectionTitle("Acciones de hoy")
+                        }
+
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                TodayActionCard(
+                                    icon = Icons.Default.Videocam,
+                                    title = "Telemedicina",
+                                    status = telemedicineStatusLabel(
+                                        appointment = telemedicineAppointment,
+                                        candidate = telemedicineCandidate,
+                                    ),
+                                    description = telemedicineDescription(
+                                        appointment = telemedicineAppointment,
+                                        candidate = telemedicineCandidate,
+                                        error = uiState.telemedicineError,
+                                    ),
+                                    accent = PortalPatients,
+                                    onClick = {
+                                        when {
+                                            telemedicineAppointment != null ->
+                                                onNavigateToVideoCall(telemedicineAppointment.id)
+                                            telemedicineCandidate != null ->
+                                                onNavigateToVideoCall(telemedicineCandidate.id)
+                                            else ->
+                                                onNavigateToVideoCall(VIDEO_PREVIEW_APPOINTMENT_ID)
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TodayActionCard(
+                                    icon = Icons.Outlined.Description,
+                                    title = "Mi anamnesis",
+                                    status = anamnesisStatusLabel(uiState.anamnesisSummary),
+                                    description = anamnesisDescription(uiState.anamnesisSummary),
+                                    accent = Secondary,
+                                    onClick = onNavigateToAnamnesisForm,
+                                    modifier = Modifier.weight(1f),
                                 )
                             }
-                            val remaining = uiState.appointments.drop(1).take(3)
-                            remaining.forEach { appointment ->
+                        }
+
+                        item {
+                            PreventiveFocusCard(
+                                preventiveProfile = uiState.preventiveProfile,
+                                preventiveError = uiState.preventiveError,
+                                anamnesisSummary = uiState.anamnesisSummary,
+                                onOpenPreventive = onNavigateToPreventiveHealth,
+                                onOpenHealth = { onNavigateToTab(PATIENT_TAB_HEALTH) },
+                                onOpenProfile = { onNavigateToTab(PATIENT_TAB_PROFILE) },
+                            )
+                        }
+
+                        if (uiState.appointments.size > 1) {
+                            item {
+                                SectionTitle("Agenda proxima")
+                            }
+                            uiState.appointments.drop(1).take(3).forEach { appointment ->
                                 item(key = appointment.id) {
                                     CompactAppointmentRow(
                                         appointment = appointment,
                                         onClick = if (appointment.id in uiState.joinableAppointmentIds) {
-                                            {
-                                                onNavigateToVideoCall(appointment.id)
-                                            }
-                                        } else null,
+                                            { onNavigateToVideoCall(appointment.id) }
+                                        } else {
+                                            null
+                                        },
                                     )
                                 }
                             }
@@ -264,7 +285,7 @@ fun DashboardScreen(
                                         color = Color.Transparent,
                                     ) {
                                         Text(
-                                            text = "Ver todos los turnos →",
+                                            text = "Ver todos los turnos",
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = PrimaryLight,
                                             fontWeight = FontWeight.Medium,
@@ -282,24 +303,277 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun TelemedicineAccessCard(
-    candidateAppointment: Appointment?,
-    appointment: Appointment?,
-    onJoinCall: (() -> Unit)?,
-    onOpenWaitingRoom: (() -> Unit)?,
-    onOpenPreview: () -> Unit,
-    onBrowseAppointments: () -> Unit,
-    validationError: String?,
+private fun HeaderSection(
+    userName: String,
+    priorityText: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = if (userName.isNotBlank()) "Hola, ${userName.split(" ").first()}" else "Hola",
+            style = MaterialTheme.typography.headlineMedium,
+            color = AuTextPrimary,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = priorityText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = AuTextSecondary,
+        )
+    }
+}
+
+@Composable
+private fun DashboardBanner(
+    title: String,
+    message: String,
+    accent: Color,
+    container: Color,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
+        color = container,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.25f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = AuTextPrimary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = AuTextSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PriorityActionCard(
+    nextAppointment: Appointment?,
+    joinableNow: Boolean,
+    onOpenAppointments: () -> Unit,
+    onJoinCall: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
         color = AuSurface,
         border = BorderStroke(1.dp, AuBorder),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                text = "Accion prioritaria",
+                style = MaterialTheme.typography.labelLarge,
+                color = PrimaryLight,
+                fontWeight = FontWeight.SemiBold,
+            )
+
+            if (nextAppointment != null) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = if (joinableNow) PortalPatients.copy(alpha = 0.15f) else AuSurfaceHover,
+                ) {
+                    Text(
+                        text = if (joinableNow) "Lista para entrar" else nextAppointment.type.displayName(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (joinableNow) PortalPatients else AuTextSecondary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    )
+                }
+
+                Text(
+                    text = if (joinableNow) {
+                        "Tu proxima consulta ya puede abrirse por videollamada."
+                    } else {
+                        "Tu siguiente paso es revisar la proxima cita y llegar con contexto claro."
+                    },
+                    style = MaterialTheme.typography.titleLarge,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                Text(
+                    text = "${formatDate(nextAppointment.startTime)} · ${formatTime(nextAppointment.startTime)}" +
+                        (nextAppointment.durationMinutes?.let { " · $it min" } ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+
+                Button(
+                    onClick = {
+                        if (joinableNow) onJoinCall?.invoke() else onOpenAppointments()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (joinableNow) PortalPatients else AuAccent,
+                        contentColor = if (joinableNow) Color.White else AuBackground,
+                    ),
+                ) {
+                    Text(
+                        text = if (joinableNow) "Entrar ahora" else "Ver agenda",
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            } else {
+                Text(
+                    text = "No tienes consultas proximas cargadas.",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Revisa tu agenda para preparar una consulta o confirmar si necesitas seguimiento clinico.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AuTextSecondary,
+                )
+                Button(
+                    onClick = onOpenAppointments,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuAccent,
+                        contentColor = AuBackground,
+                    ),
+                ) {
+                    Text("Abrir mis turnos", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricCard(
+    stat: HomeStat,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = stat.container,
+        border = BorderStroke(1.dp, stat.accent.copy(alpha = 0.18f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = stat.label,
+                style = MaterialTheme.typography.bodySmall,
+                color = AuTextSecondary,
+            )
+            Text(
+                text = stat.value,
+                style = MaterialTheme.typography.titleLarge,
+                color = stat.accent,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = AuTextSecondary,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+@Composable
+private fun TodayActionCard(
+    icon: ImageVector,
+    title: String,
+    status: String,
+    description: String,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = AuSurface,
+        border = BorderStroke(1.dp, AuBorder),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Surface(
+                modifier = Modifier.size(42.dp),
+                shape = CircleShape,
+                color = accent.copy(alpha = 0.15f),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.padding(10.dp),
+                    tint = accent,
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = AuTextPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = accent,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = AuTextSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreventiveFocusCard(
+    preventiveProfile: PatientPreventiveProfile?,
+    preventiveError: String?,
+    anamnesisSummary: AnamnesisSummary?,
+    onOpenPreventive: () -> Unit,
+    onOpenHealth: () -> Unit,
+    onOpenProfile: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val normalizedGender = normalizePreventiveGender(preventiveProfile?.gender)
+    val preventiveReady = preventiveProfile?.age != null && normalizedGender != null
+    val accent = if (preventiveReady) PortalPatients else AuWarning
+    val container = if (preventiveReady) SuccessContainer else WarningContainer
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = container,
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.18f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
@@ -307,245 +581,84 @@ private fun TelemedicineAccessCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Surface(
-                        modifier = Modifier.size(40.dp),
-                        shape = CircleShape,
-                        color = PortalPatients.copy(alpha = 0.15f),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Videocam,
-                            contentDescription = null,
-                            modifier = Modifier.padding(10.dp),
-                            tint = PortalPatients,
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "Telemedicina",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = AuTextPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = when {
-                                appointment != null -> "Videoconsulta disponible"
-                                candidateAppointment != null -> "Sala de espera disponible"
-                                else -> "Sin videoconsulta activa"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = AuTextTertiary,
-                        )
-                    }
+                Column {
+                    Text(
+                        text = "Salud preventiva",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = AuTextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = if (preventiveReady) "Plan listo para usar" else "Falta contexto clinico",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AuTextSecondary,
+                    )
                 }
-
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = if (appointment != null) PortalPatients.copy(alpha = 0.15f) else AuSurfaceHover,
+                    color = AuSurface.copy(alpha = 0.18f),
                 ) {
                     Text(
-                        text = when {
-                            appointment != null -> "Lista"
-                            candidateAppointment != null -> "Preview"
-                            else -> "Pendiente"
-                        },
+                        text = if (preventiveReady) "Conectado" else "Manual",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (appointment != null) PortalPatients else AuTextSecondary,
+                        color = accent,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                     )
                 }
             }
 
-            if (appointment != null) {
-                Text(
-                    text = "Tenes una ${appointment.type.displayName().lowercase()} habilitada para video el ${formatDate(appointment.startTime)} a las ${formatTime(appointment.startTime)}.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AuTextSecondary,
-                )
-                Button(
-                    onClick = { onJoinCall?.invoke() ?: onBrowseAppointments() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PortalPatients,
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Text("Entrar a la videoconsulta", fontWeight = FontWeight.SemiBold)
-                }
-            } else if (candidateAppointment != null) {
-                Text(
-                    text = validationError
-                        ?: "Tu turno es compatible con video. Podes encender tu camara y esperar aunque la otra persona todavia no este conectada.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AuTextSecondary,
-                )
-                Button(
-                    onClick = { onOpenWaitingRoom?.invoke() ?: onBrowseAppointments() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PortalPatients.copy(alpha = 0.9f),
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Text("Abrir sala de espera", fontWeight = FontWeight.Medium)
-                }
-            } else {
-                Text(
-                    text = "No tenes una videoconsulta activa, pero igual podes probar tu camara desde la app.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AuTextSecondary,
-                )
-                Button(
-                    onClick = onOpenPreview,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PortalPatients.copy(alpha = 0.9f),
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Text("Probar mi camara", fontWeight = FontWeight.Medium)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NextAppointmentCard(
-    appointment: Appointment,
-    onJoinCall: (() -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Proxima consulta",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = PrimaryLight,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = AuSurfaceHover,
-                ) {
-                    Text(
-                        text = appointment.type.displayName(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = AuTextSecondary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.CalendarMonth,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = AuTextTertiary,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = formatDate(appointment.startTime),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = AuTextPrimary,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
             Text(
-                text = formatTime(appointment.startTime) +
-                    (appointment.durationMinutes?.let { " · $it min" } ?: ""),
+                text = when {
+                    preventiveError != null -> preventiveError
+                    preventiveReady -> "Usando ${preventiveProfile?.age} anos y ${normalizedGender?.label?.lowercase()} para recomendar chequeos preventivos y cronologia."
+                    else -> "Todavia puedes explorar chequeos manualmente, pero conviene completar fecha de nacimiento y genero para personalizar el plan."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = AuTextSecondary,
-                modifier = Modifier.padding(start = 26.dp),
             )
 
-            if (onJoinCall != null) {
-                Spacer(modifier = Modifier.height(16.dp))
+            if (anamnesisSummary != null) {
+                Text(
+                    text = "Anamnesis: ${anamnesisDisplayStatus(anamnesisSummary)} · ${anamnesisSummary.completionPercentage}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = AuTextSecondary,
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Button(
-                    onClick = onJoinCall,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    onClick = onOpenPreventive,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PortalPatients,
-                        contentColor = Color.White,
+                        containerColor = if (preventiveReady) PortalPatients else AuAccent,
+                        contentColor = if (preventiveReady) Color.White else AuBackground,
                     ),
                 ) {
-                    Icon(
-                        Icons.Default.Videocam,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "Unirse a la consulta",
+                        text = if (preventiveReady) "Abrir plan preventivo" else "Explorar manualmente",
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
+                Button(
+                    onClick = if (preventiveReady) onOpenHealth else onOpenProfile,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuSurface.copy(alpha = 0.2f),
+                        contentColor = AuTextPrimary,
+                    ),
+                ) {
+                    Text(
+                        text = if (preventiveReady) "Ver mi salud" else "Ir a perfil",
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
-        }
-    }
-}
-
-@Composable
-private fun QuickActionCard(
-    icon: ImageVector,
-    label: String,
-    iconColor: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = AuSurface,
-        border = BorderStroke(1.dp, AuBorder),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = AuSurfaceHover,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.padding(10.dp),
-                    tint = iconColor,
-                )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = AuTextPrimary,
-                fontWeight = FontWeight.Medium,
-            )
         }
     }
 }
@@ -558,7 +671,7 @@ private fun CompactAppointmentRow(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(14.dp),
         color = AuSurface,
         border = BorderStroke(1.dp, AuBorder),
     ) {
@@ -575,8 +688,7 @@ private fun CompactAppointmentRow(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = formatDate(appointment.startTime) + " · " +
-                        formatTime(appointment.startTime),
+                    text = "${formatDate(appointment.startTime)} · ${formatTime(appointment.startTime)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = AuTextTertiary,
                 )
@@ -598,7 +710,7 @@ private fun CompactAppointmentRow(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "Unirse",
+                        "Entrar",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -606,6 +718,77 @@ private fun CompactAppointmentRow(
             }
         }
     }
+}
+
+private fun buildPriorityMessage(
+    nextAppointment: Appointment?,
+    telemedicineAppointment: Appointment?,
+    preventiveProfile: PatientPreventiveProfile?,
+    anamnesisSummary: AnamnesisSummary?,
+): String = when {
+    telemedicineAppointment != null -> "Hoy tienes una videoconsulta lista para entrar."
+    nextAppointment != null -> "Tu siguiente accion es preparar tu proxima cita."
+    preventiveProfile?.age == null || normalizePreventiveGender(preventiveProfile.gender) == null ->
+        "Completa tu contexto preventivo y calcula tus chequeos."
+    anamnesisSummary == null || !isAnamnesisSummaryReadOnly(anamnesisSummary) ->
+        "Mantén tu historia clinica al dia para mejorar el seguimiento."
+    else -> "Hoy no tienes urgencias, pero puedes revisar tu plan de salud."
+}
+
+private fun buildHomeStats(
+    appointments: List<Appointment>,
+    joinableCount: Int,
+    anamnesisSummary: AnamnesisSummary?,
+): List<HomeStat> = listOf(
+    HomeStat(
+        label = "Turnos",
+        value = appointments.size.toString(),
+        accent = PrimaryLight,
+        container = SecondaryContainer,
+    ),
+    HomeStat(
+        label = "Video listas",
+        value = joinableCount.toString(),
+        accent = PortalPatients,
+        container = SuccessContainer,
+    ),
+    HomeStat(
+        label = "Anamnesis",
+        value = anamnesisSummary?.completionPercentage?.let { "$it%" } ?: "--",
+        accent = Secondary,
+        container = AuSurface,
+    ),
+)
+
+private fun telemedicineStatusLabel(
+    appointment: Appointment?,
+    candidate: Appointment?,
+): String = when {
+    appointment != null -> "Lista para entrar"
+    candidate != null -> "Sala de espera"
+    else -> "Chequeo tecnico"
+}
+
+private fun telemedicineDescription(
+    appointment: Appointment?,
+    candidate: Appointment?,
+    error: String?,
+): String = when {
+    appointment != null -> "Tu consulta ya puede abrirse por videollamada."
+    candidate != null -> error ?: "Puedes abrir la sala y esperar al profesional."
+    else -> "Sin cita activa. Usa este acceso para probar camara y audio."
+}
+
+private fun anamnesisStatusLabel(summary: AnamnesisSummary?): String = when {
+    summary == null -> "Sin iniciar"
+    else -> anamnesisDisplayStatus(summary)
+}
+
+private fun anamnesisDescription(summary: AnamnesisSummary?): String = when {
+    summary == null -> "Completa tus antecedentes para darle mejor contexto al equipo clinico."
+    isAnamnesisSummaryReadOnly(summary) ->
+        "Tu historia clinica esta enviada o aprobada. Puedes revisarla cuando lo necesites."
+    else -> "${summary.completionPercentage}% completo · ${summary.completedSections}/${summary.totalSections} secciones."
 }
 
 private fun AppointmentType.displayName(): String = when (this) {
@@ -617,20 +800,16 @@ private fun AppointmentType.displayName(): String = when (this) {
     AppointmentType.CHECKUP -> "Chequeo"
 }
 
-private fun formatDate(isoString: String): String {
-    return try {
-        val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("es", "AR")))
-    } catch (_: Exception) {
-        isoString
-    }
+private fun formatDate(isoString: String): String = try {
+    val dt = OffsetDateTime.parse(isoString)
+    dt.format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("es", "AR")))
+} catch (_: Exception) {
+    isoString
 }
 
-private fun formatTime(isoString: String): String {
-    return try {
-        val dt = OffsetDateTime.parse(isoString)
-        dt.format(DateTimeFormatter.ofPattern("HH:mm", Locale("es", "AR")))
-    } catch (_: Exception) {
-        ""
-    }
+private fun formatTime(isoString: String): String = try {
+    val dt = OffsetDateTime.parse(isoString)
+    dt.format(DateTimeFormatter.ofPattern("HH:mm", Locale("es", "AR")))
+} catch (_: Exception) {
+    ""
 }

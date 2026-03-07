@@ -1,0 +1,156 @@
+---
+export interface Props {
+  lastUpdated: string;
+}
+
+const { lastUpdated } = Astro.props;
+---
+
+<main class="max-w-4xl mx-auto px-6 py-16 text-white">
+  <header class="mb-12">
+    <a href="/" class="text-gray-400 hover:text-white transition-colors text-sm mb-8 inline-block">
+      ← Volver al inicio
+    </a>
+    <h1 class="text-4xl font-light tracking-wide mb-4">Política de Privacidad</h1>
+    <p class="text-gray-400">Última actualización: {lastUpdated}</p>
+  </header>
+
+  <div class="space-y-10 text-gray-300 leading-relaxed">
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">1. Responsable del Tratamiento</h2>
+      <p>
+        AutaMedica (en adelante, "nosotros") es el responsable del tratamiento de los datos
+        personales recolectados a través de nuestra plataforma de telemedicina, en cumplimiento
+        de la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">2. Datos que Recolectamos</h2>
+      <p class="mb-4">Recolectamos los siguientes tipos de datos:</p>
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-medium text-white mb-2">Datos de identificación</h3>
+          <p>Nombre completo, DNI/CUIT, fecha de nacimiento, dirección de correo electrónico, número de teléfono.</p>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium text-white mb-2">Datos de salud</h3>
+          <p>Historia clínica, diagnósticos, medicamentos, resultados de estudios, registros de consultas médicas.
+          Estos datos son considerados datos sensibles y reciben protección reforzada.</p>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium text-white mb-2">Datos de uso</h3>
+          <p>Información sobre cómo utilizás la plataforma, incluyendo páginas visitadas, funciones utilizadas
+          y métricas de rendimiento (Web Vitals).</p>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium text-white mb-2">Datos de pago</h3>
+          <p>Información de facturación procesada de forma segura por nuestros proveedores de pago certificados.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">3. Finalidad del Tratamiento</h2>
+      <p class="mb-4">Utilizamos tus datos para:</p>
+      <ul class="list-disc list-inside space-y-2 ml-4">
+        <li>Prestar los servicios de telemedicina y coordinar consultas médicas</li>
+        <li>Gestionar tu historia clínica digital</li>
+        <li>Emitir y gestionar recetas y documentos médicos</li>
+        <li>Mejorar la calidad y seguridad de nuestros servicios</li>
+        <li>Cumplir con obligaciones legales y regulatorias</li>
+        <li>Comunicarnos con vos sobre tu cuenta y los servicios</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">4. Base Legal del Tratamiento</h2>
+      <p>
+        El tratamiento de tus datos se basa en: (a) tu consentimiento expreso para datos sensibles
+        de salud; (b) la ejecución del contrato de servicios; (c) el cumplimiento de obligaciones
+        legales aplicables al sector salud en Argentina.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">5. Seguridad y Cumplimiento HIPAA</h2>
+      <p class="mb-4">
+        Implementamos medidas técnicas y organizativas para proteger tus datos de salud:
+      </p>
+      <ul class="list-disc list-inside space-y-2 ml-4">
+        <li>Cifrado en tránsito (TLS 1.3) y en reposo (AES-256)</li>
+        <li>Acceso restringido a datos de salud según principio de mínimo privilegio</li>
+        <li>Auditoría de accesos a registros médicos</li>
+        <li>Backups seguros con retención controlada</li>
+        <li>Cumplimiento de estándares HIPAA para datos de salud</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">6. Compartición de Datos</h2>
+      <p class="mb-4">
+        Tus datos pueden ser compartidos con:
+      </p>
+      <ul class="list-disc list-inside space-y-2 ml-4">
+        <li>Los profesionales de la salud que te atienden, exclusivamente para la prestación del servicio</li>
+        <li>Proveedores de infraestructura técnica (Supabase, Cloudflare) bajo acuerdos de confidencialidad</li>
+        <li>Autoridades sanitarias y judiciales cuando lo exija la ley</li>
+      </ul>
+      <p class="mt-4">No vendemos ni comercializamos tus datos personales.</p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">7. Tus Derechos</h2>
+      <p class="mb-4">Tenés derecho a:</p>
+      <ul class="list-disc list-inside space-y-2 ml-4">
+        <li><strong class="text-white">Acceso:</strong> conocer qué datos tenemos sobre vos</li>
+        <li><strong class="text-white">Rectificación:</strong> corregir datos inexactos o incompletos</li>
+        <li><strong class="text-white">Supresión:</strong> solicitar la eliminación de tus datos</li>
+        <li><strong class="text-white">Oposición:</strong> oponerte al tratamiento de tus datos</li>
+        <li><strong class="text-white">Portabilidad:</strong> recibir tus datos en formato legible</li>
+      </ul>
+      <p class="mt-4">
+        Para ejercer estos derechos, contactanos en{' '}
+        <a href="mailto:privacidad@autamedica.com" class="text-white underline hover:text-gray-300 transition-colors">
+          privacidad@autamedica.com
+        </a>
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">8. Retención de Datos</h2>
+      <p>
+        Los datos de historia clínica se conservan durante el tiempo mínimo exigido por la legislación
+        sanitaria argentina (mínimo 15 años según normativa vigente). Otros datos se eliminan cuando
+        ya no son necesarios para la finalidad que motivó su recolección.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">9. Cookies y Tecnologías de Rastreo</h2>
+      <p>
+        Utilizamos cookies estrictamente necesarias para el funcionamiento de la plataforma y cookies
+        analíticas (Web Vitals) para mejorar el rendimiento. Podés gestionar tus preferencias de cookies
+        a través de la configuración de tu navegador.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">10. Contacto y Reclamaciones</h2>
+      <p class="mb-4">
+        Para consultas sobre privacidad:
+        <a href="mailto:privacidad@autamedica.com" class="text-white underline hover:text-gray-300 transition-colors ml-1">
+          privacidad@autamedica.com
+        </a>
+      </p>
+      <p>
+        Podés también presentar una reclamación ante la Dirección Nacional de Protección de Datos
+        Personales de Argentina (
+        <a href="https://www.argentina.gob.ar/aaip/datospersonales" target="_blank" rel="noopener noreferrer" class="text-white underline hover:text-gray-300 transition-colors">
+          www.argentina.gob.ar/aaip/datospersonales
+        </a>
+        ).
+      </p>
+    </section>
+  </div>
+</main>

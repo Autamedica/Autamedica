@@ -226,7 +226,7 @@ export function createAppMiddleware(appName: AppName) {
   return async (request: NextRequest) => {
     // Define public paths for each app
     const publicPaths: Record<AppName, string[]> = {
-      'web-app': ['/auth', '/api/health', '/', '/terms', '/privacy'],
+      'web-app': ['/auth', '/api/health', '/', '/terms', '/privacy', '/privacidad'],
       'auth': ['/api/health', '/'],
       'patients': ['/api/health'],
       'doctors': ['/api/health'],

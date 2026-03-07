@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PrivacyPolicyContent from '../components/legal/PrivacyPolicyContent.astro';
+
+const lastUpdated = '1 de enero de 2025';
+---
+
+<Layout
+  title="Política de Privacidad - AutaMedica"
+  description="Política de privacidad y tratamiento de datos personales de AutaMedica. Cumplimiento HIPAA y Ley 25.326."
+  canonical="https://www.autamedica.com/privacidad"
+  ogImage="/images/seo/og-main.png"
+  ogType="article"
+  publishedTime="2025-01-01T00:00:00Z"
+>
+  <PrivacyPolicyContent lastUpdated={lastUpdated} />
+</Layout>

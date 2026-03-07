@@ -203,6 +203,15 @@ Flujo recomendado para DNS en browser automation:
 - `scripts/cloudflare/PATCHRIGHT_STREAMING.md`
 - `scripts/cloudflare/*.workflow.json`
 - `scripts/cloudflare/reconcile-pages-domains.mjs` (API, requiere `CLOUDFLARE_API_TOKEN` con `zone:edit`)
+- `pnpm cloudflare:token:install` (guarda el token validado en `~/.config/autamedica/cloudflare.env`)
+- `pnpm cloudflare:dns:audit` (auditoria API-first, sin cambios)
+- `pnpm cloudflare:dns:audit:secure` (pide token oculto, verifica y audita sin persistirlo)
+- `pnpm cloudflare:dns:cron` (runner no interactivo para cron)
+- `pnpm cloudflare:dns:cron:install` (instala cron horario idempotente)
+- `pnpm cloudflare:dns:cron:show` (muestra la entrada gestionada)
+- `pnpm cloudflare:dns:reconcile` (aplica estado canonico via API)
+- `pnpm cloudflare:token-flow` (wrapper interactivo para audit/reconcile con token oculto)
+- `pnpm cloudflare:token-flow:tmux` (abre la pagina de tokens y ejecuta el wrapper en tmux)
 - `scripts/cloudflare/subdomain-fallback-worker.mjs` + `scripts/cloudflare/wrangler.subdomain-fallback.toml` (mitigación 302 si DNS sigue pendiente)
 - `scripts/config/domains.js` (fuente única de dominios/scripts)
 

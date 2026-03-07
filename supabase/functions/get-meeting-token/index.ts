@@ -15,6 +15,25 @@ type TelemedicineSessionRow = {
   consultation_rooms?: Array<{ id: string; room_sid: string | null }>
 }
 
+async function enrichConsultationRoom(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  session: Omit<TelemedicineSessionRow, 'consultation_rooms'> | null,
+): Promise<TelemedicineSessionRow | null> {
+  if (!session) return null
+
+  const { data: rooms } = await supabaseAdmin
+    .from('consultation_rooms')
+    .select('id, room_sid')
+    .eq('consultation_id', session.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  return {
+    ...session,
+    consultation_rooms: (rooms ?? []) as Array<{ id: string; room_sid: string | null }>,
+  }
+}
+
 async function resolveConsultationByIdentifiers(
   supabaseAdmin: ReturnType<typeof createClient>,
   consultationId?: string,
@@ -26,11 +45,16 @@ async function resolveConsultationByIdentifiers(
   for (const candidate of idCandidates) {
     const { data } = await supabaseAdmin
       .from('telemedicine_sessions')
-      .select('id, appointment_id, patient_id, doctor_id, room_id, consultation_rooms(id, room_sid)')
+      .select('id, appointment_id, patient_id, doctor_id, room_id')
       .eq('id', candidate)
       .maybeSingle()
 
-    if (data) return data as TelemedicineSessionRow
+    if (data) {
+      return await enrichConsultationRoom(
+        supabaseAdmin,
+        data as Omit<TelemedicineSessionRow, 'consultation_rooms'>,
+      )
+    }
   }
 
   const appointmentCandidate = appointmentId?.trim() || consultationId?.trim() || sessionId?.trim()
@@ -38,13 +62,16 @@ async function resolveConsultationByIdentifiers(
 
   const { data } = await supabaseAdmin
     .from('telemedicine_sessions')
-    .select('id, appointment_id, patient_id, doctor_id, room_id, consultation_rooms(id, room_sid)')
+    .select('id, appointment_id, patient_id, doctor_id, room_id')
     .eq('appointment_id', appointmentCandidate)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  return (data as TelemedicineSessionRow | null) ?? null
+  return await enrichConsultationRoom(
+    supabaseAdmin,
+    (data as Omit<TelemedicineSessionRow, 'consultation_rooms'> | null) ?? null,
+  )
 }
 
 Deno.serve(async (req) => {

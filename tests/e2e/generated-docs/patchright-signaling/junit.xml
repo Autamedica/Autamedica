@@ -1,0 +1,8 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="1" errors="0" time="0.19094700000000056">
+<testsuite name="signaling-server-e2e.spec.ts" timestamp="2026-03-06T20:18:04.831Z" hostname="chromium" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="Signaling Server E2E › doctor and patient connect via signaling server" classname="signaling-server-e2e.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

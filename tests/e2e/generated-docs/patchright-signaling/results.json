@@ -1,0 +1,118 @@
+{
+  "config": {
+    "configFile": "/home/edu/Autamedica/tests/e2e/patchright.signaling.config.ts",
+    "rootDir": "/home/edu/Autamedica/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/edu/Autamedica/tests/e2e/generated-docs/patchright-signaling/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/edu/Autamedica/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "signaling-server-e2e.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "generated-docs/patchright-signaling/html-report"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "generated-docs/patchright-signaling/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "generated-docs/patchright-signaling/junit.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "signaling-server-e2e.spec.ts",
+      "file": "signaling-server-e2e.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Signaling Server E2E",
+          "file": "signaling-server-e2e.spec.ts",
+          "line": 90,
+          "column": 6,
+          "specs": [
+            {
+              "title": "doctor and patient connect via signaling server",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "b68b47e28189f7c3a21c-ffbfde0bbc7eb6108e99",
+              "file": "signaling-server-e2e.spec.ts",
+              "line": 131,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-06T20:18:04.641Z",
+    "duration": 190.94700000000057,
+    "expected": 0,
+    "skipped": 1,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

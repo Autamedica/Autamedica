@@ -2,6 +2,7 @@ package com.autamedica.android.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.autamedica.android.domain.model.PatientProfileSnapshot
 import com.autamedica.android.domain.model.User
 import com.autamedica.android.domain.model.UserRole
 import com.autamedica.android.domain.repository.ProfileRepository
@@ -15,12 +16,14 @@ import javax.inject.Inject
 
 data class ProfileUiState(
     val user: User? = null,
+    val patientSnapshot: PatientProfileSnapshot? = null,
     val isLoading: Boolean = true,
     val error: String? = null,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
     val firstName: String = "",
     val lastName: String = "",
+    val phone: String = "",
 )
 
 @HiltViewModel
@@ -36,11 +39,15 @@ class ProfileViewModel @Inject constructor(
     }
 
     fun onFirstNameChange(value: String) {
-        _uiState.update { it.copy(firstName = value, saveSuccess = false) }
+        _uiState.update { it.copy(firstName = value, saveSuccess = false, error = null) }
     }
 
     fun onLastNameChange(value: String) {
-        _uiState.update { it.copy(lastName = value, saveSuccess = false) }
+        _uiState.update { it.copy(lastName = value, saveSuccess = false, error = null) }
+    }
+
+    fun onPhoneChange(value: String) {
+        _uiState.update { it.copy(phone = value, saveSuccess = false, error = null) }
     }
 
     fun saveProfile() {
@@ -53,49 +60,61 @@ class ProfileViewModel @Inject constructor(
             profileRepository.updateProfile(
                 firstName = state.firstName.trim(),
                 lastName = state.lastName.trim(),
-                phone = null,
-            )
-                .onSuccess { user ->
+                phone = state.phone.trim().ifBlank { null },
+            ).fold(
+                onSuccess = { user ->
                     _uiState.update {
                         it.copy(
                             user = user,
+                            phone = user.phone.orEmpty(),
                             isSaving = false,
                             saveSuccess = true,
                         )
                     }
-                }
-                .onFailure { error ->
+                },
+                onFailure = { error ->
                     _uiState.update {
                         it.copy(
                             isSaving = false,
                             error = error.message ?: "Error al guardar",
                         )
                     }
-                }
+                },
+            )
         }
     }
 
     private fun loadProfile() {
         viewModelScope.launch {
-            profileRepository.getProfile()
-                .onSuccess { user ->
+            profileRepository.getProfile().fold(
+                onSuccess = { user ->
+                    val patientSnapshot = if (user.role == UserRole.PATIENT) {
+                        profileRepository.getPatientProfileSnapshot().getOrNull()
+                    } else {
+                        null
+                    }
+
                     _uiState.update {
                         it.copy(
                             user = user,
+                            patientSnapshot = patientSnapshot,
                             firstName = user.firstName,
                             lastName = user.lastName,
+                            phone = user.phone.orEmpty(),
                             isLoading = false,
+                            error = null,
                         )
                     }
-                }
-                .onFailure { error ->
+                },
+                onFailure = { error ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             error = error.message ?: "Error cargando perfil",
                         )
                     }
-                }
+                },
+            )
         }
     }
 }

@@ -6,6 +6,7 @@ data class User(
     val role: UserRole,
     val firstName: String = "",
     val lastName: String = "",
+    val phone: String? = null,
     val avatarUrl: String? = null,
 ) {
     val displayName: String

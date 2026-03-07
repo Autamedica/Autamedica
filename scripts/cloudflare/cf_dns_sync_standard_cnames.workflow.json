@@ -13,14 +13,30 @@
       }
     },
     {
+      "id": "dismiss_cookie_center_if_present",
+      "action": "evaluate",
+      "description": "Cerrar el centro de preferencias/cookies si aparece",
+      "args": {
+        "script": "(async () => { const labels = ['allow all', 'close preference center', 'aceptar', 'allow']; const findButton = () => [...document.querySelectorAll('button,[role=\"button\"],a')].find((el) => { const text = (el.innerText || el.textContent || '').trim().toLowerCase(); return labels.some((label) => text.includes(label)); }); const button = findButton(); if (button) { button.click(); await new Promise((r) => setTimeout(r, 750)); return 'cookie preferences dismissed'; } return 'cookie preferences not present'; })()"
+      }
+    },
+    {
+      "id": "assert_dns_page_ready",
+      "action": "evaluate",
+      "description": "Asegurar que no estamos en login y que la tabla DNS esta lista",
+      "args": {
+        "script": "(async () => { const start = Date.now(); while (Date.now() - start < 15000) { const text = (document.body.innerText || '').toLowerCase(); const hasLogin = text.includes('iniciar sesión en cloudflare') || !!document.querySelector('input[type=\"email\"], input[name=\"email\"]'); if (hasLogin) { throw new Error('Cloudflare login required in persistent profile'); } const dnsReady = text.includes('agregar registro') || text.includes('add record') || text.includes('dns records') || text.includes('records'); if (dnsReady) { return 'dns page ready'; } await new Promise((r) => setTimeout(r, 500)); } throw new Error('DNS page not ready for verification'); })()"
+      }
+    },
+    {
       "id": "assert_all_standard_cnames",
       "action": "evaluate",
       "description": "Validar admin, companies, doctors y patients con sus targets pages.dev",
       "args": {
-        "script": "(async () => { const required = ['admin','autamedica-admin.pages.dev','companies','autamedica-companies.pages.dev','doctors','autamedica-doctors.pages.dev','patients','autamedica-patients.pages.dev']; const start = Date.now(); while (Date.now() - start < 20000) { const t = document.body.innerText.toLowerCase(); const missing = required.filter(x => !t.includes(x)); if (!missing.length) { return 'all standard cnames present'; } await new Promise(r => setTimeout(r, 500)); } throw new Error('Missing required DNS entries in visible page text'); })()"
+        "script": "(async () => { const required = ['admin','autamedica-admin.pages.dev','companies','autamedica-companies.pages.dev','doctors','autamedica-doctors.pages.dev','patients','autamedica-patients.pages.dev']; const start = Date.now(); while (Date.now() - start < 20000) { const t = (document.body.innerText || '').toLowerCase(); const hasLogin = t.includes('iniciar sesión en cloudflare') || !!document.querySelector('input[type=\"email\"], input[name=\"email\"]'); if (hasLogin) { throw new Error('Cloudflare login required in persistent profile'); } const missing = required.filter(x => !t.includes(x)); if (!missing.length) { return 'all standard cnames present'; } await new Promise(r => setTimeout(r, 500)); } throw new Error('Missing required DNS entries in visible page text'); })()"
       }
     }
   ],
   "createdAt": "2026-02-21T13:29:41.556Z",
-  "updatedAt": "2026-02-21T13:29:41.556Z"
+  "updatedAt": "2026-03-06T17:52:00.000Z"
 }

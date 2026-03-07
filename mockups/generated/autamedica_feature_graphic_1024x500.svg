@@ -1,0 +1,63 @@
+<svg width="1024" height="500" viewBox="0 0 1024 500" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="500" fill="#07111F"/>
+
+  <circle cx="250" cy="88" r="118" fill="#38BDF8" fill-opacity="0.08"/>
+  <circle cx="806" cy="236" r="176" fill="#6D28D9" fill-opacity="0.30"/>
+  <circle cx="896" cy="124" r="148" fill="#38BDF8" fill-opacity="0.14"/>
+
+  <g opacity="0.16">
+    <path d="M0 74H1024" stroke="#94A3B8"/>
+    <path d="M0 148H1024" stroke="#94A3B8"/>
+    <path d="M0 222H1024" stroke="#94A3B8"/>
+    <path d="M0 296H1024" stroke="#94A3B8"/>
+    <path d="M0 370H1024" stroke="#94A3B8"/>
+    <path d="M0 444H1024" stroke="#94A3B8"/>
+    <path d="M136 0V500" stroke="#94A3B8"/>
+    <path d="M272 0V500" stroke="#94A3B8"/>
+    <path d="M408 0V500" stroke="#94A3B8"/>
+    <path d="M544 0V500" stroke="#94A3B8"/>
+    <path d="M680 0V500" stroke="#94A3B8"/>
+    <path d="M816 0V500" stroke="#94A3B8"/>
+  </g>
+
+  <g>
+    <rect x="72" y="76" width="112" height="36" rx="18" fill="#0D1730" stroke="#1E293B"/>
+    <circle cx="101" cy="94" r="8" fill="#38BDF8"/>
+    <text x="118" y="100" fill="#DCE7FF" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700">AutaMedica</text>
+  </g>
+
+  <g>
+    <text x="72" y="198" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800">AutaMedica</text>
+    <text x="72" y="244" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="500">Tu salud, conectada.</text>
+    <text x="72" y="300" fill="#93C5FD" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700">Turnos, telemedicina y seguimiento clínico</text>
+    <text x="72" y="336" fill="#94A3B8" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="500">en una sola experiencia móvil.</text>
+  </g>
+
+  <g>
+    <rect x="72" y="390" width="180" height="42" rx="21" fill="#0B1730" stroke="#1D4ED8" stroke-opacity="0.5"/>
+    <text x="101" y="417" fill="#DBEAFE" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Telemedicina activa</text>
+
+    <rect x="268" y="390" width="122" height="42" rx="21" fill="#0B1730" stroke="#0F766E" stroke-opacity="0.5"/>
+    <text x="298" y="417" fill="#CCFBF1" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Mi Salud</text>
+
+    <rect x="404" y="390" width="122" height="42" rx="21" fill="#0B1730" stroke="#7C3AED" stroke-opacity="0.5"/>
+    <text x="437" y="417" fill="#E9D5FF" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Mensajes</text>
+  </g>
+
+  <g>
+    <rect x="598" y="114" width="282" height="258" rx="42" fill="#0C1728" fill-opacity="0.88" stroke="#334155" stroke-opacity="0.72"/>
+
+    <circle cx="739" cy="232" r="88" fill="#A78BFA" fill-opacity="0.18"/>
+    <circle cx="739" cy="232" r="58" fill="#FFFFFF" fill-opacity="0.88"/>
+    <circle cx="739" cy="232" r="36" fill="#E9D5FF" fill-opacity="0.56"/>
+
+    <rect x="706" y="138" width="66" height="188" rx="28" fill="#FFFFFF" fill-opacity="0.20" stroke="#F8FAFC" stroke-opacity="0.92" stroke-width="4"/>
+    <rect x="645" y="199" width="188" height="66" rx="28" fill="#FFFFFF" fill-opacity="0.20" stroke="#F8FAFC" stroke-opacity="0.92" stroke-width="4"/>
+
+    <path d="M739 188V276" stroke="#FFFFFF" stroke-opacity="0.84" stroke-width="5" stroke-linecap="round"/>
+    <path d="M695 232H783" stroke="#FFFFFF" stroke-opacity="0.84" stroke-width="5" stroke-linecap="round"/>
+
+    <rect x="640" y="338" width="198" height="14" rx="7" fill="#38BDF8" fill-opacity="0.18"/>
+    <rect x="640" y="338" width="146" height="14" rx="7" fill="#38BDF8"/>
+  </g>
+</svg>

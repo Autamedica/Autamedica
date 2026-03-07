@@ -188,6 +188,8 @@ fun MainScreen(
                     0 -> DashboardScreen(
                         onNavigateToVideoCall = onNavigateToVideoCall,
                         onNavigateToTab = { selectedTab = it },
+                        onNavigateToAnamnesisForm = onNavigateToAnamnesisForm,
+                        onNavigateToPreventiveHealth = onNavigateToPreventiveHealth,
                     )
                     1 -> com.autamedica.android.presentation.chat.ChatListScreen(
                         onNavigateToConversation = onNavigateToChatConversation,

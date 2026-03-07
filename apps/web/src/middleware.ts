@@ -29,6 +29,7 @@ const PUBLIC_ROUTES = [
   '/contact',
   '/terms',
   '/privacy',
+  '/privacidad',
   '/auth/callback',
   '/auth/select-role',
   '/auth/login',
