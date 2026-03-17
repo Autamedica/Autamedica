@@ -62,7 +62,7 @@ const doctors = [
       <div class="doctor-marquee">
         {doctors.map((d) => (
           <article class="doctor-card">
-            <img class="doctor-avatar" src={d.photo} alt={d.name} loading="lazy" width="48" height="48" />
+            <img class="doctor-avatar" src={d.photo} alt={d.name} loading="lazy" width="56" height="56" />
             <div class="doctor-info">
               <h3 class="doctor-name">{d.name}</h3>
               <p class="doctor-specialty">{d.specialty}</p>
@@ -159,12 +159,19 @@ const doctors = [
   }
 
   .doctor-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-full);
     object-fit: cover;
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    transition: transform var(--transition-base);
+  }
+
+  .doctor-card:hover .doctor-avatar {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.3);
   }
 
   .doctor-info {

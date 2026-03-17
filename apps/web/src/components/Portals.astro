@@ -16,6 +16,7 @@ const portals = [
       "Emisión de recetas digitales"
     ],
     href: "/patients",
+    image: "/images/portal_patient.png",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
   },
   {
@@ -31,6 +32,7 @@ const portals = [
       "Firma digital de documentos"
     ],
     href: "/doctors",
+    image: "/images/portal_doctor.png",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`
   },
   {
@@ -46,6 +48,7 @@ const portals = [
       "Asignación de coberturas"
     ],
     href: "/companies",
+    image: "/images/portal_company.png",
     icon: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1M9 13h1M9 17h1"/></svg>`
   }
 ];
@@ -67,9 +70,13 @@ const enrichedPortals = portals.map((portal) => ({
     <div class="portals-grid">
       {enrichedPortals.map((portal) => (
         <article class="portal-card animate-on-scroll">
-          <div class="portal-icon" style={`color: ${portal.hex}`} set:html={portal.icon} />
-          <h3 class="portal-name">{portal.name}</h3>
-          <p class="portal-desc">{portal.description}</p>
+          <div class="portal-image-wrapper">
+            <img src={portal.image} alt={portal.name} class="portal-card-image" loading="lazy" />
+            <div class="portal-icon-overlay" style={`background: ${portal.hex}22; color: ${portal.hex}`} set:html={portal.icon} />
+          </div>
+          <div class="portal-card-content">
+            <h3 class="portal-name">{portal.name}</h3>
+            <p class="portal-desc">{portal.description}</p>
           <ul class="portal-features">
             {portal.features.map((f) => (
               <li>
@@ -86,6 +93,7 @@ const enrichedPortals = portals.map((portal) => ({
             <div class="portal-subactions">
               <a href={portal.registerHref}>Crear cuenta</a>
               <a href={portal.href}>Ver portal</a>
+            </div>
             </div>
           </div>
         </article>
@@ -134,22 +142,58 @@ const enrichedPortals = portals.map((portal) => ({
   }
 
   .portal-card {
-    padding: var(--space-8);
     border: 1px solid var(--au-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     background: var(--au-surface);
     display: flex;
     flex-direction: column;
-    transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .portal-card:hover {
     border-color: var(--au-border-hover);
-    box-shadow: var(--shadow-glow);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
   }
 
-  .portal-icon {
-    margin-bottom: var(--space-4);
+  .portal-image-wrapper {
+    position: relative;
+    height: 180px;
+    overflow: hidden;
+  }
+
+  .portal-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .portal-card:hover .portal-card-image {
+    transform: scale(1.1);
+  }
+
+  .portal-icon-overlay {
+    position: absolute;
+    bottom: var(--space-4);
+    left: var(--space-4);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .portal-card-content {
+    padding: var(--space-8);
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
   }
 
   .portal-name {

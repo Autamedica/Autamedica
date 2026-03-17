@@ -20,11 +20,17 @@ const pillars = [
     <p class="narrative-kicker animate-on-scroll">Experiencia clínica, no solo videollamada</p>
     <div class="narrative-grid">
       <div class="narrative-main animate-on-scroll">
-        <h2 class="narrative-title">Diseñada para sentirse humana desde el primer clic</h2>
-        <p class="narrative-copy">
-          AutaMedica combina velocidad de atención con calidad médica real.
-          Menos fricción administrativa, más tiempo para diagnosticar y acompañar.
-        </p>
+        <div class="narrative-main-bg">
+          <img src="/images/narrative_ai.png" alt="" class="narrative-bg-image" aria-hidden="true" />
+          <div class="narrative-bg-overlay"></div>
+        </div>
+        <div class="narrative-content-wrapper relative z-10">
+          <h2 class="narrative-title">Diseñada para sentirse humana desde el primer clic</h2>
+          <p class="narrative-copy">
+            AutaMedica combina velocidad de atención con calidad médica real.
+            Menos fricción administrativa, más tiempo para diagnosticar y acompañar.
+          </p>
+        </div>
       </div>
 
       <aside class="narrative-side animate-on-scroll">
@@ -72,11 +78,38 @@ const pillars = [
   }
 
   .narrative-main {
+    position: relative;
     padding: var(--space-8);
     border: 1px solid var(--au-border);
     border-radius: var(--radius-lg);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+    background: #000;
     box-shadow: var(--shadow-glow);
+    overflow: hidden;
+  }
+
+  .narrative-main-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .narrative-bg-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.3;
+    filter: saturate(0.8) brightness(0.7);
+  }
+
+  .narrative-bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, transparent 60%, rgba(0,0,0,0.4) 100%);
+  }
+
+  .narrative-content-wrapper {
+    position: relative;
+    z-index: 10;
   }
 
   .narrative-title {

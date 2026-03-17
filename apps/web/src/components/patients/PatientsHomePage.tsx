@@ -46,6 +46,12 @@ export default function PatientsHomePage() {
     <div className="flex h-screen w-full overflow-hidden bg-gradient-to-br from-blue-50/50 via-white to-indigo-50/30">
       <div className="flex flex-1 flex-col overflow-y-auto">
         <div className="relative overflow-hidden border-b border-white/40 bg-white/60 px-8 py-10 backdrop-blur-xl">
+          <img 
+            src="/images/portal_patient.png" 
+            alt="" 
+            className="absolute right-0 top-0 h-full w-1/3 object-cover opacity-10 mix-blend-multiply transition-opacity duration-1000" 
+            aria-hidden="true"
+          />
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5" />
           <div className="relative">
             <p className="inline-flex rounded-full bg-blue-100/50 px-3 py-1 text-xs font-semibold tracking-wide text-blue-800">Panel de paciente</p>

@@ -5,6 +5,7 @@ interface InteractiveBentoCardProps {
   description: string;
   iconSvg?: string;
   videoSrc?: string;
+  imageSrc?: string;
   className?: string;
   isLarge?: boolean;
 }
@@ -14,6 +15,7 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
   description,
   iconSvg,
   videoSrc,
+  imageSrc,
   className = '',
   isLarge = false,
 }) => {
@@ -42,18 +44,26 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
           : '#0A0A0A',
       }}
     >
-      {/* Background Video Overlay */}
-      {videoSrc && (
+      {/* Background Media Overlay */}
+      {(videoSrc || imageSrc) && (
         <>
           <div className="absolute inset-0 z-0">
-            <video
-              src={videoSrc}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="h-full w-full object-cover opacity-[0.35] transition-opacity duration-700 group-hover:opacity-[0.55]"
-            />
+            {videoSrc ? (
+              <video
+                src={videoSrc}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="h-full w-full object-cover opacity-[0.35] transition-opacity duration-700 group-hover:opacity-[0.55]"
+              />
+            ) : (
+              <img
+                src={imageSrc}
+                alt=""
+                className="h-full w-full object-cover opacity-[0.45] transition-all duration-700 group-hover:opacity-[0.65] group-hover:scale-105"
+              />
+            )}
           </div>
           <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
         </>

@@ -409,11 +409,19 @@ export default function DoctorsHomePage(): JSX.Element {
                 muted
               />
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center gap-5 bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-8 text-center">
-                <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-fuchsia-500/20">
-                  <VideoOff className="h-12 w-12" />
-                </div>
-                <div>
+              <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-8 text-center overflow-hidden">
+                <img 
+                  src="/images/doctor_portal_mock.png" 
+                  alt="" 
+                  className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-luminosity" 
+                  aria-hidden="true"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 to-slate-950/90 z-0"></div>
+                
+                <div className="relative z-10">
+                  <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-3xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-fuchsia-500/20 mb-6">
+                    <VideoOff className="h-12 w-12" />
+                  </div>
                   <h3 className="text-2xl font-bold tracking-tight text-white mb-2">Cámara no activada</h3>
                   <p className="text-sm font-medium text-slate-400">Inicia una llamada con el paciente para comenzar la videoconsulta</p>
                 </div>

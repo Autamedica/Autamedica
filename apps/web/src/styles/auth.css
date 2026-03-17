@@ -19,7 +19,12 @@
   position: relative;
   overflow: hidden;
   padding: var(--space-12);
-  background: linear-gradient(135deg, var(--au-bg) 0%, var(--au-surface) 100%);
+  background-color: var(--au-bg);
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4)),
+    url('/images/login_stethoscope.png');
+  background-size: cover;
+  background-position: center;
   border-right: 1px solid var(--au-border);
 }
 

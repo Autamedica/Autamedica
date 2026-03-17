@@ -166,6 +166,19 @@ export function EnhancedVideoCall({ roomId: _roomId = 'patient-room', sessionId,
   }, [isFocusMode, videoCall.callStatus, mouseTimer]);
 
   // Handlers de UI
+  const handleStartConsultation = async () => {
+    try {
+      await videoCall.startCall();
+      const joined = await telemedicine.joinSession('patient');
+      if (joined) {
+        joinedRef.current = true;
+        await telemedicine.logEvent('call_started', 'Patient joined consultation');
+      }
+    } catch (err) {
+      logger.error('[EnhancedVideoCall] Failed to start consultation', err);
+    }
+  };
+
   const handleToggleVideo = async () => {
     await videoCall.toggleVideo();
     const state = !videoCall.isVideoEnabled;
@@ -307,12 +320,17 @@ export function EnhancedVideoCall({ roomId: _roomId = 'patient-room', sessionId,
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
                 <div className="text-center">
                   <h2 className="mb-2 text-2xl font-bold">Videoconsulta Médica</h2>
+                  {telemedicine.session?.status === 'waiting' && (
+                    <p className="mb-4 text-emerald-400 font-semibold animate-pulse">
+                      El médico ya está en la sala.
+                    </p>
+                  )}
                   <p className="mb-6 text-white/70">Presiona el botón para iniciar tu consulta</p>
                   <button
-                    onClick={videoCall.startCall}
+                    onClick={handleStartConsultation}
                     className="rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 font-semibold transition-all shadow-lg hover:from-blue-500 hover:to-purple-500 hover:shadow-xl"
                   >
-                    Iniciar Videoconsulta
+                    Ingresar a Videoconsulta
                   </button>
                 </div>
               </div>
