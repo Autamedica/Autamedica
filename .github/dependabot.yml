@@ -1,8 +1,0 @@
-# Dependabot disabled - causing deployment congestion
-# version: 2
-# updates:
-#   - package-ecosystem: "npm"
-#     directory: "/"
-#     schedule:
-#       interval: "weekly"
-#     open-pull-requests-limit: 10
