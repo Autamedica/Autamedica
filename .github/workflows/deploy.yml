@@ -1,47 +1,37 @@
-name: Production Build and Deploy
+name: Production Deploy
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-permissions: write-all
-
-env:
-  NODE_VERSION: '20'
-  PNPM_VERSION: '9.15.2'
+permissions:
+  contents: write
+  actions: write
 
 jobs:
-  validate:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "OK"
-
-  build-pages:
-    runs-on: ubuntu-latest
-    needs: validate
-    strategy:
-      matrix:
-        app: [web]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
-          version: latest
-      - uses: actions/setup-node@v4
+          version: 9.15.2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
-      - run: pnpm build:packages:core
-      - name: Build app
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Build packages
+        run: pnpm build:packages:core
+      - name: Build web app
         run: pnpm --filter @autamedica/web build
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Install Wrangler
-        run: npm install -g wrangler@latest
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
