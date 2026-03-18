@@ -6,7 +6,6 @@ import PremiumNarrative from '../components/PremiumNarrative.astro';
 import ProductShowcase from '../components/ProductShowcase.astro';
 import DoctorDirectory from '../components/DoctorDirectory.astro';
 import SymptomChecker from '../components/SymptomChecker';
-import Portals from '../components/Portals.astro';
 import HorizontalScroll from '../components/HorizontalScroll';
 import Process from '../components/Process.astro';
 import Testimonials from '../components/Testimonials.astro';
@@ -52,13 +51,7 @@ const {
       </div>
     </section>
 
-    <!-- Desktop: scroll horizontal con GSAP. Mobile: fallback a cards estáticas -->
-    <div class="desktop-only">
-      <HorizontalScroll client:visible />
-    </div>
-    <div class="mobile-only">
-      <Portals />
-    </div>
+    <HorizontalScroll client:visible />
 
     <Process />
     <Testimonials />
@@ -110,9 +103,8 @@ const {
   };
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
-  if (reduced || isMobile) {
+  if (reduced) {
     revealWithoutMotion();
   } else {
     const initAnimations = async () => {
@@ -248,24 +240,7 @@ const {
         );
       }
 
-      const handled = new Set<Element>();
-      document.querySelectorAll(
-        '.showcase-header, .directory-header, .process-header, .testimonials-header, ' +
-        '.showcase-row, .doctor-card, .value-card, .step, .testimonial-card, .cta-inner, .symptom-header'
-      ).forEach((el) => handled.add(el));
-
-      document.querySelectorAll('.animate-on-scroll').forEach((el) => {
-        if (handled.has(el)) return;
-        gsap.fromTo(el,
-          { opacity: 0, y: 25 },
-          {
-            opacity: 1, y: 0,
-            duration: 0.7,
-            ease: 'power2.out',
-            scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
-          }
-        );
-      });
+      // .animate-on-scroll genéricos manejados por CSS Scroll-Driven Animations
     };
 
     const boot = () => {

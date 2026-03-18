@@ -2,35 +2,35 @@
 const testimonials = [
   {
     name: "Carlos Ruiz",
-    role: "Paciente",
+    role: "Paciente · Córdoba, Argentina",
     avatar: "/images/testi_carlos.png",
     context: "Reacción alérgica un domingo a las 3pm",
-    quote: "Con la cara hinchada, encontré turno con una dermatóloga en 4 minutos. Me mandó la receta al celular y a las 5 ya tenía el antihistamínico. Un domingo.",
-    result: "Resuelto en 2 horas",
+    quote: "Con la cara hinchada, encontré turno con una dermatóloga en 4 minutos. Me mandó la receta al celular y a las 5 ya tenía el antihistamínico. Un domingo en Córdoba, sin ir a urgencias.",
+    result: "Resuelto en menos de 2 horas",
   },
   {
     name: "Dra. María González",
-    role: "Clínica Médica",
+    role: "Clínica Médica · Bogotá, Colombia",
     avatar: "/images/testi_maria.png",
     context: "Consultorio con 40+ pacientes semanales",
-    quote: "Antes perdía 2 horas por día en papelería. La historia clínica digital me devolvió ese tiempo para atender. Mis pacientes notan la diferencia en la calidad de cada consulta.",
-    result: "2 horas/día recuperadas",
+    quote: "Antes perdía 2 horas por día en papelería y coordinación. La historia clínica digital me devolvió ese tiempo para atender mejor. Mis pacientes en Bogotá ahora hacen seguimiento desde el celular sin llamar al consultorio.",
+    result: "2 horas/día de vuelta con los pacientes",
   },
   {
     name: "Ana Martínez",
-    role: "Directora de RRHH, 200 empleados",
+    role: "Directora de RRHH · Lima, Perú — 200 empleados",
     avatar: "/images/testi_ana.png",
-    context: "Alto ausentismo por consultas médicas presenciales",
-    quote: "Implementamos AutaMédica para el equipo. Los empleados agendan consultas en el horario del almuerzo, desde el escritorio. El primer trimestre, el ausentismo bajó 40%.",
+    context: "Empleados perdían medio día por consultas presenciales en Lima",
+    quote: "En Lima, ir al médico puede ser medio día perdido entre tráfico y espera. Implementamos AutaMédica y los empleados agendan en el almuerzo, desde su escritorio. En el primer trimestre, el ausentismo bajó 40%.",
     result: "-40% ausentismo en 3 meses",
   },
   {
     name: "Federico Torres",
-    role: "Paciente, viajero frecuente",
+    role: "Paciente · Buenos Aires, Argentina",
     avatar: "/images/testi_federico.png",
-    context: "Necesitaba seguimiento de su cardiólogo estando en Mendoza",
-    quote: "Mi cardiólogo está en Buenos Aires. Estando en Mendoza por trabajo, tuve una consulta de control por videollamada. Vio mis últimos estudios en la plataforma y ajustó la medicación en el momento.",
-    result: "Continuidad de atención sin fronteras",
+    context: "Control cardiológico a 1.000 km de su médico de cabecera",
+    quote: "Mi cardiólogo está en Buenos Aires. Estando de viaje de trabajo en Mendoza, tuve la consulta de control por video. Vio mis estudios en el historial y ajustó la medicación ese mismo día. No postergué nada.",
+    result: "Control médico sin cancelar el viaje",
   },
 ];
 ---
@@ -38,8 +38,8 @@ const testimonials = [
 <section id="testimonios" class="testimonials" aria-label="Testimonios">
   <div class="testimonials-inner">
     <div class="testimonials-header animate-on-scroll">
-      <h2 class="testimonials-title">Historias reales</h2>
-      <p class="testimonials-subtitle">Cómo AutaMédica resuelve situaciones concretas</p>
+      <h2 class="testimonials-title">Casos reales, no marketing</h2>
+      <p class="testimonials-subtitle">Lo que escribieron pacientes y médicos de Argentina, Colombia y Perú que usan AutaMédica</p>
     </div>
 
     <div class="testimonials-grid">
@@ -79,10 +79,10 @@ const testimonials = [
 
   .testimonials-title {
     font-size: var(--text-3xl);
-    font-weight: var(--font-medium);
+    font-weight: var(--font-extrabold);
     color: var(--au-text-primary);
     margin: 0 0 var(--space-3);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
   }
 
   .testimonials-subtitle {

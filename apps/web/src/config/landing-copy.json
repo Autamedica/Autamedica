@@ -3,21 +3,21 @@
   "variants": {
     "a": {
       "seo": {
-        "title": "Consulta médica online en 15 minutos | AutaMedica",
-        "description": "Consulta médica online, telemedicina para empresas y portal para médicos. Agenda inmediata, receta digital y seguimiento clínico en AutaMedica."
+        "title": "Consulta médica online hoy | AutaMédica",
+        "description": "Conectate con un médico verificado en menos de 15 minutos. Receta digital, seguimiento clínico y sin salas de espera. Disponible en Argentina, Colombia, Perú y más."
       },
       "hero": {
-        "badge": "Plataforma HIPAA-compliant",
-        "title": "Atención médica,\nsin salas de espera.",
-        "subtitle": "Una consulta de guardia puede tomar 3 horas entre traslados. Una videoconsulta, 15 minutos.",
-        "primaryCtaLabel": "Descubrir la plataforma",
+        "badge": "Telemedicina hecha para LATAM",
+        "title": "Tu médico,\nsin salas de guardia.",
+        "subtitle": "En Argentina, Colombia y Perú, una guardia puede demorar 4 horas. En AutaMédica, la consulta empieza cuando vos querés.",
+        "primaryCtaLabel": "Buscar un médico ahora",
         "primaryCtaHref": "#portales",
-        "secondaryCtaLabel": "Acceder a mi perfil",
+        "secondaryCtaLabel": "Ya tengo cuenta",
         "secondaryCtaHref": "/auth/select-role",
         "metrics": [
-          { "value": "15 min", "label": "tiempo promedio" },
-          { "value": "0", "label": "salas de espera" },
-          { "value": "94%", "label": "casos resueltos" }
+          { "value": "< 15 min", "label": "hasta hablar con un médico" },
+          { "value": "6 países", "label": "AR · CO · PE · MX · EC · CL" },
+          { "value": "94%", "label": "consultas resueltas sin guardia" }
         ],
         "roleQuickAccess": [
           {
@@ -42,28 +42,28 @@
       },
       "cta": {
         "title": "los médicos\nestán acá.",
-        "subtitle": "Consultas médicas remotas en Full HD. Infraestructura de atención disponible 24/7.",
-        "buttonLabel": "Acceder a la plataforma",
+        "subtitle": "Más de 150 profesionales matriculados disponibles hoy. Sin traslados, sin salas de espera.",
+        "buttonLabel": "Reservar mi consulta",
         "buttonHref": "/auth/select-role"
       }
     },
     "b": {
       "seo": {
-        "title": "Hablá con un médico ahora | AutaMedica",
-        "description": "Consulta online en minutos con receta digital y seguimiento clínico. Telemedicina inmediata para pacientes, médicos y empresas."
+        "title": "Hablá con un médico hoy | AutaMédica",
+        "description": "Consulta médica online en minutos, con receta digital y seguimiento. Médicos verificados en Argentina, Colombia y Perú. Sin turno, sin traslado."
       },
       "hero": {
-        "badge": "Atención médica disponible 24/7",
-        "title": "Consulta online en 15 minutos,\ncon receta digital.",
-        "subtitle": "Hablá con un médico ahora, sin traslados y con seguimiento clínico desde tu perfil.",
-        "primaryCtaLabel": "Reservar mi consulta",
+        "badge": "Disponible en Argentina, Colombia y Perú",
+        "title": "Consulta médica hoy,\nno la semana que viene.",
+        "subtitle": "Encontrá turno en minutos con un médico certificado. Receta digital al celular. Sin salir de casa.",
+        "primaryCtaLabel": "Quiero mi consulta",
         "primaryCtaHref": "/auth/select-role",
         "secondaryCtaLabel": "Ver cómo funciona",
-        "secondaryCtaHref": "#necesidades",
+        "secondaryCtaHref": "#proceso",
         "metrics": [
-          { "value": "15 min", "label": "inicio promedio" },
-          { "value": "24/7", "label": "atención remota" },
-          { "value": "94%", "label": "resolución de casos" }
+          { "value": "< 15 min", "label": "para conectar con un médico" },
+          { "value": "24/7", "label": "incluso feriados y fines de semana" },
+          { "value": "94%", "label": "casos resueltos sin ir a guardia" }
         ],
         "roleQuickAccess": [
           {
@@ -88,8 +88,8 @@
       },
       "cta": {
         "title": "tu consulta\nempieza hoy.",
-        "subtitle": "Agendá en minutos y recibí indicaciones clínicas sin esperar en una guardia.",
-        "buttonLabel": "Quiero mi primera consulta",
+        "subtitle": "Agendá ahora y recibí la receta digital en tu celular. Sin esperar en una guardia.",
+        "buttonLabel": "Empezar ahora",
         "buttonHref": "/auth/select-role"
       }
     }

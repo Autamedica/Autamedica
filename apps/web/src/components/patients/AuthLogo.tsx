@@ -1,4 +1,5 @@
-import Image from 'next/image';
+// AuthLogo.tsx
+import React from 'react';
 
 interface AuthLogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -41,13 +42,12 @@ export function AuthLogo({ size = 'md' }: AuthLogoProps) {
       justify-center
       overflow-hidden
     `}>
-      <Image
-        src="/autamedica-logo.png"
+      <img
+        src="/images/brand/logo_neon.png"
         alt="AUTAMEDICA Logo"
         width={dimension}
         height={dimension}
         className="object-contain rounded-full"
-        priority
       />
     </div>
   );

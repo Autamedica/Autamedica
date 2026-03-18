@@ -57,7 +57,8 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
     <meta name="publisher" content="AutaMedica" />
 
     <!-- Favicon -->
-    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/images/brand/app_icon_glass.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/images/brand/app_icon_glass.png" />
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
@@ -68,6 +69,29 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
 
     <!-- Structured Data -->
     <StructuredData />
+
+    <!-- View Transitions API: transiciones cinematicas entre páginas -->
+    <meta name="view-transition" content="same-origin" />
+
+    <!-- Speculation Rules API: pre-renderiza páginas probables antes del click -->
+    <script type="speculationrules" is:inline>
+      {
+        "prerender": [
+          {
+            "where": {
+              "href_matches": ["/patients", "/doctors", "/companies", "/auth/login", "/auth/register"]
+            },
+            "eagerness": "moderate"
+          }
+        ],
+        "prefetch": [
+          {
+            "where": { "href_matches": "/*" },
+            "eagerness": "conservative"
+          }
+        ]
+      }
+    </script>
   </head>
   <body class="antialiased">
     <ScrollProgress />

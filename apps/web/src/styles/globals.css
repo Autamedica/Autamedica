@@ -33,6 +33,8 @@
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
 
   /* Colors — refined dark palette */
   --au-bg: #09090b;
@@ -48,16 +50,18 @@
   --au-text-secondary: #a1a1aa;
   --au-text-tertiary: #71717a;
 
-  --au-accent: #e4e4e7;
-  --au-accent-soft: rgba(228, 228, 231, 0.08);
+  /* Accent: cyan vibrante (Resend/Supabase style) */
+  --au-accent: #22d3ee;
+  --au-accent-soft: rgba(34, 211, 238, 0.10);
+  --au-accent-glow: rgba(34, 211, 238, 0.18);
   --au-success: #22c55e;
   --au-warning: #f59e0b;
   --au-danger: #ef4444;
 
-  /* Portal colors */
-  --portal-patients: #10b981;
-  --portal-doctors: #3b82f6;
-  --portal-companies: #f59e0b;
+  /* Portal colors — saturación +20% */
+  --portal-patients: #00d68f;
+  --portal-doctors: #0ea5e9;
+  --portal-companies: #f97316;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -90,6 +94,7 @@
   --blur-md: blur(16px);
   --blur-lg: blur(24px);
   --shadow-glow: 0 0 60px rgba(255, 255, 255, 0.04);
+  --shadow-glow-accent: 0 0 80px rgba(34, 211, 238, 0.15);
 }
 
 /* ═══════════════════════════════════════════
@@ -114,7 +119,7 @@ body {
 }
 
 ::selection {
-  background: rgba(228, 228, 231, 0.25);
+  background: rgba(34, 211, 238, 0.20);
   color: var(--au-text-primary);
 }
 
@@ -129,27 +134,40 @@ a {
 }
 
 /* ═══════════════════════════════════════════
-   GSAP ScrollTrigger animations — initial state
-   Elements start hidden; GSAP animates them in.
+   Scroll-Driven Animations (CSS nativo)
+   Desktop: CSS maneja .animate-on-scroll genéricos;
+            GSAP maneja stagger/slides (sus inline
+            styles tienen precedencia sobre CSS).
+   Mobile:  CSS maneja todo .animate-on-scroll.
+   Fallback: opacity:1 visible (sin animación).
    ═══════════════════════════════════════════ */
+
+@keyframes au-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Fallback: visible para browsers sin soporte */
 .animate-on-scroll {
-  opacity: 0;
+  opacity: 1;
+}
+
+/* CSS Scroll-Driven Animation cuando está soportado */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-on-scroll {
+      animation: au-fade-up linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 25%;
+    }
+  }
 }
 
 /* Desktop/Mobile toggle */
 .desktop-only { display: none; }
-.mobile-only { display: block; }
+.mobile-only  { display: block; }
 
 @media (min-width: 1025px) {
   .desktop-only { display: block; }
-  .mobile-only { display: none; }
-}
-
-/* Reduced motion — GSAP script also checks and skips animations */
-@media (prefers-reduced-motion: reduce) {
-  .animate-on-scroll {
-    opacity: 1 !important;
-  }
-  .desktop-only { display: none !important; }
-  .mobile-only { display: block !important; }
+  .mobile-only  { display: none; }
 }

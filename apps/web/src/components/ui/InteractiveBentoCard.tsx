@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface InteractiveBentoCardProps {
   title: string;
@@ -20,7 +20,22 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
   isLarge = false,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    // Force play on mobile where autoplay may be blocked
+    const tryPlay = () => {
+      video.play().catch(() => {
+        // Silently ignore — browser policy blocks autoplay in this context
+      });
+    };
+    tryPlay();
+    video.addEventListener('pause', tryPlay);
+    return () => video.removeEventListener('pause', tryPlay);
+  }, [videoSrc]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -50,11 +65,14 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
           <div className="absolute inset-0 z-0">
             {videoSrc ? (
               <video
+                ref={videoRef}
                 src={videoSrc}
                 autoPlay
                 muted
                 loop
                 playsInline
+                disablePictureInPicture
+                preload="auto"
                 className="h-full w-full object-cover opacity-[0.35] transition-opacity duration-700 group-hover:opacity-[0.55]"
               />
             ) : (

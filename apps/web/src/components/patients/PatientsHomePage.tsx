@@ -47,7 +47,7 @@ export default function PatientsHomePage() {
       <div className="flex flex-1 flex-col overflow-y-auto">
         <div className="relative overflow-hidden border-b border-white/40 bg-white/60 px-8 py-10 backdrop-blur-xl">
           <img 
-            src="/images/portal_patient.png" 
+            src="/portals/portal-pacientes.webp"
             alt="" 
             className="absolute right-0 top-0 h-full w-1/3 object-cover opacity-10 mix-blend-multiply transition-opacity duration-1000" 
             aria-hidden="true"
