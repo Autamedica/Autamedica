@@ -42,7 +42,12 @@ type ControlButtonProps = {
 
 import { getPatientDisplayName } from '@/utils/patientDisplay'
 
-function getPatientAge(patient: any): string {
+interface PatientWithBirthDate {
+  birthDate?: string | Date | null | unknown;
+  [key: string]: unknown;
+}
+
+function getPatientAge(patient: PatientWithBirthDate | null | undefined): string {
   if (!patient || !patient.birthDate) {
     return '—'
   }

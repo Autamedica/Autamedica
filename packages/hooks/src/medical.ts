@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
+// Use a minimal duck-type interface to avoid SupabaseClient version incompatibilities
+type AnySupabaseClient = { from: (table: string) => unknown; auth: { getUser: () => Promise<unknown> } };
 import type { Patient, Appointment, AppointmentWithDetails } from "@autamedica/types";
 import { logger } from '@autamedica/shared';
 
@@ -9,7 +10,7 @@ import { logger } from '@autamedica/shared';
  * Hook para obtener pacientes del doctor actual
  * Requiere cliente de Supabase con sesión activa
  */
-export function usePatients(supabaseClient?: SupabaseClient) {
+export function usePatients(supabaseClient?: AnySupabaseClient | null) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export function usePatients(supabaseClient?: SupabaseClient) {
  * Hook para obtener citas del doctor actual
  * Requiere cliente de Supabase con sesión activa
  */
-export function useAppointments(supabaseClient?: SupabaseClient, doctorId?: string) {
+export function useAppointments(supabaseClient?: AnySupabaseClient | null, doctorId?: string) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export function useAppointments(supabaseClient?: SupabaseClient, doctorId?: stri
  * Hook para obtener citas con detalles de paciente y doctor
  * Realiza join con tablas relacionadas
  */
-export function useAppointmentsWithDetails(supabaseClient?: SupabaseClient, doctorId?: string) {
+export function useAppointmentsWithDetails(supabaseClient?: AnySupabaseClient | null, doctorId?: string) {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
