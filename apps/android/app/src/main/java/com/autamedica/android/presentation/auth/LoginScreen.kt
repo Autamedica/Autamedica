@@ -349,7 +349,7 @@ private fun WelcomeHeroCard() {
             }
 
             Text(
-                text = "Un solo lugar para ingresar a tu consulta, gestionar turnos y mantener el seguimiento clinico sin friccion.",
+                text = stringResource(com.autamedica.android.R.string.welcome_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = AuTextSecondary,
             )
@@ -360,29 +360,29 @@ private fun WelcomeHeroCard() {
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                WelcomeTagChip(label = "Turnos inteligentes")
-                WelcomeTagChip(label = "Videollamada segura")
-                WelcomeTagChip(label = "Historial conectado")
+                WelcomeTagChip(label = stringResource(com.autamedica.android.R.string.welcome_tag_appointments))
+                WelcomeTagChip(label = stringResource(com.autamedica.android.R.string.welcome_tag_videocall))
+                WelcomeTagChip(label = stringResource(com.autamedica.android.R.string.welcome_tag_history))
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 WelcomeFeatureRow(
                     icon = Icons.Outlined.CalendarMonth,
                     iconTint = PortalDoctors,
-                    title = "Agenda clara",
-                    description = "Revisa disponibilidad, recordatorios y proximos pasos sin salir del flujo.",
+                    title = stringResource(com.autamedica.android.R.string.welcome_feature_agenda_title),
+                    description = stringResource(com.autamedica.android.R.string.welcome_feature_agenda_desc),
                 )
                 WelcomeFeatureRow(
                     icon = Icons.Default.Videocam,
                     iconTint = PortalPatients,
-                    title = "Consulta inmediata",
-                    description = "Entra a tu videoconsulta apenas la sala este habilitada desde tu turno.",
+                    title = stringResource(com.autamedica.android.R.string.welcome_feature_consultation_title),
+                    description = stringResource(com.autamedica.android.R.string.welcome_feature_consultation_desc),
                 )
                 WelcomeFeatureRow(
                     icon = Icons.Outlined.MedicalServices,
                     iconTint = AuAccent,
-                    title = "Seguimiento continuo",
-                    description = "Perfil, salud preventiva y mensajes en una experiencia pensada para mobile.",
+                    title = stringResource(com.autamedica.android.R.string.welcome_feature_followup_title),
+                    description = stringResource(com.autamedica.android.R.string.welcome_feature_followup_desc),
                 )
             }
         }

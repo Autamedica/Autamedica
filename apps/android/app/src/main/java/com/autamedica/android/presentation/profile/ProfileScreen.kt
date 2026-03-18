@@ -335,7 +335,7 @@ private fun ProfileEditCard(
         OutlinedTextField(
             value = uiState.firstName,
             onValueChange = onFirstNameChange,
-            label = { Text("Nombre") },
+            label = { Text(stringResource(R.string.profile_name_label)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
@@ -347,7 +347,7 @@ private fun ProfileEditCard(
         OutlinedTextField(
             value = uiState.lastName,
             onValueChange = onLastNameChange,
-            label = { Text("Apellido") },
+            label = { Text(stringResource(R.string.profile_last_name_label)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
@@ -359,7 +359,7 @@ private fun ProfileEditCard(
         OutlinedTextField(
             value = uiState.phone,
             onValueChange = onPhoneChange,
-            label = { Text("Telefono") },
+            label = { Text(stringResource(R.string.profile_phone_label)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(14.dp),

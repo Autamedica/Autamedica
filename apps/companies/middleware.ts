@@ -14,10 +14,11 @@ const PUBLIC_ROUTES = [
   '/public',
   '/api/health',
   '/manifest.webmanifest',
+  '/auth/callback',
 ];
 
 // Allowed roles for companies portal
-const ALLOWED_ROLES = ['company_admin', 'organization_admin', 'platform_admin'];
+const ALLOWED_ROLES = ['company', 'company_admin', 'organization_admin', 'platform_admin'];
 const ROBOTS_TAG_VALUE = 'noindex, nofollow, noarchive, nosnippet, noimageindex';
 
 function withNoIndex(response: NextResponse): NextResponse {

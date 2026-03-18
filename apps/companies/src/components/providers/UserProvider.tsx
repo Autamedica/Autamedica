@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { createBrowserClient } from '@autamedica/auth/client';
 import { logger } from '@autamedica/shared';
 import type { MemberRole } from '@autamedica/shared';
-import type { AppSupabaseClient } from '@autamedica/supabase-client';
 
 interface UserContextValue {
   companyName: string;
@@ -41,7 +40,7 @@ export function UserProvider({ children }: UserProviderProps) {
           return;
         }
 
-        const supabase = createBrowserClient() as AppSupabaseClient;
+        const supabase = createBrowserClient();
 
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {

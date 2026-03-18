@@ -103,14 +103,16 @@ object NotificationHelper {
             .setContentIntent(contentIntent)
             .setPriority(
                 if (payload.type == NotificationType.APPOINTMENT_NEW ||
-                    payload.type == NotificationType.PATIENT_CONNECTED
+                    payload.type == NotificationType.PATIENT_CONNECTED ||
+                    payload.type == NotificationType.CALL_STARTED
                 ) NotificationCompat.PRIORITY_HIGH
                 else NotificationCompat.PRIORITY_DEFAULT,
             )
 
         // Category hint for system
         when (payload.type) {
-            NotificationType.PATIENT_CONNECTED -> builder.setCategory(NotificationCompat.CATEGORY_CALL)
+            NotificationType.PATIENT_CONNECTED,
+            NotificationType.CALL_STARTED -> builder.setCategory(NotificationCompat.CATEGORY_CALL)
             NotificationType.MESSAGE_NEW -> builder.setCategory(NotificationCompat.CATEGORY_MESSAGE)
             NotificationType.APPOINTMENT_REMINDER -> builder.setCategory(NotificationCompat.CATEGORY_REMINDER)
             else -> builder.setCategory(NotificationCompat.CATEGORY_EVENT)

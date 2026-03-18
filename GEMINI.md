@@ -431,6 +431,24 @@ try {
 
 Tu objetivo no es "escribir código rápido", es **construir sistemas robustos para telemedicina**. Errores en datos médicos tienen consecuencias reales.
 
+#### 0. RAZONAMIENTO PROFUNDO (Obligatorio en Tareas Críticas)
+
+Cuando el usuario solicite implementaciones que toquen datos médicos (HIPAA/Argentina), migraciones destructivas de DB médica, integraciones financieras o interpretaciones regulatorias, el agente DEBE:
+
+1. Activar su "Cadena de Pensamiento" interna (Self-Reflection).
+2. Dudar de su primera respuesta inmediatamente.
+3. Ejecutar sub-búsquedas en la web o en el código interno (`search_web`, `grep_search`) para validar regulaciones (Ley 26.529, HIPAA) e impactos técnicos.
+4. Redactar una respuesta, criticarla internamente (foco en privacidad/seguridad) y solo imprimir al usuario la versión final validada y contrastada.
+
+#### 0.5 PROGRAMACIÓN ESTRUCTURAL DE ALTO RAZONAMIENTO
+
+Antes de escribir o modificar código (Astro, Next.js, Edge Functions, React Islands o DB), el agente DEBE:
+
+1. **Analizar el "Efecto Dominó"**: Prohibido escribir o modificar líneas aisladas sin entender el todo.
+2. **Contexto Paralelo Obligatorio**: Usar masivamente `view_file` y `grep_search` para rastrear dependencias cruzadas, RLS policies entre pacientes/doctores, y la propagación de tipos compartidos (`@autamedica/types`).
+3. **Auditoría Mental Médica**: Simular cómo el código reaccionaría: a) si el API falla, b) si un rol no autorizado intenta verlo, c) si hay datos nulos de historias clínicas.
+4. Garantizar 0 deuda técnica y compatibilidad nativa con la arquitectura Turborepo antes de modificar cualquier archivo.
+
 #### 1. PROHIBIDO SER PEREZOSO (Zero Laziness)
 
 - **Lectura Profunda:** No leas solo el archivo que vas a editar. Lee sus importaciones, tipos, y los archivos que lo invocan.
@@ -626,3 +644,46 @@ Si hay conflicto entre este documento y otros, prevalece:
 2. `AGENTS-2.md` (hardening técnico detallado)
 3. `CLAUDE.md` (filosofía y contexto compacto)
 4. Este `GEMINI.md` (contexto extendido y flujos)
+
+---
+
+## 20. Android Studio Playbook (Productivity & Performance 2025)
+
+> **Mandato para agentes y desarrolladores operando en entornos nativos/Android Studio.**
+
+### 1. Hardening de Rendimiento (Linux/Ubuntu)
+
+- **Memoria RAM (VM Options):** Android Studio debe ejecutar con un mínimo de 4GB (`-Xmx4096m`) en `studio64.vmoptions`. NUNCA usar la configuración por defecto de 1.2GB.
+- **Gradle Optimizado:** El archivo `~/.gradle/gradle.properties` DEBE incluir:
+  ```properties
+  org.gradle.daemon=true
+  org.gradle.parallel=true
+  org.gradle.caching=true
+  org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
+  ```
+
+### 2. Ecosistema de Plugins Requerido
+
+No se permite programar "a ciegas". La suite mínima de productividad es:
+
+- **Key Promoter X:** Entrenamiento obligatorio de atajos (Prohibido usar el mouse para acciones que tienen shortcut).
+- **JSON To Kotlin Class:** Para parsear respuestas de APIs sin errores tipográficos.
+- **CodeGlance Pro:** Minimapa lateral (estilo VS Code) para navegar archivos extensos de Compose o XML.
+- **ADB Idea:** Para limpiar caché y desinstalar apps rápidamente.
+
+### 3. Ajustes de Flujo de Trabajo (Settings)
+
+- **Auto-Import:** Activar "Add unambiguous imports on the fly" y "Optimize imports on the fly" para no lidiar con `Alt + Enter` en cada clase.
+- **Inlay Hints (Kotlin):** Obligatorio activar visualización de tipos de variables y retornos de lambdas para legibilidad.
+- **Wireless Debugging:** En 2025 es mandatorio usar la conexión WiFi nativa del IDE ("Pair Devices Using Wi-Fi") sobre la conexión por cable para testeo en dispositivos físicos.
+
+### 4. Integración Nativa con Gemini (Superpoderes)
+
+Para aprovechar al máximo el ecosistema de Google dentro del IDE:
+
+- **Asistente de Crash (Logcat):** Cuando la app explota, usar el botón "Ask Gemini" en el Logcat. Analiza el stacktrace y el código local para dar la solución exacta sin salir del IDE.
+- **Generación de UI (Compose):** Usar el chat lateral para pedir componentes específicos de Material 3 ("Crea una Card con imagen circular a la izquierda...").
+- **Explain This Code:** Seleccionar bloques complejos heredados, clic derecho -> "Gemini -> Explain this code" para ingeniería inversa rápida.
+- **Generación de Tests:** Seleccionar lógica de negocio, clic derecho -> "Gemini -> Generate Unit Tests" para crear cobertura automática (JUnit/MockK).
+- **Documentación KDoc:** Generar comentarios de funciones instantáneamente (clic derecho -> "Gemini -> Add documentation").
+- _Nota:_ Asegurar que el "Context Sharing" esté activado en la ventana de chat del IDE para que Gemini lea el código local.

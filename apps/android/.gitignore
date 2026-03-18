@@ -16,3 +16,8 @@ screenshot*.png
 /io/
 /keystore/
 *.keystore
+*.jks
+*.b64
+keystore/
+keystore.properties
+google-services.json

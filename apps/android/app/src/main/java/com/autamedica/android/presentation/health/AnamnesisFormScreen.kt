@@ -122,7 +122,7 @@ fun AnamnesisFormScreen(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onBack) { Text("Volver") }
+                        Button(onClick = onBack) { Text(stringResource(com.autamedica.android.R.string.common_back)) }
                     }
                 }
             }
@@ -285,7 +285,7 @@ private fun AnamnesisFormContent(
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = AuTextSecondary),
                             border = BorderStroke(1.dp, AuBorder),
                         ) {
-                            Text("Anterior")
+                            Text(stringResource(com.autamedica.android.R.string.common_previous))
                         }
                     } else {
                         Spacer(modifier = Modifier.width(1.dp))
@@ -312,7 +312,7 @@ private fun AnamnesisFormContent(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
-                            Text("Enviar Anamnesis", color = Color.White)
+                            Text(stringResource(com.autamedica.android.R.string.health_submit_anamnesis), color = Color.White)
                         }
                     } else {
                         Button(
@@ -330,9 +330,9 @@ private fun AnamnesisFormContent(
                             }
                             Text(
                                 text = when {
-                                    uiState.isLastSection && uiState.hasUnsavedChanges -> "Guardar cambios"
-                                    uiState.isLastSection -> "Guardar"
-                                    else -> "Siguiente"
+                                    uiState.isLastSection && uiState.hasUnsavedChanges -> stringResource(com.autamedica.android.R.string.common_save_changes)
+                                    uiState.isLastSection -> stringResource(com.autamedica.android.R.string.common_save)
+                                    else -> stringResource(com.autamedica.android.R.string.common_next)
                                 },
                                 color = Color.White,
                             )

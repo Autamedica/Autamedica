@@ -430,13 +430,13 @@ private fun PriorityActionCard(
                 }
             } else {
                 Text(
-                    text = "No tienes consultas proximas cargadas.",
+                    text = stringResource(com.autamedica.android.R.string.dashboard_no_upcoming_appointments),
                     style = MaterialTheme.typography.titleLarge,
                     color = AuTextPrimary,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Revisa tu agenda para preparar una consulta o confirmar si necesitas seguimiento clinico.",
+                    text = stringResource(com.autamedica.android.R.string.dashboard_no_upcoming_appointments_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                 )
@@ -449,7 +449,7 @@ private fun PriorityActionCard(
                         contentColor = AuBackground,
                     ),
                 ) {
-                    Text("Abrir mis turnos", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(com.autamedica.android.R.string.dashboard_open_appointments), fontWeight = FontWeight.SemiBold)
                 }
             }
         }

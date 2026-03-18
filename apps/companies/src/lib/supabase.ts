@@ -1,10 +1,11 @@
 'use client'
 
-import {
-  AppSupabaseClient,
-  getOptionalSupabaseBrowserClient,
-} from '@autamedica/supabase-client'
+import { createBrowserClient } from '@autamedica/auth/client'
 
-export function createClient(): AppSupabaseClient | null {
-  return getOptionalSupabaseBrowserClient()
+export function createClient(): ReturnType<typeof createBrowserClient> | null {
+  try {
+    return createBrowserClient()
+  } catch {
+    return null
+  }
 }

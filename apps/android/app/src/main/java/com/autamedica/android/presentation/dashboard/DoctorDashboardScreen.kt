@@ -332,12 +332,12 @@ private fun DoctorTelemedicineCard(
                         contentColor = Color.White,
                     ),
                 ) {
-                    Text("Iniciar videoconsulta", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(com.autamedica.android.R.string.doctor_dashboard_start_call), fontWeight = FontWeight.SemiBold)
                 }
             } else if (candidateAppointment != null) {
                 Text(
                     text = validationError
-                        ?: "Hay un turno compatible con video. Podes encender tu camara y esperar aunque el paciente todavia no se conecte.",
+                        ?: stringResource(com.autamedica.android.R.string.doctor_dashboard_waiting_room_hint),
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                 )
@@ -350,11 +350,11 @@ private fun DoctorTelemedicineCard(
                         contentColor = Color.White,
                     ),
                 ) {
-                    Text("Abrir sala de espera", fontWeight = FontWeight.Medium)
+                    Text(stringResource(com.autamedica.android.R.string.doctor_dashboard_open_waiting_room), fontWeight = FontWeight.Medium)
                 }
             } else {
                 Text(
-                    text = "No hay una videoconsulta activa, pero igual podes probar tu camara desde la app.",
+                    text = stringResource(com.autamedica.android.R.string.doctor_dashboard_no_active_call),
                     style = MaterialTheme.typography.bodyMedium,
                     color = AuTextSecondary,
                 )
@@ -367,7 +367,7 @@ private fun DoctorTelemedicineCard(
                         contentColor = Color.White,
                     ),
                 ) {
-                    Text("Probar mi camara", fontWeight = FontWeight.Medium)
+                    Text(stringResource(com.autamedica.android.R.string.doctor_dashboard_test_camera), fontWeight = FontWeight.Medium)
                 }
             }
         }

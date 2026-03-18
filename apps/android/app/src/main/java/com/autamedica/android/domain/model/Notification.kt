@@ -8,6 +8,7 @@ enum class NotificationType(val channelId: String) {
     APPOINTMENT_REMINDER("autamedica_appointments"),
     APPOINTMENT_CANCELLED("autamedica_appointments"),
     PATIENT_CONNECTED("autamedica_calls"),
+    CALL_STARTED("autamedica_calls"),
     MESSAGE_NEW("autamedica_messages"),
     PRESCRIPTION_READY("autamedica_prescriptions"),
     GENERAL("autamedica_general");

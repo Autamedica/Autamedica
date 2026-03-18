@@ -210,13 +210,13 @@ fun LiveKitVideoCallScreen(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Button(onClick = viewModel::retry) {
-                        Text("Reintentar")
+                        Text(stringResource(com.autamedica.android.R.string.common_retry))
                     }
                     Button(onClick = onFallbackToLegacy) {
-                        Text("Usar modo actual")
+                        Text(stringResource(com.autamedica.android.R.string.videocall_use_current_mode))
                     }
                     Button(onClick = onCallEnd) {
-                        Text("Volver")
+                        Text(stringResource(com.autamedica.android.R.string.common_back))
                     }
                 }
             }
@@ -403,7 +403,7 @@ private fun LiveKitRoomContent(
                 },
                 modifier = Modifier.weight(1f),
             ) {
-                Text("Colgar")
+                Text(stringResource(com.autamedica.android.R.string.videocall_hang_up))
             }
         }
 
@@ -421,7 +421,7 @@ private fun LiveKitRoomContent(
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Button(onClick = onFallbackToLegacy) {
-                    Text("Usar modo actual")
+                    Text(stringResource(com.autamedica.android.R.string.videocall_use_current_mode))
                 }
             }
         }

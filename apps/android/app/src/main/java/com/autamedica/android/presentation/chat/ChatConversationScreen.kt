@@ -165,7 +165,7 @@ fun ChatConversationScreen(
                 onValueChange = { inputText = it },
                 modifier = Modifier.weight(1f),
                 placeholder = {
-                    Text("Escribir mensaje...", color = AuTextTertiary, fontSize = 14.sp)
+                    Text(stringResource(com.autamedica.android.R.string.chat_input_placeholder), color = AuTextTertiary, fontSize = 14.sp)
                 },
                 singleLine = false,
                 maxLines = 4,

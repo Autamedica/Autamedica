@@ -1,6 +1,6 @@
 "use client"
 
-import { getPatientDisplayName } from '@/app/page'
+import { getPatientDisplayName } from '@/utils/patientDisplay'
 import { AppointmentsPanel } from '@/components/appointments/AppointmentsPanel'
 import { DiagnosisPanel } from '@/components/diagnosis/DiagnosisPanel'
 import { MarketplacePanel } from '@/components/marketplace/MarketplacePanel'

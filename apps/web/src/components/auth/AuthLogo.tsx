@@ -28,7 +28,7 @@ export function AuthLogo({ size = 'md' }: AuthLogoProps) {
       overflow-hidden
     `}>
       <img
-        src="/images/brand/logo_neon.png"
+        src="/images/brand/logo_bioceramic.png"
         alt="AutaMedica"
         width={dimension}
         height={dimension}

@@ -33,4 +33,51 @@
     <string name="notification_end_call">Finalizar</string>
     <string name="notification_permission_title">Activar notificaciones</string>
     <string name="notification_permission_message">Recibiras avisos de nuevos turnos, mensajes y recetas</string>
+
+    <!-- Profile -->
+    <string name="profile_name_label">Nombre</string>
+    <string name="profile_last_name_label">Apellido</string>
+    <string name="profile_phone_label">Teléfono</string>
+
+    <!-- Chat -->
+    <string name="chat_input_placeholder">Escribir mensaje...</string>
+
+    <!-- Dashboards -->
+    <string name="doctor_dashboard_start_call">Iniciar videoconsulta</string>
+    <string name="doctor_dashboard_open_waiting_room">Abrir sala de espera</string>
+    <string name="doctor_dashboard_test_camera">Probar mi cámara</string>
+    <string name="doctor_dashboard_no_active_call">No hay consultas activas en este momento.</string>
+    <string name="doctor_dashboard_waiting_room_hint">Puedes iniciar la sala y esperar a que el paciente se conecte.</string>
+    <string name="dashboard_open_appointments">Abrir mis turnos</string>
+    <string name="dashboard_no_upcoming_appointments">No tienes consultas próximas.</string>
+    <string name="dashboard_no_upcoming_appointments_hint">Revisa tu agenda para confirmar si necesitas seguimiento clínico.</string>
+
+    <!-- Videocall & Permissions -->
+    <string name="permissions_grant">Conceder permisos</string>
+    <string name="common_back">Volver</string>
+    <string name="common_next">Siguiente</string>
+    <string name="common_save">Guardar</string>
+    <string name="common_save_changes">Guardar cambios</string>
+    <string name="common_retry_connection">Reintentar conexión</string>
+    <string name="common_try_connect">Intentar conectar</string>
+    <string name="common_retry">Reintentar</string>
+    <string name="videocall_use_current_mode">Usar modo actual</string>
+    <string name="videocall_hang_up">Colgar</string>
+
+    <!-- Health / Anamnesis -->
+    <string name="common_previous">Anterior</string>
+    <string name="health_submit_anamnesis">Enviar Anamnesis</string>
+    <string name="health_your_age">Tu edad</string>
+    <string name="health_age_example">Ej: 45</string>
+    <!-- Welcome / Hero -->
+    <string name="welcome_subtitle">Un solo lugar para ingresar a tu consulta, gestionar turnos y mantener el seguimiento clínico sin fricción.</string>
+    <string name="welcome_tag_appointments">Turnos inteligentes</string>
+    <string name="welcome_tag_videocall">Videollamada segura</string>
+    <string name="welcome_tag_history">Historial conectado</string>
+    <string name="welcome_feature_agenda_title">Agenda clara</string>
+    <string name="welcome_feature_agenda_desc">Revisa disponibilidad, recordatorios y próximos pasos sin salir del flujo.</string>
+    <string name="welcome_feature_consultation_title">Consulta inmediata</string>
+    <string name="welcome_feature_consultation_desc">Entra a tu videoconsulta apenas la sala esté habilitada desde tu turno.</string>
+    <string name="welcome_feature_followup_title">Seguimiento continuo</string>
+    <string name="welcome_feature_followup_desc">Perfil, salud preventiva y mensajes en una experiencia pensada para mobile.</string>
 </resources>

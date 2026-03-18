@@ -19,7 +19,7 @@ import {
   Database,
 } from 'lucide-react';
 import './globals.css';
-import { canManageCompany } from '@autamedica/shared';
+import { canManageTenantCompany as canManageCompany } from '@autamedica/shared';
 import { SessionSync } from '@/components/SessionSync';
 import { UserProvider, useUser } from '@/components/providers/UserProvider';
 
@@ -62,7 +62,7 @@ function LayoutContent({ children }: RootLayoutProps) {
     throw new Error('No hay perfiles configurados para el panel de compañías');
   }
 
-  const defaultProfile = profiles[0];
+  const defaultProfile = profiles[0] as NonNullable<(typeof profiles)[number]>;
 
   const sidebarItems = useMemo(() => {
     const allItems = [

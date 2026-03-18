@@ -125,10 +125,10 @@ fun VideoCallScreen(
                         )
                     },
                 ) {
-                    Text("Conceder permisos")
+                    Text(stringResource(com.autamedica.android.R.string.permissions_grant))
                 }
                 Button(onClick = onCallEnd) {
-                    Text("Volver")
+                    Text(stringResource(com.autamedica.android.R.string.common_back))
                 }
             }
         }
@@ -230,7 +230,7 @@ fun VideoCallScreen(
                                     textAlign = TextAlign.Center,
                                 )
                                 Button(onClick = viewModel::retryConnection) {
-                                    Text("Reintentar conexion")
+                                    Text(stringResource(com.autamedica.android.R.string.common_retry_connection))
                                 }
                             }
                         }
@@ -287,7 +287,7 @@ fun VideoCallScreen(
 
                 if (uiState.isWaitingRoom || uiState.connectionState == ConnectionState.FAILED) {
                     Button(onClick = viewModel::retryConnection) {
-                        Text("Intentar conectar")
+                        Text(stringResource(com.autamedica.android.R.string.common_try_connect))
                     }
                 }
             }

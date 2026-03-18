@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createBrowserClient as createClient } from '@autamedica/auth/client';
 import { type MemberRole } from '@autamedica/shared';
 
 export const useCompanyMemberRole = (companyId: string | null) => {
@@ -40,7 +40,7 @@ export const useCompanyMemberRole = (companyId: string | null) => {
           throw queryError;
         }
 
-        const role = data?.role ?? null;
+        const role = (data as { role?: string } | null)?.role ?? null;
         setMemberRole(role === null ? null : (role as MemberRole));
       } catch (caughtError) {
         const normalizedError = caughtError instanceof Error

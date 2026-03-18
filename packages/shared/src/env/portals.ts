@@ -24,10 +24,10 @@ export function getPortalUrlWithPath(portal: string, path: string): string {
   }
 
   const prodMap: Record<string, string> = {
-    patients: 'https://patients.autamedica.com',
-    doctors: 'https://doctors.autamedica.com',
-    companies: 'https://companies.autamedica.com',
-    admin: 'https://admin.autamedica.com'
+    patients: 'https://paciente.autamedica.com',
+    doctors: 'https://doctor.autamedica.com',
+    companies: 'https://empresa.autamedica.com',
+    admin: 'https://autamedica-admin.pages.dev'
   };
 
   const baseUrl = prodMap[portal] || 'https://www.autamedica.com';

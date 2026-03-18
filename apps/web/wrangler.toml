@@ -5,6 +5,9 @@ compatibility_flags = ["nodejs_compat_v2"]
 # Astro build output
 pages_build_output_dir = "dist"
 
+[vars]
+NODE_ENV = "production"
+
 [env.production.vars]
 NODE_ENV = "production"
 

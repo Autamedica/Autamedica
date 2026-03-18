@@ -168,6 +168,80 @@ Deno.serve(async (req) => {
     const participantName = user.user_metadata?.first_name || user.email || user.id
     const isDoctor = user.id === consultation.doctor_id
 
+    // Update status to 'waiting' or 'in_progress'
+    // Log join event
+    await supabaseAdmin.from('telemedicine_session_events').insert({
+      session_id: consultation.id,
+      event_type: 'participant_join',
+      event_data: { user_id: user.id, role: isDoctor ? 'doctor' : 'patient', name: participantName }
+    })
+
+    // Track participant
+    await supabaseAdmin.from('telemedicine_room_participants').upsert({
+      room_id: roomName,
+      user_id: user.id,
+      role: isDoctor ? 'doctor' : 'patient',
+      joined_at: new Date().toISOString()
+    }, { onConflict: 'room_id,user_id' })
+
+    if (consultation.status === 'scheduled' || consultation.status === 'waiting') {
+      // Check if both are now present or if this is the second person joining
+      const { data: participants } = await supabaseAdmin
+        .from('telemedicine_room_participants')
+        .select('role')
+        .eq('room_id', roomName)
+      
+      const hasDoctor = participants?.some(p => p.role === 'doctor')
+      const hasPatient = participants?.some(p => p.role === 'patient')
+      
+      const nextStatus = (hasDoctor && hasPatient) ? 'in_progress' : 'waiting'
+      
+      await supabaseAdmin
+        .from('telemedicine_sessions')
+        .update({ 
+          status: nextStatus,
+          started_at: consultation.started_at || (nextStatus === 'in_progress' ? new Date().toISOString() : null),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', consultation.id)
+      
+      if (consultation.appointment_id) {
+        await supabaseAdmin
+          .from('appointments')
+          .update({ 
+            status: nextStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', consultation.appointment_id)
+      }
+
+      // If doctor joined and was alone, notify patient
+      if (isDoctor && nextStatus === 'waiting') {
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json',
+              'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+            },
+            body: JSON.stringify({
+              userId: consultation.patient_id,
+              title: 'Médico en sala',
+              body: `${participantName} ha ingresado a la videoconsulta. Ya puedes unirte.`,
+              data: {
+                type: 'CALL_STARTED',
+                appointment_id: consultation.appointment_id || '',
+                session_id: consultation.id
+              }
+            })
+          })
+        } catch (e) {
+          console.error('Failed to trigger push notification:', e)
+        }
+      }
+    }
+
     const token = await new SignJWT({
         video: {
           room: roomName,

@@ -432,7 +432,7 @@ private fun ErrorBanner(
                 color = AuTextSecondary,
             )
             TextButton(onClick = onRetry) {
-                Text("Reintentar")
+                Text(stringResource(com.autamedica.android.R.string.common_retry))
             }
         }
     }
@@ -584,8 +584,8 @@ private fun CalculatorTabContent(
                             value = draftAge,
                             onValueChange = onAgeChange,
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Tu edad") },
-                            placeholder = { Text("Ej: 45") },
+                            label = { Text(stringResource(com.autamedica.android.R.string.health_your_age)) },
+                            placeholder = { Text(stringResource(com.autamedica.android.R.string.health_age_example)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             shape = RoundedCornerShape(14.dp),

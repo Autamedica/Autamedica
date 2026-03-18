@@ -33,13 +33,13 @@ function getBaseUrlByRole(): Record<UserRole, string> {
   if (isProduction) {
     return {
       'patient': readEnv('NEXT_PUBLIC_BASE_URL_PATIENTS', 'NEXT_PUBLIC_PATIENTS_URL')
-        || 'https://autamedica-patients.pages.dev',
+        || 'https://paciente.autamedica.com',
       'doctor': readEnv('NEXT_PUBLIC_BASE_URL_DOCTORS', 'NEXT_PUBLIC_DOCTORS_URL')
-        || 'https://autamedica-doctors.pages.dev',
+        || 'https://doctor.autamedica.com',
       'company': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
-        || 'https://autamedica-companies.pages.dev',
+        || 'https://empresa.autamedica.com',
       'company_admin': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
-        || 'https://autamedica-companies.pages.dev',
+        || 'https://empresa.autamedica.com',
       'organization_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
         || 'https://autamedica-admin.pages.dev',
       'platform_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
