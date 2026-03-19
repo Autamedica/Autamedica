@@ -6,7 +6,11 @@ import { BookOpen, X } from 'lucide-react';
 /**
  * Hub centralizado para acceder a todos los tours guiados
  */
-export function TourHub() {
+interface TourHubProps {
+  variant?: 'floating' | 'sidebar';
+}
+
+export function TourHub({ variant = 'floating' }: TourHubProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const tours = [
@@ -78,21 +82,30 @@ export function TourHub() {
     window.location.reload();
   };
 
+  const isSidebar = variant === 'sidebar';
+  const wrapperClassName = isSidebar ? 'relative w-full' : 'fixed left-4 bottom-4 z-40';
+  const buttonClassName = isSidebar
+    ? 'flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900'
+    : 'flex h-12 w-12 items-center justify-center rounded-full border-2 border-stone-300 bg-white text-stone-700 shadow-xl transition-all hover:scale-110 hover:border-stone-600 hover:text-stone-900';
+  const menuClassName = isSidebar
+    ? 'absolute bottom-[calc(100%+0.75rem)] left-0 right-0 z-40 w-[22rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-stone-300 bg-white shadow-2xl'
+    : 'fixed left-4 bottom-20 z-40 w-80 rounded-2xl border border-stone-300 bg-white shadow-2xl';
+
   return (
-    <>
-      {/* Floating button */}
+    <div className={wrapperClassName}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed left-4 bottom-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border-2 border-stone-300 bg-white text-stone-700 shadow-xl transition-all hover:scale-110 hover:border-stone-600 hover:text-stone-900"
+        className={buttonClassName}
         aria-label="Centro de ayuda"
         title="Guías interactivas"
       >
         <BookOpen className="h-5 w-5" />
+        {isSidebar ? <span className="text-sm font-medium">Guías interactivas</span> : null}
       </button>
 
       {/* Tours menu */}
       {isOpen && (
-        <div className="fixed left-4 bottom-20 z-40 w-80 rounded-2xl border border-stone-300 bg-white shadow-2xl">
+        <div className={menuClassName}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-stone-200 p-4">
             <div>
@@ -158,6 +171,6 @@ export function TourHub() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

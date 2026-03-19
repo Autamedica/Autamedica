@@ -22,14 +22,12 @@ export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
   const [showSymptomModal, setShowSymptomModal] = useState(false);
   const [showMedicationModal, setShowMedicationModal] = useState(false);
   const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
-  const store = usePatientMedicalStore() as any;
-  const healthSummary = store.getHealthSummary?.() || {
-    overallStatus: 'excelente',
-    symptomsCount: 0,
-    lastSymptom: 'Ninguno',
-    lastVitals: null
-  };
-  const medicationAdherence = store.getMedicationAdherence?.() || { adherenceScore: 0 };
+  const store = usePatientMedicalStore();
+  const healthSummary = store.getHealthSummary();
+  const medicationAdherence = store.getMedicationAdherence();
+  const recentEntries = store.entries.slice(0, 3);
+  const reminderAppointments = store.upcomingAppointments.slice(0, 2);
+  const reminderMedications = store.activeMedications.slice(0, Math.max(0, 2 - reminderAppointments.length));
 
   // Quick actions for medical tracking
   const medicalActions = [
@@ -179,39 +177,48 @@ export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
         </div>
 
         <div className="space-y-3">
-          {/* Sample recent activities */}
-          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <Pill className="h-4 w-4 text-blue-400" />
+          {store.isLoading ? (
+            <div className="rounded-lg bg-white/5 p-3 text-sm text-white/70">
+              Cargando actividad reciente...
             </div>
-            <div className="flex-1">
-              <p className="text-white text-sm font-medium">Medicamento registrado</p>
-              <p className="text-white/70 text-xs">Metformina 500mg - Hace 2 horas</p>
+          ) : recentEntries.length === 0 ? (
+            <div className="rounded-lg bg-white/5 p-3 text-sm text-white/70">
+              Todavía no registraste actividad clínica reciente.
             </div>
-            <span className="text-green-400 text-xs">✓</span>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-              <Activity className="h-4 w-4 text-green-400" />
-            </div>
-            <div className="flex-1">
-              <p className="text-white text-sm font-medium">Signos vitales actualizados</p>
-              <p className="text-white/70 text-xs">Presión arterial 120/80 - Ayer</p>
-            </div>
-            <span className="text-green-400 text-xs">✓</span>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <Heart className="h-4 w-4 text-yellow-400" />
-            </div>
-            <div className="flex-1">
-              <p className="text-white text-sm font-medium">Síntoma reportado</p>
-              <p className="text-white/70 text-xs">Dolor de cabeza leve - Hace 3 días</p>
-            </div>
-            <span className="text-yellow-400 text-xs">!</span>
-          </div>
+          ) : (
+            recentEntries.map((entry) => (
+              <div key={entry.id} className="flex items-center gap-3 rounded-lg bg-white/5 p-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/20">
+                  {entry.type === 'medication_taken' ? (
+                    <Pill className="h-4 w-4 text-blue-400" />
+                  ) : entry.type === 'vital_sign' ? (
+                    <Activity className="h-4 w-4 text-green-400" />
+                  ) : (
+                    <Heart className="h-4 w-4 text-yellow-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">
+                    {entry.type === 'medication_taken'
+                      ? 'Medicamento registrado'
+                      : entry.type === 'vital_sign'
+                        ? 'Signos vitales actualizados'
+                        : entry.type === 'appointment'
+                          ? 'Consulta programada'
+                          : 'Síntoma reportado'}
+                  </p>
+                  <p className="text-xs text-white/70">
+                    {entry.content} ·{' '}
+                    {new Intl.RelativeTimeFormat('es', { numeric: 'auto' }).format(
+                      Math.round((new Date(entry.timestamp).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+                      'day',
+                    )}
+                  </p>
+                </div>
+                <span className="text-xs text-green-400">✓</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -223,21 +230,48 @@ export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
         </h2>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-3 p-3 border border-blue-500/30 bg-blue-500/10 rounded-lg">
-            <Clock className="h-4 w-4 text-blue-400" />
-            <div className="flex-1">
-              <p className="text-blue-200 text-sm font-medium">Tomar Lisinopril</p>
-              <p className="text-blue-200/80 text-xs">Hoy a las 20:00</p>
+          {reminderAppointments.length === 0 && reminderMedications.length === 0 ? (
+            <div className="rounded-lg border border-white/15 bg-white/5 p-3 text-sm text-white/70">
+              No hay recordatorios próximos.
             </div>
-          </div>
+          ) : (
+            <>
+              {reminderMedications.map((medication) => (
+                <div
+                  key={medication.id}
+                  className="flex items-center gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3"
+                >
+                  <Clock className="h-4 w-4 text-blue-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-200">Registrar {medication.name}</p>
+                    <p className="text-xs text-blue-200/80">{medication.dosage} · {medication.frequency}</p>
+                  </div>
+                </div>
+              ))}
 
-          <div className="flex items-center gap-3 p-3 border border-green-500/30 bg-green-500/10 rounded-lg">
-            <Calendar className="h-4 w-4 text-green-400" />
-            <div className="flex-1">
-              <p className="text-green-200 text-sm font-medium">Control médico</p>
-              <p className="text-green-200/80 text-xs">Mañana a las 15:00 - Dr. García</p>
-            </div>
-          </div>
+              {reminderAppointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="flex items-center gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-3"
+                >
+                  <Calendar className="h-4 w-4 text-green-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-200">
+                      {appointment.doctor
+                        ? `Consulta con ${[appointment.doctor.first_name, appointment.doctor.last_name].filter(Boolean).join(' ')}`
+                        : 'Consulta programada'}
+                    </p>
+                    <p className="text-xs text-green-200/80">
+                      {new Date(appointment.start_time).toLocaleString('es-AR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       </div>
 
@@ -245,19 +279,16 @@ export function MedicalDashboard({ className = '' }: MedicalDashboardProps) {
       <SymptomReportModal
         isOpen={showSymptomModal}
         onClose={() => setShowSymptomModal(false)}
-        patientId="current-patient"
       />
 
       <MedicationTrackerModal
         isOpen={showMedicationModal}
         onClose={() => setShowMedicationModal(false)}
-        patientId="current-patient"
       />
 
       <VitalSignsModal
         isOpen={showVitalSignsModal}
         onClose={() => setShowVitalSignsModal(false)}
-        patientId="current-patient"
       />
     </div>
   );

@@ -7,8 +7,10 @@
 import type { CreateAppointmentInput } from '@/types/appointment';
 import { createRouteHandlerClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import type { Database } from '@autamedica/types';
 import { NextRequest, NextResponse } from 'next/server';
 import { computeEndTime, mapAppointment, mapTypeToDb, type DbAppointmentRow } from './utils';
+import { resolvePatientContext } from '../shared/patient-context';
 /**
  * GET /api/appointments
  * Obtiene todas las citas del paciente autenticado
@@ -16,45 +18,31 @@ import { computeEndTime, mapAppointment, mapTypeToDb, type DbAppointmentRow } fr
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createRouteHandlerClient();
+    const context = await resolvePatientContext(supabase);
 
-    // Verificar autenticación
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-
-    if (authError || !session) {
+    if (!context) {
       return NextResponse.json(
-        { error: 'No autorizado' },
+        { error: 'No autorizado o paciente no encontrado' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
-
-    // Obtener patient_id del usuario
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (patientError || !patient) {
-      return NextResponse.json(
-        { error: 'Paciente no encontrado' },
-        { status: 404 }
-      );
-    }
-
     // Obtener citas del paciente con información del doctor
-    const { data: records, error } = await (supabase as any)
+    const { data: records, error } = await supabase
       .from('appointments')
       .select(`
         *,
         doctor:doctors(
-          first_name,
-          last_name,
-          specialty
+          id,
+          specialty,
+          user_id,
+          profile:profiles!doctors_user_id_fkey(
+            first_name,
+            last_name
+          )
         )
       `)
-      .eq('patient_id', userId) // Changed from patient.id to userId as per instruction
+      .eq('patient_id', context.patientId)
       .order('start_time', { ascending: false });
 
     if (error) { // Corrected syntax for error handling
@@ -85,30 +73,12 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createRouteHandlerClient();
+    const context = await resolvePatientContext(supabase);
 
-    // Verificar autenticación
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-
-    if (authError || !session) {
+    if (!context) {
       return NextResponse.json(
-        { error: 'No autorizado' },
+        { error: 'No autorizado o paciente no encontrado' },
         { status: 401 }
-      );
-    }
-
-    const userId = session.user.id;
-
-    // Obtener patient_id del usuario
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (patientError || !patient) {
-      return NextResponse.json(
-        { error: 'Paciente no encontrado' },
-        { status: 404 }
       );
     }
 
@@ -148,31 +118,35 @@ export async function POST(request: NextRequest) {
     const endTime = endIso;
     const duration_minutes = duration;
 
-    const { data: newAppointment, error: insertError } = await (supabase as any)
+    const combinedNotes = [reason, notes].filter(Boolean).join('\n\n') || null;
+    const appointmentInsert: Database['public']['Tables']['appointments']['Insert'] = {
+      patient_id: context.patientId,
+      doctor_id: doctor_id ?? null,
+      start_time,
+      end_time: endTime,
+      duration_minutes: Number(duration_minutes),
+      type: mapTypeToDb(type || 'telemedicine'),
+      status: 'scheduled',
+      notes: combinedNotes,
+      meeting_url: meeting_url ?? null,
+      location: location ?? null,
+    };
+
+    const { data: newAppointment, error: insertError } = await supabase
       .from('appointments')
-      .insert({
-        patient_id: (patient as any).id,
-        doctor_id,
-        start_time,
-        end_time: endTime,
-        duration_minutes: Number(duration_minutes),
-        type: mapTypeToDb(type || 'telemedicine'), // Ensure type is mapped
-        status: 'scheduled',
-        notes,
-        reason,
-        meeting_url,
-        location
-      })
+      .insert(appointmentInsert as never)
       .select(`
         *,
         doctor:doctors (
           id,
-          first_name,
-          last_name,
           specialty,
-          profile_picture_url
+          user_id,
+          profile:profiles!doctors_user_id_fkey (
+            first_name,
+            last_name
+          )
         )
-      `) // Re-added select to maintain original functionality of fetching doctor info
+      `)
       .single();
 
     if (insertError) {

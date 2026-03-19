@@ -1,26 +1,27 @@
-import { getUserIdFromRequest } from '@/lib/server/auth'
+import { resolvePatientContext } from '@/app/api/shared/patient-context'
 import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import type { AppSupabaseClient } from '@autamedica/supabase-client'
+import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
 const TOTAL_SECTIONS = 13
 const KNOWN_SECTIONS = [
-  'personal_data',
-  'emergency_contact',
-  'medical_history',
-  'family_history',
-  'allergies',
-  'current_medications',
-  'chronic_conditions',
-  'surgical_history',
-  'hospitalizations',
-  'gynecological_history',
-  'lifestyle',
-  'mental_health',
-  'consent',
+  'edad',
+  'ocupacion',
+  'motivo_consulta',
+  'enfermedades_previas',
+  'medicamentos',
+  'alergias',
+  'antecedentes_familiares',
+  'habitos',
+  'cardiovascular',
+  'respiratorio',
+  'digestivo',
+  'genitourinario',
+  'resumen_final',
 ]
 
 function toBoolean(value: unknown, fallback = false) {
@@ -71,15 +72,21 @@ function computeProgress(sections: any[]) {
   }
 }
 
+async function getPatientId(): Promise<string | null> {
+  const supabase = await createRouteHandlerClient()
+  const context = await resolvePatientContext(supabase)
+  return context?.patientId ?? null
+}
+
 export async function GET() {
   try {
-    const userId = await getUserIdFromRequest()
-    if (!userId) {
+    const patientId = await getPatientId()
+    if (!patientId) {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
     }
 
     const admin = createAdminClient() as any as AppSupabaseClient;
-    const anamnesis = await ensureAnamnesisRecord(admin, userId)
+    const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const sectionsRes = await admin
       .from('anamnesis_sections')
@@ -109,8 +116,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const userId = await getUserIdFromRequest()
-    if (!userId) {
+    const patientId = await getPatientId()
+    if (!patientId) {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
     }
 
@@ -124,7 +131,7 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient() as any as AppSupabaseClient;
-    const anamnesis = await ensureAnamnesisRecord(admin, userId)
+    const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const upsert = await admin
       .from('anamnesis_sections')
@@ -168,8 +175,8 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const userId = await getUserIdFromRequest()
-    if (!userId) {
+    const patientId = await getPatientId()
+    if (!patientId) {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
     }
 
@@ -196,7 +203,7 @@ export async function PATCH(request: Request) {
     }
 
     const admin = createAdminClient() as any as AppSupabaseClient;
-    const anamnesis = await ensureAnamnesisRecord(admin, userId)
+    const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const updateRes = await admin
       .from('anamnesis')
@@ -213,4 +220,3 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, error: 'internal_error' }, { status: 500 })
   }
 }
-

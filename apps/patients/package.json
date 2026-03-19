@@ -12,6 +12,7 @@
     "start": "next start -p 3003",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
+    "ai:sync-worker": "tsx src/server/patient-ai-sync-worker.ts",
     "test": "vitest",
     "patients:e2e": "playwright test --project=API e2e/api-*.spec.ts",
     "patients:e2e:ui": "playwright test --project=UI e2e/ui-login.spec.ts",
@@ -30,6 +31,7 @@
   "dependencies": {
     "@autamedica/auth": "workspace:*",
     "@autamedica/hooks": "workspace:*",
+    "@autamedica/scheduling": "workspace:*",
     "@autamedica/session": "workspace:*",
     "@autamedica/shared": "workspace:*",
     "@autamedica/supabase-client": "workspace:*",

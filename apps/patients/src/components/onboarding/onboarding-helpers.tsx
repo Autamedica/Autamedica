@@ -134,7 +134,7 @@ function getQuickAnswer(question: string): string {
     '¿Cómo solicito una receta?': 'Acciones Rápidas → 💊 Solicitar Receta → Medicamento → Médico revisa.',
     '¿Qué es Auta AI?': 'Tu asistente médico inteligente. Responde preguntas sobre tu salud y te ayuda a navegar.',
     '¿Puedo exportar mis datos?': 'Sí, puedes exportar todo tu historial en PDF o JSON desde Perfil → Exportar Datos.',
-    '¿Hay tours para cada sección?': 'Sí, accede desde 📚 Centro de Ayuda (botón inferior izquierdo).',
+    '¿Hay tours para cada sección?': 'Sí, accede desde 📚 Centro de Ayuda en el sidebar del portal.',
     '¿Cómo activo las notificaciones?': 'Configuración → Notificaciones → Activa las que prefieras (email, push, SMS).',
   };
 

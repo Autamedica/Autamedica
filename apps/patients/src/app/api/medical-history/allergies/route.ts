@@ -1,13 +1,11 @@
 import { createRouteHandlerClient } from '@autamedica/auth/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { resolvePatientContext } from '../../shared/patient-context'
 
 export async function POST(request: NextRequest) {
   const supabase = await createRouteHandlerClient()
-
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
-  const userId = session.user.id
+  const context = await resolvePatientContext(supabase)
+  if (!context) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   const body = await request.json().catch(() => ({}))
 
   const allergen = String(body?.allergen || '').trim()
@@ -21,7 +19,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await (supabase as any)
     .from('medical_records')
     .insert([{
-      patient_id: userId,
+      patient_id: context.patientId,
       type: 'allergy',
       title: `Alergia: ${allergen}`,
       content: {
@@ -41,4 +39,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ success: true, data }, { status: 201 })
 }
-

@@ -8,8 +8,11 @@
 import type { UpdateAppointmentInput } from '@/types/appointment';
 import { createRouteHandlerClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import type { DbAppointmentRow } from '../utils';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolvePatientContext } from '../../shared/patient-context';
 import { computeEndTime, mapAppointment, mapTypeToDb } from '../utils';
+
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
@@ -19,36 +22,18 @@ type RouteContext = {
  * Obtiene una cita específica
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   context: RouteContext
 ) {
   try {
     const { id } = await context.params;
-    const supabase = (await createRouteHandlerClient()) as any;
+    const supabase = await createRouteHandlerClient();
+    const contextData = await resolvePatientContext(supabase);
 
-    // Verificar autenticación
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-
-    if (authError || !session) {
+    if (!contextData) {
       return NextResponse.json(
-        { error: 'No autorizado' },
+        { error: 'No autorizado o paciente no encontrado' },
         { status: 401 }
-      );
-    }
-
-    const userId = session.user.id;
-
-    // Obtener patient_id
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (patientError || !patient) {
-      return NextResponse.json(
-        { error: 'Paciente no encontrado' },
-        { status: 404 }
       );
     }
 
@@ -59,14 +44,16 @@ export async function GET(
         *,
         doctor:doctors (
           id,
-          first_name,
-          last_name,
           specialty,
-          profile_picture_url
+          user_id,
+          profile:profiles!doctors_user_id_fkey (
+            first_name,
+            last_name
+          )
         )
       `)
       .eq('id', id)
-      .eq('patient_id', patient.id)
+      .eq('patient_id', contextData.patientId)
       .single();
 
     if (appointmentError || !appointment) {
@@ -78,7 +65,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: mapAppointment(appointment as any),
+      data: mapAppointment(appointment as DbAppointmentRow),
     });
   } catch (error) {
     logger.error('[GET /api/appointments/[id]] Error:', error);
@@ -99,40 +86,22 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
-    const supabase = (await createRouteHandlerClient()) as any;
+    const supabase = await createRouteHandlerClient();
+    const contextData = await resolvePatientContext(supabase);
 
-    // Verificar autenticación
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-
-    if (authError || !session) {
+    if (!contextData) {
       return NextResponse.json(
-        { error: 'No autorizado' },
+        { error: 'No autorizado o paciente no encontrado' },
         { status: 401 }
-      );
-    }
-
-    const userId = session.user.id;
-
-    // Obtener patient_id
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (patientError || !patient) {
-      return NextResponse.json(
-        { error: 'Paciente no encontrado' },
-        { status: 404 }
       );
     }
 
     // Verificar que la cita pertenece al paciente
     const { data: existingAppointment, error: checkError } = await supabase
       .from('appointments')
-      .select('id, start_time, duration_minutes')
+      .select('id, start_time, duration_minutes, notes')
       .eq('id', id)
-      .eq('patient_id', patient.id)
+      .eq('patient_id', contextData.patientId)
       .single();
 
     if (checkError || !existingAppointment) {
@@ -146,12 +115,17 @@ export async function PATCH(
     const body: UpdateAppointmentInput = await request.json();
 
     // Actualizar la cita
-    const updates: Record<string, any> = {
+    const typedExistingAppointment = existingAppointment as Pick<
+      DbAppointmentRow,
+      'start_time' | 'duration_minutes' | 'notes'
+    > | null;
+
+    const updates: Record<string, string | number | null> = {
       updated_at: new Date().toISOString(),
     };
 
-    let effectiveStart = existingAppointment?.start_time || null;
-    let effectiveDuration = existingAppointment?.duration_minutes ?? 30;
+    let effectiveStart = typedExistingAppointment?.start_time ?? null;
+    let effectiveDuration = typedExistingAppointment?.duration_minutes ?? 30;
 
     if (body.scheduled_at) {
       const startIso = new Date(body.scheduled_at).toISOString();
@@ -170,23 +144,28 @@ export async function PATCH(
 
     if (body.status) updates.status = body.status;
     if (body.type) updates.type = mapTypeToDb(body.type);
-    if (body.notes !== undefined) updates.notes = body.notes;
-    if (body.reason !== undefined) updates.reason = body.reason;
+    if (body.notes !== undefined || body.reason !== undefined) {
+      const nextNotes = body.notes !== undefined ? body.notes : typedExistingAppointment?.notes ?? null;
+      const nextReason = body.reason !== undefined ? body.reason : null;
+      updates.notes = [nextReason, nextNotes].filter(Boolean).join('\n\n') || null;
+    }
     if (body.meeting_url !== undefined) updates.meeting_url = body.meeting_url;
     if (body.location !== undefined) updates.location = body.location;
 
     const { data: updatedAppointment, error: updateError } = await supabase
       .from('appointments')
-      .update(updates)
+      .update(updates as never)
       .eq('id', id)
       .select(`
         *,
         doctor:doctors (
           id,
-          first_name,
-          last_name,
           specialty,
-          profile_picture_url
+          user_id,
+          profile:profiles!doctors_user_id_fkey (
+            first_name,
+            last_name
+          )
         )
       `)
       .single();
@@ -201,7 +180,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      data: mapAppointment(updatedAppointment as any),
+      data: mapAppointment(updatedAppointment as DbAppointmentRow),
     });
   } catch (error) {
     logger.error('[PATCH /api/appointments/[id]] Error:', error);
@@ -217,36 +196,18 @@ export async function PATCH(
  * Cancela una cita (soft delete, cambia status a 'cancelled')
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   context: RouteContext
 ) {
   try {
     const { id } = await context.params;
-    const supabase = (await createRouteHandlerClient()) as any;
+    const supabase = await createRouteHandlerClient();
+    const contextData = await resolvePatientContext(supabase);
 
-    // Verificar autenticación
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-
-    if (authError || !session) {
+    if (!contextData) {
       return NextResponse.json(
-        { error: 'No autorizado' },
+        { error: 'No autorizado o paciente no encontrado' },
         { status: 401 }
-      );
-    }
-
-    const userId = session.user.id;
-
-    // Obtener patient_id
-    const { data: patient, error: patientError } = await supabase
-      .from('patients')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (patientError || !patient) {
-      return NextResponse.json(
-        { error: 'Paciente no encontrado' },
-        { status: 404 }
       );
     }
 
@@ -256,9 +217,9 @@ export async function DELETE(
       .update({
         status: 'cancelled',
         updated_at: new Date().toISOString(),
-      })
+      } as never)
       .eq('id', id)
-      .eq('patient_id', patient.id)
+      .eq('patient_id', contextData.patientId)
       .select()
       .single();
 
@@ -272,7 +233,7 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
       message: 'Cita cancelada exitosamente',
-      data: mapAppointment(cancelledAppointment as any),
+      data: mapAppointment(cancelledAppointment as DbAppointmentRow),
     });
   } catch (error) {
     logger.error('[DELETE /api/appointments/[id]] Error:', error);

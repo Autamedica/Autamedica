@@ -1,4 +1,4 @@
-import type { AppointmentType, AppointmentWithDoctor } from '@/types/appointment'
+import type { AppointmentStatus, AppointmentType, AppointmentWithDoctor } from '@/types/appointment'
 
 export type DbAppointmentRow = {
   id: string
@@ -17,10 +17,12 @@ export type DbAppointmentRow = {
   updated_at: string
   doctor?: {
     id: string
-    first_name: string | null
-    last_name: string | null
     specialty: string | null
-    profile_picture_url: string | null
+    user_id?: string | null
+    profile?: {
+      first_name: string | null
+      last_name: string | null
+    } | null
   } | null
 }
 
@@ -61,6 +63,20 @@ export function computeEndTime(startIso: string, durationMinutes: number): strin
   return end.toISOString()
 }
 
+function mapStatus(status?: string | null): AppointmentStatus {
+  switch (status) {
+    case 'scheduled':
+    case 'confirmed':
+    case 'in_progress':
+    case 'completed':
+    case 'cancelled':
+    case 'no_show':
+      return status
+    default:
+      return 'scheduled'
+  }
+}
+
 export function mapAppointment(row: DbAppointmentRow): AppointmentWithDoctor {
   const scheduledAt = row.start_time ? new Date(row.start_time).toISOString() : new Date().toISOString()
   const duration = row.duration_minutes ?? (row.end_time ? Math.max(5, Math.round((new Date(row.end_time).getTime() - new Date(row.start_time).getTime()) / 60000)) : 30)
@@ -71,10 +87,10 @@ export function mapAppointment(row: DbAppointmentRow): AppointmentWithDoctor {
     doctor_id: row.doctor_id,
     scheduled_at: scheduledAt,
     duration_minutes: duration,
-    status: (row.status as any) ?? 'scheduled',
+    status: mapStatus(row.status),
     type: mapDbTypeToAppointmentType(row.type),
     notes: row.notes ?? null,
-    reason: row.reason ?? null,
+    reason: row.reason ?? row.notes ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     diagnosis: undefined,
@@ -83,6 +99,13 @@ export function mapAppointment(row: DbAppointmentRow): AppointmentWithDoctor {
     location: row.location ?? null,
     end_time: row.end_time ?? null,
     start_time: row.start_time ?? null,
-    doctor: row.doctor ?? null,
+    doctor: row.doctor
+      ? {
+          id: row.doctor.id,
+          first_name: row.doctor.profile?.first_name ?? null,
+          last_name: row.doctor.profile?.last_name ?? null,
+          specialty: row.doctor.specialty,
+        }
+      : null,
   }
 }

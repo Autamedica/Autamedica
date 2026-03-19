@@ -2,7 +2,6 @@
 
 import type { AnamnesisFieldValue } from '@/types/anamnesis';
 import { logger } from '@autamedica/shared';
-import type { AnamnesisSection } from '@autamedica/types';
 import { useCallback, useEffect, useState } from 'react';
 
 type ApiAnamnesis = {
@@ -56,7 +55,7 @@ interface UseAnamnesisReturn {
   error: string | null;
   createAnamnesis: (_initial?: Partial<ApiAnamnesis>) => Promise<ApiAnamnesis | null>;
   updateAnamnesis: (_update: Partial<ApiAnamnesis>) => Promise<boolean>;
-  updateSection: (_section: AnamnesisSection, _data: Record<string, AnamnesisFieldValue>) => Promise<boolean>;
+  updateSection: (_section: string, _data: Record<string, AnamnesisFieldValue>) => Promise<boolean>;
   refreshAnamnesis: () => Promise<void>;
 }
 
@@ -151,7 +150,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
 
   // Update section
   const updateSection = useCallback(async (
-    section: AnamnesisSection,
+    section: string,
     data: Record<string, AnamnesisFieldValue>
   ): Promise<boolean> => {
     try {

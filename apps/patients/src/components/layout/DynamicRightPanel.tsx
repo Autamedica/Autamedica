@@ -1,263 +1,404 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
+import Link from 'next/link';
 import {
-    BloodPressureModal,
-    LabResultModal,
-    MedicationModal,
-    SymptomModal,
-} from '@/components/quick-actions/QuickActionModals'
-import { dashboardQuickCaptureLinks } from '@/data/patient-navigation'
-import { usePatientScreenings } from '@/hooks/usePatientScreenings'
-import { usePatientSession } from '@/hooks/usePatientSession'
-import { computeAgeFromIso, normalizeGender } from '@/lib/demographics'
+  BloodPressureModal,
+  LabResultModal,
+  MedicationModal,
+  SymptomModal,
+} from '@/components/quick-actions/QuickActionModals';
+import { dashboardQuickCaptureLinks } from '@/data/patient-navigation';
+import { useDashboardSummary } from '@/hooks/useDashboardSummary';
+import { usePatientSession } from '@/hooks/usePatientSession';
+import type { DashboardSummary } from '@/types/dashboard-summary';
+import type { DashboardViewData } from '@/types/dashboard-view';
+import type {
+  PatientAiInsightRecord,
+  PatientDeterministicAlert,
+} from '@/types/patient-snapshot';
 import {
-    Activity,
-    AlertTriangle,
-    Clock,
-    Eye,
-    FileText,
-    Heart,
-    MessageSquare,
-    Pill,
-    TrendingUp,
-    Zap,
-} from 'lucide-react'
-import type { ReactNode } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+  Activity,
+  AlertTriangle,
+  Calendar,
+  Clock,
+  FileText,
+  Heart,
+  MessageSquare,
+  Pill,
+  Sparkles,
+  TestTubeDiagonal,
+  TrendingUp,
+  Zap,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-type PanelTab = 'brief' | 'actions' | 'medical' | 'chat'
+type PanelTab = 'brief' | 'actions' | 'medical' | 'chat';
 
 interface DynamicRightPanelProps {
-  context?: 'dashboard' | 'video' | 'appointments' | 'history'
+  context?: 'dashboard' | 'video' | 'appointments' | 'history';
+  dashboardView?: DashboardViewData | null;
+  summaryLoading?: boolean;
+  summaryError?: string | null;
 }
 
-type PanelContext = NonNullable<DynamicRightPanelProps['context']>
+type PanelContext = NonNullable<DynamicRightPanelProps['context']>;
 
 interface TabConfig {
-  id: PanelTab
-  label: string
-  icon: typeof Activity
+  id: PanelTab;
+  label: string;
+  icon: typeof Activity;
 }
 
-type QuickActionModalKey =
-  | 'blood-pressure'
-  | 'medication'
-  | 'symptom'
-  | 'lab-result'
-
-const statusRank = {
-  overdue: 0,
-  due_soon: 1,
-  up_to_date: 2,
-} as const
-
-const editorialReading = [
-  {
-    section: 'Prevencion',
-    title: 'Como leer una tendencia de presion arterial en casa',
-    summary: 'Evita decisiones aisladas: importa mas la tendencia semanal que una unica toma.',
-  },
-  {
-    section: 'Consulta',
-    title: 'Tres preguntas para aprovechar mejor la videoconsulta',
-    summary: 'Lleva contexto concreto para obtener indicaciones utiles y accionables.',
-  },
-  {
-    section: 'Seguridad',
-    title: 'Que datos compartir en comunidad y cuales reservar para consulta',
-    summary: 'Participa con confianza sin exponer informacion clinica sensible.',
-  },
-]
+type QuickActionModalKey = 'blood-pressure' | 'medication' | 'symptom' | 'lab-result';
 
 function tabsForContext(context: PanelContext): TabConfig[] {
   switch (context) {
     case 'video':
       return [
-        { id: 'chat', label: 'Conversacion', icon: MessageSquare },
+        { id: 'chat', label: 'Canal', icon: MessageSquare },
         { id: 'medical', label: 'Contexto', icon: FileText },
-      ]
+      ];
     case 'appointments':
       return [
-        { id: 'brief', label: 'Preparacion', icon: FileText },
+        { id: 'brief', label: 'Agenda', icon: Calendar },
         { id: 'actions', label: 'Registro', icon: Zap },
-      ]
+      ];
     case 'history':
       return [
-        { id: 'medical', label: 'Tendencias', icon: TrendingUp },
-        { id: 'actions', label: 'Accesos', icon: Eye },
-      ]
+        { id: 'medical', label: 'Resumen', icon: TrendingUp },
+        { id: 'actions', label: 'Captura', icon: Activity },
+      ];
     default:
       return [
-        { id: 'brief', label: 'Resumen', icon: FileText },
-        { id: 'actions', label: 'Registro', icon: Activity },
-      ]
+        { id: 'brief', label: 'Hoy', icon: FileText },
+        { id: 'actions', label: 'Bitácora', icon: Activity },
+        { id: 'medical', label: 'Contexto', icon: Heart },
+      ];
   }
 }
 
 function defaultTabForContext(context: PanelContext): PanelTab {
   switch (context) {
     case 'video':
-      return 'chat'
+      return 'chat';
     case 'history':
-      return 'medical'
+      return 'medical';
     default:
-      return 'brief'
+      return 'brief';
   }
 }
 
-export function DynamicRightPanel({ context = 'dashboard' }: DynamicRightPanelProps) {
-  const [activeTab, setActiveTab] = useState<PanelTab>(() => defaultTabForContext(context))
-  const tabs = useMemo(() => tabsForContext(context), [context])
+function getPreferredName(
+  profile: ReturnType<typeof usePatientSession>['profile'],
+  user: ReturnType<typeof usePatientSession>['user'],
+): string {
+  const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
+  const metadata = user?.user_metadata as Record<string, unknown> | undefined;
+  const metadataName =
+    typeof metadata?.full_name === 'string' ? metadata.full_name : undefined;
+  const fallbackName = user?.email?.split('@')[0] ?? 'Paciente';
+
+  return (profileName || metadataName || fallbackName).split(' ')[0] ?? 'Paciente';
+}
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat('es-AR', {
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date(value));
+}
+
+function alertHref(category: PatientDeterministicAlert['category']): string {
+  switch (category) {
+    case 'appointments':
+      return '/appointments';
+    case 'prevention':
+      return '/preventive-health';
+    case 'results':
+      return '/results';
+    case 'history':
+    case 'profile':
+      return '/medical-history';
+    case 'symptoms':
+    case 'vitals':
+      return '/medical-history';
+    default:
+      return '/medical-history';
+  }
+}
+
+function getPatientFacingSummary(insight: PatientAiInsightRecord | null): string | null {
+  if (!insight || insight.status !== 'generated' || !insight.result?.patientFacingSummary) {
+    return null;
+  }
+
+  return insight.result.patientFacingSummary;
+}
+
+function describeMissingSections(missingSections: string[]): string {
+  const labels = missingSections.map((section) => {
+    switch (section) {
+      case 'appointments':
+        return 'agenda';
+      case 'anamnesis':
+        return 'anamnesis';
+      case 'medical_history':
+        return 'antecedentes';
+      case 'lab_results':
+        return 'estudios';
+      case 'preventive_screenings':
+        return 'controles';
+      case 'observations':
+        return 'observaciones';
+      default:
+        return section;
+    }
+  });
+
+  return labels.length > 0 ? labels.join(', ') : 'sin faltantes críticos';
+}
+
+export function DynamicRightPanel({
+  context = 'dashboard',
+  dashboardView,
+  summaryLoading,
+  summaryError,
+}: DynamicRightPanelProps) {
+  const [activeTab, setActiveTab] = useState<PanelTab>(() => defaultTabForContext(context));
+  const tabs = useMemo(() => tabsForContext(context), [context]);
+  const managedExternally =
+    dashboardView !== undefined || summaryLoading !== undefined || summaryError !== undefined;
+  const internalDashboardView = useDashboardSummary({ enabled: !managedExternally });
+  const { user, profile } = usePatientSession();
+  const preferredName = getPreferredName(profile, user);
+
+  const resolvedDashboardView = managedExternally ? dashboardView ?? null : internalDashboardView.data;
+  const resolvedSummary = resolvedDashboardView?.summary ?? null;
+  const resolvedLoading = managedExternally ? Boolean(summaryLoading) : internalDashboardView.loading;
+  const resolvedError = managedExternally ? summaryError ?? null : internalDashboardView.error;
 
   useEffect(() => {
-    setActiveTab(defaultTabForContext(context))
-  }, [context])
+    setActiveTab(defaultTabForContext(context));
+  }, [context]);
 
   return (
     <aside className="relative flex w-[30%] min-w-[320px] max-w-[400px] flex-col border-l border-slate-200/50 bg-white/40 shadow-xl shadow-indigo-900/5 backdrop-blur-2xl">
       <div className="border-b border-indigo-100/50 bg-white/60 px-5 py-4 backdrop-blur-md">
-        <p className="inline-flex rounded-full bg-indigo-100/50 px-2.5 py-1 text-[10px] font-bold tracking-wider text-indigo-700 uppercase">Panel de contexto</p>
+        <p className="inline-flex rounded-full bg-indigo-100/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+          Panel de contexto
+        </p>
         <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-          Información priorizada para decidir con criterio junto al equipo médico.
+          El contenido visible sale de tu agenda, historia clínica, estudios y seguimiento real.
         </p>
       </div>
 
       <div className="flex border-b border-slate-200/60 bg-white/40 backdrop-blur-sm">
         {tabs.map((tab) => {
-          const Icon = tab.icon
-          const isActive = activeTab === tab.id
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
 
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`
-                group flex flex-1 items-center justify-center gap-2 px-3 py-3.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-300
-                ${
-                  isActive
-                    ? 'border-b-2 border-indigo-600 bg-indigo-50/50 text-indigo-700 shadow-[inset_0_-1px_0_0_rgba(79,70,229,0.1)]'
-                    : 'border-b-2 border-transparent text-slate-500 hover:bg-slate-50/50 hover:text-slate-700'
-                }
-              `}
+              className={`group flex flex-1 items-center justify-center gap-2 px-3 py-3.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-300 ${
+                isActive
+                  ? 'border-b-2 border-indigo-600 bg-indigo-50/50 text-indigo-700 shadow-[inset_0_-1px_0_0_rgba(79,70,229,0.1)]'
+                  : 'border-b-2 border-transparent text-slate-500 hover:bg-slate-50/50 hover:text-slate-700'
+              }`}
             >
-              <Icon className={`h-4 w-4 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+              <Icon
+                className={`h-4 w-4 transition-transform duration-300 ${
+                  isActive ? 'scale-110' : 'group-hover:scale-110'
+                }`}
+              />
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
-          )
+          );
         })}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'brief' && <DailyBriefPanel />}
+        {activeTab === 'brief' && (
+          <DailyBriefPanel
+            summary={resolvedSummary}
+            loading={resolvedLoading}
+            error={resolvedError}
+            preferredName={preferredName}
+            alerts={resolvedDashboardView?.alerts ?? []}
+            latestInsight={resolvedDashboardView?.latestInsight ?? null}
+            missingSections={resolvedDashboardView?.missingSections ?? []}
+          />
+        )}
         {activeTab === 'actions' && <ClinicalLogPanel />}
-        {activeTab === 'medical' && <MedicalContextPanel />}
-        {activeTab === 'chat' && <ChatPanel />}
+        {activeTab === 'medical' && (
+          <MedicalContextPanel
+            summary={resolvedSummary}
+            loading={resolvedLoading}
+            error={resolvedError}
+          />
+        )}
+        {activeTab === 'chat' && <ChatPanel context={context} />}
       </div>
     </aside>
-  )
+  );
 }
 
-function DailyBriefPanel() {
-  const { user, profile, patient } = usePatientSession()
-
-  const birthDate = patient?.birthDate ?? null
-  const age = computeAgeFromIso(birthDate) ?? 52
-  const normalizedGender = normalizeGender(patient?.gender ?? null) ?? 'male'
-  const { screenings, stats } = usePatientScreenings(age, normalizedGender)
-
-  const pendingScreenings = useMemo(
-    () =>
-      screenings
-        .filter((screening) => screening.status !== 'up_to_date')
-        .sort((left, right) => statusRank[left.status] - statusRank[right.status])
-        .slice(0, 3),
-    [screenings],
-  )
-
-  const metadata = user?.user_metadata as Record<string, unknown> | undefined
-  const metadataName = typeof metadata?.full_name === 'string' ? metadata.full_name : undefined
-  const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim()
-  const fallbackName = user?.email?.split('@')[0] ?? 'Paciente'
-  const preferredName = (profileName || metadataName || fallbackName).split(' ')[0]
-
-  const dateLabel = useMemo(
-    () =>
-      new Intl.DateTimeFormat('es-AR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      }).format(new Date()),
-    [],
-  )
+function DailyBriefPanel({
+  summary,
+  loading,
+  error,
+  preferredName,
+  alerts,
+  latestInsight,
+  missingSections,
+}: {
+  summary: DashboardSummary | null;
+  loading: boolean;
+  error: string | null;
+  preferredName: string;
+  alerts: PatientDeterministicAlert[];
+  latestInsight: PatientAiInsightRecord | null;
+  missingSections: string[];
+}) {
+  const patientFacingSummary = getPatientFacingSummary(latestInsight);
 
   return (
     <div className="space-y-5">
       <section className="relative overflow-hidden rounded-2xl border border-indigo-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/20" />
         <div className="relative">
-          <p className="inline-flex rounded-full bg-indigo-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-indigo-700 uppercase">Brief diario</p>
-          <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">
-            {preferredName}, aquí tienes lo importante del día
+          <p className="inline-flex rounded-full bg-indigo-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+            Resumen de hoy
+          </p>
+          <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
+            {preferredName}, esto sale de tu información clínica actual
           </h3>
           <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-            {dateLabel}. Esta vista prioriza evidencia y contexto. La decisión final siempre es tuya.
+            Sin valores simulados. Si falta información, la verás vacía.
           </p>
         </div>
       </section>
 
-      <section className="grid grid-cols-3 gap-2">
-        <SummaryMetric label="Al dia" value={`${stats.upToDate}/${stats.total}`} />
-        <SummaryMetric label="Por vencer" value={`${stats.dueSoon}`} />
-        <SummaryMetric label="Atrasados" value={`${stats.overdue}`} highlight={stats.overdue > 0} />
-      </section>
+      {loading && (
+        <PanelNotice>
+          Estamos reuniendo tus datos clínicos más recientes.
+        </PanelNotice>
+      )}
 
-      <section>
-        <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Prioridades clínicas</p>
-        <div className="space-y-3">
-          {pendingScreenings.length === 0 && (
-            <div className="rounded-xl border border-emerald-200/50 bg-emerald-50/50 p-4 text-xs font-medium text-emerald-800 backdrop-blur-sm shadow-sm flex gap-3 items-center">
-              <div className="flex bg-emerald-100/50 h-8 w-8 rounded-full items-center justify-center shrink-0 text-emerald-600"><Heart className="h-4 w-4" /></div>
-              No hay alertas pendientes. Mantené tu seguimiento con la misma frecuencia.
+      {!loading && error && (
+        <PanelNotice tone="error">
+          {error}
+        </PanelNotice>
+      )}
+
+      {!loading && !error && summary && (
+        <>
+          <section className="grid grid-cols-3 gap-2">
+            <SummaryMetric label="Agenda" value={`${summary.agenda.upcomingCount}`} />
+            <SummaryMetric
+              label="Señales"
+              value={`${alerts.length}`}
+              highlight={alerts.some((alert) => alert.severity === 'critical' || alert.severity === 'high')}
+            />
+            <SummaryMetric
+              label="Faltantes"
+              value={`${missingSections.length}`}
+              highlight={missingSections.length > 0}
+            />
+          </section>
+
+          <section>
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Prioridades activas
+            </p>
+            <div className="space-y-3">
+              {summary.priorities.map((priority) => (
+                <Link
+                  key={priority.id}
+                  href={priority.href}
+                  className="block rounded-xl border border-stone-200 bg-white p-4 transition hover:border-stone-300 hover:shadow-sm"
+                >
+                  <p className="text-sm font-semibold text-stone-900">{priority.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-stone-600">{priority.description}</p>
+                </Link>
+              ))}
             </div>
+          </section>
+
+          {patientFacingSummary && (
+            <FactCard
+              title="Resumen personalizado"
+              description={patientFacingSummary}
+              icon={<Sparkles className="h-4 w-4" />}
+            />
           )}
 
-          {pendingScreenings.map((screening) => (
-            <article key={screening.id} className="rounded-lg border border-stone-200 bg-white p-3">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-semibold text-stone-900">{screening.title}</p>
-                <span className={statusPillClass(screening.status)}>
-                  {screeningStatusLabel(screening.status)}
-                </span>
+          {alerts.length > 0 && (
+            <section>
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Señales detectadas
+              </p>
+              <div className="space-y-3">
+                {alerts.slice(0, 3).map((alert) => (
+                  <Link
+                    key={alert.id}
+                    href={alertHref(alert.category)}
+                    className="block rounded-xl border border-stone-200 bg-white p-4 transition hover:border-stone-300 hover:shadow-sm"
+                  >
+                    <p className="text-sm font-semibold text-stone-900">{alert.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-stone-600">{alert.description}</p>
+                  </Link>
+                ))}
               </div>
-              <p className="mt-1 text-xs text-stone-600">
-                Siguiente fecha sugerida: {screening.next_due_date}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
+            </section>
+          )}
 
-      <section className="pt-2">
-        <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Lectura recomendada</p>
-        <div className="space-y-3">
-          {editorialReading.map((item) => (
-            <article key={item.title} className="group cursor-pointer rounded-xl border border-blue-100/50 bg-white/40 p-4 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-blue-200 hover:bg-white/60 hover:shadow-md hover:shadow-blue-500/5">
-              <p className="inline-flex items-center text-[10px] font-bold uppercase tracking-widest text-blue-500">
-                {item.section}
-              </p>
-              <h4 className="mt-1.5 text-sm font-bold text-slate-900 leading-snug group-hover:text-blue-700 transition-colors">{item.title}</h4>
-              <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-600">{item.summary}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+          {missingSections.length > 0 && (
+            <PanelNotice>
+              Para mejorar la personalización todavía faltan datos en: {describeMissingSections(missingSections)}.
+            </PanelNotice>
+          )}
+
+          <section className="space-y-3">
+            <FactCard
+              title="Próxima consulta"
+              description={
+                summary.agenda.nextAppointment
+                  ? `${summary.agenda.nextAppointment.doctorName ?? 'Consulta médica'} · ${formatDateTime(summary.agenda.nextAppointment.startTime)}`
+                  : 'No hay consultas próximas agendadas.'
+              }
+              icon={<Calendar className="h-4 w-4" />}
+            />
+            <FactCard
+              title="Último estudio cargado"
+              description={
+                summary.results.latest
+                  ? `${summary.results.latest.testType} · ${formatDate(summary.results.latest.testDate)}`
+                  : 'Todavía no hay estudios cargados.'
+              }
+              icon={<TestTubeDiagonal className="h-4 w-4" />}
+            />
+          </section>
+        </>
+      )}
     </div>
-  )
+  );
 }
 
 function ClinicalLogPanel() {
-  const [activeModal, setActiveModal] = useState<QuickActionModalKey | null>(null)
+  const [activeModal, setActiveModal] = useState<QuickActionModalKey | null>(null);
 
   return (
     <>
@@ -265,41 +406,43 @@ function ClinicalLogPanel() {
         <div className="relative overflow-hidden rounded-2xl border border-amber-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-white/20" />
           <div className="relative">
-            <p className="inline-flex rounded-full bg-amber-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-amber-700 uppercase">Captura rápida</p>
-            <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">
+            <p className="inline-flex rounded-full bg-amber-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+              Captura rápida
+            </p>
+            <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
               Registra un dato puntual sin salir del resumen
             </h3>
             <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-              Para revisar el detalle completo, usa historia clínica, resultados o indicadores.
+              Para revisar detalle completo, usa historia clínica, resultados o prevención.
             </p>
           </div>
         </div>
 
         <ActionButton
           icon={<Activity className="h-4 w-4" />}
-          label="Registrar presion arterial"
-          description="Medicion puntual para seguir tendencia."
+          label="Anotar mi presión arterial"
+          description="Registra una medición de hoy."
           onClick={() => setActiveModal('blood-pressure')}
           dataTour="action-blood-pressure"
         />
         <ActionButton
           icon={<Pill className="h-4 w-4" />}
-          label="Confirmar medicamento"
-          description="Deja trazabilidad de adherencia."
+          label="Confirmar mi medicación"
+          description="Guarda una toma reciente."
           onClick={() => setActiveModal('medication')}
           dataTour="action-medication"
         />
         <ActionButton
           icon={<FileText className="h-4 w-4" />}
-          label="Registrar sintoma"
-          description="Contexto clinico para la consulta."
+          label="Registrar un síntoma"
+          description="Documenta cómo te sientes hoy."
           onClick={() => setActiveModal('symptom')}
           dataTour="action-symptom"
         />
         <ActionButton
           icon={<TrendingUp className="h-4 w-4" />}
-          label="Subir resultado"
-          description="Adjunta laboratorio o estudios previos."
+          label="Subir un estudio médico"
+          description="Añade laboratorios o informes reales a tu perfil."
           onClick={() => setActiveModal('lab-result')}
           dataTour="action-lab-result"
         />
@@ -317,120 +460,159 @@ function ClinicalLogPanel() {
         </div>
       </div>
 
-      <BloodPressureModal isOpen={activeModal === 'blood-pressure'} onClose={() => setActiveModal(null)} />
+      <BloodPressureModal
+        isOpen={activeModal === 'blood-pressure'}
+        onClose={() => setActiveModal(null)}
+      />
       <MedicationModal isOpen={activeModal === 'medication'} onClose={() => setActiveModal(null)} />
       <SymptomModal isOpen={activeModal === 'symptom'} onClose={() => setActiveModal(null)} />
       <LabResultModal isOpen={activeModal === 'lab-result'} onClose={() => setActiveModal(null)} />
     </>
-  )
+  );
 }
 
-function MedicalContextPanel() {
+function MedicalContextPanel({
+  summary,
+  loading,
+  error,
+}: {
+  summary: DashboardSummary | null;
+  loading: boolean;
+  error: string | null;
+}) {
   return (
     <div className="space-y-5">
       <div className="relative overflow-hidden rounded-2xl border border-teal-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
         <div className="absolute inset-0 bg-gradient-to-br from-teal-50/50 to-white/20" />
         <div className="relative">
-          <p className="inline-flex rounded-full bg-teal-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-teal-700 uppercase">Contexto clínico</p>
-          <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">Resumen operativo del paciente</h3>
+          <p className="inline-flex rounded-full bg-teal-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-teal-700">
+            Contexto clínico
+          </p>
+          <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
+            Resumen operativo del paciente
+          </h3>
         </div>
       </div>
 
-      <section>
-        <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Signos vitales</p>
-        <div className="space-y-3">
-          <VitalSign
-            icon={<Heart className="h-5 w-5 text-rose-500" />}
-            label="Presion arterial"
-            value="120/80"
-            status="Dentro de rango esperado"
-            statusClassName="text-emerald-700"
-          />
-          <VitalSign
-            icon={<Activity className="h-5 w-5 text-blue-500" />}
-            label="Frecuencia cardiaca"
-            value="72 lpm"
-          />
-        </div>
-      </section>
+      {loading && <PanelNotice>Estamos cargando tu contexto clínico.</PanelNotice>}
+      {!loading && error && <PanelNotice tone="error">{error}</PanelNotice>}
 
-      <section>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-          Medicacion de hoy
-        </p>
-        <div className="space-y-2">
-          <MedicationItem name="Lisinopril 10 mg" time="Tomado" completed />
-          <MedicationItem name="Metformina 500 mg" time="14:00" />
-          <MedicationItem name="Aspirina 100 mg" time="20:00" />
-        </div>
-      </section>
+      {!loading && !error && summary && (
+        <>
+          <section>
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Signos vitales
+            </p>
+            {summary.observations.lastVitals ? (
+              <div className="space-y-3">
+                {summary.observations.lastVitals.bloodPressure && (
+                  <VitalSign
+                    icon={<Heart className="h-5 w-5 text-rose-500" />}
+                    label="Presión arterial"
+                    value={summary.observations.lastVitals.bloodPressure}
+                    status={`Registrada el ${formatDate(summary.observations.lastVitals.measuredAt)}`}
+                  />
+                )}
+                {summary.observations.lastVitals.heartRate && (
+                  <VitalSign
+                    icon={<Activity className="h-5 w-5 text-blue-500" />}
+                    label="Frecuencia cardíaca"
+                    value={`${summary.observations.lastVitals.heartRate} lpm`}
+                  />
+                )}
+              </div>
+            ) : (
+              <PanelNotice>Sin signos vitales recientes registrados.</PanelNotice>
+            )}
+          </section>
 
-      <section>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Alergias declaradas</p>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-700" />
-            <span className="text-sm font-medium text-red-900">Penicilina</span>
-          </div>
-        </div>
-      </section>
+          <section>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+              Medicación activa
+            </p>
+            <div className="space-y-2">
+              {summary.history.currentMedications.length > 0 ? (
+                summary.history.currentMedications.map((medication) => (
+                  <MedicationItem
+                    key={medication.id}
+                    name={`${medication.name} ${medication.dosage}`}
+                    time={medication.frequency}
+                    completed={false}
+                  />
+                ))
+              ) : (
+                <PanelNotice>No hay medicación activa cargada.</PanelNotice>
+              )}
+            </div>
+          </section>
 
-      <section>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Accesos a historia</p>
-        <div className="space-y-2">
-          <AccessLog doctor="Dr. Garcia" specialty="Cardiologia" views={12} />
-          <AccessLog doctor="Dra. Martinez" specialty="Medicina general" views={8} />
-        </div>
-        <button className="mt-2 w-full rounded-lg border border-stone-300 bg-stone-100 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-200">
-          <Eye className="mr-2 inline-block h-3 w-3" />
-          Ver historial completo
-        </button>
-      </section>
+          <section>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+              Alergias declaradas
+            </p>
+            {summary.history.criticalAllergies.length > 0 ? (
+              <div className="space-y-2">
+                {summary.history.criticalAllergies.map((allergy) => (
+                  <div key={allergy} className="rounded-lg border border-red-200 bg-red-50 p-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-700" />
+                      <span className="text-sm font-medium text-red-900">{allergy}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <PanelNotice>Sin alergias críticas registradas.</PanelNotice>
+            )}
+          </section>
+
+          <section>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
+              Último estudio
+            </p>
+            {summary.results.latest ? (
+              <FactCard
+                title={summary.results.latest.testType}
+                description={`${formatDate(summary.results.latest.testDate)} · ${
+                  summary.results.latest.laboratoryName ?? 'Laboratorio no informado'
+                }`}
+                icon={<TestTubeDiagonal className="h-4 w-4" />}
+              />
+            ) : (
+              <PanelNotice>Todavía no hay estudios cargados.</PanelNotice>
+            )}
+          </section>
+        </>
+      )}
     </div>
-  )
+  );
 }
 
-function ChatPanel() {
+function ChatPanel({ context }: { context: PanelContext }) {
+  const title =
+    context === 'video'
+      ? 'El canal de mensajes aparecerá cuando la consulta tenga mensajería disponible.'
+      : 'Este espacio se habilita dentro de una consulta activa.';
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col space-y-4">
       <div className="relative overflow-hidden rounded-2xl border border-sky-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50/50 to-white/20" />
         <div className="relative">
-          <p className="inline-flex rounded-full bg-sky-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-sky-700 uppercase">Consulta activa</p>
-          <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">Canal de conversación clínica</h3>
+          <p className="inline-flex rounded-full bg-sky-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-700">
+            Conversación clínica
+          </p>
+          <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
+            Sin mensajes simulados
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{title}</p>
         </div>
       </div>
-
-      <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
-        <ChatMessage sender="Dr. Garcia" message="Como estuvo tu presion arterial esta semana?" />
-        <ChatMessage sender="Tu" message="Se mantuvo estable, entre 118/78 y 122/81." isOwn />
-      </div>
-
-      <div className="mt-4">
-        <input
-          type="text"
-          placeholder="Escribe tu mensaje..."
-          className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 placeholder-stone-500 focus:border-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-700/20"
-        />
-      </div>
+      <PanelNotice>
+        Cuando exista un hilo real de conversación, se mostrará aquí.
+      </PanelNotice>
     </div>
-  )
-}
-
-function screeningStatusLabel(status: 'overdue' | 'due_soon' | 'up_to_date'): string {
-  if (status === 'overdue') return 'Atrasado'
-  if (status === 'due_soon') return 'Por vencer'
-  return 'Al dia'
-}
-
-function statusPillClass(status: 'overdue' | 'due_soon' | 'up_to_date'): string {
-  if (status === 'overdue') {
-    return 'rounded-full bg-red-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-red-700'
-  }
-  if (status === 'due_soon') {
-    return 'rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700'
-  }
-  return 'rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700'
+  );
 }
 
 function SummaryMetric({
@@ -438,25 +620,29 @@ function SummaryMetric({
   value,
   highlight = false,
 }: {
-  label: string
-  value: string
-  highlight?: boolean
+  label: string;
+  value: string;
+  highlight?: boolean;
 }) {
   return (
     <div
-      className={`relative overflow-hidden flex flex-col items-center rounded-2xl border p-4 shadow-sm backdrop-blur-sm transition-all duration-300 ${
+      className={`relative flex flex-col items-center overflow-hidden rounded-2xl border p-4 shadow-sm backdrop-blur-sm transition-all duration-300 ${
         highlight
           ? 'border-rose-200/50 bg-rose-50/40 text-rose-900'
           : 'border-slate-200/50 bg-white/40 text-slate-900 hover:bg-white/60'
       }`}
     >
-      <div className={`absolute inset-0 bg-gradient-to-br ${highlight ? 'from-rose-100/30' : 'from-slate-50/30'} to-transparent`} />
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${
+          highlight ? 'from-rose-100/30' : 'from-slate-50/30'
+        } to-transparent`}
+      />
       <span className="relative text-2xl font-extrabold tracking-tight">{value}</span>
       <span className="relative mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </span>
     </div>
-  )
+  );
 }
 
 function ActionButton({
@@ -466,11 +652,11 @@ function ActionButton({
   onClick,
   dataTour,
 }: {
-  icon: ReactNode
-  label: string
-  description: string
-  onClick: () => void
-  dataTour?: string
+  icon: ReactNode;
+  label: string;
+  description: string;
+  onClick: () => void;
+  dataTour?: string;
 }) {
   return (
     <button
@@ -486,7 +672,7 @@ function ActionButton({
         </div>
       </div>
     </button>
-  )
+  );
 }
 
 function VitalSign({
@@ -494,13 +680,11 @@ function VitalSign({
   label,
   value,
   status,
-  statusClassName,
 }: {
-  icon: ReactNode
-  label: string
-  value: string
-  status?: string
-  statusClassName?: string
+  icon: ReactNode;
+  label: string;
+  value: string;
+  status?: string;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-stone-200 bg-white p-3">
@@ -508,13 +692,21 @@ function VitalSign({
       <div className="flex-1">
         <p className="text-xs text-stone-600">{label}</p>
         <p className="text-lg font-semibold text-stone-900">{value}</p>
-        {status && <p className={`text-xs ${statusClassName ?? 'text-stone-600'}`}>{status}</p>}
+        {status && <p className="text-xs text-stone-600">{status}</p>}
       </div>
     </div>
-  )
+  );
 }
 
-function MedicationItem({ name, time, completed = false }: { name: string; time: string; completed?: boolean }) {
+function MedicationItem({
+  name,
+  time,
+  completed = false,
+}: {
+  name: string;
+  time: string;
+  completed?: boolean;
+}) {
   return (
     <div
       className={`flex items-center justify-between rounded-lg border p-2 ${
@@ -531,37 +723,51 @@ function MedicationItem({ name, time, completed = false }: { name: string; time:
         )}
         <span className="text-sm text-stone-900">{name}</span>
       </div>
-      <span className={`text-xs ${completed ? 'font-semibold text-emerald-700' : 'text-stone-600'}`}>{time}</span>
+      <span className={`text-xs ${completed ? 'font-semibold text-emerald-700' : 'text-stone-600'}`}>
+        {time}
+      </span>
     </div>
-  )
+  );
 }
 
-function AccessLog({ doctor, specialty, views }: { doctor: string; specialty: string; views: number }) {
+function PanelNotice({
+  children,
+  tone = 'neutral',
+}: {
+  children: ReactNode;
+  tone?: 'neutral' | 'error';
+}) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-white p-2">
-      <div>
-        <p className="text-sm font-medium text-stone-900">{doctor}</p>
-        <p className="text-xs text-stone-600">{specialty}</p>
-      </div>
-      <div className="text-right">
-        <p className="text-sm font-semibold text-stone-900">{views}</p>
-        <p className="text-[10px] text-stone-500">veces</p>
-      </div>
+    <div
+      className={`rounded-xl border p-4 text-xs leading-5 ${
+        tone === 'error'
+          ? 'border-rose-200 bg-rose-50 text-rose-800'
+          : 'border-stone-200 bg-stone-50 text-stone-700'
+      }`}
+    >
+      {children}
     </div>
-  )
+  );
 }
 
-function ChatMessage({ sender, message, isOwn = false }: { sender: string; message: string; isOwn?: boolean }) {
+function FactCard({
+  title,
+  description,
+  icon,
+}: {
+  title: string;
+  description: string;
+  icon: ReactNode;
+}) {
   return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[80%] rounded-lg border p-3 ${
-          isOwn ? 'border-stone-300 bg-stone-100' : 'border-stone-200 bg-white'
-        }`}
-      >
-        <p className="mb-1 text-xs font-medium text-stone-600">{sender}</p>
-        <p className="text-sm text-stone-900">{message}</p>
+    <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 text-stone-700">{icon}</span>
+        <div>
+          <p className="text-sm font-semibold text-stone-900">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-stone-600">{description}</p>
+        </div>
       </div>
     </div>
-  )
+  );
 }

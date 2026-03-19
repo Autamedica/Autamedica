@@ -26,25 +26,25 @@ export default function ResultsPage() {
       <div>
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-stone-900">📊 Mis Resultados</h1>
-          <p className="mt-2 text-sm text-stone-600">
-            Resultados de laboratorio, estudios de imagen e informes médicos
+          <h1 className="text-3xl font-bold text-stone-900">📊 Mis Hallazgos</h1>
+          <p className="mt-2 text-sm text-stone-600 leading-relaxed max-w-2xl">
+            Una visión clara de tu evolución clínica. Accede a tus estudios recientes, analiza tendencias históricas y comprende el significado de cada indicador junto a tu equipo médico.
           </p>
         </div>
 
         {/* Acciones rápidas */}
         <div className="mb-6 flex flex-wrap gap-3">
-          <button className="flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-500">
+          <button className="flex items-center gap-2 rounded-lg bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-800">
             <Upload className="h-4 w-4" />
-            Subir resultado
+            Añadir nuevo estudio
           </button>
           <button className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-50">
             <Download className="h-4 w-4" />
-            Exportar informe
+            Descargar mi reporte clínico
           </button>
           <button className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-50">
             <Filter className="h-4 w-4" />
-            Filtros
+            Filtrar por tipo
           </button>
         </div>
 
@@ -54,47 +54,49 @@ export default function ResultsPage() {
             active={activeCategory === 'all'}
             onClick={() => setActiveCategory('all')}
             icon={<FileText className="h-4 w-4" />}
-            label="Todos"
+            label="Vista General"
           />
           <CategoryTab
             active={activeCategory === 'lab'}
             onClick={() => setActiveCategory('lab')}
             icon={<Microscope className="h-4 w-4" />}
-            label="Laboratorio"
+            label="Bioquímica"
           />
           <CategoryTab
             active={activeCategory === 'imaging'}
             onClick={() => setActiveCategory('imaging')}
             icon={<ImageIcon className="h-4 w-4" />}
-            label="Imágenes"
+            label="Diagnóstico Visual"
           />
           <CategoryTab
             active={activeCategory === 'reports'}
             onClick={() => setActiveCategory('reports')}
             icon={<FileText className="h-4 w-4" />}
-            label="Informes"
+            label="Evolución Médica"
           />
         </div>
 
         {/* Alertas de valores anormales */}
-        <div className="mb-6 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 shadow-md">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-5 shadow-sm backdrop-blur-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <AlertCircle className="h-5 w-5" />
+            </div>
             <div className="flex-1">
-              <p className="font-semibold text-amber-900">2 valores fuera de rango detectados</p>
-              <p className="mt-1 text-sm text-amber-800">
-                Glucosa y colesterol LDL ligeramente elevados. Notificamos a tu médico.
+              <p className="font-bold text-amber-900">Atención: 2 indicadores requieren seguimiento</p>
+              <p className="mt-1 text-sm text-amber-800 leading-relaxed">
+                Detectamos valores de glucosa y colesterol LDL fuera del rango óptimo. Tu médico ya ha sido notificado para revisar tu plan de seguimiento.
               </p>
             </div>
-            <button className="rounded bg-amber-600 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-500">
-              Ver detalles
+            <button className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-amber-700">
+              Ver detalles clínicos
             </button>
           </div>
         </div>
 
         {/* Resultados recientes */}
         <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-xl font-bold text-stone-900">🧪 Laboratorio Reciente</h2>
+          <h2 className="mb-4 text-xl font-bold text-stone-900">🧪 Bioquímica Reciente</h2>
           <div className="space-y-3">
             <LabResultItem
               name="Glucosa"
@@ -146,7 +148,7 @@ export default function ResultsPage() {
 
         {/* Comparativa temporal */}
         <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-xl font-bold text-stone-900">📈 Evolución Temporal</h2>
+          <h2 className="mb-4 text-xl font-bold text-stone-900">📈 Tu Salud en Perspectiva</h2>
           <div className="grid gap-4 md:grid-cols-2">
             <TrendCard
               parameter="Glucosa"
@@ -169,7 +171,7 @@ export default function ResultsPage() {
 
         {/* Estudios de imagen */}
         <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-xl font-bold text-stone-900">🔬 Estudios de Imagen</h2>
+          <h2 className="mb-4 text-xl font-bold text-stone-900">🔬 Diagnóstico Visual</h2>
           <div className="space-y-3">
             <ImagingResultItem
               type="Radiografía de Tórax"
@@ -190,7 +192,7 @@ export default function ResultsPage() {
 
         {/* Informes médicos */}
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-xl font-bold text-stone-900">📋 Informes Médicos</h2>
+          <h2 className="mb-4 text-xl font-bold text-stone-900">📋 Evolución Médica</h2>
           <div className="space-y-3">
             <ReportItem
               title="Informe Cardiológico"

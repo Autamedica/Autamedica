@@ -56,6 +56,6 @@ export interface AppointmentWithDoctor extends Appointment {
     first_name: string | null;
     last_name: string | null;
     specialty: string | null;
-    profile_picture_url: string | null;
+    profile_picture_url?: string | null;
   } | null;
 }

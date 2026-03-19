@@ -3,31 +3,24 @@
 import { useOnboardingContext } from '@/hooks/useOnboardingContext';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { generateAutaMiniChatHTML } from './onboarding-helpers';
 
 interface PatientOnboardingProps {
   autoStart?: boolean;
+  renderLauncher?: boolean;
+  launcherVariant?: 'floating' | 'sidebar';
 }
 
-export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps) {
+export function PatientOnboarding({
+  autoStart = false,
+  renderLauncher = true,
+  launcherVariant = 'floating',
+}: PatientOnboardingProps) {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(true);
   const { steps: onboardingSteps } = useOnboardingContext();
 
-  useEffect(() => {
-    // Verificar si el usuario ya vio el onboarding
-    const seen = localStorage.getItem('autamedica_onboarding_completed');
-    setHasSeenOnboarding(!!seen);
-
-    if (!seen && autoStart) {
-      // Pequeño delay para que el DOM esté completamente cargado
-      setTimeout(() => {
-        startOnboarding();
-      }, 500);
-    }
-  }, [autoStart]);
-
-  const startOnboarding = () => {
+  const startOnboarding = useCallback(() => {
     const driverObj = driver({
       showProgress: true,
       showButtons: ['next', 'previous', 'close'],
@@ -48,7 +41,7 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
                 <p style="margin-bottom: 1rem;">AutaMedica es tu <strong>centro de salud digital</strong> donde puedes:</p>
                 <ul style="text-align: left; margin: 1rem 0; padding-left: 1.5rem; font-size: 0.95rem;">
                   <li>🎥 <strong>Hacer videoconsultas</strong> con médicos certificados</li>
-                  <li>📋 <strong>Gestionar tu historial médico</strong> completo</li>
+                  <li>📋 <strong>Gestionar tu historia clínica</strong> completa</li>
                   <li>🛡️ <strong>Prevenir enfermedades</strong> con chequeos programados</li>
                   <li>💊 <strong>Recibir recetas digitales</strong> y recordatorios</li>
                   <li>💬 <strong>Conectar con la comunidad</strong> de pacientes</li>
@@ -67,8 +60,7 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
               Este es tu <strong>menú principal</strong> donde encontrarás todas las secciones:
               <ul style="margin-top: 0.5rem; padding-left: 1rem; font-size: 0.9rem;">
                 <li>• <strong>Inicio:</strong> Dashboard con videoconsulta</li>
-                <li>• <strong>Mi Anamnesis:</strong> Historia clínica inteligente</li>
-                <li>• <strong>Historial:</strong> Todos tus registros médicos</li>
+                <li>• <strong>Mi Historia Clínica:</strong> Anamnesis, estudios y registros en un solo lugar</li>
                 <li>• <strong>Salud Preventiva:</strong> Chequeos y screenings</li>
                 <li>• <strong>Salud Reproductiva:</strong> IVE/ILE según Ley 27.610</li>
                 <li>• <strong>Mis Citas:</strong> Agenda y consultas</li>
@@ -98,31 +90,13 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
           }
         },
         {
-          element: 'a[href="/anamnesis"]',
-          popover: {
-            title: '📖 Mi Anamnesis - Historia Clínica Inteligente',
-            description: `
-              La anamnesis es tu <strong>historia clínica educativa</strong>:
-              <ul style="margin-top: 0.5rem; padding-left: 1rem; font-size: 0.9rem;">
-                <li>❓ <strong>Preguntas inteligentes:</strong> Te explica el "por qué" de cada una</li>
-                <li>📚 <strong>Material educativo:</strong> Aprende sobre tu salud</li>
-                <li>🎯 <strong>Casos reales:</strong> Ejemplos de diagnósticos</li>
-                <li>💾 <strong>Auto-guardado:</strong> No pierdas tu progreso</li>
-                <li>🔒 <strong>Privacidad total:</strong> Solo tú y tus médicos autorizados</li>
-              </ul>
-              <p style="margin-top: 0.5rem; color: #dc2626;"><strong>Importante:</strong> Completar esto ayuda a tu diagnóstico en un 70%</p>
-            `,
-            side: 'right',
-            align: 'start'
-          }
-        },
-        {
           element: 'a[href="/medical-history"]',
           popover: {
-            title: '📋 Historial Médico - Tu Información Completa',
+            title: '📋 Mi Historia Clínica - Todo en un solo lugar',
             description: `
-              Acceso a <strong>todos tus registros médicos</strong>:
+              Aquí concentras <strong>toda tu información clínica</strong>:
               <ul style="margin-top: 0.5rem; padding-left: 1rem; font-size: 0.9rem;">
+                <li>📖 <strong>Anamnesis:</strong> Completa tus antecedentes sin entrar a otra sección principal</li>
                 <li>🩺 <strong>Signos vitales:</strong> Presión, temperatura, peso, etc.</li>
                 <li>💊 <strong>Medicamentos:</strong> Actuales y pasados con recordatorios</li>
                 <li>⚠️ <strong>Alergias:</strong> Medicamentosas y alimentarias</li>
@@ -130,7 +104,7 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
                 <li>🔍 <strong>Auditoría:</strong> Sabes quién accedió a tu información y cuándo</li>
                 <li>📥 <strong>Exportar:</strong> Descarga todo en PDF o JSON</li>
               </ul>
-              <p style="margin-top: 0.5rem; color: #0369a1;"><strong>Todo en un solo lugar</strong>, siempre disponible</p>
+              <p style="margin-top: 0.5rem; color: #0369a1;"><strong>Una sola puerta de entrada</strong> para evitar repetición y confusión</p>
             `,
             side: 'right',
             align: 'start'
@@ -240,12 +214,12 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
             description: `
               <div style="padding: 0.5rem 0;">
                 <p style="margin-bottom: 1rem; font-weight: 600;">También tienes acceso a:</p>
-                <ul style="text-align: left; margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.9rem;">
-                  <li>🤖 <strong>Auta AI:</strong> Asistente inteligente 24/7 (botón abajo derecha)</li>
-                  <li>📚 <strong>Guías interactivas:</strong> Tours paso a paso (botón abajo izquierda)</li>
-                  <li>🔔 <strong>Notificaciones:</strong> Alertas de salud importantes</li>
-                  <li>📊 <strong>Reportes PDF:</strong> Exporta tu información médica</li>
-                  <li>🔐 <strong>Seguridad HIPAA:</strong> Máxima protección de datos</li>
+                  <ul style="text-align: left; margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.9rem;">
+                    <li>🤖 <strong>Auta AI:</strong> Asistente inteligente 24/7 (botón abajo derecha)</li>
+                    <li>📚 <strong>Guías interactivas:</strong> Tours paso a paso desde el sidebar</li>
+                    <li>🔔 <strong>Notificaciones:</strong> Alertas de salud importantes</li>
+                    <li>📊 <strong>Reportes PDF:</strong> Exporta tu información médica</li>
+                    <li>🔐 <strong>Seguridad HIPAA:</strong> Máxima protección de datos</li>
                   <li>📱 <strong>Responsivo:</strong> Funciona en móvil, tablet y desktop</li>
                 </ul>
               </div>
@@ -270,7 +244,7 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
                   </ul>
                 </div>
                 <p style="margin-top: 1rem; font-size: 1.2rem; color: #059669; font-weight: 700;">¡Empecemos a cuidar tu salud! 🌟</p>
-                <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #64748b;">Puedes volver a ver este tutorial desde el botón "Tutorial" abajo a la izquierda</p>
+                <p style="margin-top: 0.5rem; font-size: 0.85rem; color: #64748b;">Puedes volver a ver este tutorial desde el botón "Tutorial" del sidebar</p>
               </div>
             `,
           }
@@ -286,17 +260,34 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
     });
 
     driverObj.drive();
-  };
+  }, [onboardingSteps]);
+
+  useEffect(() => {
+    // Verificar si el usuario ya vio el onboarding
+    const seen = localStorage.getItem('autamedica_onboarding_completed');
+    setHasSeenOnboarding(!!seen);
+
+    if (!seen && autoStart) {
+      // Pequeño delay para que el DOM esté completamente cargado
+      setTimeout(() => {
+        startOnboarding();
+      }, 500);
+    }
+  }, [autoStart, startOnboarding]);
 
   // Botón flotante para reiniciar el onboarding
-  if (hasSeenOnboarding) {
+  if (hasSeenOnboarding && renderLauncher) {
+    const buttonClassName = launcherVariant === 'sidebar'
+      ? 'flex w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900'
+      : 'fixed bottom-4 left-4 z-50 flex items-center gap-2 rounded-full bg-stone-800 px-4 py-2 text-white shadow-lg transition-all hover:scale-105 hover:bg-stone-700 hover:shadow-xl';
+
     return (
       <button
         onClick={startOnboarding}
-        className="fixed bottom-4 left-4 z-50 flex items-center gap-2 px-4 py-2 bg-stone-800 hover:bg-stone-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
+        className={buttonClassName}
         title="Ver tutorial de nuevo"
       >
-        <span className="text-xl">🎓</span>
+        <span className={launcherVariant === 'sidebar' ? 'text-lg' : 'text-xl'}>🎓</span>
         <span className="text-sm font-medium">Tutorial</span>
       </button>
     );

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { UnifiedVideoCall } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
+import { PatientPortalShell } from '@/components/layout/PatientPortalShell'
 
 interface CallPageClientProps {
   roomId: string
@@ -89,17 +90,29 @@ function PatientCallContent({ roomId }: { roomId: string }) {
 
   if (loading || !isReady) {
     return (
-      <div className="min-h-screen bg-[#161b22] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4fd1c5] mx-auto mb-4"></div>
-          <p className="text-white">Preparando videollamada...</p>
+      <PatientPortalShell
+        title="Preparando consulta"
+        subtitle="Estamos asegurando la sesión, tus permisos y la sala antes de iniciar."
+        modeLabel="Modo inmersivo"
+        backHref="/appointments"
+      >
+        <div className="flex h-full items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-emerald-300"></div>
+            <p className="text-white">Preparando videollamada...</p>
+          </div>
         </div>
-      </div>
+      </PatientPortalShell>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#161b22] overflow-hidden">
+    <PatientPortalShell
+      title="Consulta en vivo"
+      subtitle="Sala segura para videollamada, seguimiento clínico y coordinación con tu equipo médico."
+      modeLabel="Telemedicina"
+      backHref="/appointments"
+    >
       <UnifiedVideoCall
         roomId={roomId}
         userId={userId}
@@ -110,8 +123,8 @@ function PatientCallContent({ roomId }: { roomId: string }) {
         onCallStart={handleCallStart}
         onStatusChange={handleStatusChange}
         onError={handleError}
-        className="h-screen"
+        className="h-full"
       />
-    </div>
+    </PatientPortalShell>
   )
 }

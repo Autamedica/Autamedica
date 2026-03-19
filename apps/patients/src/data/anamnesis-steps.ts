@@ -15,6 +15,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'La edad es la primera pista que guía al médico',
     category: 'filiacion',
     completed: false,
+    mediaUrl: '/images/anamnesis/edad-primer-detective.webp',
     story: {
       intro: 'Imagina que un paciente llega diciendo "me duele el pecho". La primera pregunta del médico es: ¿cuántos años tiene?',
       why: 'La edad cambia completamente lo que el médico piensa. Un dolor de pecho en un niño de 8 años probablemente sea una contractura muscular por jugar. El mismo dolor en un adulto de 65 años con presión alta puede ser un infarto. ¡La edad es el primer detective!',
@@ -168,6 +169,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Saber qué tomas puede salvar tu vida',
     category: 'antecedentes_personales',
     completed: false,
+    mediaUrl: '/images/anamnesis/medicamentos-interacciones.webp',
     story: {
       intro: 'Una señora llega al hospital con sangrado. Toma warfarina (anticoagulante) pero olvidó decirlo. El médico le da aspirina (también anticoagulante). Resultado: hemorragia grave. ¡Conocer tus medicamentos es VITAL!',
       why: 'Los medicamentos interactúan entre sí. Algunos se potencian (efecto multiplicado), otros se anulan, y otros se vuelven tóxicos juntos.',
@@ -202,6 +204,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Una alergia mal reportada puede ser mortal',
     category: 'antecedentes_personales',
     completed: false,
+    mediaUrl: '/images/anamnesis/alergias-sistema-alarma.webp',
     story: {
       intro: 'Un paciente dice "soy alérgico a la penicilina". El médico pregunta: ¿qué te pasó? "Me dio diarrea". Eso NO es alergia, es efecto secundario. La diferencia puede salvar una vida porque la penicilina podría ser el mejor antibiótico para su infección actual.',
       why: 'Hay ENORME diferencia entre alergia real (reacción del sistema inmune) y efecto secundario (molestia tolerab le). Una alergia verdadera significa que el medicamento puede matarte. Un efecto secundario significa que te molesta pero no es peligroso.',
@@ -236,6 +239,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Las enfermedades de tu familia son pistas de tu futuro',
     category: 'antecedentes_familiares',
     completed: false,
+    mediaUrl: '/images/anamnesis/antecedentes-familiares-codigo-genetico.webp',
     fields: [
       {
         id: 'padre_vivo',
@@ -338,6 +342,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Tu estilo de vida determina el 70% de tu salud futura',
     category: 'antecedentes_personales',
     completed: false,
+    mediaUrl: '/images/anamnesis/habitos-salud-diaria.webp',
     story: {
       intro: 'Dos gemelos idénticos, mismo ADN. Uno fuma 20 cigarrillos al día, sedentario, come comida rápida. El otro no fuma, corre 3 veces por semana, dieta mediterránea. A los 60 años: el primero tiene enfisema, diabetes y tuvo un infarto. El segundo está sano. La genética carga el arma, pero el estilo de vida aprieta el gatillo.',
       why: 'Los hábitos son el factor MÁS IMPORTANTE para prevenir enfermedades. Fumar causa 30% de todos los cánceres. El sedentarismo aumenta riesgo de infarto 2x. La dieta puede prevenir o causar diabetes tipo 2.',
@@ -433,6 +438,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Tu corazón y circulación: el motor de la vida',
     category: 'revision_sistemas',
     completed: false,
+    mediaUrl: '/images/anamnesis/sistema-cardiovascular-sintomas.webp',
     story: {
       intro: 'Un paciente de 50 años consulta por "cansancio". El médico pregunta: ¿te cuesta respirar al subir escaleras? "Sí, pero pensé que era normal por la edad". Examen: soplo cardíaco. Eco: válvula aórtica muy estrecha, necesita cirugía urgente. Si no se operaba en 3 meses, muerte súbita.',
       why: 'Los síntomas cardiovasculares son sutiles pero mortales. Dolor de pecho, falta de aire, hinchazón de piernas, palpitaciones... pueden ser la primera señal de infarto, insuficiencia cardíaca, arritmia peligrosa.',
@@ -497,6 +503,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Tus pulmones: la fábrica de oxígeno',
     category: 'revision_sistemas',
     completed: false,
+    mediaUrl: '/images/anamnesis/sistema-respiratorio-sintomas.webp',
     story: {
       intro: 'Una mujer joven consulta por "tos que no se quita". Lleva 3 semanas. "¿Tiene fiebre?" "No". "¿Fuma?" "No". "¿Le falta el aire?" "Un poco, al subir escaleras". Radiografía: tumor en pulmón. A los 32 años, nunca fumó. Cáncer de pulmón. Si hubiera esperado 2 meses más para consultar, inoperable.',
       why: 'La tos, la falta de aire, el dolor al respirar... son alarmas del sistema respiratorio. Pueden indicar desde asma (tratable) hasta cáncer de pulmón o embolia pulmonar (mortal en minutos).',
@@ -556,6 +563,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'De la boca al ano: tu fábrica de nutrientes',
     category: 'revision_sistemas',
     completed: false,
+    mediaUrl: '/images/anamnesis/sistema-digestivo-sintomas.webp',
     story: {
       intro: 'Un señor de 55 años llega por "acidez". Toma omeprazol hace 2 años, lo compra sin receta. El médico pregunta: ¿ha bajado de peso? "Sí, 8 kilos en 3 meses". Endoscopia: cáncer gástrico avanzado. El omeprazol solo tapaba el síntoma. El cáncer crecía silenciosamente.',
       why: 'El sistema digestivo da señales sutiles de problemas graves. Acidez persistente puede ser reflujo simple... o cáncer de estómago. Diarrea crónica puede ser intestino irritable... o enfermedad inflamatoria intestinal que necesita tratamiento urgente.',
@@ -614,6 +622,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Riñones y vías urinarias: tu sistema de filtración',
     category: 'revision_sistemas',
     completed: false,
+    mediaUrl: '/images/anamnesis/sistema-genitourinario-sintomas.webp',
     story: {
       intro: 'Un hombre de 60 años consulta porque "orina muchas veces en la noche". Piensa que es "normal de la edad". El médico pregunta: ¿le cuesta iniciar? ¿el chorro es débil? "Sí". Análisis PSA: muy elevado. Biopsia: cáncer de próstata. Tratado a tiempo, curable. Si esperaba 1 año más, con metástasis.',
       why: 'Los síntomas urinarios pueden indicar desde infección simple (tratable con antibióticos) hasta cáncer de riñón, vejiga o próstata. El dolor al orinar, la sangre en orina, orinar frecuente... son señales que no debes ignorar.',
@@ -664,6 +673,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Resumen de tu historia clínica interactiva',
     category: 'revision_sistemas',
     completed: false,
+    mediaUrl: '/images/anamnesis/anamnesis-resumen-final.webp',
     story: {
       intro: '🎉 ¡Felicidades! Has completado un recorrido educativo por tu historia clínica. Ahora entiendes mejor cómo piensan los médicos y por qué hacen las preguntas que hacen.',
       why: 'Esta información que compartiste es INVALUABLE para tu médico. Le permite conocerte antes de verte, pensar en diagnósticos precisos, y darte mejor atención. Has participado activamente en tu salud.',

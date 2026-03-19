@@ -13,7 +13,7 @@ export default function DashboardLayoutWrapper({
   return (
     <>
       <DashboardLayout>{children}</DashboardLayout>
-      <PatientOnboarding autoStart={true} />
+      <PatientOnboarding autoStart={true} renderLauncher={false} />
     </>
   );
 }

@@ -17,9 +17,11 @@ import {
 import { PatientProfileForm, type PatientProfileFormPayload } from '@/components/forms/PatientProfileForm';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { usePatientProfile } from '@/hooks/useProfile';
-import { ensureClientEnv, logger } from '@autamedica/shared';
+import { useSupabase } from '@autamedica/auth/react';
+import { logger } from '@autamedica/shared';
 
 export default function ProfilePage() {
+  const supabase = useSupabase();
   const { user, profile, patient, loading, error, refresh } = usePatientSession();
   const { updateProfile, isSaving, success, error: updateError, resetStatus } = usePatientProfile(user?.id ?? null);
   const [isEditing, setIsEditing] = useState(false);
@@ -67,30 +69,47 @@ export default function ProfilePage() {
 
   // Auto-reparar perfiles inexistentes (esquemas legacy) si el usuario existe
   const ensureProfile = useCallback(async () => {
+    if (loading || !user || !supabase) {
+      return;
+    }
+
     try {
-      // Obtener token actual del cliente para autorizar en backend
-      const { createBrowserClient } = await import('@supabase/ssr');
-      const supabaseClient = createBrowserClient(
-        ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL'),
-        ensureClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-      );
-      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
       const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        logger.warn('[Profile] ensureProfile skipped: access token not ready');
+        return;
+      }
+
       const res = await fetch('/api/profile/ensure', {
         method: 'POST',
         credentials: 'include',
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
+
+      if (!res.ok) {
+        logger.warn(`[Profile] ensureProfile skipped with status ${res.status}`);
+        return;
+      }
+
       logger.info('[Profile] ensureProfile status:', res.status);
       await refresh();
     } catch (e) {
       logger.error('[Profile] ensureProfile failed', (e as Error)?.message);
     }
-  }, [refresh]);
+  }, [loading, refresh, supabase, user]);
 
   useEffect(() => {
-    void ensureProfile();
-  }, [ensureProfile]);
+    if (!loading && user && (!profile || !patient)) {
+      void ensureProfile();
+    }
+  }, [ensureProfile, loading, patient, profile, user]);
 
   if (loading) {
     return (

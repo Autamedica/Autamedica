@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { usePreventiveScreenings } from './usePreventiveScreenings';
+import { usePatientSession } from './usePatientSession';
 
 export interface ScreeningData {
   id: string;
@@ -29,81 +31,79 @@ export interface WeeklyGoal {
   category: string;
 }
 
+type LegacyCategory = 'cardiovascular' | 'cancer' | 'metabolic' | 'general';
+
+function mapCategory(category: string): LegacyCategory {
+  switch (category) {
+    case 'cancer_screening':
+      return 'cancer';
+    case 'cardiovascular':
+      return 'cardiovascular';
+    case 'metabolic':
+      return 'metabolic';
+    default:
+      return 'general';
+  }
+}
+
+function mapStatus(status: string): ScreeningData['status'] {
+  switch (status) {
+    case 'completed':
+      return 'up_to_date';
+    case 'overdue':
+      return 'overdue';
+    default:
+      return 'due_soon';
+  }
+}
+
 /**
  * Hook para gestionar screenings preventivos y calcular logros
+ * sin introducir recomendaciones sintéticas en cliente.
  */
-export function usePatientScreenings(patientAge: number = 52, patientGender: 'male' | 'female' = 'male') {
-  // Mock data de screenings - en producción vendría de API
+export function usePatientScreenings(
+  _patientAge?: number,
+  _patientGender?: 'male' | 'female',
+) {
+  const { patient } = usePatientSession();
+  const { myScreenings, recommendations } = usePreventiveScreenings({
+    patientId: patient?.id,
+    includeCompleted: true,
+  });
+
   const screenings: ScreeningData[] = useMemo(() => {
-    const baseScreenings: ScreeningData[] = [
-      {
-        id: 'blood-pressure',
-        title: 'Presión Arterial',
-        status: 'up_to_date',
-        priority: 'high',
-        category: 'cardiovascular',
-        last_done_date: '2025-09-28',
-        next_due_date: '2025-10-28',
-      },
-      {
-        id: 'cholesterol',
-        title: 'Colesterol',
-        status: 'up_to_date',
-        priority: 'high',
-        category: 'cardiovascular',
-        last_done_date: '2025-08-15',
-        next_due_date: '2026-08-15',
-      },
-      {
-        id: 'glucose',
-        title: 'Glucosa en sangre',
-        status: 'due_soon',
-        priority: 'high',
-        category: 'metabolic',
-        last_done_date: '2025-04-10',
-        next_due_date: '2025-10-10',
-      },
-    ];
+    const byId = new Map<string, ScreeningData>();
 
-    // Screenings específicos por edad y género
-    if (patientAge >= 50) {
-      baseScreenings.push({
-        id: 'colorectal',
-        title: 'Cáncer Colorrectal (Colonoscopia)',
-        status: 'overdue',
-        priority: 'high',
-        category: 'cancer',
-        last_done_date: '2020-05-20',
-        next_due_date: '2025-05-20',
+    for (const item of myScreenings) {
+      byId.set(item.screening_id, {
+        id: item.screening_id,
+        title: item.screening?.name || 'Screening preventivo',
+        status: mapStatus(item.status),
+        priority: item.status === 'overdue' ? 'high' : item.status === 'scheduled' ? 'medium' : 'low',
+        category: mapCategory(item.screening?.category || 'general'),
+        last_done_date: item.completed_date || undefined,
+        next_due_date: item.next_due_date || item.scheduled_date || 'Sin fecha definida',
       });
     }
 
-    if (patientAge >= 50 && patientGender === 'male') {
-      baseScreenings.push({
-        id: 'psa',
-        title: 'PSA (Próstata)',
-        status: 'due_soon',
-        priority: 'medium',
-        category: 'cancer',
-        last_done_date: '2024-10-01',
-        next_due_date: '2025-10-01',
+    for (const recommendation of recommendations) {
+      if (byId.has(recommendation.screening.id)) {
+        continue;
+      }
+
+      byId.set(recommendation.screening.id, {
+        id: recommendation.screening.id,
+        title: recommendation.screening.name,
+        status: recommendation.urgency === 'high' ? 'overdue' : 'due_soon',
+        priority: recommendation.urgency,
+        category: mapCategory(recommendation.screening.category),
+        last_done_date: undefined,
+        next_due_date: recommendation.next_due_date || 'Sin fecha definida',
       });
     }
 
-    if (patientGender === 'female' && patientAge >= 40) {
-      baseScreenings.push({
-        id: 'mammography',
-        title: 'Mamografía',
-        status: 'up_to_date',
-        priority: 'high',
-        category: 'cancer',
-        last_done_date: '2025-03-15',
-        next_due_date: '2027-03-15',
-      });
-    }
-
-    return baseScreenings;
-  }, [patientAge, patientGender]);
+    return Array.from(byId.values());
+  }, [myScreenings, recommendations]);
 
   // Calcular estadísticas
   const stats = useMemo(() => {
@@ -119,7 +119,7 @@ export function usePatientScreenings(patientAge: number = 52, patientGender: 'ma
       upToDate,
       dueSoon,
       overdue,
-      completionRate: Math.round((upToDate / total) * 100),
+      completionRate: total > 0 ? Math.round((upToDate / total) * 100) : 0,
       cardiovascularScreenings,
       cancerScreenings,
     };
@@ -137,8 +137,8 @@ export function usePatientScreenings(patientAge: number = 52, patientGender: 'ma
       emoji: '🥇',
       title: 'Guerrero CV',
       description: 'Todos los controles cardiovasculares al día',
-      level: cvComplete === cvTotal ? 'gold' : 'silver',
-      earned: cvComplete === cvTotal,
+      level: cvTotal > 0 && cvComplete === cvTotal ? 'gold' : cvComplete > 0 ? 'silver' : 'bronze',
+      earned: cvTotal > 0 && cvComplete === cvTotal,
       progress: cvComplete,
       maxProgress: cvTotal,
     });
@@ -176,8 +176,8 @@ export function usePatientScreenings(patientAge: number = 52, patientGender: 'ma
       emoji: '⏰',
       title: 'Sin Retrasos',
       description: 'Ningún screening atrasado',
-      level: 'gold',
-      earned: stats.overdue === 0,
+      level: stats.total > 0 && stats.overdue === 0 ? 'gold' : 'bronze',
+      earned: stats.total > 0 && stats.overdue === 0,
       progress: stats.total - stats.overdue,
       maxProgress: stats.total,
     });
@@ -187,32 +187,29 @@ export function usePatientScreenings(patientAge: number = 52, patientGender: 'ma
 
   // Calcular metas semanales basadas en screenings
   const weeklyGoals: WeeklyGoal[] = useMemo(() => {
+    if (stats.total === 0) {
+      return [];
+    }
+
     return [
       {
-        id: 'medications',
-        label: 'Medicamentos',
-        completed: 7,
-        total: 7,
-        category: 'adherence',
+        id: 'screenings-up-to-date',
+        label: 'Controles al día',
+        completed: stats.upToDate,
+        total: stats.total,
+        category: 'preventive',
       },
       {
-        id: 'blood-pressure',
-        label: 'Registrar PA',
-        completed: 5,
-        total: 7,
-        category: 'monitoring',
+        id: 'screenings-due-soon',
+        label: 'Controles próximos',
+        completed: Math.max(stats.total - stats.dueSoon, 0),
+        total: stats.total,
+        category: 'preventive',
       },
       {
-        id: 'exercise',
-        label: 'Ejercicio 30min',
-        completed: 3,
-        total: 5,
-        category: 'lifestyle',
-      },
-      {
-        id: 'screenings-due',
-        label: 'Agendar screenings',
-        completed: stats.total - stats.overdue - stats.dueSoon,
+        id: 'screenings-without-delay',
+        label: 'Sin retrasos',
+        completed: Math.max(stats.total - stats.overdue, 0),
         total: stats.total,
         category: 'preventive',
       },

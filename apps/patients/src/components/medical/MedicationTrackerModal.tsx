@@ -20,38 +20,8 @@ interface MedicationEntry {
   taken?: boolean;
 }
 
-// Mock current medications - in production this would come from patient data
-const CURRENT_MEDICATIONS: MedicationEntry[] = [
-  {
-    id: '1',
-    name: 'Lisinopril',
-    dosage: '10mg',
-    frequency: 'Una vez al día',
-    nextDose: '08:00',
-    taken: false
-  },
-  {
-    id: '2',
-    name: 'Metformina',
-    dosage: '500mg',
-    frequency: 'Dos veces al día',
-    nextDose: '12:00',
-    taken: true
-  },
-  {
-    id: '3',
-    name: 'Aspirina',
-    dosage: '100mg',
-    frequency: 'Una vez al día',
-    nextDose: '20:00',
-    taken: false
-  }
-];
-
 export function MedicationTrackerModal({ isOpen, onClose, patientId = 'current-patient' }: MedicationTrackerModalProps) {
-  const { recordMedicationTaken } = usePatientMedicalStore();
-
-  const [medications, setMedications] = useState<MedicationEntry[]>(CURRENT_MEDICATIONS);
+  const { activeMedications, recordMedicationTaken, addMedication } = usePatientMedicalStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMedication, setNewMedication] = useState({ name: '', dosage: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,11 +36,6 @@ export function MedicationTrackerModal({ isOpen, onClose, patientId = 'current-p
     try {
       await recordMedicationTaken(medication.name, medication.dosage, patientId);
 
-      // Update local state
-      setMedications(prev => prev.map(med =>
-        med.id === medication.id ? { ...med, taken: true } : med
-      ));
-
       setSuccessMessage(`${medication.name} registrado correctamente`);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
@@ -81,20 +46,22 @@ export function MedicationTrackerModal({ isOpen, onClose, patientId = 'current-p
     }
   };
 
-  const handleAddMedication = () => {
+  const handleAddMedication = async () => {
     if (!newMedication.name || !newMedication.dosage) return;
+    setIsSubmitting(true);
 
-    const newMed: MedicationEntry = {
-      id: Date.now().toString(),
-      name: newMedication.name,
-      dosage: newMedication.dosage,
-      frequency: 'Según necesidad',
-      taken: false
-    };
-
-    setMedications(prev => [...prev, newMed]);
-    setNewMedication({ name: '', dosage: '' });
-    setShowAddForm(false);
+    try {
+      await addMedication(newMedication.name, newMedication.dosage);
+      setNewMedication({ name: '', dosage: '' });
+      setShowAddForm(false);
+      setSuccessMessage(`${newMedication.name} agregado a tu plan de medicación`);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      logger.error('Error adding medication:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getNextDoseStatus = (nextDose?: string) => {
@@ -118,7 +85,17 @@ export function MedicationTrackerModal({ isOpen, onClose, patientId = 'current-p
     }
   };
 
-  const adherenceScore = Math.round((medications.filter(med => med.taken).length / medications.length) * 100);
+  const medications: MedicationEntry[] = activeMedications.map((medication) => ({
+    id: medication.id,
+    name: medication.name,
+    dosage: medication.dosage,
+    frequency: medication.frequency,
+    taken: false,
+  }));
+
+  const adherenceScore = medications.length > 0
+    ? Math.round((medications.filter((med) => med.taken).length / medications.length) * 100)
+    : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
