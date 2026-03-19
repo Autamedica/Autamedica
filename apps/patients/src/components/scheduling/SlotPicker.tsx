@@ -6,7 +6,7 @@ import type { ScheduleSlot } from '@autamedica/types';
 
 interface SlotPickerProps {
   doctorId: string;
-  onSelect: (slot: ScheduleSlot) => void;
+  onSelect: (_slot: ScheduleSlot) => void;
   selectedSlot: ScheduleSlot | null;
 }
 

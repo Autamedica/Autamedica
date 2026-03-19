@@ -108,6 +108,8 @@ export function MediaEducativa({ type, url, title, description }: MediaEducativa
         </div>
       ) : (
         <div className="rounded-xl bg-green-50 p-4 border border-green-200">
+          {/* URL can point to arbitrary patient content providers, so this remains a plain img. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={normalizedUrl} alt={title} className="w-full h-auto rounded-lg" />
           <div className="mt-3">
             <p className="text-sm font-medium text-green-900">{title}</p>
