@@ -24,6 +24,11 @@ const KNOWN_SECTIONS = [
   'resumen_final',
 ]
 
+interface AnamnesisSectionRow {
+  completed?: unknown
+  section?: string | null
+}
+
 function toBoolean(value: unknown, fallback = false) {
   if (typeof value === 'boolean') return value
   if (typeof value === 'string') {
@@ -58,9 +63,11 @@ async function ensureAnamnesisRecord(admin: AppSupabaseClient, patientId: string
   return insert.data
 }
 
-function computeProgress(sections: any[]) {
+function computeProgress(sections: AnamnesisSectionRow[]) {
   const completed = sections.filter((s) => toBoolean(s.completed))
-  const completedIds = completed.map((s) => s.section)
+  const completedIds = completed
+    .map((s) => s.section)
+    .filter((section): section is string => typeof section === 'string' && section.length > 0)
   const pending = KNOWN_SECTIONS.filter((section) => !completedIds.includes(section))
   const completion = TOTAL_SECTIONS > 0 ? Math.round((completed.length / TOTAL_SECTIONS) * 100) : 0
 
@@ -85,7 +92,7 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
     }
 
-    const admin = createAdminClient() as any as AppSupabaseClient;
+    const admin: AppSupabaseClient = createAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const sectionsRes = await admin
@@ -130,7 +137,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'missing_step' }, { status: 400 })
     }
 
-    const admin = createAdminClient() as any as AppSupabaseClient;
+    const admin: AppSupabaseClient = createAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const upsert = await admin
@@ -202,7 +209,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: 'no_updates' }, { status: 400 })
     }
 
-    const admin = createAdminClient() as any as AppSupabaseClient;
+    const admin: AppSupabaseClient = createAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const updateRes = await admin

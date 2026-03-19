@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const reason = body?.reason ? String(body.reason).trim() : null
   const end_date = body?.end_date ? String(body.end_date).trim() : null
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('medical_records')
     .insert([{
       patient_id: context.patientId,

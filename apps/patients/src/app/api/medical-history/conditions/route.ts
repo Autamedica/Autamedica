@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
   if (!condition) return NextResponse.json({ error: 'condition requerido' }, { status: 400 })
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('medical_records')
     .insert([{
       patient_id: context.patientId,
