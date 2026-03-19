@@ -12,10 +12,9 @@ import {
   Calendar,
   Activity,
   Microscope,
-  Image
+  Image as ImageIcon
 } from 'lucide-react'
-import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar'
-import { CollapsibleRightPanel } from '@/components/layout/CollapsibleRightPanel'
+import { DashboardPageShell } from '@/components/layout/DashboardPageShell'
 
 type ResultCategory = 'all' | 'lab' | 'imaging' | 'reports'
 
@@ -23,10 +22,8 @@ export default function ResultsPage() {
   const [activeCategory, setActiveCategory] = useState<ResultCategory>('all')
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-100">
-      <CollapsibleSidebar />
-
-      <main className="flex flex-1 flex-col overflow-y-auto p-6">
+    <DashboardPageShell aside="none">
+      <div>
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-stone-900">📊 Mis Resultados</h1>
@@ -68,7 +65,7 @@ export default function ResultsPage() {
           <CategoryTab
             active={activeCategory === 'imaging'}
             onClick={() => setActiveCategory('imaging')}
-            icon={<Image className="h-4 w-4" />}
+            icon={<ImageIcon className="h-4 w-4" />}
             label="Imágenes"
           />
           <CategoryTab
@@ -209,10 +206,8 @@ export default function ResultsPage() {
             />
           </div>
         </div>
-      </main>
-
-      <CollapsibleRightPanel context="dashboard" />
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }
 

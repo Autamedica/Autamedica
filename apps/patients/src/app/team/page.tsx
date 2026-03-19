@@ -1,15 +1,12 @@
 'use client'
 
 import { User, Mail, Phone, Calendar, Video } from 'lucide-react'
-import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar'
-import { CollapsibleRightPanel } from '@/components/layout/CollapsibleRightPanel'
+import { DashboardPageShell } from '@/components/layout/DashboardPageShell'
 
 export default function TeamPage() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-100">
-      <CollapsibleSidebar />
-
-      <main className="flex flex-1 flex-col overflow-y-auto p-6">
+    <DashboardPageShell aside="none">
+      <div>
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-stone-900">👥 Mi Equipo Médico</h1>
           <p className="mt-2 text-sm text-stone-600">
@@ -77,10 +74,8 @@ export default function TeamPage() {
             <p className="text-sm font-medium">Solicitar Nuevo Especialista</p>
           </button>
         </div>
-      </main>
-
-      <CollapsibleRightPanel context="dashboard" />
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }
 

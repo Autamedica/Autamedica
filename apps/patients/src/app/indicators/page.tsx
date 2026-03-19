@@ -1,15 +1,12 @@
 'use client'
 
 import { TrendingUp, Activity, Heart, Droplet, ThermometerSun } from 'lucide-react'
-import { CompactSidebar } from '@/components/layout/CompactSidebar'
-import { DynamicRightPanel } from '@/components/layout/DynamicRightPanel'
+import { DashboardPageShell } from '@/components/layout/DashboardPageShell'
 
 export default function IndicatorsPage() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-100">
-      <CompactSidebar />
-
-      <main className="flex flex-1 flex-col overflow-y-auto p-6">
+    <DashboardPageShell aside="none">
+      <div>
         <div className="mb-6">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-stone-900">📊 Indicadores de Salud</h1>
@@ -93,10 +90,8 @@ export default function IndicatorsPage() {
             <p className="text-sm font-medium">Registrar Nuevos Signos Vitales</p>
           </button>
         </div>
-      </main>
-
-      <DynamicRightPanel context="dashboard" />
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }
 

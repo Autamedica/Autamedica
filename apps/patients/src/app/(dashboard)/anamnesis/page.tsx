@@ -11,9 +11,8 @@ import { anamnesisSteps } from '@/data/anamnesis-steps';
 import { useAnamnesis } from '@/hooks';
 import type { AnamnesisFieldValue } from '@/types/anamnesis';
 import { logger } from '@autamedica/shared';
-import type { AnamnesisSection } from '@autamedica/types';
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle, Play, Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle, Download, Play, Save } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function AnamnesisPage() {
   // Hook de Supabase para anamnesis
@@ -35,33 +34,9 @@ export default function AnamnesisPage() {
 
   const currentStep = anamnesisSteps[currentStepIndex];
   const progress = anamnesis?.completion_percentage ?? ((currentStepIndex + 1) / anamnesisSteps.length) * 100;
+  const currentMediaType = currentStep.mediaUrl?.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image';
 
-  // Auto-guardado cada 30 segundos
-  useEffect(() => {
-    if (!started) return;
-
-    const autoSaveInterval = setInterval(() => {
-      saveToLocalStorage();
-    }, 30000); // 30 segundos
-
-    return () => clearInterval(autoSaveInterval);
-  }, [anamnesisData, started]);
-
-  // Cargar datos guardados al iniciar
-  useEffect(() => {
-    const saved = localStorage.getItem('anamnesis_draft');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setAnamnesisData(parsed.data || {});
-        setCurrentStepIndex(parsed.currentStep || 0);
-      } catch (e) {
-        logger.error('Error loading saved data:', e);
-      }
-    }
-  }, []);
-
-  const saveToLocalStorage = async () => {
+  const saveToLocalStorage = useCallback(async () => {
     setIsSaving(true);
     try {
       // Guardar en localStorage como respaldo
@@ -76,8 +51,7 @@ export default function AnamnesisPage() {
 
       // Guardar en Supabase si hay anamnesis creada
       if (anamnesis && currentStep) {
-        const sectionKey = currentStep.category as AnamnesisSection;
-        await updateSection(sectionKey, anamnesisData);
+        await updateSection(currentStep.id, anamnesisData);
       }
 
       setLastSaved(new Date());
@@ -86,7 +60,32 @@ export default function AnamnesisPage() {
     } finally {
       setTimeout(() => setIsSaving(false), 500);
     }
-  };
+  }, [anamnesis, currentStep, currentStepIndex, anamnesisData, updateSection]);
+
+  // Auto-guardado cada 30 segundos
+  useEffect(() => {
+    if (!started) return;
+
+    const autoSaveInterval = setInterval(() => {
+      saveToLocalStorage();
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(autoSaveInterval);
+  }, [saveToLocalStorage, started]);
+
+  // Cargar datos guardados al iniciar
+  useEffect(() => {
+    const saved = localStorage.getItem('anamnesis_draft');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setAnamnesisData(parsed.data || {});
+        setCurrentStepIndex(parsed.currentStep || 0);
+      } catch (e) {
+        logger.error('Error loading saved data:', e);
+      }
+    }
+  }, []);
 
   const handleFieldChange = (fieldId: string, value: AnamnesisFieldValue) => {
     setAnamnesisData((prev) => ({
@@ -148,8 +147,7 @@ export default function AnamnesisPage() {
         });
       } else {
         // Actualizar última sección
-        const sectionKey = currentStep.category as AnamnesisSection;
-        await updateSection(sectionKey, anamnesisData);
+        await updateSection(currentStep.id, anamnesisData);
 
         // Actualizar anamnesis como completada
         await updateAnamnesis({
@@ -195,6 +193,10 @@ export default function AnamnesisPage() {
     }
   };
 
+  const handleExportPdf = () => {
+    window.open('/api/anamnesis/export', '_blank', 'noopener,noreferrer');
+  };
+
   if (!started) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-ivory-base to-purple-50 flex items-center justify-center p-8">
@@ -205,17 +207,18 @@ export default function AnamnesisPage() {
             </div>
 
             <h1 className="text-4xl font-bold text-stone-900 mb-4 text-center">
-              Tu Historia Clínica
+              Completar anamnesis
             </h1>
 
             <p className="text-xl text-stone-700 mb-8 text-center">
-              Vamos a completar tu historia clínica, que es la base de todos los diagnósticos médicos
+              La anamnesis forma parte de tu historia clínica y reúne los antecedentes que tu equipo
+              médico necesita para atenderte mejor.
             </p>
 
             {/* Opciones de privacidad */}
             <div className="bg-stone-50 border-2 border-stone-300 rounded-xl p-6 mb-8">
               <h3 className="font-bold text-stone-900 mb-4 flex items-center gap-2">
-                🔒 Privacidad de tu Historia Clínica
+                🔒 Privacidad de tu anamnesis
               </h3>
 
               <div className="space-y-3">
@@ -271,7 +274,7 @@ export default function AnamnesisPage() {
               className="btn-primary-ivory px-8 py-4 text-lg inline-flex items-center gap-3 w-full justify-center"
             >
               <Play className="h-6 w-6" />
-              Comenzar mi Historia Clínica
+              Comenzar anamnesis
             </button>
           </div>
         </div>
@@ -296,6 +299,16 @@ export default function AnamnesisPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {anamnesis?.status === 'completed' && (
+                <button
+                  type="button"
+                  onClick={handleExportPdf}
+                  className="inline-flex items-center gap-2 rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                >
+                  <Download className="h-4 w-4" />
+                  Descargar PDF
+                </button>
+              )}
               {/* Indicador de guardado */}
               {isSaving ? (
                 <div className="flex items-center gap-1.5">
@@ -335,11 +348,11 @@ export default function AnamnesisPage() {
           {currentStep.mediaUrl && (
             <div className="md:col-span-2">
               <MediaEducativa
-                type="video"
+                type={currentMediaType}
                 url={currentStep.mediaUrl}
-                title={`Video educativo: ${currentStep.title}`}
-                description="Aprende más sobre este tema"
-                duration="3:45"
+                title={`${currentMediaType === 'video' ? 'Video' : 'Imagen'} educativa: ${currentStep.title}`}
+                description={currentMediaType === 'video' ? 'Aprende más sobre este tema' : 'Referencia visual de apoyo'}
+                duration={currentMediaType === 'video' ? '3:45' : undefined}
               />
             </div>
           )}

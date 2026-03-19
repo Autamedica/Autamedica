@@ -4,8 +4,6 @@ import { DynamicRightPanel } from '@/components/layout/DynamicRightPanel';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import {
     Calendar,
-    CheckCircle2,
-    ClipboardList,
     FileText,
     Heart,
     MessageSquare,
@@ -28,7 +26,7 @@ function getPatientName(
 }
 
 export default function DashboardPage() {
-  const { user, profile, patient } = usePatientSession();
+  const { user, profile } = usePatientSession();
   const userName = getPatientName(profile, user);
 
   const todayLabel = new Intl.DateTimeFormat('es-AR', {
@@ -37,13 +35,6 @@ export default function DashboardPage() {
     month: 'long',
     year: 'numeric',
   }).format(new Date());
-
-  const hasBirthDate = Boolean(patient?.birthDate);
-  const hasGender = Boolean(patient?.gender);
-  const hasEmergencyContact = Boolean(patient?.emergencyContact);
-  const profileCompletion = Math.round(
-    ([hasBirthDate, hasGender, hasEmergencyContact].filter(Boolean).length / 3) * 100
-  );
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#F8FAFC]">
@@ -73,7 +64,7 @@ export default function DashboardPage() {
         <main className="flex-1 px-8 py-10 max-w-5xl mx-auto w-full">
           
           {/* Priority Cards */}
-          <div className="grid gap-6 md:grid-cols-3 mb-10">
+          <div className="grid gap-6 md:grid-cols-2 mb-10">
             {/* Próxima Consulta */}
             <article className="relative flex flex-col bg-white rounded-2xl border border-slate-200 p-6 shadow-sm transition-shadow hover:shadow-md">
               <div className="flex items-center gap-4 mb-4">
@@ -94,92 +85,42 @@ export default function DashboardPage() {
               </Link>
             </article>
 
-            {/* Anamnesis */}
-            <article className="relative flex flex-col bg-white rounded-2xl border border-slate-200 p-6 shadow-sm transition-shadow hover:shadow-md">
+            {/* Consultas */}
+            <Link
+              href="/appointments"
+              className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+            >
               <div className="flex items-center gap-4 mb-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                  <ClipboardList className="h-5 w-5" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-600 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600">
+                  <Video className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-semibold text-slate-900">Anamnesis</h3>
+                <h3 className="text-base font-semibold text-slate-900">Consultas</h3>
               </div>
               <p className="text-sm text-slate-600 flex-1">
-                Mantén tu historial actualizado para recibir diagnósticos más precisos.
+                Agenda una cita o ingresa a una consulta desde tu panel principal.
               </p>
-              <Link
-                href="/anamnesis"
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-white border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
-              >
-                Actualizar datos
+              <span className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors group-hover:bg-slate-50 group-hover:text-slate-900">
+                Agendar o ingresar
                 <ChevronRight className="h-4 w-4" />
-              </Link>
-            </article>
+              </span>
+            </Link>
 
-            {/* Perfil Clínico */}
-            <article className="relative flex flex-col bg-white rounded-2xl border border-slate-200 p-6 shadow-sm transition-shadow hover:shadow-md">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-                    <CheckCircle2 className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-base font-semibold text-slate-900">Perfil clínico</h3>
-                </div>
-                <span className="text-xl font-bold text-slate-900">{profileCompletion}%</span>
-              </div>
-              
-              <div className="mt-2 mb-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <div 
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-1000 ease-out" 
-                  style={{ width: `${profileCompletion}%` }} 
-                />
-              </div>
-              
-              <p className="text-sm text-slate-600 flex-1">
-                Completado. Información base requerida para consultas.
-              </p>
-              
-              {profileCompletion < 100 ? (
-                <Link
-                  href="/profile"
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-white border border-emerald-200 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50 hover:text-emerald-800"
-                >
-                  Completar perfil
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              ) : (
-                <div className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-400 cursor-default">
-                  Perfil al 100%
-                </div>
-              )}
-            </article>
           </div>
 
           {/* Quick Actions */}
           <section>
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Servicios disponibles</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Link
-                href="/appointments"
-                className="group flex flex-col items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 transition-all hover:border-slate-300 hover:shadow-sm"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-600 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600">
-                  <Video className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-slate-900">Consultas</h4>
-                  <p className="mt-1 text-xs text-slate-500">Agendar o ingresar</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/medical-history"
+                href="/results"
                 className="group flex flex-col items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 transition-all hover:border-slate-300 hover:shadow-sm"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-600 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-600">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-slate-900">Historial</h4>
-                  <p className="mt-1 text-xs text-slate-500">Estudios y recetas</p>
+                  <h4 className="text-sm font-medium text-slate-900">Resultados</h4>
+                  <p className="mt-1 text-xs text-slate-500">Laboratorio, estudios e informes</p>
                 </div>
               </Link>
 

@@ -5,14 +5,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Home,
-  Calendar,
-  FileText,
-  Heart,
-  User,
   LogOut,
-  BookOpen,
-  ShieldCheck,
   Activity,
   Menu,
   X,
@@ -20,34 +13,25 @@ import {
 import { getClientEnvOrDefault } from '@autamedica/shared';
 import { TourHub } from '@/components/tours/TourHub';
 import { AutaFloatingButton } from '@/components/chat/AutaFloatingButton';
+import { dashboardBottomNavItems, dashboardNavigationItems } from '@/data/patient-navigation';
 import { usePatientSession } from '@/hooks/usePatientSession';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
-  { name: 'Inicio', href: '/', icon: Home },
-  { name: 'Mis Citas', href: '/appointments', icon: Calendar },
-  { name: 'Mi Anamnesis', href: '/anamnesis', icon: BookOpen },
-  { name: 'Historial Medico', href: '/medical-history', icon: FileText },
-  { name: 'Salud Preventiva', href: '/preventive-health', icon: Heart },
-  { name: 'Prevencion Embarazo', href: '/pregnancy-prevention', icon: ShieldCheck },
-  { name: 'Perfil', href: '/profile', icon: User },
-];
-
-const bottomNavItems = [
-  { name: 'Inicio', href: '/', icon: Home },
-  { name: 'Citas', href: '/appointments', icon: Calendar },
-  { name: 'Historial', href: '/medical-history', icon: FileText },
-  { name: 'Salud', href: '/preventive-health', icon: Heart },
-  { name: 'Perfil', href: '/profile', icon: User },
-];
-
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, profile, loading, signOut } = usePatientSession();
+
+  const isPathActive = (href: string) => {
+    if (href === '/') {
+      return pathname === '/';
+    }
+
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   const computedName = [profile?.firstName, profile?.lastName]
     .filter(Boolean)
@@ -89,15 +73,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Navegacion principal">
-          {navigation.map((item) => {
+          {dashboardNavigationItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = isPathActive(item.href);
 
             return (
               <Link
-                key={item.name}
+                key={item.id}
                 href={item.href}
-                aria-label={`Ir a ${item.name}`}
+                aria-label={`Ir a ${item.label}`}
                 aria-current={isActive ? 'page' : undefined}
                 className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                   isActive
@@ -106,7 +90,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 }`}
               >
                 <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-600'}`} aria-hidden="true" />
-                {item.name}
+                {item.label}
               </Link>
             );
           })}
@@ -151,12 +135,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </button>
             </div>
             <nav className="space-y-1 overflow-y-auto px-3 py-4">
-              {navigation.map((item) => {
+              {dashboardNavigationItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = isPathActive(item.href);
                 return (
                   <Link
-                    key={item.name}
+                    key={item.id}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
@@ -164,7 +148,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     }`}
                   >
                     <Icon className={`h-5 w-5 ${isActive ? 'text-sky-600' : 'text-slate-400'}`} />
-                    {item.name}
+                    {item.label}
                   </Link>
                 );
               })}
@@ -212,19 +196,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Mobile bottom navigation */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-slate-200 bg-white px-2 py-1.5 md:hidden">
-        {bottomNavItems.map((item) => {
+        {dashboardBottomNavItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = isPathActive(item.href);
           return (
             <Link
-              key={item.name}
+              key={item.id}
               href={item.href}
               className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium transition ${
                 isActive ? 'text-sky-600' : 'text-slate-400 active:text-slate-600'
               }`}
             >
               <Icon className="h-5 w-5" />
-              <span>{item.name}</span>
+              <span>{item.shortLabel}</span>
             </Link>
           );
         })}

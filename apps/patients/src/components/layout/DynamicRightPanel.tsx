@@ -1,13 +1,13 @@
 'use client'
 
+import Link from 'next/link'
 import {
     BloodPressureModal,
-    CommunityPostModal,
     LabResultModal,
     MedicationModal,
     SymptomModal,
 } from '@/components/quick-actions/QuickActionModals'
-import { type CommunityPost, useCommunityPosts } from '@/hooks/useCommunity'
+import { dashboardQuickCaptureLinks } from '@/data/patient-navigation'
 import { usePatientScreenings } from '@/hooks/usePatientScreenings'
 import { usePatientSession } from '@/hooks/usePatientSession'
 import { computeAgeFromIso, normalizeGender } from '@/lib/demographics'
@@ -20,14 +20,13 @@ import {
     Heart,
     MessageSquare,
     Pill,
-    Shield,
     TrendingUp,
     Zap,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
-type PanelTab = 'brief' | 'community' | 'actions' | 'medical' | 'chat'
+type PanelTab = 'brief' | 'actions' | 'medical' | 'chat'
 
 interface DynamicRightPanelProps {
   context?: 'dashboard' | 'video' | 'appointments' | 'history'
@@ -46,7 +45,6 @@ type QuickActionModalKey =
   | 'medication'
   | 'symptom'
   | 'lab-result'
-  | 'community-post'
 
 const statusRank = {
   overdue: 0,
@@ -92,7 +90,6 @@ function tabsForContext(context: PanelContext): TabConfig[] {
     default:
       return [
         { id: 'brief', label: 'Resumen', icon: FileText },
-        { id: 'community', label: 'Comunidad', icon: MessageSquare },
         { id: 'actions', label: 'Registro', icon: Activity },
       ]
   }
@@ -153,7 +150,6 @@ export function DynamicRightPanel({ context = 'dashboard' }: DynamicRightPanelPr
 
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === 'brief' && <DailyBriefPanel />}
-        {activeTab === 'community' && <CommunityPanel />}
         {activeTab === 'actions' && <ClinicalLogPanel />}
         {activeTab === 'medical' && <MedicalContextPanel />}
         {activeTab === 'chat' && <ChatPanel />}
@@ -260,70 +256,6 @@ function DailyBriefPanel() {
   )
 }
 
-function CommunityPanel() {
-  const { posts, loading, error, refetch } = useCommunityPosts(5)
-  const [showCreatePost, setShowCreatePost] = useState(false)
-
-  const handlePostCreated = () => {
-    setShowCreatePost(false)
-    refetch()
-  }
-
-  return (
-    <>
-      <div className="space-y-5">
-        <div className="relative overflow-hidden rounded-2xl border border-pink-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 to-white/20" />
-          <div className="relative">
-            <p className="inline-flex rounded-full bg-pink-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-pink-700 uppercase">Comunidad</p>
-            <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">
-              Conversaciones entre pacientes
-            </h3>
-            <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-              Espacio para compartir experiencias y preparar mejores preguntas para tu consulta.
-            </p>
-          </div>
-        </div>
-
-        {loading && (
-          <div className="py-8 text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-stone-900"></div>
-            <p className="mt-2 text-xs text-stone-600">Cargando conversaciones...</p>
-          </div>
-        )}
-
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-900">{error}</div>}
-
-        {!loading && !error && posts.length === 0 && (
-          <div className="rounded-lg border border-stone-200 bg-white p-4 text-center">
-            <MessageSquare className="mx-auto mb-2 h-8 w-8 text-stone-400" />
-            <p className="text-sm text-stone-700">Aun no hay publicaciones recientes.</p>
-            <p className="mt-1 text-xs text-stone-500">Podes abrir una conversacion cuando lo necesites.</p>
-          </div>
-        )}
-
-        {!loading && !error && posts.length > 0 && (
-          <div className="space-y-3">
-            {posts.map((post) => (
-              <CommunityPostCard key={post.id} post={post} />
-            ))}
-          </div>
-        )}
-
-        <button onClick={() => setShowCreatePost(true)} className="w-full btn-primary-ivory py-2.5 text-sm">
-          Compartir experiencia
-        </button>
-      </div>
-
-      <CommunityPostModal
-        isOpen={showCreatePost}
-        onClose={() => setShowCreatePost(false)}
-        onSuccess={handlePostCreated}
-      />
-    </>
-  )
-}
-
 function ClinicalLogPanel() {
   const [activeModal, setActiveModal] = useState<QuickActionModalKey | null>(null)
 
@@ -333,10 +265,13 @@ function ClinicalLogPanel() {
         <div className="relative overflow-hidden rounded-2xl border border-amber-100/50 bg-white/40 p-5 shadow-sm backdrop-blur-md">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-white/20" />
           <div className="relative">
-            <p className="inline-flex rounded-full bg-amber-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-amber-700 uppercase">Registro clínico</p>
+            <p className="inline-flex rounded-full bg-amber-100/50 px-2 py-0.5 text-[10px] font-bold tracking-wider text-amber-700 uppercase">Captura rápida</p>
             <h3 className="mt-3 text-lg font-bold text-slate-900 leading-tight">
-              Captura datos útiles para tu próxima consulta
+              Registra un dato puntual sin salir del resumen
             </h3>
+            <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
+              Para revisar el detalle completo, usa historia clínica, resultados o indicadores.
+            </p>
           </div>
         </div>
 
@@ -368,20 +303,24 @@ function ClinicalLogPanel() {
           onClick={() => setActiveModal('lab-result')}
           dataTour="action-lab-result"
         />
-        <ActionButton
-          icon={<MessageSquare className="h-4 w-4" />}
-          label="Publicar en comunidad"
-          description="Consulta experiencias de otros pacientes."
-          onClick={() => setActiveModal('community-post')}
-          dataTour="action-community-post"
-        />
+
+        <div className="flex flex-wrap gap-2 pt-2">
+          {dashboardQuickCaptureLinks.map((link) => (
+            <Link
+              key={link.id}
+              href={link.href}
+              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {link.contextLinkLabel}
+            </Link>
+          ))}
+        </div>
       </div>
 
       <BloodPressureModal isOpen={activeModal === 'blood-pressure'} onClose={() => setActiveModal(null)} />
       <MedicationModal isOpen={activeModal === 'medication'} onClose={() => setActiveModal(null)} />
       <SymptomModal isOpen={activeModal === 'symptom'} onClose={() => setActiveModal(null)} />
       <LabResultModal isOpen={activeModal === 'lab-result'} onClose={() => setActiveModal(null)} />
-      <CommunityPostModal isOpen={activeModal === 'community-post'} onClose={() => setActiveModal(null)} />
     </>
   )
 }
@@ -517,29 +456,6 @@ function SummaryMetric({
         {label}
       </span>
     </div>
-  )
-}
-
-function CommunityPostCard({ post }: { post: CommunityPost }) {
-  const groupName = post.group?.name ?? 'Grupo'
-  const members = post.group?.member_count ?? 0
-  const author = post.is_anonymous ? 'Anonimo' : post.author_display_name ?? 'Paciente'
-
-  return (
-    <article className="rounded-lg border border-stone-200 bg-white p-3 transition hover:bg-stone-50">
-      <div className="mb-2 flex items-center gap-2 text-xs text-stone-600">
-        <Shield className="h-3 w-3" />
-        <span>
-          {groupName} ({members} miembros)
-        </span>
-      </div>
-      <p className="mb-1 text-xs font-medium text-stone-700">{author}</p>
-      <p className="mb-3 text-sm text-stone-900">{post.title}</p>
-      <div className="flex items-center gap-4 text-xs text-stone-600">
-        <span>💬 {post.comment_count} respuestas</span>
-        <span>👍 {post.reaction_count}</span>
-      </div>
-    </article>
   )
 }
 

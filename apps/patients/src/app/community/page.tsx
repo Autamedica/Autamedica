@@ -1,7 +1,6 @@
 'use client'
 
-import { CollapsibleRightPanel } from '@/components/layout/CollapsibleRightPanel'
-import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar'
+import { DashboardPageShell } from '@/components/layout/DashboardPageShell'
 import { useCommunity } from '@/hooks'
 import {
     Bookmark,
@@ -37,13 +36,13 @@ export default function CommunityPage() {
   useEffect(() => {
     loadGroups();
     loadPosts({ sort_by: 'recent' });
-  }, []);
+  }, [loadGroups, loadPosts]);
 
   // Actualizar filtros
   useEffect(() => {
     const sortBy = activeFilter === 'popular' ? 'popular' : 'recent';
     loadPosts({ sort_by: sortBy });
-  }, [activeFilter]);
+  }, [activeFilter, loadPosts]);
 
   // Helper function para obtener icono por categoría
   const getCategoryIcon = (category: string) => {
@@ -72,10 +71,8 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-100">
-      <CollapsibleSidebar />
-
-      <main className="flex flex-1 flex-col overflow-y-auto p-6">
+    <DashboardPageShell aside="none">
+      <div>
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-stone-900">💬 Comunidad</h1>
@@ -179,10 +176,8 @@ export default function CommunityPage() {
             );
           })}
         </div>
-      </main>
-
-      <CollapsibleRightPanel context="dashboard" />
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }
 

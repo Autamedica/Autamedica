@@ -1,15 +1,12 @@
 'use client'
 
 import { Book, MessageCircle, Phone, Mail, ExternalLink } from 'lucide-react'
-import { CompactSidebar } from '@/components/layout/CompactSidebar'
-import { DynamicRightPanel } from '@/components/layout/DynamicRightPanel'
+import { DashboardPageShell } from '@/components/layout/DashboardPageShell'
 
 export default function HelpPage() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-100">
-      <CompactSidebar />
-
-      <main className="flex flex-1 flex-col overflow-y-auto p-6">
+    <DashboardPageShell aside="none">
+      <div>
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-stone-900">❓ Centro de Ayuda</h1>
           <p className="mt-2 text-sm text-stone-600">
@@ -57,7 +54,7 @@ export default function HelpPage() {
 
               <FaqItem
                 question="¿Cómo ver mis resultados de laboratorio?"
-                answer="Accede a 'Historia Clínica' > 'Resultados de Laboratorio'. Todos tus análisis estarán disponibles ahí."
+                answer="Accede a 'Mis Resultados' desde el portal. Ahí encontrarás laboratorio, imágenes e informes médicos."
               />
 
               <FaqItem
@@ -119,10 +116,8 @@ export default function HelpPage() {
             </div>
           </div>
         </div>
-      </main>
-
-      <DynamicRightPanel context="dashboard" />
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }
 

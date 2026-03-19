@@ -11,15 +11,12 @@ import {
   Download,
   Share2
 } from 'lucide-react'
-import { CollapsibleSidebar } from '@/components/layout/CollapsibleSidebar'
-import { CollapsibleRightPanel } from '@/components/layout/CollapsibleRightPanel'
+import { DashboardPageShell } from '@/components/layout/DashboardPageShell'
 
 export default function WalletPage() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-100">
-      <CollapsibleSidebar />
-
-      <main className="flex flex-1 flex-col overflow-y-auto p-6">
+    <DashboardPageShell aside="none">
+      <div>
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-stone-900">💳 Wallet Médico Digital</h1>
@@ -232,10 +229,8 @@ export default function WalletPage() {
             Mostrar todos los QR
           </button>
         </div>
-      </main>
-
-      <CollapsibleRightPanel context="dashboard" />
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }
 

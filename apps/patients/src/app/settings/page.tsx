@@ -1,15 +1,12 @@
 'use client'
 
 import { User, Bell, Shield, Palette, Globe, Key } from 'lucide-react'
-import { CompactSidebar } from '@/components/layout/CompactSidebar'
-import { DynamicRightPanel } from '@/components/layout/DynamicRightPanel'
+import { DashboardPageShell } from '@/components/layout/DashboardPageShell'
 
 export default function SettingsPage() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-stone-100">
-      <CompactSidebar />
-
-      <main className="flex flex-1 flex-col overflow-y-auto p-6">
+    <DashboardPageShell aside="none">
+      <div>
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-stone-900">⚙️ Configuración</h1>
           <p className="mt-2 text-sm text-stone-600">
@@ -124,10 +121,8 @@ export default function SettingsPage() {
             </div>
           </SettingSection>
         </div>
-      </main>
-
-      <DynamicRightPanel context="dashboard" />
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }
 
