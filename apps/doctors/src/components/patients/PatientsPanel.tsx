@@ -44,10 +44,10 @@ export function PatientsPanel(): JSX.Element {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-emerald-500/20 p-2">
-            <Users className="h-6 w-6 text-emerald-400" />
+            <Users className="h-6 w-6 text-emerald-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-100">Gestión de Pacientes</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Gestión de Pacientes</h1>
             <p className="text-slate-400">
               {patients.length} paciente{patients.length !== 1 ? 's' : ''} registrado{patients.length !== 1 ? 's' : ''}
             </p>
@@ -69,7 +69,7 @@ export function PatientsPanel(): JSX.Element {
         <input
           type="text"
           placeholder="Buscar pacientes por nombre, email..."
-          className="w-full rounded-lg border border-slate-700 bg-slate-800/50 pl-10 pr-4 py-3 text-slate-100 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
         />
       </div>
 
@@ -79,7 +79,7 @@ export function PatientsPanel(): JSX.Element {
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <Users className="mx-auto h-12 w-12 text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-slate-300 mb-2">No hay pacientes registrados</h3>
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No hay pacientes registrados</h3>
               <p className="text-slate-500 mb-4">Comienza agregando tu primer paciente</p>
               <button
                 type="button"
@@ -96,15 +96,15 @@ export function PatientsPanel(): JSX.Element {
               {patients.map((patient) => (
                 <div
                   key={patient.id}
-                  className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 transition hover:border-slate-600 hover:bg-slate-800/50"
+                  className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-200 hover:bg-slate-100/50"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500">
                         {patient.firstName.charAt(0)}{patient.lastName.charAt(0)}
                       </div>
                       <div>
-                        <h3 className="font-medium text-slate-100">
+                        <h3 className="font-medium text-slate-900">
                           {patient.firstName} {patient.lastName}
                         </h3>
                         <p className="text-sm text-slate-400">{patient.email}</p>
@@ -117,14 +117,14 @@ export function PatientsPanel(): JSX.Element {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-700 p-2 text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900"
                         title="Ver historial"
                       >
                         <FileText className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-700 p-2 text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900"
                         title="Agendar cita"
                       >
                         <Calendar className="h-4 w-4" />

@@ -58,8 +58,7 @@ export const featureFlags = {
   // ===================
 
   /** Ambiente de producción */
-  IS_PRODUCTION: process.env.NODE_ENV === 'production' &&
-                 process.env.NEXT_PUBLIC_ENV === 'production',
+  IS_PRODUCTION: process.env.NODE_ENV === 'production',
 
   /** Ambiente de desarrollo */
   IS_DEVELOPMENT: process.env.NODE_ENV === 'development' ||
@@ -188,8 +187,10 @@ export function logFeatureFlags(): void {
   console.log('\n');
 }
 
-// Auto-validar en import (solo en cliente/server, no en build time)
-if (typeof window !== 'undefined' || typeof process !== 'undefined') {
+// Auto-validar una sola vez en cliente (no en server/build para evitar spam en SSR)
+let _validated = false;
+if (typeof window !== 'undefined' && !_validated) {
+  _validated = true;
   try {
     validateFeatureFlags();
   } catch (error) {

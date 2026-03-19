@@ -76,7 +76,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const defaultAuthOrigin = window.location.hostname === 'localhost'
       ? 'http://localhost:3000'
       : 'https://www.autamedica.com';
-    const authOrigin = getClientEnvOrDefault('PUBLIC_APP_URL', defaultAuthOrigin);
+    const authOrigin = import.meta.env.PUBLIC_APP_URL || defaultAuthOrigin;
     const loginUrl = new URL('/auth/login', authOrigin);
     loginUrl.searchParams.set('portal', 'patients');
     window.location.href = loginUrl.toString();

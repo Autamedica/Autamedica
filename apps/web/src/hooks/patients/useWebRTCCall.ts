@@ -1,5 +1,5 @@
 import { SignalingEvent, SignalingService, getSignalingService } from '@/lib/patients/services/SignalingService';
-import { getOptionalClientEnv, logger } from '@autamedica/shared';
+import { logger } from '@autamedica/shared';
  
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useWebRTC } from './useWebRTC';
@@ -71,7 +71,7 @@ export interface WebRTCCallActions {
   toggleScreenShare: () => Promise<void>;
 }
 
-const DEFAULT_SIGNALING_URL = getOptionalClientEnv('PUBLIC_SIGNALING_SERVER_URL') || 'ws://localhost:8888';
+const DEFAULT_SIGNALING_URL = import.meta.env.PUBLIC_SIGNALING_URL || 'ws://localhost:8888';
 
 const DEFAULT_MEDIA_CONSTRAINTS: MediaStreamConstraints = {
   video: {

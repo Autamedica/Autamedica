@@ -5,6 +5,7 @@
   "description": "Portal médico especializado para profesionales de la salud",
   "main": "src/app/page.tsx",
   "scripts": {
+    "predev": "pnpm -w build:packages:core",
     "dev": "next dev -p 3001",
     "build": "next build",
     "prebuild:cloudflare": "rm -rf .next .open-next || true",

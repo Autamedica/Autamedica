@@ -47,12 +47,33 @@ export function LoginForm() {
     const bootstrap = async () => {
       try {
         const supabase = getBrowserSupabaseClient();
-        const { data: { session } } = await supabase.auth.getSession();
+
+        // If we arrived with an error param, the previous session was invalid.
+        // Clear local state to prevent a redirect loop.
+        const errorParam = params.get('error');
+        if (errorParam) {
+          await supabase.auth.signOut({ scope: 'local' });
+          if (active) setIsCheckingSession(false);
+          return;
+        }
+
+        // Use getUser() instead of getSession() to verify the session
+        // is actually valid server-side (network call), not just locally cached.
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (!active) {
           return;
         }
 
+        if (userError || !user) {
+          // No valid session — clear any stale local data and show login form.
+          await supabase.auth.signOut({ scope: 'local' });
+          if (active) setIsCheckingSession(false);
+          return;
+        }
+
+        // User is authenticated — redirect to callback for role routing.
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token && session?.refresh_token) {
           const callbackUrl = new URL('/auth/callback', window.location.origin);
           if (resolvedRole) {
@@ -163,163 +184,201 @@ export function LoginForm() {
     }
   };
 
+  const roleInfo: Record<string, { title: string; subtitle: string; icon: ReactNode; accent: string; buttonLabel: string }> = {
+    patient: {
+      title: 'Portal de Pacientes',
+      subtitle: 'Gestiona tu salud con precisión y agilidad.',
+      accent: 'text-emerald-400',
+      buttonLabel: 'Entrar como Paciente',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+    },
+    doctor: {
+      title: 'Portal Médico',
+      subtitle: 'Infraestructura clínica de alto rendimiento.',
+      accent: 'text-cyan-400',
+      buttonLabel: 'Entrar como Médico',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h1a.3.3 0 1 0 .2-.7L4 10V4l.8-1.7zm14.4 0A.3.3 0 1 1 19 2h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1a.3.3 0 1 1-.2-.7l1.2-.3V4l-.8-1.7zM7 2h10l1 2v5l-1 2H7l-1-2V4l1-2z" />
+          <path d="M12 11v8M9 22h6" />
+        </svg>
+      ),
+    },
+    company: {
+      title: 'Portal Corporativo',
+      subtitle: 'Estrategias de bienestar para tu organización.',
+      accent: 'text-slate-300',
+      buttonLabel: 'Entrar como Empresa',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
+        </svg>
+      ),
+    },
+  };
+
+  const currentRoleInfo = roleInfo[role] || roleInfo.patient;
+
   if (isCheckingSession) {
     return (
-      <div className="space-y-6 text-center">
-        <AuthLogo size="md" />
-        <h1 className="text-2xl font-bold text-[var(--au-text-primary)]">Preparando tu acceso</h1>
-        <p className="text-sm text-[var(--au-text-secondary)]">
-          Estamos validando tu sesión para evitar pasos innecesarios.
-        </p>
-        <div className="flex justify-center">
-          <span className="inline-flex h-9 w-9 animate-spin rounded-full border-2 border-[var(--au-border)] border-t-[var(--au-accent)]" />
+      <div className="flex flex-col items-center justify-center space-y-8 py-12 text-center animate-in fade-in duration-700">
+        <div className="relative">
+          <AuthLogo size="md" />
+          <div className="absolute inset-x-0 -bottom-4 flex justify-center">
+             <div className="h-1 w-12 bg-gradient-to-r from-transparent via-[var(--au-accent)] to-transparent opacity-50 blur-sm"></div>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--au-text-primary)]">Preparando tu acceso</h1>
+          <p className="max-w-[280px] text-sm leading-relaxed text-[var(--au-text-secondary)]">
+            Validando tu identidad para una conexión segura y sin fricciones.
+          </p>
+        </div>
+        <div className="relative flex h-12 w-12 items-center justify-center">
+          <div className="absolute inset-0 animate-ping rounded-full bg-[var(--au-accent)] opacity-20"></div>
+          <span className="h-2 w-2 rounded-full bg-[var(--au-accent)]"></span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="mb-2 text-center">
-        <AuthLogo size="md" />
-        <h1 className="mb-2 text-2xl font-bold text-[var(--au-text-primary)]">Bienvenido de vuelta</h1>
-        <p className="text-sm text-[var(--au-text-secondary)]">Inicia sesión y entra directo a tu portal.</p>
-      </div>
-
-      {roleContext ? (
-        <div className="rounded-xl border-2 border-[var(--au-border)] bg-[var(--au-hover)]/45 p-3">
-          <p className="text-xs uppercase tracking-[0.08em] text-[var(--au-text-tertiary)]">Perfil seleccionado</p>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-[var(--au-text-primary)]">
-              Continuar como {roleContext.label}
-            </p>
-            <a href={selectRoleHref} className="text-xs font-medium text-[var(--au-accent)] hover:text-[var(--au-text-primary)]">
-              Cambiar perfil
-            </a>
-          </div>
+    <div className={`space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ${role === 'patient' ? 'theme-patient' : role === 'doctor' ? 'theme-doctor' : 'theme-company'}`}>
+      <div className="text-center">
+        {/* Portal Identifier Badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-8 animate-in slide-in-from-top-2 duration-1000">
+          <span className={`h-1.5 w-1.5 rounded-full ${currentRoleInfo.accent.replace('text-', 'bg-')} shadow-[0_0_8px_currentColor]`}></span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Modo de Acceso</span>
         </div>
-      ) : (
-        <AuthAlert tone="info">
-          Puedes iniciar sesión sin perfil, pero elegir uno mejora el redireccionamiento automático.
-        </AuthAlert>
-      )}
 
-      {error && <AuthAlert tone="error">{error}</AuthAlert>}
+        <AuthLogo size="md" />
+        
+        {/* Role Segmented Picker - High Contrast */}
+        <div className="mt-10 grid grid-cols-3 gap-1 p-1 bg-black/40 border border-white/5 rounded-2xl">
+          {ROLE_ENTRIES.map((entry) => {
+            const isCurrent = role === entry.role;
+            const info = roleInfo[entry.role as string];
+            return (
+              <a
+                key={`role-tab-${entry.role}`}
+                href={buildAuthPath('login', { role: entry.role, returnTo })}
+                className={`flex flex-col items-center gap-2 py-3.5 rounded-xl transition-all ${
+                  isCurrent
+                    ? 'bg-white/10 text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/10'
+                    : 'text-white/30 hover:text-white/50'
+                }`}
+              >
+                <span className={isCurrent ? currentRoleInfo.accent : ''}>{info?.icon}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest">{entry.shortLabel}</span>
+              </a>
+            );
+          })}
+        </div>
 
-      <div className="flex flex-wrap gap-2">
-        {ROLE_ENTRIES.map((entry) => {
-          const isCurrent = role === entry.role;
-          return (
-            <a
-              key={`role-${entry.role}`}
-              href={buildAuthPath('login', { role: entry.role, returnTo })}
-              className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-semibold transition-colors ${
-                isCurrent
-                  ? 'border-[var(--au-accent)] text-[var(--au-text-primary)]'
-                  : 'border-[var(--au-border)] text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)]'
-              }`}
-            >
-              {entry.shortLabel}
-            </a>
-          );
-        })}
+        <div className="mt-10 space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            {currentRoleInfo.title}
+          </h1>
+          <p className="text-sm text-white/50">
+            {currentRoleInfo.subtitle}
+          </p>
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={handleGoogleSignIn}
-        disabled={isSubmitting}
-        className="w-full rounded-xl border-2 border-[var(--au-border)] bg-[var(--au-hover)] px-6 py-3 font-medium text-[var(--au-text-primary)] transition-all duration-200 hover:border-[var(--au-accent)] hover:bg-[var(--au-hover-border)] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <span className="inline-flex items-center justify-center gap-3">
-          <svg className="h-5 w-5" viewBox="0 0 24 24">
+      <div className="space-y-6">
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={isSubmitting}
+          className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-6 py-4 font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10 active:scale-[0.98] disabled:opacity-50"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100"></div>
+          <svg className="relative h-5 w-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          Continuar con Google
-        </span>
-      </button>
+          <span className="relative">Continuar con Google</span>
+        </button>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-[var(--au-border)] to-transparent" />
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10 opacity-50" />
+          </div>
         </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="rounded-full border-2 border-[var(--au-border)] bg-[var(--au-surface)] px-4 py-1 text-[var(--au-text-secondary)]">
-            o continúa con email
-          </span>
-        </div>
+
+        {error && <AuthAlert tone="error">{error}</AuthAlert>}
+
+        <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isSubmitting}>
+          <div className="space-y-2">
+            <label htmlFor="email" className="ml-1 text-[11px] font-bold uppercase tracking-wider text-white/40">
+              Email Institucional
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
+              inputMode="email"
+              disabled={isSubmitting}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-white/20 transition-all focus:border-[var(--au-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--au-accent-soft)] disabled:opacity-50"
+              placeholder="tu@email.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <label htmlFor="password" className="text-[11px] font-bold uppercase tracking-wider text-white/40">
+                Contraseña
+              </label>
+              <a href={forgotPasswordHref} className="text-[11px] font-bold text-[var(--au-accent)] hover:underline">
+                Recuperar
+              </a>
+            </div>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              autoComplete="current-password"
+              disabled={isSubmitting}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-white placeholder:text-white/20 transition-all focus:border-[var(--au-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--au-accent-soft)] disabled:opacity-50"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <AuthButton disabled={isSubmitting} variant="primary" fullWidth type="submit" className="h-[60px] text-lg lg:text-base">
+            <span>{isSubmitting ? 'Iniciando fase...' : currentRoleInfo.buttonLabel}</span>
+          </AuthButton>
+        </form>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isSubmitting}>
-        <div>
-          <label htmlFor="email" className="mb-2 block text-sm font-medium text-[var(--au-text-secondary)]">
-            Correo electrónico
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            autoComplete="email"
-            inputMode="email"
-            disabled={isSubmitting}
-            aria-invalid={Boolean(error)}
-            className="w-full rounded-xl border-2 border-[var(--au-border)] bg-[var(--au-hover)] px-4 py-3 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] disabled:opacity-50"
-            placeholder="tu@email.com"
-          />
-        </div>
+      <div className="space-y-6 pt-6 text-center">
+        <p className="text-xs text-white/40">
+          ¿Sin cuenta?{' '}
+          <a href={registerHref} className="font-bold text-white hover:text-[var(--au-accent)]">
+            Empieza hoy
+          </a>
+        </p>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label htmlFor="password" className="block text-sm font-medium text-[var(--au-text-secondary)]">
-              Contraseña
-            </label>
-            <a href={forgotPasswordHref} className="text-xs text-[var(--au-text-tertiary)] transition-colors hover:text-[var(--au-accent)]">
-              ¿Olvidaste tu contraseña?
-            </a>
-          </div>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            autoComplete="current-password"
-            disabled={isSubmitting}
-            aria-invalid={Boolean(error)}
-            className="w-full rounded-xl border-2 border-[var(--au-border)] bg-[var(--au-hover)] px-4 py-3 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] disabled:opacity-50"
-            placeholder="••••••••"
-          />
-        </div>
-
-        <AuthButton disabled={isSubmitting} variant="primary" fullWidth type="submit">
-          <span>{isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}</span>
-        </AuthButton>
-      </form>
-
-      <div className="space-y-4 border-t-2 border-[var(--au-border)] pt-6 text-center">
-        <p className="text-sm text-[var(--au-text-tertiary)]">¿No tienes cuenta en AutaMedica?</p>
-        <a
-          href={registerHref}
-          className="inline-flex w-full items-center justify-center rounded-xl border-2 border-[var(--au-border)] bg-[var(--au-hover)] px-4 py-3 text-sm font-medium text-[var(--au-text-secondary)] transition-all duration-200 hover:border-[var(--au-accent)] hover:bg-[var(--au-hover-border)] hover:text-[var(--au-text-primary)]"
-        >
-          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          Crear cuenta nueva
-        </a>
-
-        <div className="flex items-center justify-center text-xs text-[var(--au-text-tertiary)]">
-          <svg className="mr-1.5 h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          Conexión segura y cifrada
+        <div className="flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-[0.1em] text-white/20">
+          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+          Infraestructura Bio-Segura
         </div>
       </div>
     </div>
   );
 }
+
+
+

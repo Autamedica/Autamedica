@@ -9,7 +9,7 @@ import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { usePatientData } from '@/hooks/doctors/usePatientData'
 import { useMedicalHistoryStore } from '@/lib/doctors/stores/medicalHistoryStore'
-import { getClientEnvOrDefault, logger } from '@autamedica/shared'
+import { logger } from '@autamedica/shared'
 import {
     Activity,
     Brain,
@@ -92,7 +92,7 @@ export default function DoctorsHomePage(): JSX.Element {
   const { session } = useActiveSession()
   const { patient } = usePatientData(session?.patientId ?? null)
   const authBaseUrl = useMemo(
-    () => getClientEnvOrDefault('PUBLIC_APP_URL', 'https://www.autamedica.com'),
+    () => import.meta.env.PUBLIC_APP_URL || 'https://www.autamedica.com',
     []
   )
 

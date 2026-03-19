@@ -28,16 +28,13 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
     setError(null)
 
     try {
-      // Sistema híbrido: fetch from 'patients' joining 'profiles'
-      const data = await selectById<'patients', any>('patients', patientId, {
-        // Query string includes the relationship
-        // In the database.types.ts we have foreign keys defined
+      // patients no implementa soft-delete; el helper genérico debe leerla sin filtro deleted_at
+      const data = await selectById<'patients', PatientProfile>('patients', patientId, {
+        includeDeleted: true,
       });
 
       if (data) {
-        // Transformar para el formato que espera PatientProfile if needed
-        // but here we align with the schema
-        setPatient(data as unknown as PatientProfile)
+        setPatient(data)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
@@ -53,8 +50,8 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
   }
 
   useEffect(() => {
-    fetchPatient()
-  }, [patientId])
+    void fetchPatient()
+  }, [fetchPatient])
 
   return {
     patient,

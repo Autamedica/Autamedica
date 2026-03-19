@@ -151,6 +151,157 @@ export type Database = {
           },
         ]
       }
+      appointment_history: {
+        Row: {
+          action: string
+          appointment_id: string
+          created_at: string
+          doctor_id: string
+          id: string
+          metadata: Json | null
+          new_status: string | null
+          old_status: string | null
+          patient_id: string
+        }
+        Insert: {
+          action: string
+          appointment_id: string
+          created_at?: string
+          doctor_id: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          patient_id: string
+        }
+        Update: {
+          action?: string
+          appointment_id?: string
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_history_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointment_reminders: {
+        Row: {
+          appointment_id: string
+          channel: string
+          created_at: string
+          id: string
+          response: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          appointment_id: string
+          channel: string
+          created_at?: string
+          id?: string
+          response?: string | null
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          appointment_id?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          response?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_reminders_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointment_waitlist: {
+        Row: {
+          appointment_type: string
+          created_at: string
+          doctor_id: string
+          expires_at: string | null
+          id: string
+          offered_at: string | null
+          patient_id: string
+          preferred_date_end: string | null
+          preferred_date_start: string | null
+          preferred_time_end: string | null
+          preferred_time_start: string | null
+          priority: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_type?: string
+          created_at?: string
+          doctor_id: string
+          expires_at?: string | null
+          id?: string
+          offered_at?: string | null
+          patient_id: string
+          preferred_date_end?: string | null
+          preferred_date_start?: string | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          priority?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_type?: string
+          created_at?: string
+          doctor_id?: string
+          expires_at?: string | null
+          id?: string
+          offered_at?: string | null
+          patient_id?: string
+          preferred_date_end?: string | null
+          preferred_date_start?: string | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          priority?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_waitlist_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_waitlist_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           created_at: string | null
@@ -545,6 +696,94 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      doctor_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id: string
+          is_active: boolean
+          location: string | null
+          slot_duration: number
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          doctor_id: string
+          end_time: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          slot_duration?: number
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          slot_duration?: number
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_availability_overrides: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          end_time: string | null
+          id: string
+          is_available: boolean
+          override_date: string
+          reason: string | null
+          start_time: string | null
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          end_time?: string | null
+          id?: string
+          is_available?: boolean
+          override_date: string
+          reason?: string | null
+          start_time?: string | null
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          end_time?: string | null
+          id?: string
+          is_available?: boolean
+          override_date?: string
+          reason?: string | null
+          start_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_availability_overrides_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       doctor_patient: {
         Row: {
@@ -1309,6 +1548,62 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_ai_insights: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          error_message: string | null
+          id: string
+          model_name: string
+          patient_id: string
+          prompt_version: string
+          provider_name: string
+          request_json: Json
+          response_json: Json | null
+          snapshot_version: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          error_message?: string | null
+          id?: string
+          model_name: string
+          patient_id: string
+          prompt_version?: string
+          provider_name: string
+          request_json?: Json
+          response_json?: Json | null
+          snapshot_version?: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          error_message?: string | null
+          id?: string
+          model_name?: string
+          patient_id?: string
+          prompt_version?: string
+          provider_name?: string
+          request_json?: Json
+          response_json?: Json | null
+          snapshot_version?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_ai_insights_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -1367,6 +1662,83 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "patient_alerts_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_derived_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by_id: string | null
+          category: string
+          created_at: string
+          deleted_at: string | null
+          description: string
+          evidence_json: Json
+          fingerprint: string
+          first_detected_at: string
+          id: string
+          last_detected_at: string
+          patient_id: string
+          resolved_at: string | null
+          rule_id: string | null
+          severity: string
+          snapshot_version: string
+          source_kind: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by_id?: string | null
+          category: string
+          created_at?: string
+          deleted_at?: string | null
+          description: string
+          evidence_json?: Json
+          fingerprint: string
+          first_detected_at?: string
+          id?: string
+          last_detected_at?: string
+          patient_id: string
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity: string
+          snapshot_version?: string
+          source_kind: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by_id?: string | null
+          category?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          evidence_json?: Json
+          fingerprint?: string
+          first_detected_at?: string
+          id?: string
+          last_detected_at?: string
+          patient_id?: string
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity?: string
+          snapshot_version?: string
+          source_kind?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_derived_alerts_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
@@ -3676,4 +4048,3 @@ export const Constants = {
     },
   },
 } as const
-// Brand identity update: Wed Mar 18 02:35:25 -03 2026

@@ -1,6 +1,6 @@
 'use client'
 
-import { getPatientDisplayName } from '@/app/page'
+import { getPatientDisplayName } from '@/utils/patientDisplay'
 import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
 import { useDoctorStats } from '@/hooks/useDoctorStats'
 import { useCurrentDoctor } from '@/hooks/useRealDoctors'

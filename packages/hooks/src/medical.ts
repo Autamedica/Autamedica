@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-// Use a minimal duck-type interface to avoid SupabaseClient version incompatibilities
-type AnySupabaseClient = { from: (table: string) => unknown; auth: { getUser: () => Promise<unknown> } };
+// Duck-typed interface to avoid SupabaseClient<Database, ...> assignment incompatibility
+// caused by 'protected' members in class-based structural typing checks
+interface SupabaseLike {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from(table: string): any;
+}
+type AnySupabaseClient = SupabaseLike;
 import type { Patient, Appointment, AppointmentWithDetails } from "@autamedica/types";
 import { logger } from '@autamedica/shared';
 

@@ -44,7 +44,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">Error al cargar datos</h3>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Error al cargar datos</h3>
           <p className="text-slate-400 mb-4">{error}</p>
           <button
             onClick={refresh}
@@ -62,7 +62,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <User className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">Sin paciente seleccionado</h3>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin paciente seleccionado</h3>
           <p className="text-slate-400">Selecciona un paciente para ver su información</p>
         </div>
       </div>
@@ -74,7 +74,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <User className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">Paciente no encontrado</h3>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Paciente no encontrado</h3>
           <p className="text-slate-400">No se pudo cargar la información del paciente</p>
         </div>
       </div>
@@ -82,22 +82,22 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-[#0a1525] p-6">
+    <div className="h-full overflow-y-auto bg-slate-50 p-6">
       <div className="mx-auto max-w-4xl space-y-6">
 
         {/* Header con información básica */}
-        <div className="rounded-lg border border-slate-800/60 bg-[#111f36] p-6">
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-2xl font-bold text-slate-900">
                 {(patient as any).first_name[0]}{(patient as any).last_name[0]}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-100">
+                <h1 className="text-2xl font-bold text-slate-900">
                   {((patient as any).first_name && (patient as any).last_name) ? `${(patient as any).first_name} ${(patient as any).last_name}` : 'Paciente'}
                 </h1>
                 <p className="text-slate-400">{(patient as any).age} años • {(patient as any).gender}</p>
-                <div className="mt-1 flex items-center gap-2 text-sm text-emerald-400">
+                <div className="mt-1 flex items-center gap-2 text-sm text-emerald-500">
                   <Heart className="h-4 w-4" />
                   <span>Tipo de sangre: {(patient as any).blood_type}</span>
                 </div>
@@ -106,7 +106,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
 
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2 text-sm text-slate-300 hover:border-slate-600 hover:bg-slate-800/60 transition"
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-100 transition"
             >
               {isEditing ? (
                 <>
@@ -126,9 +126,9 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
         <div className="grid gap-6 lg:grid-cols-2">
 
           {/* Información de contacto */}
-          <div className="rounded-lg border border-slate-800/60 bg-[#111f36] p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
-              <Phone className="h-5 w-5 text-emerald-400" />
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <Phone className="h-5 w-5 text-emerald-500" />
               Información de Contacto
             </h2>
 
@@ -136,7 +136,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-slate-400" />
                 <div>
-                  <p className="text-sm font-medium text-slate-300">Teléfono</p>
+                  <p className="text-sm font-medium text-slate-600">Teléfono</p>
                   <p className="text-slate-400">{(patient as any).phone || 'No registrado'}</p>
                 </div>
               </div>
@@ -144,7 +144,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-slate-400" />
                 <div>
-                  <p className="text-sm font-medium text-slate-300">Email</p>
+                  <p className="text-sm font-medium text-slate-600">Email</p>
                   <p className="text-slate-400">{(patient as any).email || 'No registrado'}</p>
                 </div>
               </div>
@@ -152,7 +152,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
               <div className="flex items-start gap-3">
                 <MapPin className="h-4 w-4 text-slate-400 mt-1" />
                 <div>
-                  <p className="text-sm font-medium text-slate-300">Dirección</p>
+                  <p className="text-sm font-medium text-slate-600">Dirección</p>
                   <p className="text-slate-400">{(patient as any).address || 'No registrada'}</p>
                 </div>
               </div>
@@ -160,35 +160,35 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
           </div>
 
           {/* Contacto de emergencia */}
-          <div className="rounded-lg border border-slate-800/60 bg-[#111f36] p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
               <AlertTriangle className="h-5 w-5 text-orange-400" />
               Contacto de Emergencia
             </h2>
 
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-slate-300">Nombre</p>
+                <p className="text-sm font-medium text-slate-600">Nombre</p>
                 <p className="text-slate-400">{(patient as any).emergency_contact_name || 'No registrado'}</p>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-300">Teléfono</p>
+                <p className="text-sm font-medium text-slate-600">Teléfono</p>
                 <p className="text-slate-400">{(patient as any).emergency_contact_phone || 'No registrado'}</p>
               </div>
             </div>
           </div>
 
           {/* Información médica */}
-          <div className="rounded-lg border border-slate-800/60 bg-[#111f36] p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
               <Heart className="h-5 w-5 text-red-400" />
               Información Médica
             </h2>
 
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-slate-300 mb-2">Alergias</p>
+                <p className="text-sm font-medium text-slate-600 mb-2">Alergias</p>
                 {(patient as any).allergies?.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {(patient as any).allergies.map((allergy: string, index: number) => (
@@ -206,7 +206,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-300 mb-2">Condiciones Crónicas</p>
+                <p className="text-sm font-medium text-slate-600 mb-2">Condiciones Crónicas</p>
                 {(patient as any).chronic_conditions?.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {(patient as any).chronic_conditions.map((condition: string, index: number) => (
@@ -226,20 +226,20 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
           </div>
 
           {/* Información del seguro */}
-          <div className="rounded-lg border border-slate-800/60 bg-[#111f36] p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
-              <Shield className="h-5 w-5 text-blue-400" />
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+              <Shield className="h-5 w-5 text-violet-500" />
               Información del Seguro
             </h2>
 
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-slate-300">Proveedor</p>
+                <p className="text-sm font-medium text-slate-600">Proveedor</p>
                 <p className="text-slate-400">{(patient as any).insurance_provider || 'No registrado'}</p>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-300">Número de póliza</p>
+                <p className="text-sm font-medium text-slate-600">Número de póliza</p>
                 <p className="text-slate-400 font-mono">
                   {(patient as any).insurance_number || 'No registrado'}
                 </p>
@@ -249,15 +249,15 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
         </div>
 
         {/* Información adicional */}
-        <div className="rounded-lg border border-slate-800/60 bg-[#111f36] p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-100">
-            <Calendar className="h-5 w-5 text-emerald-400" />
+        <div className="rounded-lg border border-slate-200 bg-white p-6">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <Calendar className="h-5 w-5 text-emerald-500" />
             Información del Registro
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-slate-300">Fecha de nacimiento</p>
+              <p className="text-sm font-medium text-slate-600">Fecha de nacimiento</p>
               <p className="text-slate-400">
                 {new Date((patient as any).date_of_birth).toLocaleDateString('es-ES', {
                   year: 'numeric',
@@ -268,7 +268,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             </div>
 
             <div>
-              <p className="text-sm font-medium text-slate-300">Registrado</p>
+              <p className="text-sm font-medium text-slate-600">Registrado</p>
               <p className="text-slate-400">
                 {new Date((patient as any).created_at).toLocaleDateString('es-ES', {
                   year: 'numeric',

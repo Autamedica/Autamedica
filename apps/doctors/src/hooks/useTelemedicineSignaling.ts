@@ -1,5 +1,6 @@
 'use client'
 
+import { doctorsEnv } from '@/lib/env'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   TelemedicineClient,
@@ -58,7 +59,7 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
 
   const normalizedConfig = useMemo(
     () => ({
-      url: config.signalingUrl ?? (typeof window !== 'undefined' ? window.location.hostname === 'localhost' ? 'ws://localhost:3005/signal' : 'wss://api.autamedica.com/signal' : 'ws://localhost:3005/signal'),
+      url: config.signalingUrl ?? doctorsEnv.signalingUrl,
       roomId: config.roomId,
       userId: config.userId,
       userType: config.userType,

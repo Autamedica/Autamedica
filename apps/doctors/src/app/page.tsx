@@ -42,16 +42,12 @@ type ControlButtonProps = {
 
 import { getPatientDisplayName } from '@/utils/patientDisplay'
 
-interface PatientWithBirthDate {
-  birthDate?: string | Date | null | unknown;
-  [key: string]: unknown;
-}
-
-function getPatientAge(patient: PatientWithBirthDate | null | undefined): string {
-  if (!patient || !patient.birthDate) {
-    return '—'
-  }
-  const birthDate = new Date(patient.birthDate)
+function getPatientAge(patient: unknown): string {
+  if (!patient || typeof patient !== 'object') return '—'
+  const p = patient as Record<string, unknown>
+  const raw = (p.personalInfo as Record<string, unknown> | undefined)?.birthDate ?? p.birthDate
+  if (!raw) return '—'
+  const birthDate = new Date(raw as string)
   const ageDifMs = Date.now() - birthDate.getTime()
   const ageDate = new Date(ageDifMs)
   return Math.abs(ageDate.getUTCFullYear() - 1970).toString()
@@ -198,13 +194,13 @@ export default function DoctorsHomePage(): JSX.Element {
 
   const callQuality = useMemo((): { label: string; color: string } => {
     if (cameraError) {
-      return { label: 'Sin señal', color: 'text-rose-400' }
+      return { label: 'Sin señal', color: 'text-rose-500' }
     }
     if (callStatus === 'live') {
-      return { label: 'HD', color: 'text-emerald-400' }
+      return { label: 'HD', color: 'text-emerald-500' }
     }
     if (callStatus === 'connecting') {
-      return { label: 'Inicializando', color: 'text-amber-400' }
+      return { label: 'Inicializando', color: 'text-amber-500' }
     }
     return { label: 'En espera', color: 'text-slate-400' }
   }, [cameraError, callStatus])
@@ -353,21 +349,21 @@ export default function DoctorsHomePage(): JSX.Element {
 
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col text-slate-100">
+    <div className="flex min-h-0 flex-1 flex-col text-slate-900">
       <div className={`call-area ${isFocusMode ? 'gap-3' : 'gap-4'} flex min-h-0 flex-1 flex-col lg:flex-row`}>
         <section className="call-area__videoCard relative flex min-h-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-lg">
             {cameraError ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-6 text-center text-slate-300 sm:px-8">
-                <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-rose-500/20 bg-rose-500/10 text-rose-400 shadow-[0_0_30px_-5px_var(--tw-shadow-color)] shadow-rose-500/20">
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-slate-100 px-4 py-6 text-center sm:px-8">
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-500">
                   <VideoOff className="h-10 w-10" />
                 </div>
-                <h3 className="mt-4 text-xl font-semibold text-slate-100">No se detectó cámara</h3>
-                <p className="max-w-md text-sm text-slate-400">{cameraError}</p>
+                <h3 className="mt-4 text-xl font-semibold text-slate-900">No se detectó cámara</h3>
+                <p className="max-w-md text-sm text-slate-500">{cameraError}</p>
                 <button
                   type="button"
                   onClick={handleActivateCamera}
-                  className="mt-2 rounded-xl border border-blue-500/30 bg-blue-600/20 px-6 py-2.5 text-sm font-semibold text-blue-300 transition-all hover:bg-blue-600 hover:text-white hover:shadow-[0_0_20px_-5px_rgba(37,99,235,0.4)] active:scale-95"
+                  className="mt-2 rounded-xl border border-violet-200 bg-violet-50 px-6 py-2.5 text-sm font-semibold text-violet-600 transition-all hover:bg-violet-600 hover:text-white active:scale-95"
                 >
                   Reintentar
                 </button>
@@ -383,18 +379,18 @@ export default function DoctorsHomePage(): JSX.Element {
                 muted
               />
             ) : (
-              <div className="flex flex-1 flex-col items-center justify-center gap-5 bg-gradient-to-b from-slate-900 to-slate-950 px-4 py-8 text-center">
-                <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-violet-500/20 bg-violet-500/10 text-violet-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-violet-500/20">
+              <div className="flex flex-1 flex-col items-center justify-center gap-5 bg-slate-100 px-4 py-8 text-center">
+                <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-violet-200 bg-violet-50 text-violet-500">
                   <VideoOff className="h-12 w-12" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold tracking-tight text-white mb-2">Cámara no activada</h3>
-                  <p className="text-sm font-medium text-slate-400">Inicia una llamada con el paciente para comenzar la videoconsulta</p>
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Cámara no activada</h3>
+                  <p className="text-sm font-medium text-slate-500">Inicia una llamada con el paciente para comenzar la videoconsulta</p>
                 </div>
                 <div className="flex flex-col gap-4 mt-2">
                   {authLoading ? (
-                    <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 backdrop-blur-md">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                    <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600">
+                      <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
                       Autenticando médico...
                     </div>
                   ) : user ? (
@@ -405,14 +401,14 @@ export default function DoctorsHomePage(): JSX.Element {
                       className="group relative inline-flex items-center justify-center rounded-xl bg-violet-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-violet-600/20 transition-all hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-violet-600/30 active:scale-95"
                     />
                   ) : (
-                    <div className="flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm backdrop-blur-md">
+                    <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm">
                       <div>
-                        <p className="text-amber-300 font-semibold mb-1">Autenticación requerida</p>
-                        <p className="text-amber-400/70 text-xs">Abre tu sesión para autorizar la llamada</p>
+                        <p className="text-amber-700 font-semibold mb-1">Autenticación requerida</p>
+                        <p className="text-amber-600 text-xs">Abre tu sesión para autorizar la llamada</p>
                       </div>
                       <a
                         href={`${authBaseUrl}/auth/login?portal=doctors`}
-                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500/20 px-4 py-2 text-xs font-semibold text-amber-300 transition-colors hover:bg-amber-500 hover:text-white"
+                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500 hover:text-white"
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -423,7 +419,7 @@ export default function DoctorsHomePage(): JSX.Element {
                   <button
                     type="button"
                     onClick={handleActivateCamera}
-                    className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 transition-all hover:bg-slate-700 hover:text-white active:scale-95"
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95"
                   >
                     Probar cámara sin transmitir
                   </button>
@@ -432,14 +428,14 @@ export default function DoctorsHomePage(): JSX.Element {
             )}
 
             {callStatus === 'connecting' && (
-              <div className="absolute inset-0 flex h-full flex-col items-center justify-center gap-4 bg-slate-950/80 text-slate-200 backdrop-blur-md z-10 transition-all duration-300">
-                <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-                <p className="text-sm font-semibold tracking-wide text-blue-100">Estableciendo conexión segura…</p>
+              <div className="absolute inset-0 flex h-full flex-col items-center justify-center gap-4 bg-white/80 text-slate-700 backdrop-blur-md z-10 transition-all duration-300">
+                <Loader2 className="h-10 w-10 animate-spin text-violet-500" />
+                <p className="text-sm font-semibold tracking-wide text-violet-700">Estableciendo conexión segura…</p>
               </div>
             )}
 
             {isScreenSharing && (
-              <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-600/20 px-4 py-1 text-xs text-blue-100">
+              <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1 text-xs text-violet-700">
                 <ScreenShare className="h-4 w-4" />
                 Compartiendo pantalla
               </div>
@@ -447,12 +443,12 @@ export default function DoctorsHomePage(): JSX.Element {
 
             {isFocusMode && patient && callStatus === 'live' && showControls && (
               <div className="video-badge z-10">
-                <div className="flex items-center gap-3 rounded-lg bg-slate-900/80 px-3 py-2 backdrop-blur-md">
+                <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 backdrop-blur-md">
                   <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-emerald-400" />
+                    <Activity className="h-4 w-4 text-emerald-500" />
                     <div>
-                      <p className="text-xs font-semibold text-slate-100">{getPatientDisplayName(patient)}</p>
-                      <p className="text-[10px] text-slate-400">{getPatientAge(patient)} años • {formattedDuration}</p>
+                      <p className="text-xs font-semibold text-slate-900">{getPatientDisplayName(patient)}</p>
+                      <p className="text-[10px] text-slate-500">{getPatientAge(patient)} años • {formattedDuration}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -469,9 +465,9 @@ export default function DoctorsHomePage(): JSX.Element {
               <div className={`absolute top-4 left-4 transition-all duration-1000 ${
                 showQualityOverlay ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
               }`}>
-                <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs backdrop-blur-sm">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></div>
-                  <span className="font-medium text-emerald-200">
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs backdrop-blur-sm">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></div>
+                  <span className="font-medium text-emerald-700">
                     {callQuality.label} • 45ms • Estable
                   </span>
                 </div>
@@ -485,8 +481,8 @@ export default function DoctorsHomePage(): JSX.Element {
                   onClick={toggleFocusMode}
                   className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${
                     isFocusMode
-                      ? 'border-violet-400/50 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20'
-                      : 'border-slate-700 bg-slate-900/80 text-slate-200 hover:border-violet-400/60 hover:text-white'
+                      ? 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100'
+                      : 'border-slate-200 bg-white/90 text-slate-600 hover:border-violet-300 hover:text-violet-700'
                   }`}
                 >
                   {isFocusMode ? 'Salir modo foco' : 'Activar modo foco'}
@@ -494,14 +490,14 @@ export default function DoctorsHomePage(): JSX.Element {
               )}
 
               {screenStream && (
-                <div className="hidden h-32 w-48 overflow-hidden rounded-lg border border-slate-700 bg-slate-900/70 shadow-lg sm:block">
+                <div className="hidden h-32 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white/90 shadow-lg sm:block">
                   <video ref={screenShareRef} className="h-full w-full object-cover" autoPlay muted playsInline />
                 </div>
               )}
             </div>
 
             <div className={`video-overlay absolute bottom-6 inset-x-0 flex justify-center transition-opacity duration-300 ${showControls ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-              <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-6 py-4 backdrop-blur-2xl shadow-2xl shadow-black/50 sm:flex-nowrap">
+              <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-6 py-4 backdrop-blur-2xl shadow-2xl shadow-slate-200/50 sm:flex-nowrap">
                 <ControlButton
                   active={!isMuted}
                   iconActive={<Mic className="h-5 w-5" />}
@@ -545,7 +541,7 @@ export default function DoctorsHomePage(): JSX.Element {
                 patientId: session?.patientId ?? 'guest-patient',
                 patientName: getPatientDisplayName(patient),
               }}
-              className="mt-3 rounded-2xl border border-slate-800/60 bg-[#101d32] p-4 shadow-2xl shadow-slate-900/20 sm:p-6"
+              className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg sm:p-6"
             />
           )}
         </section>
@@ -554,7 +550,7 @@ export default function DoctorsHomePage(): JSX.Element {
           <button
             type="button"
             onClick={toggleQuickActionsVisibility}
-            className={`call-area__quickActionsHandle hidden flex-col items-center gap-1 rounded-2xl border border-slate-700/70 bg-slate-900/85 px-3 py-3 text-xs font-medium text-slate-200 shadow-lg transition hover:border-violet-500/60 hover:text-white lg:flex ${
+            className={`call-area__quickActionsHandle hidden flex-col items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 px-3 py-3 text-xs font-medium text-slate-600 shadow-lg transition hover:border-violet-300 hover:text-violet-700 lg:flex ${
               isQuickActionsVisible ? 'ring-1 ring-violet-400/60' : ''
             }`}
             aria-expanded={isQuickActionsVisible}
@@ -567,7 +563,7 @@ export default function DoctorsHomePage(): JSX.Element {
               </>
             ) : (
               <>
-                <span className="flex items-center gap-1 text-violet-300">
+                <span className="flex items-center gap-1 text-violet-500">
                   <FileText className="h-3 w-3" />
                   <Pill className="h-3 w-3" />
                   <Activity className="h-3 w-3" />
@@ -575,25 +571,25 @@ export default function DoctorsHomePage(): JSX.Element {
                   <Brain className="h-3 w-3" />
                 </span>
                 <span className="text-[11px] font-semibold uppercase tracking-wide">Herramientas</span>
-                <span className="text-[10px] font-normal text-slate-400">Notas · Rx · Signos · IA</span>
+                <span className="text-[10px] font-normal text-slate-500">Notas · Rx · Signos · IA</span>
               </>
             )}
           </button>
         )}
 
         <aside
-          className={`right-drawer hidden h-full flex-col space-y-4 rounded-3xl border border-slate-700/50 bg-slate-900/80 p-4 shadow-2xl shadow-blue-900/10 backdrop-blur-2xl lg:flex ${
+          className={`right-drawer hidden h-full flex-col space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-lg lg:flex ${
             isFocusMode && isQuickActionsVisible ? 'right-drawer--open' : ''
           }`}
         >
           <div className="flex items-center justify-between px-1 pb-0">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Acciones rápidas</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Acciones rápidas</h3>
             <div className="flex items-center gap-1">
               {isFocusMode && (
                 <button
                   type="button"
                   onClick={closeQuickActions}
-                  className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-800/40 hover:text-slate-200"
+                  className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                   aria-label="Cerrar acciones rápidas"
                 >
                   <X className="h-4 w-4" />
@@ -602,7 +598,7 @@ export default function DoctorsHomePage(): JSX.Element {
               <button
                 type="button"
                 onClick={() => setIsQuickActionsCollapsed(!isQuickActionsCollapsed)}
-                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-800/40 hover:text-slate-200"
+                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 aria-expanded={!isQuickActionsCollapsed}
                 aria-controls="quick-actions-panel"
               >
@@ -642,10 +638,10 @@ export default function DoctorsHomePage(): JSX.Element {
                 />
               </div>
 
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-3 w-3 text-emerald-400" />
-                  <p className="text-xs text-emerald-200">Sincronización automática</p>
+                  <Sparkles className="h-3 w-3 text-emerald-500" />
+                  <p className="text-xs text-emerald-700">Sincronización automática</p>
                 </div>
               </div>
             </div>
@@ -653,7 +649,7 @@ export default function DoctorsHomePage(): JSX.Element {
 
           {isQuickActionsCollapsed && (
             <div className="px-1 pb-2">
-              <div className="flex items-center justify-center gap-3 rounded-lg border border-slate-700 bg-slate-800/40 py-2">
+              <div className="flex items-center justify-center gap-3 rounded-lg border border-slate-200 bg-slate-50 py-2">
                 <FileText className="h-3 w-3 text-slate-400" />
                 <Pill className="h-3 w-3 text-slate-400" />
                 <Activity className="h-3 w-3 text-slate-400" />
@@ -670,7 +666,7 @@ export default function DoctorsHomePage(): JSX.Element {
           <button
             type="button"
             onClick={() => setIsQuickActionsCollapsed(false)}
-            className="flex items-center gap-2 rounded-full border border-slate-700/60 bg-slate-900/70 px-4 py-2 text-xs text-slate-200 transition hover:border-slate-500 hover:text-white"
+            className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
           >
             <MonitorUp className="h-4 w-4" />
             Acciones rápidas
@@ -683,7 +679,7 @@ export default function DoctorsHomePage(): JSX.Element {
           <button
             type="button"
             onClick={() => setShowControls(!showControls)}
-            className="rounded-full border border-slate-700/60 bg-slate-900/80 p-3 text-slate-200 transition hover:border-slate-500 hover:text-white"
+            className="rounded-full border border-slate-200 bg-white/90 p-3 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
             aria-label="Alternar controles"
           >
             {showControls ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -691,7 +687,7 @@ export default function DoctorsHomePage(): JSX.Element {
           <button
             type="button"
             onClick={() => setIsQuickActionsCollapsed(false)}
-            className="flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-900 shadow-lg transition hover:bg-emerald-400"
+            className="flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-violet-500"
           >
             <Sparkles className="h-4 w-4" />
             Acciones
@@ -701,7 +697,7 @@ export default function DoctorsHomePage(): JSX.Element {
 
       {isFocusMode && showQualityOverlay && (
         <div className="pointer-events-none fixed inset-x-0 bottom-20 z-20 flex justify-center lg:hidden">
-          <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs text-emerald-200 shadow-lg">
+          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-700 shadow-lg">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></span>
             Video optimizado para modo foco
           </div>
@@ -791,7 +787,7 @@ export default function DoctorsHomePage(): JSX.Element {
       {isFocusMode && isQuickActionsVisible && (
         <button
           type="button"
-          className="call-area__drawerScrim fixed inset-0 z-30 hidden bg-slate-950/60 backdrop-blur-sm lg:block"
+          className="call-area__drawerScrim fixed inset-0 z-30 hidden bg-slate-900/40 backdrop-blur-sm lg:block"
           aria-label="Cerrar acciones rápidas"
           onClick={closeQuickActions}
         />
@@ -819,8 +815,8 @@ function ControlButton({ active, iconActive, iconInactive, label, onClick }: Con
         isFocusMode ? 'h-10 w-10' : 'h-12 w-12'
       } ${
         active
-          ? 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'
-          : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+          ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
       }`}
       aria-label={label}
       title={label}
@@ -839,9 +835,9 @@ interface CompactActionProps {
 
 function CompactAction({ label, icon, intent = 'default', onClick }: CompactActionProps): JSX.Element {
   const intentStyles = {
-    default: 'border-slate-700 bg-slate-800/40 text-slate-300 hover:bg-slate-800/60',
-    primary: 'border-blue-500/40 bg-blue-600/10 text-blue-200 hover:bg-blue-600/20',
-    success: 'border-emerald-500/40 bg-emerald-600/10 text-emerald-200 hover:bg-emerald-600/20',
+    default: 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50',
+    primary: 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100',
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
   }
 
   return (
@@ -850,7 +846,7 @@ function CompactAction({ label, icon, intent = 'default', onClick }: CompactActi
       onClick={onClick}
       className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition ${intentStyles[intent]}`}
     >
-      <span className={intent === 'success' ? 'text-emerald-400' : intent === 'primary' ? 'text-blue-400' : 'text-slate-400'}>
+      <span className={intent === 'success' ? 'text-emerald-500' : intent === 'primary' ? 'text-violet-500' : 'text-slate-400'}>
         {icon}
       </span>
       {label}

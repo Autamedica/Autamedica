@@ -128,10 +128,10 @@ export function LeafletMap({ jobs, doctors, selectedItem: _selectedItem, onItemS
 
   if (!isClient || !leafletLoaded) {
     return (
-      <div className="flex items-center justify-center h-[600px] bg-slate-900 rounded-lg">
+      <div className="flex items-center justify-center h-[600px] bg-white rounded-lg">
         <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-emerald-400 mx-auto mb-4" />
-          <p className="text-slate-300">Cargando mapa...</p>
+          <Loader className="w-8 h-8 animate-spin text-emerald-500 mx-auto mb-4" />
+          <p className="text-slate-600">Cargando mapa...</p>
         </div>
       </div>
     )
@@ -141,7 +141,7 @@ export function LeafletMap({ jobs, doctors, selectedItem: _selectedItem, onItemS
   const center: [number, number] = [-34.6037, -58.3816]
 
   return (
-    <div className="relative w-full h-[600px] rounded-lg overflow-hidden border border-slate-700">
+    <div className="relative w-full h-[600px] rounded-lg overflow-hidden border border-slate-200">
       <MapContainer
         center={center}
         zoom={6}
@@ -260,7 +260,7 @@ export function LeafletMap({ jobs, doctors, selectedItem: _selectedItem, onItemS
                   {doctor.availableForHiring && (
                     <button
                       onClick={() => onItemSelect(doctor)}
-                      className="w-full mt-3 bg-blue-500 hover:bg-blue-600 text-white text-xs py-2 px-3 rounded transition-colors"
+                      className="w-full mt-3 bg-violet-500 hover:bg-violet-600 text-white text-xs py-2 px-3 rounded transition-colors"
                     >
                       Contactar médico
                     </button>
@@ -281,7 +281,7 @@ export function LeafletMap({ jobs, doctors, selectedItem: _selectedItem, onItemS
             <span className="text-slate-700">Ofertas urgentes</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow"></div>
+            <div className="w-4 h-4 bg-violet-500 rounded-full border-2 border-white shadow"></div>
             <span className="text-slate-700">Ofertas disponibles</span>
           </div>
           <div className="flex items-center gap-2">
@@ -335,11 +335,11 @@ export function LeafletMap({ jobs, doctors, selectedItem: _selectedItem, onItemS
         }
 
         .leaflet-container {
-          background: #1e293b;
+          background: #f8fafc;
         }
 
         .leaflet-tile {
-          filter: brightness(0.8) contrast(1.1);
+          filter: brightness(1) contrast(1);
         }
       `}</style>
     </div>

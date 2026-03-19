@@ -167,8 +167,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = requestUrl;
   const normalizedPath = normalizePath(pathname);
 
-  // SEO canonical host enforcement: autamedica.com -> www.autamedica.com
-  if (import.meta.env.PROD && requestUrl.hostname === 'autamedica.com') {
+  // SEO canonical host enforcement: redirect legacy/bare domains to www.autamedica.com
+  if (import.meta.env.PROD && (requestUrl.hostname === 'autamedica.com' || requestUrl.hostname === 'autamedica-web.pages.dev')) {
     const canonicalUrl = new URL(requestUrl.toString());
     canonicalUrl.hostname = 'www.autamedica.com';
     return context.redirect(canonicalUrl.toString(), 308);

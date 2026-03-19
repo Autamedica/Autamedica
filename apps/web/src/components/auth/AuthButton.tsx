@@ -26,16 +26,17 @@ export function AuthButton({
 
   const variants = {
     primary: `
-      bg-[var(--au-accent)] text-[var(--au-bg)] border-2 border-[var(--au-accent)]
-      ${!disabled && !loading ? 'hover:bg-[var(--au-text-primary)] hover:border-[var(--au-text-primary)]' : ''}
+      bg-[#fff] text-[#000] font-bold
+      shadow-[0_4px_20px_-5px_rgba(255,255,255,0.2)]
+      ${!disabled && !loading ? 'hover:scale-[1.01] hover:shadow-[0_8px_30px_-5px_rgba(255,255,255,0.3)] active:scale-[0.98]' : ''}
     `,
     secondary: `
-      bg-[var(--au-surface)] text-[var(--au-text-primary)] border-2 border-[var(--au-border)]
-      ${!disabled && !loading ? 'hover:border-[var(--au-hover-border)] hover:bg-[var(--au-hover)]' : ''}
+      bg-[var(--au-surface)] text-[var(--au-text-primary)] border border-[var(--au-border)]
+      ${!disabled && !loading ? 'hover:border-[var(--au-border-hover)] hover:bg-[var(--au-hover)] active:scale-[0.98]' : ''}
     `,
     ghost: `
-      bg-transparent text-[var(--au-text-secondary)] border-2 border-transparent
-      ${!disabled && !loading ? 'hover:text-[var(--au-text-primary)] hover:border-[var(--au-border)]' : ''}
+      bg-transparent text-[var(--au-text-secondary)] border border-transparent
+      ${!disabled && !loading ? 'hover:text-[var(--au-text-primary)] hover:bg-[var(--au-hover)]' : ''}
     `,
   };
 

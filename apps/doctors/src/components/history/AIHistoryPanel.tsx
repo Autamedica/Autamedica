@@ -131,19 +131,19 @@ export function AIHistoryPanel() {
   })
 
   return (
-    <div className="h-full bg-[#101d32] text-slate-100">
-      <div className="p-6 border-b border-slate-800/60">
+    <div className="h-full bg-white text-slate-900">
+      <div className="p-6 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-purple-500/20 rounded-lg">
               <Bot className="w-6 h-6 text-purple-400" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-slate-100">Historial IA</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Historial IA</h1>
               <p className="text-sm text-slate-400">Análisis y recomendaciones de inteligencia artificial</p>
             </div>
           </div>
-          <button className="flex items-center gap-2 bg-slate-700/60 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg transition-colors">
+          <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition-colors">
             <Download className="w-4 h-4" />
             Exportar
           </button>
@@ -152,9 +152,9 @@ export function AIHistoryPanel() {
 
       <div className="flex h-[calc(100%-100px)]">
         {/* Lista de análisis */}
-        <div className="w-1/2 border-r border-slate-800/60">
+        <div className="w-1/2 border-r border-slate-200">
           {/* Filtros */}
-          <div className="p-4 border-b border-slate-800/60 space-y-3">
+          <div className="p-4 border-b border-slate-200 space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -162,7 +162,7 @@ export function AIHistoryPanel() {
                 placeholder="Buscar paciente o análisis..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 bg-slate-50/60 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
@@ -171,7 +171,7 @@ export function AIHistoryPanel() {
               <select
                 value={selectedFilter}
                 onChange={(e) => setSelectedFilter(e.target.value)}
-                className="bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="bg-slate-50/60 border border-slate-200 rounded-lg text-slate-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="all">Todos los análisis</option>
                 <option value="diagnosis">Diagnósticos</option>
@@ -188,13 +188,13 @@ export function AIHistoryPanel() {
               <div
                 key={analysis.id}
                 onClick={() => setSelectedAnalysis(analysis)}
-                className={`p-4 border-b border-slate-800/60 cursor-pointer transition-colors hover:bg-slate-800/40 ${
-                  selectedAnalysis?.id === analysis.id ? 'bg-slate-800/60' : ''
+                className={`p-4 border-b border-slate-200 cursor-pointer transition-colors hover:bg-slate-50 ${
+                  selectedAnalysis?.id === analysis.id ? 'bg-slate-50/60' : ''
                 }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-medium text-slate-100">{analysis.patientName}</h3>
+                    <h3 className="font-medium text-slate-900">{analysis.patientName}</h3>
                     <p className="text-sm text-slate-400">{getTypeLabel(analysis.type)}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -207,7 +207,7 @@ export function AIHistoryPanel() {
                   </div>
                 </div>
 
-                <p className="text-sm text-slate-300 mb-2">{analysis.summary}</p>
+                <p className="text-sm text-slate-600 mb-2">{analysis.summary}</p>
 
                 <div className="flex items-center gap-4 text-xs text-slate-400">
                   <div className="flex items-center gap-1">
@@ -230,7 +230,7 @@ export function AIHistoryPanel() {
             <div className="space-y-6">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-slate-100">Detalles del Análisis</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">Detalles del Análisis</h2>
                   <div className="flex items-center gap-2">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(selectedAnalysis.status)}`}>
                       {selectedAnalysis.status.toUpperCase()}
@@ -241,19 +241,19 @@ export function AIHistoryPanel() {
                   </div>
                 </div>
 
-                <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-4">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <span className="text-slate-400 text-sm">Paciente:</span>
-                      <p className="text-slate-100 font-medium">{selectedAnalysis.patientName}</p>
+                      <p className="text-slate-900 font-medium">{selectedAnalysis.patientName}</p>
                     </div>
                     <div>
                       <span className="text-slate-400 text-sm">Tipo de Análisis:</span>
-                      <p className="text-slate-100">{getTypeLabel(selectedAnalysis.type)}</p>
+                      <p className="text-slate-900">{getTypeLabel(selectedAnalysis.type)}</p>
                     </div>
                     <div>
                       <span className="text-slate-400 text-sm">Fecha:</span>
-                      <p className="text-slate-100">{new Date(selectedAnalysis.timestamp).toLocaleString('es-ES')}</p>
+                      <p className="text-slate-900">{new Date(selectedAnalysis.timestamp).toLocaleString('es-ES')}</p>
                     </div>
                     <div>
                       <span className="text-slate-400 text-sm">Confianza:</span>
@@ -265,22 +265,22 @@ export function AIHistoryPanel() {
 
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-slate-300 font-medium mb-2">Resumen</h3>
-                      <p className="text-slate-100">{selectedAnalysis.summary}</p>
+                      <h3 className="text-slate-600 font-medium mb-2">Resumen</h3>
+                      <p className="text-slate-900">{selectedAnalysis.summary}</p>
                     </div>
 
                     <div>
-                      <h3 className="text-slate-300 font-medium mb-2">Análisis Detallado</h3>
-                      <p className="text-slate-200 text-sm leading-relaxed">{selectedAnalysis.details}</p>
+                      <h3 className="text-slate-600 font-medium mb-2">Análisis Detallado</h3>
+                      <p className="text-slate-700 text-sm leading-relaxed">{selectedAnalysis.details}</p>
                     </div>
 
                     <div>
-                      <h3 className="text-slate-300 font-medium mb-2">Recomendaciones</h3>
+                      <h3 className="text-slate-600 font-medium mb-2">Recomendaciones</h3>
                       <ul className="space-y-2">
                         {selectedAnalysis.recommendations.map((rec, idx) => (
                           <li key={idx} className="flex items-start gap-2">
                             <span className="w-2 h-2 rounded-full bg-purple-400 mt-2 flex-shrink-0" />
-                            <span className="text-slate-200 text-sm">{rec}</span>
+                            <span className="text-slate-700 text-sm">{rec}</span>
                           </li>
                         ))}
                       </ul>
@@ -288,11 +288,11 @@ export function AIHistoryPanel() {
 
                     {selectedAnalysis.followUp && (
                       <div className="bg-blue-900/20 border border-blue-800/40 rounded-lg p-3">
-                        <h3 className="text-blue-400 font-medium mb-1 flex items-center gap-2">
+                        <h3 className="text-violet-500 font-medium mb-1 flex items-center gap-2">
                           <TrendingUp className="w-4 h-4" />
                           Seguimiento Requerido
                         </h3>
-                        <p className="text-blue-300 text-sm">{selectedAnalysis.followUp}</p>
+                        <p className="text-violet-600 text-sm">{selectedAnalysis.followUp}</p>
                       </div>
                     )}
 
@@ -313,7 +313,7 @@ export function AIHistoryPanel() {
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <FileText className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-300 mb-2">Selecciona un Análisis</h3>
+                <h3 className="text-lg font-medium text-slate-600 mb-2">Selecciona un Análisis</h3>
                 <p className="text-slate-400">Elige un análisis de la lista para ver los detalles completos</p>
               </div>
             </div>

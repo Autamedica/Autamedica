@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { UnifiedVideoCall } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
-import type { UserProfile } from '@autamedica/types'
+import type { UserProfile } from '@autamedica/auth'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 
 interface CallPageClientProps {
@@ -26,8 +26,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { session, profile, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
 
-  // Type guard to ensure profile is properly typed
-  const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
+  const typedProfile = profile as UserProfile | null
 
   useEffect(() => {
     if (loading) return
@@ -51,16 +50,16 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       return
     }
 
-    if ((typedProfile as any)?.role !== 'doctor') {
+    if (typedProfile?.role !== 'doctor') {
       router.push('/')
       return
     }
 
     setIsReady(true)
-  }, [session, loading, router, roomId])
+  }, [session, loading, router, roomId, typedProfile])
 
   const handleCallEnd = () => {
-    router.push('/schedule')
+    router.push('/appointments')
   }
 
   const handleCallStart = () => {
@@ -78,10 +77,10 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { userId, userName } = useMemo(() => {
     if (session && typedProfile) {
       return {
-        userId: (session as any).user.id,
-        userName: typedProfile.firstName && typedProfile.lastName
-          ? `${typedProfile.firstName} ${typedProfile.lastName}`
-          : (typedProfile as any).email || 'Doctor'
+        userId: session.user.id,
+        userName: [typedProfile.first_name, typedProfile.last_name].filter(Boolean).join(' ').trim()
+          || typedProfile.email
+          || 'Doctor'
       }
     }
 
@@ -93,7 +92,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   if (loading || !isReady) {
     return (
-      <div className="min-h-screen bg-[#101d32] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ee58a6] mx-auto mb-4"></div>
           <p className="text-white">Preparando videollamada...</p>
@@ -105,7 +104,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
 
   return (
-    <div className="min-h-screen bg-[#101d32] overflow-hidden">
+    <div className="min-h-screen bg-slate-100 overflow-hidden">
       <UnifiedVideoCall
         roomId={roomId}
         userId={userId}

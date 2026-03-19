@@ -9,6 +9,7 @@ import type {
   MedicalRecordFilters,
   Prescription,
   PrescriptionFilters,
+  PrescriptionStatus,
   UUID,
   VitalSigns
 } from '@/types/medical';
@@ -29,6 +30,62 @@ const supabase = !featureFlags.USE_MOCK_MEDICAL_DATA
     return null;
   })()
   : null;
+
+interface PrescriptionRecordContent {
+  medication_name?: string
+  dosage?: string
+  frequency?: string
+  duration?: string
+  instructions?: string
+  status?: PrescriptionStatus
+  prescribed_date?: string
+  start_date?: string
+  end_date?: string | null
+  notes?: string | null
+  side_effects_warning?: string | null
+  medications?: Array<{
+    name?: string
+    dosage?: string
+    frequency?: string
+    duration?: string
+    instructions?: string
+  }>
+}
+
+function normalizePrescriptionRecord(row: Database['public']['Tables']['medical_records']['Row']): Prescription {
+  const content = (row.content && typeof row.content === 'object' && !Array.isArray(row.content)
+    ? row.content
+    : {}) as PrescriptionRecordContent
+  const primaryMedication = content.medications?.[0]
+  const prescribedDate = content.prescribed_date || content.start_date || row.date_recorded || row.created_at || new Date().toISOString()
+  const startDate = content.start_date || prescribedDate
+  const status = content.status
+    && ['activa', 'completada', 'cancelada', 'pausada'].includes(content.status)
+    ? content.status
+    : content.end_date && new Date(content.end_date) < new Date()
+      ? 'completada'
+      : 'activa'
+
+  return {
+    id: row.id as UUID,
+    patient_id: (row.patient_id ?? '') as UUID,
+    doctor_id: (row.doctor_id ?? '') as UUID,
+    medical_record_id: row.id as UUID,
+    medication_name: content.medication_name || primaryMedication?.name || row.title.replace(/^Prescripci[oó]n:\s*/i, '') || 'Prescripción médica',
+    dosage: content.dosage || primaryMedication?.dosage || '',
+    frequency: content.frequency || primaryMedication?.frequency || '',
+    duration: content.duration || primaryMedication?.duration || '',
+    instructions: content.instructions || primaryMedication?.instructions || '',
+    status,
+    prescribed_date: prescribedDate,
+    start_date: startDate,
+    end_date: content.end_date ?? null,
+    notes: content.notes ?? null,
+    side_effects_warning: content.side_effects_warning ?? null,
+    created_at: row.created_at || prescribedDate,
+    updated_at: row.updated_at || row.created_at || prescribedDate,
+  }
+}
 
 // API Client
 class MedicalDataAPI {
@@ -224,73 +281,48 @@ class MedicalDataAPI {
     patientId: UUID,
     filters: PrescriptionFilters = {}
   ): Promise<Prescription[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockPrescriptions = patientId === '550e8400-e29b-41d4-a716-446655440000' ? [
-          {
-            id: '1' as UUID,
-            patient_id: patientId,
-            doctor_id: '660f9500-f30c-52e5-b827-556766550001' as UUID,
-            medication_name: 'Metformina',
-            dosage: '850mg',
-            frequency: 'cada 12 horas',
-            instructions: 'Tomar con las comidas principales',
-            prescribed_date: new Date().toISOString(),
-            start_date: new Date().toISOString(),
-            end_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'activa',
-            refills_remaining: 2,
-            total_refills: 3,
-            notes: 'Control de diabetes. Monitorear función renal cada 3 meses.',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: '2' as UUID,
-            patient_id: patientId,
-            doctor_id: '660f9500-f30c-52e5-b827-556766550001' as UUID,
-            medication_name: 'Lisinopril',
-            dosage: '10mg',
-            frequency: 'una vez al día',
-            instructions: 'Tomar por la mañana, preferiblemente a la misma hora',
-            prescribed_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            end_date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'activa',
-            refills_remaining: 1,
-            total_refills: 2,
-            notes: 'Control de presión arterial. Monitorear potasio sérico.',
-            created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ] as unknown as Prescription[] : [] as Prescription[]
+    if (featureFlags.USE_MOCK_MEDICAL_DATA || !this.supabase) {
+      return []
+    }
 
-        // Aplicar filtros
-        let filteredPrescriptions = mockPrescriptions
+    try {
+      const { data, error } = await this.supabase
+        .from('medical_records')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('type', 'prescription')
+        .is('deleted_at', null)
+        .order('date_recorded', { ascending: false })
 
-        if (filters.status) {
-          filteredPrescriptions = filteredPrescriptions.filter((p: Prescription) => p.status === filters.status)
-        }
+      if (error) throw error
 
-        if (filters.medication_name) {
-          const searchTerm = filters.medication_name.toLowerCase()
-          filteredPrescriptions = filteredPrescriptions.filter((p: Prescription) =>
-            p.medication_name.toLowerCase().includes(searchTerm)
-          )
-        }
+      let prescriptions = (data || []).map(normalizePrescriptionRecord)
 
-        if (filters.active_only) {
-          const today = new Date()
-          filteredPrescriptions = filteredPrescriptions.filter((p: Prescription) =>
-            p.status === 'activa' &&
-            new Date(p.start_date) <= today &&
-            (!p.end_date || new Date(p.end_date) >= today)
-          )
-        }
+      if (filters.status) {
+        prescriptions = prescriptions.filter((prescription) => prescription.status === filters.status)
+      }
 
-        resolve(filteredPrescriptions)
-      }, 120) // Simular latencia de red
-    })
+      if (filters.medication_name) {
+        const searchTerm = filters.medication_name.toLowerCase()
+        prescriptions = prescriptions.filter((prescription) =>
+          prescription.medication_name.toLowerCase().includes(searchTerm)
+        )
+      }
+
+      if (filters.active_only) {
+        const now = new Date()
+        prescriptions = prescriptions.filter((prescription) =>
+          prescription.status === 'activa' &&
+          new Date(prescription.start_date) <= now &&
+          (!prescription.end_date || new Date(prescription.end_date) >= now)
+        )
+      }
+
+      return prescriptions
+    } catch (error) {
+      logger.error('Error fetching prescriptions:', error)
+      return []
+    }
   }
 
   // Análisis de IA

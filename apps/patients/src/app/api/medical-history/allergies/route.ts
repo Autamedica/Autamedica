@@ -1,11 +1,13 @@
 import { createRouteHandlerClient } from '@autamedica/auth/server'
+import type { AppSupabaseClient } from '@autamedica/supabase-client'
 import { NextRequest, NextResponse } from 'next/server'
 import { resolvePatientContext } from '../../shared/patient-context'
 
 export async function POST(request: NextRequest) {
-  const supabase = await createRouteHandlerClient()
-  const context = await resolvePatientContext(supabase)
+  const authSupabase = await createRouteHandlerClient()
+  const context = await resolvePatientContext(authSupabase)
   if (!context) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const supabase = authSupabase as unknown as AppSupabaseClient
   const body = await request.json().catch(() => ({}))
 
   const allergen = String(body?.allergen || '').trim()

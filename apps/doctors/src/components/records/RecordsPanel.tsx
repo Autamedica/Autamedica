@@ -35,7 +35,7 @@ export function RecordsPanel(): JSX.Element {
 
   const getRecordTypeColor = (type: string) => {
     switch (type) {
-      case 'general': return 'bg-blue-500/20 text-blue-400'
+      case 'general': return 'bg-violet-50 text-violet-500'
       case 'seguimiento': return 'bg-green-500/20 text-green-400'
       case 'urgencia': return 'bg-red-500/20 text-red-400'
       case 'especialidad': return 'bg-purple-500/20 text-purple-400'
@@ -62,7 +62,7 @@ export function RecordsPanel(): JSX.Element {
             <FileText className="h-6 w-6 text-purple-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-100">Historiales Médicos</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Historiales Médicos</h1>
             <p className="text-slate-400">
               {history.length} registro{history.length !== 1 ? 's' : ''} médico{history.length !== 1 ? 's' : ''}
             </p>
@@ -72,7 +72,7 @@ export function RecordsPanel(): JSX.Element {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+            className="flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
           >
             <Search className="h-4 w-4" />
             Buscar
@@ -89,28 +89,28 @@ export function RecordsPanel(): JSX.Element {
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-500/20 p-2">
-              <FileText className="h-5 w-5 text-blue-400" />
+            <div className="rounded-lg bg-violet-50 p-2">
+              <FileText className="h-5 w-5 text-violet-500" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Consultas</p>
-              <p className="text-xl font-semibold text-slate-100">
+              <p className="text-xl font-semibold text-slate-900">
                 {history.filter((record: MedicalRecord) => record.consultation_type === 'general').length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-purple-500/20 p-2">
               <Calendar className="h-5 w-5 text-purple-400" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Este Mes</p>
-              <p className="text-xl font-semibold text-slate-100">
+              <p className="text-xl font-semibold text-slate-900">
                 {history.filter((record: MedicalRecord) =>
                   new Date(record.consultation_date).getMonth() === new Date().getMonth()
                 ).length}
@@ -119,27 +119,27 @@ export function RecordsPanel(): JSX.Element {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-green-500/20 p-2">
               <User className="h-5 w-5 text-green-400" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Paciente Activo</p>
-              <p className="text-sm font-semibold text-slate-100">María González</p>
+              <p className="text-sm font-semibold text-slate-900">María González</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-orange-500/20 p-2">
               <FileText className="h-5 w-5 text-orange-400" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Último Registro</p>
-              <p className="text-sm font-semibold text-slate-100">
-                {history.length > 0 ? new Date(history[0].record_date).toLocaleDateString('es-ES') : 'N/A'}
+              <p className="text-sm font-semibold text-slate-900">
+                {history.length > 0 ? new Date(history[0]!.consultation_date ?? history[0]!.created_at).toLocaleDateString('es-ES') : 'N/A'}
               </p>
             </div>
           </div>
@@ -152,7 +152,7 @@ export function RecordsPanel(): JSX.Element {
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <FileText className="mx-auto h-12 w-12 text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-slate-300 mb-2">No hay registros médicos</h3>
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No hay registros médicos</h3>
               <p className="text-slate-500 mb-4">Selecciona un paciente para ver sus registros</p>
               <button
                 type="button"
@@ -169,7 +169,7 @@ export function RecordsPanel(): JSX.Element {
               {history.map((record: MedicalRecord) => (
                 <div
                   key={record.id}
-                  className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-6 transition hover:border-slate-600 hover:bg-slate-800/50"
+                  className="rounded-xl border border-slate-200 bg-white p-6 transition hover:border-slate-600 hover:bg-slate-50"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4">
@@ -179,7 +179,7 @@ export function RecordsPanel(): JSX.Element {
 
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-slate-100">
+                          <h3 className="font-semibold text-slate-900">
                             {getRecordTypeLabel(record.consultation_type)}
                           </h3>
                           <span className={`rounded-full px-2 py-1 text-xs font-medium ${getRecordTypeColor(record.consultation_type)}`}>
@@ -203,14 +203,14 @@ export function RecordsPanel(): JSX.Element {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-700 p-2 text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
                         title="Ver registro"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-700 p-2 text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
                         title="Editar registro"
                       >
                         <Edit className="h-4 w-4" />
@@ -222,21 +222,21 @@ export function RecordsPanel(): JSX.Element {
                   <div className="space-y-3">
                     {record.chief_complaint && (
                       <div>
-                        <h4 className="text-sm font-medium text-slate-300 mb-1">Motivo de Consulta</h4>
+                        <h4 className="text-sm font-medium text-slate-600 mb-1">Motivo de Consulta</h4>
                         <p className="text-sm text-slate-400">{record.chief_complaint}</p>
                       </div>
                     )}
 
                     {record.diagnosis && (
                       <div>
-                        <h4 className="text-sm font-medium text-slate-300 mb-1">Diagnóstico</h4>
+                        <h4 className="text-sm font-medium text-slate-600 mb-1">Diagnóstico</h4>
                         <p className="text-sm text-slate-400">{record.diagnosis}</p>
                       </div>
                     )}
 
                     {record.treatment_plan && (
                       <div>
-                        <h4 className="text-sm font-medium text-slate-300 mb-1">Plan de Tratamiento</h4>
+                        <h4 className="text-sm font-medium text-slate-600 mb-1">Plan de Tratamiento</h4>
                         <p className="text-sm text-slate-400">{record.treatment_plan}</p>
                       </div>
                     )}

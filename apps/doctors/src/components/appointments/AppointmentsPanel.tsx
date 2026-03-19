@@ -20,7 +20,7 @@ export function AppointmentsPanel(): JSX.Element {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500 mx-auto mb-4"></div>
           <p className="text-slate-400">Cargando citas...</p>
         </div>
       </div>
@@ -43,7 +43,7 @@ export function AppointmentsPanel(): JSX.Element {
       case 'scheduled': return 'bg-yellow-500/20 text-yellow-400'
       case 'confirmed': return 'bg-green-500/20 text-green-400'
       case 'cancelled': return 'bg-red-500/20 text-red-400'
-      case 'completed': return 'bg-blue-500/20 text-blue-400'
+      case 'completed': return 'bg-violet-50 text-violet-500'
       default: return 'bg-slate-500/20 text-slate-400'
     }
   }
@@ -61,11 +61,11 @@ export function AppointmentsPanel(): JSX.Element {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-blue-500/20 p-2">
-            <Calendar className="h-6 w-6 text-blue-400" />
+          <div className="rounded-lg bg-violet-50 p-2">
+            <Calendar className="h-6 w-6 text-violet-500" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-100">Agenda de Citas</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Agenda de Citas</h1>
             <p className="text-slate-400">
               {appointments.length} cita{appointments.length !== 1 ? 's' : ''} programada{appointments.length !== 1 ? 's' : ''}
             </p>
@@ -75,14 +75,14 @@ export function AppointmentsPanel(): JSX.Element {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+            className="flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
           >
             <Filter className="h-4 w-4" />
             Filtrar
           </button>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+            className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
           >
             <Plus className="h-4 w-4" />
             Nueva Cita
@@ -92,56 +92,56 @@ export function AppointmentsPanel(): JSX.Element {
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-500/20 p-2">
-              <Calendar className="h-5 w-5 text-blue-400" />
+            <div className="rounded-lg bg-violet-50 p-2">
+              <Calendar className="h-5 w-5 text-violet-500" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Hoy</p>
-              <p className="text-xl font-semibold text-slate-100">
+              <p className="text-xl font-semibold text-slate-900">
                 {appointments.filter(apt => new Date(apt.start_time).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-green-500/20 p-2">
               <Video className="h-5 w-5 text-green-400" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Telemedicina</p>
-              <p className="text-xl font-semibold text-slate-100">
+              <p className="text-xl font-semibold text-slate-900">
                 {appointments.filter(apt => apt.type === 'telemedicine').length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-yellow-500/20 p-2">
               <Clock className="h-5 w-5 text-yellow-400" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Pendientes</p>
-              <p className="text-xl font-semibold text-slate-100">
+              <p className="text-xl font-semibold text-slate-900">
                 {appointments.filter(apt => apt.status === 'scheduled').length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-emerald-500/20 p-2">
-              <User className="h-5 w-5 text-emerald-400" />
+              <User className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
               <p className="text-sm text-slate-400">Confirmadas</p>
-              <p className="text-xl font-semibold text-slate-100">
+              <p className="text-xl font-semibold text-slate-900">
                 {appointments.filter(apt => apt.status === 'confirmed').length}
               </p>
             </div>
@@ -155,11 +155,11 @@ export function AppointmentsPanel(): JSX.Element {
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <Calendar className="mx-auto h-12 w-12 text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-slate-300 mb-2">No hay citas programadas</h3>
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No hay citas programadas</h3>
               <p className="text-slate-500 mb-4">Programa tu primera cita médica</p>
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 mx-auto"
+                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 mx-auto"
               >
                 <Plus className="h-4 w-4" />
                 Programar Cita
@@ -172,17 +172,17 @@ export function AppointmentsPanel(): JSX.Element {
               {appointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 transition hover:border-slate-600 hover:bg-slate-800/50"
+                  className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-600 hover:bg-slate-50"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-500">
                         {getTypeIcon(appointment.type)}
                       </div>
 
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-medium text-slate-100">{appointment.patient_id ? `Paciente ${appointment.patient_id.slice(0, 8)}` : 'Sin asignar'}</h3>
+                          <h3 className="font-medium text-slate-900">{appointment.patient_id ? `Paciente ${appointment.patient_id.slice(0, 8)}` : 'Sin asignar'}</h3>
                           <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(appointment.status ?? 'scheduled')}`}>
                             {appointment.status ?? 'scheduled'}
                           </span>
@@ -216,7 +216,7 @@ export function AppointmentsPanel(): JSX.Element {
                       )}
                       <button
                         type="button"
-                        className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+                        className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
                       >
                         Editar
                       </button>

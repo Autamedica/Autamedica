@@ -51,7 +51,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
     notifications: true,
     emailNotifications: true,
     appointmentReminders: true,
-    darkMode: true,
+    darkMode: false,
     language: 'es',
     fontSize: 'medium',
     videoQuality: 'HD',
@@ -312,13 +312,13 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         return (
           <button
             type="button"
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings[setting.id] ? 'bg-emerald-500' : 'bg-slate-600'
+            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+              settings[setting.id] ? 'bg-violet-600' : 'bg-slate-300'
             }`}
             onClick={() => handleSettingChange(setting.id, !settings[setting.id])}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
                 settings[setting.id] ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -329,7 +329,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           <select
             value={String(settings[setting.id])}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
           >
             {setting.options?.map((option) => (
               <option key={option} value={option}>
@@ -344,7 +344,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
             type={typeof setting.value === 'number' ? 'number' : 'text'}
             value={settings[setting.id] as string | number}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
           />
         )
     }
@@ -353,14 +353,15 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
   const currentSettings = settingsByCategory[activeCategory] || []
 
   return (
-    <div className="flex h-full rounded-xl border border-slate-800/60 bg-[#101d32] shadow-xl">
-      <div className="w-64 border-r border-slate-800/60 bg-[#0a1526] p-4">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-100">Configuración</h2>
-          <p className="text-sm text-slate-400">Personaliza tu experiencia médica</p>
+    <div className="flex h-full flex-col rounded-xl border border-slate-200 bg-white shadow-sm md:flex-row">
+      {/* Sidebar */}
+      <div className="w-full border-b border-slate-200 bg-slate-50 p-4 md:w-72 md:border-b-0 md:border-r md:p-5">
+        <div className="mb-5">
+          <h2 className="text-xl font-bold text-slate-900">Configuración</h2>
+          <p className="text-sm text-slate-500">Personaliza tu experiencia médica</p>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex gap-2 overflow-x-auto md:flex-col md:gap-1 md:overflow-visible">
           {categories.map((category) => {
             const Icon = category.icon
             const isActive = activeCategory === category.id
@@ -370,16 +371,16 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
                 key={category.id}
                 type="button"
                 onClick={() => setActiveCategory(category.id)}
-                className={`flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                className={`flex min-w-max items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors md:w-full md:min-w-0 ${
                   isActive
-                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-                    : 'text-slate-300 hover:bg-slate-800/40 hover:text-slate-200'
+                    ? 'bg-violet-100 text-violet-800'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
                 }`}
               >
-                <Icon className={`mt-0.5 h-5 w-5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
-                <div>
-                  <p className="text-sm font-medium">{category.title}</p>
-                  <p className="text-xs text-slate-500">{category.description}</p>
+                <Icon className={`h-6 w-6 flex-shrink-0 ${isActive ? 'text-violet-600' : 'text-slate-400'}`} />
+                <div className="min-w-0">
+                  <p className="text-base font-semibold">{category.title}</p>
+                  <p className="hidden text-sm text-slate-500 md:block">{category.description}</p>
                 </div>
               </button>
             )
@@ -387,23 +388,26 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         </div>
       </div>
 
-      <div className="flex-1 p-6">
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold text-slate-100">
+      {/* Content */}
+      <div className="flex-1 p-5 md:p-8">
+        <div className="mb-8">
+          <h3 className="text-2xl font-bold text-slate-900">
             {categories.find(c => c.id === activeCategory)?.title}
           </h3>
-          <p className="text-sm text-slate-400">
+          <p className="mt-1 text-base text-slate-500">
             {categories.find(c => c.id === activeCategory)?.description}
           </p>
-          {saveMessage && <p className="mt-2 text-xs text-emerald-400">{saveMessage}</p>}
+          {saveMessage && (
+            <p className="mt-3 rounded-lg bg-violet-50 px-4 py-2 text-sm text-violet-700">{saveMessage}</p>
+          )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {currentSettings.map((setting) => (
-            <div key={setting.id} className="flex items-start justify-between gap-4">
+            <div key={setting.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-slate-200">{setting.label}</h4>
-                <p className="text-xs text-slate-400">{setting.description}</p>
+                <h4 className="text-base font-semibold text-slate-800">{setting.label}</h4>
+                <p className="text-sm text-slate-500">{setting.description}</p>
               </div>
               <div className="flex-shrink-0">
                 {renderSettingControl(setting)}
@@ -412,17 +416,17 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           ))}
         </div>
 
-        <div className="mt-8 flex justify-end gap-3">
+        <div className="mt-10 flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
           <button
             type="button"
-            className="rounded-lg border border-slate-600 bg-transparent px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800/40"
+            className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-medium text-slate-600 transition hover:bg-slate-50"
             onClick={() => setSaveMessage('Cambios descartados visualmente. Nada fue persistido.')}
           >
             Cancelar
           </button>
           <button
             type="button"
-            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
+            className="rounded-xl bg-violet-600 px-6 py-3 text-base font-semibold text-white transition hover:bg-violet-700"
             onClick={handleSave}
           >
             Guardar cambios

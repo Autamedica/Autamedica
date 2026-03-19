@@ -1,23 +1,18 @@
 /**
  * Cliente Supabase para browser
  *
- * Este módulo provee un cliente Supabase configurado para uso en el browser
- * con autenticación automática y manejo de sesiones.
+ * Re-exports the singleton browser client from client/supabase.ts which
+ * includes the no-op lock (prevents GoTrue lock contention), custom cookie
+ * handling for SSO, and localStorage storage fallback.
  */
 
 "use client";
 
 import { ensureClientEnv } from "@autamedica/shared";
-import type { Database } from "@autamedica/types";
-import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr";
 import type { Provider } from "@supabase/supabase-js";
+import { createBrowserClient, getSupabaseClient, signOutGlobally } from "./client/supabase";
 
-export function createBrowserClient() {
-  return createSupabaseBrowserClient<Database>(
-    ensureClientEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    ensureClientEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-  );
-}
+export { createBrowserClient, getSupabaseClient, signOutGlobally };
 
 /**
  * Inicia sesión con OAuth usando URLs de producción correctas

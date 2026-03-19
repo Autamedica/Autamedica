@@ -175,15 +175,15 @@ export function MarketplacePanel() {
   }
 
   return (
-    <div className="h-full bg-[#101d32] text-slate-100">
-      <div className="p-6 border-b border-slate-800/60">
+    <div className="h-full bg-white text-slate-900">
+      <div className="p-6 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-500/20 rounded-lg">
-              <MapPin className="w-6 h-6 text-emerald-400" />
+              <MapPin className="w-6 h-6 text-emerald-500" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-slate-100">Marketplace Médico</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Marketplace Médico</h1>
               <p className="text-sm text-slate-400">Encuentra trabajo médico en Argentina</p>
             </div>
           </div>
@@ -193,7 +193,7 @@ export function MarketplacePanel() {
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'list'
                   ? 'bg-emerald-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               <List className="w-4 h-4" />
@@ -203,7 +203,7 @@ export function MarketplacePanel() {
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'map'
                   ? 'bg-emerald-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               <Map className="w-4 h-4" />
@@ -215,7 +215,7 @@ export function MarketplacePanel() {
       {viewMode === 'map' ? (
         <div className="flex h-[calc(100%-100px)]">
           {/* Panel lateral de filtros en vista mapa */}
-          <div className="w-80 border-r border-slate-800/60 p-4 overflow-y-auto">
+          <div className="w-80 border-r border-slate-200 p-4 overflow-y-auto">
             <div className="space-y-4">
               {/* Búsqueda */}
               <div className="relative">
@@ -225,18 +225,18 @@ export function MarketplacePanel() {
                   placeholder="Buscar trabajos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               {/* Filtros */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Especialidad</label>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Especialidad</label>
                   <select
                     value={selectedSpecialty}
                     onChange={(e) => setSelectedSpecialty(e.target.value)}
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg text-slate-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="all">Todas las especialidades</option>
                     {Object.values(MEDICAL_SPECIALTIES).map(specialty => (
@@ -246,11 +246,11 @@ export function MarketplacePanel() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Provincia</label>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Provincia</label>
                   <select
                     value={selectedLocation}
                     onChange={(e) => setSelectedLocation(e.target.value)}
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg text-slate-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="all">Todas las provincias</option>
                     {ARGENTINE_PROVINCES.map(province => (
@@ -260,11 +260,11 @@ export function MarketplacePanel() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Tipo de trabajo</label>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Tipo de trabajo</label>
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-white border border-slate-200 rounded-lg text-slate-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="all">Todos los tipos</option>
                     <option value="full-time">Tiempo completo</option>
@@ -281,21 +281,21 @@ export function MarketplacePanel() {
                     id="urgent-only"
                     checked={showUrgentOnly}
                     onChange={(e) => setShowUrgentOnly(e.target.checked)}
-                    className="rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-emerald-500"
+                    className="rounded border-slate-200 bg-white text-violet-600 focus:ring-violet-500"
                   />
-                  <label htmlFor="urgent-only" className="text-sm text-slate-300">
+                  <label htmlFor="urgent-only" className="text-sm text-slate-600">
                     Solo urgentes
                   </label>
                 </div>
               </div>
 
               {/* Estadísticas */}
-              <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-3">
-                <h3 className="text-sm font-medium text-slate-100 mb-2">Estadísticas</h3>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <h3 className="text-sm font-medium text-slate-900 mb-2">Estadísticas</h3>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-slate-400">Total trabajos:</span>
-                    <p className="text-slate-100 font-semibold">{filteredJobs.length}</p>
+                    <p className="text-slate-900 font-semibold">{filteredJobs.length}</p>
                   </div>
                   <div>
                     <span className="text-slate-400">Urgentes:</span>
@@ -303,11 +303,11 @@ export function MarketplacePanel() {
                   </div>
                   <div>
                     <span className="text-slate-400">Remotos:</span>
-                    <p className="text-blue-400 font-semibold">{filteredJobs.filter(j => j.remote).length}</p>
+                    <p className="text-violet-500 font-semibold">{filteredJobs.filter(j => j.remote).length}</p>
                   </div>
                   <div>
                     <span className="text-slate-400">Nuevos hoy:</span>
-                    <p className="text-emerald-400 font-semibold">
+                    <p className="text-emerald-500 font-semibold">
                       {filteredJobs.filter(j => {
                         const today = new Date()
                         const jobDate = new Date(j.publishedDate)
@@ -338,7 +338,7 @@ export function MarketplacePanel() {
       ) : (
         <div className="flex h-[calc(100%-100px)]">
           {/* Lista de trabajos */}
-          <div className="w-1/2 border-r border-slate-800/60 p-4">
+          <div className="w-1/2 border-r border-slate-200 p-4">
             {/* Controles de lista */}
             <div className="mb-4 space-y-3">
               {/* Búsqueda */}
@@ -349,7 +349,7 @@ export function MarketplacePanel() {
                   placeholder="Buscar trabajos médicos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -358,7 +358,7 @@ export function MarketplacePanel() {
                 <select
                   value={selectedSpecialty}
                   onChange={(e) => setSelectedSpecialty(e.target.value)}
-                  className="bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="bg-white border border-slate-200 rounded-lg text-slate-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="all">Todas</option>
                   {Object.values(MEDICAL_SPECIALTIES).slice(0, 5).map(specialty => (
@@ -371,7 +371,7 @@ export function MarketplacePanel() {
                   className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                     showUrgentOnly
                       ? 'bg-red-500 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   Urgentes
@@ -380,7 +380,7 @@ export function MarketplacePanel() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'date' | 'salary' | 'applications')}
-                  className="bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="bg-white border border-slate-200 rounded-lg text-slate-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="date">Más recientes</option>
                   <option value="salary">Mejor pagados</option>
@@ -398,12 +398,12 @@ export function MarketplacePanel() {
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                     selectedItem?.id === job.id
                       ? 'border-emerald-500/50 bg-emerald-500/10'
-                      : 'border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/60'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="font-medium text-slate-100">{job.title}</h3>
+                      <h3 className="font-medium text-slate-900">{job.title}</h3>
                       <p className="text-sm text-slate-400">{job.company}</p>
                     </div>
                     {job.urgent && (
@@ -426,7 +426,7 @@ export function MarketplacePanel() {
                        job.type === 'locum' ? 'Locum tenens' : 'Remoto'}
                     </span>
                     {job.remote && (
-                      <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">
+                      <span className="bg-violet-50 text-violet-500 text-xs px-2 py-1 rounded">
                         Remoto
                       </span>
                     )}
@@ -434,7 +434,7 @@ export function MarketplacePanel() {
 
                   <div className="flex items-center justify-between">
                     <div className="text-sm">
-                      <span className="font-bold text-emerald-400">
+                      <span className="font-bold text-emerald-500">
                         {formatSalary(job)}
                       </span>
                     </div>
@@ -465,11 +465,11 @@ export function MarketplacePanel() {
                 <div>
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h2 className="text-2xl font-bold text-slate-100">{selectedItem.title}</h2>
+                      <h2 className="text-2xl font-bold text-slate-900">{selectedItem.title}</h2>
                       <p className="text-slate-400">{selectedItem.company}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <MapPin className="w-4 h-4 text-slate-400" />
-                        <span className="text-slate-300">{selectedItem.location.city}, {selectedItem.location.province}</span>
+                        <span className="text-slate-600">{selectedItem.location.city}, {selectedItem.location.province}</span>
                       </div>
                     </div>
                     {selectedItem.urgent && (
@@ -480,53 +480,53 @@ export function MarketplacePanel() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
-                      <DollarSign className="w-5 h-5 text-emerald-400 mb-2" />
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                      <DollarSign className="w-5 h-5 text-emerald-500 mb-2" />
                       <p className="text-sm text-slate-400">Salario</p>
-                      <p className="text-slate-100 font-medium">{formatSalary(selectedItem)}</p>
+                      <p className="text-slate-900 font-medium">{formatSalary(selectedItem)}</p>
                     </div>
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
-                      <Briefcase className="w-5 h-5 text-blue-400 mb-2" />
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                      <Briefcase className="w-5 h-5 text-violet-500 mb-2" />
                       <p className="text-sm text-slate-400">Tipo</p>
-                      <p className="text-slate-100 font-medium">{selectedItem.type}</p>
+                      <p className="text-slate-900 font-medium">{selectedItem.type}</p>
                     </div>
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                       <Users className="w-5 h-5 text-purple-400 mb-2" />
                       <p className="text-sm text-slate-400">Aplicaciones</p>
-                      <p className="text-slate-100 font-medium">{selectedItem.applicationsCount}</p>
+                      <p className="text-slate-900 font-medium">{selectedItem.applicationsCount}</p>
                     </div>
-                    <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
-                      <Clock className="w-5 h-5 text-amber-400 mb-2" />
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                      <Clock className="w-5 h-5 text-amber-500 mb-2" />
                       <p className="text-sm text-slate-400">Publicado</p>
-                      <p className="text-slate-100 font-medium">{getTimeAgo(selectedItem.publishedDate)}</p>
+                      <p className="text-slate-900 font-medium">{getTimeAgo(selectedItem.publishedDate)}</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-100 mb-3">Descripción</h3>
-                  <p className="text-slate-300 leading-relaxed">{selectedItem.description}</p>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Descripción</h3>
+                  <p className="text-slate-600 leading-relaxed">{selectedItem.description}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-100 mb-3">Requisitos</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Requisitos</h3>
                   <ul className="space-y-2">
                     {selectedItem.requirements.map((req, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-shrink-0" />
-                        <span className="text-slate-300">{req}</span>
+                        <span className="text-slate-600">{req}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-100 mb-3">Beneficios</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Beneficios</h3>
                   <ul className="space-y-2">
                     {selectedItem.benefits.map((benefit, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
-                        <span className="text-slate-300">{benefit}</span>
+                        <div className="w-2 h-2 rounded-full bg-violet-400 mt-2 flex-shrink-0" />
+                        <span className="text-slate-600">{benefit}</span>
                       </li>
                     ))}
                   </ul>
@@ -536,7 +536,7 @@ export function MarketplacePanel() {
                   <button className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 px-4 rounded-lg transition-colors">
                     Aplicar ahora
                   </button>
-                  <button className="border border-slate-600 hover:bg-slate-800/40 text-slate-300 font-medium py-3 px-4 rounded-lg transition-colors">
+                  <button className="border border-slate-600 hover:bg-slate-100 text-slate-600 font-medium py-3 px-4 rounded-lg transition-colors">
                     Guardar
                   </button>
                 </div>
@@ -545,7 +545,7 @@ export function MarketplacePanel() {
               <div className="flex h-full items-center justify-center text-center">
                 <div>
                   <MapPin className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-300 mb-2">Selecciona un trabajo</h3>
+                  <h3 className="text-lg font-medium text-slate-600 mb-2">Selecciona un trabajo</h3>
                   <p className="text-slate-400">
                     Elige una oferta de trabajo de la lista para ver los detalles completos
                   </p>

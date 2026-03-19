@@ -170,7 +170,7 @@ export function MercadoPagoCheckout({
       {/* Métodos de pago guardados */}
       {paymentMethods.length > 0 && (
         <div>
-          <h3 className="text-lg font-medium text-slate-100 mb-3">Métodos de pago guardados</h3>
+          <h3 className="text-lg font-medium text-slate-900 mb-3">Métodos de pago guardados</h3>
           <div className="space-y-2">
             {paymentMethods.map((method) => (
               <div
@@ -178,15 +178,15 @@ export function MercadoPagoCheckout({
                 onClick={() => setSelectedPaymentMethod(method.id)}
                 className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                   selectedPaymentMethod === method.id
-                    ? 'border-emerald-500 bg-emerald-500/10'
-                    : 'border-slate-700 hover:border-slate-600'
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <CreditCard className="w-5 h-5 text-slate-400" />
                     <div>
-                      <p className="text-slate-100 font-medium">
+                      <p className="text-slate-900 font-medium">
                         {method.issuer.name} •••• {method.last_four_digits}
                       </p>
                       <p className="text-slate-400 text-sm">
@@ -195,7 +195,7 @@ export function MercadoPagoCheckout({
                     </div>
                   </div>
                   {selectedPaymentMethod === method.id && (
-                    <CheckCircle className="w-5 h-5 text-emerald-400" />
+                    <CheckCircle className="w-5 h-5 text-emerald-500" />
                   )}
                 </div>
               </div>
@@ -206,13 +206,13 @@ export function MercadoPagoCheckout({
 
       {/* Agregar nueva tarjeta */}
       <div>
-        <h3 className="text-lg font-medium text-slate-100 mb-3">
+        <h3 className="text-lg font-medium text-slate-900 mb-3">
           {paymentMethods.length > 0 ? 'Agregar nueva tarjeta' : 'Información de la tarjeta'}
         </h3>
 
         <div className="grid gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-600 mb-2">
               Número de tarjeta
             </label>
             <input
@@ -223,14 +223,14 @@ export function MercadoPagoCheckout({
                 cardNumber: formatCardNumber(e.target.value)
               }))}
               placeholder="1234 5678 9012 3456"
-              className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               maxLength={19}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
                 Fecha de vencimiento
               </label>
               <input
@@ -244,12 +244,12 @@ export function MercadoPagoCheckout({
                   setCardData(prev => ({ ...prev, expirationDate: value }))
                 }}
                 placeholder="MM/AA"
-                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 maxLength={5}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
                 Código de seguridad
               </label>
               <input
@@ -260,14 +260,14 @@ export function MercadoPagoCheckout({
                   securityCode: e.target.value.replace(/\D/g, '')
                 }))}
                 placeholder="123"
-                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 maxLength={4}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-600 mb-2">
               Nombre del titular
             </label>
             <input
@@ -278,19 +278,19 @@ export function MercadoPagoCheckout({
                 cardholderName: e.target.value.toUpperCase()
               }))}
               placeholder="JUAN PÉREZ"
-              className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
                 Tipo de documento
               </label>
               <select
                 value={cardData.identificationType}
                 onChange={(e) => setCardData(prev => ({ ...prev, identificationType: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="DNI">DNI</option>
                 <option value="CUIL">CUIL</option>
@@ -300,7 +300,7 @@ export function MercadoPagoCheckout({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
                 Número de documento
               </label>
               <input
@@ -311,7 +311,7 @@ export function MercadoPagoCheckout({
                   identificationNumber: e.target.value.replace(/\D/g, '')
                 }))}
                 placeholder="12345678"
-                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
@@ -319,25 +319,25 @@ export function MercadoPagoCheckout({
       </div>
 
       {/* Resumen del pago */}
-      <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
-        <h4 className="text-md font-medium text-slate-100 mb-3">Resumen del pago</h4>
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+        <h4 className="text-md font-medium text-slate-900 mb-3">Resumen del pago</h4>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Plan:</span>
-            <span className="text-slate-100">{description}</span>
+            <span className="text-slate-900">{description}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Subtotal:</span>
-            <span className="text-slate-100">${amount.toLocaleString()}</span>
+            <span className="text-slate-900">${amount.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">IVA (21%):</span>
-            <span className="text-slate-100">${(amount * 0.21).toLocaleString()}</span>
+            <span className="text-slate-900">${(amount * 0.21).toLocaleString()}</span>
           </div>
           <div className="border-t border-slate-600 pt-2">
             <div className="flex justify-between font-medium">
-              <span className="text-slate-100">Total:</span>
-              <span className="text-slate-100">${(amount * 1.21).toLocaleString()}</span>
+              <span className="text-slate-900">Total:</span>
+              <span className="text-slate-900">${(amount * 1.21).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -397,27 +397,27 @@ export function MercadoPagoSubscriptionManager({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'text-emerald-400 bg-emerald-400/10'
+      case 'active': return 'text-emerald-500 bg-emerald-400/10'
       case 'cancelled': return 'text-red-400 bg-red-400/10'
-      case 'past_due': return 'text-amber-400 bg-amber-400/10'
+      case 'past_due': return 'text-amber-500 bg-amber-400/10'
       default: return 'text-slate-400 bg-slate-400/10'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'approved': return <CheckCircle className="w-4 h-4 text-emerald-400" />
+      case 'approved': return <CheckCircle className="w-4 h-4 text-emerald-500" />
       case 'rejected': return <AlertCircle className="w-4 h-4 text-red-400" />
-      default: return <AlertCircle className="w-4 h-4 text-amber-400" />
+      default: return <AlertCircle className="w-4 h-4 text-amber-500" />
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Estado de suscripción */}
-      <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-slate-100">Estado de Suscripción</h3>
+          <h3 className="text-lg font-medium text-slate-900">Estado de Suscripción</h3>
           <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(subscriptionStatus)}`}>
             {subscriptionStatus === 'active' ? 'Activa' : subscriptionStatus}
           </span>
@@ -426,30 +426,30 @@ export function MercadoPagoSubscriptionManager({
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-slate-400">Próxima facturación:</span>
-            <p className="text-slate-100 font-medium">{nextBillingDate}</p>
+            <p className="text-slate-900 font-medium">{nextBillingDate}</p>
           </div>
           <div>
             <span className="text-slate-400">Plan actual:</span>
-            <p className="text-slate-100 font-medium">Profesional</p>
+            <p className="text-slate-900 font-medium">Profesional</p>
           </div>
         </div>
       </div>
 
       {/* Historial de pagos */}
       <div>
-        <h3 className="text-lg font-medium text-slate-100 mb-3">Historial de Pagos</h3>
+        <h3 className="text-lg font-medium text-slate-900 mb-3">Historial de Pagos</h3>
         <div className="space-y-2">
           {paymentHistory.map((payment) => (
-            <div key={payment.id} className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700 rounded-lg">
+            <div key={payment.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
               <div className="flex items-center gap-3">
                 {getStatusIcon(payment.status)}
                 <div>
-                  <p className="text-slate-100 font-medium">{payment.description}</p>
+                  <p className="text-slate-900 font-medium">{payment.description}</p>
                   <p className="text-slate-400 text-sm">{payment.date}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-slate-100 font-medium">${payment.amount.toLocaleString()}</p>
+                <p className="text-slate-900 font-medium">${payment.amount.toLocaleString()}</p>
                 <p className="text-slate-400 text-sm capitalize">{payment.status}</p>
               </div>
             </div>
@@ -461,7 +461,7 @@ export function MercadoPagoSubscriptionManager({
       <div className="flex gap-3">
         <button
           onClick={() => onPlanChange('paused')}
-          className="flex-1 px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-800/40 transition-colors"
+          className="flex-1 px-4 py-2 border border-slate-600 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
         >
           Pausar suscripción
         </button>

@@ -36,7 +36,7 @@ export function VitalSignsPanel(): JSX.Element {
 
   const getVitalStatus = (value: number | null, normal: { min: number; max: number }) => {
     if (value == null) return { status: 'unknown', color: 'text-slate-400' }
-    if (value < normal.min) return { status: 'low', color: 'text-blue-400' }
+    if (value < normal.min) return { status: 'low', color: 'text-violet-500' }
     if (value > normal.max) return { status: 'high', color: 'text-red-400' }
     return { status: 'normal', color: 'text-green-400' }
   }
@@ -50,7 +50,7 @@ export function VitalSignsPanel(): JSX.Element {
             <Activity className="h-6 w-6 text-red-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-100">Signos Vitales</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Signos Vitales</h1>
             <p className="text-slate-400">
               {vitals.length} registro{vitals.length !== 1 ? 's' : ''} de signos vitales
             </p>
@@ -60,7 +60,7 @@ export function VitalSignsPanel(): JSX.Element {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-600 hover:text-slate-100"
+            className="flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200 hover:text-slate-800"
           >
             <TrendingUp className="h-4 w-4" />
             Ver Tendencias
@@ -79,14 +79,14 @@ export function VitalSignsPanel(): JSX.Element {
       {latestVitals && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Blood Pressure */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="rounded-lg bg-red-500/20 p-2">
                 <Heart className="h-5 w-5 text-red-400" />
               </div>
               <div>
                 <p className="text-sm text-slate-400">Presión Arterial</p>
-                <p className="text-lg font-semibold text-slate-100">
+                <p className="text-lg font-semibold text-slate-900">
                   {latestVitals.blood_pressure_systolic}/{latestVitals.blood_pressure_diastolic}
                   <span className="text-sm text-slate-400 ml-1">mmHg</span>
                 </p>
@@ -105,14 +105,14 @@ export function VitalSignsPanel(): JSX.Element {
           </div>
 
           {/* Heart Rate */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="rounded-lg bg-pink-500/20 p-2">
                 <Activity className="h-5 w-5 text-pink-400" />
               </div>
               <div>
                 <p className="text-sm text-slate-400">Frecuencia Cardíaca</p>
-                <p className="text-lg font-semibold text-slate-100">
+                <p className="text-lg font-semibold text-slate-900">
                   {latestVitals.heart_rate}
                   <span className="text-sm text-slate-400 ml-1">lpm</span>
                 </p>
@@ -131,14 +131,14 @@ export function VitalSignsPanel(): JSX.Element {
           </div>
 
           {/* Temperature */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="rounded-lg bg-orange-500/20 p-2">
                 <Thermometer className="h-5 w-5 text-orange-400" />
               </div>
               <div>
                 <p className="text-sm text-slate-400">Temperatura</p>
-                <p className="text-lg font-semibold text-slate-100">
+                <p className="text-lg font-semibold text-slate-900">
                   {latestVitals.temperature}
                   <span className="text-sm text-slate-400 ml-1">°C</span>
                 </p>
@@ -157,14 +157,14 @@ export function VitalSignsPanel(): JSX.Element {
           </div>
 
           {/* Oxygen Saturation */}
-          <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-3 mb-3">
-              <div className="rounded-lg bg-blue-500/20 p-2">
-                <Wind className="h-5 w-5 text-blue-400" />
+              <div className="rounded-lg bg-violet-50 p-2">
+                <Wind className="h-5 w-5 text-violet-500" />
               </div>
               <div>
                 <p className="text-sm text-slate-400">Saturación O2</p>
-                <p className="text-lg font-semibold text-slate-100">
+                <p className="text-lg font-semibold text-slate-900">
                   {latestVitals.oxygen_saturation}
                   <span className="text-sm text-slate-400 ml-1">%</span>
                 </p>
@@ -187,7 +187,7 @@ export function VitalSignsPanel(): JSX.Element {
       {/* Vitals History */}
       <div className="flex-1 overflow-hidden">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-100">Historial de Signos Vitales</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Historial de Signos Vitales</h2>
           <span className="text-sm text-slate-400">Paciente: María González</span>
         </div>
 
@@ -195,7 +195,7 @@ export function VitalSignsPanel(): JSX.Element {
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <Activity className="mx-auto h-12 w-12 text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-slate-300 mb-2">No hay registros de signos vitales</h3>
+              <h3 className="text-lg font-medium text-slate-600 mb-2">No hay registros de signos vitales</h3>
               <p className="text-slate-500 mb-4">Registra los primeros signos vitales del paciente</p>
               <button
                 type="button"
@@ -212,7 +212,7 @@ export function VitalSignsPanel(): JSX.Element {
               {vitals.map((vital: VitalSigns) => (
                 <div
                   key={vital.id}
-                  className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 transition hover:border-slate-600 hover:bg-slate-800/50"
+                  className="rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-600 hover:bg-slate-50"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -220,7 +220,7 @@ export function VitalSignsPanel(): JSX.Element {
                         <Activity className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-medium text-slate-100">
+                        <p className="font-medium text-slate-900">
                           Registro de Signos Vitales
                         </p>
                         <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -236,7 +236,7 @@ export function VitalSignsPanel(): JSX.Element {
                       <Heart className="h-4 w-4 text-red-400" />
                       <div>
                         <p className="text-xs text-slate-400">Presión Arterial</p>
-                        <p className="text-sm font-semibold text-slate-100">
+                        <p className="text-sm font-semibold text-slate-900">
                           {vital.blood_pressure_systolic}/{vital.blood_pressure_diastolic} mmHg
                         </p>
                       </div>
@@ -246,7 +246,7 @@ export function VitalSignsPanel(): JSX.Element {
                       <Activity className="h-4 w-4 text-pink-400" />
                       <div>
                         <p className="text-xs text-slate-400">Frecuencia Cardíaca</p>
-                        <p className="text-sm font-semibold text-slate-100">
+                        <p className="text-sm font-semibold text-slate-900">
                           {vital.heart_rate} lpm
                         </p>
                       </div>
@@ -256,17 +256,17 @@ export function VitalSignsPanel(): JSX.Element {
                       <Thermometer className="h-4 w-4 text-orange-400" />
                       <div>
                         <p className="text-xs text-slate-400">Temperatura</p>
-                        <p className="text-sm font-semibold text-slate-100">
+                        <p className="text-sm font-semibold text-slate-900">
                           {vital.temperature} °C
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <Wind className="h-4 w-4 text-blue-400" />
+                      <Wind className="h-4 w-4 text-violet-500" />
                       <div>
                         <p className="text-xs text-slate-400">Saturación O2</p>
-                        <p className="text-sm font-semibold text-slate-100">
+                        <p className="text-sm font-semibold text-slate-900">
                           {vital.oxygen_saturation}%
                         </p>
                       </div>

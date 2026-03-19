@@ -1,0 +1,20 @@
+{
+  "name": "@autamedica/reminder-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@autamedica/scheduling": "workspace:*",
+    "@autamedica/types": "workspace:*",
+    "@supabase/supabase-js": "^2.98.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.2"
+  }
+}

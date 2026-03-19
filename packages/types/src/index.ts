@@ -816,6 +816,50 @@ export {
 } from './preventive-care/preventive-care.types';
 
 // ==========================================
+// Scheduling Types (MediAgenda Engine)
+// ==========================================
+
+export type {
+  DayOfWeek,
+  TimeString,
+  DoctorAvailability,
+  DoctorAvailabilityInsert,
+  DoctorAvailabilityUpdate,
+  AvailabilityOverride,
+  AvailabilityOverrideInsert,
+  ScheduleSlot,
+  SlotQuery,
+  WaitlistStatus,
+  WaitlistPriority,
+  WaitlistEntry,
+  WaitlistEntryInsert,
+  ReminderChannel,
+  ReminderStatus,
+  ReminderResponse,
+  AppointmentReminder,
+  AppointmentReminderInsert,
+  AppointmentAction,
+  AppointmentHistoryEntry,
+  NoShowPrediction,
+  NoShowFactor,
+  SchedulingConfig,
+} from './scheduling/scheduling.types';
+
+export {
+  DAY_OF_WEEK_LABELS,
+  WAITLIST_STATUSES,
+  WAITLIST_PRIORITY_LABELS,
+  REMINDER_CHANNELS,
+  APPOINTMENT_ACTIONS,
+  DEFAULT_SCHEDULING_CONFIG,
+  isDayOfWeek,
+  isWaitlistStatus,
+  isReminderChannel,
+  isAppointmentAction,
+  isHighNoShowRisk,
+} from './scheduling/scheduling.types';
+
+// ==========================================
 // Zod Validators (Runtime validation with boundary transformation)
 // ==========================================
 

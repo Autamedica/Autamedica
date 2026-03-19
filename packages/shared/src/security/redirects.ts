@@ -152,9 +152,17 @@ function resolveAuthBaseOrigin(returnTo?: string | null): string {
     }
 
     const origin = normalizeOrigin(candidate);
-    if (origin) {
-      return origin;
+    if (!origin) continue;
+
+    // Skip localhost — dev-only values baked at build time must never leak into production auth redirects
+    try {
+      const hostname = new URL(origin).hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') continue;
+    } catch {
+      continue;
     }
+
+    return origin;
   }
 
   return inferFallbackAuthOrigin(returnTo);

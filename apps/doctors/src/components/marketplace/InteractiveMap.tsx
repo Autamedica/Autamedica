@@ -51,7 +51,7 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
     if (marker.type === 'job') {
       const job = marker.data as MarketplaceJobOffer
       if (job.urgent) return 'bg-red-500'
-      return 'bg-blue-500'
+      return 'bg-violet-500'
     } else {
       const doctor = marker.data as MarketplaceDoctor
       if (doctor.isUrgentAvailable) return 'bg-emerald-500'
@@ -111,9 +111,9 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
   }
 
   return (
-    <div className="relative w-full h-[600px] bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
+    <div className="relative w-full h-[600px] bg-white rounded-lg overflow-hidden border border-slate-200">
       {/* Mapa de fondo simulado */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900">
+      <div className="absolute inset-0 bg-slate-50">
         {/* Grid de fondo */}
         <div className="absolute inset-0 opacity-10">
           {Array.from({ length: 20 }).map((_, i) => (
@@ -147,7 +147,7 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
               style={{ left: `${pixels.x}px`, top: `${pixels.y}px` }}
             >
               <div className={`${isCapital ? 'w-3 h-3' : 'w-2 h-2'} ${isCapital ? 'bg-amber-400' : 'bg-slate-400'} rounded-full border-2 border-white shadow-lg transition-transform group-hover:scale-150`} />
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-slate-800 text-slate-100 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-white text-slate-900 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                 {cityName}
               </div>
             </button>
@@ -186,7 +186,7 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
 
               {/* Tooltip */}
               {isHovered && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-800 border border-slate-600 text-slate-100 p-3 rounded-lg shadow-xl z-20 w-64">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white border border-slate-200 text-slate-900 p-3 rounded-lg shadow-xl z-20 w-64">
                   {marker.type === 'job' ? (
                     <div className="space-y-2">
                       <h4 className="font-semibold text-sm">{(marker.data as MarketplaceJobOffer).title}</h4>
@@ -214,7 +214,7 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
                         {(marker.data as MarketplaceDoctor).location.city}
                       </div>
                       <div className="flex items-center gap-1 text-xs">
-                        <Star className="w-3 h-3 text-amber-400" />
+                        <Star className="w-3 h-3 text-amber-500" />
                         {(marker.data as MarketplaceDoctor).rating}
                       </div>
                       <div className="flex items-center gap-1 text-xs">
@@ -243,51 +243,51 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
       <div className="absolute top-4 right-4 space-y-2">
         <button
           onClick={() => setZoomLevel(Math.min(10, zoomLevel + 1))}
-          className="block w-8 h-8 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-slate-100 font-bold"
+          className="block w-8 h-8 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-900 font-bold"
         >
           +
         </button>
         <button
           onClick={() => setZoomLevel(Math.max(4, zoomLevel - 1))}
-          className="block w-8 h-8 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-slate-100 font-bold"
+          className="block w-8 h-8 bg-white hover:bg-slate-100 border border-slate-200 rounded text-slate-900 font-bold"
         >
           -
         </button>
       </div>
 
       {/* Leyenda */}
-      <div className="absolute bottom-4 left-4 bg-slate-800 border border-slate-600 rounded-lg p-3">
-        <h4 className="text-slate-100 font-medium text-sm mb-2">Leyenda</h4>
+      <div className="absolute bottom-4 left-4 bg-white border border-slate-200 rounded-lg p-3">
+        <h4 className="text-slate-900 font-medium text-sm mb-2">Leyenda</h4>
         <div className="space-y-1 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span className="text-slate-300">Trabajos urgentes</span>
+            <span className="text-slate-600">Trabajos urgentes</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-slate-300">Trabajos disponibles</span>
+            <div className="w-3 h-3 bg-violet-500 rounded-full"></div>
+            <span className="text-slate-600">Trabajos disponibles</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-            <span className="text-slate-300">Médicos disponibles urgente</span>
+            <span className="text-slate-600">Médicos disponibles urgente</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-slate-300">Médicos en línea</span>
+            <span className="text-slate-600">Médicos en línea</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
-            <span className="text-slate-300">Ciudades principales</span>
+            <span className="text-slate-600">Ciudades principales</span>
           </div>
         </div>
       </div>
 
       {/* Estadísticas del mapa */}
-      <div className="absolute top-4 left-4 bg-slate-800 border border-slate-600 rounded-lg p-3">
+      <div className="absolute top-4 left-4 bg-white border border-slate-200 rounded-lg p-3">
         <div className="grid grid-cols-2 gap-4 text-xs">
           <div>
             <span className="text-slate-400">Trabajos:</span>
-            <p className="text-slate-100 font-semibold">{jobs.length}</p>
+            <p className="text-slate-900 font-semibold">{jobs.length}</p>
           </div>
           <div>
             <span className="text-slate-400">Urgentes:</span>
@@ -295,7 +295,7 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
           </div>
           <div>
             <span className="text-slate-400">Médicos:</span>
-            <p className="text-slate-100 font-semibold">{doctors.length}</p>
+            <p className="text-slate-900 font-semibold">{doctors.length}</p>
           </div>
           <div>
             <span className="text-slate-400">En línea:</span>

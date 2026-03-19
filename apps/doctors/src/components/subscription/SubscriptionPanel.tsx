@@ -112,12 +112,12 @@ export function SubscriptionPanel(): JSX.Element {
         border: 'border-slate-600',
         bg: 'bg-slate-600',
         text: 'text-slate-400',
-        button: 'bg-slate-600 hover:bg-slate-700'
+        button: 'bg-slate-600 hover:bg-slate-100'
       },
       emerald: {
         border: 'border-emerald-500',
         bg: 'bg-emerald-500',
-        text: 'text-emerald-400',
+        text: 'text-emerald-500',
         button: 'bg-emerald-500 hover:bg-emerald-600'
       },
       purple: {
@@ -155,23 +155,23 @@ export function SubscriptionPanel(): JSX.Element {
   // Modal de checkout
   if (showCheckout && checkoutPlan) {
     return (
-      <div className="h-full rounded-xl border border-slate-800/60 bg-[#101d32] p-6 shadow-xl">
+      <div className="h-full rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowCheckout(false)}
-              className="p-2 hover:bg-slate-800/40 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-50 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-slate-400" />
             </button>
             <div>
-              <h2 className="text-xl font-bold text-slate-100">Finalizar Suscripción</h2>
+              <h2 className="text-xl font-bold text-slate-900">Finalizar Suscripción</h2>
               <p className="text-sm text-slate-400">Plan {checkoutPlan.name}</p>
             </div>
           </div>
           <button
             onClick={() => setShowCheckout(false)}
-            className="p-2 hover:bg-slate-800/40 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-slate-400" />
           </button>
@@ -194,23 +194,23 @@ export function SubscriptionPanel(): JSX.Element {
   // Modal de gestión de suscripción
   if (showSubscriptionManager) {
     return (
-      <div className="h-full rounded-xl border border-slate-800/60 bg-[#101d32] p-6 shadow-xl">
+      <div className="h-full rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSubscriptionManager(false)}
-              className="p-2 hover:bg-slate-800/40 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-50 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-slate-400" />
             </button>
             <div>
-              <h2 className="text-xl font-bold text-slate-100">Gestión de Suscripción</h2>
+              <h2 className="text-xl font-bold text-slate-900">Gestión de Suscripción</h2>
               <p className="text-sm text-slate-400">Administra tu plan y pagos</p>
             </div>
           </div>
           <button
             onClick={() => setShowSubscriptionManager(false)}
-            className="p-2 hover:bg-slate-800/40 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-slate-400" />
           </button>
@@ -227,32 +227,32 @@ export function SubscriptionPanel(): JSX.Element {
   }
 
   return (
-    <div className="h-full rounded-xl border border-slate-800/60 bg-[#101d32] p-6 shadow-xl">
+    <div className="h-full rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
       {/* Header */}
       <div className="mb-8">
         <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
-            <Crown className="h-6 w-6 text-emerald-400" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
+            <Crown className="h-6 w-6 text-emerald-500" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-100">Suscripción AutaMedica</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Suscripción AutaMedica</h2>
             <p className="text-sm text-slate-400">Gestiona tu plan y funcionalidades</p>
           </div>
         </div>
 
         {/* Plan actual */}
         {currentPlan && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-500/5 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Star className="h-5 w-5 text-emerald-400" />
+                <Star className="h-5 w-5 text-emerald-500" />
                 <div>
-                  <p className="font-medium text-emerald-200">Plan Actual: {currentPlan.name}</p>
+                  <p className="font-medium text-emerald-700">Plan Actual: {currentPlan.name}</p>
                   <p className="text-sm text-emerald-300/70">Renovación: 15 de octubre, 2024</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-emerald-200">${currentPlan.price}</p>
+                <p className="text-lg font-bold text-emerald-700">${currentPlan.price}</p>
                 <p className="text-sm text-emerald-300/70">{currentPlan.period}</p>
               </div>
             </div>
@@ -262,7 +262,7 @@ export function SubscriptionPanel(): JSX.Element {
 
       {/* Toggle de facturación */}
       <div className="mb-8 flex items-center justify-center gap-4">
-        <span className={`text-sm ${billingPeriod === 'monthly' ? 'text-slate-200' : 'text-slate-400'}`}>
+        <span className={`text-sm ${billingPeriod === 'monthly' ? 'text-slate-700' : 'text-slate-400'}`}>
           Mensual
         </span>
         <button
@@ -278,7 +278,7 @@ export function SubscriptionPanel(): JSX.Element {
             }`}
           />
         </button>
-        <span className={`text-sm ${billingPeriod === 'yearly' ? 'text-slate-200' : 'text-slate-400'}`}>
+        <span className={`text-sm ${billingPeriod === 'yearly' ? 'text-slate-700' : 'text-slate-400'}`}>
           Anual
           <span className="ml-1 rounded-full bg-emerald-500 px-2 py-0.5 text-xs text-white">-20%</span>
         </span>
@@ -292,7 +292,7 @@ export function SubscriptionPanel(): JSX.Element {
             className={`relative rounded-xl border p-6 transition-all hover:shadow-lg ${
               plan.popular
                 ? 'border-emerald-500/50 bg-emerald-500/5'
-                : 'border-slate-700/60 bg-slate-900/20'
+                : 'border-slate-200 bg-white/20'
             } ${selectedPlan === plan.id ? 'ring-2 ring-emerald-500/30' : ''}`}
           >
             {plan.popular && (
@@ -304,10 +304,10 @@ export function SubscriptionPanel(): JSX.Element {
             )}
 
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-slate-100">{plan.name}</h3>
+              <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
               <p className="text-sm text-slate-400">{plan.description}</p>
               <div className="mt-4">
-                <span className="text-3xl font-bold text-slate-100">${plan.price}</span>
+                <span className="text-3xl font-bold text-slate-900">${plan.price}</span>
                 <span className="text-slate-400">{plan.period}</span>
               </div>
             </div>
@@ -316,15 +316,15 @@ export function SubscriptionPanel(): JSX.Element {
               {plan.features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-3">
                   {feature.included ? (
-                    <Check className={`h-4 w-4 mt-0.5 ${feature.highlight ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    <Check className={`h-4 w-4 mt-0.5 ${feature.highlight ? 'text-emerald-500' : 'text-slate-400'}`} />
                   ) : (
                     <div className="h-4 w-4 mt-0.5 rounded-full border border-slate-600" />
                   )}
                   <span className={`text-sm ${
                     feature.included
                       ? feature.highlight
-                        ? 'text-emerald-200 font-medium'
-                        : 'text-slate-200'
+                        ? 'text-emerald-700 font-medium'
+                        : 'text-slate-700'
                       : 'text-slate-500'
                   }`}>
                     {feature.title}
@@ -349,27 +349,27 @@ export function SubscriptionPanel(): JSX.Element {
       </div>
 
       {/* Estadísticas de uso */}
-      <div className="mt-8 rounded-lg border border-slate-700/60 bg-slate-900/20 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-slate-100">Uso del mes actual</h3>
+      <div className="mt-8 rounded-lg border border-slate-200 bg-white/20 p-6">
+        <h3 className="mb-4 text-lg font-semibold text-slate-900">Uso del mes actual</h3>
         <div className="grid gap-4 md:grid-cols-4">
           <div className="text-center">
-            <Users className="mx-auto mb-2 h-6 w-6 text-emerald-400" />
-            <p className="text-2xl font-bold text-slate-100">47</p>
+            <Users className="mx-auto mb-2 h-6 w-6 text-emerald-500" />
+            <p className="text-2xl font-bold text-slate-900">47</p>
             <p className="text-sm text-slate-400">Consultas</p>
           </div>
           <div className="text-center">
-            <Calendar className="mx-auto mb-2 h-6 w-6 text-blue-400" />
-            <p className="text-2xl font-bold text-slate-100">23h</p>
+            <Calendar className="mx-auto mb-2 h-6 w-6 text-violet-500" />
+            <p className="text-2xl font-bold text-slate-900">23h</p>
             <p className="text-sm text-slate-400">Tiempo total</p>
           </div>
           <div className="text-center">
             <BarChart3 className="mx-auto mb-2 h-6 w-6 text-purple-400" />
-            <p className="text-2xl font-bold text-slate-100">92%</p>
+            <p className="text-2xl font-bold text-slate-900">92%</p>
             <p className="text-sm text-slate-400">Satisfacción</p>
           </div>
           <div className="text-center">
-            <Brain className="mx-auto mb-2 h-6 w-6 text-amber-400" />
-            <p className="text-2xl font-bold text-slate-100">15</p>
+            <Brain className="mx-auto mb-2 h-6 w-6 text-amber-500" />
+            <p className="text-2xl font-bold text-slate-900">15</p>
             <p className="text-sm text-slate-400">Análisis IA</p>
           </div>
         </div>
@@ -380,7 +380,7 @@ export function SubscriptionPanel(): JSX.Element {
         <button
           type="button"
           onClick={() => setShowSubscriptionManager(true)}
-          className="rounded-lg border border-slate-600 bg-transparent px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800/40"
+          className="rounded-lg border border-slate-600 bg-transparent px-4 py-2 text-sm text-slate-600 transition hover:bg-slate-50"
         >
           Ver historial de pagos
         </button>

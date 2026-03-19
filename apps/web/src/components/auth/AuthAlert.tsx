@@ -9,19 +9,19 @@ interface AuthAlertProps {
 
 const toneClasses: Record<AuthAlertTone, { container: string; icon: string; text: string }> = {
   error: {
-    container: 'bg-red-500/10 border-red-500/30',
+    container: 'bg-red-500/10 border-red-500/20 backdrop-blur-md',
     icon: 'text-red-400',
-    text: 'text-red-300',
+    text: 'text-red-200',
   },
   success: {
-    container: 'bg-green-500/10 border-green-500/30',
-    icon: 'text-green-400',
-    text: 'text-green-300',
+    container: 'bg-emerald-500/10 border-emerald-500/20 backdrop-blur-md',
+    icon: 'text-emerald-400',
+    text: 'text-emerald-200',
   },
   info: {
-    container: 'bg-blue-500/10 border-blue-500/30',
-    icon: 'text-blue-400',
-    text: 'text-blue-300',
+    container: 'bg-[var(--au-accent-soft)] border-[var(--au-accent)]/20 backdrop-blur-md',
+    icon: 'text-[var(--au-accent)]',
+    text: 'text-cyan-100',
   },
 };
 
@@ -55,7 +55,7 @@ export function AuthAlert({ children, tone }: AuthAlertProps) {
 
   return (
     <div
-      className={`rounded-lg border-2 p-4 ${container}`}
+      className={`rounded-2xl border p-4 ${container}`}
       role={isError ? 'alert' : 'status'}
       aria-live={isError ? 'assertive' : 'polite'}
     >

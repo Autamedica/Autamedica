@@ -199,7 +199,7 @@ export function MedicalRankingPanel() {
       case 'gold': return 'from-yellow-400 to-yellow-600 text-yellow-900'
       case 'silver': return 'from-slate-300 to-slate-500 text-slate-800'
       case 'bronze': return 'from-amber-600 to-amber-800 text-amber-100'
-      default: return 'from-slate-600 to-slate-800 text-slate-100'
+      default: return 'from-slate-600 to-slate-800 text-slate-900'
     }
   }
 
@@ -211,25 +211,25 @@ export function MedicalRankingPanel() {
   }
 
   return (
-    <div className="h-full bg-[#101d32] text-slate-100">
-      <div className="p-6 border-b border-slate-800/60">
+    <div className="h-full bg-white text-slate-900">
+      <div className="p-6 border-b border-slate-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-500/20 rounded-lg">
-              <Award className="w-6 h-6 text-amber-400" />
+              <Award className="w-6 h-6 text-amber-500" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-slate-100">Sistema de Ranking</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Sistema de Ranking</h1>
               <p className="text-sm text-slate-400">Evaluación y reconocimiento del desempeño médico</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-2xl font-bold text-amber-400">#{currentUser.rank}</p>
+              <p className="text-2xl font-bold text-amber-500">#{currentUser.rank}</p>
               <p className="text-sm text-slate-400">Tu posición</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-slate-100">{currentUser.overallScore}</p>
+              <p className="text-2xl font-bold text-slate-900">{currentUser.overallScore}</p>
               <p className="text-sm text-slate-400">Puntuación</p>
             </div>
           </div>
@@ -238,20 +238,20 @@ export function MedicalRankingPanel() {
 
       <div className="flex h-[calc(100%-100px)]">
         {/* Panel de métricas personales */}
-        <div className="w-1/2 border-r border-slate-800/60 p-6">
-          <h2 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-amber-400" />
+        <div className="w-1/2 border-r border-slate-200 p-6">
+          <h2 className="text-lg font-medium text-slate-900 mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-amber-500" />
             Tu Desempeño
           </h2>
 
           {/* Métricas principales */}
           <div className="space-y-4 mb-6">
             {currentUser.metrics.map((metric) => (
-              <div key={metric.id} className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-4">
+              <div key={metric.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     {getCategoryIcon(metric.category)}
-                    <span className="font-medium text-slate-100">{metric.name}</span>
+                    <span className="font-medium text-slate-900">{metric.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {getTrendIcon(metric.trend)}
@@ -260,11 +260,11 @@ export function MedicalRankingPanel() {
                 </div>
 
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl font-bold text-slate-100">{metric.value}</span>
+                  <span className="text-2xl font-bold text-slate-900">{metric.value}</span>
                   <span className="text-sm text-slate-400">/{metric.maxValue}</span>
                 </div>
 
-                <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
+                <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
                   <div
                     className="h-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-400"
                     style={{ width: `${(metric.value / metric.maxValue) * 100}%` }}
@@ -278,18 +278,18 @@ export function MedicalRankingPanel() {
 
           {/* Badges/Logros */}
           <div>
-            <h3 className="text-md font-medium text-slate-100 mb-3 flex items-center gap-2">
-              <Medal className="w-4 h-4 text-amber-400" />
+            <h3 className="text-md font-medium text-slate-900 mb-3 flex items-center gap-2">
+              <Medal className="w-4 h-4 text-amber-500" />
               Logros Recientes
             </h3>
             <div className="space-y-2">
               {currentUser.badges.map((badge) => (
-                <div key={badge.id} className="flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg">
+                <div key={badge.id} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
                   <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-lg`}>
                     {badge.icon}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-slate-100">{badge.name}</p>
+                    <p className="font-medium text-slate-900">{badge.name}</p>
                     <p className="text-xs text-slate-400">{badge.description}</p>
                     <p className="text-xs text-slate-500">
                       {new Date(badge.earnedAt).toLocaleDateString('es-ES')}
@@ -309,14 +309,14 @@ export function MedicalRankingPanel() {
         {/* Panel de rankings */}
         <div className="w-1/2 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-slate-100 flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-medium text-slate-900 flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500" />
               Ranking General
             </h2>
             <select
               value={selectedFilter}
               onChange={(e) => setSelectedFilter(e.target.value)}
-              className="bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="bg-slate-50/60 border border-slate-200 rounded-lg text-slate-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="all">Todos los médicos</option>
               <option value="cardiology">Cardiología</option>
@@ -335,18 +335,18 @@ export function MedicalRankingPanel() {
                   doctor.id === currentUser.id
                     ? 'bg-amber-900/20 border-amber-700/40 ring-1 ring-amber-500/30'
                     : selectedDoctor?.id === doctor.id
-                    ? 'bg-slate-800/60 border-slate-600'
-                    : 'bg-slate-800/40 border-slate-700/60 hover:bg-slate-800/60'
+                    ? 'bg-slate-50/60 border-slate-600'
+                    : 'bg-slate-50 border-slate-200 hover:bg-slate-50/60'
                 }`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {getRankIcon(doctor.rank)}
                     <div>
-                      <h3 className="font-medium text-slate-100 flex items-center gap-2">
+                      <h3 className="font-medium text-slate-900 flex items-center gap-2">
                         {doctor.name}
                         {doctor.id === currentUser.id && (
-                          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
+                          <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-1 rounded-full">
                             TÚ
                           </span>
                         )}
@@ -355,7 +355,7 @@ export function MedicalRankingPanel() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-slate-100">{doctor.overallScore}</p>
+                    <p className="text-lg font-bold text-slate-900">{doctor.overallScore}</p>
                     <p className="text-xs text-slate-400">puntos</p>
                   </div>
                 </div>
@@ -398,8 +398,8 @@ export function MedicalRankingPanel() {
           </div>
 
           {selectedDoctor && selectedDoctor.id !== currentUser.id && (
-            <div className="mt-4 p-4 bg-slate-800/40 border border-slate-700/60 rounded-lg">
-              <h3 className="font-medium text-slate-100 mb-2">Perfil Detallado</h3>
+            <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <h3 className="font-medium text-slate-900 mb-2">Perfil Detallado</h3>
               <p className="text-sm text-slate-400 mb-3">
                 {selectedDoctor.name} es un especialista en {selectedDoctor.specialty} con {selectedDoctor.yearsExperience} años de experiencia.
                 Ha atendido a {selectedDoctor.totalPatients} pacientes y mantiene una puntuación de {selectedDoctor.overallScore}.

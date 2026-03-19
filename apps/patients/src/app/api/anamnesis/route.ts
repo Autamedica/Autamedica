@@ -85,6 +85,10 @@ async function getPatientId(): Promise<string | null> {
   return context?.patientId ?? null
 }
 
+function createAppAdminClient(): AppSupabaseClient {
+  return createAdminClient() as unknown as AppSupabaseClient
+}
+
 export async function GET() {
   try {
     const patientId = await getPatientId()
@@ -92,7 +96,7 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
     }
 
-    const admin: AppSupabaseClient = createAdminClient()
+    const admin = createAppAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const sectionsRes = await admin
@@ -137,7 +141,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: 'missing_step' }, { status: 400 })
     }
 
-    const admin: AppSupabaseClient = createAdminClient()
+    const admin = createAppAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const upsert = await admin
@@ -209,7 +213,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: 'no_updates' }, { status: 400 })
     }
 
-    const admin: AppSupabaseClient = createAdminClient()
+    const admin = createAppAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, patientId)
 
     const updateRes = await admin

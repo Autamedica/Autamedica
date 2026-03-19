@@ -123,7 +123,7 @@ export default function IntegratedDoctorVideoCall({
             <button
               onClick={toggleMute}
               className={`p-3 rounded-full transition-colors ${
-                isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
+                isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-violet-500 hover:bg-violet-600'
               }`}
             >
               {isMuted ? <MicOffIcon className="w-5 h-5 text-white" /> : <MicIcon className="w-5 h-5 text-white" />}
@@ -132,7 +132,7 @@ export default function IntegratedDoctorVideoCall({
             <button
               onClick={toggleVideo}
               className={`p-3 rounded-full transition-colors ${
-                isVideoOff ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
+                isVideoOff ? 'bg-red-500 hover:bg-red-600' : 'bg-violet-500 hover:bg-violet-600'
               }`}
             >
               {isVideoOff ? <VideoOffIcon className="w-5 h-5 text-white" /> : <VideoIcon className="w-5 h-5 text-white" />}
@@ -157,7 +157,7 @@ export default function IntegratedDoctorVideoCall({
             <div className="flex items-center space-x-3 text-sm text-white">
               <span className="text-green-400">● HD</span>
               <span>|</span>
-              <span className="text-blue-400">45ms</span>
+              <span className="text-violet-500">45ms</span>
               <span>|</span>
               <span className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
                 {isConnected ? 'Conectado' : 'Conectando...'}
@@ -181,7 +181,7 @@ export default function IntegratedDoctorVideoCall({
               <div className="text-gray-500 text-xs">Calidad</div>
             </div>
             <div className="text-center">
-              <div className="text-blue-400 font-bold">15:30</div>
+              <div className="text-violet-500 font-bold">15:30</div>
               <div className="text-gray-500 text-xs">Duración</div>
             </div>
           </div>

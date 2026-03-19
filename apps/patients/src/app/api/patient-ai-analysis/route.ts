@@ -2,6 +2,7 @@ import { resolvePatientContext } from '@/app/api/shared/patient-context';
 import {
   executePatientAiAnalysis,
   getPatientAiModelName,
+  getPatientAiProviderName,
   getLatestPatientAiInsight,
   isPatientAiConfigured,
   persistPatientAiInsight,
@@ -34,6 +35,7 @@ export async function GET() {
       success: true,
       data: {
         providerConfigured: isPatientAiConfigured(),
+        providerName: getPatientAiProviderName(),
         modelName: getPatientAiModelName(),
         request,
         latestInsight,
@@ -60,13 +62,16 @@ export async function POST() {
     const insights = await buildPatientInsights(supabase, context.patientId);
     await syncDeterministicAlerts(context.patientId, insights.alerts);
     const request = buildPatientAiAnalysisRequest(insights);
+    const providerName = getPatientAiProviderName();
+    const modelName = getPatientAiModelName();
 
     if (!isPatientAiConfigured()) {
       return NextResponse.json(
         {
-          error: 'OPENAI_API_KEY no está configurada en el servidor',
+          error: 'No hay un proveedor IA configurado en el servidor',
           data: {
             providerConfigured: false,
+            providerName: getPatientAiProviderName(),
             modelName: getPatientAiModelName(),
             request,
           },
@@ -92,6 +97,7 @@ export async function POST() {
         success: true,
         data: {
           providerConfigured: true,
+          providerName: result.providerName,
           modelName: result.modelName,
           request,
           insight: latestInsight,
@@ -106,8 +112,8 @@ export async function POST() {
       await persistPatientAiInsight({
         patientId: context.patientId,
         request,
-        providerName: 'openai',
-        modelName: getPatientAiModelName(),
+        providerName: providerName ?? 'openai',
+        modelName,
         status: 'failed',
         result: null,
         errorMessage: message,
@@ -118,7 +124,8 @@ export async function POST() {
           error: message,
           data: {
             providerConfigured: true,
-            modelName: getPatientAiModelName(),
+            providerName,
+            modelName,
             request,
           },
         },

@@ -14,11 +14,15 @@ import type { Database, Json, TablesInsert } from '@autamedica/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
-const DEFAULT_MODEL = 'gpt-5.4-2026-03-05';
+const GEMINI_GENERATE_CONTENT_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+const DEFAULT_OPENAI_MODEL = 'gpt-5.4-2026-03-05';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const PROMPT_VERSION = 'patient_ai_analysis_v1';
 
 type PatientAiInsightInsert = TablesInsert<'patient_ai_insights'>;
 type PatientAiAdminClient = SupabaseClient<Database>;
+type PatientAiProvider = 'openai' | 'gemini';
+type PatientAiProviderPreference = PatientAiProvider | 'auto';
 
 interface PatientAiSyncOptions {
   patientId?: string;
@@ -88,6 +92,11 @@ interface PatientAiInsightsGateway {
 
 interface PatientAiInsightsClient {
   from(_table: 'patient_ai_insights'): PatientAiInsightsGateway;
+}
+
+interface PatientAiExecutionTarget {
+  providerName: PatientAiProvider;
+  modelName: string;
 }
 
 function clampInteger(value: number, min: number, max: number): number {
@@ -239,6 +248,68 @@ function responseSchema(): Record<string, unknown> {
   };
 }
 
+function normalizeProviderPreference(value: string | null | undefined): PatientAiProviderPreference {
+  if (value === 'openai' || value === 'gemini') {
+    return value;
+  }
+
+  return 'auto';
+}
+
+function hasOpenAiKey(): boolean {
+  return Boolean(getServerEnvOrDefault('OPENAI_API_KEY'));
+}
+
+function hasGeminiKey(): boolean {
+  return Boolean(getServerEnvOrDefault('GEMINI_API_KEY'));
+}
+
+function resolvePatientAiExecutionTarget(): PatientAiExecutionTarget | null {
+  const preferredProvider = normalizeProviderPreference(getServerEnvOrDefault('PATIENT_AI_PROVIDER'));
+
+  if (preferredProvider === 'openai') {
+    return hasOpenAiKey()
+      ? {
+          providerName: 'openai',
+          modelName:
+            getServerEnvOrDefault('PATIENT_AI_OPENAI_MODEL', getServerEnvOrDefault('PATIENT_AI_MODEL')) ??
+            DEFAULT_OPENAI_MODEL,
+        }
+      : null;
+  }
+
+  if (preferredProvider === 'gemini') {
+    return hasGeminiKey()
+      ? {
+          providerName: 'gemini',
+          modelName:
+            getServerEnvOrDefault('PATIENT_AI_GEMINI_MODEL', getServerEnvOrDefault('PATIENT_AI_MODEL')) ??
+            DEFAULT_GEMINI_MODEL,
+        }
+      : null;
+  }
+
+  if (hasOpenAiKey()) {
+    return {
+      providerName: 'openai',
+      modelName:
+        getServerEnvOrDefault('PATIENT_AI_OPENAI_MODEL', getServerEnvOrDefault('PATIENT_AI_MODEL')) ??
+        DEFAULT_OPENAI_MODEL,
+    };
+  }
+
+  if (hasGeminiKey()) {
+    return {
+      providerName: 'gemini',
+      modelName:
+        getServerEnvOrDefault('PATIENT_AI_GEMINI_MODEL', getServerEnvOrDefault('PATIENT_AI_MODEL')) ??
+        DEFAULT_GEMINI_MODEL,
+    };
+  }
+
+  return null;
+}
+
 function extractStructuredOutput(payload: Record<string, unknown>): PatientAiInsightResult {
   if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
     return JSON.parse(payload.output_text) as PatientAiInsightResult;
@@ -273,15 +344,50 @@ function extractStructuredOutput(payload: Record<string, unknown>): PatientAiIns
   throw new Error('La respuesta del modelo no incluyó contenido estructurado');
 }
 
+function extractGeminiStructuredOutput(payload: Record<string, unknown>): PatientAiInsightResult {
+  const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') {
+      continue;
+    }
+
+    const candidateRecord = candidate as Record<string, unknown>;
+    const content =
+      candidateRecord.content && typeof candidateRecord.content === 'object'
+        ? (candidateRecord.content as Record<string, unknown>)
+        : null;
+    const parts = content && Array.isArray(content.parts) ? content.parts : [];
+
+    for (const part of parts) {
+      if (!part || typeof part !== 'object') {
+        continue;
+      }
+
+      const text = (part as Record<string, unknown>).text;
+      if (typeof text === 'string' && text.trim()) {
+        return JSON.parse(text) as PatientAiInsightResult;
+      }
+    }
+  }
+
+  throw new Error('La respuesta de Gemini no incluyó contenido estructurado');
+}
+
 export function isPatientAiConfigured(): boolean {
-  return Boolean(getServerEnvOrDefault('OPENAI_API_KEY'));
+  return resolvePatientAiExecutionTarget() !== null;
+}
+
+export function getPatientAiProviderName(): PatientAiProvider | null {
+  return resolvePatientAiExecutionTarget()?.providerName ?? null;
 }
 
 export function getPatientAiModelName(): string {
-  return getServerEnvOrDefault('PATIENT_AI_MODEL', DEFAULT_MODEL) ?? DEFAULT_MODEL;
+  return resolvePatientAiExecutionTarget()?.modelName ?? DEFAULT_OPENAI_MODEL;
 }
 
-export async function executePatientAiAnalysis(
+async function executeOpenAiPatientAnalysis(
+  target: PatientAiExecutionTarget,
   request: PatientAiAnalysisRequest,
 ): Promise<{
   providerName: string;
@@ -290,8 +396,6 @@ export async function executePatientAiAnalysis(
   rawResponse: Json;
 }> {
   const apiKey = ensureServerEnv('OPENAI_API_KEY');
-  const modelName = getPatientAiModelName();
-
   const response = await fetch(OPENAI_RESPONSES_URL, {
     method: 'POST',
     headers: {
@@ -299,7 +403,7 @@ export async function executePatientAiAnalysis(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: modelName,
+      model: target.modelName,
       temperature: 0,
       store: false,
       input: [
@@ -326,7 +430,7 @@ export async function executePatientAiAnalysis(
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (!response.ok) {
-    logger.error('[executePatientAiAnalysis] OpenAI request failed', payload);
+    logger.error('[executeOpenAiPatientAnalysis] OpenAI request failed', payload);
     throw new Error(
       typeof payload.error === 'object' && payload.error && 'message' in payload.error
         ? String((payload.error as { message?: string }).message)
@@ -334,14 +438,89 @@ export async function executePatientAiAnalysis(
     );
   }
 
-  const result = extractStructuredOutput(payload);
-
   return {
-    providerName: 'openai',
-    modelName,
-    result,
+    providerName: target.providerName,
+    modelName: target.modelName,
+    result: extractStructuredOutput(payload),
     rawResponse: payload as Json,
   };
+}
+
+async function executeGeminiPatientAnalysis(
+  target: PatientAiExecutionTarget,
+  request: PatientAiAnalysisRequest,
+): Promise<{
+  providerName: string;
+  modelName: string;
+  result: PatientAiInsightResult;
+  rawResponse: Json;
+}> {
+  const apiKey = ensureServerEnv('GEMINI_API_KEY');
+  const response = await fetch(
+    `${GEMINI_GENERATE_CONTENT_URL}/${encodeURIComponent(target.modelName)}:generateContent`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: buildSystemPrompt() }],
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: JSON.stringify(request) }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0,
+          seed: 1,
+          responseMimeType: 'application/json',
+          responseSchema: responseSchema(),
+        },
+      }),
+    },
+  );
+
+  const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+
+  if (!response.ok) {
+    logger.error('[executeGeminiPatientAnalysis] Gemini request failed', payload);
+    throw new Error(
+      typeof payload.error === 'object' && payload.error && 'message' in payload.error
+        ? String((payload.error as { message?: string }).message)
+        : 'No fue posible obtener el análisis IA',
+    );
+  }
+
+  return {
+    providerName: target.providerName,
+    modelName: target.modelName,
+    result: extractGeminiStructuredOutput(payload),
+    rawResponse: payload as Json,
+  };
+}
+
+export async function executePatientAiAnalysis(
+  request: PatientAiAnalysisRequest,
+): Promise<{
+  providerName: string;
+  modelName: string;
+  result: PatientAiInsightResult;
+  rawResponse: Json;
+}> {
+  const target = resolvePatientAiExecutionTarget();
+  if (!target) {
+    throw new Error('No hay un proveedor IA configurado en el servidor');
+  }
+
+  if (target.providerName === 'gemini') {
+    return executeGeminiPatientAnalysis(target, request);
+  }
+
+  return executeOpenAiPatientAnalysis(target, request);
 }
 
 export async function persistPatientAiInsight(args: {
@@ -417,7 +596,8 @@ export async function runPatientAiSyncCycle(
   const staleHours = Math.min(Math.max(options.staleHours ?? 24, 1), 24 * 30);
   const failedRetryMinutes = clampInteger(options.failedRetryMinutes ?? 60, 5, 24 * 60);
   const dryRun = options.dryRun ?? false;
-  const providerConfigured = isPatientAiConfigured();
+  const executionTarget = resolvePatientAiExecutionTarget();
+  const providerConfigured = executionTarget !== null;
   const now = new Date();
   const candidates = await listSyncCandidates(queryAdmin, options);
   const results: PatientAiSyncItemResult[] = [];
@@ -495,8 +675,8 @@ export async function runPatientAiSyncCycle(
         await persistPatientAiInsight({
           patientId: candidate.patientId,
           request,
-          providerName: 'openai',
-          modelName: getPatientAiModelName(),
+          providerName: executionTarget?.providerName ?? 'openai',
+          modelName: executionTarget?.modelName ?? getPatientAiModelName(),
           status: 'failed',
           result: null,
           errorMessage: message,

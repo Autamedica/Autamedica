@@ -12,6 +12,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const ALLOWED_ORIGINS = new Set([
   'https://autamedica.com',
   'https://www.autamedica.com',
+  'https://patients.autamedica.com',
+  'https://paciente.autamedica.com',
   'https://autamedica-web.pages.dev',
   'https://autamedica-patients.pages.dev',
   'https://autamedica-doctors.pages.dev',
@@ -19,6 +21,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://autamedica-admin.pages.dev',
   'http://localhost:3000',
   'http://localhost:3002',
+  'http://localhost:3003',
   'http://localhost:4001',
   'http://localhost:4002',
 ]);

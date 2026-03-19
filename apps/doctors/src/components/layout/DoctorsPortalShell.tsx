@@ -2,7 +2,7 @@
 
 import { getPatientDisplayName } from '@/utils/patientDisplay'
 import { AppointmentsPanel } from '@/components/appointments/AppointmentsPanel'
-import { DiagnosisPanel } from '@/components/diagnosis/DiagnosisPanel'
+import AvailabilityManager from '@/components/availability/AvailabilityManager'
 import { MarketplacePanel } from '@/components/marketplace/MarketplacePanel'
 import { AIHistoryTab } from '@/components/medical/AIHistoryTab'
 import { MedicalHistoryTab } from '@/components/medical/MedicalHistoryTab'
@@ -14,7 +14,6 @@ import { MedicalRankingPanel } from '@/components/ranking/MedicalRankingPanel'
 import { RecordsPanel } from '@/components/records/RecordsPanel'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { SubscriptionPanel } from '@/components/subscription/SubscriptionPanel'
-import { VitalSignsPanel } from '@/components/vitals/VitalSignsPanel'
 import { useActiveSession } from '@/hooks'
 import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
 import { useDoctorStats } from '@/hooks/useDoctorStats'
@@ -25,14 +24,15 @@ import {
     Brain,
     Calendar,
     ChevronLeft,
+    Clock,
     ChevronRight,
     CreditCard,
     FileText,
-    History,
     Home,
     MapPin,
     Menu,
     MessageSquare,
+    Pill,
     Settings,
     Star,
     Users,
@@ -55,7 +55,7 @@ type SidebarItem = {
 type TabConfig = {
   id: TabId
   label: string
-  icon: string
+  icon: LucideIcon
 }
 
 type PortalContextValue = {
@@ -139,67 +139,29 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     }
   }, [isFocusMode])
 
+  const validSections = new Set([
+    'settings', 'subscription', 'marketplace', 'ranking',
+    'patients', 'appointments', 'availability', 'records', 'chat',
+  ])
+
   const handleSidebarItemClick = (itemId: string) => {
     setIsSidebarOpen(false)
-
-    if (isFocusMode) {
-      setIsFocusMode(false)
-    }
-
-    switch (itemId) {
-      case 'settings':
-        setActiveSection('settings')
-        break
-      case 'subscription':
-        setActiveSection('subscription')
-        break
-      case 'marketplace':
-        setActiveSection('marketplace')
-        break
-      case 'ranking':
-        setActiveSection('ranking')
-        break
-      case 'patients':
-        setActiveSection('patients')
-        break
-      case 'appointments':
-        setActiveSection('appointments')
-        break
-      case 'records':
-        setActiveSection('records')
-        break
-      case 'vitals':
-        setActiveSection('vitals')
-        break
-      case 'chat':
-        setActiveSection('chat')
-        break
-      case 'diagnosis':
-        setActiveSection('diagnosis')
-        break
-      case 'history':
-        setActiveSection('history')
-        break
-      default:
-        setActiveSection(null)
-    }
+    if (isFocusMode) setIsFocusMode(false)
+    setActiveSection(validSections.has(itemId) ? itemId : null)
   }
 
+  // Sidebar = gestión y admin (NO herramientas clínicas, esas van en tabs)
+  // Removidos: Pacientes (duplica tab), Historiales (duplica tab), Chat (va en bottom nav)
   const sidebarItems = useMemo<SidebarItem[]>(
     () => [
-      { id: 'patients', icon: Users, label: 'Pacientes', count: patientsCount },
       { id: 'appointments', icon: Calendar, label: 'Citas', count: appointmentsCount },
-      { id: 'records', icon: FileText, label: 'Historiales', count: historyCount },
-      { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
-      { id: 'chat', icon: MessageSquare, label: 'Chat', count: 0 },
-      { id: 'diagnosis', icon: Brain, label: 'Asistente Clinico' },
-      { id: 'history', icon: History, label: 'Historial IA', count: 0 },
+      { id: 'availability', icon: Clock, label: 'Disponibilidad' },
+      { id: 'marketplace', icon: MapPin, label: 'Trabajo Medico' },
       { id: 'ranking', icon: Star, label: 'Ranking', badge: 'GOLD' },
       { id: 'subscription', icon: CreditCard, label: 'Suscripcion', badge: 'PRO' },
-      { id: 'marketplace', icon: MapPin, label: 'Trabajo Medico' },
       { id: 'settings', icon: Settings, label: 'Configuracion' },
     ],
-    [patientsCount, appointmentsCount, historyCount],
+    [appointmentsCount],
   )
 
   const resumeFocusIfLive = () => {
@@ -210,12 +172,12 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
 
   const tabs = useMemo<TabConfig[]>(
     () => [
-      { id: 'video-call', label: 'Consulta', icon: '🎥' },
-      { id: 'patient-info', label: 'Paciente', icon: '👤' },
-      { id: 'medical-history', label: 'Historial', icon: '📋' },
-      { id: 'prescriptions', label: 'Recetas', icon: '💊' },
-      { id: 'vital-signs', label: 'Signos Vitales', icon: '📊' },
-      { id: 'ai-history', label: 'IA', icon: '🧠' },
+      { id: 'video-call', label: 'Consulta', icon: Video },
+      { id: 'patient-info', label: 'Paciente', icon: Users },
+      { id: 'medical-history', label: 'Historial', icon: FileText },
+      { id: 'prescriptions', label: 'Recetas', icon: Pill },
+      { id: 'vital-signs', label: 'Signos Vitales', icon: Activity },
+      { id: 'ai-history', label: 'IA', icon: Brain },
     ],
     [],
   )
@@ -228,29 +190,36 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     setFocusMode: setIsFocusMode,
   }
 
-  const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }) => (
-    <button
-      key={id}
-      type="button"
-      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 ${
-        activeSection === id ? 'bg-violet-50 text-violet-700' : 'text-slate-600'
-      }`}
-      onClick={() => handleSidebarItemClick(id)}
-    >
-      <span className="flex items-center gap-3">
-        <Icon className={`h-4 w-4 ${activeSection === id ? 'text-violet-600' : 'text-slate-400'}`} />
-        <span>{label}</span>
-      </span>
-      <span className="flex items-center gap-2">
-        {typeof count === 'number' && count > 0 && (
-          <span className="rounded-full bg-violet-600 px-2 py-0.5 text-xs font-semibold text-white">{count}</span>
-        )}
-        {badge && (
-          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700">{badge}</span>
-        )}
-      </span>
-    </button>
-  ))
+  const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }) => {
+    const isActive = activeSection === id
+    return (
+      <button
+        key={id}
+        type="button"
+        className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition ${
+          isActive ? 'bg-violet-50' : 'hover:bg-slate-50'
+        }`}
+        onClick={() => handleSidebarItemClick(id)}
+      >
+        <span className="flex items-center gap-3">
+          <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+            isActive ? 'bg-violet-600 shadow-md shadow-violet-200' : 'bg-slate-100'
+          }`}>
+            <Icon className={`h-4.5 w-4.5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+          </span>
+          <span className={`text-base font-medium ${isActive ? 'text-violet-700' : 'text-slate-700'}`}>{label}</span>
+        </span>
+        <span className="flex items-center gap-2">
+          {typeof count === 'number' && count > 0 && (
+            <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-violet-600 px-2 text-xs font-bold text-white">{count}</span>
+          )}
+          {badge && (
+            <span className="rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700">{badge}</span>
+          )}
+        </span>
+      </button>
+    )
+  })
 
   return (
     <PortalLayoutContext.Provider value={portalContext}>
@@ -259,11 +228,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
         suppressHydrationWarning
       >
         {/* Header */}
-        <header className="header z-10 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6">
+        <header className="header z-10 flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-4 shadow-sm sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className={`inline-flex items-center justify-center rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 ${
+              className={`inline-flex items-center justify-center rounded-xl bg-slate-100 p-2.5 text-slate-600 transition hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 ${
                 isFocusMode ? '' : 'md:hidden'
               }`}
               onClick={() => setIsSidebarOpen(true)}
@@ -271,42 +240,46 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
-              <Activity className="h-4 w-4" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 shadow-md shadow-violet-200">
+              <Activity className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">AutaMedica</p>
-              <p className="text-xs text-slate-500">{userName}</p>
+              <p className="text-base font-extrabold tracking-tight text-slate-900">AutaMedica</p>
+              <p className="text-sm font-medium text-slate-400">{userName}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-xs text-slate-500">
-            <span className="hidden items-center gap-1 text-emerald-600 sm:flex">
-              <span>●</span>
+          <div className="flex items-center gap-4">
+            <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 sm:flex">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
               Conectado
             </span>
-            <span className="hidden text-slate-300 sm:inline">|</span>
-            <span>{currentTime}</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-slate-600">{currentTime}</span>
           </div>
         </header>
 
         {/* Tabs */}
-        <div className="tabs border-b border-slate-200 bg-white">
-          <div className="flex h-full w-full items-center overflow-x-auto px-2 sm:px-6">
-            <div className="flex min-w-full snap-x snap-mandatory gap-1 md:min-w-0 md:gap-0">
+        <div className="tabs border-b border-slate-200/80 bg-white">
+          <div className="flex h-full w-full items-center overflow-x-auto px-2 sm:px-4">
+            <div className="flex min-w-full snap-x snap-mandatory gap-1 py-1.5 md:min-w-0">
               {tabs.map((tab) => {
                 const isActive = tab.id === activeTab
+                const TabIcon = tab.icon
                 return (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex min-w-[120px] snap-start items-center gap-2 border-b-2 px-4 py-2 text-sm transition md:min-w-0 md:px-5 md:py-2.5 ${
+                    className={`flex min-w-[100px] snap-start items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition md:min-w-0 md:px-4 ${
                       isActive
-                        ? 'border-violet-600 font-medium text-violet-700'
-                        : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                        ? 'bg-violet-100 text-violet-700 shadow-sm'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                     }`}
                   >
-                    <span>{tab.icon}</span>
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                      isActive ? 'bg-violet-600 shadow-md shadow-violet-200' : 'bg-slate-100'
+                    }`}>
+                      <TabIcon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                    </span>
                     <span className="whitespace-nowrap">{tab.label}</span>
                   </button>
                 )
@@ -407,39 +380,46 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
               </button>
             </div>
             <nav className="space-y-1">
-              {sidebarItems.map(({ id, icon: Icon, label, count, badge }) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`sidebar-button flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-xs transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 ${
-                    activeSection === id ? 'bg-violet-50 text-violet-700' : 'text-slate-600'
-                  } ${isSidebarCollapsed ? 'flex-col gap-1 text-center' : 'gap-2'}`}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    handleSidebarItemClick(id)
-                  }}
-                  title={isSidebarCollapsed ? label : undefined}
-                >
-                  <span className={`flex items-center gap-2 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-                    <Icon className={`h-4 w-4 ${activeSection === id ? 'text-violet-600' : 'text-slate-400'}`} />
-                    {!isSidebarCollapsed && <span>{label}</span>}
-                  </span>
-                  {!isSidebarCollapsed && (
-                    <span className="flex items-center gap-2">
-                      {typeof count === 'number' && count > 0 && (
-                        <span className="rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-semibold text-white">{count}</span>
-                      )}
-                      {badge && (
-                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">{badge}</span>
-                      )}
+              {sidebarItems.map(({ id, icon: Icon, label, count, badge }) => {
+                const isActive = activeSection === id
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`sidebar-button flex w-full items-center justify-between rounded-xl px-2 py-2 text-left transition ${
+                      isActive ? 'bg-violet-50' : 'hover:bg-slate-50'
+                    } ${isSidebarCollapsed ? 'flex-col gap-1 text-center' : 'gap-2'}`}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleSidebarItemClick(id)
+                    }}
+                    title={isSidebarCollapsed ? label : undefined}
+                  >
+                    <span className={`flex items-center gap-2.5 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                      <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                        isActive ? 'bg-violet-600 shadow-md shadow-violet-200' : 'bg-slate-100'
+                      }`}>
+                        <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                      </span>
+                      {!isSidebarCollapsed && <span className={`text-sm font-medium ${isActive ? 'text-violet-700' : 'text-slate-600'}`}>{label}</span>}
                     </span>
-                  )}
-                </button>
-              ))}
+                    {!isSidebarCollapsed && (
+                      <span className="flex items-center gap-2">
+                        {typeof count === 'number' && count > 0 && (
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-violet-600 px-1.5 text-[10px] font-bold text-white">{count}</span>
+                        )}
+                        {badge && (
+                          <span className="rounded-md bg-violet-100 px-2 py-0.5 text-[10px] font-bold text-violet-700">{badge}</span>
+                        )}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </nav>
-            <div className={`mt-auto rounded-xl border border-slate-200 bg-slate-50 p-3 ${isSidebarCollapsed ? 'px-2' : ''}`}>
+            <div className={`mt-auto rounded-2xl border border-slate-200/80 bg-gradient-to-b from-violet-50 to-slate-50 p-3 ${isSidebarCollapsed ? 'px-2' : ''}`}>
               <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'flex-col text-center' : ''}`}>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-sm font-bold text-white shadow-md shadow-violet-200">
                   {getInitials(userName)}
                 </div>
                 {!isSidebarCollapsed && (
@@ -471,8 +451,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {activeSection === 'marketplace' && <MarketplacePanel />}
                 {activeSection === 'patients' && <PatientsPanel />}
                 {activeSection === 'appointments' && <AppointmentsPanel />}
+                {activeSection === 'availability' && doctor?.id && <AvailabilityManager doctorId={doctor.id} />}
                 {activeSection === 'records' && <RecordsPanel />}
-                {activeSection === 'vitals' && <VitalSignsPanel />}
                 {activeSection === 'chat' && (
                   <div className="flex h-full flex-col items-center justify-center gap-4 rounded-xl border border-slate-200 bg-white p-8 text-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
@@ -484,24 +464,12 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     </div>
                   </div>
                 )}
-                {activeSection === 'diagnosis' && <DiagnosisPanel />}
-                {activeSection === 'history' && (
-                  <div className="flex h-full flex-col items-center justify-center gap-4 rounded-xl border border-slate-200 bg-white p-8 text-center">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
-                      <Brain className="h-8 w-8 text-violet-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-slate-900">Historial IA</h3>
-                      <p className="text-slate-500">Historial de analisis y recomendaciones de IA</p>
-                    </div>
-                  </div>
-                )}
                 {activeSection === 'ranking' && <MedicalRankingPanel />}
 
                 {!activeSection && (
                   <div className="flex min-h-0 flex-1 overflow-hidden">
                     {activeTab === 'video-call' ? (
-                      <div className="flex min-h-0 w-full flex-1 overflow-hidden rounded-xl bg-slate-900">
+                      <div className="flex min-h-0 w-full flex-1 overflow-hidden rounded-xl bg-slate-100">
                         {children}
                       </div>
                     ) : (
@@ -555,36 +523,30 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
         </div>
 
         {/* Mobile bottom navigation */}
-        <nav className={`fixed bottom-0 inset-x-0 z-40 flex items-center justify-around border-t border-slate-200 bg-white px-2 py-1.5 safe-area-pb ${isFocusMode ? 'hidden' : ''} md:hidden`}>
+        <nav className={`fixed bottom-0 inset-x-0 z-40 flex items-center justify-around border-t border-slate-200/80 bg-white/95 px-2 py-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] backdrop-blur-lg safe-area-pb ${isFocusMode ? 'hidden' : ''} md:hidden`}>
           <BottomNavButton
-            icon={<Video className="h-5 w-5" />}
+            icon={<Video className="h-6 w-6" />}
             label="Consulta"
             active={!activeSection && activeTab === 'video-call'}
             onClick={() => { setActiveSection(null); setActiveTab('video-call') }}
           />
           <BottomNavButton
-            icon={<Users className="h-5 w-5" />}
-            label="Pacientes"
-            active={activeSection === 'patients'}
-            onClick={() => handleSidebarItemClick('patients')}
-          />
-          <BottomNavButton
-            icon={<Calendar className="h-5 w-5" />}
+            icon={<Calendar className="h-6 w-6" />}
             label="Citas"
             active={activeSection === 'appointments'}
             onClick={() => handleSidebarItemClick('appointments')}
           />
           <BottomNavButton
-            icon={<MessageSquare className="h-5 w-5" />}
+            icon={<MessageSquare className="h-6 w-6" />}
             label="Chat"
             active={activeSection === 'chat'}
             onClick={() => handleSidebarItemClick('chat')}
           />
           <BottomNavButton
-            icon={<Settings className="h-5 w-5" />}
-            label="Perfil"
-            active={activeSection === 'settings'}
-            onClick={() => handleSidebarItemClick('settings')}
+            icon={<Menu className="h-6 w-6" />}
+            label="Más"
+            active={isSidebarOpen}
+            onClick={() => setIsSidebarOpen(true)}
           />
         </nav>
       </div>
@@ -597,11 +559,15 @@ function BottomNavButton({ icon, label, active, onClick }: { icon: ReactNode; la
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium transition ${
-        active ? 'text-violet-600' : 'text-slate-400 active:text-slate-600'
+      className={`flex flex-col items-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold transition ${
+        active ? 'bg-violet-50 text-violet-600' : 'text-slate-400 active:text-slate-600'
       }`}
     >
-      {icon}
+      <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${
+        active ? 'bg-violet-600 shadow-md shadow-violet-200' : ''
+      }`}>
+        <span className={active ? '[&>svg]:text-white' : ''}>{icon}</span>
+      </span>
       <span>{label}</span>
     </button>
   )

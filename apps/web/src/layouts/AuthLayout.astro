@@ -18,6 +18,10 @@ const {
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
 const currentPath = Astro.url.pathname;
 const currentSearch = Astro.url.search;
+const role = Astro.url.searchParams.get('role') || 'patient';
+
+const themeClass = `theme-${role}`;
+
 const authFlowLinks = [
   { href: '/auth/select-role', label: 'Perfil' },
   { href: '/auth/login', label: 'Login' },
@@ -46,84 +50,106 @@ const authFlowLinks = [
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   </head>
   <body class="antialiased">
-    <div class="auth-layout">
-      <!-- Left Panel: Branding + Testimonials (desktop only) -->
+    <div class:list={["auth-layout", themeClass]}>
+      <!-- Left Panel: Branding + Experience -->
       <aside class="auth-panel-left">
+        <div class="auth-panel-bg"></div>
+        <div class="auth-panel-ambient"></div>
+        
         <div class="auth-branding">
-          <img src="/images/brand/logo_bioceramic.png" alt="AutaMedica" width="80" height="80" class="auth-logo-img" />
-          <h2 class="auth-branding-title visually-hidden">AutaMedica</h2>
-          <p class="auth-branding-tagline">Telemedicina sin fricciones</p>
+          <img src="/logo_bioceramic.png" alt="AutaMedica Logo" width="72" height="72" class="auth-logo-img" />
+          <p class="auth-branding-tagline">Infraestructura digital para la medicina moderna.</p>
         </div>
 
         <div class="auth-testimonials">
           <div class="auth-testimonial-card">
-            <p class="auth-testimonial-quote">"Encontre turno con una dermatologa en 4 minutos. Me mando la receta al celular. Un domingo."</p>
+            <p class="auth-testimonial-quote">"Gestión de turnos y recetas en minutos. AutaMedica transformó mi práctica clínica por completo."</p>
             <div class="auth-testimonial-author">
               <div class="auth-testimonial-avatar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </div>
               <div>
-                <p class="auth-testimonial-name">Carlos Ruiz</p>
-                <p class="auth-testimonial-role">Paciente</p>
+                <p class="auth-testimonial-name">Dra. Elena Rossi</p>
+                <p class="auth-testimonial-role">Cardióloga</p>
               </div>
             </div>
           </div>
 
           <div class="auth-testimonial-card">
-            <p class="auth-testimonial-quote">"La historia clínica digital me devolvio 2 horas por dia. Mis pacientes notan la diferencia."</p>
+            <p class="auth-testimonial-quote">"La mejor experiencia de telemedicina que he tenido. Simple, rápida y con doctores de primer nivel."</p>
             <div class="auth-testimonial-author">
               <div class="auth-testimonial-avatar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
               </div>
               <div>
-                <p class="auth-testimonial-name">Dra. Maria Gonzalez</p>
-                <p class="auth-testimonial-role">Clínica Medica</p>
+                <p class="auth-testimonial-name">Marcos Viale</p>
+                <p class="auth-testimonial-role">Paciente Platinum</p>
               </div>
             </div>
           </div>
 
           <div class="auth-testimonial-card">
-            <p class="auth-testimonial-quote">"El primer trimestre con AutaMedica, el ausentismo bajo 40%. Los empleados consultan desde el escritorio."</p>
+            <p class="auth-testimonial-quote">"Implementamos AutaMedica en nuestra empresa y el bienestar de los empleados subió un 40%."</p>
             <div class="auth-testimonial-author">
               <div class="auth-testimonial-avatar">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <div>
-                <p class="auth-testimonial-name">Ana Martinez</p>
-                <p class="auth-testimonial-role">Directora RRHH</p>
+                <p class="auth-testimonial-name">Sofía Méndez</p>
+                <p class="auth-testimonial-role">HR Manager</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="auth-security-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Plataforma HIPAA-compliant
+        <div class="auth-security-legend">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Infraestructura Segura HIPAA Compliant
         </div>
-
-        <div class="auth-panel-ambient"></div>
       </aside>
 
-      <!-- Right Panel: Form -->
+      <!-- Right Panel: Form Area -->
       <main class="auth-panel-right">
         <div class="auth-form-container">
           <a href="/" class="auth-back-link">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             Volver al inicio
           </a>
-          <nav class="auth-flow-nav" aria-label="Flujo de autenticacion">
+
+          <nav class="auth-flow-nav" aria-label="Navegación de acceso">
             {authFlowLinks.map((link) => {
               const isCurrent = currentPath === link.href;
               const hrefWithSearch = `${link.href}${currentSearch}`;
               return (
-                <a href={hrefWithSearch} class:list={{ 'is-current': isCurrent }} aria-current={isCurrent ? 'page' : undefined}>
+                <a 
+                  href={hrefWithSearch} 
+                  class:list={{ 'is-current': isCurrent }} 
+                  aria-current={isCurrent ? 'page' : undefined}
+                >
                   {link.label}
                 </a>
               );
             })}
           </nav>
+
           <slot />
         </div>
+
+        <footer class="auth-footer">
+          <div class="auth-footer-content">
+            <div class="auth-footer-branding">
+              <span class="auth-footer-logo-dot"></span>
+              <span class="auth-footer-tagline">AutaMedica Precision Systems • {new Date().getFullYear()}</span>
+            </div>
+            <div class="auth-footer-links">
+              <a href="#">Privacidad</a>
+              <span class="auth-footer-sep">•</span>
+              <a href="#">Términos</a>
+              <span class="auth-footer-sep">•</span>
+              <a href="#">Accesibilidad</a>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   </body>

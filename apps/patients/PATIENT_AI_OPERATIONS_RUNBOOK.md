@@ -29,13 +29,13 @@ Piezas relevantes:
 
 ## Orden recomendado de activación
 
-No agregue `OPENAI_API_KEY` todavía.
+No agregue todavía ninguna API key de proveedor.
 
 1. Aplicar migraciones
 2. Configurar variables no sensibles y secretos internos
 3. Ejecutar `dry run`
 4. Verificar DB y dashboard
-5. Recién entonces agregar `OPENAI_API_KEY`
+5. Recién entonces agregar la API key del proveedor elegido
 6. Ejecutar análisis real con batch chico
 7. Dejar worker supervisado
 
@@ -83,7 +83,9 @@ Nuevas variables de personalización IA:
 
 ```env
 PATIENT_AI_JOB_SECRET=generate_a_long_random_secret
-PATIENT_AI_MODEL=gpt-5.4-2026-03-05
+PATIENT_AI_PROVIDER=auto
+PATIENT_AI_OPENAI_MODEL=gpt-5.4-2026-03-05
+PATIENT_AI_GEMINI_MODEL=gemini-2.5-flash
 PATIENT_AI_SYNC_INTERVAL_MS=900000
 PATIENT_AI_SYNC_BATCH_SIZE=10
 PATIENT_AI_SYNC_STALE_HOURS=24
@@ -91,13 +93,14 @@ PATIENT_AI_SYNC_FAILED_RETRY_MINUTES=60
 PATIENT_AI_SYNC_DRY_RUN=true
 ```
 
-Agregue `OPENAI_API_KEY` al final:
+Agregue al final solo la key del proveedor que vaya a usar:
 
 ```env
 OPENAI_API_KEY=...
+GEMINI_API_KEY=...
 ```
 
-## 3. Verificación previa sin OpenAI
+## 3. Verificación previa sin proveedor
 
 Con `PATIENT_AI_SYNC_DRY_RUN=true` y sin `OPENAI_API_KEY`, el ciclo debe:
 
@@ -155,15 +158,25 @@ order by created_at desc
 limit 20;
 ```
 
-## 5. Agregar la API key
+## 5. Agregar la API key del proveedor
 
 Solo después de validar migraciones, route interno y alertas derivadas.
 
-Agregar:
+### Opción A: OpenAI
 
 ```env
+PATIENT_AI_PROVIDER=openai
 OPENAI_API_KEY=...
 ```
+
+### Opción B: Gemini
+
+```env
+PATIENT_AI_PROVIDER=gemini
+GEMINI_API_KEY=...
+```
+
+Si usa `PATIENT_AI_PROVIDER=auto`, el servidor prioriza `OPENAI_API_KEY` y cae a Gemini cuando OpenAI no está configurado.
 
 Mantener todavía:
 

@@ -118,7 +118,7 @@ export function DiagnosisPanel() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'analyzing': return <Clock className="w-4 h-4 text-blue-500 animate-spin" />
+      case 'analyzing': return <Clock className="w-4 h-4 text-violet-500 animate-spin" />
       case 'completed': return <CheckCircle className="w-4 h-4 text-green-500" />
       case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />
       default: return null
@@ -126,14 +126,14 @@ export function DiagnosisPanel() {
   }
 
   return (
-    <div className="h-full bg-[#101d32] text-slate-100">
-      <div className="p-6 border-b border-slate-800/60">
+    <div className="h-full bg-white text-slate-900">
+      <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/20 rounded-lg">
-            <Brain className="w-6 h-6 text-blue-400" />
+          <div className="p-2 bg-violet-50 rounded-lg">
+            <Brain className="w-6 h-6 text-violet-500" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-slate-100">IA Diagnóstico</h1>
+            <h1 className="text-xl font-semibold text-slate-900">IA Diagnóstico</h1>
             <p className="text-sm text-slate-400">Asistente de inteligencia artificial para diagnósticos médicos</p>
           </div>
         </div>
@@ -141,47 +141,47 @@ export function DiagnosisPanel() {
 
       <div className="flex h-[calc(100%-100px)]">
         {/* Panel de entrada */}
-        <div className="w-1/2 p-6 border-r border-slate-800/60">
-          <h2 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
-            <Bot className="w-5 h-5 text-blue-400" />
+        <div className="w-1/2 p-6 border-r border-slate-200">
+          <h2 className="text-lg font-medium text-slate-900 mb-4 flex items-center gap-2">
+            <Bot className="w-5 h-5 text-violet-500" />
             Nueva Consulta IA
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
                 Síntomas Principales *
               </label>
               <textarea
                 value={symptoms}
                 onChange={(e) => setSymptoms(e.target.value)}
-                className="w-full h-24 px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full h-24 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
                 placeholder="Describe los síntomas principales del paciente..."
                 disabled={isAnalyzing}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
                 Antecedentes Médicos
               </label>
               <textarea
                 value={medicalHistory}
                 onChange={(e) => setMedicalHistory(e.target.value)}
-                className="w-full h-20 px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full h-20 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
                 placeholder="Antecedentes médicos relevantes..."
                 disabled={isAnalyzing}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-slate-600 mb-2">
                 Signos Vitales
               </label>
               <textarea
                 value={vitalSigns}
                 onChange={(e) => setVitalSigns(e.target.value)}
-                className="w-full h-16 px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full h-16 px-3 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none"
                 placeholder="PA, FC, FR, Temperatura, Sat O2..."
                 disabled={isAnalyzing}
               />
@@ -190,7 +190,7 @@ export function DiagnosisPanel() {
             <button
               onClick={handleAnalyze}
               disabled={!symptoms.trim() || isAnalyzing}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:bg-slate-100 disabled:text-slate-500 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
               {isAnalyzing ? (
                 <>
@@ -206,12 +206,12 @@ export function DiagnosisPanel() {
             </button>
           </div>
 
-          <div className="mt-6 p-4 bg-amber-900/20 border border-amber-800/40 rounded-lg">
+          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
-                <p className="text-amber-400 font-medium mb-1">Importante</p>
-                <p className="text-amber-300">
+                <p className="text-amber-500 font-medium mb-1">Importante</p>
+                <p className="text-amber-700">
                   La IA es una herramienta de apoyo. Siempre confirme con evaluación clínica presencial.
                 </p>
               </div>
@@ -221,14 +221,14 @@ export function DiagnosisPanel() {
 
         {/* Panel de resultados */}
         <div className="w-1/2 p-6">
-          <h2 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-lg font-medium text-slate-900 mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-emerald-500" />
             Historial de Análisis
           </h2>
 
           <div className="space-y-4 max-h-[600px] overflow-y-auto">
             {diagnosisHistory.map((diagnosis) => (
-              <div key={diagnosis.id} className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-4">
+              <div key={diagnosis.id} className="bg-slate-50 border border-slate-200/60 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     {getStatusIcon(diagnosis.status)}
@@ -246,20 +246,20 @@ export function DiagnosisPanel() {
                 <div className="space-y-2 text-sm">
                   <div>
                     <span className="text-slate-400">Síntomas:</span>
-                    <p className="text-slate-200">{diagnosis.symptoms}</p>
+                    <p className="text-slate-700">{diagnosis.symptoms}</p>
                   </div>
 
                   {diagnosis.result && (
                     <>
                       <div>
                         <span className="text-slate-400">Diagnóstico Principal:</span>
-                        <p className="text-slate-100 font-medium">{diagnosis.result.primaryDiagnosis}</p>
+                        <p className="text-slate-900 font-medium">{diagnosis.result.primaryDiagnosis}</p>
                         <p className="text-slate-400 text-xs">Confianza: {diagnosis.result.confidence}%</p>
                       </div>
 
                       <div>
                         <span className="text-slate-400">Diagnósticos Diferenciales:</span>
-                        <ul className="text-slate-200 list-disc list-inside ml-2">
+                        <ul className="text-slate-700 list-disc list-inside ml-2">
                           {diagnosis.result.differentialDiagnoses.map((diff, idx) => (
                             <li key={idx}>{diff}</li>
                           ))}
@@ -268,7 +268,7 @@ export function DiagnosisPanel() {
 
                       <div>
                         <span className="text-slate-400">Estudios Recomendados:</span>
-                        <ul className="text-slate-200 list-disc list-inside ml-2">
+                        <ul className="text-slate-700 list-disc list-inside ml-2">
                           {diagnosis.result.recommendedTests.map((test, idx) => (
                             <li key={idx}>{test}</li>
                           ))}
@@ -277,7 +277,7 @@ export function DiagnosisPanel() {
 
                       <div>
                         <span className="text-slate-400">Razonamiento:</span>
-                        <p className="text-slate-200">{diagnosis.result.reasoning}</p>
+                        <p className="text-slate-700">{diagnosis.result.reasoning}</p>
                       </div>
                     </>
                   )}

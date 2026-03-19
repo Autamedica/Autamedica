@@ -15,27 +15,27 @@ export default function Error({ error, reset }: ErrorProps) {
   }, [error])
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 text-center">
         <div>
-          <div className="mx-auto h-16 w-16 text-red-500 mb-6">
+          <div className="mx-auto h-16 w-16 text-rose-500 mb-6">
             <AlertCircle size={64} />
           </div>
 
-          <h1 className="text-3xl font-bold text-slate-100">
+          <h1 className="text-3xl font-bold text-slate-900">
             Algo salió mal
           </h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-slate-500">
             Ha ocurrido un error inesperado en el portal médico.
           </p>
 
           {error.message && (
-            <div className="mt-4 p-4 bg-red-900/20 border border-red-700/30 rounded-lg">
-              <p className="text-sm text-red-300 font-mono">
+            <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-lg">
+              <p className="text-sm text-rose-700 font-mono">
                 {error.message}
               </p>
               {error.digest && (
-                <p className="text-xs text-red-400 mt-2">
+                <p className="text-xs text-rose-500 mt-2">
                   Error ID: {error.digest}
                 </p>
               )}
@@ -46,7 +46,7 @@ export default function Error({ error, reset }: ErrorProps) {
         <div className="mt-8 space-y-4">
           <button
             onClick={reset}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-slate-950 transition-colors duration-200"
+            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors duration-200"
           >
             <RefreshCw size={16} className="mr-2" />
             Reintentar
@@ -54,17 +54,17 @@ export default function Error({ error, reset }: ErrorProps) {
 
           <button
             onClick={() => window.location.href = '/'}
-            className="group relative w-full flex justify-center py-3 px-4 border border-slate-600 text-sm font-medium rounded-lg text-slate-300 bg-transparent hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-slate-950 transition-colors duration-200"
+            className="group relative w-full flex justify-center py-3 px-4 border border-slate-200 text-sm font-medium rounded-lg text-slate-600 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 transition-colors duration-200"
           >
             Volver al Dashboard
           </button>
 
           <div className="text-center">
-            <span className="text-slate-400 text-sm">
+            <span className="text-slate-500 text-sm">
               Si el problema persiste, {' '}
               <a
                 href="mailto:support@autamedica.com?subject=Error en Portal Médico"
-                className="text-emerald-400 hover:text-emerald-300 underline"
+                className="text-violet-600 hover:text-violet-500 underline"
               >
                 contactar soporte técnico
               </a>

@@ -45,61 +45,104 @@ export function useMedicalHistory(patientId?: PatientId) {
         .eq('patient_id', userId)
         .single()
 
-      // Build summary from data
-      const activeMedications = medicalRecords?.filter(r =>
-        r.record_type === 'prescription' && r.status === 'active'
-      ) || []
+      const records = (medicalRecords ?? []) as Array<Record<string, unknown>>
 
-      const recentDiagnoses = medicalRecords?.filter(r =>
-        r.record_type === 'diagnosis'
-      ) || []
+      const getContent = (record: Record<string, unknown>): Record<string, unknown> => {
+        const content = record.content
+        return content && typeof content === 'object' && !Array.isArray(content)
+          ? content as Record<string, unknown>
+          : {}
+      }
+
+      const getType = (record: Record<string, unknown>): string => {
+        return typeof record.type === 'string' ? record.type : ''
+      }
+
+      const getStatus = (record: Record<string, unknown>): string | null => {
+        const content = getContent(record)
+        return typeof content.status === 'string' ? content.status : null
+      }
+
+      const isActiveMedication = (record: Record<string, unknown>): boolean => {
+        if (getType(record) !== 'prescription') return false
+
+        const status = getStatus(record)
+        if (status === 'active' || status === 'activa') return true
+        if (status === 'completed' || status === 'completada' || status === 'cancelled' || status === 'cancelada') {
+          return false
+        }
+
+        const content = getContent(record)
+        const endDate = typeof content.end_date === 'string' ? content.end_date : null
+        return !endDate || new Date(endDate) >= new Date()
+      }
+
+      const activeMedications = records.filter(isActiveMedication)
+      const recentDiagnoses = records.filter((record) => getType(record) === 'diagnosis')
 
       const summaryData: MedicalHistorySummary = {
         patient_id: userId,
         active_conditions_count: recentDiagnoses.length,
         active_medications_count: activeMedications.length,
         known_allergies_count: 0, // Will be populated from anamnesis if available
-        last_encounter_date: medicalRecords?.[0]?.created_at || new Date().toISOString(),
-        chronic_conditions: recentDiagnoses.map(d => d.title),
+        last_encounter_date: typeof records[0]?.created_at === 'string' ? records[0].created_at : new Date().toISOString(),
+        chronic_conditions: recentDiagnoses.map((record) => String(record.title || 'Diagnóstico')),
         critical_allergies: [],
-        current_medications: activeMedications.map(m => `${m.title} ${m.dosage || ''}`.trim())
+        current_medications: activeMedications.map((record) => {
+          const content = getContent(record)
+          const medicationName = typeof content.medication_name === 'string' ? content.medication_name : String(record.title || 'Medicamento')
+          const dosage = typeof content.dosage === 'string' ? content.dosage : ''
+          return `${medicationName} ${dosage}`.trim()
+        })
       }
 
       // Build timeline
       const timelineData: MedicalHistoryTimeline = {
         patient_id: userId,
         sections: {
-          conditions: recentDiagnoses.map(r => ({
-            id: r.id,
-            name: r.title,
-            onset_date: r.created_at,
-            created_at: r.created_at,
+          conditions: recentDiagnoses.map((record) => ({
+            id: String(record.id),
+            name: String(record.title || 'Diagnóstico'),
+            onset_date: typeof record.created_at === 'string' ? record.created_at : new Date().toISOString(),
+            created_at: typeof record.created_at === 'string' ? record.created_at : new Date().toISOString(),
             status: 'active',
             severity: 'moderate',
-            notes: r.notes || undefined
+            notes: typeof getContent(record).notes === 'string' ? String(getContent(record).notes) : undefined
           })),
           allergies: [],
-          medications: activeMedications.map(m => ({
-            id: m.id,
-            name: m.title,
-            start_date: m.created_at,
-            dosage: m.dosage || 'No especificado',
-            frequency: m.frequency || 'Según indicación médica',
-            status: 'active'
-          })),
-          procedures: medicalRecords?.filter(r => r.record_type === 'procedure').map(p => ({
-            id: p.id,
-            name: p.title,
-            performed_date: p.created_at,
-            indication: p.notes || undefined,
-            outcome: p.outcome || undefined
-          })) || [],
-          encounters: medicalRecords?.filter(r => r.record_type === 'encounter' || r.record_type === 'note').map(e => ({
-            id: e.id,
-            created_at: e.created_at,
-            reason: e.title,
-            location: e.facility || undefined
-          })) || [],
+          medications: activeMedications.map((record) => {
+            const content = getContent(record)
+            return {
+              id: String(record.id),
+              name: typeof content.medication_name === 'string' ? content.medication_name : String(record.title || 'Medicamento'),
+              start_date: typeof record.created_at === 'string' ? record.created_at : new Date().toISOString(),
+              dosage: typeof content.dosage === 'string' ? content.dosage : 'No especificado',
+              frequency: typeof content.frequency === 'string' ? content.frequency : 'Según indicación médica',
+              status: 'active'
+            }
+          }),
+          procedures: records.filter((record) => getType(record) === 'procedure').map((record) => {
+            const content = getContent(record)
+            return {
+              id: String(record.id),
+              name: String(record.title || 'Procedimiento'),
+              performed_date: typeof record.created_at === 'string' ? record.created_at : new Date().toISOString(),
+              indication: typeof content.notes === 'string' ? content.notes : undefined,
+              outcome: typeof content.outcome === 'string' ? content.outcome : undefined
+            }
+          }),
+          encounters: records.filter((record) => {
+            const type = getType(record)
+            return type === 'encounter' || type === 'note' || type === 'consultation'
+          }).map((record) => {
+            const content = getContent(record)
+            return {
+              id: String(record.id),
+              created_at: typeof record.created_at === 'string' ? record.created_at : new Date().toISOString(),
+              reason: String(record.title || 'Consulta'),
+              location: typeof content.facility === 'string' ? content.facility : undefined
+            }
+          }),
           immunizations: []
         }
       }

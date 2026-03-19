@@ -152,3 +152,12 @@ export {
   logFeatureFlags,
   type FeatureFlags
 } from './config/feature-flags';
+
+// Anamnesis summary + export helpers
+export {
+  buildAnamnesisExportHtml,
+  buildAnamnesisSummary,
+  type AnamnesisSectionRecord,
+  type AnamnesisSummary,
+  type AnamnesisSummarySection,
+} from './anamnesis';

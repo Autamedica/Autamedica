@@ -18,14 +18,25 @@ import {
     Stethoscope
 } from 'lucide-react'
 import type { JSX } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface MedicalHistoryTabProps {
   patientId: UUID | null
 }
 
+interface SharedAnamnesisSummary {
+  summary: {
+    headline: string
+    narrative: string[]
+  }
+  anamnesis: {
+    privacy_accepted: boolean | null
+    status: string
+  }
+}
+
 const CONSULTATION_TYPES: { value: ConsultationType; label: string; color: string }[] = [
-  { value: 'general', label: 'General', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+  { value: 'general', label: 'General', color: 'bg-violet-50 text-violet-600 border-violet-200' },
   { value: 'seguimiento', label: 'Seguimiento', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
   { value: 'urgencia', label: 'Urgencia', color: 'bg-red-500/20 text-red-300 border-red-500/30' },
   { value: 'especialidad', label: 'Especialidad', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' }
@@ -35,6 +46,9 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedType, setSelectedType] = useState<ConsultationType | ''>('')
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null)
+  const [anamnesisSummary, setAnamnesisSummary] = useState<SharedAnamnesisSummary | null>(null)
+  const [anamnesisLoading, setAnamnesisLoading] = useState(false)
+  const [anamnesisError, setAnamnesisError] = useState<string | null>(null)
 
   const { records, loading, error, loadMore, hasMore } = useMedicalHistory(patientId, {
     filters: {
@@ -57,6 +71,72 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
     })
   }
 
+  useEffect(() => {
+    if (!patientId) {
+      setAnamnesisSummary(null)
+      setAnamnesisError(null)
+      return
+    }
+
+    let cancelled = false
+
+    const fetchSharedAnamnesis = async () => {
+      setAnamnesisLoading(true)
+      setAnamnesisError(null)
+
+      try {
+        const response = await fetch(`/api/patients/${patientId}/anamnesis`, {
+          credentials: 'include'
+        })
+
+        if (response.status === 403) {
+          if (!cancelled) {
+            setAnamnesisSummary(null)
+            setAnamnesisError('El paciente no compartió su anamnesis o no tienes acceso asignado.')
+          }
+          return
+        }
+
+        if (response.status === 404) {
+          if (!cancelled) {
+            setAnamnesisSummary(null)
+            setAnamnesisError('El paciente todavía no completó su anamnesis.')
+          }
+          return
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        const payload = await response.json()
+        if (!cancelled) {
+          setAnamnesisSummary(payload.data ?? null)
+        }
+      } catch (fetchError) {
+        if (!cancelled) {
+          setAnamnesisSummary(null)
+          setAnamnesisError('No se pudo cargar la anamnesis compartida.')
+        }
+      } finally {
+        if (!cancelled) {
+          setAnamnesisLoading(false)
+        }
+      }
+    }
+
+    fetchSharedAnamnesis()
+
+    return () => {
+      cancelled = true
+    }
+  }, [patientId])
+
+  const handleExportSharedAnamnesis = () => {
+    if (!patientId) return
+    window.open(`/api/patients/${patientId}/anamnesis?format=html`, '_blank', 'noopener,noreferrer')
+  }
+
   if (loading && records.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -73,7 +153,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">Error al cargar historial</h3>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Error al cargar historial</h3>
           <p className="text-slate-400">{error}</p>
         </div>
       </div>
@@ -85,7 +165,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <FileText className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">Sin paciente seleccionado</h3>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin paciente seleccionado</h3>
           <p className="text-slate-400">Selecciona un paciente para ver su historial médico</p>
         </div>
       </div>
@@ -93,13 +173,13 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#0a1525]">
+    <div className="h-full flex flex-col bg-slate-50">
 
       {/* Header con controles */}
-      <div className="border-b border-slate-800/60 bg-[#111f36] p-6">
+      <div className="border-b border-slate-200 bg-white p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-100">Historial Médico</h1>
+            <h1 className="text-xl font-bold text-slate-900">Historial Médico</h1>
             <p className="text-sm text-slate-400">
               {records.length} registro{records.length !== 1 ? 's' : ''} encontrado{records.length !== 1 ? 's' : ''}
             </p>
@@ -110,7 +190,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
               <Plus className="h-4 w-4" />
               Nueva Consulta
             </button>
-            <button className="flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800/40 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800/60 transition">
+            <button className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 transition">
               <Download className="h-4 w-4" />
               Exportar
             </button>
@@ -126,14 +206,14 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
               placeholder="Buscar por diagnóstico, síntomas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800/40 pl-10 pr-4 py-2 text-sm text-slate-100 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
 
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value as ConsultationType | '')}
-            className="rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Todos los tipos</option>
             {CONSULTATION_TYPES.map(type => (
@@ -147,11 +227,57 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
 
       {/* Lista de registros */}
       <div className="flex-1 overflow-y-auto p-6">
+        <div className="mb-6 rounded-xl border border-emerald-200 bg-white p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Anamnesis compartida</h2>
+              <p className="text-sm text-slate-500">
+                Resumen clínico redactado automáticamente desde las respuestas del paciente.
+              </p>
+            </div>
+
+            {anamnesisSummary && (
+              <button
+                type="button"
+                onClick={handleExportSharedAnamnesis}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 transition"
+              >
+                <Download className="h-4 w-4" />
+                Exportar resumen
+              </button>
+            )}
+          </div>
+
+          {anamnesisLoading ? (
+            <p className="mt-4 text-sm text-slate-500">Cargando anamnesis compartida...</p>
+          ) : anamnesisSummary ? (
+            <div className="mt-4 space-y-3">
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-sm font-medium text-emerald-900">{anamnesisSummary.summary.headline}</p>
+                <p className="mt-1 text-xs text-emerald-700">
+                  Estado: {anamnesisSummary.anamnesis.status} • Compartida con médicos: sí
+                </p>
+              </div>
+              <div className="space-y-2">
+                {anamnesisSummary.summary.narrative.slice(0, 6).map((item) => (
+                  <div key={item} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">
+              {anamnesisError ?? 'No hay anamnesis compartida disponible para este paciente.'}
+            </p>
+          )}
+        </div>
+
         {records.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <FileText className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-200 mb-2">Sin registros médicos</h3>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin registros médicos</h3>
               <p className="text-slate-400 mb-4">
                 {searchTerm || selectedType
                   ? 'No se encontraron registros con los filtros aplicados'
@@ -173,7 +299,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
               return (
                 <div
                   key={record.id}
-                  className="rounded-lg border border-slate-800/60 bg-[#111f36] overflow-hidden"
+                  className="rounded-lg border border-slate-200 bg-white overflow-hidden"
                 >
                   {/* Header del registro */}
                   <div className="p-4">
@@ -189,7 +315,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
                           </div>
                         </div>
 
-                        <h3 className="text-lg font-semibold text-slate-100 mb-2">
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2">
                           {record.chief_complaint}
                         </h3>
 
@@ -203,7 +329,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
 
                       <button
                         onClick={() => setExpandedRecord(isExpanded ? null : record.id)}
-                        className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800/60 transition"
+                        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 transition"
                       >
                         <Eye className="h-4 w-4" />
                         {isExpanded ? 'Ocultar' : 'Ver detalles'}
@@ -214,15 +340,15 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
 
                   {/* Contenido expandido */}
                   {isExpanded && (
-                    <div className="border-t border-slate-800/60 bg-slate-900/40 p-4">
+                    <div className="border-t border-slate-200 bg-slate-50 p-4">
                       <div className="grid gap-4 lg:grid-cols-2">
                         <div>
-                          <h4 className="text-sm font-semibold text-slate-300 mb-2">Síntomas</h4>
+                          <h4 className="text-sm font-semibold text-slate-600 mb-2">Síntomas</h4>
                           <div className="flex flex-wrap gap-2">
                             {record.symptoms.map((symptom, index) => (
                               <span
                                 key={index}
-                                className="rounded-lg bg-slate-800 px-2 py-1 text-xs text-slate-300"
+                                className="rounded-lg bg-slate-50 px-2 py-1 text-xs text-slate-600"
                               >
                                 {symptom}
                               </span>
@@ -231,34 +357,34 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
                         </div>
 
                         <div>
-                          <h4 className="text-sm font-semibold text-slate-300 mb-2">Plan de Tratamiento</h4>
+                          <h4 className="text-sm font-semibold text-slate-600 mb-2">Plan de Tratamiento</h4>
                           <p className="text-sm text-slate-400">{record.treatment_plan}</p>
                         </div>
 
                         {record.follow_up_instructions && (
                           <div className="lg:col-span-2">
-                            <h4 className="text-sm font-semibold text-slate-300 mb-2">Instrucciones de Seguimiento</h4>
+                            <h4 className="text-sm font-semibold text-slate-600 mb-2">Instrucciones de Seguimiento</h4>
                             <p className="text-sm text-slate-400">{record.follow_up_instructions}</p>
                           </div>
                         )}
 
                         {record.attachments.length > 0 && (
                           <div className="lg:col-span-2">
-                            <h4 className="text-sm font-semibold text-slate-300 mb-2">Archivos Adjuntos</h4>
+                            <h4 className="text-sm font-semibold text-slate-600 mb-2">Archivos Adjuntos</h4>
                             <div className="space-y-2">
                               {record.attachments.map((attachment) => (
                                 <div
                                   key={attachment.id}
-                                  className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/40 p-3"
+                                  className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3"
                                 >
                                   <FileText className="h-4 w-4 text-slate-400" />
                                   <div className="flex-1">
-                                    <p className="text-sm font-medium text-slate-300">{attachment.file_name}</p>
+                                    <p className="text-sm font-medium text-slate-600">{attachment.file_name}</p>
                                     <p className="text-xs text-slate-400">
                                       {(attachment.file_size / 1024).toFixed(1)} KB • {attachment.description}
                                     </p>
                                   </div>
-                                  <button className="rounded-lg border border-slate-600 bg-slate-800/40 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800/60 transition">
+                                  <button className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 transition">
                                     Descargar
                                   </button>
                                 </div>
@@ -279,7 +405,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
                 <button
                   onClick={loadMore}
                   disabled={loading}
-                  className="rounded-lg border border-slate-600 bg-slate-800/40 px-6 py-2 text-sm text-slate-300 hover:bg-slate-800/60 transition disabled:opacity-50"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-6 py-2 text-sm text-slate-600 hover:bg-slate-100 transition disabled:opacity-50"
                 >
                   {loading ? 'Cargando...' : 'Cargar más registros'}
                 </button>

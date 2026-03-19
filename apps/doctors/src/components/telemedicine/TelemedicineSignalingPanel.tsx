@@ -1,5 +1,6 @@
 'use client';
 
+import { doctorsEnv } from '@/lib/env';
 import { TelemedicineSignalingPanel as SharedPanel } from '@autamedica/ui';
 import type { TelemedicineRole } from '@autamedica/telemedicine';
 
@@ -12,11 +13,16 @@ interface TelemedicineSignalingPanelProps {
 }
 
 export function TelemedicineSignalingPanel(props: TelemedicineSignalingPanelProps) {
-  const signalingUrl = 'ws://localhost:3005/signal';
   const iceCandidateStyle = {
     bg: 'bg-purple-500/10',
     text: 'text-purple-200',
   };
 
-  return <SharedPanel {...props} signalingUrl={signalingUrl} iceCandidateStyle={iceCandidateStyle} />;
+  return (
+    <SharedPanel
+      {...props}
+      signalingUrl={doctorsEnv.signalingUrl}
+      iceCandidateStyle={iceCandidateStyle}
+    />
+  );
 }

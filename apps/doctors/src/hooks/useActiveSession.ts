@@ -5,7 +5,7 @@
 import { DEMO_PATIENT_ID } from '@/data/demoData'
 import type { UUID } from '@/types/medical'
 import { logger } from '@autamedica/shared'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export interface ActiveSessionData {
   patientId: UUID | null
@@ -23,12 +23,34 @@ export interface UseActiveSessionResult {
   endSession: () => Promise<void>
 }
 
+function createRuntimeSessionId(): UUID {
+  const randomUUID = globalThis.crypto?.randomUUID?.bind(globalThis.crypto)
+  if (!randomUUID) {
+    throw new Error('Secure runtime UUID generator is not available')
+  }
+
+  return randomUUID() as UUID
+}
+
 export function useActiveSession(): UseActiveSessionResult {
   const [session, setSession] = useState<ActiveSessionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchActiveSession = async () => {
+  const createGuestSession = useCallback(async (): Promise<void> => {
+    // Usar datos de invitado con UUID válido predefinido
+    const guestSessionId = createRuntimeSessionId()
+
+    setSession({
+      patientId: DEMO_PATIENT_ID,
+      sessionId: guestSessionId,
+      sessionType: 'general',
+      startTime: new Date().toISOString(),
+      status: 'en_progreso'
+    })
+  }, [])
+
+  const fetchActiveSession = useCallback(async (): Promise<void> => {
     setLoading(true)
     setError(null)
 
@@ -46,24 +68,14 @@ export function useActiveSession(): UseActiveSessionResult {
     } finally {
       setLoading(false)
     }
-  }
+  }, [createGuestSession])
 
-  const createGuestSession = async () => {
-    // Usar datos de invitado con UUID válido predefinido
-    const guestSessionId = crypto.randomUUID() as UUID
-
-    setSession({
-      patientId: DEMO_PATIENT_ID,
-      sessionId: guestSessionId,
-      sessionType: 'general',
-      startTime: new Date().toISOString(),
-      status: 'en_progreso'
-    })
-  }
-
-  const startSession = async (patientId: UUID, sessionType: ActiveSessionData['sessionType']) => {
+  const startSession = useCallback(async (
+    patientId: UUID,
+    sessionType: ActiveSessionData['sessionType'],
+  ): Promise<void> => {
     try {
-      const sessionId = crypto.randomUUID() as UUID
+      const sessionId = createRuntimeSessionId()
       const startTime = new Date().toISOString()
 
       setSession({
@@ -82,9 +94,9 @@ export function useActiveSession(): UseActiveSessionResult {
       setError(`Error al iniciar sesión: ${errorMessage}`)
       throw err
     }
-  }
+  }, [])
 
-  const endSession = async () => {
+  const endSession = useCallback(async (): Promise<void> => {
     if (!session) return
 
     try {
@@ -98,11 +110,11 @@ export function useActiveSession(): UseActiveSessionResult {
       setError(`Error al finalizar sesión: ${errorMessage}`)
       throw err
     }
-  }
+  }, [session])
 
   useEffect(() => {
     fetchActiveSession()
-  }, [])
+  }, [fetchActiveSession])
 
   return {
     session,

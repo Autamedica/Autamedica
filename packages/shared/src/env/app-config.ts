@@ -77,7 +77,7 @@ export function getAppEnv(appName: AppName): AppEnvironmentConfig {
     },
     signalingUrl: getClientEnvOrDefault(
       'NEXT_PUBLIC_SIGNALING_URL',
-      'ws://localhost:3005/signal',
+      'ws://localhost:8080',
     ),
     authDevBypassEnabled: getClientEnvOrDefault('NEXT_PUBLIC_AUTH_DEV_BYPASS', 'false') === 'true',
   };

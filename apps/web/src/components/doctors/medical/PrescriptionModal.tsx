@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { JSX } from 'react'
 import { X, Save, Clock, Pill, AlertCircle, Plus, Trash2 } from 'lucide-react'
 import { useMedicalHistoryStore } from '@/lib/doctors/stores/medicalHistoryStore'
+import { usePrescriptions } from '@/hooks/doctors/usePrescriptions'
 
 interface PrescriptionModalProps {
   patientName: string
@@ -52,7 +53,8 @@ const COMMON_MEDICATIONS = [
 ]
 
 export function PrescriptionModal({ patientName, patientId, onClose }: PrescriptionModalProps): JSX.Element {
-  const { addEntry, suggestPrescriptions } = useMedicalHistoryStore()
+  const { suggestPrescriptions } = useMedicalHistoryStore()
+  const { addPrescription } = usePrescriptions(patientId as never)
   const [medications, setMedications] = useState<Medication[]>([
     {
       id: crypto.randomUUID(),
@@ -67,6 +69,8 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
   const [generalInstructions, setGeneralInstructions] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const addMedication = () => {
     setMedications(prev => [...prev, {
@@ -103,44 +107,47 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
   }
 
   const handleSave = async () => {
-    const prescriptionText = medications
-      .filter(med => med.name)
-      .map(med => `
-${med.name} ${med.dosage}
-Frecuencia: ${med.frequency}
-Duración: ${med.duration}
-${med.instructions ? `Instrucciones: ${med.instructions}` : ''}
-      `.trim())
-      .join('\n\n')
+    const normalizedMedications = medications.filter((med) => med.name.trim())
 
-    const fullPrescription = `
-PRESCRIPCIÓN MÉDICA - ${new Date().toLocaleDateString('es-ES')}
+    if (normalizedMedications.length === 0) {
+      setSaveError('Agregá al menos un medicamento antes de guardar.')
+      return
+    }
 
-DIAGNÓSTICO: ${diagnosis || 'No especificado'}
+    setSaving(true)
+    setSaveError(null)
 
-MEDICAMENTOS:
-${prescriptionText}
+    try {
+      const primaryMedication = normalizedMedications[0]!
+      const now = new Date().toISOString()
 
-${generalInstructions ? `INSTRUCCIONES GENERALES:\n${generalInstructions}` : ''}
+      await addPrescription({
+        patient_id: patientId as never,
+        doctor_id: '' as never,
+        medical_record_id: null,
+        medication_name: primaryMedication.name,
+        dosage: primaryMedication.dosage,
+        frequency: primaryMedication.frequency,
+        duration: primaryMedication.duration,
+        instructions: [
+          primaryMedication.instructions.trim(),
+          generalInstructions.trim() ? `Indicaciones generales: ${generalInstructions.trim()}` : ''
+        ].filter(Boolean).join('\n'),
+        status: 'activa',
+        prescribed_date: now,
+        start_date: now,
+        end_date: null,
+        notes: diagnosis.trim() ? `Diagnóstico: ${diagnosis.trim()}` : null,
+        side_effects_warning: null,
+      })
 
-Dr. [Nombre del médico]
-[Matrícula profesional]
-    `.trim()
-
-    await addEntry({
-      type: 'prescription',
-      content: fullPrescription,
-      doctorId: 'current-doctor',
-      patientId,
-      metadata: {
-        medication: medications[0]?.name,
-        dosage: medications[0]?.dosage,
-        frequency: medications[0]?.frequency,
-        duration: medications[0]?.duration
-      }
-    })
-
-    onClose()
+      onClose()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar la prescripción.'
+      setSaveError(message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -168,6 +175,12 @@ Dr. [Nombre del médico]
 
         {/* Content */}
         <div className="p-4 space-y-4">
+          {saveError && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+              {saveError}
+            </div>
+          )}
+
           {/* Diagnóstico */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-slate-400">Diagnóstico</label>
@@ -328,10 +341,11 @@ Dr. [Nombre del médico]
             <button
               type="button"
               onClick={handleSave}
-              className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
+              disabled={saving}
+              className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              Guardar prescripción
+              {saving ? 'Guardando...' : 'Guardar prescripción'}
             </button>
           </div>
         </footer>

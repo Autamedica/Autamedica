@@ -25,6 +25,11 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   const router = useRouter()
   const { session, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
+  const sessionRecord = session as { user?: { id: string; email?: string | null; role?: string | null } } | null
+  const sessionUser =
+    sessionRecord && typeof sessionRecord === 'object' && sessionRecord.user
+      ? sessionRecord.user
+      : null
 
   // Handlers and memoized values BEFORE early returns (React hooks rules)
   const handleCallEnd = () => {
@@ -44,10 +49,10 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   }
 
   const { userId, userName } = useMemo(() => {
-    if (session) {
+    if (sessionUser) {
       return {
-        userId: session.user.id,
-        userName: session.user.email || 'Paciente'
+        userId: sessionUser.id,
+        userName: sessionUser.email || 'Paciente'
       }
     }
 
@@ -55,7 +60,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       userId: `dev-patient-${roomId}`,
       userName: 'Paciente de prueba'
     }
-  }, [session, roomId])
+  }, [sessionUser, roomId])
 
   useEffect(() => {
     if (loading) return
@@ -80,13 +85,13 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       return
     }
 
-    if (session.user.role !== 'patient') {
+    if (sessionUser?.role !== 'patient') {
       router.push('/')
       return
     }
 
     setIsReady(true)
-  }, [session, loading, router, roomId])
+  }, [session, sessionUser, loading, router, roomId])
 
   if (loading || !isReady) {
     return (

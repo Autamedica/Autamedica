@@ -39,7 +39,7 @@ const STATUS_CONFIG: Record<PrescriptionStatus, {
   completada: {
     label: 'Completada',
     icon: CheckCircle,
-    color: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+    color: 'bg-violet-50 text-violet-600 border-violet-200'
   },
   cancelada: {
     label: 'Cancelada',
@@ -106,7 +106,7 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">Error al cargar prescripciones</h3>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Error al cargar prescripciones</h3>
           <p className="text-slate-400">{error}</p>
         </div>
       </div>
@@ -118,7 +118,7 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <Pill className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-200 mb-2">Sin paciente seleccionado</h3>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin paciente seleccionado</h3>
           <p className="text-slate-400">Selecciona un paciente para ver sus prescripciones</p>
         </div>
       </div>
@@ -126,13 +126,13 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
   }
 
   return (
-    <div className="h-full flex flex-col bg-[#0a1525]">
+    <div className="h-full flex flex-col bg-slate-50">
 
       {/* Header con controles */}
-      <div className="border-b border-slate-800/60 bg-[#111f36] p-6">
+      <div className="border-b border-slate-200 bg-white p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-100">Prescripciones</h1>
+            <h1 className="text-xl font-bold text-slate-900">Prescripciones</h1>
             <p className="text-sm text-slate-400">
               {prescriptions.length} prescripción{prescriptions.length !== 1 ? 'es' : ''} encontrada{prescriptions.length !== 1 ? 's' : ''}
             </p>
@@ -153,14 +153,14 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
               placeholder="Buscar medicamento..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800/40 pl-10 pr-4 py-2 text-sm text-slate-100 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
 
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value as PrescriptionStatus | '')}
-            className="rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             <option value="">Todos los estados</option>
             {Object.entries(STATUS_CONFIG).map(([status, config]) => (
@@ -170,12 +170,12 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
             ))}
           </select>
 
-          <label className="flex items-center gap-2 text-sm text-slate-300">
+          <label className="flex items-center gap-2 text-sm text-slate-600">
             <input
               type="checkbox"
               checked={showActiveOnly}
               onChange={(e) => setShowActiveOnly(e.target.checked)}
-              className="rounded border-slate-600 bg-slate-800 text-emerald-600 focus:ring-emerald-500"
+              className="rounded border-slate-200 bg-slate-50 text-emerald-600 focus:ring-emerald-500"
             />
             Solo activas
           </label>
@@ -188,7 +188,7 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <Pill className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-200 mb-2">Sin prescripciones</h3>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin prescripciones</h3>
               <p className="text-slate-400 mb-4">
                 {searchTerm || selectedStatus || showActiveOnly
                   ? 'No se encontraron prescripciones con los filtros aplicados'
@@ -212,14 +212,14 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
               return (
                 <div
                   key={prescription.id}
-                  className={`rounded-lg border border-slate-800/60 bg-[#111f36] p-4 ${
+                  className={`rounded-lg border border-slate-200 bg-white p-4 ${
                     expiringSoon ? 'ring-2 ring-orange-500/50' : ''
                   }`}
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Pill className="h-5 w-5 text-emerald-400" />
+                      <Pill className="h-5 w-5 text-emerald-500" />
                       <span className={`rounded-full px-2 py-1 text-xs font-medium border ${statusConfig.color}`}>
                         <StatusIcon className="inline h-3 w-3 mr-1" />
                         {statusConfig.label}
@@ -227,10 +227,10 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <button className="rounded-lg border border-slate-700 bg-slate-800/40 p-1.5 text-slate-300 hover:bg-slate-800/60 transition">
+                      <button className="rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-slate-600 hover:bg-slate-100 transition">
                         <Edit3 className="h-3 w-3" />
                       </button>
-                      <button className="rounded-lg border border-slate-700 bg-slate-800/40 p-1.5 text-slate-300 hover:bg-slate-800/60 transition">
+                      <button className="rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-slate-600 hover:bg-slate-100 transition">
                         <Eye className="h-3 w-3" />
                       </button>
                     </div>
@@ -238,7 +238,7 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
 
                   {/* Medicamento */}
                   <div className="mb-3">
-                    <h3 className="text-lg font-semibold text-slate-100 mb-1">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-1">
                       {prescription.medication_name}
                     </h3>
                     <p className="text-sm text-slate-400">{prescription.dosage}</p>
@@ -248,24 +248,24 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm">
                       <Clock className="h-4 w-4 text-slate-400" />
-                      <span className="text-slate-300">{prescription.frequency}</span>
+                      <span className="text-slate-600">{prescription.frequency}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="h-4 w-4 text-slate-400" />
-                      <span className="text-slate-300">{prescription.duration}</span>
+                      <span className="text-slate-600">{prescription.duration}</span>
                     </div>
                   </div>
 
                   {/* Fechas */}
-                  <div className="border-t border-slate-800/60 pt-3">
+                  <div className="border-t border-slate-200 pt-3">
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <p className="text-slate-400">Inicio</p>
-                        <p className="text-slate-300">{formatDate(prescription.start_date)}</p>
+                        <p className="text-slate-600">{formatDate(prescription.start_date)}</p>
                       </div>
                       <div>
                         <p className="text-slate-400">Fin</p>
-                        <p className="text-slate-300">
+                        <p className="text-slate-600">
                           {prescription.end_date ? formatDate(prescription.end_date) : 'Indefinido'}
                         </p>
                       </div>
@@ -294,9 +294,9 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
 
                   {/* Instrucciones */}
                   {prescription.instructions && (
-                    <div className="mt-3 pt-3 border-t border-slate-800/60">
+                    <div className="mt-3 pt-3 border-t border-slate-200">
                       <p className="text-xs text-slate-400">Instrucciones:</p>
-                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                         {prescription.instructions}
                       </p>
                     </div>

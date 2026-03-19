@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react'
 import { SessionData, fetchSessionData, getLoginUrl } from '@/lib/session-sync'
 import { logger } from '@autamedica/shared'
 
@@ -10,6 +10,16 @@ const PUBLIC_PATHS = ['/test-call', '/consultation', '/auth/callback']
 function isPublicPath(): boolean {
   if (typeof window === 'undefined') return false
   return PUBLIC_PATHS.some(p => window.location.pathname === p || window.location.pathname.startsWith(`${p}/`))
+}
+
+/** Guard: prevent multiple redirect navigations */
+let _redirecting = false
+
+function redirectToLogin(): void {
+  if (_redirecting || isPublicPath()) return
+  if (process.env.NODE_ENV === 'development') return
+  _redirecting = true
+  window.location.href = getLoginUrl()
 }
 
 interface AuthContextType {
@@ -30,8 +40,12 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
   const [session, setSession] = useState<SessionData | null>(initialSession)
   const [loading, setLoading] = useState(!initialSession)
   const [error, setError] = useState<string | null>(null)
+  const refreshingRef = useRef(false)
 
   const refresh = async () => {
+    if (refreshingRef.current) return
+    refreshingRef.current = true
+
     try {
       setLoading(true)
       setError(null)
@@ -39,26 +53,18 @@ export function AuthProvider({ children, initialSession = null }: AuthProviderPr
       const sessionData = await fetchSessionData()
 
       if (!sessionData) {
-        if (!isPublicPath() && process.env.NODE_ENV !== 'development') {
-          window.location.href = getLoginUrl()
-        }
+        redirectToLogin()
         return
       }
 
       setSession(sessionData)
-
     } catch (err) {
       logger.error('Auth refresh error:', err)
       setError(err instanceof Error ? err.message : 'Authentication failed')
-
-      if (!isPublicPath() && process.env.NODE_ENV !== 'development') {
-        setTimeout(() => {
-          window.location.href = getLoginUrl()
-        }, 1000)
-      }
-
+      redirectToLogin()
     } finally {
       setLoading(false)
+      refreshingRef.current = false
     }
   }
 
@@ -107,10 +113,7 @@ export function useRequireAuth() {
   }
 
   if (!session || error) {
-    // 🔓 DEV MODE: Don't redirect in development
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
-      window.location.href = getLoginUrl()
-    }
+    redirectToLogin()
     return { session: null, loading: false, error: error || 'No session' }
   }
 
