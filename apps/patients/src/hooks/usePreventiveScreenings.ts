@@ -237,16 +237,16 @@ export function usePreventiveScreenings(
         if (updateError) throw updateError;
       } else {
         // Create new
-        const insertData: any = {
+        const insertData = {
           patient_id: options.patientId,
           screening_id: screeningId,
-          status: 'scheduled',
+          status: 'scheduled' as const,
           scheduled_date: scheduledDate.toISOString(),
-          completed_date: null,
-          next_due_date: null,
-          assigned_doctor_id: null,
-          notes: null,
-          result_summary: null
+          completed_date: null as string | null,
+          next_due_date: null as string | null,
+          assigned_doctor_id: null as string | null,
+          notes: null as string | null,
+          result_summary: null as string | null
         };
 
         const { error: insertError } = await supabase
@@ -288,9 +288,12 @@ export function usePreventiveScreenings(
       const completedDate = new Date();
       let nextDueDate: Date | null = null;
 
+      type ScreeningWithFreq = { recommended_frequency?: string }
+      const screeningData = screening?.screening as ScreeningWithFreq | null | undefined
+
       // Calculate next due date based on frequency
-      if ((screening?.screening as any)?.recommended_frequency) {
-        const freq = (screening!.screening as any).recommended_frequency;
+      if (screeningData?.recommended_frequency) {
+        const freq = screeningData.recommended_frequency;
         nextDueDate = new Date(completedDate);
 
         switch (freq) {

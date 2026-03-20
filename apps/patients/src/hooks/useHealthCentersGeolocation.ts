@@ -173,7 +173,7 @@ export function useHealthCentersGeolocation(
       if (fetchError) throw fetchError;
 
       // Map to HealthCenterWithDistance (distance_km = 0 when no location)
-      const centersData: HealthCenterWithDistance[] = (data || []).map((center: any) => ({
+      const centersData: HealthCenterWithDistance[] = (data || []).map((center) => ({
         ...center,
         distance_km: 0,
         travel_time_minutes: undefined
@@ -312,7 +312,7 @@ function getHealthCenterTypeLabel(type: string): string {
   return labels[type] || type;
 }
 
-function formatAddressForDisplay(address: any): string {
+function formatAddressForDisplay(address: Record<string, string | null | undefined> | null | undefined): string {
   if (!address) return '';
 
   const parts = [

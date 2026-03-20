@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 
     // Ensure profiles row exists with the production schema
     try {
-      const { error: profileErr } = await (admin as any)
+      const { error: profileErr } = await admin
         .from('profiles')
         .upsert({
           user_id: userId,
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
     // Optionally ensure patients row exists
     try {
-      const { error: patientErr } = await (admin as any)
+      const { error: patientErr } = await admin
         .from('patients')
         .upsert({
           user_id: userId,

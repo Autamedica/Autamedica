@@ -272,13 +272,13 @@ export function useChatMessages(
 
     try {
 
-      const messageData: any = {
+      const messageData = {
         chat_id: chatId,
-        author_type: 'patient',
+        author_type: 'patient' as const,
         author_id: userId,
         content_type: contentType,
         content,
-        attachment_url: undefined
+        attachment_url: undefined as string | undefined
       };
 
       const { error: insertError } = await supabase
