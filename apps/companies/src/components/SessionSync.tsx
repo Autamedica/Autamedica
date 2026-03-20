@@ -1,7 +1,6 @@
 'use client';
 
-import { ensureClientEnv } from '@autamedica/shared';
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient } from '@autamedica/auth';
 import { useEffect } from 'react';
 
 /**
@@ -12,7 +11,7 @@ import { useEffect } from 'react';
  *
  * This component:
  * 1. Checks for access_token and refresh_token in URL params
- * 2. Sets them in Supabase client
+ * 2. Sets them in Supabase client (using the app singleton)
  * 3. Cleans up the URL
  * 4. Allows the app to continue normally
  */
@@ -25,10 +24,8 @@ export function SessionSync() {
     const refreshToken = urlParams.get('refresh_token');
 
     if (accessToken && refreshToken) {
-      const supabase = createBrowserClient(
-        ensureClientEnv('NEXT_PUBLIC_SUPABASE_URL'),
-        ensureClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
-      );
+      // Use the singleton client — never create a raw client that bypasses the singleton
+      const supabase = createBrowserClient();
 
       // Set the session with the tokens from URL
       supabase.auth.setSession({

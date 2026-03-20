@@ -77,13 +77,6 @@ export function createBrowserClient(): SupabaseClient<Database> {
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce', // Use PKCE flow for better security
-      // Disable the Browser Lock API to prevent lock contention timeouts.
-      // GoTrue's internal initialization acquires multiple locks that compete
-      // with each other, causing 5s timeout warnings on Cloudflare Workers.
-      // The lock is designed for cross-tab coordination which is not critical
-      // for our use case — token refresh races are handled by the server.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => fn(),
       storage: {
         // Use localStorage with fallback to sessionStorage
         getItem: (key: string) => {
