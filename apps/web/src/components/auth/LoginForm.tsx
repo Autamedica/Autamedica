@@ -105,7 +105,7 @@ export function LoginForm() {
     () => buildAuthPath('register', { role, returnTo }),
     [role, returnTo]
   );
-  const selectRoleHref = useMemo(
+  const _selectRoleHref = useMemo(
     () => buildAuthPath('select-role', { returnTo }),
     [returnTo]
   );
@@ -113,7 +113,7 @@ export function LoginForm() {
     () => buildAuxHref('/auth/forgot-password', role, returnTo),
     [role, returnTo]
   );
-  const roleContext = role ? getRoleEntry(role) : undefined;
+  const _roleContext = role ? getRoleEntry(role) : undefined;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
