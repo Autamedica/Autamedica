@@ -174,6 +174,9 @@ js.configs.recommended,
       }
     ],
 
+    // Monorepo: no pages/ at root – disable Next.js page-dir rules globally
+    '@next/next/no-html-link-for-pages': 'off',
+
     // TypeScript estricto - Variables no usadas con patrones avanzados
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': 'off', // Deshabilitado en favor de unused-imports

@@ -1,13 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@autamedica/types'
+import { createClient, type SupabaseClient, type RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import type { Database, Json } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import type { Call, CallStatus, CallEvent } from './types'
+import { createTelemedicineLogger, type TelemedicineDebugLevel } from '../debug'
 
 // Service for call management
 export class CallService {
-  private supabase: any
+  private supabase: SupabaseClient<Database>
   private functionsBaseUrl: string
   private anonKey: string
+  private readonly debugLogger = createTelemedicineLogger({ source: 'CallService' })
 
   constructor(supabaseUrl: string, supabaseKey: string) {
     this.supabase = createClient<Database>(supabaseUrl, supabaseKey)
@@ -15,12 +17,58 @@ export class CallService {
     this.functionsBaseUrl = `${new URL(supabaseUrl).origin}/functions/v1`
   }
 
+  private writeLocalDebug(
+    level: TelemedicineDebugLevel,
+    message: string,
+    payload?: Record<string, unknown>,
+  ): void {
+    switch (level) {
+      case 'error':
+        this.debugLogger.error(message, undefined, payload)
+        break
+      case 'warn':
+        this.debugLogger.warn(message, payload)
+        break
+      default:
+        this.debugLogger.info(message, payload)
+        break
+    }
+  }
+
+  async logDebugEvent(
+    callId: string,
+    level: TelemedicineDebugLevel,
+    source: string,
+    message: string,
+    payload?: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.logEvent(callId, 'debug_log', {
+        level,
+        source,
+        message,
+        payload: (payload ?? null) as Json,
+      })
+    } catch (error) {
+      this.writeLocalDebug('warn', 'No fue posible persistir debug_log', {
+        callId,
+        source,
+        message,
+        payload,
+        error,
+      })
+    }
+  }
+
   async createCall(doctorId: string, patientId: string): Promise<Call> {
+    this.writeLocalDebug('info', 'Iniciando createCall', { doctorId, patientId })
+
     try {
       // Get auth session for authorization header
       const { data: { session } } = await this.supabase.auth.getSession()
 
       if (!session?.access_token) {
+        this.writeLocalDebug('error', 'createCall sin sesion activa', { doctorId, patientId })
         throw new Error('No active session found. Please login first.')
       }
 
@@ -41,6 +89,10 @@ export class CallService {
       // Fallback path for environments where Edge Functions are not deployed yet
       if (response.status === 404) {
         logger.warn('create-call edge function not found, falling back to RPC')
+        this.writeLocalDebug('warn', 'create-call edge function ausente; usando RPC', {
+          doctorId,
+          patientId,
+        })
         return await this.createCallViaRpc(doctorId, patientId)
       }
 
@@ -56,23 +108,41 @@ export class CallService {
       }
 
       if (result.call) {
+        void this.logDebugEvent(result.call.id, 'info', 'CallService', 'Llamada creada via edge function', {
+          doctorId,
+          patientId,
+          roomId: result.call.room_id,
+        })
         return result.call as Call
       }
 
       // Backward compatibility with direct payload responses
+      void this.logDebugEvent((result as Call).id, 'info', 'CallService', 'Llamada creada via payload directo', {
+        doctorId,
+        patientId,
+        roomId: (result as Call).room_id,
+      })
       return result as Call
     } catch (err) {
       logger.error('Error in createCall:', err)
+      this.writeLocalDebug('error', 'Error en createCall', {
+        doctorId,
+        patientId,
+        error: err,
+      })
       throw err
     }
   }
 
   async updateCallStatus(callId: string, status: CallStatus, reason?: string): Promise<boolean> {
+    this.writeLocalDebug('info', 'Iniciando updateCallStatus', { callId, status, reason })
+
     try {
       // Get auth session for authorization header
       const { data: { session } } = await this.supabase.auth.getSession()
 
       if (!session?.access_token) {
+        this.writeLocalDebug('error', 'updateCallStatus sin sesion activa', { callId, status, reason })
         throw new Error('No active session found. Please login first.')
       }
 
@@ -94,6 +164,11 @@ export class CallService {
       // Fallback path for environments where Edge Functions are not deployed yet
       if (response.status === 404) {
         logger.warn('update-call-status edge function not found, falling back to RPC')
+        this.writeLocalDebug('warn', 'update-call-status edge function ausente; usando RPC', {
+          callId,
+          status,
+          reason,
+        })
         return await this.updateCallStatusViaRpc(callId, status, reason)
       }
 
@@ -109,12 +184,33 @@ export class CallService {
       }
 
       if (typeof result.updated === 'boolean') {
+        void this.logDebugEvent(callId, 'info', 'CallService', 'Estado de llamada actualizado', {
+          status,
+          reason,
+          updated: result.updated,
+        })
         return result.updated
       }
 
+      void this.logDebugEvent(callId, 'info', 'CallService', 'Estado de llamada actualizado', {
+        status,
+        reason,
+        updated: Boolean(result),
+      })
       return Boolean(result)
     } catch (err) {
       logger.error('Error in updateCallStatus:', err)
+      this.writeLocalDebug('error', 'Error en updateCallStatus', {
+        callId,
+        status,
+        reason,
+        error: err,
+      })
+      void this.logDebugEvent(callId, 'error', 'CallService', 'Error al actualizar estado de llamada', {
+        status,
+        reason,
+        error: err,
+      })
       throw err
     }
   }
@@ -130,10 +226,20 @@ export class CallService {
     if (Array.isArray(data)) {
       const first = data[0]
       if (!first) throw new Error('RPC create_call returned no rows')
+      void this.logDebugEvent(first.id, 'info', 'CallService', 'Llamada creada via RPC', {
+        doctorId,
+        patientId,
+        roomId: first.room_id,
+      })
       return first as Call
     }
 
     if (!data) throw new Error('RPC create_call returned empty payload')
+    void this.logDebugEvent((data as Call).id, 'info', 'CallService', 'Llamada creada via RPC', {
+      doctorId,
+      patientId,
+      roomId: (data as Call).room_id,
+    })
     return data as Call
   }
 
@@ -149,6 +255,7 @@ export class CallService {
   }
 
   async getCall(callId: string): Promise<Call | null> {
+    this.writeLocalDebug('info', 'Consultando llamada', { callId })
     const { data, error } = await this.supabase
       .from('calls')
       .select('*')
@@ -171,6 +278,7 @@ export class CallService {
   }
 
   async getActiveCallsForDoctor(doctorId: string): Promise<Call[]> {
+    this.writeLocalDebug('info', 'Consultando llamadas activas del doctor', { doctorId })
     const { data, error } = await this.supabase
       .from('calls')
       .select('*')
@@ -183,6 +291,7 @@ export class CallService {
   }
 
   async getActiveCallsForPatient(patientId: string): Promise<Call[]> {
+    this.writeLocalDebug('info', 'Consultando llamadas activas del paciente', { patientId })
     const { data, error } = await this.supabase
       .from('calls')
       .select('*')
@@ -194,7 +303,8 @@ export class CallService {
     return data as Call[]
   }
 
-  async logEvent(callId: string, type: string, payload?: Record<string, any>): Promise<void> {
+  async logEvent(callId: string, type: string, payload?: Json): Promise<void> {
+    this.writeLocalDebug('info', 'Persistiendo call_event', { callId, type, payload })
     const { error } = await this.supabase
       .from('call_events')
       .insert({
@@ -207,6 +317,7 @@ export class CallService {
   }
 
   async getCallEvents(callId: string): Promise<CallEvent[]> {
+    this.writeLocalDebug('info', 'Leyendo call_events', { callId })
     const { data, error } = await this.supabase
       .from('call_events')
       .select('*')
@@ -219,34 +330,84 @@ export class CallService {
 
   // Subscribe to call changes
   subscribeToCall(callId: string, callback: (call: Call) => void) {
-    return this.supabase
+    this.writeLocalDebug('info', 'Suscribiendo realtime de llamada', { callId })
+    const channel = this.supabase
       .channel(`call:${callId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'calls',
         filter: `id=eq.${callId}`
-      }, (payload: any) => {
-        callback(payload.new as Call)
+      }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+        const nextCall = (payload.new ?? payload.old) as Call | undefined
+        if (nextCall) {
+          this.writeLocalDebug('info', 'Realtime de llamada recibido', {
+            callId,
+            status: nextCall.status,
+            roomId: nextCall.room_id,
+          })
+          callback(nextCall)
+        }
       })
       .subscribe()
+
+    return () => {
+      void this.supabase.removeChannel(channel)
+    }
   }
 
   // Subscribe to calls for a user (doctor or patient)
   subscribeToUserCalls(userId: string, userType: 'doctor' | 'patient', callback: (call: Call) => void) {
     const column = userType === 'doctor' ? 'doctor_id' : 'patient_id'
+    this.writeLocalDebug('info', 'Suscribiendo realtime de usuario', { userId, userType, column })
 
-    return this.supabase
+    const channel = this.supabase
       .channel(`user_calls:${userId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'calls',
         filter: `${column}=eq.${userId}`
-      }, (payload: any) => {
-        callback(payload.new as Call)
+      }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+        const nextCall = (payload.new ?? payload.old) as Call | undefined
+        if (nextCall) {
+          this.writeLocalDebug('info', 'Realtime de usuario recibido', {
+            userId,
+            userType,
+            callId: nextCall.id,
+            status: nextCall.status,
+          })
+          callback(nextCall)
+        }
       })
       .subscribe()
+
+    return () => {
+      void this.supabase.removeChannel(channel)
+    }
+  }
+
+  subscribeToCallEvents(callId: string, callback: (event: CallEvent) => void) {
+    this.writeLocalDebug('info', 'Suscribiendo realtime de call_events', { callId })
+
+    const channel = this.supabase
+      .channel(`call_events:${callId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'call_events',
+        filter: `call_id=eq.${callId}`,
+      }, (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
+        const nextEvent = (payload.new ?? payload.old) as CallEvent | undefined
+        if (nextEvent) {
+          callback(nextEvent)
+        }
+      })
+      .subscribe()
+
+    return () => {
+      void this.supabase.removeChannel(channel)
+    }
   }
 }
 

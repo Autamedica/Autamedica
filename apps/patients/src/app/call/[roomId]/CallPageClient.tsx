@@ -2,26 +2,40 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UnifiedVideoCall } from '@autamedica/telemedicine'
+import {
+  TelemedicineDebugPanel,
+  UnifiedVideoCall,
+  createTelemedicineLogger,
+} from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import { PatientPortalShell } from '@/components/layout/PatientPortalShell'
 
 interface CallPageClientProps {
   roomId: string
+  callId?: string
+  debugEnabled?: boolean
 }
 
 const REQUIRE_AUTH = getClientEnvOrDefault('NEXT_PUBLIC_REQUIRE_AUTH', 'false') === 'true'
 
-export function CallPageClient({ roomId }: CallPageClientProps) {
+export function CallPageClient({ roomId, callId, debugEnabled = false }: CallPageClientProps) {
   return (
     <AuthProvider>
-      <PatientCallContent roomId={roomId} />
+      <PatientCallContent roomId={roomId} callId={callId} debugEnabled={debugEnabled} />
     </AuthProvider>
   )
 }
 
-function PatientCallContent({ roomId }: { roomId: string }) {
+function PatientCallContent({
+  roomId,
+  callId,
+  debugEnabled,
+}: {
+  roomId: string
+  callId?: string
+  debugEnabled: boolean
+}) {
   const router = useRouter()
   const { session, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
@@ -30,6 +44,15 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     sessionRecord && typeof sessionRecord === 'object' && sessionRecord.user
       ? sessionRecord.user
       : null
+  const debugLogger = useMemo(
+    () => createTelemedicineLogger({
+      source: 'PatientCallPage',
+      callId,
+      roomId,
+      userType: 'patient',
+    }),
+    [callId, roomId]
+  )
 
   // Handlers and memoized values BEFORE early returns (React hooks rules)
   const handleCallEnd = () => {
@@ -67,6 +90,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
 
     if (!session) {
       if (REQUIRE_AUTH) {
+        debugLogger.warn('No hay sesion de paciente; redirigiendo al login')
         const defaultAuthOrigin = window.location.hostname === 'localhost'
           ? 'http://localhost:3000'
           : 'https://www.autamedica.com'
@@ -79,6 +103,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
         loginUrl.searchParams.set('returnTo', `${window.location.origin}/call/${roomId}`)
         window.location.href = loginUrl.toString()
       } else {
+        debugLogger.warn('Sin sesion; usando identidad de desarrollo')
         logger.warn('[UnifiedVideoCall][patient] sin sesión; usando identidad de desarrollo')
         setIsReady(true)
       }
@@ -86,12 +111,16 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     }
 
     if (sessionUser?.role !== 'patient') {
+      debugLogger.warn('Sesion cargada pero el rol no es patient', {
+        role: sessionUser?.role,
+      })
       router.push('/')
       return
     }
 
+    debugLogger.info('Sesion de paciente validada; pantalla lista')
     setIsReady(true)
-  }, [session, sessionUser, loading, router, roomId])
+  }, [debugLogger, session, sessionUser, loading, router, roomId])
 
   if (loading || !isReady) {
     return (
@@ -120,6 +149,8 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     >
       <UnifiedVideoCall
         roomId={roomId}
+        callId={callId}
+        autoStart={Boolean(callId)}
         userId={userId}
         userType="patient"
         userName={userName}
@@ -130,6 +161,17 @@ function PatientCallContent({ roomId }: { roomId: string }) {
         onError={handleError}
         className="h-full"
       />
+
+      {debugEnabled && (
+        <TelemedicineDebugPanel
+          callId={callId}
+          roomId={roomId}
+          className="fixed bottom-4 left-4 z-50"
+          title="Timeline paciente"
+          initiallyOpen={false}
+          compact
+        />
+      )}
     </PatientPortalShell>
   )
 }

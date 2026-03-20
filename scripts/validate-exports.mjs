@@ -270,7 +270,23 @@ const ALLOWED_INTERNAL_EXPORTS = [
 
   // Medical record helpers (already documented in glossary)
   'MEDICAL_RECORD_VISIBILITIES', 'isMedicalRecordVisibility', 'canAccessRecord',
-  'isHighSensitivityRecord', 'isPermanentRecord'
+  'isHighSensitivityRecord', 'isPermanentRecord',
+
+  // Scheduling domain types (internal — @autamedica/types)
+  'DayOfWeek', 'TimeString', 'DoctorAvailability', 'DoctorAvailabilityInsert', 'DoctorAvailabilityUpdate',
+  'AvailabilityOverride', 'AvailabilityOverrideInsert', 'ScheduleSlot', 'SlotQuery',
+  'WaitlistStatus', 'WaitlistPriority', 'WaitlistEntry', 'WaitlistEntryInsert',
+  'ReminderChannel', 'ReminderStatus', 'ReminderResponse',
+  'AppointmentReminder', 'AppointmentReminderInsert', 'AppointmentAction', 'AppointmentHistoryEntry',
+  'NoShowPrediction', 'NoShowFactor', 'SchedulingConfig',
+  'DAY_OF_WEEK_LABELS', 'WAITLIST_STATUSES', 'WAITLIST_PRIORITY_LABELS',
+  'REMINDER_CHANNELS', 'APPOINTMENT_ACTIONS', 'DEFAULT_SCHEDULING_CONFIG',
+  'isDayOfWeek', 'isWaitlistStatus', 'isReminderChannel', 'isAppointmentAction', 'isHighNoShowRisk',
+
+  // Anamnesis utilities (internal — @autamedica/shared)
+  'CamelCased', 'SnakeCased',
+  'buildAnamnesisExportHtml', 'buildAnamnesisSummary',
+  'AnamnesisSectionRecord', 'AnamnesisSummary', 'AnamnesisSummarySection',
 ];
 
 async function validateExports() {

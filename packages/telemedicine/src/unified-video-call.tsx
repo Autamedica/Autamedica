@@ -3,12 +3,17 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { FormEvent, JSX, KeyboardEvent } from 'react'
 import { logger } from '@autamedica/shared'
+import { createCallService } from './calls/service'
+import type { CallStatus } from './calls/types'
+import { createTelemedicineLogger, type TelemedicineDebugLevel } from './debug'
 import {
   WebRTCClient,
   type ChatMessage,
   type ConnectionState,
-  type MediaConstraints,
+  type DeviceInfo,
   type StreamQualityLevel,
+  type StreamQualitySummary,
+  type WarmUpResult,
 } from './webrtc-client'
 import {
   Video,
@@ -28,12 +33,17 @@ import {
   WifiOff,
   Clock,
   UserCircle,
+  CheckCircle2,
+  AlertTriangle,
+  ChevronDown,
+  Volume2,
 } from 'lucide-react'
 
 /* ── Props ── */
 
 export interface UnifiedVideoCallProps {
   roomId: string
+  callId?: string
   userId: string
   userType: 'doctor' | 'patient' | 'nurse'
   userName?: string
@@ -43,6 +53,7 @@ export interface UnifiedVideoCallProps {
   onError?: (error: unknown) => void
   className?: string
   theme?: 'doctor' | 'patient'
+  autoStart?: boolean
 }
 
 /* ── Internal types ── */
@@ -85,10 +96,25 @@ const qualityLabel: Record<StreamQualityLevel, string> = {
   unknown: '',
 }
 
+const QUALITY_WARMUP_MS = 15000
+const POOR_QUALITY_THRESHOLD_MS = 30_000 // Suggest audio-only after 30s of poor quality
+
+function hasRemoteVideoEvidence(summary: StreamQualitySummary): boolean {
+  return summary.peers.some((peer) => {
+    const inboundVideo = peer.inboundVideoBitrateKbps ?? 0
+    const fps = peer.framesPerSecond ?? 0
+    const width = peer.frameWidth ?? 0
+    const height = peer.frameHeight ?? 0
+
+    return inboundVideo >= 150 || fps >= 8 || (width >= 160 && height >= 120)
+  })
+}
+
 /* ── Component ── */
 
 export function UnifiedVideoCall({
   roomId,
+  callId,
   userId,
   userType,
   userName,
@@ -98,6 +124,7 @@ export function UnifiedVideoCall({
   onError,
   className = '',
   theme = userType === 'doctor' ? 'doctor' : 'patient',
+  autoStart = false,
 }: UnifiedVideoCallProps): JSX.Element {
   /* ── State ── */
   const [client, setClient] = useState<WebRTCClient | null>(null)
@@ -117,6 +144,12 @@ export function UnifiedVideoCall({
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [qualityLevel, setQualityLevel] = useState<StreamQualityLevel>('unknown')
   const [controlsVisible, setControlsVisible] = useState(true)
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() => {
+    if (typeof window === 'undefined') {
+      return true
+    }
+    return window.innerWidth >= 768
+  })
 
   /* ── Refs ── */
   const localVideoRef = useRef<HTMLVideoElement>(null)
@@ -125,6 +158,25 @@ export function UnifiedVideoCall({
   const chatMessagesRef = useRef<HTMLDivElement>(null)
   const chatPanelOpenRef = useRef(false)
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
+  const lastPersistedCallStatusRef = useRef<CallStatus | null>(null)
+  const hasStartedCallRef = useRef(false)
+  const autoStartAttemptedRef = useRef(false)
+  const manualHangupRef = useRef(false)
+  const connectedAtRef = useRef<number | null>(null)
+  const poorQualityStartRef = useRef<number | null>(null)
+
+  /* ── Green Room state ── */
+  const [warmUpResult, setWarmUpResult] = useState<WarmUpResult | null>(null)
+  const [isWarmingUp, setIsWarmingUp] = useState(false)
+  const [audioLevel, setAudioLevel] = useState(0)
+  const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([])
+  const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('')
+  const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('')
+  const [showAudioOnlySuggestion, setShowAudioOnlySuggestion] = useState(false)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const audioAnalyserRef = useRef<AnalyserNode | null>(null)
+  const audioAnimFrameRef = useRef<number | null>(null)
 
   /* ── Derived ── */
   const accentColor = theme === 'doctor' ? 'violet' : 'sky'
@@ -132,12 +184,29 @@ export function UnifiedVideoCall({
   const isActive = connectionState === 'connected'
   const isIdle = connectionState === 'disconnected' || connectionState === 'failed'
   const firstRemote = remoteUsers.size > 0 ? Array.from(remoteUsers.entries())[0] : null
+  const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
+  const debugLogger = useMemo(
+    () => createTelemedicineLogger({ source: 'UnifiedVideoCall', callId, roomId, userId, userType }),
+    [callId, roomId, userId, userType]
+  )
 
   /* ── Controls auto-hide ── */
   const resetControlsTimer = useCallback(() => {
     setControlsVisible(true)
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
     controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 5000)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const handleResize = () => setIsDesktopViewport(window.innerWidth >= 768)
+    handleResize()
+    window.addEventListener('resize', handleResize)
+
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   useEffect(() => {
@@ -151,13 +220,80 @@ export function UnifiedVideoCall({
     }
   }, [isActive, resetControlsTimer])
 
+  const persistCallStatus = useCallback(
+    async (status: CallStatus, reason?: string) => {
+      if (!callId) {
+        return
+      }
+
+      if (lastPersistedCallStatusRef.current === status && !reason) {
+        return
+      }
+
+      try {
+        const callService = callServiceRef.current ?? createCallService()
+        callServiceRef.current = callService
+        await callService.updateCallStatus(callId, status, reason)
+        lastPersistedCallStatusRef.current = status
+      } catch (error) {
+        logger.warn('[UnifiedVideoCall] Failed to persist call status', {
+          callId,
+          status,
+          error,
+        })
+      }
+    },
+    [callId]
+  )
+
+  const emitDebug = useCallback(
+    (level: TelemedicineDebugLevel, message: string, payload?: Record<string, unknown>) => {
+      switch (level) {
+        case 'error':
+          debugLogger.error(message, undefined, payload)
+          break
+        case 'warn':
+          debugLogger.warn(message, payload)
+          break
+        default:
+          debugLogger.info(message, payload)
+          break
+      }
+
+      if (!callId) {
+        return
+      }
+
+      try {
+        const callService = callServiceRef.current ?? createCallService()
+        callServiceRef.current = callService
+        void callService.logDebugEvent(callId, level, 'UnifiedVideoCall', message, {
+          roomId,
+          userId,
+          userType,
+          ...payload,
+        })
+      } catch (error) {
+        debugLogger.warn('No fue posible preparar persistencia de debug_log', {
+          callId,
+          roomId,
+          error,
+        })
+      }
+    },
+    [callId, debugLogger, roomId, userId, userType]
+  )
+
   /* ── WebRTC setup ── */
   useEffect(() => {
     chatPanelOpenRef.current = isChatPanelOpen
   }, [isChatPanelOpen])
 
   useEffect(() => {
-    logger.info(`[UnifiedVideoCall] Initializing for ${userType}: ${userId} in room ${roomId}`)
+    emitDebug('info', 'Inicializando componente de videollamada', {
+      autoStart,
+      userName,
+    })
 
     const webrtcClient = new WebRTCClient({ userId, userName, userType, roomId })
     const unsubs: Array<() => void> = []
@@ -166,6 +302,7 @@ export function UnifiedVideoCall({
       webrtcClient.on('connection-state', (state) => {
         setConnectionState(state)
         onStatusChange?.(state)
+        emitDebug('info', 'Estado de conexion actualizado', { state })
         if (state === 'failed') {
           setCallError('Error de conexión. Verifica tu internet.')
         } else if (state === 'connected') {
@@ -243,6 +380,14 @@ export function UnifiedVideoCall({
 
     unsubs.push(
       webrtcClient.on('stream-quality', (summary) => {
+        const connectedForMs =
+          connectedAtRef.current === null ? 0 : Date.now() - connectedAtRef.current
+
+        if (connectedForMs < QUALITY_WARMUP_MS || !hasRemoteVideoEvidence(summary)) {
+          setQualityLevel('unknown')
+          return
+        }
+
         setQualityLevel(summary.overallLevel)
       })
     )
@@ -250,6 +395,7 @@ export function UnifiedVideoCall({
     unsubs.push(
       webrtcClient.on('error', (error) => {
         logger.error('[UnifiedVideoCall] WebRTC error:', error)
+        emitDebug('error', 'Evento de error WebRTC recibido', { error })
         const msg = error instanceof Error ? error.message : 'Error desconocido'
         setCallError(`Error de videollamada: ${msg}`)
         onError?.(error)
@@ -257,19 +403,37 @@ export function UnifiedVideoCall({
     )
 
     setClient(webrtcClient)
+
+    // Pre-warm immediately on mount (Enfoque 1: instant connection)
+    setIsWarmingUp(true)
+    webrtcClient.warmUp().then((result) => {
+      setWarmUpResult(result)
+      setAvailableDevices(result.devices)
+      setIsWarmingUp(false)
+    }).catch(() => {
+      setIsWarmingUp(false)
+    })
+
     return () => {
+      emitDebug('info', 'Desmontando componente de videollamada')
       unsubs.forEach((u) => u())
       void webrtcClient.disconnect()
+      // Clean up audio monitoring
+      if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
+      audioContextRef.current?.close()
     }
-  }, [onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
+  }, [autoStart, emitDebug, onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
     if (connectionState === 'connected') {
       setConnectedAt((prev) => prev ?? Date.now())
+      connectedAtRef.current ??= Date.now()
     } else {
       setConnectedAt(null)
       setElapsedSeconds(0)
+      connectedAtRef.current = null
+      setQualityLevel('unknown')
     }
   }, [connectionState])
 
@@ -280,6 +444,26 @@ export function UnifiedVideoCall({
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [connectedAt])
+
+  useEffect(() => {
+    if (!callId || !hasStartedCallRef.current) {
+      return
+    }
+
+    if (connectionState === 'connecting') {
+      void persistCallStatus('connecting')
+      return
+    }
+
+    if (connectionState === 'connected') {
+      void persistCallStatus('connected')
+      return
+    }
+
+    if ((connectionState === 'closed' || connectionState === 'failed') && !manualHangupRef.current) {
+      void persistCallStatus('ended', 'connection_closed')
+    }
+  }, [callId, connectionState, persistCallStatus])
 
   /* ── Stream sync effects ── */
   useEffect(() => {
@@ -302,34 +486,39 @@ export function UnifiedVideoCall({
 
   /* ── Actions ── */
   const startCall = useCallback(async () => {
-    if (!client || connectionState === 'connected') return
+    if (!client || connectionState === 'connected' || connectionState === 'connecting') return
     try {
+      emitDebug('info', 'Intentando iniciar videollamada', {
+        connectionState,
+        autoStart,
+        preWarmed: !!warmUpResult,
+      })
+      hasStartedCallRef.current = true
+      manualHangupRef.current = false
       setCallError(null)
-      const constraints: MediaConstraints = {
-        video: {
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
-          frameRate: { ideal: 30, max: 60 }
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+      if (callId) {
+        void persistCallStatus('connecting')
       }
-      await client.startLocalStream(constraints)
+      // If pre-warmed, connect() is near-instant (just sends join message)
       await client.connect(roomId)
+      emitDebug('info', 'Conexion al room solicitada')
       setIsVideoEnabled(true)
       setIsAudioEnabled(true)
     } catch (error) {
+      emitDebug('error', 'Fallo al iniciar videollamada', { error })
       const msg = error instanceof Error ? error.message : 'Error desconocido'
       setCallError(`No se pudo iniciar: ${msg}`)
     }
-  }, [client, connectionState, roomId])
+  }, [autoStart, callId, client, connectionState, emitDebug, persistCallStatus, roomId, warmUpResult])
 
   const endCall = useCallback(async () => {
     if (!client) return
     try {
+      emitDebug('info', 'Finalizando videollamada manualmente')
+      manualHangupRef.current = true
+      if (callId) {
+        await persistCallStatus('ended', `${userType}_ended`)
+      }
       await client.disconnect()
       if (screenStream) {
         screenStream.getTracks().forEach((t) => t.stop())
@@ -337,10 +526,20 @@ export function UnifiedVideoCall({
         setIsScreenSharing(false)
       }
       onCallEnd?.()
-    } catch {
-      /* swallow */
+    } catch (error) {
+      emitDebug('error', 'Error al finalizar videollamada', { error })
     }
-  }, [client, onCallEnd, screenStream])
+  }, [callId, client, emitDebug, onCallEnd, persistCallStatus, screenStream, userType])
+
+  useEffect(() => {
+    if (!autoStart || !client || autoStartAttemptedRef.current || connectionState !== 'disconnected') {
+      return
+    }
+
+    autoStartAttemptedRef.current = true
+    emitDebug('info', 'AutoStart habilitado; iniciando llamada automaticamente')
+    void startCall()
+  }, [autoStart, client, connectionState, emitDebug, startCall])
 
   const toggleVideo = useCallback(() => {
     if (!client) return
@@ -385,6 +584,7 @@ export function UnifiedVideoCall({
     if (!text) return
 
     if (!client.sendChatMessage(text)) {
+      emitDebug('warn', 'Envio de chat rechazado porque el canal no esta listo')
       setCallError('Chat aún no listo. Espera la conexión del otro participante.')
       return
     }
@@ -404,7 +604,8 @@ export function UnifiedVideoCall({
     ])
     setChatInput('')
     setCallError(null)
-  }, [chatInput, client, userId, userName, userType])
+    emitDebug('info', 'Mensaje de chat enviado', { length: text.length })
+  }, [chatInput, client, emitDebug, userId, userName, userType])
 
   const handleChatSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
@@ -424,6 +625,87 @@ export function UnifiedVideoCall({
     [sendChat]
   )
 
+  /* ── Audio VU Meter for Green Room ── */
+  useEffect(() => {
+    if (!warmUpResult?.stream || isActive) return
+
+    const audioTrack = warmUpResult.stream.getAudioTracks()[0]
+    if (!audioTrack) return
+
+    try {
+      const ctx = new AudioContext()
+      audioContextRef.current = ctx
+      const source = ctx.createMediaStreamSource(new MediaStream([audioTrack]))
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 256
+      analyser.smoothingTimeConstant = 0.3
+      source.connect(analyser)
+      audioAnalyserRef.current = analyser
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+
+      const tick = () => {
+        analyser.getByteFrequencyData(dataArray)
+        let sum = 0
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i]
+        const avg = sum / dataArray.length
+        setAudioLevel(Math.min(avg / 128, 1)) // normalize 0-1
+        audioAnimFrameRef.current = requestAnimationFrame(tick)
+      }
+      tick()
+    } catch {
+      // AudioContext not supported — ignore
+    }
+
+    return () => {
+      if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
+      audioContextRef.current?.close()
+      audioContextRef.current = null
+    }
+  }, [warmUpResult, isActive])
+
+  /* ── Audio-only suggestion when quality is persistently poor ── */
+  useEffect(() => {
+    if (qualityLevel === 'poor') {
+      if (!poorQualityStartRef.current) {
+        poorQualityStartRef.current = Date.now()
+      } else if (Date.now() - poorQualityStartRef.current >= POOR_QUALITY_THRESHOLD_MS) {
+        setShowAudioOnlySuggestion(true)
+      }
+    } else {
+      poorQualityStartRef.current = null
+      setShowAudioOnlySuggestion(false)
+    }
+  }, [qualityLevel])
+
+  const switchToAudioOnly = useCallback(() => {
+    if (!client) return
+    client.toggleVideo(false)
+    setIsVideoEnabled(false)
+    setShowAudioOnlySuggestion(false)
+    emitDebug('info', 'Switched to audio-only mode due to poor connection')
+  }, [client, emitDebug])
+
+  const handleDeviceChange = useCallback(async (kind: 'video' | 'audio', deviceId: string) => {
+    if (!client) return
+    try {
+      await client.switchDevice(kind, deviceId)
+      if (kind === 'video') setSelectedVideoDevice(deviceId)
+      else setSelectedAudioDevice(deviceId)
+    } catch (error) {
+      emitDebug('warn', 'Device switch failed', { kind, deviceId, error })
+    }
+  }, [client, emitDebug])
+
+  /* ── Green Room readiness checks ── */
+  const greenRoomChecks = useMemo(() => {
+    const hasVideo = warmUpResult?.stream?.getVideoTracks()?.[0]?.readyState === 'live'
+    const hasAudio = warmUpResult?.stream?.getAudioTracks()?.[0]?.readyState === 'live'
+    const hasSignaling = warmUpResult?.signalingReady ?? false
+    const allReady = hasVideo && hasAudio && hasSignaling
+    return { hasVideo, hasAudio, hasSignaling, allReady }
+  }, [warmUpResult])
+
   /* ── Render ── */
   return (
     <div
@@ -432,11 +714,11 @@ export function UnifiedVideoCall({
     >
       {/* ── Main video area ── */}
       <div className="absolute inset-0">
-        {/* Idle/disconnected state */}
+        {/* Green Room — pre-call experience */}
         {isIdle && (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-b from-slate-800 to-slate-900">
-            {/* Camera preview */}
-            <div className="relative mb-8 h-48 w-64 overflow-hidden rounded-2xl bg-slate-800 shadow-2xl ring-1 ring-white/10 sm:h-56 sm:w-80">
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 px-4">
+            {/* Camera preview — live from pre-warm */}
+            <div className="relative mb-6 w-full max-w-sm overflow-hidden rounded-2xl bg-slate-800 shadow-2xl ring-1 ring-white/10 aspect-[4/3]">
               <video
                 ref={(el) => {
                   localVideoRef.current = el
@@ -450,14 +732,96 @@ export function UnifiedVideoCall({
                 playsInline
                 className="h-full w-full object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-800/60">
-                <UserCircle className="h-16 w-16 text-slate-500" />
-              </div>
+              {!warmUpResult && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-800/80">
+                  {isWarmingUp ? (
+                    <div className="text-center">
+                      <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400 mb-2" />
+                      <p className="text-sm text-slate-400">Preparando cámara...</p>
+                    </div>
+                  ) : (
+                    <UserCircle className="h-16 w-16 text-slate-600" />
+                  )}
+                </div>
+              )}
+
+              {/* Audio VU meter — overlaid on video preview */}
+              {warmUpResult && (
+                <div className="absolute bottom-3 left-3 right-3 flex items-end gap-0.5 h-6">
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`flex-1 rounded-sm transition-all duration-75 ${
+                        audioLevel * 20 > i
+                          ? i < 12 ? 'bg-emerald-400' : i < 16 ? 'bg-amber-400' : 'bg-red-400'
+                          : 'bg-white/10'
+                      }`}
+                      style={{ height: `${Math.max(15, (i / 20) * 100)}%` }}
+                    />
+                  ))}
+                  <Volume2 className="h-4 w-4 text-white/60 ml-1.5 mb-0.5" />
+                </div>
+              )}
             </div>
 
-            <h2 className="mb-2 text-xl font-semibold text-white sm:text-2xl">Consulta médica</h2>
-            <p className="mb-6 text-sm text-slate-400">
-              Sala: {roomId} {userName && `• ${userName}`}
+            {/* Readiness checks */}
+            {warmUpResult && (
+              <div className="mb-4 flex items-center gap-4 text-xs">
+                <div className={`flex items-center gap-1.5 ${greenRoomChecks.hasVideo ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {greenRoomChecks.hasVideo ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                  Cámara
+                </div>
+                <div className={`flex items-center gap-1.5 ${greenRoomChecks.hasAudio ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {greenRoomChecks.hasAudio ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                  Micrófono
+                </div>
+                <div className={`flex items-center gap-1.5 ${greenRoomChecks.hasSignaling ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {greenRoomChecks.hasSignaling ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Red
+                </div>
+                {warmUpResult.latencyMs !== null && (
+                  <span className="text-slate-500">{warmUpResult.latencyMs}ms</span>
+                )}
+              </div>
+            )}
+
+            {/* Device selectors */}
+            {availableDevices.length > 0 && (
+              <div className="mb-5 flex flex-wrap gap-2 justify-center">
+                {availableDevices.filter(d => d.kind === 'videoinput').length > 1 && (
+                  <div className="relative">
+                    <select
+                      value={selectedVideoDevice}
+                      onChange={(e) => handleDeviceChange('video', e.target.value)}
+                      className="appearance-none rounded-lg border border-white/10 bg-slate-800 px-3 py-1.5 pr-7 text-xs text-white focus:outline-none focus:border-white/20"
+                    >
+                      {availableDevices.filter(d => d.kind === 'videoinput').map(d => (
+                        <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                  </div>
+                )}
+                {availableDevices.filter(d => d.kind === 'audioinput').length > 1 && (
+                  <div className="relative">
+                    <select
+                      value={selectedAudioDevice}
+                      onChange={(e) => handleDeviceChange('audio', e.target.value)}
+                      className="appearance-none rounded-lg border border-white/10 bg-slate-800 px-3 py-1.5 pr-7 text-xs text-white focus:outline-none focus:border-white/20"
+                    >
+                      {availableDevices.filter(d => d.kind === 'audioinput').map(d => (
+                        <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            <h2 className="mb-1 text-xl font-semibold text-white sm:text-2xl">Consulta médica</h2>
+            <p className="mb-5 text-sm text-slate-400">
+              {userName && `${userName} • `}Sala {roomId}
             </p>
 
             {callError && (
@@ -466,16 +830,23 @@ export function UnifiedVideoCall({
 
             <button
               onClick={startCall}
-              className={`inline-flex items-center gap-3 rounded-full px-8 py-4 text-lg font-semibold text-white shadow-xl transition-all hover:scale-105 active:scale-95 ${
+              disabled={isWarmingUp}
+              className={`inline-flex items-center gap-3 rounded-full px-8 py-4 text-lg font-semibold text-white shadow-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                 accentColor === 'violet'
                   ? 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
                   : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/30'
               }`}
-              title="Iniciar videollamada"
+              title={greenRoomChecks.allReady ? 'Todo listo — conectará al instante' : 'Iniciar videollamada'}
             >
               <Phone className="h-6 w-6" />
               {userType === 'doctor' ? 'Iniciar consulta' : 'Unirse a consulta'}
             </button>
+
+            {greenRoomChecks.allReady && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-400/80">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Todo listo — conexión instantánea
+              </p>
+            )}
 
             {connectionState === 'failed' && (
               <p className="mt-3 text-sm text-red-400">Error de conexión. Intenta nuevamente.</p>
@@ -515,9 +886,7 @@ export function UnifiedVideoCall({
                     />
                     {/* Remote user label */}
                     <div
-                      className={`absolute left-4 top-4 flex items-center gap-2 rounded-lg bg-black/50 px-3 py-1.5 text-sm backdrop-blur-md transition-opacity ${
-                        controlsVisible ? 'opacity-100' : 'opacity-0'
-                      }`}
+                      className="absolute left-4 top-4 flex items-center gap-2 rounded-lg bg-black/45 px-3 py-1.5 text-sm backdrop-blur-md"
                     >
                       <UserCircle className="h-4 w-4" />
                       <span>{remoteUser.userName || remoteUser.userId}</span>
@@ -626,6 +995,14 @@ export function UnifiedVideoCall({
         </div>
       )}
 
+      {isActive && isTestRoom && (
+        <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
+          <div className="max-w-xl rounded-lg border border-amber-400/30 bg-black/65 px-4 py-2 text-center text-xs text-amber-100 shadow-lg backdrop-blur-sm">
+            Modo prueba: si el video se ve verde, es la cámara sintética del navegador de test.
+          </div>
+        </div>
+      )}
+
       {/* ── Floating controls (bottom) ── */}
       {isActive && (
         <div
@@ -722,6 +1099,10 @@ export function UnifiedVideoCall({
           className={`absolute right-0 top-0 bottom-0 z-30 flex w-full flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur-lg transition-transform duration-300 ease-out md:w-96 ${
             isChatPanelOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
+          style={{
+            width: isDesktopViewport ? '24rem' : '100%',
+            maxWidth: isDesktopViewport ? '24rem' : '100%',
+          }}
         >
           {/* Chat header */}
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
@@ -808,8 +1189,31 @@ export function UnifiedVideoCall({
         </aside>
       )}
 
+      {/* ── Audio-only suggestion ── */}
+      {isActive && showAudioOnlySuggestion && (
+        <div className="absolute left-4 bottom-28 z-30 flex items-center gap-3 rounded-xl bg-amber-900/90 px-4 py-3 text-sm shadow-lg backdrop-blur-sm">
+          <AlertTriangle className="h-5 w-5 text-amber-300 shrink-0" />
+          <div>
+            <p className="text-amber-100 font-medium">Conexión inestable</p>
+            <p className="text-amber-200/70 text-xs">Cambiar a solo audio puede mejorar la experiencia</p>
+          </div>
+          <button
+            onClick={switchToAudioOnly}
+            className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition-colors"
+          >
+            Solo audio
+          </button>
+          <button
+            onClick={() => setShowAudioOnlySuggestion(false)}
+            className="shrink-0 rounded p-1 text-amber-300 hover:text-white transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* ── Quality badge (poor/fair) ── */}
-      {isActive && (qualityLevel === 'poor' || qualityLevel === 'fair') && (
+      {isActive && (qualityLevel === 'poor' || qualityLevel === 'fair') && !showAudioOnlySuggestion && (
         <div className="absolute left-4 bottom-24 z-20 flex items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-xs backdrop-blur-md">
           <WifiOff className={`h-3.5 w-3.5 ${qualityColor[qualityLevel]}`} />
           <span className={qualityColor[qualityLevel]}>Conexión {qualityLabel[qualityLevel].toLowerCase()}</span>

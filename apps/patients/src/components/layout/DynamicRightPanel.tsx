@@ -9,7 +9,6 @@ import {
 } from '@/components/quick-actions/QuickActionModals';
 import { dashboardQuickCaptureLinks } from '@/data/patient-navigation';
 import { useDashboardSummary } from '@/hooks/useDashboardSummary';
-import { usePatientSession } from '@/hooks/usePatientSession';
 import type { DashboardSummary } from '@/types/dashboard-summary';
 import type { DashboardViewData } from '@/types/dashboard-view';
 import type {
@@ -89,19 +88,6 @@ function defaultTabForContext(context: PanelContext): PanelTab {
   }
 }
 
-function getPreferredName(
-  profile: ReturnType<typeof usePatientSession>['profile'],
-  user: ReturnType<typeof usePatientSession>['user'],
-): string {
-  const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
-  const metadata = user?.user_metadata as Record<string, unknown> | undefined;
-  const metadataName =
-    typeof metadata?.full_name === 'string' ? metadata.full_name : undefined;
-  const fallbackName = user?.email?.split('@')[0] ?? 'Paciente';
-
-  return (profileName || metadataName || fallbackName).split(' ')[0] ?? 'Paciente';
-}
-
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat('es-AR', {
     weekday: 'long',
@@ -146,6 +132,29 @@ function getPatientFacingSummary(insight: PatientAiInsightRecord | null): string
   return insight.result.patientFacingSummary;
 }
 
+function describeMissingSections(missingSections: string[]): string {
+  const labels = missingSections.map((section) => {
+    switch (section) {
+      case 'appointments':
+        return 'agenda';
+      case 'anamnesis':
+        return 'anamnesis';
+      case 'medical_history':
+        return 'antecedentes';
+      case 'lab_results':
+        return 'estudios';
+      case 'preventive_screenings':
+        return 'controles';
+      case 'observations':
+        return 'observaciones';
+      default:
+        return section;
+    }
+  });
+
+  return labels.length > 0 ? labels.join(', ') : 'sin faltantes críticos';
+}
+
 export function DynamicRightPanel({
   context = 'dashboard',
   dashboardView,
@@ -157,8 +166,6 @@ export function DynamicRightPanel({
   const managedExternally =
     dashboardView !== undefined || summaryLoading !== undefined || summaryError !== undefined;
   const internalDashboardView = useDashboardSummary({ enabled: !managedExternally });
-  const { user, profile } = usePatientSession();
-  const preferredName = getPreferredName(profile, user);
 
   const resolvedDashboardView = managedExternally ? dashboardView ?? null : internalDashboardView.data;
   const resolvedSummary = resolvedDashboardView?.summary ?? null;
@@ -170,13 +177,13 @@ export function DynamicRightPanel({
   }, [context]);
 
   return (
-    <aside className="relative flex w-full min-w-0 max-w-[340px] flex-col border-l border-slate-200/50 bg-white/35 shadow-xl shadow-indigo-900/5 backdrop-blur-2xl">
+    <aside className="relative flex w-[30%] min-w-[320px] max-w-[400px] flex-col border-l border-slate-200/50 bg-white/40 shadow-xl shadow-indigo-900/5 backdrop-blur-2xl">
       <div className="border-b border-indigo-100/50 bg-white/60 px-5 py-4 backdrop-blur-md">
         <p className="inline-flex rounded-full bg-indigo-100/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-          Panel contextual
+          Contexto
         </p>
         <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-          Referencia rápida con agenda, prioridades y contexto médico real.
+          Atajos y seguimiento.
         </p>
       </div>
 
@@ -212,7 +219,6 @@ export function DynamicRightPanel({
             summary={resolvedSummary}
             loading={resolvedLoading}
             error={resolvedError}
-            preferredName={preferredName}
             alerts={resolvedDashboardView?.alerts ?? []}
             latestInsight={resolvedDashboardView?.latestInsight ?? null}
             missingSections={resolvedDashboardView?.missingSections ?? []}
@@ -236,7 +242,6 @@ function DailyBriefPanel({
   summary,
   loading,
   error,
-  preferredName,
   alerts,
   latestInsight,
   missingSections,
@@ -244,7 +249,6 @@ function DailyBriefPanel({
   summary: DashboardSummary | null;
   loading: boolean;
   error: string | null;
-  preferredName: string;
   alerts: PatientDeterministicAlert[];
   latestInsight: PatientAiInsightRecord | null;
   missingSections: string[];
@@ -257,21 +261,28 @@ function DailyBriefPanel({
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/20" />
         <div className="relative">
           <p className="inline-flex rounded-full bg-indigo-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-            Resumen real
+            Resumen
           </p>
           <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
-            {preferredName}, esto refleja tu estado clínico disponible
+            Tu día
           </h3>
           <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-            Sin datos simulados. Si algo falta, el panel lo mostrará vacío.
+            Agenda, alertas y seguimiento.
           </p>
         </div>
       </section>
 
       {loading && (
-        <PanelNotice>
-          Estamos reuniendo tus datos clínicos más recientes.
-        </PanelNotice>
+        <>
+          <section className="grid grid-cols-3 gap-2">
+            <SummaryMetricSkeleton />
+            <SummaryMetricSkeleton />
+            <SummaryMetricSkeleton />
+          </section>
+          <PanelCardSkeleton lines={3} />
+          <PanelCardSkeleton lines={4} />
+          <PanelCardSkeleton lines={3} />
+        </>
       )}
 
       {!loading && error && (
@@ -285,7 +296,7 @@ function DailyBriefPanel({
           <section className="grid grid-cols-3 gap-2">
             <SummaryMetric label="Agenda" value={`${summary.agenda.upcomingCount}`} />
             <SummaryMetric
-              label="Señales"
+              label="Alertas"
               value={`${alerts.length}`}
               highlight={alerts.some((alert) => alert.severity === 'critical' || alert.severity === 'high')}
             />
@@ -302,7 +313,7 @@ function DailyBriefPanel({
                 Prioridades
               </p>
               <div className="space-y-3">
-                {summary.priorities.slice(0, 2).map((priority) => (
+                {summary.priorities.map((priority) => (
                   <Link
                     key={priority.id}
                     href={priority.href}
@@ -318,7 +329,7 @@ function DailyBriefPanel({
 
           {patientFacingSummary && (
             <FactCard
-              title="Resumen personalizado"
+              title="Resumen"
               description={patientFacingSummary}
               icon={<Sparkles className="h-4 w-4" />}
             />
@@ -327,7 +338,7 @@ function DailyBriefPanel({
           {alerts.length > 0 && (
             <section>
               <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Señales detectadas
+                Alertas
               </p>
               <div className="space-y-3">
                 {alerts.slice(0, 3).map((alert) => (
@@ -342,6 +353,12 @@ function DailyBriefPanel({
                 ))}
               </div>
             </section>
+          )}
+
+          {missingSections.length > 0 && (
+            <PanelNotice>
+              Faltan datos en: {describeMissingSections(missingSections)}.
+            </PanelNotice>
           )}
 
           <section className="space-y-3">
@@ -364,12 +381,6 @@ function DailyBriefPanel({
               icon={<TestTubeDiagonal className="h-4 w-4" />}
             />
           </section>
-
-          {summary.priorities.length === 0 && !patientFacingSummary && alerts.length === 0 && (
-            <PanelNotice>
-              No hay prioridades urgentes en este momento.
-            </PanelNotice>
-          )}
         </>
       )}
     </div>
@@ -386,13 +397,13 @@ function ClinicalLogPanel() {
           <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-white/20" />
           <div className="relative">
             <p className="inline-flex rounded-full bg-amber-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              Captura rápida
+              Registro rápido
             </p>
             <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
-              Registra un dato puntual sin salir del resumen
+              Carga un dato puntual
             </h3>
             <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-              Para revisar detalle completo, usa historia clínica, resultados o prevención.
+              Para más detalle, abre historia, resultados o prevención.
             </p>
           </div>
         </div>
@@ -421,7 +432,7 @@ function ClinicalLogPanel() {
         <ActionButton
           icon={<TrendingUp className="h-4 w-4" />}
           label="Subir un estudio médico"
-          description="Añade laboratorios o informes reales a tu perfil."
+          description="Añade laboratorios o informes a tu perfil."
           onClick={() => setActiveModal('lab-result')}
           dataTour="action-lab-result"
         />
@@ -465,15 +476,21 @@ function MedicalContextPanel({
         <div className="absolute inset-0 bg-gradient-to-br from-teal-50/50 to-white/20" />
         <div className="relative">
           <p className="inline-flex rounded-full bg-teal-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-teal-700">
-            Contexto clínico
+            Contexto
           </p>
           <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
-            Resumen operativo del paciente
+            Resumen
           </h3>
         </div>
       </div>
 
-      {loading && <PanelNotice>Estamos cargando tu contexto clínico.</PanelNotice>}
+      {loading && (
+        <>
+          <PanelSectionSkeleton />
+          <PanelSectionSkeleton />
+          <PanelSectionSkeleton />
+        </>
+      )}
       {!loading && error && <PanelNotice tone="error">{error}</PanelNotice>}
 
       {!loading && !error && summary && (
@@ -579,16 +596,16 @@ function ChatPanel({ context }: { context: PanelContext }) {
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50/50 to-white/20" />
         <div className="relative">
           <p className="inline-flex rounded-full bg-sky-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-700">
-            Conversación clínica
+            Mensajes
           </p>
           <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
-            Sin mensajes simulados
+            Sin mensajes
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">{title}</p>
         </div>
       </div>
       <PanelNotice>
-        Cuando exista un hilo real de conversación, se mostrará aquí.
+        Cuando haya mensajes, aparecerán aquí.
       </PanelNotice>
     </div>
   );
@@ -620,6 +637,17 @@ function SummaryMetric({
       <span className="relative mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </span>
+    </div>
+  );
+}
+
+function SummaryMetricSkeleton() {
+  return (
+    <div className="rounded-2xl border border-slate-200/50 bg-white/40 p-4 shadow-sm backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-2">
+        <PanelSkeletonBar className="h-6 w-10" />
+        <PanelSkeletonBar className="h-2.5 w-14" />
+      </div>
     </div>
   );
 }
@@ -727,6 +755,38 @@ function PanelNotice({
       {children}
     </div>
   );
+}
+
+function PanelCardSkeleton({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <div className="space-y-2">
+        <PanelSkeletonBar className="h-3.5 w-24" />
+        {Array.from({ length: lines }).map((_, index) => (
+          <PanelSkeletonBar
+            key={index}
+            className={`h-3 ${index === lines - 1 ? 'w-3/4' : 'w-full'}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PanelSectionSkeleton() {
+  return (
+    <section className="space-y-3">
+      <PanelSkeletonBar className="h-2.5 w-24" />
+      <div className="space-y-2">
+        <PanelCardSkeleton lines={2} />
+        <PanelCardSkeleton lines={2} />
+      </div>
+    </section>
+  );
+}
+
+function PanelSkeletonBar({ className }: { className: string }) {
+  return <div className={`animate-pulse rounded-full bg-slate-200/80 ${className}`} />;
 }
 
 function FactCard({

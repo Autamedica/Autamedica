@@ -1,6 +1,7 @@
 "use client"
 
 import { StartCallButton } from '@/components/calls/StartCallButton'
+import { DEMO_PATIENT_ID } from '@/data/demoData'
 import { useDoctorsPortal } from '@/components/layout/DoctorsPortalShell'
 import { PrescriptionModal } from '@/components/medical/PrescriptionModal'
 import { QuickNotesModal } from '@/components/medical/QuickNotesModal'
@@ -393,13 +394,22 @@ export default function DoctorsHomePage(): JSX.Element {
                       <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
                       Autenticando médico...
                     </div>
-                  ) : user ? (
+                  ) : user && session?.patientId && session.patientId !== DEMO_PATIENT_ID ? (
                     <StartCallButton
                       doctorId={user.id}
-                      patientId={session?.patientId || 'demo-patient-1'}
+                      patientId={session.patientId}
                       patientName={getPatientDisplayName(patient)}
                       className="group relative inline-flex items-center justify-center rounded-xl bg-violet-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-violet-600/20 transition-all hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-violet-600/30 active:scale-95"
                     />
+                  ) : user ? (
+                    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 text-sm">
+                      <div>
+                        <p className="text-slate-800 font-semibold mb-1">Paciente no seleccionado</p>
+                        <p className="text-slate-500 text-xs">
+                          Vincula la llamada a una consulta o a un paciente real antes de iniciar la videollamada.
+                        </p>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm">
                       <div>

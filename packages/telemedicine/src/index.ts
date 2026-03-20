@@ -46,7 +46,7 @@ export {
 
 // Legacy WebRTC Core (keep for compatibility)
 export { WebRTCClient } from './webrtc-client'
-export type { WebRTCConfig, WebRTCEvents } from './webrtc-client'
+export type { WebRTCConfig, WebRTCEvents, DeviceInfo, WarmUpResult } from './webrtc-client'
 
 // Alias for TelemedicineClient (used in hooks)
 export { WebRTCClient as TelemedicineClient } from './webrtc-client'
@@ -56,10 +56,27 @@ export { HttpWebRTCClient } from './http-webrtc-client'
 // UI Components
 export { UnifiedVideoCall } from './unified-video-call'
 export type { UnifiedVideoCallProps } from './unified-video-call'
+export { TelemedicineDebugPanel } from './telemedicine-debug-panel'
+export type { TelemedicineDebugPanelProps } from './telemedicine-debug-panel'
 
 // Types
 export type { SignalKind, Signal } from './types'
 export { isSignal } from './types'
+
+// Debug
+export {
+  createTelemedicineLogger,
+  recordTelemedicineDebugEvent,
+  readTelemedicineDebugEvents,
+  clearTelemedicineDebugEvents,
+  subscribeToTelemedicineDebugEvents,
+} from './debug'
+export type {
+  TelemedicineDebugContext,
+  TelemedicineDebugFilter,
+  TelemedicineDebugLevel,
+  TelemedicineDebugRecord,
+} from './debug'
 
 // Hooks
 export { useTelemedicineClient, useMediaControls, useRtcStats } from './hooks'

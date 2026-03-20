@@ -1,16 +1,21 @@
 import { CallPageClient } from './CallPageClient'
 
-export const dynamicParams = false
-
-export function generateStaticParams() {
-  return [{ roomId: 'test123' }]
-}
+export const dynamic = 'force-dynamic'
+export const dynamicParams = true
 
 interface PatientCallPageProps {
   params: Promise<{ roomId: string }>
+  searchParams: Promise<{ callId?: string; debug?: string }>
 }
 
-export default async function PatientCallPage({ params }: PatientCallPageProps) {
+export default async function PatientCallPage({ params, searchParams }: PatientCallPageProps) {
   const { roomId } = await params
-  return <CallPageClient roomId={roomId} />
+  const { callId, debug } = await searchParams
+  return (
+    <CallPageClient
+      roomId={roomId}
+      callId={typeof callId === 'string' ? callId : undefined}
+      debugEnabled={debug === '1' || debug === 'true'}
+    />
+  )
 }

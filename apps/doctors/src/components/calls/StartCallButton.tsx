@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createCallService, createSignalingClient } from '@autamedica/telemedicine'
+import { createCallService, createTelemedicineLogger } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
 
 interface StartCallButtonProps {
@@ -21,52 +21,54 @@ export function StartCallButton({
   const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const debugLogger = createTelemedicineLogger({
+    source: 'DoctorStartCall',
+    roomId: undefined,
+    userId: doctorId,
+    userType: 'doctor',
+  })
 
   const handleStartCall = async () => {
     setIsStarting(true)
     setError(null)
 
     try {
-      // logger.info('Starting call flow...', { doctorId, patientId })
+      if (!doctorId || !patientId) {
+        debugLogger.error('No hay ids validos para iniciar la llamada', undefined, {
+          doctorId,
+          patientId,
+        })
+        throw new Error('No hay un paciente valido seleccionado para iniciar la llamada.')
+      }
 
-      // Create call service
-      // logger.info('Creating call service...')
+      debugLogger.info('Iniciando flujo de llamada', { doctorId, patientId })
+
       const callService = createCallService()
-      // logger.info('Call service created successfully')
 
-      // Create call record (status will be 'requested')
-      // logger.info('Creating call record...')
       const call = await callService.createCall(doctorId, patientId)
-      // logger.info('Call created:', call)
+      debugLogger.info('Registro de llamada creado', { callId: call.id, roomId: call.room_id })
+      await callService.logDebugEvent(call.id, 'info', 'DoctorStartCall', 'Registro de llamada creado', {
+        doctorId,
+        patientId,
+        roomId: call.room_id,
+      })
 
-      // Create signaling client for sending invite
-      // logger.info('Creating signaling client...')
-      const signaling = createSignalingClient(doctorId, 'doctor')
-      // logger.info('Connecting to signaling server...')
-      await signaling.connect()
-      // logger.info('Signaling connected successfully')
-
-      // Update call status to 'ringing' when sending invite
-      // logger.info('Updating call status to ringing...')
       await callService.updateCallStatus(call.id, 'ringing')
-      // logger.info('Call status updated to ringing')
-
-      // Send invite to patient
-      // logger.info('Sending invite to patient...')
-      signaling.sendToUser(patientId, {
-        type: 'invite',
+      debugLogger.info('Llamada en estado ringing; redirigiendo a sala de espera', {
         callId: call.id,
         roomId: call.room_id,
-        from: { doctorId, name: 'Doctor' },
-        to: { patientId }
       })
-      // logger.info('Invite sent successfully')
+      await callService.logDebugEvent(call.id, 'info', 'DoctorStartCall', 'Llamada enviada a sala de espera', {
+        roomId: call.room_id,
+      })
 
-      // Navigate to waiting room
-      // logger.info('Navigating to waiting room...')
       router.push(`/call/${call.room_id}?callId=${call.id}&waiting=true`)
 
     } catch (err: unknown) {
+      debugLogger.error('Fallo el inicio de la llamada', err, {
+        doctorId,
+        patientId,
+      })
       logger.error('Failed to start call - detailed error:', err)
       if (err instanceof Error) {
         logger.error('Error name:', err.constructor.name)

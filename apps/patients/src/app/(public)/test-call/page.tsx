@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { logger } from '@autamedica/shared'
-import { UnifiedVideoCall } from '@autamedica/telemedicine'
+import { TelemedicineDebugPanel, UnifiedVideoCall } from '@autamedica/telemedicine'
 
 export default function TestCallPage() {
   const [roomId, setRoomId] = useState('test-room-001')
@@ -21,6 +21,14 @@ export default function TestCallPage() {
           onCallStart={() => logger.info('Conectado a consulta medica')}
           theme="patient"
           className="h-full w-full"
+        />
+
+        <TelemedicineDebugPanel
+          roomId={roomId}
+          className="fixed bottom-4 left-4 z-50"
+          title="Timeline paciente test-call"
+          initiallyOpen={false}
+          compact
         />
       </div>
     )
@@ -71,6 +79,9 @@ export default function TestCallPage() {
               <li>3. Click &quot;Unirse&quot; para conectar</li>
               <li>4. Permite acceso a camara y microfono</li>
             </ol>
+            <p className="mt-3 text-xs text-sky-800/80">
+              En pruebas automatizadas, el navegador puede mostrar un video sintetico verde. Es normal.
+            </p>
           </div>
 
           <button

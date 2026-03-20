@@ -4,7 +4,22 @@ import { CallPageClient } from './CallPageClient'
 export const dynamic = 'force-dynamic'
 export const dynamicParams = true
 
-export default async function DoctorCallPage({ params }: { params: Promise<{ roomId: string }> }) {
+export default async function DoctorCallPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ roomId: string }>
+  searchParams: Promise<{ callId?: string; waiting?: string; debug?: string }>
+}) {
   const { roomId } = await params
-  return <CallPageClient roomId={roomId} />
+  const { callId, waiting, debug } = await searchParams
+
+  return (
+    <CallPageClient
+      roomId={roomId}
+      callId={typeof callId === 'string' ? callId : undefined}
+      waitForAcceptance={waiting === 'true'}
+      debugEnabled={debug === '1' || debug === 'true'}
+    />
+  )
 }

@@ -186,3 +186,104 @@ export async function processReminderResponse(
     await cancelReminders(supabase, reminder.appointment_id);
   }
 }
+
+/**
+ * Envía un recordatorio vía webhook a OpenClaw.
+ * Llama al endpoint de hooks del gateway para que el agente procese el mensaje.
+ */
+export async function sendReminderViaWebhook(
+  supabase: SupabaseLike,
+  reminderId: string,
+  config: {
+    gatewayUrl: string;
+    token: string;
+    agentId: string;
+  },
+): Promise<void> {
+  // Get full reminder info including patient and doctor
+  const { data: reminder, error } = await supabase
+    .from('appointment_reminders')
+    .select(`
+      *,
+      appointments:appointment_id (
+        id,
+        start_time,
+        type,
+        location,
+        status,
+        patient:patient_id (first_name, last_name, phone),
+        doctor:doctor_id (first_name, last_name)
+      )
+    `)
+    .eq('id', reminderId)
+    .single();
+
+  if (error || !reminder) {
+    throw new Error(`Reminder not found: ${error?.message}`);
+  }
+
+  interface AppointmentJoin {
+    id: string
+    start_time: string
+    type: string
+    location: string | null
+    status: string
+    patient: { first_name: string; last_name: string; phone: string | null } | null
+    doctor: { first_name: string; last_name: string } | null
+  }
+
+  const appt = reminder.appointments as unknown as AppointmentJoin | null
+  if (!appt) throw new Error('Appointment data missing')
+
+  const patient = appt.patient
+  const doctor = appt.doctor
+
+  if (!patient?.phone) {
+    throw new Error('Patient phone missing')
+  }
+
+  if (!doctor) {
+    throw new Error('Doctor data missing')
+  }
+
+  // Format date/time
+  const dateObj = new Date(appt.start_time);
+  const dateStr = dateObj.toLocaleDateString('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  const timeStr = dateObj.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const message = `Envía recordatorio de turno al paciente ${patient.first_name} ${patient.last_name} para el ${dateStr} a las ${timeStr} con Dr. ${doctor.first_name} ${doctor.last_name}. Tipo: ${appt.type}. Ubicación: ${appt.location || 'Consultorio'}.`;
+
+  try {
+    const response = await fetch(`${config.gatewayUrl}/hooks/agent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.token}`,
+      },
+      body: JSON.stringify({
+        agentId: config.agentId,
+        message,
+        deliver: true,
+        channel: 'whatsapp',
+        to: patient.phone,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenClaw Gateway error (${response.status}): ${errorText}`);
+    }
+
+    await markReminderSent(supabase, reminderId);
+  } catch (err) {
+    await markReminderFailed(supabase, reminderId);
+    throw err;
+  }
+}

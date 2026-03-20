@@ -1,7 +1,7 @@
 'use client'
 
 import { logger } from '@autamedica/shared'
-import { UnifiedVideoCall } from '@autamedica/telemedicine'
+import { TelemedicineDebugPanel, UnifiedVideoCall } from '@autamedica/telemedicine'
 import { useState } from 'react'
 
 export default function TestCallPage() {
@@ -21,6 +21,14 @@ export default function TestCallPage() {
           onCallStart={() => logger.info('Llamada iniciada exitosamente')}
           theme="doctor"
           className="h-full w-full"
+        />
+
+        <TelemedicineDebugPanel
+          roomId={roomId}
+          className="fixed bottom-4 left-4 z-50"
+          title="Timeline doctor test-call"
+          initiallyOpen={false}
+          compact
         />
       </div>
     )
@@ -71,6 +79,9 @@ export default function TestCallPage() {
               <li>3. Abre el portal pacientes en otra pestana</li>
               <li>4. Usa el mismo Room ID en ambas ventanas</li>
             </ol>
+            <p className="mt-3 text-xs text-violet-800/80">
+              En pruebas automatizadas, el navegador puede mostrar un video sintetico verde. Es normal.
+            </p>
           </div>
 
           <button

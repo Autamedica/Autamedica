@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createCallService } from '@autamedica/telemedicine'
+import { createCallService, createTelemedicineLogger, TelemedicineDebugPanel } from '@autamedica/telemedicine'
 import type { Call } from '@autamedica/telemedicine'
 
 import { logger } from '@autamedica/shared';
@@ -10,47 +10,77 @@ interface WaitingRoomProps {
   callId: string
   doctorId: string
   roomId: string
+  debugEnabled?: boolean
 }
 
 type WaitingState = 'ringing' | 'accepted' | 'declined' | 'canceled' | 'timeout'
 
-export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
+function isReadyToJoin(status: Call['status']): boolean {
+  return status === 'accepted' || status === 'connecting' || status === 'connected'
+}
+
+export function WaitingRoom({ callId, doctorId, roomId, debugEnabled = false }: WaitingRoomProps) {
   const [state, setState] = useState<WaitingState>('ringing')
   const [timeLeft, setTimeLeft] = useState(45) // 45 seconds timeout
   const [_call, setCall] = useState<Call | null>(null)
   const router = useRouter()
+  const debugLogger = useMemo(
+    () => createTelemedicineLogger({
+      source: 'DoctorWaitingRoom',
+      callId,
+      roomId,
+      userId: doctorId,
+      userType: 'doctor',
+    }),
+    [callId, doctorId, roomId]
+  )
 
   useEffect(() => {
     const callService = createCallService()
     let timeoutTimer: NodeJS.Timeout
+    debugLogger.info('Entrando en sala de espera del medico')
+    void callService.logDebugEvent(callId, 'info', 'DoctorWaitingRoom', 'Entrando en sala de espera', {
+      roomId,
+      doctorId,
+    })
 
     // Load call details and setup realtime subscription
     const setupCall = async () => {
       try {
         // Load initial call data
         const callData = await callService.getCall(callId)
+        debugLogger.info('Estado inicial de llamada cargado', {
+          status: callData?.status ?? 'missing',
+        })
         setCall(callData)
 
         // If call is already accepted/declined, update state immediately
-        if (callData?.status === 'accepted') {
+        if (callData?.status && isReadyToJoin(callData.status)) {
           setState('accepted')
           setTimeout(() => {
             router.push(`/call/${roomId}?callId=${callId}`)
           }, 1000)
-          return
+          return null
         } else if (callData?.status === 'declined') {
           setState('declined')
-          return
+          return null
         }
 
         // Subscribe to realtime changes on this specific call
         const subscription = callService.subscribeToCall(callId, (updatedCall) => {
-          // logger.info('[WaitingRoom] Call status changed:', updatedCall.status)
+          debugLogger.info('Cambio realtime recibido en sala de espera', {
+            status: updatedCall.status,
+          })
           setCall(updatedCall)
 
           switch (updatedCall.status) {
             case 'accepted':
+            case 'connecting':
+            case 'connected':
               setState('accepted')
+              void callService.logDebugEvent(callId, 'info', 'DoctorWaitingRoom', 'Paciente listo para ingresar', {
+                status: updatedCall.status,
+              })
               // Navigate to call room
               setTimeout(() => {
                 router.push(`/call/${roomId}?callId=${callId}`)
@@ -58,9 +88,14 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
               break
             case 'declined':
               setState('declined')
+              void callService.logDebugEvent(callId, 'warn', 'DoctorWaitingRoom', 'Paciente rechazo la llamada')
               break
             case 'canceled':
+            case 'ended':
               setState('canceled')
+              void callService.logDebugEvent(callId, 'warn', 'DoctorWaitingRoom', 'Llamada cancelada o finalizada antes de entrar', {
+                status: updatedCall.status,
+              })
               break
           }
         })
@@ -71,6 +106,8 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
             if (prev <= 1) {
               setState('timeout')
               // Cancel call due to timeout
+              debugLogger.warn('Timeout agotado en sala de espera')
+              void callService.logDebugEvent(callId, 'warn', 'DoctorWaitingRoom', 'Timeout agotado en sala de espera')
               callService.updateCallStatus(callId, 'canceled', 'timeout').catch((err: unknown) => logger.error('Failed to update call status:', err))
               return 0
             }
@@ -80,6 +117,10 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
 
         return subscription
       } catch (error) {
+        debugLogger.error('Fallo al preparar sala de espera', error)
+        void callService.logDebugEvent(callId, 'error', 'DoctorWaitingRoom', 'Fallo al preparar sala de espera', {
+          error,
+        })
         logger.error('Failed to setup call:', error)
         setState('canceled')
         return null
@@ -91,19 +132,23 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
 
     // Cleanup
     return () => {
+      debugLogger.info('Saliendo de sala de espera del medico')
       if (timeoutTimer) clearInterval(timeoutTimer)
       if (subscription) subscription()
     }
-  }, [callId, doctorId, roomId, router])
+  }, [callId, debugLogger, doctorId, roomId, router])
 
   const handleCancel = async () => {
     try {
       const callService = createCallService()
+      debugLogger.warn('Doctor cancelo la llamada desde sala de espera')
+      await callService.logDebugEvent(callId, 'warn', 'DoctorWaitingRoom', 'Doctor cancelo la llamada')
       await callService.updateCallStatus(callId, 'canceled', 'doctor_canceled')
 
       // The realtime subscription will handle UI updates
       router.back()
     } catch (error) {
+      debugLogger.error('Fallo al cancelar llamada desde sala de espera', error)
       logger.error('Failed to cancel call:', error)
     }
   }
@@ -203,6 +248,17 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
           )}
         </div>
       </div>
+
+      {debugEnabled && (
+        <TelemedicineDebugPanel
+          callId={callId}
+          roomId={roomId}
+          className="mt-6"
+          title="Sala de espera del medico"
+          initiallyOpen={false}
+          compact={false}
+        />
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -9,11 +9,13 @@ import {
   LogOut,
   Activity,
   Menu,
+  User,
   X,
 } from 'lucide-react';
 import { getClientEnvOrDefault } from '@autamedica/shared';
 import { TourHub } from '@/components/tours/TourHub';
 import { AutaFloatingButton } from '@/components/chat/AutaFloatingButton';
+import { IncomingCallHandler } from '@/components/calls/IncomingCallHandler';
 import { PatientOnboarding } from '@/components/onboarding/PatientOnboarding';
 import {
   dashboardBottomNavItems,
@@ -29,8 +31,15 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, profile, loading, signOut } = usePatientSession();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMobileUserMenuOpen, setIsMobileUserMenuOpen] = useState(false);
+  const { user, profile, patient, loading, signOut } = usePatientSession();
   const currentRoute = getPatientPortalRouteByPath(pathname);
+
+  useEffect(() => {
+    setIsUserMenuOpen(false);
+    setIsMobileUserMenuOpen(false);
+  }, [pathname]);
 
   const isPathActive = (href: string) => {
     if (href === '/') {
@@ -52,12 +61,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     ? metadata.full_name
     : undefined;
   const emailLocal = user?.email?.split('@')[0];
+  const incomingCallIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [patient?.id, user?.id].filter(
+            (value): value is string => typeof value === 'string' && value.length > 0,
+          ),
+        ),
+      ),
+    [patient?.id, user?.id],
+  );
   const userName = computedName || metaName || emailLocal || 'Paciente';
   const userEmail = user?.email || '';
   const currentLabel = currentRoute?.label ?? 'Portal';
-  const currentEyebrow = currentRoute?.eyebrow ?? 'Portal de pacientes';
+  const currentEyebrow = currentRoute?.eyebrow ?? 'Portal';
   const currentDescription =
-    currentRoute?.description ?? 'Acceso rápido a tus módulos clínicos y administrativos.';
+    currentRoute?.description ?? 'Acceso rápido a tus módulos y cuenta.';
 
   const handleSignOut = async () => {
     await signOut();
@@ -72,6 +92,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.09),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.08),_transparent_24%),#f8fafc]">
+      <IncomingCallHandler patientIds={incomingCallIds} />
       {/* Desktop sidebar */}
       <aside className="hidden w-72 shrink-0 flex-col border-r border-slate-200/80 bg-white/90 backdrop-blur-xl md:flex">
         {/* Logo */}
@@ -84,7 +105,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700">
                 AutaMedica
               </p>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">Portal Paciente</h1>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">Paciente</h1>
             </div>
           </div>
           <div className="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm shadow-sky-100/60">
@@ -99,7 +120,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Navigation */}
         <div className="px-6 pt-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-            Navegacion clinica
+            Navegacion
           </p>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4" aria-label="Navegacion principal">
@@ -134,48 +155,42 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* User section */}
         <div className="border-t border-slate-200/80 bg-slate-50/80 p-5">
-          <div
-            className="mb-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
-            role="group"
-            aria-label="Informacion del usuario"
-          >
-            <div className="flex items-center gap-3">
+          <div className="relative">
+            {isUserMenuOpen ? (
+              <div className="absolute inset-x-0 bottom-[calc(100%+0.75rem)] z-20 rounded-3xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-900/10">
+                <UserMenuContent
+                  loading={loading}
+                  onSignOut={handleSignOut}
+                  onNavigate={() => setIsUserMenuOpen(false)}
+                />
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setIsUserMenuOpen((open) => !open)}
+              aria-expanded={isUserMenuOpen}
+              aria-label="Abrir menu de cuenta"
+              className="flex w-full items-center gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+            >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-600 text-sm font-semibold text-white shadow-sm">
                 {userName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-900">{userName}</p>
                 <p className="truncate text-xs text-slate-500">{userEmail}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Vista activa
+                <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                  {currentLabel}
                 </p>
-                <p className="mt-1 text-sm font-medium text-slate-800">{currentLabel}</p>
               </div>
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                En linea
-              </span>
-            </div>
+              <ChevronRight
+                className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                  isUserMenuOpen ? '-rotate-90' : 'rotate-90'
+                }`}
+                aria-hidden="true"
+              />
+            </button>
           </div>
-          <div className="mb-4 space-y-3">
-            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Ayuda y recorridos
-            </p>
-            <PatientOnboarding autoStart={false} launcherVariant="sidebar" />
-            <TourHub variant="sidebar" />
-          </div>
-          <button
-            onClick={handleSignOut}
-            disabled={loading}
-            aria-label="Cerrar sesion y salir del portal"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <LogOut className="h-4 w-4" aria-hidden="true" />
-            Cerrar sesion
-          </button>
         </div>
       </aside>
 
@@ -193,12 +208,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-700">
                       AutaMedica
                     </p>
-                    <span className="text-sm font-semibold text-slate-900">Portal Paciente</span>
+                    <span className="text-sm font-semibold text-slate-900">Paciente</span>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => {
+                    setIsMobileUserMenuOpen(false);
+                    setIsMobileMenuOpen(false);
+                  }}
                   className="rounded-2xl border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-50"
                   aria-label="Cerrar menu"
                 >
@@ -221,7 +239,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Link
                     key={item.id}
                     href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={() => {
+                      setIsMobileUserMenuOpen(false);
+                      setIsMobileMenuOpen(false);
+                    }}
                     className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
                       isActive
                         ? 'bg-sky-50 text-sky-700 shadow-sm ring-1 ring-sky-100'
@@ -239,7 +260,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 );
               })}
             </nav>
-            <div className="absolute inset-x-4 bottom-6 space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="absolute inset-x-4 bottom-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-600 text-sm font-semibold text-white">
                   {userName.charAt(0).toUpperCase()}
@@ -249,10 +270,32 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <p className="truncate text-xs text-slate-500">{userEmail}</p>
                 </div>
               </div>
-              <div className="space-y-2 border-t border-slate-200 pt-3">
-                <PatientOnboarding autoStart={false} launcherVariant="sidebar" />
-                <TourHub variant="sidebar" />
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileUserMenuOpen((open) => !open)}
+                aria-expanded={isMobileUserMenuOpen}
+                className="mt-3 flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700"
+              >
+                Cuenta
+                <ChevronRight
+                  className={`h-4 w-4 text-slate-400 transition-transform ${
+                    isMobileUserMenuOpen ? '-rotate-90' : 'rotate-90'
+                  }`}
+                  aria-hidden="true"
+                />
+              </button>
+              {isMobileUserMenuOpen ? (
+                <div className="mt-3 border-t border-slate-200 pt-3">
+                  <UserMenuContent
+                    loading={loading}
+                    onSignOut={handleSignOut}
+                    onNavigate={() => {
+                      setIsMobileUserMenuOpen(false);
+                      setIsMobileMenuOpen(false);
+                    }}
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -277,9 +320,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </p>
               <div className="mt-1 flex items-center gap-2">
                 <span className="truncate text-sm font-semibold text-slate-900">{currentLabel}</span>
-                <span className="hidden rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 sm:inline-flex">
-                  Paciente
-                </span>
               </div>
             </div>
           </div>
@@ -317,6 +357,42 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Auta AI */}
       <AutaFloatingButton />
+    </div>
+  );
+}
+
+function UserMenuContent({
+  loading,
+  onSignOut,
+  onNavigate,
+}: {
+  loading: boolean;
+  onSignOut: () => Promise<void>;
+  onNavigate: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Link
+        href="/profile"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+      >
+        <User className="h-4 w-4" aria-hidden="true" />
+        Perfil
+      </Link>
+
+      <PatientOnboarding autoStart={false} launcherVariant="sidebar" />
+      <TourHub variant="sidebar" />
+
+      <button
+        onClick={onSignOut}
+        disabled={loading}
+        aria-label="Cerrar sesion y salir del portal"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <LogOut className="h-4 w-4" aria-hidden="true" />
+        Cerrar sesion
+      </button>
     </div>
   );
 }
