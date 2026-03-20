@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build core packages
+        run: pnpm build:packages:core
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build web (Astro)
+        run: pnpm --filter @autamedica/web build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          PUBLIC_SIGNALING_URL: wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling
+          PUBLIC_APP_URL: https://www.autamedica.com
