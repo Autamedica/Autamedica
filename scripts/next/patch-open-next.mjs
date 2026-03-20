@@ -17,6 +17,7 @@ const workerDir = path.resolve(cwd, options.outputDir ?? '.open-next');
 const workerPath = path.join(workerDir, '_worker.js');
 const originalWorkerPath = path.join(workerDir, 'worker.js');
 const routesPath = path.join(workerDir, '_routes.json');
+const assetsDir = path.join(workerDir, 'assets');
 
 if (!fs.existsSync(workerDir)) {
   console.error('⚠️  Directorio .open-next no encontrado, salteando patch.');
@@ -36,10 +37,50 @@ if (!fs.existsSync(workerPath)) {
 let source = fs.readFileSync(workerPath, 'utf8');
 
 const snippetSignature = 'return Response.redirect(new URL(target, request.url), 307);';
+const publicAssetsSignature = 'const publicAssetPaths = new Set([';
 const securityHeadersSignature = 'function addSecurityHeaders(response)';
 
+function getPublicAssetRedirectConfig() {
+  if (!fs.existsSync(assetsDir)) {
+    return { exactPaths: [], directoryPrefixes: [] };
+  }
+
+  const ignoredTopLevelEntries = new Set(['_next', '_headers', 'BUILD_ID']);
+  const exactPaths = [];
+  const directoryPrefixes = [];
+
+  for (const entry of fs.readdirSync(assetsDir, { withFileTypes: true })) {
+    if (ignoredTopLevelEntries.has(entry.name)) {
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      directoryPrefixes.push(`/${entry.name}/`);
+      continue;
+    }
+
+    exactPaths.push(`/${entry.name}`);
+  }
+
+  return { exactPaths, directoryPrefixes };
+}
+
+const { exactPaths: publicAssetPaths, directoryPrefixes: publicAssetPrefixes } =
+  getPublicAssetRedirectConfig();
+
+const rewriteCondition = [
+  'url.pathname.startsWith("/_next/static/")',
+  publicAssetPaths.length > 0 ? 'publicAssetPaths.has(url.pathname)' : null,
+  publicAssetPrefixes.length > 0
+    ? 'publicAssetPrefixes.some((prefix) => url.pathname.startsWith(prefix))'
+    : null,
+]
+  .filter(Boolean)
+  .join(' || ');
+
+const rewriteSnippet = `            const publicAssetPaths = new Set(${JSON.stringify(publicAssetPaths)});\n            const publicAssetPrefixes = ${JSON.stringify(publicAssetPrefixes)};\n            const url = new URL(request.url);\n            if (${rewriteCondition}) {\n                const target = \"/assets\" + url.pathname + url.search;\n                return Response.redirect(new URL(target, request.url), 307);\n            }\n`;
+
 if (!source.includes(snippetSignature)) {
-  const rewriteSnippet = `            const url = new URL(request.url);\n            if (url.pathname.startsWith(\"/_next/static/\")) {\n                const target = \"/assets\" + url.pathname + url.search;\n                return Response.redirect(new URL(target, request.url), 307);\n            }\n`;
 
   const pattern = /(async fetch\(request, env, ctx\) {\n)(\s*return runWithCloudflareRequestContext\(request, env, ctx, async \(\) => {\n\s*const response = maybeGetSkewProtectionResponse\(request\);\n\s*if \(response\) {\n\s*return response;\n\s*}\n\s*)(const url = new URL\(request.url\);\n)/;
 
@@ -51,6 +92,17 @@ if (!source.includes(snippetSignature)) {
   source = source.replace(pattern, (_, p1, p2, p3) => `${p1}${p2}${rewriteSnippet}`);
   fs.writeFileSync(workerPath, source);
   console.log('✅ _worker.js parcheado (rewrite /_next/static → fetch /assets).');
+} else if (!source.includes(publicAssetsSignature)) {
+  const legacyRewriteSnippet = `            const url = new URL(request.url);\n            if (url.pathname.startsWith(\"/_next/static/\")) {\n                const target = \"/assets\" + url.pathname + url.search;\n                return Response.redirect(new URL(target, request.url), 307);\n            }\n`;
+
+  if (!source.includes(legacyRewriteSnippet)) {
+    console.error('❌ Se detectó un patch previo, pero no se pudo actualizar al manejo de assets públicos.');
+    process.exit(1);
+  }
+
+  source = source.replace(legacyRewriteSnippet, rewriteSnippet);
+  fs.writeFileSync(workerPath, source);
+  console.log('✅ _worker.js actualizado para servir assets públicos desde /assets.');
 } else {
   console.log('ℹ️  Patch ya aplicado en _worker.js.');
 }

@@ -59,8 +59,12 @@ export function usePatientProfile(userId: string | null): UsePatientProfileRetur
         setSuccess(true);
         return { profile: json?.data?.profile ?? null, patient: json?.data?.patient ?? null };
       } catch (updateError) {
-        logger.error('[usePatientProfile] update failed', updateError);
-        setError('No pudimos guardar los cambios. Intentá nuevamente.');
+        const message =
+          updateError instanceof Error
+            ? updateError.message
+            : 'No pudimos guardar los cambios. Intentá nuevamente.';
+        logger.error('[usePatientProfile] update failed', message);
+        setError(message);
         return null;
       } finally {
         setIsSaving(false);

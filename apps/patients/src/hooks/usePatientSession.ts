@@ -4,7 +4,7 @@ import { parsePatient, type Patient } from '@/lib/zod/patients';
 import { safeParseProfile, type Profile } from '@/lib/zod/profiles';
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
-import type { User } from '@supabase/supabase-js';
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface PatientSessionState {
@@ -299,7 +299,7 @@ export function usePatientSession(): UsePatientSessionResult {
 
     refresh();
 
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (!isMountedRef.current) {
         return;
       }

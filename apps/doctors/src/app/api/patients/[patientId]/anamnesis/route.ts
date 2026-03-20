@@ -50,6 +50,51 @@ async function doctorHasPatientAccess(
   return Boolean(careTeam?.id || appointment?.id);
 }
 
+async function resolvePatientLabel(
+  admin: AppSupabaseClient,
+  patientId: string,
+): Promise<string> {
+  const { data: patientRow, error: patientError } = await admin
+    .from('patients')
+    .select('user_id')
+    .eq('id', patientId)
+    .maybeSingle();
+
+  if (patientError) {
+    logger.warn('[Doctor patient anamnesis] Unable to resolve patient row for label', patientError);
+    return `Paciente ${patientId}`;
+  }
+
+  const userId = (patientRow as { user_id?: string | null } | null)?.user_id ?? null;
+  if (!userId) {
+    return `Paciente ${patientId}`;
+  }
+
+  let profileQuery = await admin
+    .from('profiles')
+    .select('first_name, last_name')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if ((profileQuery.error && (profileQuery.error as { code?: string }).code !== 'PGRST116') || (!profileQuery.data && !profileQuery.error)) {
+    profileQuery = await admin
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', userId)
+      .maybeSingle();
+  }
+
+  if (profileQuery.error && (profileQuery.error as { code?: string }).code !== 'PGRST116') {
+    logger.warn('[Doctor patient anamnesis] Unable to resolve patient profile label', profileQuery.error);
+    return `Paciente ${patientId}`;
+  }
+
+  const profile = profileQuery.data as { first_name?: string | null; last_name?: string | null } | null;
+  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
+
+  return fullName || `Paciente ${patientId}`;
+}
+
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const { patientId } = await context.params;
@@ -110,8 +155,9 @@ export async function GET(_request: Request, context: RouteContext) {
     const requestUrl = new URL(_request.url);
 
     if (requestUrl.searchParams.get('format') === 'html') {
+      const patientLabel = await resolvePatientLabel(admin, patientId);
       const html = buildAnamnesisExportHtml({
-        patientLabel: `Paciente ${patientId}`,
+        patientLabel,
         status: anamnesis.status,
         privacyAccepted: true,
         summary,

@@ -624,7 +624,14 @@ export async function syncDeterministicAlerts(
   patientId: string,
   alerts: PatientDeterministicAlert[],
 ): Promise<void> {
-  const admin = createAdminClient() as unknown as DerivedAlertClient;
+  let admin: DerivedAlertClient;
+  try {
+    admin = createAdminClient() as unknown as DerivedAlertClient;
+  } catch (error) {
+    logger.warn('[syncDeterministicAlerts] Admin client unavailable', error);
+    return;
+  }
+
   const now = new Date().toISOString();
   const { data: existingRows, error: existingError } = await admin
     .from('patient_derived_alerts')
@@ -712,7 +719,14 @@ export async function syncDeterministicAlerts(
 export async function listPersistedDerivedAlerts(
   patientId: string,
 ): Promise<DerivedAlertPublicRow[]> {
-  const admin = createAdminClient() as unknown as DerivedAlertClient;
+  let admin: DerivedAlertClient;
+  try {
+    admin = createAdminClient() as unknown as DerivedAlertClient;
+  } catch (error) {
+    logger.warn('[listPersistedDerivedAlerts] Admin client unavailable', error);
+    return [];
+  }
+
   const { data, error } = await admin
     .from('patient_derived_alerts')
     .select('*')
@@ -721,7 +735,8 @@ export async function listPersistedDerivedAlerts(
     .order('updated_at', { ascending: false });
 
   if (error) {
-    throw error;
+    logger.warn('[listPersistedDerivedAlerts] Unable to load persisted alerts', error);
+    return [];
   }
 
   return data ?? [];
@@ -858,15 +873,30 @@ export async function buildPatientInsights(
       .limit(10),
   ]);
 
-  const admin = createAdminClient();
-  const recommendedScreeningsClient = admin as unknown as RecommendedScreeningsRpcClient;
-  const recommendedScreeningsResult = await recommendedScreeningsClient.rpc(
-    'get_recommended_screenings',
-    {
-      patient_id_param: patientId,
-      include_overdue: true,
-    },
-  );
+  let recommendedScreeningsResult: {
+    data: RecommendedScreeningRow[] | null;
+    error: unknown;
+  } = {
+    data: null,
+    error: null,
+  };
+
+  try {
+    const admin = createAdminClient();
+    const recommendedScreeningsClient = admin as unknown as RecommendedScreeningsRpcClient;
+    recommendedScreeningsResult = await recommendedScreeningsClient.rpc(
+      'get_recommended_screenings',
+      {
+        patient_id_param: patientId,
+        include_overdue: true,
+      },
+    );
+  } catch (error) {
+    logger.warn(
+      '[buildPatientInsights] Admin client unavailable for screening recommendations',
+      error,
+    );
+  }
 
   if (patientResult.error) {
     logger.warn('[buildPatientInsights] Unable to load patient row', patientResult.error);

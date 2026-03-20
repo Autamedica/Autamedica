@@ -116,21 +116,22 @@ export function useHealthCentersGeolocation(
 
       // Calculate distances and filter by radius
       const centersWithDistance: HealthCenterWithDistance[] = (data || [])
-        .map((center: any) => {
+        .map((center: unknown) => {
+          const typedCenter = center as HealthCenter;
           const centerCoords: Coordinates = {
-            latitude: center.coordinates.latitude,
-            longitude: center.coordinates.longitude
+            latitude: typedCenter.coordinates.latitude,
+            longitude: typedCenter.coordinates.longitude
           };
 
           const distance = calculateDistance(location, centerCoords);
 
           return {
-            ...center,
+            ...typedCenter,
             distance_km: Number(distance.toFixed(2)),
             travel_time_minutes: estimateTravelTime(distance, 'driving')
           } as HealthCenterWithDistance;
         })
-        .filter(center => {
+        .filter((center: HealthCenterWithDistance) => {
           const maxDistance = options.filters?.max_distance_km || radiusKm;
           return center.distance_km <= maxDistance;
         });

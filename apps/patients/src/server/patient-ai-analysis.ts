@@ -556,35 +556,41 @@ export async function getLatestPatientAiInsight(
   patientId: string,
 ): Promise<PatientAiInsightRecord | null> {
   const admin = createAdminClient() as unknown as PatientAiInsightsClient;
-  const { data, error } = await admin
-    .from('patient_ai_insights')
-    .select('*')
-    .eq('patient_id', patientId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(1);
+  try {
+    const { data, error } = await admin
+      .from('patient_ai_insights')
+      .select('*')
+      .eq('patient_id', patientId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-  if (error) {
-    throw error;
-  }
+    if (error) {
+      logger.warn('[getLatestPatientAiInsight] Unable to load persisted insight', error);
+      return null;
+    }
 
-  const row = data?.[0];
-  if (!row) {
+    const row = data?.[0];
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      patientId: row.patient_id,
+      providerName: row.provider_name,
+      modelName: row.model_name,
+      promptVersion: row.prompt_version,
+      snapshotVersion: row.snapshot_version,
+      status: row.status,
+      createdAt: row.created_at,
+      result: (row.response_json as PatientAiInsightResult | null) ?? null,
+      errorMessage: row.error_message,
+    };
+  } catch (error) {
+    logger.warn('[getLatestPatientAiInsight] Unexpected error while loading insight', error);
     return null;
   }
-
-  return {
-    id: row.id,
-    patientId: row.patient_id,
-    providerName: row.provider_name,
-    modelName: row.model_name,
-    promptVersion: row.prompt_version,
-    snapshotVersion: row.snapshot_version,
-    status: row.status,
-    createdAt: row.created_at,
-    result: (row.response_json as PatientAiInsightResult | null) ?? null,
-    errorMessage: row.error_message,
-  };
 }
 
 export async function runPatientAiSyncCycle(

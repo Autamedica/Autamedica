@@ -1,11 +1,10 @@
-import type { SessionData } from '@autamedica/session';
 import {
   fetchSessionData as fetchSessionDataShared,
   getLoginUrl as getLoginUrlShared,
   logout as logoutShared,
 } from '@autamedica/session';
 
-export type { SessionData };
+export type SessionData = NonNullable<Awaited<ReturnType<typeof fetchSessionDataShared>>>;
 
 export async function fetchSessionData(): Promise<SessionData | null> {
   return fetchSessionDataShared('patients', 'patient');

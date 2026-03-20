@@ -106,6 +106,16 @@ export const anamnesisSteps: AnamnesisStep[] = [
         educationalNote: 'Mientras más detalles, mejor. No tengas miedo de usar tus propias palabras.',
       },
       {
+        id: 'body_selections',
+        type: 'body_map',
+        label: 'Si puedes, marca en el cuerpo donde sientes el sintoma principal',
+        required: false,
+        tooltip:
+          'Esto no reemplaza tu relato. Sirve para ubicar mejor el sintoma, su lateralidad y su intensidad antes de la consulta.',
+        educationalNote:
+          'La localizacion anatomica ayuda a diferenciar mejor el motivo de consulta y a disparar repreguntas utiles.',
+      },
+      {
         id: 'cuando_empezo',
         type: 'select',
         label: '¿Cuándo comenzó este síntoma?',

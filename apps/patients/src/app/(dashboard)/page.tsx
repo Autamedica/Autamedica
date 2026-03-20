@@ -20,6 +20,30 @@ import {
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+const TRACKED_PORTAL_SECTIONS = [
+  'appointments',
+  'anamnesis',
+  'medical_history',
+  'lab_results',
+  'preventive_screenings',
+  'observations',
+] as const;
+
+interface DashboardPrimaryAction {
+  eyebrow: string;
+  title: string;
+  description: string;
+  href: string;
+  ctaLabel: string;
+  secondaryHref: string;
+  secondaryLabel: string;
+}
+
+interface DashboardCompletionAction {
+  href: string;
+  ctaLabel: string;
+}
+
 function getPatientName(
   profile: ReturnType<typeof usePatientSession>['profile'],
   user: ReturnType<typeof usePatientSession>['user'],
@@ -51,9 +75,13 @@ function formatDateTime(value: string): string {
   }).format(new Date(value));
 }
 
-function describeAgenda(summary: DashboardSummary | null): string {
-  if (!summary) {
+function describeAgenda(summary: DashboardSummary | null, loading: boolean): string {
+  if (loading) {
     return 'Cargando tu agenda clínica.';
+  }
+
+  if (!summary) {
+    return 'Completa tu perfil o agenda una consulta para empezar a ver tu agenda clínica aquí.';
   }
 
   if (summary.agenda.nextAppointment) {
@@ -62,12 +90,25 @@ function describeAgenda(summary: DashboardSummary | null): string {
       : 'Tu próxima consulta ya está programada.';
   }
 
-  return 'Todavía no tienes consultas programadas.';
+  return 'Todavía no tienes consultas programadas. Puedes agendar la próxima cuando la necesites.';
 }
 
-function describeHistory(summary: DashboardSummary | null): string {
-  if (!summary) {
+function describeHistory(summary: DashboardSummary | null, loading: boolean): string {
+  if (loading) {
     return 'Reuniendo tu historia clínica.';
+  }
+
+  if (!summary) {
+    return 'Completa tu anamnesis y antecedentes para construir una historia clínica útil.';
+  }
+
+  if (
+    summary.history.activeConditionsCount === 0 &&
+    summary.history.activeMedicationsCount === 0 &&
+    summary.history.knownAllergiesCount === 0 &&
+    summary.history.anamnesisCompletion === null
+  ) {
+    return 'Completa tu anamnesis para construir un resumen clínico más útil y accionable.';
   }
 
   const parts = [
@@ -83,13 +124,17 @@ function describeHistory(summary: DashboardSummary | null): string {
   return parts.join(' · ');
 }
 
-function preventionSummary(summary: DashboardSummary | null): string {
-  if (!summary) {
+function preventionSummary(summary: DashboardSummary | null, loading: boolean): string {
+  if (loading) {
     return 'Cargando tu seguimiento preventivo.';
   }
 
+  if (!summary) {
+    return 'Agrega más información clínica para sugerir controles preventivos relevantes.';
+  }
+
   if (summary.prevention.total === 0) {
-    return 'Aún no hay controles preventivos cargados para tu perfil.';
+    return 'Completa tu historia clínica para sugerir controles preventivos relevantes.';
   }
 
   if (summary.prevention.overdue > 0) {
@@ -103,21 +148,29 @@ function preventionSummary(summary: DashboardSummary | null): string {
   return 'Tus controles preventivos cargados están al día.';
 }
 
-function resultsSummary(summary: DashboardSummary | null): string {
-  if (!summary) {
+function resultsSummary(summary: DashboardSummary | null, loading: boolean): string {
+  if (loading) {
     return 'Consultando tus estudios cargados.';
+  }
+
+  if (!summary) {
+    return 'Cuando subas estudios reales, los verás aquí con su contexto clínico.';
   }
 
   if (summary.results.latest) {
     return `Último estudio: ${summary.results.latest.testType} (${formatDate(summary.results.latest.testDate)}).`;
   }
 
-  return 'Todavía no hay estudios cargados en tu perfil.';
+  return 'Todavía no cargaste estudios. Cuando subas uno aparecerá aquí.';
 }
 
-function vitalsSummary(summary: DashboardSummary | null): string {
-  if (!summary) {
+function vitalsSummary(summary: DashboardSummary | null, loading: boolean): string {
+  if (loading) {
     return 'Buscando tu último registro de signos vitales.';
+  }
+
+  if (!summary) {
+    return 'Necesitas observaciones o signos vitales para activar este bloque.';
   }
 
   if (summary.observations.lastVitals?.bloodPressure) {
@@ -128,7 +181,7 @@ function vitalsSummary(summary: DashboardSummary | null): string {
     return `Última frecuencia cardíaca: ${summary.observations.lastVitals.heartRate} lpm.`;
   }
 
-  return 'Todavía no hay signos vitales recientes para mostrar.';
+  return 'Registra tus signos vitales para seguir cambios y señales clínicas recientes.';
 }
 
 function priorityToneClassName(tone: DashboardPriorityTone): string {
@@ -176,6 +229,199 @@ function getPatientFacingSummary(insight: PatientAiInsightRecord | null): string
   return insight.result.patientFacingSummary;
 }
 
+function getProgressStatus({
+  hasContactProfile,
+  missingSections,
+}: {
+  hasContactProfile: boolean;
+  missingSections: string[];
+}): { completed: number; total: number; percentage: number } {
+  const completedTrackedSections = TRACKED_PORTAL_SECTIONS.filter(
+    (section) => !missingSections.includes(section),
+  ).length;
+  const completed = completedTrackedSections + (hasContactProfile ? 1 : 0);
+  const total = TRACKED_PORTAL_SECTIONS.length + 1;
+  const percentage = Math.round((completed / total) * 100);
+
+  return { completed, total, percentage };
+}
+
+function describeProgress({
+  percentage,
+  missingSections,
+  hasDashboardData,
+  hasContactProfile,
+}: {
+  percentage: number;
+  missingSections: string[];
+  hasDashboardData: boolean;
+  hasContactProfile: boolean;
+}): string {
+  if (!hasDashboardData) {
+    return hasContactProfile
+      ? 'Tu perfil básico ya existe, pero todavía faltan fuentes clínicas para construir el panel.'
+      : 'Completa tu perfil y los primeros datos clínicos para activar un panel realmente personalizado.';
+  }
+
+  if (!hasContactProfile) {
+    return 'Tu información clínica principal existe, pero el perfil básico todavía está incompleto.';
+  }
+
+  if (missingSections.length === 0) {
+    return 'Tu portal ya refleja todas las fuentes clínicas principales disponibles.';
+  }
+
+  if (percentage < 40) {
+    return 'Faltan datos base para personalizar bien el portal y priorizar mejor tus próximos pasos.';
+  }
+
+  if (percentage < 75) {
+    return 'Ya existe una base clínica inicial. Completar las áreas faltantes hará el panel más útil.';
+  }
+
+  return 'Tu portal ya tiene buena cobertura clínica. Completa los últimos datos para cerrar el circuito.';
+}
+
+function getPrimaryAction({
+  hasContactProfile,
+  missingSections,
+  nextAppointment,
+  pendingPreventive,
+  alertsCount,
+}: {
+  hasContactProfile: boolean;
+  missingSections: string[];
+  nextAppointment: DashboardSummary['agenda']['nextAppointment'] | null;
+  pendingPreventive: number;
+  alertsCount: number;
+}): DashboardPrimaryAction {
+  if (!hasContactProfile) {
+    return {
+      eyebrow: 'Paso recomendado',
+      title: 'Completa tu perfil básico',
+      description: 'Agrega tus datos personales y de contacto para activar un seguimiento clínico más confiable.',
+      href: '/profile',
+      ctaLabel: 'Completar perfil',
+      secondaryHref: '/medical-history',
+      secondaryLabel: 'Ver historia clínica',
+    };
+  }
+
+  if (missingSections.includes('anamnesis')) {
+    return {
+      eyebrow: 'Paso recomendado',
+      title: 'Completa tu anamnesis',
+      description: 'Es la pieza que más impacta en la personalización de alertas, prioridades y prevención.',
+      href: '/anamnesis',
+      ctaLabel: 'Completar anamnesis',
+      secondaryHref: '/medical-history',
+      secondaryLabel: 'Abrir historia clínica',
+    };
+  }
+
+  if (nextAppointment) {
+    return {
+      eyebrow: nextAppointment.isToday ? 'Consulta de hoy' : 'Agenda activa',
+      title: nextAppointment.isToday
+        ? 'Prepárate para tu consulta de hoy'
+        : 'Revisa tu próxima consulta',
+      description: nextAppointment.isToday
+        ? 'Confirma horario, especialidad y cualquier dato clínico que quieras tener a mano.'
+        : 'Tu agenda ya tiene una próxima cita. Revisa fecha, profesional y contexto antes de llegar.',
+      href: '/appointments',
+      ctaLabel: 'Ver mi agenda',
+      secondaryHref: '/medical-history',
+      secondaryLabel: 'Revisar antecedentes',
+    };
+  }
+
+  if (pendingPreventive > 0) {
+    return {
+      eyebrow: 'Prevención',
+      title: 'Pon al día tus controles preventivos',
+      description: 'Tienes controles por revisar. Resolverlos ahora mejora el seguimiento preventivo del portal.',
+      href: '/preventive-health',
+      ctaLabel: 'Revisar prevención',
+      secondaryHref: '/results',
+      secondaryLabel: 'Ver resultados',
+    };
+  }
+
+  if (alertsCount > 0) {
+    return {
+      eyebrow: 'Seguimiento',
+      title: 'Revisa las señales detectadas',
+      description: 'Hay eventos clínicos que merecen seguimiento. Conviene revisarlos antes de cargar más datos.',
+      href: '/medical-history',
+      ctaLabel: 'Ver señales clínicas',
+      secondaryHref: '/indicators',
+      secondaryLabel: 'Abrir indicadores',
+    };
+  }
+
+  if (missingSections.includes('lab_results')) {
+    return {
+      eyebrow: 'Resultados',
+      title: 'Sube tu último estudio',
+      description: 'Agregar estudios reales mejora el contexto médico y evita un panel con vacíos innecesarios.',
+      href: '/results',
+      ctaLabel: 'Cargar resultados',
+      secondaryHref: '/medical-history',
+      secondaryLabel: 'Revisar historia clínica',
+    };
+  }
+
+  return {
+    eyebrow: 'Portal al día',
+    title: 'Tu resumen ya tiene una base sólida',
+    description: 'Ahora puedes revisar agenda, historia clínica y prevención sin pasos pendientes urgentes.',
+    href: '/medical-history',
+    ctaLabel: 'Ver mi resumen clínico',
+    secondaryHref: '/appointments',
+    secondaryLabel: 'Ir a mi agenda',
+  };
+}
+
+function getCompletionAction({
+  hasContactProfile,
+  missingSections,
+  fallback,
+}: {
+  hasContactProfile: boolean;
+  missingSections: string[];
+  fallback: DashboardPrimaryAction;
+}): DashboardCompletionAction {
+  if (!hasContactProfile) {
+    return { href: '/profile', ctaLabel: 'Completar perfil' };
+  }
+
+  if (missingSections.includes('anamnesis')) {
+    return { href: '/anamnesis', ctaLabel: 'Completar anamnesis' };
+  }
+
+  if (missingSections.includes('medical_history')) {
+    return { href: '/medical-history', ctaLabel: 'Completar historia clínica' };
+  }
+
+  if (missingSections.includes('lab_results')) {
+    return { href: '/results', ctaLabel: 'Cargar resultados' };
+  }
+
+  if (missingSections.includes('preventive_screenings')) {
+    return { href: '/preventive-health', ctaLabel: 'Revisar prevención' };
+  }
+
+  if (missingSections.includes('observations')) {
+    return { href: '/medical-history', ctaLabel: 'Registrar observaciones' };
+  }
+
+  if (missingSections.includes('appointments')) {
+    return { href: '/appointments', ctaLabel: 'Ver mi agenda' };
+  }
+
+  return { href: fallback.href, ctaLabel: fallback.ctaLabel };
+}
+
 export default function DashboardPage() {
   const { user, profile } = usePatientSession();
   const { data, loading, error } = useDashboardSummary();
@@ -196,13 +442,26 @@ export default function DashboardPage() {
   const primaryPriorities = summary?.priorities.slice(0, 3) ?? [];
   const pendingPreventive = (summary?.prevention.overdue ?? 0) + (summary?.prevention.dueSoon ?? 0);
   const patientFacingSummary = getPatientFacingSummary(latestInsight);
+  const progress = getProgressStatus({ hasContactProfile, missingSections });
+  const primaryAction = getPrimaryAction({
+    hasContactProfile,
+    missingSections,
+    nextAppointment,
+    pendingPreventive,
+    alertsCount: alerts.length,
+  });
+  const completionAction = getCompletionAction({
+    hasContactProfile,
+    missingSections,
+    fallback: primaryAction,
+  });
 
   return (
     <div className="px-4 py-4 lg:px-6 lg:py-6">
       <div className="mx-auto flex w-full max-w-[1560px] gap-6">
         <div className="min-w-0 flex-1 space-y-6">
           <section className="overflow-hidden rounded-[34px] border border-slate-200 bg-[linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(239,246,255,0.95)_55%,_rgba(224,231,255,0.92))] shadow-sm shadow-slate-900/5">
-            <div className="grid gap-8 px-6 py-7 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)] lg:px-8 lg:py-8">
+            <div className="grid gap-8 px-6 py-7 xl:grid-cols-[minmax(0,1.25fr)_minmax(310px,0.75fr)] lg:px-8 lg:py-8">
               <div>
                 <div className="mb-4 flex flex-wrap items-center gap-3">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm ring-1 ring-sky-100">
@@ -220,8 +479,65 @@ export default function DashboardPage() {
                   Este panel se construye con tus datos clínicos reales: agenda, historia médica,
                   estudios y controles preventivos.
                 </p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <StatusChip
+
+                <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                  <section className="overflow-hidden rounded-[30px] bg-slate-950 px-6 py-6 text-white shadow-lg shadow-slate-900/15">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-sky-200">
+                      {primaryAction.eyebrow}
+                    </p>
+                    <h2 className="mt-3 max-w-xl text-2xl font-semibold tracking-tight sm:text-[2rem]">
+                      {primaryAction.title}
+                    </h2>
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                      {primaryAction.description}
+                    </p>
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      <Link
+                        href={primaryAction.href}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
+                      >
+                        {primaryAction.ctaLabel}
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        href={primaryAction.secondaryHref}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10"
+                      >
+                        {primaryAction.secondaryLabel}
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </div>
+                  </section>
+
+                  <section className="rounded-[30px] border border-white/80 bg-white/85 p-5 shadow-sm">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                      Progreso clínico
+                    </p>
+                    <div className="mt-4 flex items-end justify-between gap-3">
+                      <div>
+                        <p className="text-3xl font-semibold tracking-tight text-slate-900">
+                          {progress.percentage}%
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {progress.completed} de {progress.total} áreas listas
+                        </p>
+                      </div>
+                      <Sparkles className="h-6 w-6 text-sky-500" />
+                    </div>
+                    <div className="mt-4 h-2 rounded-full bg-slate-200">
+                      <div
+                        className="h-2 rounded-full bg-[linear-gradient(90deg,_#0ea5e9,_#2563eb)]"
+                        style={{ width: `${progress.percentage}%` }}
+                      />
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-slate-600">
+                      {describeProgress(progress.percentage, missingSections)}
+                    </p>
+                  </section>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <DashboardMetricCard
                     icon={
                       hasContactProfile ? (
                         <ShieldCheck className="h-4 w-4" />
@@ -230,39 +546,51 @@ export default function DashboardPage() {
                       )
                     }
                     label="Perfil"
-                    value={hasContactProfile ? 'Datos cargados' : 'Completar perfil'}
+                    value={hasContactProfile ? 'Listo' : 'Completar'}
+                    detail={hasContactProfile ? 'Datos básicos cargados' : 'Falta información personal'}
                   />
-                  <StatusChip
+                  <DashboardMetricCard
                     icon={<Calendar className="h-4 w-4" />}
                     label="Agenda"
                     value={
                       nextAppointment
                         ? nextAppointment.isToday
                           ? 'Consulta hoy'
-                          : 'Consulta programada'
-                        : 'Sin consultas próximas'
+                          : 'Próxima cita'
+                        : 'Sin agenda'
+                    }
+                    detail={
+                      nextAppointment
+                        ? formatDateTime(nextAppointment.startTime)
+                        : 'Todavía no tienes consultas próximas'
                     }
                   />
-                  <StatusChip
+                  <DashboardMetricCard
                     icon={<Sparkles className="h-4 w-4" />}
                     label="Prevención"
-                    value={
+                    value={pendingPreventive > 0 ? `${pendingPreventive} pendiente(s)` : 'Al día'}
+                    detail={
                       pendingPreventive > 0
-                        ? `${pendingPreventive} control(es) por revisar`
-                        : 'Sin alertas preventivas'
+                        ? 'Hay controles preventivos para revisar'
+                        : 'Sin alertas preventivas por ahora'
                     }
                   />
-                  <StatusChip
-                    icon={<ShieldCheck className="h-4 w-4" />}
-                    label="Señales"
-                    value={alerts.length > 0 ? `${alerts.length} activa(s)` : 'Sin señales activas'}
+                  <DashboardMetricCard
+                    icon={<TestTubeDiagonal className="h-4 w-4" />}
+                    label="Resultados"
+                    value={summary ? `${summary.results.total} estudio(s)` : 'Cargando'}
+                    detail={
+                      summary?.results.latest
+                        ? `Último: ${summary.results.latest.testType}`
+                        : 'Cuando cargues estudios aparecerán aquí'
+                    }
                   />
                 </div>
               </div>
 
               <div className="rounded-[28px] border border-stone-200 bg-[linear-gradient(135deg,_rgba(255,255,255,0.98),_rgba(250,245,255,0.95)_55%,_rgba(245,245,244,0.96))] p-6 text-stone-900 shadow-sm shadow-stone-900/5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-                  Tu jornada clínica
+                  En foco hoy
                 </p>
                 <div className="mt-5 space-y-4">
                   {loading && (
@@ -279,7 +607,7 @@ export default function DashboardPage() {
                     />
                   )}
 
-                  {!loading && !error && primaryPriorities.map((priority) => (
+                  {!loading && !error && primaryPriorities.slice(0, 2).map((priority) => (
                     <FocusLinkRow
                       key={priority.id}
                       title={priority.title}
@@ -296,10 +624,10 @@ export default function DashboardPage() {
                     />
                   )}
 
-                  {!loading && !error && missingSections.length > 0 && (
+                  {!loading && !error && !patientFacingSummary && primaryPriorities.length === 0 && (
                     <FocusRow
-                      title="Datos pendientes para personalizar mejor tu portal"
-                      description={describeMissingSections(missingSections)}
+                      title="Sin tareas urgentes"
+                      description="Tu panel no muestra prioridades críticas ahora mismo. Puedes revisar historia clínica o prevención para mantenerlo actualizado."
                     />
                   )}
                 </div>
@@ -367,6 +695,27 @@ export default function DashboardPage() {
                 Cada bloque refleja datos reales de tu perfil clínico y se vacía si esa información todavía no existe.
               </p>
             </div>
+            {missingSections.length > 0 && (
+              <div className="border-b border-amber-100 bg-amber-50/80 px-6 py-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-amber-700">
+                      Para personalizar mejor tu portal
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-amber-900">
+                      {describeMissingSections(missingSections)}
+                    </p>
+                  </div>
+                  <Link
+                    href={completionAction.href}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-amber-800"
+                  >
+                    {completionAction.ctaLabel}
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            )}
             <div className="grid gap-4 px-6 py-6 sm:grid-cols-2 xl:grid-cols-4">
               <InsightLinkCard
                 href="/results"
@@ -420,14 +769,14 @@ export default function DashboardPage() {
           </section>
         </div>
 
-        <aside className="hidden w-[360px] shrink-0 xl:block">
+        <aside className="hidden w-[320px] shrink-0 xl:block">
           <div className="sticky top-6 overflow-hidden rounded-[32px] border border-slate-200 bg-white/90 shadow-sm shadow-slate-900/5 backdrop-blur">
             <div className="border-b border-stone-200 bg-[linear-gradient(135deg,_rgba(250,245,255,0.9),_rgba(255,255,255,0.98)_55%,_rgba(239,246,255,0.88))] px-5 py-4 text-stone-900">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
-                Guía de bienestar
+                Resumen contextual
               </p>
               <p className="mt-1 text-sm text-stone-600">
-                Resumen operacional construido con tu agenda, estudios y seguimiento médico.
+                Vista secundaria para revisar agenda, contexto y seguimiento sin quitar protagonismo al panel principal.
               </p>
             </div>
             <DynamicRightPanel
@@ -443,21 +792,26 @@ export default function DashboardPage() {
   );
 }
 
-function StatusChip({
+function DashboardMetricCard({
   icon,
   label,
   value,
+  detail,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
+  detail: string;
 }) {
   return (
-    <div className="inline-flex items-center gap-3 rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-      <div className="text-sky-600">{icon}</div>
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-        <p className="mt-1 text-sm font-medium text-slate-800">{value}</p>
+    <div className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="rounded-2xl bg-sky-50 p-2.5 text-sky-600">{icon}</div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">{detail}</p>
+        </div>
       </div>
     </div>
   );

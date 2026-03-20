@@ -34,7 +34,7 @@ export default function AppointmentsPage() {
     return { upcoming, completed, cancelled };
   }, [appointments]);
 
-  const handleCreateAppointment = async (data: CreateAppointmentInput) => {
+  const handleCreateAppointment = async (data: CreateAppointmentInput): Promise<boolean> => {
     // Convertir a ISO string si es necesario
     const appointmentData = {
       ...data,
@@ -45,11 +45,12 @@ export default function AppointmentsPage() {
 
     const newAppointment = await createAppointment(appointmentData);
 
-    if (newAppointment) {
-      // Cerrar modal y refrescar
-      setIsModalOpen(false);
-      await refreshAppointments();
+    if (!newAppointment) {
+      return false;
     }
+
+    await refreshAppointments();
+    return true;
   };
 
   return (

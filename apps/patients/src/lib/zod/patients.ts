@@ -1,7 +1,18 @@
 import { z } from 'zod';
-import type { CamelCased } from '@autamedica/shared';
 import { camelToSnake } from '../mappers/camelToSnake';
 import { snakeToCamel } from '../mappers/snakeToCamel';
+
+type CamelCase<S extends string> = S extends `${infer Head}_${infer Tail}`
+  ? `${Head}${Capitalize<CamelCase<Tail>>}`
+  : S;
+
+type CamelCased<T> = T extends Array<infer Item>
+  ? Array<CamelCased<Item>>
+  : T extends Record<string, unknown>
+    ? {
+        [Key in keyof T as Key extends string ? CamelCase<Key> : Key]: CamelCased<T[Key]>;
+      }
+    : T;
 
 const GenderEnum = z.enum(['male', 'female', 'other', 'prefer_not_to_say']);
 const BloodTypeEnum = z.enum(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);

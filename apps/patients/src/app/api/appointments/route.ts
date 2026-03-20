@@ -5,7 +5,7 @@
  */
 
 import type { CreateAppointmentInput } from '@/types/appointment';
-import { createRouteHandlerClient } from '@autamedica/auth/server';
+import { createAdminClient, createRouteHandlerClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
 import type { Database } from '@autamedica/types';
 import { NextRequest, NextResponse } from 'next/server';
@@ -27,8 +27,19 @@ export async function GET(_request: NextRequest) {
       );
     }
 
+    let admin: ReturnType<typeof createAdminClient>;
+    try {
+      admin = createAdminClient();
+    } catch (error) {
+      logger.error('[GET /api/appointments] Admin client unavailable', error);
+      return NextResponse.json(
+        { error: 'No fue posible cargar las citas del paciente' },
+        { status: 503 }
+      );
+    }
+
     // Obtener citas del paciente con información del doctor
-    const { data: records, error } = await supabase
+    const { data: records, error } = await admin
       .from('appointments')
       .select(`
         *,
@@ -101,13 +112,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const doctorId = typeof body.doctor_id === 'string' ? body.doctor_id.trim() : '';
+    if (!doctorId) {
+      return NextResponse.json(
+        { error: 'Debes seleccionar un profesional antes de agendar la cita' },
+        { status: 400 }
+      );
+    }
+
+    let admin: ReturnType<typeof createAdminClient>;
+    try {
+      admin = createAdminClient();
+    } catch (error) {
+      logger.error('[POST /api/appointments] Admin client unavailable', error);
+      return NextResponse.json(
+        { error: 'No fue posible validar el profesional seleccionado' },
+        { status: 503 }
+      );
+    }
+
+    const { data: doctor, error: doctorError } = await admin
+      .from('doctors')
+      .select('id')
+      .eq('id', doctorId)
+      .eq('active', true)
+      .maybeSingle();
+
+    if (doctorError) {
+      logger.error('[POST /api/appointments] Doctor lookup error:', doctorError);
+      return NextResponse.json(
+        { error: 'No fue posible validar el profesional seleccionado' },
+        { status: 500 }
+      );
+    }
+
+    if (!doctor) {
+      return NextResponse.json(
+        { error: 'El profesional seleccionado no está disponible' },
+        { status: 404 }
+      );
+    }
+
     const duration = body.duration_minutes && body.duration_minutes > 0 ? body.duration_minutes : 30;
     const startIso = startDate.toISOString();
     const endIso = computeEndTime(startIso, duration);
 
     // Destructure body for easier use in insert, matching the provided diff's variable names
     const {
-      doctor_id,
       type,
       notes,
       reason,
@@ -117,11 +168,14 @@ export async function POST(request: NextRequest) {
     const start_time = startIso;
     const endTime = endIso;
     const duration_minutes = duration;
+    const combinedNotes = [reason, notes]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map((value) => value.trim())
+      .join('\n\n') || null;
 
-    const combinedNotes = [reason, notes].filter(Boolean).join('\n\n') || null;
     const appointmentInsert: Database['public']['Tables']['appointments']['Insert'] = {
       patient_id: context.patientId,
-      doctor_id: doctor_id ?? null,
+      doctor_id: doctorId,
       start_time,
       end_time: endTime,
       duration_minutes: Number(duration_minutes),
@@ -132,7 +186,7 @@ export async function POST(request: NextRequest) {
       location: location ?? null,
     };
 
-    const { data: newAppointment, error: insertError } = await supabase
+    const { data: newAppointment, error: insertError } = await admin
       .from('appointments')
       .insert(appointmentInsert as never)
       .select(`
@@ -151,9 +205,20 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       logger.error('[POST /api/appointments] Insert error:', insertError);
+      const isSchedulingConflict =
+        typeof insertError.message === 'string' &&
+        insertError.message.includes('SCHEDULING_CONFLICT');
+      const status = isSchedulingConflict
+        ? 409
+        : insertError.code === '23502' || insertError.code === '23503'
+          ? 400
+          : 500;
+      const errorMessage = isSchedulingConflict
+        ? 'El profesional ya tiene una cita en ese horario'
+        : 'Error al crear la cita';
       return NextResponse.json(
-        { error: 'Error al crear la cita', details: insertError.message },
-        { status: 500 }
+        { error: errorMessage, details: insertError.message },
+        { status }
       );
     }
 

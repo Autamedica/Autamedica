@@ -84,7 +84,7 @@ export function useReproductiveHealthAppointments(
       if (fetchError) throw fetchError;
 
       // Transform data
-      const transformedData: ReproductiveHealthAppointmentWithDetails[] = (data || []).map((dbItem) => {
+      const transformedData: ReproductiveHealthAppointmentWithDetails[] = (data || []).map((dbItem: unknown) => {
         const item = dbItem as unknown as Record<string, unknown> & {
           id: string; patient_id: string; specialist_id: string; consultation_type: string;
           modality: string; status: string; scheduled_at: string; duration_minutes: number;

@@ -103,8 +103,10 @@ export {
 export {
   toCamel,
   toSnake,
-  type CamelCased,
-  type SnakeCased
+} from './casing';
+export type {
+  CamelCased,
+  SnakeCased
 } from './casing';
 
 // Supabase database wrapper with auto soft-delete filtering
@@ -157,7 +159,9 @@ export {
 export {
   buildAnamnesisExportHtml,
   buildAnamnesisSummary,
-  type AnamnesisSectionRecord,
-  type AnamnesisSummary,
-  type AnamnesisSummarySection,
+} from './anamnesis';
+export type {
+  AnamnesisSectionRecord,
+  AnamnesisSummary,
+  AnamnesisSummarySection,
 } from './anamnesis';

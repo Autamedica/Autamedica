@@ -6,7 +6,7 @@ import type {
   MedicalChatWithLastMessage,
   MedicalMessage
 } from '@autamedica/types';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, RealtimePostgresInsertPayload } from '@supabase/supabase-js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseMedicalChatsOptions {
@@ -76,7 +76,7 @@ export function useMedicalChats(
       if (fetchError) throw fetchError;
 
       // Transform data
-      const transformedData: MedicalChatWithLastMessage[] = (data || []).map((dbItem) => {
+      const transformedData: MedicalChatWithLastMessage[] = (data || []).map((dbItem: unknown) => {
         const item = dbItem as unknown as Record<string, unknown> & {
           id: string; patient_id: string; specialist_id: string; appointment_id?: string;
           status: string; subject: string; is_urgent: boolean; last_message_at: string;
@@ -344,7 +344,7 @@ export function useChatMessages(
           table: 'medical_messages',
           filter: `chat_id=eq.${chatId}`
         },
-        (payload) => {
+        (payload: RealtimePostgresInsertPayload<MedicalMessage>) => {
           // logger.info('New message received:', payload);
           const newMessage = payload.new as MedicalMessage;
           setMessages((prev) => [...prev, newMessage]);

@@ -4,15 +4,42 @@
 export const dynamic = 'force-dynamic';
 
 import { AnamnesisField } from '@/components/anamnesis/AnamnesisField';
+import { AnamnesisClarificationLoop } from '@/components/anamnesis/AnamnesisClarificationLoop';
 import { MediaEducativa } from '@/components/anamnesis/MediaEducativa';
 import { PausaCognitiva } from '@/components/anamnesis/PausaCognitiva';
 import { StoryCard } from '@/components/anamnesis/StoryCard';
 import { anamnesisSteps } from '@/data/anamnesis-steps';
 import { useAnamnesis } from '@/hooks';
+import { usePatientSession } from '@/hooks/usePatientSession';
 import type { AnamnesisFieldValue } from '@/types/anamnesis';
-import { logger } from '@autamedica/shared';
+import { getClientEnvOrDefault, logger } from '@autamedica/shared';
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle, Download, Play, Save } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+
+function clampStepIndex(stepIndex: number): number {
+  if (!Number.isFinite(stepIndex)) {
+    return 0;
+  }
+
+  return Math.min(Math.max(Math.trunc(stepIndex), 0), anamnesisSteps.length - 1);
+}
+
+function buildPatientLoginUrl(): string {
+  if (typeof window === 'undefined') {
+    return '/';
+  }
+
+  const defaultAuthOrigin =
+    window.location.hostname === 'localhost'
+      ? 'http://localhost:3000'
+      : 'https://www.autamedica.com';
+  const authOrigin = getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', defaultAuthOrigin);
+  const loginUrl = new URL('/auth/login', authOrigin);
+  loginUrl.searchParams.set('portal', 'patients');
+  loginUrl.searchParams.set('returnTo', `${window.location.origin}/anamnesis`);
+
+  return loginUrl.toString();
+}
 
 export default function AnamnesisPage() {
   // Hook de Supabase para anamnesis
@@ -22,7 +49,13 @@ export default function AnamnesisPage() {
     updateSection,
     updateAnamnesis,
     refreshAnamnesis,
+    error: anamnesisError,
   } = useAnamnesis();
+  const {
+    user: sessionUser,
+    patient: sessionPatient,
+    loading: sessionLoading,
+  } = usePatientSession();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [anamnesisData, setAnamnesisData] = useState<Record<string, AnamnesisFieldValue>>({});
@@ -31,8 +64,9 @@ export default function AnamnesisPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [privacySetting, setPrivacySetting] = useState<'shared' | 'private'>('shared');
+  const [startError, setStartError] = useState<string | null>(null);
 
-  const currentStep = anamnesisSteps[currentStepIndex];
+  const currentStep = anamnesisSteps[clampStepIndex(currentStepIndex)];
   const progress = anamnesis?.completion_percentage ?? ((currentStepIndex + 1) / anamnesisSteps.length) * 100;
   const currentMediaType = currentStep.mediaUrl?.match(/\.(mp4|webm|ogg)$/i) ? 'video' : 'image';
 
@@ -80,12 +114,57 @@ export default function AnamnesisPage() {
       try {
         const parsed = JSON.parse(saved);
         setAnamnesisData(parsed.data || {});
-        setCurrentStepIndex(parsed.currentStep || 0);
+        setCurrentStepIndex(clampStepIndex(Number(parsed.currentStep ?? 0)));
       } catch (e) {
         logger.error('Error loading saved data:', e);
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (
+      !sessionLoading &&
+      (anamnesisError === 'unauthorized' || anamnesisError === 'No se pudo cargar la anamnesis')
+    ) {
+      setStartError('Debe iniciar sesion nuevamente para completar la anamnesis.');
+    }
+  }, [anamnesisError, sessionLoading]);
+
+  const handleStartAnamnesis = useCallback(async () => {
+    setStartError(null);
+    setIsSaving(true);
+
+    try {
+      if (sessionLoading) {
+        throw new Error('Estamos verificando tu sesion. Intenta nuevamente en unos segundos.');
+      }
+
+      if (!sessionUser || !sessionPatient) {
+        const loginUrl = buildPatientLoginUrl();
+        window.location.href = loginUrl;
+        return;
+      }
+
+      if (currentStepIndex !== clampStepIndex(currentStepIndex)) {
+        setCurrentStepIndex(clampStepIndex(currentStepIndex));
+      }
+
+      const ensured = await createAnamnesis();
+      if (ensured === null) {
+        throw new Error('No fue posible preparar la anamnesis del paciente');
+      }
+
+      setStarted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'No fue posible iniciar la anamnesis';
+      logger.error('Error starting anamnesis:', error);
+      setStartError(message);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [createAnamnesis, currentStepIndex, sessionLoading, sessionPatient, sessionUser]);
 
   const handleFieldChange = (fieldId: string, value: AnamnesisFieldValue) => {
     setAnamnesisData((prev) => ({
@@ -193,8 +272,12 @@ export default function AnamnesisPage() {
     }
   };
 
-  const handleExportPdf = () => {
+  const handleOpenPrintableVersion = () => {
     window.open('/api/anamnesis/export', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleOpenExtractionHtml = () => {
+    window.open('/api/anamnesis/extract/html', '_blank', 'noopener,noreferrer');
   };
 
   if (!started) {
@@ -269,12 +352,32 @@ export default function AnamnesisPage() {
               </p>
             </div>
 
+            {startError ? (
+              <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {startError}
+              </div>
+            ) : null}
+
+            {!sessionLoading && (!sessionUser || !sessionPatient) ? (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                Debe iniciar sesion nuevamente para continuar con la anamnesis.
+              </div>
+            ) : null}
+
             <button
-              onClick={() => setStarted(true)}
+              type="button"
+              onClick={handleStartAnamnesis}
+              disabled={isSaving || sessionLoading}
               className="btn-primary-ivory px-8 py-4 text-lg inline-flex items-center gap-3 w-full justify-center"
             >
               <Play className="h-6 w-6" />
-              Comenzar anamnesis
+              {sessionLoading
+                ? 'Verificando sesion...'
+                : isSaving
+                  ? 'Preparando anamnesis...'
+                  : !sessionUser || !sessionPatient
+                    ? 'Iniciar sesion para continuar'
+                    : 'Comenzar anamnesis'}
             </button>
           </div>
         </div>
@@ -300,14 +403,24 @@ export default function AnamnesisPage() {
             </div>
             <div className="flex items-center gap-3">
               {anamnesis?.status === 'completed' && (
-                <button
-                  type="button"
-                  onClick={handleExportPdf}
-                  className="inline-flex items-center gap-2 rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
-                >
-                  <Download className="h-4 w-4" />
-                  Descargar PDF
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={handleOpenPrintableVersion}
+                    className="inline-flex items-center gap-2 rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    Abrir version imprimible
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenExtractionHtml}
+                    className="inline-flex items-center gap-2 rounded-full border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Evaluar extractor IA
+                  </button>
+                </>
               )}
               {/* Indicador de guardado */}
               {isSaving ? (
@@ -332,6 +445,8 @@ export default function AnamnesisPage() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
+        {anamnesis?.status === 'completed' && <AnamnesisClarificationLoop />}
+
         {/* Step Header */}
         <header>
           <h1 className="text-2xl font-semibold text-stone-900 mt-1">

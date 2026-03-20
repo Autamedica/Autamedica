@@ -11,6 +11,18 @@ import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+function readSupabaseUrl(): string {
+  return process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ensureServerEnv("SUPABASE_URL");
+}
+
+function readSupabaseAnonKey(): string {
+  return (
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    ensureServerEnv("SUPABASE_ANON_KEY")
+  );
+}
+
 /**
  * Crea un cliente Supabase para Server Components y Server Actions
  *
@@ -20,8 +32,8 @@ export async function createServerClient() {
   const cookieStore = await cookies();
 
   return createSupabaseServerClient<Database>(
-    ensureServerEnv("SUPABASE_URL"),
-    ensureServerEnv("SUPABASE_ANON_KEY"),
+    readSupabaseUrl(),
+    readSupabaseAnonKey(),
     {
       cookies: {
         getAll() {
@@ -51,8 +63,8 @@ export function createMiddlewareClient(request: NextRequest) {
   });
 
   const supabase = createSupabaseServerClient<Database>(
-    ensureServerEnv("SUPABASE_URL"),
-    ensureServerEnv("SUPABASE_ANON_KEY"),
+    readSupabaseUrl(),
+    readSupabaseAnonKey(),
     {
       cookies: {
         getAll() {
@@ -78,8 +90,8 @@ export async function createRouteHandlerClient() {
   const cookieStore = await cookies();
 
   return createSupabaseServerClient<Database>(
-    ensureServerEnv("SUPABASE_URL"),
-    ensureServerEnv("SUPABASE_ANON_KEY"),
+    readSupabaseUrl(),
+    readSupabaseAnonKey(),
     {
       cookies: {
         getAll() {
@@ -101,7 +113,7 @@ export async function createRouteHandlerClient() {
  */
 export function createAdminClient() {
   return createSupabaseServerClient<Database>(
-    ensureServerEnv("SUPABASE_URL"),
+    readSupabaseUrl(),
     ensureServerEnv("SUPABASE_SERVICE_ROLE_KEY"),
     {
       cookies: {

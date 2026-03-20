@@ -109,7 +109,7 @@ export function usePreventiveScreenings(
       if (fetchError) throw fetchError;
 
       // Transform data
-      const transformedData: PatientScreeningWithDetails[] = (data || []).map((dbItem) => {
+      const transformedData: PatientScreeningWithDetails[] = (data || []).map((dbItem: unknown) => {
         const item = dbItem as unknown as Record<string, unknown> & {
           id: string; patient_id: string; screening_id: string; status: string; scheduled_date?: string;
           completed_date?: string; next_due_date?: string; assigned_doctor_id?: string; notes?: string;

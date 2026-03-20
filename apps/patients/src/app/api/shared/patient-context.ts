@@ -42,13 +42,36 @@ export async function resolvePatientContext(
     return null;
   }
 
-  const admin = createAdminClient();
+  const { data: scopedPatient, error: scopedPatientError } = await supabase
+    .from('patients')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  const scopedPatientId = (scopedPatient as { id: string } | null)?.id ?? null;
+  if (scopedPatientId) {
+    return {
+      userId,
+      patientId: scopedPatientId,
+    };
+  }
+
+  if (scopedPatientError) {
+    logger.warn('[resolvePatientContext] User-scoped patient lookup failed', scopedPatientError);
+  }
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch (error) {
+    logger.warn('[resolvePatientContext] Admin client unavailable', error);
+    return null;
+  }
 
   let { data: patient, error: patientError } = await admin
     .from('patients')
     .select('id')
     .eq('user_id', userId)
-    .is('deleted_at', null)
     .maybeSingle();
 
   if (!patient && !patientError) {

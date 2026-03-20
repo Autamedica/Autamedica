@@ -2,6 +2,7 @@ import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
 import type {
   DoctorId,
+  ISODateString,
   PhoneE164,
   ReproductiveHealthSpecialistId,
   ReproductiveHealthSpecialistWithProfile,
@@ -77,22 +78,38 @@ export function useReproductiveHealthSpecialists(
       if (fetchError) throw fetchError;
 
       // Transform data to match interface
-      const transformedData: ReproductiveHealthSpecialistWithProfile[] = (data || []).map((item) => {
-        const doc = (item as unknown as { doctor?: Record<string, string> }).doctor;
+      const transformedData: ReproductiveHealthSpecialistWithProfile[] = (data || []).map((item: unknown) => {
+        const record = item as Record<string, unknown> & {
+          id: string;
+          doctor_id: string;
+          specialty: ReproductiveHealthSpecialtyType;
+          is_certified_ive_ile: boolean;
+          availability_status: SpecialistAvailabilityStatus;
+          accepts_emergency_consultations: boolean;
+          rating: number | null;
+          total_consultations: number;
+          years_of_experience: number;
+          languages?: string[] | null;
+          bio?: string | null;
+          created_at: string;
+          updated_at: string;
+          doctor?: Record<string, string>;
+        };
+        const doc = record.doctor;
         return {
-          id: item.id as unknown as ReproductiveHealthSpecialistId,
-          doctor_id: item.doctor_id as unknown as DoctorId,
-          specialty: item.specialty,
-          is_certified_ive_ile: item.is_certified_ive_ile,
-          availability_status: item.availability_status,
-          accepts_emergency_consultations: item.accepts_emergency_consultations,
-          rating: item.rating,
-          total_consultations: item.total_consultations,
-          years_of_experience: item.years_of_experience,
-          languages: item.languages || ['es'],
-          bio: item.bio || '',
-          created_at: item.created_at,
-          updated_at: item.updated_at,
+          id: record.id as unknown as ReproductiveHealthSpecialistId,
+          doctor_id: record.doctor_id as unknown as DoctorId,
+          specialty: record.specialty,
+          is_certified_ive_ile: record.is_certified_ive_ile,
+          availability_status: record.availability_status,
+          accepts_emergency_consultations: record.accepts_emergency_consultations,
+          rating: record.rating ?? 0,
+          total_consultations: record.total_consultations,
+          years_of_experience: record.years_of_experience,
+          languages: record.languages || ['es'],
+          bio: record.bio || '',
+          created_at: record.created_at as ISODateString,
+          updated_at: record.updated_at as ISODateString,
           first_name: doc?.first_name || '',
           last_name: doc?.last_name || '',
           email: doc?.email || '',
@@ -172,13 +189,13 @@ export function useSpecialistById(specialistId: string | null) {
             is_certified_ive_ile: data.is_certified_ive_ile,
             availability_status: data.availability_status,
             accepts_emergency_consultations: data.accepts_emergency_consultations,
-            rating: data.rating,
+            rating: data.rating ?? 0,
             total_consultations: data.total_consultations,
             years_of_experience: data.years_of_experience,
             languages: data.languages || ['es'],
             bio: data.bio || '',
-            created_at: data.created_at,
-            updated_at: data.updated_at,
+            created_at: data.created_at as ISODateString,
+            updated_at: data.updated_at as ISODateString,
             first_name: doc?.first_name || '',
             last_name: doc?.last_name || '',
             email: doc?.email || '',

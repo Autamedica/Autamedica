@@ -71,8 +71,8 @@ function tabsForContext(context: PanelContext): TabConfig[] {
       ];
     default:
       return [
-        { id: 'brief', label: 'Hoy', icon: FileText },
-        { id: 'actions', label: 'Bitácora', icon: Activity },
+        { id: 'brief', label: 'Resumen', icon: FileText },
+        { id: 'actions', label: 'Registro', icon: Activity },
         { id: 'medical', label: 'Contexto', icon: Heart },
       ];
   }
@@ -146,29 +146,6 @@ function getPatientFacingSummary(insight: PatientAiInsightRecord | null): string
   return insight.result.patientFacingSummary;
 }
 
-function describeMissingSections(missingSections: string[]): string {
-  const labels = missingSections.map((section) => {
-    switch (section) {
-      case 'appointments':
-        return 'agenda';
-      case 'anamnesis':
-        return 'anamnesis';
-      case 'medical_history':
-        return 'antecedentes';
-      case 'lab_results':
-        return 'estudios';
-      case 'preventive_screenings':
-        return 'controles';
-      case 'observations':
-        return 'observaciones';
-      default:
-        return section;
-    }
-  });
-
-  return labels.length > 0 ? labels.join(', ') : 'sin faltantes críticos';
-}
-
 export function DynamicRightPanel({
   context = 'dashboard',
   dashboardView,
@@ -193,13 +170,13 @@ export function DynamicRightPanel({
   }, [context]);
 
   return (
-    <aside className="relative flex w-[30%] min-w-[320px] max-w-[400px] flex-col border-l border-slate-200/50 bg-white/40 shadow-xl shadow-indigo-900/5 backdrop-blur-2xl">
+    <aside className="relative flex w-full min-w-0 max-w-[340px] flex-col border-l border-slate-200/50 bg-white/35 shadow-xl shadow-indigo-900/5 backdrop-blur-2xl">
       <div className="border-b border-indigo-100/50 bg-white/60 px-5 py-4 backdrop-blur-md">
         <p className="inline-flex rounded-full bg-indigo-100/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-          Panel de contexto
+          Panel contextual
         </p>
         <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-          El contenido visible sale de tu agenda, historia clínica, estudios y seguimiento real.
+          Referencia rápida con agenda, prioridades y contexto médico real.
         </p>
       </div>
 
@@ -280,13 +257,13 @@ function DailyBriefPanel({
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-white/20" />
         <div className="relative">
           <p className="inline-flex rounded-full bg-indigo-100/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
-            Resumen de hoy
+            Resumen real
           </p>
           <h3 className="mt-3 text-lg font-bold leading-tight text-slate-900">
-            {preferredName}, esto sale de tu información clínica actual
+            {preferredName}, esto refleja tu estado clínico disponible
           </h3>
           <p className="mt-2 text-xs font-medium leading-relaxed text-slate-600">
-            Sin valores simulados. Si falta información, la verás vacía.
+            Sin datos simulados. Si algo falta, el panel lo mostrará vacío.
           </p>
         </div>
       </section>
@@ -319,23 +296,25 @@ function DailyBriefPanel({
             />
           </section>
 
-          <section>
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Prioridades activas
-            </p>
-            <div className="space-y-3">
-              {summary.priorities.map((priority) => (
-                <Link
-                  key={priority.id}
-                  href={priority.href}
-                  className="block rounded-xl border border-stone-200 bg-white p-4 transition hover:border-stone-300 hover:shadow-sm"
-                >
-                  <p className="text-sm font-semibold text-stone-900">{priority.title}</p>
-                  <p className="mt-1 text-xs leading-5 text-stone-600">{priority.description}</p>
-                </Link>
-              ))}
-            </div>
-          </section>
+          {summary.priorities.length > 0 && (
+            <section>
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Prioridades
+              </p>
+              <div className="space-y-3">
+                {summary.priorities.slice(0, 2).map((priority) => (
+                  <Link
+                    key={priority.id}
+                    href={priority.href}
+                    className="block rounded-xl border border-stone-200 bg-white p-4 transition hover:border-stone-300 hover:shadow-sm"
+                  >
+                    <p className="text-sm font-semibold text-stone-900">{priority.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-stone-600">{priority.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           {patientFacingSummary && (
             <FactCard
@@ -365,12 +344,6 @@ function DailyBriefPanel({
             </section>
           )}
 
-          {missingSections.length > 0 && (
-            <PanelNotice>
-              Para mejorar la personalización todavía faltan datos en: {describeMissingSections(missingSections)}.
-            </PanelNotice>
-          )}
-
           <section className="space-y-3">
             <FactCard
               title="Próxima consulta"
@@ -391,6 +364,12 @@ function DailyBriefPanel({
               icon={<TestTubeDiagonal className="h-4 w-4" />}
             />
           </section>
+
+          {summary.priorities.length === 0 && !patientFacingSummary && alerts.length === 0 && (
+            <PanelNotice>
+              No hay prioridades urgentes en este momento.
+            </PanelNotice>
+          )}
         </>
       )}
     </div>

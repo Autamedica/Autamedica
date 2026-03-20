@@ -5,6 +5,35 @@ import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 
+async function resolvePatientLabel(
+  supabase: Awaited<ReturnType<typeof createRouteHandlerClient>>,
+  userId: string,
+): Promise<string> {
+  let query = await supabase
+    .from('profiles')
+    .select('first_name, last_name')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if ((query.error && query.error.code !== 'PGRST116') || (!query.data && !query.error)) {
+    query = await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', userId)
+      .maybeSingle()
+  }
+
+  if (query.error && query.error.code !== 'PGRST116') {
+    logger.warn('[Anamnesis export] Unable to resolve patient profile label', query.error)
+    return 'Paciente autenticado'
+  }
+
+  const profile = query.data as { first_name?: string | null; last_name?: string | null } | null
+  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
+
+  return fullName || 'Paciente autenticado'
+}
+
 export async function GET() {
   try {
     const supabase = await createRouteHandlerClient()
@@ -46,8 +75,9 @@ export async function GET() {
     }
 
     const summary = buildAnamnesisSummary(sections ?? [])
+    const patientLabel = await resolvePatientLabel(supabase, context.userId)
     const html = buildAnamnesisExportHtml({
-      patientLabel: 'Paciente autenticado',
+      patientLabel,
       status: anamnesis.status,
       privacyAccepted: anamnesis.privacy_accepted === true,
       summary,

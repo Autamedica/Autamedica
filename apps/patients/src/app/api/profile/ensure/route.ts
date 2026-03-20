@@ -34,19 +34,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const email = body?.email;
+    const admin = createAdminClient();
 
-    // Ensure profiles row (id PK) exists with minimal fields
+    // Ensure profiles row exists with the production schema
     try {
-      const { error: profileErr } = await (supabase as any)
+      const { error: profileErr } = await (admin as any)
         .from('profiles')
         .upsert({
-          id: userId,
-          email: email || '', // Email is NOT NULL in schema
-          portal: 'patients',
-          full_name: body?.full_name || null
-        }, { onConflict: 'id' })
+          user_id: userId,
+          email: typeof email === 'string' && email.length > 0 ? email : null,
+          external_id: userId,
+          role: 'patient',
+        }, { onConflict: 'user_id' })
         .select()
         .single();
 
@@ -60,11 +61,11 @@ export async function POST(req: Request) {
 
     // Optionally ensure patients row exists
     try {
-      const { error: patientErr } = await (supabase as any)
+      const { error: patientErr } = await (admin as any)
         .from('patients')
         .upsert({
           user_id: userId,
-          full_name: body?.full_name || ''
+          active: true,
         }, { onConflict: 'user_id' })
         .select()
         .single();

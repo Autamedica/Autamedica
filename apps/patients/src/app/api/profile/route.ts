@@ -21,26 +21,45 @@ export async function PATCH(request: Request) {
 
     const admin = createAdminClient() as any as AppSupabaseClient;
 
-    let updatedProfile: any = null;
-    let updatedPatient: any = null;
+    let updatedProfile: unknown = null;
+    let updatedPatient: unknown = null;
 
     // Update profiles
     if (profile) {
       const snake = buildProfileUpdatePayload(profile);
       try {
-        // First try modern schema
-        const upd = await (admin as any).from('profiles').update(snake).eq('id', userId).select('*').single();
-        if (upd.error) throw upd.error;
-        updatedProfile = upd.data;
-      } catch {
-        // Fallback to legacy: full_name
-        const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || null;
-        const legacy = await (admin as any).from('profiles').update({ full_name: fullName }).eq('id', userId).select('*').single();
-        if (legacy.error) {
-          logger.error('[API] profile update failed', legacy.error);
-          return NextResponse.json({ ok: false, error: legacy.error.message || 'profile_update_failed' }, { status: 400 });
+        const upd = await (admin as any)
+          .from('profiles')
+          .update(snake)
+          .eq('user_id', userId)
+          .select('*')
+          .maybeSingle();
+
+        if (upd.error && upd.error.code !== 'PGRST116') {
+          throw upd.error;
         }
-        updatedProfile = legacy.data;
+
+        if (upd.data) {
+          updatedProfile = upd.data;
+        } else {
+          const ins = await (admin as any)
+            .from('profiles')
+            .insert({ user_id: userId, external_id: userId, role: 'patient', ...snake })
+            .select('*')
+            .single();
+
+          if (ins.error) {
+            throw ins.error;
+          }
+
+          updatedProfile = ins.data;
+        }
+      } catch (profileError: any) {
+        logger.error('[API] profile update failed', profileError);
+        return NextResponse.json(
+          { ok: false, error: profileError?.message || 'profile_update_failed' },
+          { status: 400 },
+        );
       }
     }
 
