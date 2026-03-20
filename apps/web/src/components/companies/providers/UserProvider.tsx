@@ -51,12 +51,14 @@ export function UserProvider({ children }: UserProviderProps) {
           setCompanyName(company);
 
           // Check for admin role in any of the user's companies
-          const { data: memberData, error } = await supabase
-            .from('company_members')
+          // Cast to bypass ts(2589) deep-instantiation on Supabase generic chain
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const sb = supabase as unknown as { from: (t: string) => any };
+          const { data: memberData, error } = await sb.from('company_members')
             .select('role')
             .eq('user_id', user.id)
             .eq('role', 'admin')
-            .limit(1);
+            .limit(1) as { data: Array<{ role: string }> | null; error: { message: string } | null };
 
           if (error) {
             logger.error('Error fetching member role:', error);

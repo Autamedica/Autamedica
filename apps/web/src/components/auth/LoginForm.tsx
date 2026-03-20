@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { EntryRole } from '../../lib/auth-flow';
 import {
   ROLE_ENTRIES,
