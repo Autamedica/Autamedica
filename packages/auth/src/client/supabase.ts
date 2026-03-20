@@ -111,7 +111,7 @@ export function createBrowserClient(): SupabaseClient<Database> {
     }
   }) as unknown as SupabaseClient
 
-  return supabaseClient!
+  return supabaseClient as SupabaseClient<Database>
 }
 
 /**
