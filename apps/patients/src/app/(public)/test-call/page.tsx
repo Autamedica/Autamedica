@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { logger } from '@autamedica/shared'
-import { TelemedicineDebugPanel, UnifiedVideoCall } from '@autamedica/telemedicine'
+import { TelemedicineDebugPanel, UnifiedVideoCall, useTurnCredentials } from '@autamedica/telemedicine'
 
 export default function TestCallPage() {
   const [roomId, setRoomId] = useState('test-room-001')
   const [userId] = useState('patient-test-001')
   const [callStarted, setCallStarted] = useState(false)
+  const { iceServers } = useTurnCredentials()
 
   if (callStarted) {
     return (
@@ -17,6 +18,7 @@ export default function TestCallPage() {
           userId={userId}
           userType="patient"
           userName="Paciente Test"
+          iceServers={iceServers}
           onCallEnd={() => setCallStarted(false)}
           onCallStart={() => logger.info('Conectado a consulta medica')}
           theme="patient"

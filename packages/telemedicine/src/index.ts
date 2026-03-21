@@ -37,7 +37,8 @@ export {
   loadIceServers,
   ICE_STUN_ONLY,
   ICE_WITH_TURN,
-  loadSignalingUrl
+  loadSignalingUrl,
+  fetchTurnCredentials,
 } from './config/ice-servers'
 
 export {
@@ -80,6 +81,7 @@ export type {
 
 // Hooks
 export { useTelemedicineClient, useMediaControls, useRtcStats } from './hooks'
+export { useTurnCredentials } from './hooks/useTurnCredentials'
 export type {
   TelemedicineClientState,
   TelemedicineClientActions,

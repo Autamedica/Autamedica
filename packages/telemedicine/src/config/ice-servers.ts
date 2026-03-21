@@ -161,3 +161,26 @@ export function getExampleIceServersConfig(): string {
     { urls: 'turn:turn.example.com:3478', username: 'user', credential: 'pass' },
   ], null, 2)
 }
+
+/**
+ * Fetches ephemeral TURN credentials from the app's API route.
+ * Falls back to STUN-only if the request fails or the endpoint isn't configured.
+ *
+ * @param apiUrl - URL of the /api/turn-credentials endpoint (default: '/api/turn-credentials')
+ */
+export async function fetchTurnCredentials(
+  apiUrl = '/api/turn-credentials'
+): Promise<RTCIceServer[]> {
+  try {
+    const res = await fetch(apiUrl, { cache: 'no-store' })
+    if (!res.ok) return [...ICE_STUN_ONLY]
+    const json = await res.json() as { ok: boolean; iceServers?: RTCIceServer[] }
+    if (!json.ok || !Array.isArray(json.iceServers) || json.iceServers.length === 0) {
+      return [...ICE_STUN_ONLY]
+    }
+    // Cloudflare Calls already includes STUN; just return as-is
+    return json.iceServers
+  } catch {
+    return [...ICE_STUN_ONLY]
+  }
+}

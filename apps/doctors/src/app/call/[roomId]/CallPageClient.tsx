@@ -6,6 +6,7 @@ import {
   TelemedicineDebugPanel,
   UnifiedVideoCall,
   createTelemedicineLogger,
+  useTurnCredentials,
 } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/auth'
@@ -53,6 +54,7 @@ function DoctorCallContent({
   const router = useRouter()
   const { session, profile, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
+  const { iceServers } = useTurnCredentials()
 
   const typedProfile = profile as UserProfile | null
   const debugLogger = useMemo(
@@ -159,6 +161,7 @@ function DoctorCallContent({
         userId={userId}
         userType="doctor"
         userName={userName}
+        iceServers={iceServers}
         theme="doctor"
         onCallEnd={handleCallEnd}
         onCallStart={handleCallStart}

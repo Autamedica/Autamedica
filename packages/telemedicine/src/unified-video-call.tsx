@@ -47,6 +47,8 @@ export interface UnifiedVideoCallProps {
   userId: string
   userType: 'doctor' | 'patient' | 'nurse'
   userName?: string
+  /** ICE servers pre-fetched by the parent (e.g. from /api/turn-credentials). Falls back to STUN-only. */
+  iceServers?: RTCIceServer[]
   onCallEnd?: () => void
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
@@ -118,6 +120,7 @@ export function UnifiedVideoCall({
   userId,
   userType,
   userName,
+  iceServers,
   onCallEnd,
   onCallStart,
   onStatusChange,
@@ -295,7 +298,7 @@ export function UnifiedVideoCall({
       userName,
     })
 
-    const webrtcClient = new WebRTCClient({ userId, userName, userType, roomId })
+    const webrtcClient = new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}) })
     const unsubs: Array<() => void> = []
 
     unsubs.push(
@@ -422,7 +425,7 @@ export function UnifiedVideoCall({
       if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
       audioContextRef.current?.close()
     }
-  }, [autoStart, emitDebug, onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
+  }, [autoStart, emitDebug, iceServers, onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
