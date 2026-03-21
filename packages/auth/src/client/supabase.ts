@@ -76,38 +76,14 @@ export function createBrowserClient(): SupabaseClient<Database> {
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
-      flowType: 'pkce', // Use PKCE flow for better security
-      storage: {
-        // Use localStorage with fallback to sessionStorage
-        getItem: (key: string) => {
-          if (typeof window !== 'undefined') {
-            try {
-              return window.localStorage.getItem(key)
-            } catch {
-              return window.sessionStorage.getItem(key)
-            }
-          }
-          return null
-        },
-        setItem: (key: string, value: string) => {
-          if (typeof window !== 'undefined') {
-            try {
-              window.localStorage.setItem(key, value)
-            } catch {
-              window.sessionStorage.setItem(key, value)
-            }
-          }
-        },
-        removeItem: (key: string) => {
-          if (typeof window !== 'undefined') {
-            try {
-              window.localStorage.removeItem(key)
-            } catch {
-              window.sessionStorage.removeItem(key)
-            }
-          }
-        }
-      }
+      flowType: 'pkce',
+      // Disable Web Locks: each portal runs on a separate origin so cross-tab
+      // locking provides no benefit. Without this, competing lock requests
+      // between tabs throw "AbortError: Lock broken by another request with
+      // the 'steal' option" as unhandled promise rejections.
+      // @ts-expect-error -- lock is available in @supabase/auth-js but not
+      // typed in the @supabase/ssr createBrowserClient options yet
+      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<unknown>) => fn(),
     }
   }) as unknown as SupabaseClient
 
