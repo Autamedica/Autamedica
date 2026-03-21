@@ -150,7 +150,7 @@ export class CloudflareCallsSession {
     const answer = await this.pc.createAnswer()
     await this.pc.setLocalDescription(answer)
 
-    await this.cfApi('POST', `sessions/${this.sessionId}/renegotiate`, {
+    await this.cfApi('PUT', `sessions/${this.sessionId}/renegotiate`, {
       sessionDescription: { type: 'answer', sdp: answer.sdp },
     })
   }
