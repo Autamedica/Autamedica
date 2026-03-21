@@ -160,6 +160,10 @@ export function UnifiedVideoCall({
   // El efecto de resize lo corrige en el primer render del cliente.
   const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(true)
 
+  /* ── Retry state ── */
+  const [retryKey, setRetryKey] = useState(0)
+  const [isRetrying, setIsRetrying] = useState(false)
+
   /* ── Refs ── */
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideosRef = useRef<Map<string, HTMLVideoElement>>(new Map())
@@ -174,6 +178,8 @@ export function UnifiedVideoCall({
   const manualHangupRef = useRef(false)
   const connectedAtRef = useRef<number | null>(null)
   const poorQualityStartRef = useRef<number | null>(null)
+  const retryCountRef = useRef(0)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /* ── Green Room state ── */
   const [warmUpResult, setWarmUpResult] = useState<WarmUpResult | null>(null)
@@ -319,8 +325,26 @@ export function UnifiedVideoCall({
         onStatusChange?.(state)
         emitDebug('info', 'Estado de conexion actualizado', { state })
         if (state === 'failed') {
-          setCallError('Error de conexión. Verifica tu internet.')
+          const MAX_RETRIES = 3
+          const attempt = retryCountRef.current
+          if (!manualHangupRef.current && autoStart && attempt < MAX_RETRIES) {
+            const delayMs = (attempt + 1) * 2000 // 2s, 4s, 6s
+            retryCountRef.current += 1
+            setIsRetrying(true)
+            setCallError(null)
+            emitDebug('warn', `Conexion fallida — reintentando (${retryCountRef.current}/${MAX_RETRIES}) en ${delayMs}ms`)
+            retryTimerRef.current = setTimeout(() => {
+              autoStartAttemptedRef.current = false
+              hasStartedCallRef.current = false
+              setRetryKey((k) => k + 1)
+            }, delayMs)
+          } else {
+            setIsRetrying(false)
+            setCallError('Error de conexión. Verifica tu internet y recarga la página.')
+          }
         } else if (state === 'connected') {
+          retryCountRef.current = 0
+          setIsRetrying(false)
           setCallError(null)
           onCallStart?.()
         } else if (state === 'disconnected' || state === 'closed') {
@@ -433,11 +457,13 @@ export function UnifiedVideoCall({
       emitDebug('info', 'Desmontando componente de videollamada')
       unsubs.forEach((u) => u())
       void webrtcClient.disconnect()
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
       // Clean up audio monitoring
       if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
       audioContextRef.current?.close()
     }
-  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
+  // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
+  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, onCallStart, onError, onStatusChange, retryKey, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
@@ -867,14 +893,14 @@ export function UnifiedVideoCall({
               </p>
             )}
 
-            {connectionState === 'failed' && (
+            {connectionState === 'failed' && !callError && (
               <p className="mt-3 text-sm text-red-400">Error de conexión. Intenta nuevamente.</p>
             )}
           </div>
         )}
 
-        {/* Connecting state */}
-        {connectionState === 'connecting' && (
+        {/* Connecting state / Retrying state */}
+        {(connectionState === 'connecting' || isRetrying) && (
           <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
             <div className="relative mb-6">
               <div className={`absolute inset-0 animate-pulse-ring rounded-full ${accentColor === 'violet' ? 'bg-violet-500/20' : 'bg-sky-500/20'}`} />
@@ -883,8 +909,17 @@ export function UnifiedVideoCall({
                 <Loader2 className={`h-10 w-10 animate-spin ${accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'}`} />
               </div>
             </div>
-            <p className="text-lg font-semibold text-white">Conectando...</p>
-            <p className="mt-1.5 text-sm text-slate-400">Sala: {roomId}</p>
+            {isRetrying ? (
+              <>
+                <p className="text-lg font-semibold text-white">Reconectando...</p>
+                <p className="mt-1.5 text-sm text-amber-400">Intento {retryCountRef.current} de 3</p>
+              </>
+            ) : (
+              <>
+                <p className="text-lg font-semibold text-white">Conectando...</p>
+                <p className="mt-1.5 text-sm text-slate-400">Sala: {roomId}</p>
+              </>
+            )}
           </div>
         )}
 

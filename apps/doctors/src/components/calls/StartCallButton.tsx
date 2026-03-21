@@ -45,6 +45,19 @@ export function StartCallButton({
 
       const callService = createCallService()
 
+      // Idempotencia: si ya existe una llamada activa para este paciente, reutilizarla
+      const activeCalls = await callService.getActiveCallsForDoctor(doctorId)
+      const existingCall = activeCalls.find((c) => c.patient_id === patientId)
+      if (existingCall) {
+        debugLogger.info('Llamada activa encontrada; reutilizando', {
+          callId: existingCall.id,
+          roomId: existingCall.room_id,
+          status: existingCall.status,
+        })
+        router.push(`/call/${existingCall.room_id}/${existingCall.id}?waiting=true`)
+        return
+      }
+
       const call = await callService.createCall(doctorId, patientId)
       debugLogger.info('Registro de llamada creado', { callId: call.id, roomId: call.room_id })
       await callService.logDebugEvent(call.id, 'info', 'DoctorStartCall', 'Registro de llamada creado', {
