@@ -159,7 +159,6 @@ function DoctorCallContent({
         userId={userId}
         userType="doctor"
         userName={userName}
-        cloudflareCallsApiUrl="/api/cloudflare-calls"
         theme="doctor"
         onCallEnd={handleCallEnd}
         onCallStart={handleCallStart}

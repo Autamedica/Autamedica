@@ -51,10 +51,12 @@ export interface UnifiedVideoCallProps {
   /** ICE servers pre-fetched by el parent (e.g. from /api/turn-credentials). Falls back to STUN-only. */
   iceServers?: RTCIceServer[]
   /**
-   * Cuando se provee, usa Cloudflare Calls SFU en lugar de WebRTC P2P.
-   * Valor: URL del proxy API del app (e.g., '/api/cloudflare-calls').
+   * URL del proxy API para Cloudflare Calls SFU (e.g., '/api/cloudflare-calls').
+   * - `undefined` (default): usa '/api/cloudflare-calls' automáticamente.
+   * - `null`: opt-out explícito, usa WebRTC P2P directo.
+   * - string: URL personalizada del proxy.
    */
-  cloudflareCallsApiUrl?: string
+  cloudflareCallsApiUrl?: string | null
   onCallEnd?: () => void
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
@@ -302,8 +304,12 @@ export function UnifiedVideoCall({
       userName,
     })
 
-    const webrtcClient = cloudflareCallsApiUrl
-      ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: cloudflareCallsApiUrl })
+    // cloudflareCallsApiUrl: undefined → default SFU, null → P2P explícito, string → custom URL
+    const sfuUrl = cloudflareCallsApiUrl === null
+      ? null
+      : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls')
+    const webrtcClient = sfuUrl
+      ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: sfuUrl })
       : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}) })
     const unsubs: Array<() => void> = []
 
@@ -1007,7 +1013,7 @@ export function UnifiedVideoCall({
 
             {/* Screen share overlay */}
             {isScreenSharing && screenStream && (
-              <div className="absolute left-4 top-4 z-10 h-36 w-52 overflow-hidden rounded-xl border-2 border-blue-500/60 bg-black shadow-lg">
+              <div className="absolute left-4 top-16 z-10 h-36 w-52 overflow-hidden rounded-xl border border-blue-500/40 bg-black shadow-lg">
                 <video ref={screenShareRef} autoPlay muted playsInline className="h-full w-full object-contain" />
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
                   <span className="flex items-center gap-1 text-xs">
@@ -1023,36 +1029,35 @@ export function UnifiedVideoCall({
       {/* ── Top bar (overlay, visible during active call) ── */}
       {isActive && (
         <div
-          className={`absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 py-3 transition-opacity duration-300 ${
+          className={`absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/40 via-black/20 to-transparent px-4 py-3 transition-opacity duration-500 ${
             controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
-          <div className="flex items-center gap-3">
-            {/* Connection indicator */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-md">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="flex items-center gap-2">
+            {/* Connection + quality merged */}
+            <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] backdrop-blur-xl">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="font-medium">Conectado</span>
+              {qualityLevel !== 'unknown' && qualityLevel !== 'good' && qualityLevel !== 'excellent' && (
+                <>
+                  <span className="text-white/20">·</span>
+                  <Wifi className={`h-3 w-3 ${qualityColor[qualityLevel]}`} />
+                  <span className={qualityColor[qualityLevel]}>{qualityLabel[qualityLevel]}</span>
+                </>
+              )}
             </div>
-
-            {/* Quality */}
-            {qualityLevel !== 'unknown' && (
-              <div className={`flex items-center gap-1 text-xs ${qualityColor[qualityLevel]}`}>
-                <Wifi className="h-3.5 w-3.5" />
-                <span>{qualityLabel[qualityLevel]}</span>
-              </div>
-            )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Duration */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-md">
-              <Clock className="h-3.5 w-3.5 text-slate-300" />
+            <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] backdrop-blur-xl">
+              <Clock className="h-3 w-3 text-slate-400" />
               <span className="font-mono">{formattedDuration}</span>
             </div>
 
             {/* Participants */}
-            <div className="flex items-center gap-1 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-md">
-              <Users className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 text-[11px] backdrop-blur-xl">
+              <Users className="h-3 w-3 text-slate-400" />
               <span>{totalParticipants}</span>
             </div>
           </div>
@@ -1062,16 +1067,16 @@ export function UnifiedVideoCall({
       {/* ── Error toast ── */}
       {callError && isActive && (
         <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
-          <div className="rounded-lg bg-red-500/90 px-4 py-2 text-sm shadow-lg backdrop-blur-sm">
+          <div className="rounded-xl bg-red-500/90 px-4 py-2 text-sm shadow-lg ring-1 ring-red-400/20 backdrop-blur-sm">
             {callError}
           </div>
         </div>
       )}
 
       {isActive && isTestRoom && (
-        <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2">
-          <div className="rounded-full border border-amber-400/25 bg-black/50 px-3 py-1 text-[11px] text-amber-400/70 backdrop-blur-sm">
-            Modo prueba
+        <div className="absolute left-4 top-14 z-30">
+          <div className="rounded-full border border-amber-400/20 bg-black/30 px-2.5 py-0.5 text-[10px] text-amber-400/60 backdrop-blur-xl">
+            Test
           </div>
         </div>
       )}
@@ -1079,18 +1084,18 @@ export function UnifiedVideoCall({
       {/* ── Floating controls (bottom) ── */}
       {isActive && (
         <div
-          className={`absolute inset-x-0 bottom-0 z-20 flex flex-col items-center pb-4 pt-8 bg-gradient-to-t from-black/60 to-transparent transition-opacity duration-300 ${
+          className={`absolute inset-x-0 bottom-0 z-20 flex items-center justify-center pb-6 pt-12 bg-gradient-to-t from-black/40 via-black/15 to-transparent transition-opacity duration-500 ${
             controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         >
-          <div className="flex items-center gap-2 rounded-full bg-black/50 px-3 py-2 backdrop-blur-xl sm:gap-3 sm:px-4">
+          <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-2 shadow-xl shadow-black/20 backdrop-blur-2xl ring-1 ring-white/[0.08] sm:gap-3 sm:px-4">
             {/* Mic */}
             <button
               onClick={toggleAudio}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
                 isAudioEnabled
-                  ? 'bg-white/15 text-white hover:bg-white/25'
-                  : 'bg-red-500 text-white hover:bg-red-400'
+                  ? 'bg-white/10 text-white hover:bg-white/20'
+                  : 'bg-red-500/80 text-white hover:bg-red-500'
               }`}
               title={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
             >
@@ -1100,10 +1105,10 @@ export function UnifiedVideoCall({
             {/* Camera */}
             <button
               onClick={toggleVideo}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
                 isVideoEnabled
-                  ? 'bg-white/15 text-white hover:bg-white/25'
-                  : 'bg-red-500 text-white hover:bg-red-400'
+                  ? 'bg-white/10 text-white hover:bg-white/20'
+                  : 'bg-red-500/80 text-white hover:bg-red-500'
               }`}
               title={isVideoEnabled ? 'Desactivar cámara' : 'Activar cámara'}
             >
@@ -1114,10 +1119,10 @@ export function UnifiedVideoCall({
             {typeof window !== 'undefined' && typeof navigator?.mediaDevices?.getDisplayMedia === 'function' && (
               <button
                 onClick={toggleScreenShare}
-                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
                   isScreenSharing
                     ? 'bg-blue-500 text-white hover:bg-blue-400'
-                    : 'bg-white/15 text-white hover:bg-white/25'
+                    : 'bg-white/10 text-white hover:bg-white/20'
                 }`}
                 title={isScreenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}
               >
@@ -1128,12 +1133,12 @@ export function UnifiedVideoCall({
             {/* Chat */}
             <button
               onClick={toggleChatPanel}
-              className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all sm:h-12 sm:w-12 ${
+              className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
                 isChatPanelOpen
                   ? accentColor === 'violet'
                     ? 'bg-violet-600 text-white'
                     : 'bg-sky-600 text-white'
-                  : 'bg-white/15 text-white hover:bg-white/25'
+                  : 'bg-white/10 text-white hover:bg-white/20'
               }`}
               title={isChatPanelOpen ? 'Cerrar chat' : 'Abrir chat'}
             >
@@ -1146,30 +1151,24 @@ export function UnifiedVideoCall({
             </button>
 
             {/* Divider */}
-            <div className="mx-1 h-8 w-px bg-white/20" />
+            <div className="mx-1 h-8 w-px bg-white/10" />
 
             {/* End call */}
             <button
               onClick={endCall}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-all hover:bg-red-500 hover:scale-105 active:scale-95 sm:h-14 sm:w-14"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-b from-red-500 to-red-600 text-white shadow-lg shadow-red-600/30 transition-all hover:from-red-400 hover:to-red-500 hover:scale-105 active:scale-95 sm:h-14 sm:w-14"
               title="Terminar videollamada"
             >
               <PhoneOff className="h-6 w-6" />
             </button>
           </div>
-
-          {/* Status text */}
-          <p className="mt-2 text-xs text-slate-400">
-            Videollamada activa &bull; {totalParticipants} participante{totalParticipants !== 1 ? 's' : ''}
-            {isChatReady ? ' \u2022 chat listo' : ''}
-          </p>
         </div>
       )}
 
       {/* ── Chat panel (slide-in from right) ── */}
       {isActive && (
         <aside
-          className={`absolute right-0 top-0 bottom-0 z-30 flex w-full flex-col border-l border-white/10 bg-slate-900/95 backdrop-blur-lg transition-transform duration-300 ease-out md:w-96 ${
+          className={`absolute right-0 top-0 bottom-0 z-30 flex w-full flex-col border-l border-white/[0.06] bg-slate-900/[0.97] backdrop-blur-2xl transition-transform duration-300 ease-out md:w-96 ${
             isChatPanelOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
           style={{
@@ -1178,7 +1177,7 @@ export function UnifiedVideoCall({
           }}
         >
           {/* Chat header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
             <div>
               <h3 className="font-semibold text-white">Chat de consulta</h3>
               <p className="text-xs text-slate-400">
@@ -1194,7 +1193,7 @@ export function UnifiedVideoCall({
             </div>
             <button
               onClick={() => setIsChatPanelOpen(false)}
-              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
               title="Cerrar chat"
             >
               <X className="h-5 w-5" />
@@ -1204,11 +1203,17 @@ export function UnifiedVideoCall({
           {/* Messages */}
           <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-4 space-y-3">
             {chatMessages.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <MessageSquare className="mb-3 h-10 w-10 text-slate-600" />
-                <p className="text-sm text-slate-500">Sin mensajes aún</p>
-                <p className="mt-1 text-xs text-slate-600">
-                  Usa el chat para coordinar durante la consulta
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${
+                  accentColor === 'violet' ? 'bg-violet-500/10' : 'bg-sky-500/10'
+                }`}>
+                  <MessageSquare className={`h-7 w-7 ${
+                    accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'
+                  }`} />
+                </div>
+                <p className="text-sm font-medium text-slate-400">Sin mensajes aún</p>
+                <p className="mt-1.5 max-w-[200px] text-xs text-slate-600">
+                  Coordiná durante la consulta usando el chat
                 </p>
               </div>
             )}
@@ -1221,7 +1226,7 @@ export function UnifiedVideoCall({
                       ? accentColor === 'violet'
                         ? 'bg-violet-600 text-white'
                         : 'bg-sky-600 text-white'
-                      : 'bg-slate-800 text-slate-100'
+                      : 'bg-white/[0.06] text-slate-100'
                   }`}
                 >
                   <p className="text-[11px] font-semibold opacity-80">{msg.senderLabel}</p>
@@ -1235,7 +1240,7 @@ export function UnifiedVideoCall({
           </div>
 
           {/* Input */}
-          <form onSubmit={handleChatSubmit} className="border-t border-white/10 p-3">
+          <form onSubmit={handleChatSubmit} className="border-t border-white/[0.06] p-3">
             <div className="flex items-end gap-2">
               <textarea
                 value={chatInput}
@@ -1243,7 +1248,7 @@ export function UnifiedVideoCall({
                 onKeyDown={handleChatKeyDown}
                 rows={1}
                 placeholder="Escribe un mensaje..."
-                className="flex-1 resize-none rounded-xl border border-white/10 bg-slate-800 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-white/20 focus:outline-none"
+                className="flex-1 resize-none rounded-xl border border-white/[0.06] bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:bg-white/[0.07] focus:border-white/15 focus:outline-none transition-colors"
               />
               <button
                 type="submit"
@@ -1257,18 +1262,17 @@ export function UnifiedVideoCall({
                 <Send className="h-4 w-4" />
               </button>
             </div>
-            <p className="mt-1.5 text-[10px] text-slate-600">Enter enviar &bull; Shift+Enter nueva línea</p>
           </form>
         </aside>
       )}
 
       {/* ── Audio-only suggestion ── */}
       {isActive && showAudioOnlySuggestion && (
-        <div className="absolute left-4 bottom-28 z-30 flex items-center gap-3 rounded-xl bg-amber-900/90 px-4 py-3 text-sm shadow-lg backdrop-blur-sm">
+        <div className="absolute left-4 bottom-28 z-30 flex max-w-sm items-center gap-3 rounded-2xl bg-amber-950/80 px-4 py-3 text-sm shadow-lg ring-1 ring-amber-500/10 backdrop-blur-xl">
           <AlertTriangle className="h-5 w-5 text-amber-300 shrink-0" />
           <div>
             <p className="text-amber-100 font-medium">Conexión inestable</p>
-            <p className="text-amber-200/70 text-xs">Cambiar a solo audio puede mejorar la experiencia</p>
+            <p className="text-amber-200/70 text-xs">Solo audio puede mejorar la experiencia</p>
           </div>
           <button
             onClick={switchToAudioOnly}
@@ -1278,7 +1282,7 @@ export function UnifiedVideoCall({
           </button>
           <button
             onClick={() => setShowAudioOnlySuggestion(false)}
-            className="shrink-0 rounded p-1 text-amber-300 hover:text-white transition-colors"
+            className="shrink-0 rounded-full p-1 text-amber-300 hover:text-white transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -1287,8 +1291,8 @@ export function UnifiedVideoCall({
 
       {/* ── Quality badge (poor/fair) ── */}
       {isActive && (qualityLevel === 'poor' || qualityLevel === 'fair') && !showAudioOnlySuggestion && (
-        <div className="absolute left-4 bottom-24 z-20 flex items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-xs backdrop-blur-md">
-          <WifiOff className={`h-3.5 w-3.5 ${qualityColor[qualityLevel]}`} />
+        <div className="absolute left-4 bottom-24 z-20 flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] backdrop-blur-xl">
+          <WifiOff className={`h-3 w-3 ${qualityColor[qualityLevel]}`} />
           <span className={qualityColor[qualityLevel]}>Conexión {qualityLabel[qualityLevel].toLowerCase()}</span>
         </div>
       )}

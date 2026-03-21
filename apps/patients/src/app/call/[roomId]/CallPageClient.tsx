@@ -155,7 +155,6 @@ function PatientCallContent({
         userId={userId}
         userType="patient"
         userName={userName}
-        cloudflareCallsApiUrl="/api/cloudflare-calls"
         theme="patient"
         onCallEnd={handleCallEnd}
         onCallStart={handleCallStart}
