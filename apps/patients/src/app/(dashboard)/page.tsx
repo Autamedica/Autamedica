@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 
 function getPatientName(
   profile: ReturnType<typeof usePatientSession>['profile'],
@@ -181,12 +182,16 @@ export default function DashboardPage() {
   const { data, loading, error } = useDashboardSummary();
   const userName = getPatientName(profile, user);
   const hasContactProfile = Boolean(profile?.firstName || profile?.lastName || profile?.phone);
-  const todayLabel = new Intl.DateTimeFormat('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date());
+  // Inicializar vacío en SSR, poblar en cliente para evitar hydration mismatch (#418)
+  const [todayLabel, setTodayLabel] = useState('');
+  useEffect(() => {
+    setTodayLabel(new Intl.DateTimeFormat('es-AR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date()));
+  }, []);
 
   const summary = data?.summary ?? null;
   const alerts = data?.alerts ?? [];
