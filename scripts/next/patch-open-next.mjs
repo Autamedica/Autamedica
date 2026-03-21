@@ -36,7 +36,7 @@ if (!fs.existsSync(workerPath)) {
 
 let source = fs.readFileSync(workerPath, 'utf8');
 
-const snippetSignature = 'return Response.redirect(new URL(target, request.url), 307);';
+const snippetSignature = 'return env.ASSETS.fetch(new Request(assetUrl.toString(), request));';
 const publicAssetsSignature = 'const publicAssetPaths = new Set([';
 const securityHeadersSignature = 'function addSecurityHeaders(response)';
 
@@ -78,7 +78,11 @@ const rewriteCondition = [
   .filter(Boolean)
   .join(' || ');
 
-const rewriteSnippet = `            const publicAssetPaths = new Set(${JSON.stringify(publicAssetPaths)});\n            const publicAssetPrefixes = ${JSON.stringify(publicAssetPrefixes)};\n            const url = new URL(request.url);\n            if (${rewriteCondition}) {\n                const target = \"/assets\" + url.pathname + url.search;\n                return Response.redirect(new URL(target, request.url), 307);\n            }\n`;
+// Proxy to static assets rather than redirect: a 307 redirect causes the
+// browser to issue a second visible request (the redirect target) alongside
+// the original, showing both in DevTools as duplicate/pending requests.
+// Using env.ASSETS.fetch() serves the asset inline — one request, no redirect.
+const rewriteSnippet = `            const publicAssetPaths = new Set(${JSON.stringify(publicAssetPaths)});\n            const publicAssetPrefixes = ${JSON.stringify(publicAssetPrefixes)};\n            const url = new URL(request.url);\n            if (${rewriteCondition}) {\n                const assetUrl = new URL(request.url);\n                assetUrl.pathname = "/assets" + url.pathname;\n                return env.ASSETS.fetch(new Request(assetUrl.toString(), request));\n            }\n`;
 
 if (!source.includes(snippetSignature)) {
 
@@ -93,7 +97,7 @@ if (!source.includes(snippetSignature)) {
   fs.writeFileSync(workerPath, source);
   console.log('✅ _worker.js parcheado (rewrite /_next/static → fetch /assets).');
 } else if (!source.includes(publicAssetsSignature)) {
-  const legacyRewriteSnippet = `            const url = new URL(request.url);\n            if (url.pathname.startsWith(\"/_next/static/\")) {\n                const target = \"/assets\" + url.pathname + url.search;\n                return Response.redirect(new URL(target, request.url), 307);\n            }\n`;
+  const legacyRewriteSnippet = `            const url = new URL(request.url);\n            if (url.pathname.startsWith(\"/_next/static/\")) {\n                const assetUrl = new URL(request.url);\n                assetUrl.pathname = \"/assets\" + url.pathname;\n                return env.ASSETS.fetch(new Request(assetUrl.toString(), request));\n            }\n`;
 
   if (!source.includes(legacyRewriteSnippet)) {
     console.error('❌ Se detectó un patch previo, pero no se pudo actualizar al manejo de assets públicos.');

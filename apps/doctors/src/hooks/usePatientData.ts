@@ -2,7 +2,8 @@
  * Hook para manejar datos de pacientes con integración Supabase
  */
 
-import { logger, selectById } from '@autamedica/shared';
+import { getSupabaseClient } from '@autamedica/auth/client';
+import { logger, toCamel } from '@autamedica/shared';
 import type { PatientProfile, UUID } from '@autamedica/types';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -28,13 +29,19 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
     setError(null)
 
     try {
-      // patients no implementa soft-delete; el helper genérico debe leerla sin filtro deleted_at
-      const data = await selectById<'patients', PatientProfile>('patients', patientId, {
-        includeDeleted: true,
-      });
+      // Use the authenticated browser client (carries session JWT via cookies)
+      // so RLS policies allow the doctor to read this patient's record.
+      const supabase = getSupabaseClient()
+      const { data, error: dbError } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', patientId)
+        .maybeSingle()
+
+      if (dbError) throw dbError
 
       if (data) {
-        setPatient(data)
+        setPatient(toCamel(data) as unknown as PatientProfile)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
