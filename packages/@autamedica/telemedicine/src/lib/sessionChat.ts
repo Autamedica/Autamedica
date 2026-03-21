@@ -35,7 +35,7 @@ export interface ChatMessage {
   delivered: boolean;
   read: boolean;
   read_at?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   deleted_at?: string;
@@ -54,7 +54,7 @@ export async function sendChatMessage(data: {
   fileName?: string;
   fileSizeBytes?: number;
   fileType?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }): Promise<ChatMessage> {
   const supabase = getSupabaseClient();
 
@@ -206,7 +206,7 @@ export async function deleteMessage(messageId: string): Promise<void> {
  */
 export async function updateMessageMetadata(
   messageId: string,
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 ): Promise<ChatMessage> {
   const supabase = getSupabaseClient();
 
