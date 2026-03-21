@@ -11,10 +11,16 @@ export async function GET() {
   const token = process.env.CLOUDFLARE_CALLS_TURN_TOKEN
 
   if (!keyId || !token) {
-    logger.warn('[turn-credentials] CLOUDFLARE_CALLS_TURN_KEY_ID o CLOUDFLARE_CALLS_TURN_TOKEN no configurados')
+    logger.warn('[turn-credentials] CLOUDFLARE_CALLS_TURN_KEY_ID o CLOUDFLARE_CALLS_TURN_TOKEN no configurados — usando STUN fallback')
     return NextResponse.json(
-      { ok: false, error: 'TURN server not configured' },
-      { status: 503 }
+      {
+        ok: true,
+        iceServers: [
+          { urls: ['stun:stun.l.google.com:19302'] },
+          { urls: ['stun:stun1.l.google.com:19302'] },
+        ],
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
     )
   }
 

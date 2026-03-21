@@ -120,8 +120,8 @@ function addSecurityHeaders(response) {
   headers.set('X-Frame-Options', 'DENY');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
-  headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.supabase.co https://static.cloudflareinsights.com; connect-src 'self' https://qxjjrpksmwwrmubhvjew.supabase.co https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+  headers.set('Permissions-Policy', 'geolocation=(), microphone=(self), camera=(self), display-capture=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+  headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.supabase.co https://cdn.jsdelivr.net https://static.cloudflareinsights.com; connect-src 'self' https://qxjjrpksmwwrmubhvjew.supabase.co https://*.supabase.co wss://*.supabase.co wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev https://rtc.live.cloudflare.com https://rtc.cloudflare.com https://cloudflareinsights.com https://vocal-condor-26768.upstash.io; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 `;
