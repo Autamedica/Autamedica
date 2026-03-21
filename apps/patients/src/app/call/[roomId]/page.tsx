@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { CallPageClient } from './CallPageClient'
 
 export const dynamic = 'force-dynamic'
@@ -11,10 +12,18 @@ interface PatientCallPageProps {
 export default async function PatientCallPage({ params, searchParams }: PatientCallPageProps) {
   const { roomId } = await params
   const { callId, debug } = await searchParams
+
+  // Redirigir a URL determinista: /call/[roomId]/[callId]
+  if (typeof callId === 'string' && callId.trim() !== '') {
+    const target = `/call/${roomId}/${callId}${debug ? `?debug=${debug}` : ''}`
+    redirect(target)
+  }
+
+  // Sin callId: flujo libre (test-call manual sin turno asociado)
   return (
     <CallPageClient
       roomId={roomId}
-      callId={typeof callId === 'string' ? callId : undefined}
+      callId={undefined}
       debugEnabled={debug === '1' || debug === 'true'}
     />
   )

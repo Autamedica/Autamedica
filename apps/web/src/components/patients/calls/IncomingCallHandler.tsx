@@ -71,7 +71,7 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
       await callService.updateCallStatus(incomingCall.callId, 'accepted')
 
       // Navigate to call room
-      window.location.href = `/call/${incomingCall.roomId}?callId=${incomingCall.callId}`
+      window.location.href = `/call/${incomingCall.roomId}/${incomingCall.callId}`
 
     } catch (error) {
       logger.error('[IncomingCallHandler] Failed to accept call:', error)

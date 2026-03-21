@@ -33,7 +33,7 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
         if (callData?.status === 'accepted') {
           setState('accepted')
           setTimeout(() => {
-            window.location.href = `/doctors/call/${roomId}?callId=${callId}`
+            window.location.href = `/doctors/call/${roomId}/${callId}`
           }, 1000)
           return
         } else if (callData?.status === 'declined') {
@@ -51,7 +51,7 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
               setState('accepted')
               // Navigate to call room
               setTimeout(() => {
-                window.location.href = `/doctors/call/${roomId}?callId=${callId}`
+                window.location.href = `/doctors/call/${roomId}/${callId}`
               }, 1000)
               break
             case 'declined':

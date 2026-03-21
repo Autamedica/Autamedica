@@ -156,7 +156,7 @@ export function IncomingCallModal({ onAccept, onDecline }: IncomingCallModalProp
         setIsVisible(false)
 
         // Navigate to call page
-        window.location.href = `/call/${incomingCall.roomId}?callId=${incomingCall.id}`
+        window.location.href = `/call/${incomingCall.roomId}/${incomingCall.id}`
 
         // Notify parent component
         onAccept(incomingCall.id, incomingCall.roomId)

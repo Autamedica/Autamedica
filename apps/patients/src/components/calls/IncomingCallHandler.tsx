@@ -172,7 +172,7 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
         roomId: incomingCall.roomId,
       })
       await callService.updateCallStatus(incomingCall.callId, 'accepted')
-      router.push(`/call/${incomingCall.roomId}?callId=${incomingCall.callId}`)
+      router.push(`/call/${incomingCall.roomId}/${incomingCall.callId}`)
     } catch (error) {
       debugLogger.error('Fallo al aceptar llamada', error, {
         callId: incomingCall.callId,

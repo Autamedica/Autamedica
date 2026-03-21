@@ -78,7 +78,8 @@ function DoctorCallContent({
         )
         const loginUrl = new URL('/auth/login', authOrigin)
         loginUrl.searchParams.set('portal', 'doctors')
-        loginUrl.searchParams.set('returnTo', `${window.location.origin}/call/${roomId}`)
+        const callPath = callId ? `/call/${roomId}/${callId}` : `/call/${roomId}`
+        loginUrl.searchParams.set('returnTo', `${window.location.origin}${callPath}`)
         window.location.href = loginUrl.toString()
       } else {
         debugLogger.warn('Sin sesion; usando identidad de desarrollo')
@@ -98,7 +99,7 @@ function DoctorCallContent({
 
     debugLogger.info('Sesion de doctor validada; pantalla lista')
     setIsReady(true)
-  }, [debugLogger, session, loading, router, roomId, typedProfile])
+  }, [callId, debugLogger, session, loading, router, roomId, typedProfile])
 
   const handleCallEnd = () => {
     router.push('/appointments')

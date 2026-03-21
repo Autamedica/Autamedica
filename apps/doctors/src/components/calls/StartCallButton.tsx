@@ -62,7 +62,7 @@ export function StartCallButton({
         roomId: call.room_id,
       })
 
-      router.push(`/call/${call.room_id}?callId=${call.id}&waiting=true`)
+      router.push(`/call/${call.room_id}/${call.id}?waiting=true`)
 
     } catch (err: unknown) {
       debugLogger.error('Fallo el inicio de la llamada', err, {

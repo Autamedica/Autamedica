@@ -100,7 +100,8 @@ function PatientCallContent({
         )
         const loginUrl = new URL('/auth/login', authOrigin)
         loginUrl.searchParams.set('portal', 'patients')
-        loginUrl.searchParams.set('returnTo', `${window.location.origin}/call/${roomId}`)
+        const callPath = callId ? `/call/${roomId}/${callId}` : `/call/${roomId}`
+        loginUrl.searchParams.set('returnTo', `${window.location.origin}${callPath}`)
         window.location.href = loginUrl.toString()
       } else {
         debugLogger.warn('Sin sesion; usando identidad de desarrollo')
@@ -120,7 +121,7 @@ function PatientCallContent({
 
     debugLogger.info('Sesion de paciente validada; pantalla lista')
     setIsReady(true)
-  }, [debugLogger, session, sessionUser, loading, router, roomId])
+  }, [callId, debugLogger, session, sessionUser, loading, router, roomId])
 
   if (loading || !isReady) {
     return (

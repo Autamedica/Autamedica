@@ -58,7 +58,7 @@ export function WaitingRoom({ callId, doctorId, roomId, debugEnabled = false }: 
         if (callData?.status && isReadyToJoin(callData.status)) {
           setState('accepted')
           setTimeout(() => {
-            router.push(`/call/${roomId}?callId=${callId}`)
+            router.push(`/call/${roomId}/${callId}`)
           }, 1000)
           return null
         } else if (callData?.status === 'declined') {
@@ -83,7 +83,7 @@ export function WaitingRoom({ callId, doctorId, roomId, debugEnabled = false }: 
               })
               // Navigate to call room
               setTimeout(() => {
-                router.push(`/call/${roomId}?callId=${callId}`)
+                router.push(`/call/${roomId}/${callId}`)
               }, 1000)
               break
             case 'declined':
