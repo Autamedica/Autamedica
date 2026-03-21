@@ -67,7 +67,8 @@ export function getProductionICEServers(): RTCIceServer[] {
  * NEXT_PUBLIC_TURN_USERNAME=autamedica
  * NEXT_PUBLIC_TURN_CREDENTIAL=<secure-credential>
  */
-export const ICE_WITH_TURN: RTCIceServer[] = getProductionICEServers()
+/** @deprecated Usar getProductionICEServers() directamente para evitar side-effects en import */
+export const ICE_WITH_TURN: RTCIceServer[] = []
 
 /** Señalización URL desde env */
 export function loadSignalingUrl(): string {
