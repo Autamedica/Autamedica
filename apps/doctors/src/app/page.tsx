@@ -21,7 +21,6 @@ import {
   FileText,
   Loader2,
   MonitorUp,
-  Phone,
   Pill,
   Sparkles,
   X,

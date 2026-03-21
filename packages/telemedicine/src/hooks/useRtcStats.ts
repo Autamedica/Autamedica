@@ -81,7 +81,8 @@ export function useRtcStats(
   })
 
   const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined)
-  const previousStatsRef = useRef<Map<string, any>>(new Map())
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const previousStatsRef = useRef<Map<string, Record<string, any>>>(new Map())
 
   // Collect stats from peer connections
   const collectStats = useCallback(async (): Promise<RtcStatsData> => {
@@ -308,9 +309,11 @@ export function useRtcStats(
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     client.on('connection-state', handleConnectionState as any)
 
     return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       client.off('connection-state', handleConnectionState as any)
     }
   }, [client, opts.autoStart, startCollection, stopCollection])
