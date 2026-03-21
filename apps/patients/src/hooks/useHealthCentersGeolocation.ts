@@ -312,14 +312,15 @@ function getHealthCenterTypeLabel(type: string): string {
   return labels[type] || type;
 }
 
-function formatAddressForDisplay(address: Record<string, string | null | undefined> | null | undefined): string {
-  if (!address) return '';
+function formatAddressForDisplay(address: unknown): string {
+  if (!address || typeof address !== 'object') return '';
 
+  const addr = address as Record<string, unknown>;
   const parts = [
-    address.street,
-    address.number,
-    address.city,
-    address.state
+    addr.street,
+    addr.number,
+    addr.city,
+    addr.state
   ].filter(Boolean);
 
   return parts.join(', ');

@@ -66,7 +66,7 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: (records || []).map(mapAppointment), // Changed variable name to 'records'
+      data: ((records || []) as unknown as DbAppointmentRow[]).map(mapAppointment),
     });
   } catch (error) {
     logger.error('[GET /api/appointments] Unexpected error:', error);
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: mapAppointment(newAppointment as DbAppointmentRow),
+      data: mapAppointment(newAppointment as unknown as DbAppointmentRow),
     }, { status: 201 });
   } catch (error) {
     logger.error('[POST /api/appointments] Unexpected error:', error);

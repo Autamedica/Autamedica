@@ -1,7 +1,11 @@
 import { createAdminClient, createRouteHandlerClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import type { Database } from '@autamedica/types';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+type PatientInsert = Database['public']['Tables']['patients']['Insert'];
 
 export const runtime = 'nodejs';
 
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
           email: typeof email === 'string' && email.length > 0 ? email : null,
           external_id: userId,
           role: 'patient',
-        }, { onConflict: 'user_id' })
+        } as unknown as ProfileInsert, { onConflict: 'user_id' })
         .select()
         .single();
 
@@ -66,7 +70,7 @@ export async function POST(req: Request) {
         .upsert({
           user_id: userId,
           active: true,
-        }, { onConflict: 'user_id' })
+        } as unknown as PatientInsert, { onConflict: 'user_id' })
         .select()
         .single();
 

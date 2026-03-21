@@ -8,6 +8,7 @@
 import { ensureServerEnv } from "@autamedica/shared";
 import type { Database } from "@autamedica/types";
 import { createServerClient as createSupabaseServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -28,7 +29,7 @@ function readSupabaseAnonKey(): string {
  *
  * IMPORTANTE: En Next.js 15+, cookies() es asíncrono y debe ser awaited
  */
-export async function createServerClient() {
+export async function createServerClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
 
   return createSupabaseServerClient<Database>(
@@ -51,7 +52,7 @@ export async function createServerClient() {
         },
       },
     }
-  );
+  ) as unknown as SupabaseClient<Database>;
 }
 
 /**
@@ -86,7 +87,7 @@ export function createMiddlewareClient(request: NextRequest) {
 /**
  * Crea un cliente Supabase para Route Handlers (API Routes)
  */
-export async function createRouteHandlerClient() {
+export async function createRouteHandlerClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
 
   return createSupabaseServerClient<Database>(
@@ -104,14 +105,17 @@ export async function createRouteHandlerClient() {
         },
       },
     }
-  );
+  ) as unknown as SupabaseClient<Database>;
 }
 
 /**
  * Crea un cliente Supabase con privilegios administrativos (service_role)
  * NUNCA usar en el cliente. Solo para operaciones internas del servidor.
  */
-export function createAdminClient() {
+export function createAdminClient(): SupabaseClient<Database> {
+  // Cast needed: @supabase/ssr@0.5.2 generates SupabaseClient<D, SchemaName, Schema> (3 params)
+  // but @supabase/supabase-js@2.57.4 uses SupabaseClient<D, SchemaNameOrOptions, SchemaName, Schema, ClientOptions> (5 params)
+  // At runtime the object is the correct SupabaseClient with Database["public"] as schema.
   return createSupabaseServerClient<Database>(
     readSupabaseUrl(),
     ensureServerEnv("SUPABASE_SERVICE_ROLE_KEY"),
@@ -125,5 +129,5 @@ export function createAdminClient() {
         },
       },
     }
-  );
+  ) as unknown as SupabaseClient<Database>;
 }

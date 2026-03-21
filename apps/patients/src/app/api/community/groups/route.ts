@@ -1,4 +1,5 @@
 import { createAdminClient, createRouteHandlerClient } from '@autamedica/auth/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 interface CommunityGroupRow {
@@ -21,7 +22,8 @@ interface PostCountRow {
 
 export async function GET() {
   const supabase = await createRouteHandlerClient();
-  const admin = createAdminClient();
+  // Cast to generic SupabaseClient: community_groups/group_memberships/community_posts are not in generated DB types yet
+  const admin = createAdminClient() as unknown as SupabaseClient;
 
   const {
     data: { session },
@@ -61,17 +63,17 @@ export async function GET() {
   }
 
   const membershipCounts = new Map<string, number>();
-  for (const row of (membershipsResult.data ?? []) as MembershipCountRow[]) {
+  for (const row of (membershipsResult.data ?? []) as unknown as MembershipCountRow[]) {
     membershipCounts.set(row.group_id, (membershipCounts.get(row.group_id) ?? 0) + 1);
   }
 
   const postCounts = new Map<string, number>();
-  for (const row of (postsResult.data ?? []) as PostCountRow[]) {
+  for (const row of (postsResult.data ?? []) as unknown as PostCountRow[]) {
     if (!row.group_id) continue;
     postCounts.set(row.group_id, (postCounts.get(row.group_id) ?? 0) + 1);
   }
 
-  const groups = ((groupsResult.data ?? []) as CommunityGroupRow[]).map((group) => ({
+  const groups = ((groupsResult.data ?? []) as unknown as CommunityGroupRow[]).map((group) => ({
     ...group,
     member_count: membershipCounts.get(group.id) ?? 0,
     post_count: postCounts.get(group.id) ?? 0,

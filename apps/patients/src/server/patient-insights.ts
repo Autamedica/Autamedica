@@ -15,13 +15,15 @@ import type {
   PatientSnapshot,
   PatientSnapshotVitals,
 } from '@/types/patient-snapshot';
-import { createAdminClient, createRouteHandlerClient } from '@autamedica/auth/server';
+import { createAdminClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
 import type { Database, Json, TablesInsert } from '@autamedica/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-type InsightsSupabaseClient =
-  | Awaited<ReturnType<typeof createRouteHandlerClient>>
-  | ReturnType<typeof createAdminClient>;
+// Union of createRouteHandlerClient / createAdminClient return types causes "not callable"
+// due to @supabase/ssr vs @supabase/supabase-js generic arity mismatch.
+// Both return a compatible SupabaseClient<Database> at runtime.
+type InsightsSupabaseClient = SupabaseClient<Database>;
 
 type AppointmentRow = Database['public']['Tables']['appointments']['Row'] & {
   doctor: {

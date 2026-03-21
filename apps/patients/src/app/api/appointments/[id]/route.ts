@@ -65,7 +65,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: mapAppointment(appointment as DbAppointmentRow),
+      data: mapAppointment(appointment as unknown as DbAppointmentRow),
     });
   } catch (error) {
     logger.error('[GET /api/appointments/[id]] Error:', error);
@@ -180,7 +180,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      data: mapAppointment(updatedAppointment as DbAppointmentRow),
+      data: mapAppointment(updatedAppointment as unknown as DbAppointmentRow),
     });
   } catch (error) {
     logger.error('[PATCH /api/appointments/[id]] Error:', error);
@@ -233,7 +233,7 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
       message: 'Cita cancelada exitosamente',
-      data: mapAppointment(cancelledAppointment as DbAppointmentRow),
+      data: mapAppointment(cancelledAppointment as unknown as DbAppointmentRow),
     });
   } catch (error) {
     logger.error('[DELETE /api/appointments/[id]] Error:', error);

@@ -4,7 +4,13 @@ import { buildPatientUpdatePayload } from '@/lib/zod/patients';
 import { buildProfileUpdatePayload } from '@/lib/zod/profiles';
 import { createAdminClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import type { Database } from '@autamedica/types';
 import { NextResponse } from 'next/server';
+
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+type PatientUpdate = Database['public']['Tables']['patients']['Update'];
+type PatientInsert = Database['public']['Tables']['patients']['Insert'];
 
 export const runtime = 'nodejs';
 
@@ -29,7 +35,7 @@ export async function PATCH(request: Request) {
       try {
         const upd = await admin
           .from('profiles')
-          .update(snake)
+          .update(snake as unknown as ProfileUpdate)
           .eq('user_id', userId)
           .select('*')
           .maybeSingle();
@@ -43,7 +49,7 @@ export async function PATCH(request: Request) {
         } else {
           const ins = await admin
             .from('profiles')
-            .insert({ user_id: userId, external_id: userId, role: 'patient', ...snake })
+            .insert({ user_id: userId, external_id: userId, role: 'patient', ...snake } as unknown as ProfileInsert)
             .select('*')
             .single();
 
@@ -67,11 +73,11 @@ export async function PATCH(request: Request) {
     if (patient) {
       const snake = buildPatientUpdatePayload(patient);
       try {
-        const upd = await admin.from('patients').update(snake).eq('user_id', userId).select('*').maybeSingle();
+        const upd = await admin.from('patients').update(snake as unknown as PatientUpdate).eq('user_id', userId).select('*').maybeSingle();
         if (upd.error) throw upd.error;
         if (!upd.data) {
           // create if missing
-          const ins = await admin.from('patients').upsert({ user_id: userId, ...snake }, { onConflict: 'user_id' }).select('*').maybeSingle();
+          const ins = await admin.from('patients').upsert({ user_id: userId, ...snake } as unknown as PatientInsert, { onConflict: 'user_id' }).select('*').maybeSingle();
           if (ins.error) throw ins.error;
           updatedPatient = ins.data;
         } else {

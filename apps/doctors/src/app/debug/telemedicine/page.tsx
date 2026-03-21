@@ -1,14 +1,32 @@
-import { TelemedicineDebugPanel } from '@autamedica/telemedicine'
+'use client'
 
-interface DoctorsTelemedicineDebugPageProps {
-  searchParams: Promise<{ callId?: string; roomId?: string }>
+export const dynamic = 'force-dynamic'
+
+import NextDynamic from 'next/dynamic'
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+
+const TelemedicineDebugPanel = NextDynamic(
+  () => import('@autamedica/telemedicine').then((m) => ({ default: m.TelemedicineDebugPanel })),
+  { ssr: false },
+)
+
+function DebugContent() {
+  const searchParams = useSearchParams()
+  const callId = searchParams.get('callId') ?? undefined
+  const roomId = searchParams.get('roomId') ?? undefined
+
+  return (
+    <TelemedicineDebugPanel
+      callId={callId}
+      roomId={roomId}
+      className="max-w-none"
+      title="Timeline doctor"
+    />
+  )
 }
 
-export default async function DoctorsTelemedicineDebugPage({
-  searchParams,
-}: DoctorsTelemedicineDebugPageProps) {
-  const { callId, roomId } = await searchParams
-
+export default function DoctorsTelemedicineDebugPage() {
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10">
       <div className="mx-auto max-w-5xl space-y-4">
@@ -23,12 +41,9 @@ export default async function DoctorsTelemedicineDebugPage({
           </p>
         </header>
 
-        <TelemedicineDebugPanel
-          callId={typeof callId === 'string' ? callId : undefined}
-          roomId={typeof roomId === 'string' ? roomId : undefined}
-          className="max-w-none"
-          title="Timeline doctor"
-        />
+        <Suspense fallback={null}>
+          <DebugContent />
+        </Suspense>
       </div>
     </main>
   )
