@@ -41,29 +41,30 @@ export function ClientWrapper({ children }: ClientWrapperProps) {
     if (checkedRef.current || isPublicPath()) return;
     checkedRef.current = true;
 
-    const checkAuth = async () => {
-      try {
-        const supabase = createBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
+    // Use onAuthStateChange instead of getSession() to avoid racing
+    // with useAuthenticatedUser's own getSession() call. Both calling
+    // getSession() concurrently with the no-op lock causes the Supabase
+    // SDK to process a token refresh twice, leading to "Cannot read
+    // properties of undefined (reading 'payload')" in the minified SDK.
+    const supabase = createBrowserClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (!session) {
+            redirectToLogin();
+            return;
+          }
+          const now = Math.floor(Date.now() / 1000);
+          if (session.expires_at && session.expires_at < now) {
+            supabase.auth.signOut({ scope: 'local' }).then(() => redirectToLogin());
+          }
+        } else if (event === 'SIGNED_OUT') {
           redirectToLogin();
-          return;
         }
-
-        // Check if the session is expired
-        const now = Math.floor(Date.now() / 1000);
-        if (session.expires_at && session.expires_at < now) {
-          // Clear stale session to prevent other components from using it
-          await supabase.auth.signOut({ scope: 'local' });
-          redirectToLogin();
-        }
-      } catch {
-        redirectToLogin();
       }
-    };
+    );
 
-    checkAuth();
+    return () => subscription.unsubscribe();
   }, []);
 
   return (

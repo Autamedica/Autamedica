@@ -358,10 +358,10 @@ export function subscribeToTypingIndicators(
   const channel = supabase.channel(`session-chat-${sessionId}`);
 
   channel.on('broadcast', { event: 'typing' }, (payload) => {
-    onTyping({
-      userId: payload.payload.userId,
-      isTyping: payload.payload.isTyping,
-    });
+    const data = payload?.payload;
+    if (data && typeof data.userId === 'string' && typeof data.isTyping === 'boolean') {
+      onTyping({ userId: data.userId, isTyping: data.isTyping });
+    }
   });
 
   channel.subscribe();

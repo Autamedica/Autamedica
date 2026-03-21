@@ -1,7 +1,7 @@
 'use client'
 
 import { logger } from '@autamedica/shared'
-import { TelemedicineDebugPanel, UnifiedVideoCall } from '@autamedica/telemedicine'
+import { UnifiedVideoCall } from '@autamedica/telemedicine'
 import { useState } from 'react'
 
 export default function TestCallPage() {
@@ -21,14 +21,6 @@ export default function TestCallPage() {
           onCallStart={() => logger.info('Llamada iniciada exitosamente')}
           theme="doctor"
           className="h-full w-full"
-        />
-
-        <TelemedicineDebugPanel
-          roomId={roomId}
-          className="fixed bottom-4 left-4 z-50"
-          title="Timeline doctor test-call"
-          initiallyOpen={false}
-          compact
         />
       </div>
     )

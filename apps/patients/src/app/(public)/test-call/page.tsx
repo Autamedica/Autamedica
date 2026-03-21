@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { logger } from '@autamedica/shared'
-import { TelemedicineDebugPanel, UnifiedVideoCall } from '@autamedica/telemedicine'
+import { UnifiedVideoCall } from '@autamedica/telemedicine'
 
 export default function TestCallPage() {
   const [roomId, setRoomId] = useState('test-room-001')
@@ -21,14 +21,6 @@ export default function TestCallPage() {
           onCallStart={() => logger.info('Conectado a consulta medica')}
           theme="patient"
           className="h-full w-full"
-        />
-
-        <TelemedicineDebugPanel
-          roomId={roomId}
-          className="fixed bottom-4 left-4 z-50"
-          title="Timeline paciente test-call"
-          initiallyOpen={false}
-          compact
         />
       </div>
     )

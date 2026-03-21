@@ -113,6 +113,8 @@ const autamedicaPreset: Partial<Config> = {
         'slideInRight': 'slideInRight 0.25s ease-out',
         'fadeIn': 'fadeIn 0.2s ease-out',
         'float': 'float 3s ease-in-out infinite',
+        'pulse-ring': 'pulseRing 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'scale-in': 'scaleIn 0.3s ease-out',
       },
 
       keyframes: {
@@ -140,6 +142,14 @@ const autamedicaPreset: Partial<Config> = {
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-10px)' },
+        },
+        pulseRing: {
+          '0%': { transform: 'scale(1)', opacity: '0.6' },
+          '100%': { transform: 'scale(1.5)', opacity: '0' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
     },

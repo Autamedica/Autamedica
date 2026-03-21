@@ -725,9 +725,9 @@ export function UnifiedVideoCall({
       <div className="absolute inset-0">
         {/* Green Room — pre-call experience */}
         {isIdle && (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 px-4">
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 px-4">
             {/* Camera preview — live from pre-warm */}
-            <div className="relative mb-6 w-full max-w-sm overflow-hidden rounded-2xl bg-slate-800 shadow-2xl ring-1 ring-white/10 aspect-[4/3]">
+            <div className="relative mb-6 w-full max-w-md overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/40 ring-1 ring-white/10 aspect-video">
               <video
                 ref={(el) => {
                   localVideoRef.current = el
@@ -739,7 +739,7 @@ export function UnifiedVideoCall({
                 autoPlay
                 muted
                 playsInline
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover -scale-x-100"
               />
               {!warmUpResult && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-800/80">
@@ -756,19 +756,21 @@ export function UnifiedVideoCall({
 
               {/* Audio VU meter — overlaid on video preview */}
               {warmUpResult && (
-                <div className="absolute bottom-3 left-3 right-3 flex items-end gap-0.5 h-6">
-                  {Array.from({ length: 20 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`flex-1 rounded-sm transition-all duration-75 ${
-                        audioLevel * 20 > i
-                          ? i < 12 ? 'bg-emerald-400' : i < 16 ? 'bg-amber-400' : 'bg-red-400'
-                          : 'bg-white/10'
-                      }`}
-                      style={{ height: `${Math.max(15, (i / 20) * 100)}%` }}
-                    />
-                  ))}
-                  <Volume2 className="h-4 w-4 text-white/60 ml-1.5 mb-0.5" />
+                <div className="absolute bottom-3 left-3 right-3">
+                  <div className="flex items-end gap-0.5 h-5 rounded-lg bg-black/30 px-2 py-1 backdrop-blur-sm">
+                    {Array.from({ length: 16 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-full transition-all duration-100 ${
+                          audioLevel * 16 > i
+                            ? i < 10 ? 'bg-emerald-400' : i < 13 ? 'bg-amber-400' : 'bg-red-400'
+                            : 'bg-white/10'
+                        }`}
+                        style={{ height: `${Math.max(20, (i / 16) * 100)}%` }}
+                      />
+                    ))}
+                    <Volume2 className="h-3.5 w-3.5 text-white/50 ml-1.5 shrink-0" />
+                  </div>
                 </div>
               )}
             </div>
@@ -799,30 +801,32 @@ export function UnifiedVideoCall({
               <div className="mb-5 flex flex-wrap gap-2 justify-center">
                 {availableDevices.filter(d => d.kind === 'videoinput').length > 1 && (
                   <div className="relative">
+                    <Video className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                     <select
                       value={selectedVideoDevice}
                       onChange={(e) => handleDeviceChange('video', e.target.value)}
-                      className="appearance-none rounded-lg border border-white/10 bg-slate-800 px-3 py-1.5 pr-7 text-xs text-white focus:outline-none focus:border-white/20"
+                      className="appearance-none rounded-lg border border-white/10 bg-white/5 pl-8 pr-8 py-2 text-xs text-white backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-white/20 transition-colors hover:bg-white/10"
                     >
                       {availableDevices.filter(d => d.kind === 'videoinput').map(d => (
                         <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
                   </div>
                 )}
                 {availableDevices.filter(d => d.kind === 'audioinput').length > 1 && (
                   <div className="relative">
+                    <Mic className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                     <select
                       value={selectedAudioDevice}
                       onChange={(e) => handleDeviceChange('audio', e.target.value)}
-                      className="appearance-none rounded-lg border border-white/10 bg-slate-800 px-3 py-1.5 pr-7 text-xs text-white focus:outline-none focus:border-white/20"
+                      className="appearance-none rounded-lg border border-white/10 bg-white/5 pl-8 pr-8 py-2 text-xs text-white backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-white/20 transition-colors hover:bg-white/10"
                     >
                       {availableDevices.filter(d => d.kind === 'audioinput').map(d => (
                         <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
                   </div>
                 )}
               </div>
@@ -840,10 +844,10 @@ export function UnifiedVideoCall({
             <button
               onClick={startCall}
               disabled={isWarmingUp}
-              className={`inline-flex items-center gap-3 rounded-full px-8 py-4 text-lg font-semibold text-white shadow-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`inline-flex items-center gap-3 rounded-full px-10 py-4 text-lg font-semibold text-white shadow-xl transition-all hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed ${
                 accentColor === 'violet'
-                  ? 'bg-violet-600 hover:bg-violet-500 shadow-violet-600/30'
-                  : 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/30'
+                  ? 'bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 shadow-violet-600/25'
+                  : 'bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 shadow-sky-600/25'
               }`}
               title={greenRoomChecks.allReady ? 'Todo listo — conectará al instante' : 'Iniciar videollamada'}
             >
@@ -865,10 +869,16 @@ export function UnifiedVideoCall({
 
         {/* Connecting state */}
         {connectionState === 'connecting' && (
-          <div className="flex h-full flex-col items-center justify-center bg-slate-900">
-            <Loader2 className="mb-4 h-12 w-12 animate-spin text-blue-400" />
-            <p className="text-lg font-medium text-slate-300">Estableciendo conexión...</p>
-            <p className="mt-1 text-sm text-slate-500">Conectando con el servidor de señalización</p>
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+            <div className="relative mb-6">
+              <div className={`absolute inset-0 animate-pulse-ring rounded-full ${accentColor === 'violet' ? 'bg-violet-500/20' : 'bg-sky-500/20'}`} />
+              <div className={`absolute inset-[-8px] animate-pulse-ring rounded-full ${accentColor === 'violet' ? 'bg-violet-500/10' : 'bg-sky-500/10'}`} style={{ animationDelay: '0.5s' }} />
+              <div className={`flex h-20 w-20 items-center justify-center rounded-full ${accentColor === 'violet' ? 'bg-violet-600/20' : 'bg-sky-600/20'}`}>
+                <Loader2 className={`h-10 w-10 animate-spin ${accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'}`} />
+              </div>
+            </div>
+            <p className="text-lg font-semibold text-white">Conectando...</p>
+            <p className="mt-1.5 text-sm text-slate-400">Sala: {roomId}</p>
           </div>
         )}
 
@@ -877,47 +887,100 @@ export function UnifiedVideoCall({
           <>
             {/* Remote video (full area) or waiting */}
             {firstRemote ? (
-              <div className="h-full w-full bg-slate-900">
-                {Array.from(remoteUsers.entries()).map(([remoteUserId, remoteUser]) => (
-                  <div key={remoteUserId} className="relative h-full w-full">
-                    <video
-                      ref={(el) => {
-                        if (el) {
-                          remoteVideosRef.current.set(remoteUserId, el)
-                          if (remoteUser.stream) el.srcObject = remoteUser.stream
-                        } else {
-                          remoteVideosRef.current.delete(remoteUserId)
-                        }
-                      }}
-                      autoPlay
-                      playsInline
-                      className="h-full w-full object-cover"
-                    />
-                    {/* Remote user label */}
-                    <div
-                      className="absolute left-4 top-4 flex items-center gap-2 rounded-lg bg-black/45 px-3 py-1.5 text-sm backdrop-blur-md"
-                    >
-                      <UserCircle className="h-4 w-4" />
-                      <span>{remoteUser.userName || remoteUser.userId}</span>
-                      <span className="text-slate-400">
-                        ({remoteUser.userType === 'doctor' ? 'Doctor' : 'Paciente'})
-                      </span>
+              <div className="h-full w-full">
+                {Array.from(remoteUsers.entries()).map(([remoteUserId, remoteUser]) => {
+                  const hasActiveVideo = !!(
+                    remoteUser.stream?.getVideoTracks().some((t) => t.readyState === 'live' && t.enabled)
+                  )
+                  const displayName =
+                    remoteUser.userName && remoteUser.userName !== remoteUserId
+                      ? remoteUser.userName
+                      : remoteUserId
+                  const initials = displayName.split(/[\s-]/)[0]?.charAt(0)?.toUpperCase() ?? '?'
+                  const roleLabel =
+                    remoteUser.userType === 'doctor'
+                      ? 'Doctor'
+                      : remoteUser.userType === 'patient'
+                        ? 'Paciente'
+                        : 'Participante'
+                  return (
+                    <div key={remoteUserId} className="relative h-full w-full bg-slate-900">
+                      {/* Video element — siempre renderizado para sync de stream */}
+                      <video
+                        ref={(el) => {
+                          if (el) {
+                            remoteVideosRef.current.set(remoteUserId, el)
+                            if (remoteUser.stream) el.srcObject = remoteUser.stream
+                          } else {
+                            remoteVideosRef.current.delete(remoteUserId)
+                          }
+                        }}
+                        autoPlay
+                        playsInline
+                        className={`h-full w-full object-cover transition-opacity duration-700 ${hasActiveVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                      />
+
+                      {/* Avatar fallback cuando el video no está activo */}
+                      {!hasActiveVideo && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950">
+                          <div
+                            className={`flex h-28 w-28 items-center justify-center rounded-full text-4xl font-bold text-white shadow-2xl ring-4 ring-white/10 ${
+                              accentColor === 'violet' ? 'bg-violet-700' : 'bg-sky-700'
+                            }`}
+                          >
+                            {initials}
+                          </div>
+                          <p className="mt-5 text-xl font-semibold text-white">{displayName}</p>
+                          <p
+                            className={`mt-1 text-sm font-medium ${accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'}`}
+                          >
+                            {roleLabel}
+                          </p>
+                          {remoteUser.stream ? (
+                            <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs text-slate-300 backdrop-blur-sm">
+                              <VideoOff className="h-3.5 w-3.5" />
+                              <span>Cámara desactivada</span>
+                            </div>
+                          ) : (
+                            <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs text-slate-400 backdrop-blur-sm">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span>Conectando video...</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Etiqueta del usuario remoto (solo cuando el video está activo) */}
+                      {hasActiveVideo && (
+                        <div className="absolute left-4 top-16 flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-xl">
+                          <UserCircle className="h-3.5 w-3.5 text-slate-300" />
+                          <span className="font-medium">{displayName}</span>
+                          <span className="text-slate-500">{roleLabel}</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center bg-slate-900">
-                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-800 ring-1 ring-white/10">
-                  <Users className="h-10 w-10 text-slate-500" />
+              <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+                <div className="relative mb-6">
+                  <div className="absolute inset-[-6px] animate-pulse-ring rounded-full bg-white/5" />
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-slate-700 to-slate-800 ring-2 ring-white/10">
+                    <Users className="h-10 w-10 text-slate-400" />
+                  </div>
                 </div>
-                <p className="text-lg font-medium text-slate-300">Esperando al participante...</p>
-                <p className="mt-1 text-sm text-slate-500">La consulta comenzará cuando se una</p>
+                <p className="text-lg font-medium text-white">Esperando al participante...</p>
+                <p className="mt-1.5 text-sm text-slate-500">La consulta comenzará cuando se una</p>
+                <div className="mt-4 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs text-slate-500">Tu conexión está activa</span>
+                </div>
               </div>
             )}
 
             {/* Local video PiP (bottom-right) */}
-            <div className="absolute bottom-24 right-4 z-10 h-32 w-44 overflow-hidden rounded-xl bg-slate-800 shadow-2xl ring-1 ring-white/20 transition-all sm:h-40 sm:w-56">
+            <div className="absolute bottom-28 right-4 z-10 h-36 w-52 overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/50 ring-1 ring-white/15 transition-all hover:scale-[1.03] hover:ring-white/30 sm:h-44 sm:w-64 md:right-6">
               <video
                 ref={(el) => {
                   localVideoRef.current = el
@@ -929,15 +992,16 @@ export function UnifiedVideoCall({
                 autoPlay
                 muted
                 playsInline
-                className={`h-full w-full object-cover transition-opacity ${isVideoEnabled ? 'opacity-100' : 'opacity-0'}`}
+                className={`h-full w-full object-cover -scale-x-100 transition-opacity duration-300 ${isVideoEnabled ? 'opacity-100' : 'opacity-0'}`}
               />
               {!isVideoEnabled && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                   <VideoOff className="h-8 w-8 text-slate-500" />
                 </div>
               )}
-              <div className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-xs backdrop-blur-sm">
-                Tú {!isAudioEnabled && <MicOff className="ml-1 inline h-3 w-3 text-red-400" />}
+              <div className="absolute bottom-0 inset-x-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-2 py-2">
+                <span className="text-[11px] font-medium text-white/80">Tú</span>
+                {!isAudioEnabled && <MicOff className="h-3 w-3 text-red-400" />}
               </div>
             </div>
 
@@ -1005,9 +1069,9 @@ export function UnifiedVideoCall({
       )}
 
       {isActive && isTestRoom && (
-        <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
-          <div className="max-w-xl rounded-lg border border-amber-400/30 bg-black/65 px-4 py-2 text-center text-xs text-amber-100 shadow-lg backdrop-blur-sm">
-            Modo prueba: si el video se ve verde, es la cámara sintética del navegador de test.
+        <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2">
+          <div className="rounded-full border border-amber-400/25 bg-black/50 px-3 py-1 text-[11px] text-amber-400/70 backdrop-blur-sm">
+            Modo prueba
           </div>
         </div>
       )}
