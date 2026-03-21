@@ -15,6 +15,7 @@
  */
 
 import { loadSignalingUrl } from '../config/ice-servers'
+import { getAdaptiveConstraints, applyContentHints } from '../media-optimizations'
 import type {
   ChatMessage,
   ConnectionState,
@@ -25,12 +26,6 @@ import type {
   WebRTCEvents,
 } from '../webrtc-client'
 import { CloudflareCallsSession } from './session'
-
-/** Media constraints idénticas a WebRTCClient (640p, 24fps conservador) */
-const FAST_START_CONSTRAINTS: MediaStreamConstraints = {
-  video: { width: { ideal: 640, max: 1280 }, height: { ideal: 480, max: 720 }, frameRate: { ideal: 24, max: 30 } },
-  audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-}
 
 type ServerMessage =
   | { type: 'room-state'; data: { users: Array<{ id: string; userType: string }> } }
@@ -104,10 +99,11 @@ export class CloudflareCallsClient {
   async warmUp(): Promise<WarmUpResult> {
     const t0 = Date.now()
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia(FAST_START_CONSTRAINTS)
+      this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
     } catch {
       this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
     }
+    applyContentHints(this.localStream)
     this.emit('local-stream', this.localStream)
 
     try {

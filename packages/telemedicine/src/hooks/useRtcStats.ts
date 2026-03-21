@@ -8,6 +8,8 @@ export interface RtcStatsData {
   bitrateKbps: number | null // Bitrate in Kbps
   framesPerSecond: number | null // Video FPS
   audioLevel: number | null // Audio level (0-1)
+  jitterMs: number | null // Audio jitter in ms
+  qualityLimitationReason: 'none' | 'cpu' | 'bandwidth' | 'other' | null
   connectionQuality: 'excellent' | 'good' | 'fair' | 'poor' | 'unknown'
   timestamp: number
 }
@@ -47,6 +49,8 @@ function createEmptyStats(): RtcStatsData {
     bitrateKbps: null,
     framesPerSecond: null,
     audioLevel: null,
+    jitterMs: null,
+    qualityLimitationReason: null,
     connectionQuality: 'unknown',
     timestamp: Date.now()
   }
@@ -151,6 +155,18 @@ export function useRtcStats(
               statsData.audioLevel = statsData.audioLevel === null
                 ? report.audioLevel
                 : Math.max(statsData.audioLevel, report.audioLevel)
+            }
+
+            // Jitter (audio)
+            if (report.kind === 'audio' && typeof report.jitter === 'number') {
+              statsData.jitterMs = report.jitter * 1000
+            }
+          }
+
+          // Quality limitation reason (outbound video)
+          if (report.type === 'outbound-rtp' && report.kind === 'video') {
+            if (typeof report.qualityLimitationReason === 'string') {
+              statsData.qualityLimitationReason = report.qualityLimitationReason as RtcStatsData['qualityLimitationReason']
             }
           }
         }

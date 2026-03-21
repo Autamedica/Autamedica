@@ -5,6 +5,7 @@
 
 import { createTelemedicineLogger } from './debug'
 import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
+import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -109,19 +110,7 @@ const BITRATE_RAMP_DURATION_MS = 10_000 // Over 10 seconds
 const BITRATE_RAMP_INTERVAL_MS = 2_000  // Step every 2s
 const PREFERRED_VIDEO_CODECS = ['video/VP9', 'video/VP8', 'video/H264']
 
-// Conservative initial constraints (fast getUserMedia, upgrade later)
-const FAST_START_CONSTRAINTS: MediaStreamConstraints = {
-  video: {
-    width: { ideal: 640, max: 1280 },
-    height: { ideal: 480, max: 720 },
-    frameRate: { ideal: 24, max: 30 },
-  },
-  audio: {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-  },
-}
+// Media constraints replaced by getAdaptiveConstraints() from media-optimizations.ts
 
 export interface DeviceInfo {
   deviceId: string
@@ -670,7 +659,7 @@ export class WebRTCClient {
     const [streamResult, signalingResult, devicesResult] = await Promise.allSettled([
       this.localStream
         ? Promise.resolve(this.localStream)
-        : navigator.mediaDevices.getUserMedia(constraints ?? FAST_START_CONSTRAINTS),
+        : navigator.mediaDevices.getUserMedia(constraints ?? getAdaptiveConstraints()),
       this.openSignalingSocket(),
       this.enumerateDevices(),
     ])
@@ -683,12 +672,7 @@ export class WebRTCClient {
         videoTracks: this.localStream.getVideoTracks().length,
         audioTracks: this.localStream.getAudioTracks().length,
       })
-      // Mark video track as prioritizing detail (face) over motion
-      for (const vt of this.localStream.getVideoTracks()) {
-        if ('contentHint' in vt) {
-          (vt as MediaStreamTrack & { contentHint: string }).contentHint = 'detail'
-        }
-      }
+      applyContentHints(this.localStream)
     } else {
       this.logWarn('Pre-warm: getUserMedia failed, will retry on connect', {
         error: streamResult.reason,
@@ -736,9 +720,10 @@ export class WebRTCClient {
   async switchDevice(kind: 'video' | 'audio', deviceId: string): Promise<void> {
     if (!this.localStream) return
 
+    const adaptive = getAdaptiveConstraints()
     const constraints: MediaStreamConstraints = kind === 'video'
-      ? { video: { deviceId: { exact: deviceId }, ...FAST_START_CONSTRAINTS.video as MediaTrackConstraints } }
-      : { audio: { deviceId: { exact: deviceId }, ...(FAST_START_CONSTRAINTS.audio as MediaTrackConstraints) } }
+      ? { video: { deviceId: { exact: deviceId }, ...adaptive.video as MediaTrackConstraints } }
+      : { audio: { deviceId: { exact: deviceId }, ...adaptive.audio as MediaTrackConstraints } }
 
     const newStream = await navigator.mediaDevices.getUserMedia(constraints)
     const newTrack = newStream.getTracks()[0]
@@ -843,7 +828,8 @@ export class WebRTCClient {
 
       // Acquire media if not pre-warmed
       if (!this.localStream) {
-        this.localStream = await navigator.mediaDevices.getUserMedia(FAST_START_CONSTRAINTS)
+        this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
+        applyContentHints(this.localStream)
         this.emit('local-stream', this.localStream)
       }
 

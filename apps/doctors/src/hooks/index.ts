@@ -19,4 +19,3 @@ export { useAIAnalysis } from './useAIAnalysis'
 
 // Telemedicine
 export { useActiveSession } from './useActiveSession'
-export { useTelemedicineSignaling } from './useTelemedicineSignaling'

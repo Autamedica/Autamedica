@@ -7,7 +7,6 @@ const DEFAULT_TRANSPILE_PACKAGES = [
   '@autamedica/hooks',
   '@autamedica/ui',
   '@autamedica/utils',
-  '@autamedica/telemedicine',
   '@autamedica/session',
   '@autamedica/config',
   '@autamedica/supabase-client',

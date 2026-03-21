@@ -19,7 +19,7 @@ interface CallPageClientProps {
   debugEnabled?: boolean
 }
 
-const REQUIRE_AUTH = false
+const REQUIRE_AUTH = getClientEnvOrDefault('NEXT_PUBLIC_REQUIRE_AUTH', 'false') === 'true'
 
 export function CallPageClient({
   roomId,
@@ -28,7 +28,7 @@ export function CallPageClient({
   debugEnabled = false,
 }: CallPageClientProps) {
   return (
-    <AuthProvider onAuthStateChange={() => {}}>
+    <AuthProvider>
       <DoctorCallContent
         roomId={roomId}
         callId={callId}
@@ -109,11 +109,11 @@ function DoctorCallContent({
     // logger.info('[UnifiedVideoCall][doctor] start')
   }
 
-  const _handleStatusChange = (_status: string) => {
+  const handleStatusChange = (_status: string) => {
     // logger.info('[UnifiedVideoCall][doctor] status:', status)
   }
 
-  const _handleError = (error: unknown) => {
+  const handleError = (error: unknown) => {
     logger.error('[UnifiedVideoCall][doctor] error:', error)
   }
 
@@ -162,6 +162,8 @@ function DoctorCallContent({
         theme="doctor"
         onCallEnd={handleCallEnd}
         onCallStart={handleCallStart}
+        onStatusChange={handleStatusChange}
+        onError={handleError}
         className="h-screen"
       />
 

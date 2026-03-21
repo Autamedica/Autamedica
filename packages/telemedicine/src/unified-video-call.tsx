@@ -3,6 +3,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { FormEvent, JSX, KeyboardEvent } from 'react'
 import { logger } from '@autamedica/shared'
+import {
+  acquireWakeLock,
+  releaseWakeLock,
+  setupWakeLockVisibilityHandler,
+  setupVisibilityVideoPause,
+  applyScreenShareHint,
+} from './media-optimizations'
 import { createCallService } from './calls/service'
 import type { CallStatus } from './calls/types'
 import { createTelemedicineLogger, type TelemedicineDebugLevel } from './debug'
@@ -38,6 +45,7 @@ import {
   AlertTriangle,
   ChevronDown,
   Volume2,
+  PictureInPicture2,
 } from 'lucide-react'
 
 /* ── Props ── */
@@ -181,6 +189,16 @@ export function UnifiedVideoCall({
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  /* ── Callback refs (prevent useEffect re-runs when parent re-renders) ── */
+  const onCallStartRef = useRef(onCallStart)
+  const onCallEndRef = useRef(onCallEnd)
+  const onStatusChangeRef = useRef(onStatusChange)
+  const onErrorRef = useRef(onError)
+  onCallStartRef.current = onCallStart
+  onCallEndRef.current = onCallEnd
+  onStatusChangeRef.current = onStatusChange
+  onErrorRef.current = onError
+
   /* ── Green Room state ── */
   const [warmUpResult, setWarmUpResult] = useState<WarmUpResult | null>(null)
   const [isWarmingUp, setIsWarmingUp] = useState(false)
@@ -322,7 +340,7 @@ export function UnifiedVideoCall({
     unsubs.push(
       webrtcClient.on('connection-state', (state) => {
         setConnectionState(state)
-        onStatusChange?.(state)
+        onStatusChangeRef.current?.(state)
         emitDebug('info', 'Estado de conexion actualizado', { state })
         if (state === 'failed') {
           const MAX_RETRIES = 3
@@ -346,7 +364,7 @@ export function UnifiedVideoCall({
           retryCountRef.current = 0
           setIsRetrying(false)
           setCallError(null)
-          onCallStart?.()
+          onCallStartRef.current?.()
         } else if (state === 'disconnected' || state === 'closed') {
           setIsChatReady(false)
         }
@@ -437,7 +455,7 @@ export function UnifiedVideoCall({
         emitDebug('error', 'Evento de error WebRTC recibido', { error })
         const msg = error instanceof Error ? error.message : 'Error desconocido'
         setCallError(`Error de videollamada: ${msg}`)
-        onError?.(error)
+        onErrorRef.current?.(error)
       })
     )
 
@@ -460,10 +478,12 @@ export function UnifiedVideoCall({
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
       // Clean up audio monitoring
       if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
-      audioContextRef.current?.close()
+      if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close()
     }
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
-  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, onCallStart, onError, onStatusChange, retryKey, roomId, userId, userName, userType])
+  // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
+  // que re-renders del parent destruyan la conexión WebRTC en vuelo.
+  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, retryKey, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
@@ -485,6 +505,23 @@ export function UnifiedVideoCall({
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [connectedAt])
+
+  /* ── Wake Lock: keep screen on during active call ── */
+  useEffect(() => {
+    if (!isActive) return
+    void acquireWakeLock()
+    const cleanup = setupWakeLockVisibilityHandler()
+    return () => {
+      cleanup()
+      void releaseWakeLock()
+    }
+  }, [isActive])
+
+  /* ── Pause video when tab hidden (save CPU/battery) ── */
+  useEffect(() => {
+    if (!isActive || !client) return
+    return setupVisibilityVideoPause(() => client.getLocalStream())
+  }, [isActive, client])
 
   useEffect(() => {
     if (!callId || !hasStartedCallRef.current) {
@@ -566,11 +603,11 @@ export function UnifiedVideoCall({
         setScreenStream(null)
         setIsScreenSharing(false)
       }
-      onCallEnd?.()
+      onCallEndRef.current?.()
     } catch (error) {
       emitDebug('error', 'Error al finalizar videollamada', { error })
     }
-  }, [callId, client, emitDebug, onCallEnd, persistCallStatus, screenStream, userType])
+  }, [callId, client, emitDebug, persistCallStatus, screenStream, userType])
 
   useEffect(() => {
     if (!autoStart || !client || autoStartAttemptedRef.current || connectionState !== 'disconnected') {
@@ -601,6 +638,7 @@ export function UnifiedVideoCall({
     }
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+      applyScreenShareHint(stream)
       setScreenStream(stream)
       setIsScreenSharing(true)
       stream.getVideoTracks()[0]?.addEventListener('ended', () => {
@@ -617,6 +655,23 @@ export function UnifiedVideoCall({
       if (!prev) setUnreadMessages(0)
       return !prev
     })
+  }, [])
+
+  const togglePiP = useCallback(async () => {
+    if (typeof document === 'undefined') return
+    // Legacy PiP: single remote video element
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture()
+      return
+    }
+    // Find the first remote video or fall back to local
+    const remoteEl = remoteVideosRef.current.values().next().value as HTMLVideoElement | undefined
+    const target = remoteEl ?? localVideoRef.current
+    if (target && document.pictureInPictureEnabled) {
+      try {
+        await target.requestPictureInPicture()
+      } catch { /* user denied or not supported */ }
+    }
   }, [])
 
   const sendChat = useCallback(() => {
@@ -700,7 +755,7 @@ export function UnifiedVideoCall({
 
     return () => {
       if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
-      audioContextRef.current?.close()
+      if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close()
       audioContextRef.current = null
     }
   }, [warmUpResult, isActive])
@@ -750,14 +805,14 @@ export function UnifiedVideoCall({
   /* ── Render ── */
   return (
     <div
-      className={`relative h-full w-full overflow-hidden bg-slate-900 text-white ${className}`}
+      className={`relative h-full w-full overflow-hidden bg-neutral-900 text-white ${className}`}
       onMouseMove={isActive ? resetControlsTimer : undefined}
     >
       {/* ── Main video area ── */}
       <div className="absolute inset-0">
         {/* Green Room — pre-call experience */}
         {isIdle && (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 px-4">
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 px-4">
             {/* Camera preview — live from pre-warm */}
             <div className="relative mb-6 w-full max-w-md overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/40 ring-1 ring-white/10 aspect-video">
               <video
@@ -901,7 +956,7 @@ export function UnifiedVideoCall({
 
         {/* Connecting state / Retrying state */}
         {(connectionState === 'connecting' || isRetrying) && (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950">
             <div className="relative mb-6">
               <div className={`absolute inset-0 animate-pulse-ring rounded-full ${accentColor === 'violet' ? 'bg-violet-500/20' : 'bg-sky-500/20'}`} />
               <div className={`absolute inset-[-8px] animate-pulse-ring rounded-full ${accentColor === 'violet' ? 'bg-violet-500/10' : 'bg-sky-500/10'}`} style={{ animationDelay: '0.5s' }} />
@@ -945,7 +1000,7 @@ export function UnifiedVideoCall({
                         ? 'Paciente'
                         : 'Participante'
                   return (
-                    <div key={remoteUserId} className="relative h-full w-full bg-slate-900">
+                    <div key={remoteUserId} className="relative h-full w-full bg-neutral-900">
                       {/* Video element — siempre renderizado para sync de stream */}
                       <video
                         ref={(el) => {
@@ -963,7 +1018,7 @@ export function UnifiedVideoCall({
 
                       {/* Avatar fallback cuando el video no está activo */}
                       {!hasActiveVideo && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-neutral-800 via-neutral-900 to-neutral-950">
                           <div
                             className={`flex h-28 w-28 items-center justify-center rounded-full text-4xl font-bold text-white shadow-2xl ring-4 ring-white/10 ${
                               accentColor === 'violet' ? 'bg-violet-700' : 'bg-sky-700'
@@ -1004,10 +1059,10 @@ export function UnifiedVideoCall({
                 })}
               </div>
             ) : (
-              <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+              <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950">
                 <div className="relative mb-6">
                   <div className="absolute inset-[-6px] animate-pulse-ring rounded-full bg-white/5" />
-                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-slate-700 to-slate-800 ring-2 ring-white/10">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-neutral-700 to-neutral-800 ring-2 ring-white/10">
                     <Users className="h-10 w-10 text-slate-400" />
                   </div>
                 </div>
@@ -1185,6 +1240,17 @@ export function UnifiedVideoCall({
               )}
             </button>
 
+            {/* PiP */}
+            {typeof document !== 'undefined' && document.pictureInPictureEnabled && (
+              <button
+                onClick={togglePiP}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-white/20 active:scale-95 sm:h-12 sm:w-12"
+                title="Picture-in-Picture"
+              >
+                <PictureInPicture2 className="h-5 w-5" />
+              </button>
+            )}
+
             {/* Divider */}
             <div className="mx-1 h-8 w-px bg-white/10" />
 
@@ -1203,7 +1269,7 @@ export function UnifiedVideoCall({
       {/* ── Chat panel (slide-in from right) ── */}
       {isActive && (
         <aside
-          className={`absolute right-0 top-0 bottom-0 z-30 flex w-full flex-col border-l border-white/[0.06] bg-slate-900/[0.97] backdrop-blur-2xl transition-transform duration-300 ease-out md:w-96 ${
+          className={`absolute right-0 top-0 bottom-0 z-30 flex w-full flex-col border-l border-white/[0.06] bg-neutral-900/[0.97] backdrop-blur-2xl transition-transform duration-300 ease-out md:w-96 ${
             isChatPanelOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
           style={{

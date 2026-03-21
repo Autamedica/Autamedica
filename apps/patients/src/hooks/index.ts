@@ -7,7 +7,6 @@
 
 // Core hooks
 export { useAnamnesis } from './useAnamnesis';
-export { useTelemedicine } from './useTelemedicine';
 export { useCommunity, useCommunityGroups, useCommunityPosts, useAutoJoinGroup } from './useCommunity';
 export { usePatientScreenings } from './usePatientScreenings';
 export { useMedicalHistory } from './useMedicalHistory';
@@ -19,22 +18,9 @@ export { useReproductiveHealthAppointments } from './useReproductiveHealthAppoin
 export { useHealthCentersGeolocation } from './useHealthCentersGeolocation';
 export { useMedicalChats, useChatMessages } from './useMedicalChat';
 
-// Telemedicine hooks
-export { useTelemedicineSignaling } from './useTelemedicineSignaling';
-export { useVideoCall } from './useVideoCall';
-
 // Session hooks
 export { usePatientSession } from './usePatientSession';
 export { usePatientProfile } from './useProfile';
-
-// Legacy hooks (deprecated - to be removed)
-export function useActiveSession() {
-  return { session: null };
-}
-
-export function usePatientData(_patientId: string | null) {
-  return { patient: null };
-}
 
 // Re-export types for convenience
 export type {
@@ -44,14 +30,6 @@ export type {
   AnamnesisStatus,
   AnamnesisSectionData,
   AnamnesisProgressResponse,
-
-  // Telemedicine
-  TelemedicineSession,
-  SessionParticipant,
-  SessionEvent,
-  MediaState,
-  ConnectionQuality,
-  StartSessionResponse,
 
   // Community
   CommunityGroup,

@@ -89,7 +89,7 @@ export class CloudflareCallsSession {
     )
     this.sessionId = sessionId
 
-    if (sessionDescription) {
+    if (sessionDescription && this.pc) {
       await this.pc.setRemoteDescription(sessionDescription)
     }
 

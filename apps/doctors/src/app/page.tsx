@@ -9,91 +9,45 @@ import { TelemedicineSignalingPanel } from '@/components/telemedicine/Telemedici
 import { useActiveSession, usePatientData } from '@/hooks'
 import { useAuthenticatedUser } from '@/hooks/useAuthenticatedUser'
 import { useMedicalHistoryStore } from '@/stores/medicalHistoryStore'
-import { getClientEnvOrDefault, logger } from '@autamedica/shared'
-import {
-    Activity,
-    Brain,
-    CheckCircle2,
-    ChevronDown,
-    ChevronUp,
-    FileText,
-    Loader2,
-    Mic,
-    MicOff,
-    MonitorUp,
-    PhoneOff,
-    Pill,
-    ScreenShare,
-    ScreenShareOff,
-    Sparkles,
-    Video,
-    VideoOff,
-    X
-} from 'lucide-react'
-import type { JSX, ReactNode } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-
-type ControlButtonProps = {
-  active: boolean
-  iconActive: ReactNode
-  iconInactive: ReactNode
-  label: string
-  onClick: () => void
-}
-
 import { getPatientDisplayName } from '@/utils/patientDisplay'
-
-function getPatientAge(patient: unknown): string {
-  if (!patient || typeof patient !== 'object') return '—'
-  const p = patient as Record<string, unknown>
-  const raw = (p.personalInfo as Record<string, unknown> | undefined)?.birthDate ?? p.birthDate
-  if (!raw) return '—'
-  const birthDate = new Date(raw as string)
-  const ageDifMs = Date.now() - birthDate.getTime()
-  const ageDate = new Date(ageDifMs)
-  return Math.abs(ageDate.getUTCFullYear() - 1970).toString()
-}
+import { logger } from '@autamedica/shared'
+import { UnifiedVideoCall } from '@autamedica/telemedicine'
+import {
+  Activity,
+  Brain,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Loader2,
+  MonitorUp,
+  Phone,
+  Pill,
+  Sparkles,
+  X,
+} from 'lucide-react'
+import type { JSX } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 export default function DoctorsHomePage(): JSX.Element {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const screenShareRef = useRef<HTMLVideoElement | null>(null)
-
-  // Hooks para obtener datos de autenticación y paciente
-  const { user, loading: authLoading } = useAuthenticatedUser()
+  const { user } = useAuthenticatedUser()
   const { session } = useActiveSession()
   const { patient } = usePatientData(session?.patientId ?? null)
-  const authBaseUrl = useMemo(
-    () => getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', 'https://www.autamedica.com'),
-    []
-  )
 
-  // Store centralizado de historial médico
   const { addEntry } = useMedicalHistoryStore()
-
   const { isFocusMode, setFocusMode } = useDoctorsPortal()
 
   useEffect(() => {
     return () => setFocusMode(false)
   }, [setFocusMode])
 
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
-  const [screenStream, setScreenStream] = useState<MediaStream | null>(null)
-  const [isMuted, setIsMuted] = useState(false)
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false)
-  const [isScreenSharing, setIsScreenSharing] = useState(false)
-  const [callStatus, setCallStatus] = useState<'idle' | 'connecting' | 'live' | 'ended'>('idle')
-  const [callDuration, setCallDuration] = useState(0)
-  const [cameraError, setCameraError] = useState<string | null>(null)
   const [showDiagnosisPanel, setShowDiagnosisPanel] = useState(false)
   const [showTelemedicinePanel, setShowTelemedicinePanel] = useState(false)
   const [isQuickActionsVisible, setIsQuickActionsVisible] = useState(false)
-  const [showQualityOverlay, setShowQualityOverlay] = useState(false)
   const [aiProcessing, setAiProcessing] = useState(false)
   const [showNotesModal, setShowNotesModal] = useState(false)
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
   const [isQuickActionsCollapsed, setIsQuickActionsCollapsed] = useState(false)
-  const [showControls, setShowControls] = useState(true)
-  const [mouseTimer, setMouseTimer] = useState<NodeJS.Timeout | null>(null)
 
   const signalingRoomId = useMemo(() => session?.sessionId ?? 'guest-room', [session?.sessionId])
   const signalingUserId = useMemo(() => {
@@ -111,200 +65,37 @@ export default function DoctorsHomePage(): JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (callStatus !== 'live') {
-      return
-    }
-
-    const interval = setInterval(() => {
-      setCallDuration((prev) => prev + 1)
-    }, 1_000)
-
-    return () => clearInterval(interval)
-  }, [callStatus])
-
-  // Mostrar overlay de calidad temporalmente cuando cambie el estado de la llamada
-  useEffect(() => {
-    if (callStatus === 'live') {
-      setShowQualityOverlay(true)
-      setFocusMode(true) // Activar modo foco automáticamente en llamada
-      setIsQuickActionsCollapsed(true) // Colapsar acciones rápidas
-      const timer = setTimeout(() => {
-        setShowQualityOverlay(false)
-      }, 3000) // Se oculta después de 3 segundos
-      return () => clearTimeout(timer)
-    } else {
-      setFocusMode(false)
-    }
-  }, [callStatus, setFocusMode])
-
-  // Auto-ocultar controles después de 3 segundos sin movimiento del mouse
-  useEffect(() => {
-    const handleMouseMove = () => {
-      setShowControls(true)
-      if (mouseTimer) clearTimeout(mouseTimer)
-
-      const timer = setTimeout(() => {
-        if (callStatus === 'live' && isFocusMode) {
-          setShowControls(false)
-        }
-      }, 3000)
-
-      setMouseTimer(timer)
-    }
-
-    if (isFocusMode) {
-      window.addEventListener('mousemove', handleMouseMove)
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove)
-        if (mouseTimer) clearTimeout(mouseTimer)
-      }
-    }
-  }, [isFocusMode, callStatus, mouseTimer])
-
-  useEffect(() => {
     if (!isFocusMode) {
       setIsQuickActionsVisible(false)
       setIsQuickActionsCollapsed(false)
     }
   }, [isFocusMode])
 
-  useEffect(() => {
-    return () => {
-      stopMedia(localStream)
-      stopMedia(screenStream)
+  const doctorName = useMemo(() => {
+    if (user?.profile) {
+      const name = [user.profile.first_name, user.profile.last_name].filter(Boolean).join(' ').trim()
+      return name || user.email
     }
-  }, [localStream, screenStream])
+    return 'Doctor de prueba'
+  }, [user])
 
-  useEffect(() => {
-    if (videoRef.current && localStream) {
-      videoRef.current.srcObject = localStream
-    }
-  }, [localStream])
-
-  useEffect(() => {
-    if (screenShareRef.current && screenStream) {
-      screenShareRef.current.srcObject = screenStream
-    }
-  }, [screenStream])
-
-  const formattedDuration = useMemo(() => {
-    const minutes = Math.floor(callDuration / 60)
-    const seconds = callDuration % 60
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  }, [callDuration])
-
-  const callQuality = useMemo((): { label: string; color: string } => {
-    if (cameraError) {
-      return { label: 'Sin señal', color: 'text-rose-500' }
-    }
-    if (callStatus === 'live') {
-      return { label: 'HD', color: 'text-emerald-500' }
-    }
-    if (callStatus === 'connecting') {
-      return { label: 'Inicializando', color: 'text-amber-500' }
-    }
-    return { label: 'En espera', color: 'text-slate-400' }
-  }, [cameraError, callStatus])
-
-  async function handleActivateCamera() {
-    if (callStatus === 'live') {
-      return
-    }
-
-    try {
-      setCameraError(null)
-      setCallStatus('connecting')
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
-        },
-        audio: true,
-      })
-
-      setLocalStream(stream)
-      setIsVideoEnabled(true)
-      setIsMuted(false)
-      setCallDuration(0)
-      setCallStatus('live')
-    } catch (error) {
-      logger.error('[VideoCall] Error al activar la cámara', error)
-      const message =
-        error instanceof DOMException
-          ? error.message
-          : 'No se pudo acceder a la cámara. Verifica los permisos del navegador.'
-      setCameraError(message)
-      setCallStatus('idle')
-    }
+  const handleCallStart = () => {
+    setFocusMode(true)
+    setIsQuickActionsCollapsed(true)
   }
 
-  function handleToggleAudio() {
-    if (!localStream) {
-      return
-    }
-    const nextMuted = !isMuted
-    localStream.getAudioTracks().forEach((track) => {
-      track.enabled = !nextMuted
-    })
-    setIsMuted(nextMuted)
+  const handleCallEnd = () => {
+    setFocusMode(false)
   }
 
-  function handleToggleVideo() {
-    if (!localStream) {
-      return
-    }
-    const nextEnabled = !isVideoEnabled
-    localStream.getVideoTracks().forEach((track) => {
-      track.enabled = nextEnabled
-    })
-    setIsVideoEnabled(nextEnabled)
-  }
-
-  async function handleToggleScreenShare() {
-    if (isScreenSharing) {
-      stopMedia(screenStream)
-      setScreenStream(null)
-      setIsScreenSharing(false)
-      return
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
-      setScreenStream(stream)
-      setIsScreenSharing(true)
-    } catch (error) {
-      logger.warn('[VideoCall] El usuario canceló la compartición de pantalla', error)
-      setIsScreenSharing(false)
-    }
-  }
-
-  function handleEndCall() {
-    stopMedia(localStream)
-    stopMedia(screenStream)
-    setLocalStream(null)
-    setScreenStream(null)
-    setIsVideoEnabled(false)
-    setIsMuted(false)
-    setIsScreenSharing(false)
-    setCallStatus('ended')
-  }
-
-  // Manejar acciones médicas con actualización automática
-  function handleTakeNotes() {
-    setShowNotesModal(true)
-  }
-
-  function handlePrescribe() {
-    setShowPrescriptionModal(true)
+  const handleStatusChange = (_status: string) => {
+    logger.info('[DoctorsHomePage] call status:', _status)
   }
 
   async function handleAnalyzeWithAI() {
     setAiProcessing(true)
     setShowDiagnosisPanel(true)
 
-    // Simular análisis IA
     await new Promise(resolve => setTimeout(resolve, 2000))
 
     await addEntry({
@@ -339,207 +130,24 @@ export default function DoctorsHomePage(): JSX.Element {
     setIsQuickActionsVisible(false)
   }
 
-  const toggleFocusMode = () => {
-    const next = !isFocusMode
-    setFocusMode(next)
-    if (next) {
-      setIsQuickActionsCollapsed(true)
-      setIsQuickActionsVisible(false)
-    }
-  }
-
+  const hasRealPatient = user && session?.patientId && session.patientId !== DEMO_PATIENT_ID
 
   return (
     <div className="flex min-h-0 flex-1 flex-col text-slate-900">
       <div className={`call-area ${isFocusMode ? 'gap-3' : 'gap-4'} flex min-h-0 flex-1 flex-col lg:flex-row`}>
         <section className="call-area__videoCard relative flex min-h-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-lg">
-            {cameraError ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-slate-100 px-4 py-6 text-center sm:px-8">
-                <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-500">
-                  <VideoOff className="h-10 w-10" />
-                </div>
-                <h3 className="mt-4 text-xl font-semibold text-slate-900">No se detectó cámara</h3>
-                <p className="max-w-md text-sm text-slate-500">{cameraError}</p>
-                <button
-                  type="button"
-                  onClick={handleActivateCamera}
-                  className="mt-2 rounded-xl border border-violet-200 bg-violet-50 px-6 py-2.5 text-sm font-semibold text-violet-600 transition-all hover:bg-violet-600 hover:text-white active:scale-95"
-                >
-                  Reintentar
-                </button>
-              </div>
-            ) : localStream ? (
-              <video
-                ref={videoRef}
-                className={`call-area__video h-full w-full object-cover transition-opacity ${
-                  isVideoEnabled ? 'opacity-100' : 'opacity-0'
-                }`}
-                autoPlay
-                playsInline
-                muted
-              />
-            ) : (
-              <div className="flex flex-1 flex-col items-center justify-center gap-5 bg-slate-100 px-4 py-8 text-center">
-                <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-violet-200 bg-violet-50 text-violet-500">
-                  <VideoOff className="h-12 w-12" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Cámara no activada</h3>
-                  <p className="text-sm font-medium text-slate-500">Inicia una llamada con el paciente para comenzar la videoconsulta</p>
-                </div>
-                <div className="flex flex-col gap-4 mt-2">
-                  {authLoading ? (
-                    <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600">
-                      <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
-                      Autenticando médico...
-                    </div>
-                  ) : user && session?.patientId && session.patientId !== DEMO_PATIENT_ID ? (
-                    <StartCallButton
-                      doctorId={user.id}
-                      patientId={session.patientId}
-                      patientName={getPatientDisplayName(patient)}
-                      className="group relative inline-flex items-center justify-center rounded-xl bg-violet-600 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-violet-600/20 transition-all hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-violet-600/30 active:scale-95"
-                    />
-                  ) : user ? (
-                    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 text-sm">
-                      <div>
-                        <p className="text-slate-800 font-semibold mb-1">Paciente no seleccionado</p>
-                        <p className="text-slate-500 text-xs">
-                          Vincula la llamada a una consulta o a un paciente real antes de iniciar la videollamada.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm">
-                      <div>
-                        <p className="text-amber-700 font-semibold mb-1">Autenticación requerida</p>
-                        <p className="text-amber-600 text-xs">Abre tu sesión para autorizar la llamada</p>
-                      </div>
-                      <a
-                        href={`${authBaseUrl}/auth/login?portal=doctors`}
-                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500 hover:text-white"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Iniciar sesión como médico
-                      </a>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleActivateCamera}
-                    className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-95"
-                  >
-                    Probar cámara sin transmitir
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {callStatus === 'connecting' && (
-              <div className="absolute inset-0 flex h-full flex-col items-center justify-center gap-4 bg-white/80 text-slate-700 backdrop-blur-md z-10 transition-all duration-300">
-                <Loader2 className="h-10 w-10 animate-spin text-violet-500" />
-                <p className="text-sm font-semibold tracking-wide text-violet-700">Estableciendo conexión segura…</p>
-              </div>
-            )}
-
-            {isScreenSharing && (
-              <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-1 text-xs text-violet-700">
-                <ScreenShare className="h-4 w-4" />
-                Compartiendo pantalla
-              </div>
-            )}
-
-            {isFocusMode && patient && callStatus === 'live' && showControls && (
-              <div className="video-badge z-10">
-                <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white/90 px-3 py-2 backdrop-blur-md">
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-emerald-500" />
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900">{getPatientDisplayName(patient)}</p>
-                      <p className="text-[10px] text-slate-500">{getPatientAge(patient)} años • {formattedDuration}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-medium ${callQuality.color}`}>
-                      {callQuality.label}
-                    </span>
-                    <span className="text-[10px] text-slate-500">• 45ms</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {showQualityOverlay && callStatus === 'live' && !isFocusMode && (
-              <div className={`absolute top-4 left-4 transition-all duration-1000 ${
-                showQualityOverlay ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
-              }`}>
-                <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs backdrop-blur-sm">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></div>
-                  <span className="font-medium text-emerald-700">
-                    {callQuality.label} • 45ms • Estable
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="absolute right-4 top-4 flex flex-col items-end gap-3">
-              {callStatus === 'live' && (
-                <button
-                  type="button"
-                  onClick={toggleFocusMode}
-                  className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${
-                    isFocusMode
-                      ? 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100'
-                      : 'border-slate-200 bg-white/90 text-slate-600 hover:border-violet-300 hover:text-violet-700'
-                  }`}
-                >
-                  {isFocusMode ? 'Salir modo foco' : 'Activar modo foco'}
-                </button>
-              )}
-
-              {screenStream && (
-                <div className="hidden h-32 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white/90 shadow-lg sm:block">
-                  <video ref={screenShareRef} className="h-full w-full object-cover" autoPlay muted playsInline />
-                </div>
-              )}
-            </div>
-
-            <div className={`video-overlay absolute bottom-6 inset-x-0 flex justify-center transition-opacity duration-300 ${showControls ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-              <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-6 py-4 backdrop-blur-2xl shadow-2xl shadow-slate-200/50 sm:flex-nowrap">
-                <ControlButton
-                  active={!isMuted}
-                  iconActive={<Mic className="h-5 w-5" />}
-                  iconInactive={<MicOff className="h-5 w-5" />}
-                  label={isMuted ? 'Activar micrófono' : 'Silenciar'}
-                  onClick={handleToggleAudio}
-                />
-                <ControlButton
-                  active={isVideoEnabled}
-                  iconActive={<Video className="h-5 w-5" />}
-                  iconInactive={<VideoOff className="h-5 w-5" />}
-                  label={isVideoEnabled ? 'Ocultar video' : 'Mostrar video'}
-                  onClick={handleToggleVideo}
-                />
-                <ControlButton
-                  active={isScreenSharing}
-                  iconActive={<ScreenShare className="h-5 w-5" />}
-                  iconInactive={<ScreenShareOff className="h-5 w-5" />}
-                  label={isScreenSharing ? 'Detener pantalla' : 'Compartir pantalla'}
-                  onClick={handleToggleScreenShare}
-                />
-                <button
-                  type="button"
-                  onClick={handleEndCall}
-                  className={`flex items-center justify-center rounded-full bg-rose-600 text-white transition hover:bg-rose-500 ${
-                    isFocusMode ? 'h-10 w-10' : 'h-12 w-12'
-                  }`}
-                >
-                  <PhoneOff className={isFocusMode ? 'h-4 w-4' : 'h-5 w-5'} />
-                </button>
-              </div>
-            </div>
+            <UnifiedVideoCall
+              roomId={signalingRoomId}
+              userId={user?.id ?? signalingUserId}
+              userType="doctor"
+              userName={doctorName}
+              theme="doctor"
+              onCallStart={handleCallStart}
+              onCallEnd={handleCallEnd}
+              onStatusChange={handleStatusChange}
+              className="h-full w-full"
+            />
           </div>
 
           {showTelemedicinePanel && (
@@ -620,15 +228,23 @@ export default function DoctorsHomePage(): JSX.Element {
           {!isQuickActionsCollapsed && (
             <div id="quick-actions-panel" className="space-y-3 px-1 pb-2">
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                {hasRealPatient && session.patientId && (
+                  <StartCallButton
+                    doctorId={user.id}
+                    patientId={session.patientId}
+                    patientName={getPatientDisplayName(patient)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+                  />
+                )}
                 <CompactAction
                   label="Notas"
                   icon={<FileText className="h-4 w-4" />}
-                  onClick={handleTakeNotes}
+                  onClick={() => setShowNotesModal(true)}
                 />
                 <CompactAction
                   label="Prescribir"
                   icon={<Pill className="h-4 w-4" />}
-                  onClick={handlePrescribe}
+                  onClick={() => setShowPrescriptionModal(true)}
                 />
                 <CompactAction
                   label="Signos vitales"
@@ -664,7 +280,7 @@ export default function DoctorsHomePage(): JSX.Element {
                 <Pill className="h-3 w-3 text-slate-400" />
                 <Activity className="h-3 w-3 text-slate-400" />
                 <Brain className="h-3 w-3 text-slate-400" />
-                <span className="text-xs text-slate-400">5 acciones disponibles</span>
+                <span className="text-xs text-slate-400">{hasRealPatient ? '6' : '5'} acciones disponibles</span>
               </div>
             </div>
           )}
@@ -688,29 +304,12 @@ export default function DoctorsHomePage(): JSX.Element {
         <div className="fixed bottom-6 right-6 z-20 flex items-center gap-3 lg:hidden">
           <button
             type="button"
-            onClick={() => setShowControls(!showControls)}
-            className="rounded-full border border-slate-200 bg-white/90 p-3 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
-            aria-label="Alternar controles"
-          >
-            {showControls ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </button>
-          <button
-            type="button"
             onClick={() => setIsQuickActionsCollapsed(false)}
             className="flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-violet-500"
           >
             <Sparkles className="h-4 w-4" />
             Acciones
           </button>
-        </div>
-      )}
-
-      {isFocusMode && showQualityOverlay && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-20 z-20 flex justify-center lg:hidden">
-          <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-700 shadow-lg">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></span>
-            Video optimizado para modo foco
-          </div>
         </div>
       )}
 
@@ -802,37 +401,7 @@ export default function DoctorsHomePage(): JSX.Element {
           onClick={closeQuickActions}
         />
       )}
-
     </div>
-  )
-}
-
-function stopMedia(stream: MediaStream | null) {
-  stream?.getTracks().forEach((track) => {
-    track.stop()
-  })
-}
-
-
-function ControlButton({ active, iconActive, iconInactive, label, onClick }: ControlButtonProps): JSX.Element {
-  const { isFocusMode } = useDoctorsPortal()
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center justify-center rounded-full transition ${
-        isFocusMode ? 'h-10 w-10' : 'h-12 w-12'
-      } ${
-        active
-          ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-      }`}
-      aria-label={label}
-      title={label}
-    >
-      {active ? iconActive : iconInactive}
-    </button>
   )
 }
 

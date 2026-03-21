@@ -107,6 +107,18 @@ export type { SignalingTransport, SignalingConfig, SignalingImplementation } fro
 export { getIceServersConfig, validateIceServersConfig } from './config'
 export type { IceServerConfig } from './config'
 
+// Media optimizations
+export {
+  getAdaptiveConstraints,
+  applyContentHints,
+  applyScreenShareHint,
+  acquireWakeLock,
+  releaseWakeLock,
+  isWakeLockActive,
+  setupWakeLockVisibilityHandler,
+  setupVisibilityVideoPause,
+} from './media-optimizations'
+
 // Re-export common types
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'failed' | 'closed'
 export type MediaConstraints = {

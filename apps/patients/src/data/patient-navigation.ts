@@ -5,6 +5,7 @@ import {
   Heart,
   Home,
   User,
+  Video,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -12,6 +13,7 @@ export type PatientPortalAside = 'none' | 'summary' | 'appointments' | 'history'
 
 export type PatientPortalRouteId =
   | 'home'
+  | 'consulta'
   | 'appointments'
   | 'medical-history'
   | 'preventive-health'
@@ -44,6 +46,18 @@ const patientPortalRoutes: readonly PatientPortalRoute[] = [
     href: '/',
     icon: Home,
     aside: 'summary',
+    showInSidebar: true,
+    showInBottomNav: true,
+  },
+  {
+    id: 'consulta',
+    label: 'Consulta',
+    shortLabel: 'Consulta',
+    eyebrow: 'Telemedicina',
+    description: 'Videollamada en vivo con tu equipo médico.',
+    href: '/consulta',
+    icon: Video,
+    aside: 'video',
     showInSidebar: true,
     showInBottomNav: true,
   },

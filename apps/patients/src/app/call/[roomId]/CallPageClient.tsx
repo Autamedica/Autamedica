@@ -8,6 +8,7 @@ import {
   createTelemedicineLogger,
 } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
+import type { UserProfile } from '@autamedica/auth'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import { PatientPortalShell } from '@/components/layout/PatientPortalShell'
 
@@ -37,13 +38,9 @@ function PatientCallContent({
   debugEnabled: boolean
 }) {
   const router = useRouter()
-  const { session, loading } = useAuth()
+  const { session, profile, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
-  const sessionRecord = session as { user?: { id: string; email?: string | null; role?: string | null } } | null
-  const sessionUser =
-    sessionRecord && typeof sessionRecord === 'object' && sessionRecord.user
-      ? sessionRecord.user
-      : null
+  const typedProfile = profile as UserProfile | null
   const debugLogger = useMemo(
     () => createTelemedicineLogger({
       source: 'PatientCallPage',
@@ -72,10 +69,12 @@ function PatientCallContent({
   }
 
   const { userId, userName } = useMemo(() => {
-    if (sessionUser) {
+    if (session && typedProfile) {
       return {
-        userId: sessionUser.id,
-        userName: sessionUser.email || 'Paciente'
+        userId: session.user.id,
+        userName: [typedProfile.first_name, typedProfile.last_name].filter(Boolean).join(' ').trim()
+          || typedProfile.email
+          || 'Paciente'
       }
     }
 
@@ -83,7 +82,7 @@ function PatientCallContent({
       userId: `dev-patient-${roomId}`,
       userName: 'Paciente de prueba'
     }
-  }, [sessionUser, roomId])
+  }, [session, typedProfile, roomId])
 
   useEffect(() => {
     if (loading) return
@@ -111,9 +110,9 @@ function PatientCallContent({
       return
     }
 
-    if (sessionUser?.role !== 'patient') {
+    if (typedProfile?.role !== 'patient') {
       debugLogger.warn('Sesion cargada pero el rol no es patient', {
-        role: sessionUser?.role,
+        role: typedProfile?.role,
       })
       router.push('/')
       return
@@ -121,7 +120,7 @@ function PatientCallContent({
 
     debugLogger.info('Sesion de paciente validada; pantalla lista')
     setIsReady(true)
-  }, [callId, debugLogger, session, sessionUser, loading, router, roomId])
+  }, [callId, debugLogger, session, loading, router, roomId, typedProfile])
 
   if (loading || !isReady) {
     return (
