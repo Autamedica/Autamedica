@@ -1,15 +1,13 @@
 'use client'
 
 import { logger } from '@autamedica/shared'
-import { TelemedicineDebugPanel, UnifiedVideoCall, useTurnCredentials } from '@autamedica/telemedicine'
+import { TelemedicineDebugPanel, UnifiedVideoCall } from '@autamedica/telemedicine'
 import { useState } from 'react'
 
 export default function TestCallPage() {
   const [roomId, setRoomId] = useState('test-room-001')
   const [userId] = useState('doctor-test-001')
   const [callStarted, setCallStarted] = useState(false)
-  const { iceServers } = useTurnCredentials()
-
   if (callStarted) {
     return (
       <div className="h-screen w-screen">
@@ -18,7 +16,6 @@ export default function TestCallPage() {
           userId={userId}
           userType="doctor"
           userName="Dr. Test"
-          iceServers={iceServers}
           cloudflareCallsApiUrl="/api/cloudflare-calls"
           onCallEnd={() => setCallStarted(false)}
           onCallStart={() => logger.info('Llamada iniciada exitosamente')}

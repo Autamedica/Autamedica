@@ -154,12 +154,9 @@ export function UnifiedVideoCall({
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [qualityLevel, setQualityLevel] = useState<StreamQualityLevel>('unknown')
   const [controlsVisible, setControlsVisible] = useState(true)
-  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(() => {
-    if (typeof window === 'undefined') {
-      return true
-    }
-    return window.innerWidth >= 768
-  })
+  // Iniciar siempre con `true` en SSR y en cliente para evitar mismatch de hidratación.
+  // El efecto de resize lo corrige en el primer render del cliente.
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(true)
 
   /* ── Refs ── */
   const localVideoRef = useRef<HTMLVideoElement>(null)

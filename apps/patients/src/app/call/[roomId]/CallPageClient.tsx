@@ -6,7 +6,6 @@ import {
   TelemedicineDebugPanel,
   UnifiedVideoCall,
   createTelemedicineLogger,
-  useTurnCredentials,
 } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
@@ -40,7 +39,6 @@ function PatientCallContent({
   const router = useRouter()
   const { session, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
-  const { iceServers } = useTurnCredentials()
   const sessionRecord = session as { user?: { id: string; email?: string | null; role?: string | null } } | null
   const sessionUser =
     sessionRecord && typeof sessionRecord === 'object' && sessionRecord.user
@@ -156,7 +154,6 @@ function PatientCallContent({
         userId={userId}
         userType="patient"
         userName={userName}
-        iceServers={iceServers}
         cloudflareCallsApiUrl="/api/cloudflare-calls"
         theme="patient"
         onCallEnd={handleCallEnd}
