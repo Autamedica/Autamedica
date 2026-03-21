@@ -162,6 +162,7 @@ function DoctorCallContent({
         userType="doctor"
         userName={userName}
         iceServers={iceServers}
+        cloudflareCallsApiUrl="/api/cloudflare-calls"
         theme="doctor"
         onCallEnd={handleCallEnd}
         onCallStart={handleCallStart}

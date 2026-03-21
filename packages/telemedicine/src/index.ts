@@ -49,6 +49,10 @@ export {
 export { WebRTCClient } from './webrtc-client'
 export type { WebRTCConfig, WebRTCEvents, DeviceInfo, WarmUpResult } from './webrtc-client'
 
+// Cloudflare Calls SFU (streaming relay via Cloudflare edge)
+export { CloudflareCallsClient, CloudflareCallsSession } from './cloudflare-calls'
+export type { CloudflareCallsClientConfig, CFSessionConfig, CFSessionDescription } from './cloudflare-calls'
+
 // Alias for TelemedicineClient (used in hooks)
 export { WebRTCClient as TelemedicineClient } from './webrtc-client'
 

@@ -1,0 +1,370 @@
+/**
+ * CloudflareCallsClient
+ *
+ * Drop-in replacement de WebRTCClient que enruta el media a través del SFU de
+ * Cloudflare Calls en lugar de usar WebRTC P2P directo.
+ *
+ * Protocolo de señalización (via WebSocket existente):
+ *   → { type: 'join', from: userId, data: { userType } }
+ *   ← { type: 'room-state', data: { users: [...] } }
+ *   ← { type: 'user-joined', from: userId, data: { userType } }
+ *   → { type: 'cf-session', from: userId, data: { sessionId, userType } }   (anuncio de sesión CF)
+ *   ← { type: 'cf-session', from: userId, data: { sessionId, userType } }   (sesión del peer)
+ *   ↔ { type: 'chat',      from: userId, data: { message } }                (chat via WS)
+ *   → { type: 'leave' }
+ */
+
+import { loadSignalingUrl } from '../config/ice-servers'
+import type {
+  ChatMessage,
+  ConnectionState,
+  DeviceInfo,
+  StreamQualityLevel,
+  StreamQualitySummary,
+  WarmUpResult,
+  WebRTCEvents,
+} from '../webrtc-client'
+import { CloudflareCallsSession } from './session'
+
+/** Media constraints idénticas a WebRTCClient (640p, 24fps conservador) */
+const FAST_START_CONSTRAINTS: MediaStreamConstraints = {
+  video: { width: { ideal: 640, max: 1280 }, height: { ideal: 480, max: 720 }, frameRate: { ideal: 24, max: 30 } },
+  audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+}
+
+type ServerMessage =
+  | { type: 'room-state'; data: { users: Array<{ id: string; userType: string }> } }
+  | { type: 'user-joined'; from: string; data: { userType: string } }
+  | { type: 'user-left'; from: string }
+  | { type: 'cf-session'; from: string; data: { sessionId: string; userType: string } }
+  | { type: 'chat'; from: string; data: { message: ChatMessage } }
+  | { type: 'error'; data: string }
+
+export interface CloudflareCallsClientConfig {
+  userId: string
+  userName?: string
+  userType: 'doctor' | 'patient' | 'nurse'
+  roomId?: string
+  /** URL del proxy API (default: '/api/cloudflare-calls') */
+  apiProxyUrl?: string
+  /** URL del servidor de señalización (default: NEXT_PUBLIC_SIGNALING_URL) */
+  signalingUrl?: string
+}
+
+export class CloudflareCallsClient {
+  private ws: WebSocket | null = null
+  private cfSession: CloudflareCallsSession | null = null
+  private localStream: MediaStream | null = null
+  private connectionState: ConnectionState = 'disconnected'
+  private cachedDevices: DeviceInfo[] = []
+  // stream ID → remoteUserId (para mapear tracks a usuarios)
+  private streamIdToUserId = new Map<string, string>()
+  private pendingSessionId: string | null = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private listeners = new Map<keyof WebRTCEvents, ((...args: any[]) => void)[]>()
+  private readonly config: Required<Omit<CloudflareCallsClientConfig, 'userName'>> & { userName?: string }
+
+  constructor(cfg: CloudflareCallsClientConfig) {
+    this.config = {
+      userId: cfg.userId,
+      userName: cfg.userName,
+      userType: cfg.userType,
+      roomId: cfg.roomId ?? 'default-room',
+      apiProxyUrl: cfg.apiProxyUrl ?? '/api/cloudflare-calls',
+      signalingUrl: cfg.signalingUrl ?? loadSignalingUrl(),
+    }
+  }
+
+  /* ── Event emitter ── */
+
+  on<E extends keyof WebRTCEvents>(event: E, handler: WebRTCEvents[E]): () => void {
+    const arr = this.listeners.get(event) ?? []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    arr.push(handler as (...args: any[]) => void)
+    this.listeners.set(event, arr)
+    return () => {
+      const cur = this.listeners.get(event) ?? []
+      this.listeners.set(event, cur.filter((h) => h !== handler))
+    }
+  }
+
+  private emit<E extends keyof WebRTCEvents>(event: E, ...args: Parameters<WebRTCEvents[E]>): void {
+    for (const h of this.listeners.get(event) ?? []) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(h as (...a: any[]) => void)(...args)
+      } catch {
+        // no-op: listener errors must not crash the client
+      }
+    }
+  }
+
+  /* ── Media ── */
+
+  async warmUp(): Promise<WarmUpResult> {
+    const t0 = Date.now()
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia(FAST_START_CONSTRAINTS)
+    } catch {
+      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    }
+    this.emit('local-stream', this.localStream)
+
+    try {
+      const devs = await navigator.mediaDevices.enumerateDevices()
+      this.cachedDevices = devs
+        .filter((d) => d.kind === 'audioinput' || d.kind === 'videoinput' || d.kind === 'audiooutput')
+        .map((d) => ({ deviceId: d.deviceId, label: d.label, kind: d.kind as DeviceInfo['kind'] }))
+    } catch { /* ignore */ }
+
+    return {
+      stream: this.localStream,
+      devices: this.cachedDevices,
+      signalingReady: false,
+      latencyMs: Date.now() - t0,
+    }
+  }
+
+  getLocalStream(): MediaStream | null {
+    return this.localStream
+  }
+
+  toggleVideo(enabled?: boolean): boolean {
+    const tracks = this.localStream?.getVideoTracks() ?? []
+    const next = enabled !== undefined ? enabled : !tracks[0]?.enabled
+    tracks.forEach((t) => { t.enabled = next })
+    return next
+  }
+
+  toggleAudio(enabled?: boolean): boolean {
+    const tracks = this.localStream?.getAudioTracks() ?? []
+    const next = enabled !== undefined ? enabled : !tracks[0]?.enabled
+    tracks.forEach((t) => { t.enabled = next })
+    return next
+  }
+
+  async switchDevice(kind: 'video' | 'audio', deviceId: string): Promise<void> {
+    if (!this.localStream) return
+    const constraint = kind === 'video' ? { video: { deviceId: { exact: deviceId } } } : { audio: { deviceId: { exact: deviceId } } }
+    const newStream = await navigator.mediaDevices.getUserMedia(constraint)
+    const newTrack = kind === 'video' ? newStream.getVideoTracks()[0] : newStream.getAudioTracks()[0]
+    if (!newTrack) return
+    // Stop and replace old track
+    const oldTracks = kind === 'video' ? this.localStream.getVideoTracks() : this.localStream.getAudioTracks()
+    oldTracks.forEach((t) => { t.stop(); this.localStream?.removeTrack(t) })
+    this.localStream.addTrack(newTrack)
+    this.emit('local-stream', this.localStream)
+  }
+
+  /* ── Connection ── */
+
+  async connect(roomId?: string): Promise<void> {
+    if (this.connectionState === 'connecting' || this.connectionState === 'connected') return
+
+    const finalRoomId = roomId ?? this.config.roomId
+    this.config.roomId = finalRoomId
+    this.setConnectionState('connecting')
+
+    try {
+      if (!this.localStream) await this.warmUp()
+
+      // 1. Conectar al servidor de señalización para coordinación entre peers
+      await this.connectSignaling(finalRoomId)
+
+      // 2. Crear sesión CF Calls y publicar tracks locales
+      this.cfSession = new CloudflareCallsSession({
+        apiProxyUrl: this.config.apiProxyUrl,
+        onTrack: (event) => this.handleRemoteTrack(event),
+        onConnectionStateChange: (state) => {
+          if (state === 'connected') {
+            this.setConnectionState('connected')
+          } else if (state === 'failed') {
+            this.setConnectionState('failed')
+            this.emit('error', new Error('Cloudflare Calls connection failed'))
+          }
+        },
+        onError: (err) => this.emit('error', err),
+      })
+
+      if (!this.localStream) throw new Error('No local stream available')
+      const mySessionId = await this.cfSession.connect(this.localStream)
+
+      // 3. Anunciar nuestra sesión CF al room (vía señalización)
+      this.sendSignal({
+        type: 'cf-session',
+        from: this.config.userId,
+        data: { sessionId: mySessionId, userType: this.config.userType },
+      })
+
+      // Si ya había un peer esperando, subscribirse ahora
+      if (this.pendingSessionId) {
+        await this.cfSession.subscribeToSession(this.pendingSessionId)
+        this.pendingSessionId = null
+      }
+    } catch (err) {
+      this.setConnectionState('failed')
+      this.emit('error', err instanceof Error ? err : new Error(String(err)))
+      throw err
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    this.setConnectionState('closed')
+    this.sendSignal({ type: 'leave', from: this.config.userId })
+    this.ws?.close(1000, 'user disconnect')
+    this.ws = null
+    this.cfSession?.close()
+    this.cfSession = null
+    for (const t of this.localStream?.getTracks() ?? []) t.stop()
+    this.localStream = null
+    this.streamIdToUserId.clear()
+  }
+
+  /* ── Chat (via señalización WS) ── */
+
+  sendChatMessage(text: string): boolean {
+    if (this.ws?.readyState !== WebSocket.OPEN) return false
+
+    const message: ChatMessage = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      text,
+      senderId: this.config.userId,
+      senderType: this.config.userType as ChatMessage['senderType'],
+      senderName: this.config.userName,
+      timestamp: Date.now(),
+    }
+    this.sendSignal({ type: 'chat', from: this.config.userId, data: { message } })
+    // Emitir propio mensaje como saliente para que la UI lo muestre
+    return true
+  }
+
+  /* ── Quality stub (sin stats propias en CF Calls por ahora) ── */
+
+  private emitQualityStub(): void {
+    const stub: StreamQualitySummary = {
+      roomId: this.config.roomId,
+      overallLevel: 'unknown' as StreamQualityLevel,
+      peers: [],
+    }
+    this.emit('stream-quality', stub)
+  }
+
+  /* ── Señalización ── */
+
+  private connectSignaling(roomId: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const wsUrl = `${this.config.signalingUrl}?roomId=${encodeURIComponent(roomId)}`
+      this.ws = new WebSocket(wsUrl)
+
+      const timeout = setTimeout(() => reject(new Error('Signaling timeout')), 8000)
+
+      this.ws.onopen = () => {
+        clearTimeout(timeout)
+        this.sendSignal({
+          type: 'join',
+          from: this.config.userId,
+          data: { userType: this.config.userType },
+        })
+        resolve()
+      }
+
+      this.ws.onmessage = (event: MessageEvent) => {
+        try {
+          const msg = JSON.parse(event.data as string) as ServerMessage
+          void this.handleSignalingMessage(msg)
+        } catch { /* ignore parse errors */ }
+      }
+
+      this.ws.onerror = () => {
+        clearTimeout(timeout)
+        reject(new Error('WebSocket connection failed'))
+      }
+
+      this.ws.onclose = () => {
+        if (this.connectionState !== 'closed') {
+          this.setConnectionState('disconnected')
+        }
+      }
+    })
+  }
+
+  private async handleSignalingMessage(msg: ServerMessage): Promise<void> {
+    switch (msg.type) {
+      case 'room-state': {
+        // Peers ya en sala — anunciar nuestra sesión CF cuando esté lista
+        for (const user of msg.data.users) {
+          this.emit('user-joined', user.id, user.userType)
+        }
+        this.setConnectionState('connected')
+        this.emit('chat-ready', true)
+        this.emitQualityStub()
+        break
+      }
+
+      case 'user-joined': {
+        this.emit('user-joined', msg.from, msg.data.userType)
+        // Re-anunciar nuestra sesión CF para que el recién llegado se subscriba
+        if (this.cfSession?.getSessionId()) {
+          this.sendSignal({
+            type: 'cf-session',
+            from: this.config.userId,
+            data: {
+              sessionId: this.cfSession.getSessionId() ?? '',
+              userType: this.config.userType,
+            },
+          })
+        }
+        break
+      }
+
+      case 'user-left': {
+        this.emit('user-left', msg.from)
+        break
+      }
+
+      case 'cf-session': {
+        const { sessionId: remoteSessionId, userType: remoteUserType } = msg.data
+        const remoteUserId = msg.from
+        this.emit('user-joined', remoteUserId, remoteUserType)
+
+        if (this.cfSession) {
+          // Suscribirse a los tracks del peer remoto
+          await this.cfSession.subscribeToSession(remoteSessionId)
+        } else {
+          // La sesión CF todavía no está lista — guardar para usarla cuando esté
+          this.pendingSessionId = remoteSessionId
+        }
+        break
+      }
+
+      case 'chat': {
+        this.emit('chat-message', msg.data.message)
+        break
+      }
+
+      case 'error': {
+        this.emit('error', new Error(`Signaling error: ${msg.data}`))
+        break
+      }
+    }
+  }
+
+  private handleRemoteTrack(event: RTCTrackEvent): void {
+    const stream = event.streams[0] ?? new MediaStream([event.track])
+    // En una llamada 2-personas el primer peer remoto es el único
+    const userId = this.streamIdToUserId.get(stream.id) ?? stream.id
+    this.emit('remote-stream', stream, userId)
+  }
+
+  private sendSignal(data: Record<string, unknown>): void {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(data))
+    }
+  }
+
+  private setConnectionState(state: ConnectionState): void {
+    if (this.connectionState === state) return
+    this.connectionState = state
+    this.emit('connection-state', state)
+  }
+}

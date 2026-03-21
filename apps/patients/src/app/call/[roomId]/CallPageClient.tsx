@@ -157,6 +157,7 @@ function PatientCallContent({
         userType="patient"
         userName={userName}
         iceServers={iceServers}
+        cloudflareCallsApiUrl="/api/cloudflare-calls"
         theme="patient"
         onCallEnd={handleCallEnd}
         onCallStart={handleCallStart}

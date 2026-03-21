@@ -19,6 +19,7 @@ export default function TestCallPage() {
           userType="doctor"
           userName="Dr. Test"
           iceServers={iceServers}
+          cloudflareCallsApiUrl="/api/cloudflare-calls"
           onCallEnd={() => setCallStarted(false)}
           onCallStart={() => logger.info('Llamada iniciada exitosamente')}
           theme="doctor"

@@ -15,6 +15,7 @@ import {
   type StreamQualitySummary,
   type WarmUpResult,
 } from './webrtc-client'
+import { CloudflareCallsClient } from './cloudflare-calls'
 import {
   Video,
   VideoOff,
@@ -47,8 +48,13 @@ export interface UnifiedVideoCallProps {
   userId: string
   userType: 'doctor' | 'patient' | 'nurse'
   userName?: string
-  /** ICE servers pre-fetched by the parent (e.g. from /api/turn-credentials). Falls back to STUN-only. */
+  /** ICE servers pre-fetched by el parent (e.g. from /api/turn-credentials). Falls back to STUN-only. */
   iceServers?: RTCIceServer[]
+  /**
+   * Cuando se provee, usa Cloudflare Calls SFU en lugar de WebRTC P2P.
+   * Valor: URL del proxy API del app (e.g., '/api/cloudflare-calls').
+   */
+  cloudflareCallsApiUrl?: string
   onCallEnd?: () => void
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
@@ -121,6 +127,7 @@ export function UnifiedVideoCall({
   userType,
   userName,
   iceServers,
+  cloudflareCallsApiUrl,
   onCallEnd,
   onCallStart,
   onStatusChange,
@@ -130,7 +137,7 @@ export function UnifiedVideoCall({
   autoStart = false,
 }: UnifiedVideoCallProps): JSX.Element {
   /* ── State ── */
-  const [client, setClient] = useState<WebRTCClient | null>(null)
+  const [client, setClient] = useState<WebRTCClient | CloudflareCallsClient | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
@@ -298,7 +305,9 @@ export function UnifiedVideoCall({
       userName,
     })
 
-    const webrtcClient = new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}) })
+    const webrtcClient = cloudflareCallsApiUrl
+      ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: cloudflareCallsApiUrl })
+      : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}) })
     const unsubs: Array<() => void> = []
 
     unsubs.push(
@@ -425,7 +434,7 @@ export function UnifiedVideoCall({
       if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
       audioContextRef.current?.close()
     }
-  }, [autoStart, emitDebug, iceServers, onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
+  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, onCallStart, onError, onStatusChange, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {

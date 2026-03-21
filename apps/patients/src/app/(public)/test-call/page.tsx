@@ -19,6 +19,7 @@ export default function TestCallPage() {
           userType="patient"
           userName="Paciente Test"
           iceServers={iceServers}
+          cloudflareCallsApiUrl="/api/cloudflare-calls"
           onCallEnd={() => setCallStarted(false)}
           onCallStart={() => logger.info('Conectado a consulta medica')}
           theme="patient"
