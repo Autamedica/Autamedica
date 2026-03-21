@@ -1,15 +1,10 @@
 import type { ReactNode } from 'react'
 
 /**
- * Public layout - no auth providers, no session checks.
- * Used for pages like /test-call that should be accessible without authentication.
+ * Public layout — no auth checks, no dashboard shell.
+ * Applies to /test-call and other public routes.
+ * Note: does NOT include <html>/<body> (those are in root layout.tsx).
  */
-export default function PublicLayout({ children }: { children: ReactNode }): ReactNode {
-  return (
-    <html lang="es">
-      <body className="bg-gray-900 text-white antialiased">
-        {children}
-      </body>
-    </html>
-  )
+export default function PublicLayout({ children }: { children: ReactNode }) {
+  return <>{children}</>
 }

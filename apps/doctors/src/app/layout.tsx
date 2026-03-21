@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import type { JSX, ReactNode } from 'react'
 import './globals.css'
 import '@livekit/components-styles'
-import { DoctorsPortalShell } from '@/components/layout/DoctorsPortalShell'
+import { PortalShellWrapper } from '@/components/layout/PortalShellWrapper'
 import { ClientWrapper } from '@/components/ClientWrapper'
 
 export const metadata: Metadata = {
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
       </head>
       <body className="bg-slate-50 text-slate-900 antialiased">
         <ClientWrapper>
-          <DoctorsPortalShell>{children}</DoctorsPortalShell>
+          <PortalShellWrapper>{children}</PortalShellWrapper>
         </ClientWrapper>
       </body>
     </html>

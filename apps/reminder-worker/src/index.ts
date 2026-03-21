@@ -19,15 +19,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { processReminderCycle, DEFAULT_OPENCLAW_CONFIG } from '@autamedica/scheduling';
 import type { OpenClawConfig } from '@autamedica/scheduling';
+import { getServerEnvOrDefault } from '@autamedica/shared';
 
 // Config from env
-const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const OPENCLAW_URL = process.env.OPENCLAW_URL ?? DEFAULT_OPENCLAW_CONFIG.baseUrl;
-const OPENCLAW_TOKEN = process.env.OPENCLAW_TOKEN ?? '';
-const OPENCLAW_ACCOUNT = process.env.OPENCLAW_ACCOUNT ?? 'autamedica';
-const DRY_RUN = process.env.REMINDER_DRY_RUN === 'true';
-const INTERVAL_MS = parseInt(process.env.REMINDER_INTERVAL_MS ?? '60000', 10);
+const SUPABASE_URL = getServerEnvOrDefault('SUPABASE_URL');
+const SUPABASE_KEY = getServerEnvOrDefault('SUPABASE_SERVICE_ROLE_KEY');
+const OPENCLAW_URL = getServerEnvOrDefault('OPENCLAW_URL') ?? DEFAULT_OPENCLAW_CONFIG.baseUrl;
+const OPENCLAW_TOKEN = getServerEnvOrDefault('OPENCLAW_TOKEN') ?? '';
+const OPENCLAW_ACCOUNT = getServerEnvOrDefault('OPENCLAW_ACCOUNT') ?? 'autamedica';
+const DRY_RUN = getServerEnvOrDefault('REMINDER_DRY_RUN') === 'true';
+const INTERVAL_MS = parseInt(getServerEnvOrDefault('REMINDER_INTERVAL_MS') ?? '60000', 10);
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
