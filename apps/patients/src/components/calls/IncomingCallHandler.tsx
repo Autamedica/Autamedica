@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { createCallService, createTelemedicineLogger, type Call } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
+
+const POLLING_INTERVAL_MS = 10_000
 
 interface IncomingCallHandlerProps {
   patientIds: string[]
@@ -37,6 +39,29 @@ function pickLatestRingingCall(calls: Call[]): IncomingCallState | null {
   return latest ? normalizeIncomingCall(latest) : null
 }
 
+function requestNotificationPermission(): void {
+  if (typeof window === 'undefined' || !('Notification' in window)) return
+  if (Notification.permission === 'default') {
+    void Notification.requestPermission()
+  }
+}
+
+function showCallNotification(doctorName: string): void {
+  if (typeof window === 'undefined' || !('Notification' in window)) return
+  if (Notification.permission !== 'granted') return
+
+  try {
+    new Notification('Llamada entrante — AutaMedica', {
+      body: `${doctorName} te está llamando`,
+      icon: '/favicon.ico',
+      tag: 'incoming-call',
+      renotify: true,
+    })
+  } catch {
+    // Notifications no soportadas silenciosamente
+  }
+}
+
 export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
   const normalizedPatientIds = useMemo(
     () => Array.from(new Set(patientIds.map((value) => value.trim()).filter(Boolean))),
@@ -45,6 +70,8 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
   const [incomingCall, setIncomingCall] = useState<IncomingCallState | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+  const notifiedCallIds = useRef<Set<string>>(new Set())
   const debugLogger = useMemo(
     () => createTelemedicineLogger({
       source: 'IncomingCallHandler',
@@ -53,6 +80,14 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
     }),
     [normalizedPatientIds]
   )
+
+  // Si el paciente ya está en una sala de llamada, no mostrar el modal
+  const isAlreadyInCall = pathname.startsWith('/call/')
+
+  // Solicitar permiso de notificaciones al montar
+  useEffect(() => {
+    requestNotificationPermission()
+  }, [])
 
   useEffect(() => {
     if (normalizedPatientIds.length === 0) {
@@ -66,9 +101,7 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
     let isMounted = true
 
     const syncIncomingCall = (call: Call) => {
-      if (!isMounted) {
-        return
-      }
+      if (!isMounted) return
 
       if (call.status === 'ringing') {
         debugLogger.info('Llamada entrante detectada', {
@@ -81,13 +114,16 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
           patientIds: normalizedPatientIds,
         })
         setIncomingCall((previous) => {
-          if (previous?.callId === call.id) {
-            return previous
-          }
-
+          if (previous?.callId === call.id) return previous
           return normalizeIncomingCall(call)
         })
         setIsConnecting(false)
+
+        // Notificación push — solo una vez por llamada
+        if (!notifiedCallIds.current.has(call.id)) {
+          notifiedCallIds.current.add(call.id)
+          showCallNotification('Doctor')
+        }
         return
       }
 
@@ -123,20 +159,32 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
 
         const latestIncomingCall = pickLatestRingingCall(dedupedCalls)
         if (isMounted) {
-          debugLogger.info('Carga inicial de llamadas entrantes completada', {
+          debugLogger.info('Carga de llamadas entrantes completada', {
             totalCalls: dedupedCalls.length,
             incomingCallId: latestIncomingCall?.callId,
           })
-          setIncomingCall(latestIncomingCall)
+          setIncomingCall((previous) => {
+            // No reemplazar si ya tenemos la misma llamada
+            if (previous?.callId === latestIncomingCall?.callId) return previous
+            return latestIncomingCall
+          })
+
+          // Notificación push para nueva llamada detectada por polling
+          if (latestIncomingCall && !notifiedCallIds.current.has(latestIncomingCall.callId)) {
+            notifiedCallIds.current.add(latestIncomingCall.callId)
+            showCallNotification(latestIncomingCall.doctorName)
+          }
         }
       } catch (error) {
-        debugLogger.error('Fallo la carga inicial de llamadas entrantes', error)
+        debugLogger.error('Fallo la carga de llamadas entrantes', error)
         logger.error('[IncomingCallHandler] Failed to load active calls:', error)
       }
     }
 
+    // Carga inicial
     void loadExistingCalls()
 
+    // Suscripción Realtime
     for (const patientId of normalizedPatientIds) {
       const unsubscribe = callService.subscribeToUserCalls(patientId, 'patient', (call) => {
         debugLogger.info('Realtime de llamada entrante recibido', {
@@ -144,16 +192,23 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
           status: call.status,
           patientId,
         })
-        logger.info('[IncomingCallHandler] Call update received:', call)
         syncIncomingCall(call)
       })
       unsubscribers.push(unsubscribe)
     }
 
+    // Polling fallback — compensa drops de Supabase Realtime
+    const pollingTimer = setInterval(() => {
+      if (isMounted) {
+        void loadExistingCalls()
+      }
+    }, POLLING_INTERVAL_MS)
+
     return () => {
       debugLogger.info('Limpiando listener de llamadas entrantes')
       isMounted = false
       unsubscribers.forEach((unsubscribe) => unsubscribe())
+      clearInterval(pollingTimer)
     }
   }, [debugLogger, normalizedPatientIds])
 
@@ -202,66 +257,68 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
     }
   }
 
-  if (!incomingCall) return null
+  // No mostrar modal si no hay llamada o si el paciente ya está en la sala
+  if (!incomingCall || isAlreadyInCall) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-            <svg className="h-10 w-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
+          {/* Avatar pulsante */}
+          <div className="relative mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+            <div className="absolute inset-0 animate-ping rounded-full bg-sky-400/30" />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-sky-100">
+              <svg className="h-10 w-10 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+            </div>
           </div>
 
-          <h2 className="mb-2 text-xl font-semibold text-gray-800">Llamada entrante</h2>
-          <p className="text-gray-600">{incomingCall.doctorName} te está llamando</p>
+          <h2 className="mb-1 text-lg font-semibold text-slate-800">Llamada entrante</h2>
+          <p className="text-sm text-slate-500">{incomingCall.doctorName} te está llamando</p>
         </div>
 
-        <div className="mb-6 flex justify-center">
-          <div className="flex space-x-1">
-            <div className="h-2 w-2 animate-bounce rounded-full bg-green-500"></div>
+        {/* Ondas de audio */}
+        <div className="mb-6 flex items-center justify-center gap-1">
+          {[0, 0.15, 0.3, 0.15, 0].map((delay, i) => (
             <div
-              className="h-2 w-2 animate-bounce rounded-full bg-green-500"
-              style={{ animationDelay: '0.1s' }}
-            ></div>
-            <div
-              className="h-2 w-2 animate-bounce rounded-full bg-green-500"
-              style={{ animationDelay: '0.2s' }}
-            ></div>
-          </div>
+              key={i}
+              className="h-1.5 w-1.5 animate-bounce rounded-full bg-sky-500"
+              style={{ animationDelay: `${delay}s` }}
+            />
+          ))}
         </div>
 
-        <div className="flex space-x-3">
+        <div className="flex gap-3">
           <button
             onClick={handleDecline}
             disabled={isConnecting}
-            className="flex flex-1 items-center justify-center space-x-2 rounded-lg bg-red-600 px-4 py-3 text-white hover:bg-red-700 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
-            <span>Rechazar</span>
+            Rechazar
           </button>
 
           <button
             onClick={handleAccept}
             disabled={isConnecting}
-            className="flex flex-1 items-center justify-center space-x-2 rounded-lg bg-green-600 px-4 py-3 text-white hover:bg-green-700 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
           >
             {isConnecting ? (
               <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 <span>Conectando...</span>
               </>
             ) : (
               <>
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -275,9 +332,9 @@ export function IncomingCallHandler({ patientIds }: IncomingCallHandlerProps) {
           </button>
         </div>
 
-        <div className="mt-4 text-center text-xs text-gray-500">
-          Llamada ID: {incomingCall.callId.slice(-8)}
-        </div>
+        <p className="mt-4 text-center text-[11px] text-slate-400">
+          #{incomingCall.callId.slice(-8)}
+        </p>
       </div>
     </div>
   )
