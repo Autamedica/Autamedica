@@ -1,6 +1,5 @@
 export {
   getSupabaseBrowserClient,
-  getSupabaseServerClient,
   getSupabaseClient,
 } from '@autamedica/supabase-client';
 export type { AppSupabaseClient as PatientsSupabaseClient } from '@autamedica/supabase-client';

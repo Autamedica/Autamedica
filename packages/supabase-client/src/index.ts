@@ -1,8 +1,6 @@
 type CreateBrowserClientFn = typeof import('@autamedica/auth')['createBrowserClient'];
-type CreateServerClientFn = typeof import('@autamedica/auth')['createServerClient'];
 
 export type AppSupabaseClient = ReturnType<CreateBrowserClientFn>;
-export type AppSupabaseServerClient = Awaited<ReturnType<CreateServerClientFn>>;
 
 let browserClient: AppSupabaseClient | null = null;
 
@@ -33,20 +31,6 @@ export function getSupabaseBrowserClient(): AppSupabaseClient {
  */
 export function getOptionalSupabaseBrowserClient(): AppSupabaseClient | null {
   return typeof window === 'undefined' ? null : getSupabaseBrowserClient();
-}
-
-/**
- * Get server client for SSR operations
- * Creates new instance with server-side cookie handling
- */
-export async function getSupabaseServerClient(): Promise<AppSupabaseServerClient> {
-  if (typeof window !== 'undefined') {
-    throw new Error('getSupabaseServerClient() can only be used in server context');
-  }
-
-  // Dynamic import to avoid bundling server code in client
-  const { createServerClient } = await import('@autamedica/auth');
-  return createServerClient();
 }
 
 /**
