@@ -6,7 +6,6 @@
  * - Toma screenshot del componente de videollamada
  */
 import { chromium } from 'patchright'
-import * as fs from 'fs'
 
 const DEPLOYMENTS = {
   patients: 'https://20420947.autamedica-patients-82t.pages.dev',

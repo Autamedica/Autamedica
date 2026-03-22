@@ -74,7 +74,7 @@ function extractUserProfile(user: User): UserProfile | null {
 
   return {
     id: user.id,
-    email: user.email!,
+    email: user.email ?? '',
     role,
     first_name: user.user_metadata?.first_name,
     last_name: user.user_metadata?.last_name,
@@ -157,12 +157,12 @@ export function AuthProvider({
 
       const mockProfile: UserProfile = {
         id: mockUser.id,
-        email: mockUser.email!,
+        email: mockUser.email ?? '',
         role,
         first_name: 'Dev',
         last_name: role === ROLES.DOCTOR ? 'Doctor' : 'Patient',
         created_at: mockUser.created_at,
-        updated_at: mockUser.updated_at!,
+        updated_at: mockUser.updated_at ?? mockUser.created_at,
         last_path: '/dashboard'
       }
 

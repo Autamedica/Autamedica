@@ -109,6 +109,7 @@ export function DoctorOnboardingWizard({
     } else {
       handleComplete();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- validatePersonalStep and handleComplete use state captured in this closure
   }, [currentStepIndex, currentStep, formData.first_name, formData.last_name]);
 
   const goToPreviousStep = useCallback(() => {
