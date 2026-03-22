@@ -120,12 +120,10 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const userName = doctor?.profile ? getPatientDisplayName(doctor.profile) :
                    user?.profile ? getPatientDisplayName(user.profile) :
                    `Dr. ${user?.email?.split('@')[0] || 'Medico'}`
-  const doctorSpecialty = doctor?.specialty || 'Medicina General'
-  const doctorLicense = doctor?.license_number || 'No registrado'
+  const doctorSpecialty = doctor?.specialty ?? null
+  const doctorLicense = doctor?.license_number ?? null
 
-  const patientsCount = 0
   const appointmentsCount = stats?.todayCount || 0
-  const historyCount = 0
 
   useEffect(() => {
     if (session?.status === 'en_progreso' && activeTab === 'video-call' && !activeSection) {
@@ -157,8 +155,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
       { id: 'appointments', icon: Calendar, label: 'Citas', count: appointmentsCount },
       { id: 'availability', icon: Clock, label: 'Disponibilidad' },
       { id: 'marketplace', icon: MapPin, label: 'Trabajo Medico' },
-      { id: 'ranking', icon: Star, label: 'Ranking', badge: 'GOLD' },
-      { id: 'subscription', icon: CreditCard, label: 'Suscripcion', badge: 'PRO' },
+      { id: 'ranking', icon: Star, label: 'Ranking' },
+      { id: 'subscription', icon: CreditCard, label: 'Suscripcion' },
       { id: 'settings', icon: Settings, label: 'Configuracion' },
     ],
     [appointmentsCount],
@@ -443,8 +441,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {activeSection === 'settings' && (
                   <SettingsPanel
                     doctorName={userName}
-                    specialty={doctorSpecialty}
-                    licenseNumber={String(doctorLicense)}
+                    specialty={doctorSpecialty ?? undefined}
+                    licenseNumber={doctorLicense ? String(doctorLicense) : undefined}
                   />
                 )}
                 {activeSection === 'subscription' && <SubscriptionPanel />}
@@ -510,14 +508,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <span>AutaMedica Clinica</span>
-                <span className="hidden text-slate-300 sm:inline">|</span>
-                <span className="flex items-center gap-1 text-emerald-600">
-                  <span>●</span>
-                  Sincronizacion segura
-                </span>
-              </div>
+              <span className="text-slate-400">AutaMedica</span>
             </footer>
           </main>
         </div>

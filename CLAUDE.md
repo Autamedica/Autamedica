@@ -221,6 +221,7 @@ packages/
 
 ### Anti-Patrones Prohibidos
 
+- **Datos hardcodeados en UI: PROHIBIDO.** Nunca escribir valores ficticios, de prueba o placeholder que simulen datos reales (badges falsos como `'GOLD'`/`'PRO'`, nombres como `'Doctor de prueba'`, especialidades inventadas como `'Medicina General'` cuando no existe dato real, estados falsos como `'Sincronización segura'`). Si no hay dato real disponible: mostrar estado vacío, skeleton, o mensaje honesto (`'Sin especialidad'`, `'Sin datos'`). Los datos SIEMPRE vienen del backend, nunca se inventan en el frontend.
 - `console.*` en prod → usar `logger` de `@autamedica/shared`.
 - `process.env` directo → usar `ensureClientEnv` de `@autamedica/shared`.
 - `supabase.*` directo en componentes → usar hooks de `@autamedica/auth` o `@autamedica/hooks`.

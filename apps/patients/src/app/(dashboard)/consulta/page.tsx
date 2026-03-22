@@ -28,7 +28,7 @@ export default function ConsultaPage() {
       const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim()
       return name || user?.email || 'Paciente'
     }
-    return 'Paciente de prueba'
+    return 'Paciente'
   }, [profile, user?.email])
 
   const roomId = userId ? `patient-${userId.slice(0, 8)}` : null

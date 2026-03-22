@@ -80,7 +80,7 @@ function PatientCallContent({
 
     return {
       userId: `dev-patient-${roomId}`,
-      userName: 'Paciente de prueba'
+      userName: 'Paciente'
     }
   }, [session, typedProfile, roomId])
 
