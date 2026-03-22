@@ -3053,99 +3053,138 @@ El esquema de base de datos está protegido por:
 ## 📋 Exports Auto-generados
 
 ### APPOINTMENT_ACTIONS
+
 - **Tipo:** const
 - **Package:** @autamedica/types
 - **Descripción:** Constante del sistema para appointment actions.
 - **Contrato:** Pendiente de documentación detallada
 
 ### DAY_OF_WEEK_LABELS
+
 - **Tipo:** const
 - **Package:** @autamedica/types
 - **Descripción:** Constante del sistema para day of week labels.
 - **Contrato:** Pendiente de documentación detallada
 
 ### DEFAULT_SCHEDULING_CONFIG
+
 - **Tipo:** const
 - **Package:** @autamedica/types
 - **Descripción:** Constante del sistema para default scheduling config.
 - **Contrato:** Pendiente de documentación detallada
 
 ### REMINDER_CHANNELS
+
 - **Tipo:** const
 - **Package:** @autamedica/types
 - **Descripción:** Constante del sistema para reminder channels.
 - **Contrato:** Pendiente de documentación detallada
 
 ### WAITLIST_PRIORITY_LABELS
+
 - **Tipo:** const
 - **Package:** @autamedica/types
 - **Descripción:** Constante del sistema para waitlist priority labels.
 - **Contrato:** Pendiente de documentación detallada
 
 ### WAITLIST_STATUSES
+
 - **Tipo:** const
 - **Package:** @autamedica/types
 - **Descripción:** Constante del sistema para waitlist statuses.
 - **Contrato:** Pendiente de documentación detallada
 
 ### isAppointmentAction
+
 - **Tipo:** unknown
 - **Package:** @autamedica/types
 - **Descripción:** Utilidad del sistema AutaMedica para isappointmentaction.
 - **Contrato:** Pendiente de documentación detallada
 
 ### isDayOfWeek
+
 - **Tipo:** unknown
 - **Package:** @autamedica/types
 - **Descripción:** Utilidad del sistema AutaMedica para isdayofweek.
 - **Contrato:** Pendiente de documentación detallada
 
 ### isHighNoShowRisk
+
 - **Tipo:** unknown
 - **Package:** @autamedica/types
 - **Descripción:** Utilidad del sistema AutaMedica para ishighnoshowrisk.
 - **Contrato:** Pendiente de documentación detallada
 
 ### isReminderChannel
+
 - **Tipo:** unknown
 - **Package:** @autamedica/types
 - **Descripción:** Utilidad del sistema AutaMedica para isreminderchannel.
 - **Contrato:** Pendiente de documentación detallada
 
 ### isWaitlistStatus
+
 - **Tipo:** enum
 - **Package:** @autamedica/types
 - **Descripción:** Estados posibles para iswaitlist en el sistema.
 - **Contrato:** Pendiente de documentación detallada
 
 ### buildAnamnesisExportHtml
+
 - **Tipo:** unknown
 - **Package:** @autamedica/shared
 - **Descripción:** Utilidad del sistema AutaMedica para buildanamnesisexporthtml.
 - **Contrato:** Pendiente de documentación detallada
 
 ### buildAnamnesisSummary
+
 - **Tipo:** unknown
 - **Package:** @autamedica/shared
 - **Descripción:** Utilidad del sistema AutaMedica para buildanamnesissummary.
 - **Contrato:** Pendiente de documentación detallada
 
 ### type AnamnesisSectionRecord
+
 - **Tipo:** unknown
 - **Package:** @autamedica/shared
 - **Descripción:** Utilidad del sistema AutaMedica para type anamnesissectionrecord.
 - **Contrato:** Pendiente de documentación detallada
 
 ### type AnamnesisSummary
+
 - **Tipo:** unknown
 - **Package:** @autamedica/shared
 - **Descripción:** Utilidad del sistema AutaMedica para type anamnesissummary.
 - **Contrato:** Pendiente de documentación detallada
 
 ### type AnamnesisSummarySection
+
 - **Tipo:** unknown
 - **Package:** @autamedica/shared
 - **Descripción:** Utilidad del sistema AutaMedica para type anamnesissummarysection.
+- **Contrato:** Pendiente de documentación detallada
+
+## 📋 Exports Auto-generados
+
+### ONBOARDING_GRACE_PERIOD_DAYS
+
+- **Tipo:** const
+- **Package:** @autamedica/shared
+- **Descripción:** Constante del sistema para onboarding grace period days.
+- **Contrato:** Pendiente de documentación detallada
+
+### isGracePeriodExpired
+
+- **Tipo:** unknown
+- **Package:** @autamedica/shared
+- **Descripción:** Utilidad del sistema AutaMedica para isgraceperiodexpired.
+- **Contrato:** Pendiente de documentación detallada
+
+### isOnboardingRequired
+
+- **Tipo:** unknown
+- **Package:** @autamedica/shared
+- **Descripción:** Utilidad del sistema AutaMedica para isonboardingrequired.
 - **Contrato:** Pendiente de documentación detallada
 
 ## 🔗 Referencias Relacionadas

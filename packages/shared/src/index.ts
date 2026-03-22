@@ -155,6 +155,13 @@ export {
   type FeatureFlags
 } from './config/feature-flags';
 
+// Onboarding utilities
+export {
+  ONBOARDING_GRACE_PERIOD_DAYS,
+  isOnboardingRequired,
+  isGracePeriodExpired,
+} from './onboarding';
+
 // Anamnesis summary + export helpers
 export {
   buildAnamnesisExportHtml,

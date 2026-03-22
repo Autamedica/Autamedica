@@ -96,6 +96,9 @@ export { supabase, selectActive, selectActiveRaw, selectById, insertRecord, upda
 
 // Role types
 export type { UserRole } from "./auth/portals";
+
+// Onboarding utilities
+export { ONBOARDING_GRACE_PERIOD_DAYS, isOnboardingRequired, isGracePeriodExpired } from "./onboarding";
 ```
 
 ---

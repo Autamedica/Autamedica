@@ -1669,6 +1669,54 @@ export type Database = {
           },
         ]
       }
+      patient_care_team: {
+        Row: {
+          active: boolean | null
+          assigned_date: string | null
+          created_at: string | null
+          doctor_id: string | null
+          id: string
+          patient_id: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          assigned_date?: string | null
+          created_at?: string | null
+          doctor_id?: string | null
+          id?: string
+          patient_id?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          assigned_date?: string | null
+          created_at?: string | null
+          doctor_id?: string | null
+          id?: string
+          patient_id?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_care_team_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_care_team_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_derived_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -1739,54 +1787,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "patient_derived_alerts_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      patient_care_team: {
-        Row: {
-          active: boolean | null
-          assigned_date: string | null
-          created_at: string | null
-          doctor_id: string | null
-          id: string
-          patient_id: string | null
-          role: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          assigned_date?: string | null
-          created_at?: string | null
-          doctor_id?: string | null
-          id?: string
-          patient_id?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          assigned_date?: string | null
-          created_at?: string | null
-          doctor_id?: string | null
-          id?: string
-          patient_id?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "patient_care_team_doctor_id_fkey"
-            columns: ["doctor_id"]
-            isOneToOne: false
-            referencedRelation: "doctors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "patient_care_team_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
@@ -2054,6 +2054,8 @@ export type Database = {
           first_name: string | null
           last_name: string | null
           numeric_id: number
+          onboarding_completed_at: string | null
+          onboarding_started_at: string | null
           phone: string | null
           role: string | null
           updated_at: string | null
@@ -2070,6 +2072,8 @@ export type Database = {
           first_name?: string | null
           last_name?: string | null
           numeric_id?: number
+          onboarding_completed_at?: string | null
+          onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
           updated_at?: string | null
@@ -2086,6 +2090,8 @@ export type Database = {
           first_name?: string | null
           last_name?: string | null
           numeric_id?: number
+          onboarding_completed_at?: string | null
+          onboarding_started_at?: string | null
           phone?: string | null
           role?: string | null
           updated_at?: string | null

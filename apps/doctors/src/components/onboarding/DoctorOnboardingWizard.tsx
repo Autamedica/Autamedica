@@ -10,11 +10,15 @@ import { ProfileCompletionStep } from './ProfileCompletionStep';
 
 interface DoctorOnboardingWizardProps {
   userId: string;
+  email?: string | null;
+  existingFirstName?: string | null;
+  existingLastName?: string | null;
   onComplete?: (_doctorProfile: DoctorInsert) => void;
   onCancel?: () => void;
 }
 
 export type OnboardingStep =
+  | 'personal'
   | 'license'
   | 'specialty'
   | 'education'
@@ -23,6 +27,10 @@ export type OnboardingStep =
   | 'complete';
 
 export interface OnboardingData {
+  // Paso 0: Datos personales (obligatorios)
+  first_name: string;
+  last_name: string;
+
   // Paso 1: Licencia médica
   license_number: string;
   license_valid: boolean;
@@ -47,19 +55,25 @@ export interface OnboardingData {
   phone?: string;
 }
 
-const STEPS: OnboardingStep[] = ['license', 'specialty', 'education', 'schedule', 'profile'];
+const STEPS: OnboardingStep[] = ['personal', 'license', 'specialty', 'education', 'schedule', 'profile'];
 
 export function DoctorOnboardingWizard({
   userId,
+  email,
+  existingFirstName,
+  existingLastName,
   onComplete,
   onCancel
 }: DoctorOnboardingWizardProps) {
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('license');
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('personal');
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [personalErrors, setPersonalErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<Partial<OnboardingData>>({
+    first_name: existingFirstName ?? '',
+    last_name: existingLastName ?? '',
     education: [],
     certifications: [],
     schedule: {},
@@ -73,7 +87,18 @@ export function DoctorOnboardingWizard({
     setError(null);
   }, []);
 
+  const validatePersonalStep = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!formData.first_name?.trim()) errors.first_name = 'El nombre es obligatorio';
+    if (!formData.last_name?.trim()) errors.last_name = 'El apellido es obligatorio';
+    setPersonalErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const goToNextStep = useCallback(() => {
+    // Validate personal step before proceeding
+    if (currentStep === 'personal' && !validatePersonalStep()) return;
+
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < STEPS.length) {
       const nextStep = STEPS[nextIndex];
@@ -84,7 +109,7 @@ export function DoctorOnboardingWizard({
     } else {
       handleComplete();
     }
-  }, [currentStepIndex]);
+  }, [currentStepIndex, currentStep, formData.first_name, formData.last_name]);
 
   const goToPreviousStep = useCallback(() => {
     const prevIndex = currentStepIndex - 1;
@@ -102,7 +127,9 @@ export function DoctorOnboardingWizard({
       setIsSubmitting(true);
       setError(null);
 
-      // Validar que tenemos todos los datos necesarios
+      if (!formData.first_name?.trim() || !formData.last_name?.trim()) {
+        throw new Error('Faltan datos obligatorios: nombre y apellido');
+      }
       if (!formData.license_number || !formData.specialty) {
         throw new Error('Faltan datos obligatorios: licencia médica y especialidad');
       }
@@ -123,12 +150,10 @@ export function DoctorOnboardingWizard({
         active: true
       };
 
-      // Llamar API para crear perfil
+      // Save doctor profile
       const response = await fetch('/api/profiles/doctors', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(doctorProfile)
       });
 
@@ -139,11 +164,18 @@ export function DoctorOnboardingWizard({
 
       await response.json();
 
-      // Notificar completación
+      // Save name to profiles table and mark onboarding complete
+      await fetch('/api/profile/onboarding-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: formData.first_name?.trim(),
+          last_name: formData.last_name?.trim(),
+        }),
+      });
+
       onComplete?.(doctorProfile);
-
       setCurrentStep('complete');
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
@@ -153,6 +185,7 @@ export function DoctorOnboardingWizard({
 
   const getStepTitle = (step: OnboardingStep): string => {
     switch (step) {
+      case 'personal': return 'Datos Personales';
       case 'license': return 'Validación de Licencia Médica';
       case 'specialty': return 'Especialidad Médica';
       case 'education': return 'Educación y Certificaciones';
@@ -163,8 +196,82 @@ export function DoctorOnboardingWizard({
     }
   };
 
+  const displayName = email?.split('@')[0] ?? 'doctor';
+
   const renderCurrentStep = () => {
     switch (currentStep) {
+      case 'personal':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Bienvenido/a a AutaMedica, {displayName}
+              </h3>
+              <p className="text-gray-600">
+                Vamos a configurar tu perfil profesional. Primero, necesitamos tus datos personales.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.first_name || ''}
+                  onChange={e => {
+                    updateFormData({ first_name: e.target.value });
+                    setPersonalErrors(prev => ({ ...prev, first_name: '' }));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                    personalErrors.first_name ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                  placeholder="Tu nombre"
+                />
+                {personalErrors.first_name && (
+                  <p className="text-xs text-red-500 mt-1">{personalErrors.first_name}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Apellido <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.last_name || ''}
+                  onChange={e => {
+                    updateFormData({ last_name: e.target.value });
+                    setPersonalErrors(prev => ({ ...prev, last_name: '' }));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                    personalErrors.last_name ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                  placeholder="Tu apellido"
+                />
+                {personalErrors.last_name && (
+                  <p className="text-xs text-red-500 mt-1">{personalErrors.last_name}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between pt-6">
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={goToNextStep}
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        );
+
       case 'license':
         return (
           <LicenseValidationStep
@@ -173,7 +280,7 @@ export function DoctorOnboardingWizard({
               updateFormData({ license_number, license_valid })
             }
             onNext={goToNextStep}
-            onCancel={onCancel}
+            onCancel={() => goToPreviousStep()}
           />
         );
 
@@ -247,8 +354,8 @@ export function DoctorOnboardingWizard({
               Tu perfil profesional ha sido creado exitosamente. Ahora puedes comenzar a atender pacientes.
             </p>
             <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => { window.location.href = '/'; }}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
             >
               Ir al Dashboard
             </button>
@@ -277,7 +384,7 @@ export function DoctorOnboardingWizard({
           {/* Barra de progreso */}
           <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-purple-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${((currentStepIndex + 1) / STEPS.length) * 100}%` }}
             />
           </div>

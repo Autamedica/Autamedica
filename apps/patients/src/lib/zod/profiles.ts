@@ -34,6 +34,8 @@ export const ProfileSnakeSchema = z.object({
   phone: z.string().nullable().optional(),
   avatar_url: z.string().url().nullable().optional(),
   active: z.boolean().nullable().optional(),
+  onboarding_started_at: z.string().nullable().optional(),
+  onboarding_completed_at: z.string().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
   deleted_at: z.string().nullable().optional(),

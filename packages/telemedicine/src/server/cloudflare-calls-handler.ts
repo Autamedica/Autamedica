@@ -1,0 +1,62 @@
+/**
+ * Framework-agnostic handler for proxying Cloudflare Calls API.
+ * Apps wrap this with their framework's Response (NextResponse, Astro Response, etc.)
+ */
+
+import { logger } from '@autamedica/shared'
+
+export interface CloudflareCallsEnv {
+  appId: string | undefined
+  appSecret: string | undefined
+}
+
+export interface HandlerResult {
+  status: number
+  body: unknown
+  headers?: Record<string, string>
+}
+
+const CF_API_BASE = 'https://rtc.live.cloudflare.com/v1/apps'
+
+export async function handleCloudflareCallsProxy(
+  request: Request,
+  env: CloudflareCallsEnv,
+): Promise<HandlerResult> {
+  const { appId, appSecret } = env
+
+  if (!appId || !appSecret) {
+    logger.warn('[cloudflare-calls] CLOUDFLARE_CALLS_APP_ID o CLOUDFLARE_CALLS_APP_SECRET no configurados')
+    return { status: 503, body: { error: 'Cloudflare Calls not configured' } }
+  }
+
+  let parsed: { path?: string; method?: string; body?: unknown }
+  try {
+    parsed = await request.json() as typeof parsed
+  } catch {
+    return { status: 400, body: { error: 'Invalid JSON body' } }
+  }
+
+  const { path, method = 'POST', body } = parsed
+  if (!path || typeof path !== 'string') {
+    return { status: 400, body: { error: 'Missing "path" field' } }
+  }
+
+  const url = `${CF_API_BASE}/${appId}/${path}`
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${appSecret}`,
+        'Content-Type': 'application/json',
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+
+    const data: unknown = await res.json()
+    return { status: res.status, body: data }
+  } catch (err) {
+    logger.error('[cloudflare-calls] Error proxying request', err as Error)
+    return { status: 502, body: { error: 'Failed to reach Cloudflare Calls API' } }
+  }
+}

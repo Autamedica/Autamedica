@@ -35,24 +35,22 @@ export default function ConsultaPage() {
 
   if (!userId || !roomId) {
     return (
-      <div className="flex h-[calc(100dvh-8rem)] items-center justify-center md:h-[calc(100dvh-2rem)]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-[calc(100dvh-8rem)] flex-col md:h-[calc(100dvh-2rem)]">
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl">
-        <UnifiedVideoCall
-          roomId={roomId}
-          userId={userId}
-          userType="patient"
-          userName={userName}
-          theme="patient"
-          className="h-full w-full"
-        />
-      </div>
+    <div className="fixed inset-0 z-50 bg-neutral-900">
+      <UnifiedVideoCall
+        roomId={roomId}
+        userId={userId}
+        userType="patient"
+        userName={userName}
+        theme="patient"
+        className="h-full w-full"
+      />
     </div>
   )
 }

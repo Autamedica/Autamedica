@@ -188,7 +188,16 @@ export function AuthProvider({
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
 
-        if (error) throw error
+        if (error) {
+          // If the refresh token is invalid/expired, clean up the corrupted
+          // session to stop Supabase auto-refresh from retrying infinitely
+          // and getting rate-limited (429).
+          if (error.message?.includes('Refresh Token') || error.status === 400) {
+            logger.warn('Invalid refresh token detected, clearing corrupted session')
+            await signOutGlobally()
+          }
+          throw error
+        }
 
         if (session) {
           const profile = extractUserProfile(session.user)
@@ -215,7 +224,7 @@ export function AuthProvider({
           profile: null,
           session: null,
           loading: false,
-          error: error as Error
+          error: null
         })
       }
     }
@@ -433,7 +442,22 @@ export function AuthProvider({
     try {
       const { data: { session }, error } = await supabase.auth.refreshSession()
 
-      if (error) throw error
+      if (error) {
+        // Clean up corrupted tokens instead of letting auto-refresh loop
+        if (error.message?.includes('Refresh Token') || error.status === 400) {
+          logger.warn('Invalid refresh token on manual refresh, clearing session')
+          await signOutGlobally()
+          setState({
+            user: null,
+            profile: null,
+            session: null,
+            loading: false,
+            error: null
+          })
+          return
+        }
+        throw error
+      }
 
       if (session) {
         const profile = extractUserProfile(session.user)

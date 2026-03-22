@@ -43,6 +43,11 @@ export interface Profile {
   email: string | null;
   role: UserRole | null; // null until role is selected
   external_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  onboarding_started_at: ISODateString | null;
+  onboarding_completed_at: ISODateString | null;
   created_at: ISODateString;
   updated_at: ISODateString;
   deleted_at: ISODateString | null; // Soft delete - agregado en parches de seguridad
@@ -57,6 +62,9 @@ export interface ProfileInsert {
   email?: string | null;
   role?: UserRole | null; // optional, null by default until role selection
   external_id?: string | null; // Auto-generated si no se provee
+  first_name?: string | null;
+  last_name?: string | null;
+  phone?: string | null;
 }
 
 /**
@@ -67,6 +75,11 @@ export interface ProfileUpdate {
   email?: string | null;
   role?: UserRole | null;
   external_id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  phone?: string | null;
+  onboarding_completed_at?: ISODateString | null;
+  onboarding_started_at?: ISODateString | null;
   updated_at?: ISODateString;
   deleted_at?: ISODateString | null; // Para soft delete
 }
@@ -373,10 +386,10 @@ export function isValidRole(role: string): role is UserRole {
 
 /**
  * Generar nombre para display desde perfil base
- * NOTA: El perfil base solo tiene email. El nombre completo está en
- * las tablas específicas (doctors, patients). Esta función es un fallback.
  */
 export function generateDisplayName(profile: Profile): string {
+  const parts = [profile.first_name, profile.last_name].filter(Boolean);
+  if (parts.length > 0) return parts.join(' ');
   return profile.email?.split('@')[0] ?? 'Usuario';
 }
 

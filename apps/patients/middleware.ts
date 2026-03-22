@@ -1,9 +1,10 @@
 /**
  * Secure middleware for Patients portal
  * Uses @supabase/ssr for session verification (compatible with ECC + HS256 keys)
+ * Includes onboarding redirect for new users
  */
 
-import { buildSafeLoginUrl } from '@autamedica/shared';
+import { buildSafeLoginUrl, isOnboardingRequired } from '@autamedica/shared';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -18,6 +19,12 @@ const PUBLIC_ROUTES = [
   '/consultation',
   '/call',
   '/test-call',
+];
+
+// Routes exempt from onboarding redirect (to avoid loops)
+const ONBOARDING_EXEMPT_ROUTES = [
+  '/onboarding',
+  '/api/',
 ];
 
 // Allowed roles for patients portal
@@ -63,6 +70,13 @@ export async function middleware(request: NextRequest) {
   if (userRole && !ALLOWED_ROLES.includes(userRole)) {
     const loginUrl = buildSafeLoginUrl('patients', undefined, 'wrong_role');
     return NextResponse.redirect(new URL(loginUrl));
+  }
+
+  // Check onboarding completion (skip for exempt routes)
+  const isExempt = ONBOARDING_EXEMPT_ROUTES.some(route => pathname.startsWith(route));
+  if (!isExempt && isOnboardingRequired(user.user_metadata as Record<string, unknown>)) {
+    const onboardingUrl = new URL('/onboarding', request.url);
+    return NextResponse.redirect(onboardingUrl);
   }
 
   return response;
