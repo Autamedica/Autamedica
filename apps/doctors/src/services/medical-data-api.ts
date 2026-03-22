@@ -27,7 +27,6 @@ function getSupabase(): SupabaseClient<Database> | null {
   if (typeof window === 'undefined') return null;
   try {
     // Dynamic import to avoid SSR issues
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { createBrowserClient } = require('@autamedica/auth/client');
     _supabase = createBrowserClient() as SupabaseClient<Database>;
     return _supabase;
@@ -146,10 +145,12 @@ class MedicalDataAPI {
         .limit(20)
 
       if (error) throw error
-      return (data || []).map((row: any) => ({
+
+      type VitalSignsRow = Database['public']['Tables']['vital_signs']['Row']
+      return (data || []).map((row: VitalSignsRow) => ({
         ...row,
-        doctor_id: row.recorded_by_id || row.recorded_by || row.patient_id, // Fallback
-      })) as VitalSigns[]
+        doctor_id: row.recorded_by_id || row.patient_id, // Fallback
+      })) as unknown as VitalSigns[]
     } catch (error) {
       logger.error('Error fetching vital signs:', error)
       // Fallback a mock en caso de error
@@ -244,25 +245,28 @@ class MedicalDataAPI {
 
       if (error) throw error
 
+      type MedicalRecordRow = Database['public']['Tables']['medical_records']['Row']
       return {
-        records: (data || []).map((row: any) => {
-          const content = row.content || {};
+        records: (data || []).map((row: MedicalRecordRow) => {
+          const content = (row.content && typeof row.content === 'object' && !Array.isArray(row.content)
+            ? row.content
+            : {}) as Record<string, unknown>;
           return {
             id: row.id,
             patient_id: row.patient_id,
             doctor_id: row.doctor_id || row.patient_id,
             consultation_date: row.date_recorded || row.created_at,
-            consultation_type: row.record_type || content.consultation_type || 'general',
-            chief_complaint: content.chief_complaint || content.reason || '',
-            symptoms: content.symptoms || [],
-            diagnosis: content.diagnosis || '',
-            treatment_plan: content.treatment_plan || content.treatment || '',
-            follow_up_instructions: content.follow_up_instructions || null,
+            consultation_type: row.type || (content.consultation_type as string) || 'general',
+            chief_complaint: (content.chief_complaint as string) || (content.reason as string) || '',
+            symptoms: (content.symptoms as string[]) || [],
+            diagnosis: (content.diagnosis as string) || '',
+            treatment_plan: (content.treatment_plan as string) || (content.treatment as string) || '',
+            follow_up_instructions: (content.follow_up_instructions as string) || null,
             attachments: row.attachments || [],
             created_at: row.created_at,
             updated_at: row.updated_at || row.created_at
           };
-        }) as MedicalRecord[],
+        }) as unknown as MedicalRecord[],
         hasMore: count ? startIndex + pageSize < count : false,
       }
     } catch (error) {

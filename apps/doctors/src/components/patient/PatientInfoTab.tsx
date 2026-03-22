@@ -20,12 +20,35 @@ import type { JSX } from 'react'
 import { useState } from 'react'
 import { usePatientData } from '../../hooks/usePatientData'
 
+/** Loose shape of the patient data coming from usePatientData.
+ *  The underlying hook converts DB rows with toCamel, but field presence
+ *  varies; every field is treated as optional to avoid runtime crashes. */
+interface PatientDisplayData {
+  first_name?: string
+  last_name?: string
+  age?: number | string
+  gender?: string
+  blood_type?: string
+  phone?: string
+  email?: string
+  address?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  allergies?: string[]
+  chronic_conditions?: string[]
+  insurance_provider?: string
+  insurance_number?: string
+  date_of_birth?: string
+  created_at?: string
+}
+
 interface PatientInfoTabProps {
   patientId: string | null
 }
 
 export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element {
-  const { patient, loading, error, refresh } = usePatientData(patientId as any)
+  const { patient: rawPatient, loading, error, refresh } = usePatientData(patientId as import('@autamedica/types').UUID | null)
+  const patient = rawPatient as unknown as PatientDisplayData | null
   const [isEditing, setIsEditing] = useState(false)
 
   if (loading) {
@@ -90,16 +113,16 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-2xl font-bold text-slate-900">
-                {(patient as any).first_name[0]}{(patient as any).last_name[0]}
+                {patient.first_name?.[0]}{patient.last_name?.[0]}
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900">
-                  {((patient as any).first_name && (patient as any).last_name) ? `${(patient as any).first_name} ${(patient as any).last_name}` : 'Paciente'}
+                  {(patient.first_name && patient.last_name) ? `${patient.first_name} ${patient.last_name}` : 'Paciente'}
                 </h1>
-                <p className="text-slate-400">{(patient as any).age} años • {(patient as any).gender}</p>
+                <p className="text-slate-400">{patient.age} años • {patient.gender}</p>
                 <div className="mt-1 flex items-center gap-2 text-sm text-emerald-500">
                   <Heart className="h-4 w-4" />
-                  <span>Tipo de sangre: {(patient as any).blood_type}</span>
+                  <span>Tipo de sangre: {patient.blood_type}</span>
                 </div>
               </div>
             </div>
@@ -137,7 +160,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
                 <Phone className="h-4 w-4 text-slate-400" />
                 <div>
                   <p className="text-sm font-medium text-slate-600">Teléfono</p>
-                  <p className="text-slate-400">{(patient as any).phone || 'No registrado'}</p>
+                  <p className="text-slate-400">{patient.phone || 'No registrado'}</p>
                 </div>
               </div>
 
@@ -145,7 +168,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
                 <Mail className="h-4 w-4 text-slate-400" />
                 <div>
                   <p className="text-sm font-medium text-slate-600">Email</p>
-                  <p className="text-slate-400">{(patient as any).email || 'No registrado'}</p>
+                  <p className="text-slate-400">{patient.email || 'No registrado'}</p>
                 </div>
               </div>
 
@@ -153,7 +176,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
                 <MapPin className="h-4 w-4 text-slate-400 mt-1" />
                 <div>
                   <p className="text-sm font-medium text-slate-600">Dirección</p>
-                  <p className="text-slate-400">{(patient as any).address || 'No registrada'}</p>
+                  <p className="text-slate-400">{patient.address || 'No registrada'}</p>
                 </div>
               </div>
             </div>
@@ -169,12 +192,12 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-600">Nombre</p>
-                <p className="text-slate-400">{(patient as any).emergency_contact_name || 'No registrado'}</p>
+                <p className="text-slate-400">{patient.emergency_contact_name || 'No registrado'}</p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-slate-600">Teléfono</p>
-                <p className="text-slate-400">{(patient as any).emergency_contact_phone || 'No registrado'}</p>
+                <p className="text-slate-400">{patient.emergency_contact_phone || 'No registrado'}</p>
               </div>
             </div>
           </div>
@@ -189,9 +212,9 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-2">Alergias</p>
-                {(patient as any).allergies?.length > 0 ? (
+                {patient.allergies && patient.allergies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {(patient as any).allergies.map((allergy: string, index: number) => (
+                    {patient.allergies.map((allergy: string, index: number) => (
                       <span
                         key={index}
                         className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-medium text-red-300 border border-red-500/30"
@@ -207,9 +230,9 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
 
               <div>
                 <p className="text-sm font-medium text-slate-600 mb-2">Condiciones Crónicas</p>
-                {(patient as any).chronic_conditions?.length > 0 ? (
+                {patient.chronic_conditions && patient.chronic_conditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {(patient as any).chronic_conditions.map((condition: string, index: number) => (
+                    {patient.chronic_conditions.map((condition: string, index: number) => (
                       <span
                         key={index}
                         className="rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-300 border border-yellow-500/30"
@@ -235,13 +258,13 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-slate-600">Proveedor</p>
-                <p className="text-slate-400">{(patient as any).insurance_provider || 'No registrado'}</p>
+                <p className="text-slate-400">{patient.insurance_provider || 'No registrado'}</p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-slate-600">Número de póliza</p>
                 <p className="text-slate-400 font-mono">
-                  {(patient as any).insurance_number || 'No registrado'}
+                  {patient.insurance_number || 'No registrado'}
                 </p>
               </div>
             </div>
@@ -259,22 +282,22 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
             <div>
               <p className="text-sm font-medium text-slate-600">Fecha de nacimiento</p>
               <p className="text-slate-400">
-                {new Date((patient as any).date_of_birth).toLocaleDateString('es-ES', {
+                {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
-                })}
+                }) : 'No disponible'}
               </p>
             </div>
 
             <div>
               <p className="text-sm font-medium text-slate-600">Registrado</p>
               <p className="text-slate-400">
-                {new Date((patient as any).created_at).toLocaleDateString('es-ES', {
+                {patient.created_at ? new Date(patient.created_at).toLocaleDateString('es-ES', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
-                })}
+                }) : 'No disponible'}
               </p>
             </div>
           </div>

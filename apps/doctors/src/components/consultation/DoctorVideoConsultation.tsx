@@ -205,7 +205,7 @@ export function DoctorVideoConsultation({
 
         {/* Componente principal de videoconferencia */}
         <VideoConference
-          chatMessageFormatter={(msg: any) => `${msg.from?.identity}: ${msg.message}`}
+          chatMessageFormatter={(message: string) => message}
         />
 
         {/* Controles médicos avanzados */}
