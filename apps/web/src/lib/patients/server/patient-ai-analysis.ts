@@ -542,7 +542,7 @@ export async function persistPatientAiInsight(args: {
     prompt_version: PROMPT_VERSION,
     status: args.status,
     request_json: args.request as unknown as Json,
-    response_json: (args.result ?? null) as Json | null,
+    response_json: (args.result ?? null) as unknown as Json | null,
     error_message: args.errorMessage ?? null,
   }
 
@@ -584,7 +584,7 @@ export async function getLatestPatientAiInsight(
       snapshotVersion: row.snapshot_version,
       status: row.status,
       createdAt: row.created_at,
-      result: (row.response_json as PatientAiInsightResult | null) ?? null,
+      result: (row.response_json as unknown as PatientAiInsightResult | null) ?? null,
       errorMessage: row.error_message,
     }
   } catch (error) {

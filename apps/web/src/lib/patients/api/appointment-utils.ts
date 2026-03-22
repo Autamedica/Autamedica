@@ -110,6 +110,7 @@ export function mapAppointment(row: DbAppointmentRow): AppointmentWithDoctor {
           first_name: row.doctor.profile?.first_name ?? null,
           last_name: row.doctor.profile?.last_name ?? null,
           specialty: row.doctor.specialty,
+          profile_picture_url: null,
         }
       : null,
   }

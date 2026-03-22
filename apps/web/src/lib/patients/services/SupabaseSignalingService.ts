@@ -251,13 +251,13 @@ export class SupabaseSignalingService {
     switch (message.type) {
       case 'offer':
         if (this.callbacks.onOffer) {
-          this.callbacks.onOffer(message.data, message.from);
+          this.callbacks.onOffer(message.data as RTCSessionDescriptionInit, message.from);
         }
         break;
 
       case 'answer':
         if (this.callbacks.onAnswer) {
-          this.callbacks.onAnswer(message.data, message.from);
+          this.callbacks.onAnswer(message.data as RTCSessionDescriptionInit, message.from);
         }
         break;
 

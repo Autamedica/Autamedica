@@ -3,6 +3,7 @@ import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { addToWaitlist, cancelWaitlistEntry } from '@autamedica/scheduling'
+import type { UUID } from '@autamedica/types'
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -76,8 +77,8 @@ export const POST: APIRoute = async ({ request }) => {
     const supabase = createServerClientFromRequest(request)
 
     const entry = await addToWaitlist(supabase, {
-      patient_id: context.patientId,
-      doctor_id: doctor_id.trim(),
+      patient_id: context.patientId as UUID,
+      doctor_id: doctor_id.trim() as UUID,
       preferred_date_start: preferred_date_start ?? null,
       preferred_date_end: preferred_date_end ?? null,
       preferred_time_start: preferred_time_start ?? null,

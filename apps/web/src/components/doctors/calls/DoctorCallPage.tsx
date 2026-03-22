@@ -65,14 +65,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     // logger.info('[UnifiedVideoCall][doctor] start')
   }
 
-  const _handleStatusChange = (_status: string) => {
-    // logger.info('[UnifiedVideoCall][doctor] status:', status)
-  }
-
-  const _handleError = (error: unknown) => {
-    logger.error('[UnifiedVideoCall][doctor] error:', error)
-  }
-
   const { userId, userName } = useMemo(() => {
     if (session && typedProfile) {
       return {

@@ -275,9 +275,9 @@ const doctors = [
   }
 
   const initMarquee = () => {
-    const marquee = /** @type {HTMLElement} */ (document.querySelector('.doctor-marquee'));
-    const wrapper = /** @type {HTMLElement} */ (document.querySelector('.directory-marquee-wrapper'));
-    
+    const marquee = document.querySelector('.doctor-marquee') as HTMLElement | null;
+    const wrapper = document.querySelector('.directory-marquee-wrapper') as HTMLElement | null;
+
     if (marquee && wrapper) {
       // GPU-accelerate the animated element
       marquee.style.willChange = 'transform';

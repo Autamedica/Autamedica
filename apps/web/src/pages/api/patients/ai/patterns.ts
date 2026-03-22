@@ -31,17 +31,15 @@ export const GET: APIRoute = async ({ request }) => {
     const admin = createAdminClient()
 
     const [patternsResult, faqsResult] = await Promise.all([
-      admin
+      Promise.resolve(admin
         .from('ai_user_patterns')
         .select('*')
-        .eq('user_id', userId)
-        .then((r) => r)
+        .eq('user_id', userId))
         .catch(() => ({ data: null, error: { message: 'table_not_found' } })),
-      admin
+      Promise.resolve(admin
         .from('ai_user_faq')
         .select('*')
-        .eq('user_id', userId)
-        .then((r) => r)
+        .eq('user_id', userId))
         .catch(() => ({ data: null, error: { message: 'table_not_found' } })),
     ])
 

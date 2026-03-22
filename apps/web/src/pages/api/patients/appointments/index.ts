@@ -39,7 +39,7 @@ export const GET: APIRoute = async ({ request }) => {
       return json({ success: false, error: 'Failed to fetch appointments' }, 500)
     }
 
-    const mapped = (data as DbAppointmentRow[]).map(mapAppointment)
+    const mapped = (data as unknown as DbAppointmentRow[]).map(mapAppointment)
     return json({ success: true, data: mapped })
   } catch (err) {
     logger.error('[appointments/GET] Unexpected error', err)
@@ -123,7 +123,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     return json(
-      { success: true, data: mapAppointment(inserted as DbAppointmentRow) },
+      { success: true, data: mapAppointment(inserted as unknown as DbAppointmentRow) },
       201,
     )
   } catch (err) {

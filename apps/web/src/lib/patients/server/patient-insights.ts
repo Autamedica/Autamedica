@@ -935,7 +935,7 @@ export async function buildPatientInsights(
   }
 
   const patient = patientResult.data as Pick<PatientRow, 'birth_date' | 'gender' | 'allergies'> | null
-  const appointments = ((appointmentsResult.data ?? []) as AppointmentRow[]).map(normalizeAppointment)
+  const appointments = ((appointmentsResult.data ?? []) as unknown as AppointmentRow[]).map(normalizeAppointment)
   const medicalRecords = (medicalRecordsResult.data ?? []) as MedicalRecordRow[]
   const activeConditions = medicalRecords
     .filter((record) => record.type === 'diagnosis')

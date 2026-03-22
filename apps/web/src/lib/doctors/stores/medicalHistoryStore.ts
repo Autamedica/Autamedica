@@ -48,7 +48,7 @@ interface MedicalHistoryState {
   // AI-powered actions
   generateAISummary: (patientId: string) => Promise<string>
   suggestPrescriptions: (diagnosis: string) => Promise<string[]>
-  analyzeVitals: (vitals: unknown) => Promise<string>
+  analyzeVitals: (vitals: Record<string, unknown> | null | undefined) => Promise<string>
 }
 
 // Simular llamada a IA (en producción conectar con API real)
@@ -152,20 +152,22 @@ export const useMedicalHistoryStore = create<MedicalHistoryState>()(
     analyzeVitals: async (vitals) => {
       if (!vitals) return 'Sin datos de signos vitales'
 
+      const v = vitals as { heartRate?: number; temperature?: number; oxygenSaturation?: number }
+
       // Análisis básico de signos vitales
       const analysis: string[] = []
 
-      if (vitals.heartRate) {
-        if (vitals.heartRate < 60) analysis.push('Bradicardia detectada')
-        if (vitals.heartRate > 100) analysis.push('Taquicardia detectada')
+      if (v.heartRate) {
+        if (v.heartRate < 60) analysis.push('Bradicardia detectada')
+        if (v.heartRate > 100) analysis.push('Taquicardia detectada')
       }
 
-      if (vitals.temperature) {
-        if (vitals.temperature > 37.5) analysis.push('Fiebre presente')
-        if (vitals.temperature < 35.5) analysis.push('Hipotermia')
+      if (v.temperature) {
+        if (v.temperature > 37.5) analysis.push('Fiebre presente')
+        if (v.temperature < 35.5) analysis.push('Hipotermia')
       }
 
-      if (vitals.oxygenSaturation && vitals.oxygenSaturation < 95) {
+      if (v.oxygenSaturation && v.oxygenSaturation < 95) {
         analysis.push('Saturación de oxígeno baja')
       }
 

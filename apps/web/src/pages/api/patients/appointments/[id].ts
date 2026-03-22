@@ -49,7 +49,7 @@ export const GET: APIRoute = async ({ request, params }) => {
       return json({ success: false, error: 'Appointment not found' }, 404)
     }
 
-    return json({ success: true, data: mapAppointment(data as DbAppointmentRow) })
+    return json({ success: true, data: mapAppointment(data as unknown as DbAppointmentRow) })
   } catch (err) {
     logger.error('[appointments/[id]/GET] Unexpected error', err)
     return json({ success: false, error: 'Internal server error' }, 500)
@@ -112,7 +112,6 @@ export const PATCH: APIRoute = async ({ request, params }) => {
       updates.duration_minutes = duration_minutes
     }
     if (scheduled_at !== undefined || duration_minutes !== undefined) {
-      const _startIso = (scheduled_at as string) ?? existing.id // will re-derive below
       // Re-fetch existing start_time if only duration changed
       if (scheduled_at !== undefined && duration_minutes !== undefined) {
         updates.end_time = computeEndTime(scheduled_at, duration_minutes)
@@ -160,7 +159,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
       return json({ success: false, error: 'Failed to update appointment' }, 500)
     }
 
-    return json({ success: true, data: mapAppointment(updated as DbAppointmentRow) })
+    return json({ success: true, data: mapAppointment(updated as unknown as DbAppointmentRow) })
   } catch (err) {
     logger.error('[appointments/[id]/PATCH] Unexpected error', err)
     return json({ success: false, error: 'Internal server error' }, 500)
@@ -199,7 +198,7 @@ export const DELETE: APIRoute = async ({ request, params }) => {
       return json({ success: false, error: 'Appointment not found' }, 404)
     }
 
-    return json({ success: true, data: mapAppointment(cancelled as DbAppointmentRow) })
+    return json({ success: true, data: mapAppointment(cancelled as unknown as DbAppointmentRow) })
   } catch (err) {
     logger.error('[appointments/[id]/DELETE] Unexpected error', err)
     return json({ success: false, error: 'Internal server error' }, 500)

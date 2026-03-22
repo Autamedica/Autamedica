@@ -46,7 +46,7 @@ export function ScreeningTimeline({ currentAge, gender }: ScreeningTimelineProps
   };
 
   const getIconComponent = (iconName: string) => {
-    const Icon = (LucideIcons as Record<string, React.ComponentType>)[iconName] || LucideIcons.Circle;
+    const Icon = (LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[iconName] || LucideIcons.Circle;
     return Icon;
   };
 

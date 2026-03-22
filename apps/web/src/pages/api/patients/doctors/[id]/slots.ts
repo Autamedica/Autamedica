@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { getOpenSlots } from '@autamedica/scheduling'
+import type { UUID } from '@autamedica/types'
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -79,7 +80,7 @@ export const GET: APIRoute = async ({ request, params }) => {
     }
 
     const slots = await getOpenSlots(supabase, {
-      doctor_id: doctorId,
+      doctor_id: doctorId as UUID,
       date_from: dateFrom,
       date_to: dateTo,
     })

@@ -155,7 +155,7 @@ function extractBodySelectionsFromSections(
       const candidate = section.data[key]
       const parsed = BodyMapSelectionsSchema.safeParse(candidate)
       if (parsed.success) {
-        collected.push(...parsed.data)
+        collected.push(...(parsed.data as BodyMapSelection[]))
       }
     }
   }
@@ -522,7 +522,7 @@ function parseStructuredExtractionPayload(
     throw new Error('La salida estructurada del modelo no cumple el contrato clinico esperado')
   }
 
-  return validation.data
+  return validation.data as AnamnesisExtractionResult
 }
 
 function extractOpenAiStructuredOutput(payload: Record<string, unknown>): AnamnesisExtractionResult {

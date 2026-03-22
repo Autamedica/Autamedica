@@ -3,7 +3,7 @@ import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { AnamnesisExtractionRunInputSchema } from '@/lib/patients/lib/zod/anamnesis-extraction'
-import type { AnamnesisSectionRecord } from '@/lib/patients/types/anamnesis-extraction'
+import type { AnamnesisClarificationTurn, AnamnesisSectionRecord } from '@/lib/patients/types/anamnesis-extraction'
 import {
   ANAMNESIS_EXTRACTION_PROMPT_VERSION,
   buildAnamnesisExtractionRequest,
@@ -164,7 +164,7 @@ export const POST: APIRoute = async ({ request }) => {
       anamnesisStatus: resolved.anamnesis.status,
       privacyAccepted: resolved.anamnesis.privacy_accepted === true,
       sections: resolved.sections,
-      clarificationTurns: parsedInput.data.clarificationTurns ?? [],
+      clarificationTurns: (parsedInput.data.clarificationTurns ?? []) as AnamnesisClarificationTurn[],
     })
 
     if (!isAnamnesisExtractionConfigured()) {

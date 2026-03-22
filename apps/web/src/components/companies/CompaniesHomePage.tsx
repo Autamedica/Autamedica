@@ -29,7 +29,15 @@ export default function CompaniesHomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  const crisisMetrics = [
+  const crisisMetrics: Array<{
+    title: string;
+    value: number | string;
+    icon: typeof AlertTriangle;
+    color: string;
+    bgColor: string;
+    status: string;
+    percentage?: number;
+  }> = [
     {
       title: 'Incidentes Activos',
       value: activeIncidents,

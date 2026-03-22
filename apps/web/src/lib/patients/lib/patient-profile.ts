@@ -65,7 +65,7 @@ export function getPatientProfileCompletion(patient: PatientProfile): number {
   }
 
   // Campos opcionales pero recomendados
-  const patientAny = patient as Record<string, unknown>;
+  const patientAny = patient as unknown as Record<string, unknown>;
   if (patientAny.blood_type) completedFields++;
   if (patientAny.height_cm) completedFields++;
   if (patientAny.weight_kg) completedFields++;
