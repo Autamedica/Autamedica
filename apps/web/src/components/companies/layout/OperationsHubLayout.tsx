@@ -44,12 +44,11 @@ export function OperationsHubLayout({
   const [activeTab, setActiveTab] = useState('crisis-map');
   const [sidebarOpen, _setSidebarOpen] = useState(true);
 
-  // Mock data para crisis management
   const [crisisData] = useState({
-    activeCrises: 3,
-    hospitalsAffected: 7,
-    patientsRedistributed: 45,
-    responseTime: '4.2 min',
+    activeCrises: 0,
+    hospitalsAffected: 0,
+    patientsRedistributed: 0,
+    responseTime: '--',
     networkStatus: 'operational'
   });
 
@@ -68,12 +67,7 @@ export function OperationsHubLayout({
     { id: 'coordinate-response', label: 'Coordinar Respuesta', icon: Activity, urgent: false }
   ];
 
-  const hospitalMetrics = [
-    { name: 'Hospital Central', capacity: 85, patients: 340, status: 'high' },
-    { name: 'Hospital Norte', capacity: 45, patients: 180, status: 'normal' },
-    { name: 'Hospital Sur', capacity: 92, patients: 460, status: 'critical' },
-    { name: 'Clínica Este', capacity: 67, patients: 201, status: 'normal' }
-  ];
+  const hospitalMetrics: Array<{ name: string; capacity: number; patients: number; status: string }> = [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-autamedica-negro via-autamedica-secondary to-autamedica-negro">
@@ -190,37 +184,41 @@ export function OperationsHubLayout({
                     Estado Hospitales
                   </h3>
                   <div className="space-y-2">
-                    {hospitalMetrics.map((hospital, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-autamedica-negro/50 backdrop-blur-sm rounded-lg p-3 border border-autamedica-secondary/30"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-autamedica-blanco text-sm font-medium">{hospital.name}</span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            hospital.status === 'critical' ? 'bg-red-500/20 text-red-400' :
-                            hospital.status === 'high' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-green-500/20 text-green-400'
-                          }`}>
-                            {hospital.status}
-                          </span>
+                    {hospitalMetrics.length === 0 ? (
+                      <p className="text-autamedica-text-light text-sm text-center py-4">Sin hospitales conectados</p>
+                    ) : (
+                      hospitalMetrics.map((hospital, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-autamedica-negro/50 backdrop-blur-sm rounded-lg p-3 border border-autamedica-secondary/30"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-autamedica-blanco text-sm font-medium">{hospital.name}</span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              hospital.status === 'critical' ? 'bg-red-500/20 text-red-400' :
+                              hospital.status === 'high' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {hospital.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-autamedica-text-light">Capacidad: {hospital.capacity}%</span>
+                            <span className="text-autamedica-text-light">{hospital.patients} pacientes</span>
+                          </div>
+                          <div className="mt-2 h-1 bg-autamedica-secondary/30 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                hospital.capacity > 80 ? 'bg-red-500' :
+                                hospital.capacity > 60 ? 'bg-yellow-500' :
+                                'bg-green-500'
+                              }`}
+                              style={{ width: `${hospital.capacity}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-autamedica-text-light">Capacidad: {hospital.capacity}%</span>
-                          <span className="text-autamedica-text-light">{hospital.patients} pacientes</span>
-                        </div>
-                        <div className="mt-2 h-1 bg-autamedica-secondary/30 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              hospital.capacity > 80 ? 'bg-red-500' :
-                              hospital.capacity > 60 ? 'bg-yellow-500' :
-                              'bg-green-500'
-                            }`}
-                            style={{ width: `${hospital.capacity}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -252,7 +250,7 @@ export function OperationsHubLayout({
                       <div className="flex items-center space-x-3">
                         <Heart className="w-8 h-8 text-red-500" />
                         <div>
-                          <div className="text-2xl font-bold text-autamedica-blanco">12</div>
+                          <div className="text-2xl font-bold text-autamedica-blanco">0</div>
                           <div className="text-sm text-autamedica-text-light">Emergencias Críticas</div>
                         </div>
                       </div>
@@ -261,7 +259,7 @@ export function OperationsHubLayout({
                       <div className="flex items-center space-x-3">
                         <Clock className="w-8 h-8 text-yellow-500" />
                         <div>
-                          <div className="text-2xl font-bold text-autamedica-blanco">2.3m</div>
+                          <div className="text-2xl font-bold text-autamedica-blanco">--</div>
                           <div className="text-sm text-autamedica-text-light">Tiempo Respuesta Avg</div>
                         </div>
                       </div>
@@ -270,7 +268,7 @@ export function OperationsHubLayout({
                       <div className="flex items-center space-x-3">
                         <Users className="w-8 h-8 text-blue-500" />
                         <div>
-                          <div className="text-2xl font-bold text-autamedica-blanco">156</div>
+                          <div className="text-2xl font-bold text-autamedica-blanco">0</div>
                           <div className="text-sm text-autamedica-text-light">Personal Disponible</div>
                         </div>
                       </div>
@@ -279,7 +277,7 @@ export function OperationsHubLayout({
                       <div className="flex items-center space-x-3">
                         <Activity className="w-8 h-8 text-green-500" />
                         <div>
-                          <div className="text-2xl font-bold text-autamedica-blanco">94%</div>
+                          <div className="text-2xl font-bold text-autamedica-blanco">--</div>
                           <div className="text-sm text-autamedica-text-light">Eficiencia Red</div>
                         </div>
                       </div>

@@ -32,17 +32,17 @@ function getBaseUrlByRole(): Record<UserRole, string> {
 
   if (isProduction) {
     return {
-      'patient': readEnv('NEXT_PUBLIC_BASE_URL_PATIENTS', 'NEXT_PUBLIC_PATIENTS_URL')
+      'patient': readEnv('PUBLIC_BASE_URL_PATIENTS', 'PUBLIC_PATIENTS_URL')
         || 'https://paciente.autamedica.com',
-      'doctor': readEnv('NEXT_PUBLIC_BASE_URL_DOCTORS', 'NEXT_PUBLIC_DOCTORS_URL')
+      'doctor': readEnv('PUBLIC_BASE_URL_DOCTORS', 'PUBLIC_DOCTORS_URL')
         || 'https://doctor.autamedica.com',
-      'company': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
+      'company': readEnv('PUBLIC_BASE_URL_COMPANIES', 'PUBLIC_COMPANIES_URL')
         || 'https://empresa.autamedica.com',
-      'company_admin': readEnv('NEXT_PUBLIC_BASE_URL_COMPANIES', 'NEXT_PUBLIC_COMPANIES_URL')
+      'company_admin': readEnv('PUBLIC_BASE_URL_COMPANIES', 'PUBLIC_COMPANIES_URL')
         || 'https://empresa.autamedica.com',
-      'organization_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
+      'organization_admin': readEnv('PUBLIC_BASE_URL_ADMIN', 'PUBLIC_ADMIN_URL')
         || 'https://autamedica-admin.pages.dev',
-      'platform_admin': readEnv('NEXT_PUBLIC_BASE_URL_ADMIN', 'NEXT_PUBLIC_ADMIN_URL')
+      'platform_admin': readEnv('PUBLIC_BASE_URL_ADMIN', 'PUBLIC_ADMIN_URL')
         || 'https://autamedica-admin.pages.dev',
     };
   }
@@ -205,10 +205,10 @@ export const AUTH_URLS = {
 export function getLoginUrl(returnTo?: string, portal?: string): string {
   let webAppUrl: string;
   try {
-    webAppUrl = ensureServerEnv('NEXT_PUBLIC_APP_URL');
+    webAppUrl = ensureServerEnv('PUBLIC_APP_URL');
   } catch {
     try {
-      webAppUrl = ensureServerEnv('NEXT_PUBLIC_BASE_URL_WEB_APP');
+      webAppUrl = ensureServerEnv('PUBLIC_BASE_URL_WEB_APP');
     } catch {
       webAppUrl = 'https://autamedica-web.pages.dev';
     }

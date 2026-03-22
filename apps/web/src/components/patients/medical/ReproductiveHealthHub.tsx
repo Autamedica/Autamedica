@@ -20,6 +20,7 @@ import {
   Stethoscope,
   Calendar
 } from 'lucide-react';
+import { useReproductiveHealthSpecialists } from '@/hooks/patients/useReproductiveHealthSpecialists';
 
 interface ReproductiveHealthHubProps {
   onRequestConsultation?: () => void;
@@ -439,29 +440,7 @@ function ProceduresTab() {
 }
 
 function DoctorsTab({ onRequestCall }: { onRequestCall: () => void }) {
-  const specialists = [
-    {
-      name: 'Dra. María González',
-      specialty: 'Ginecología y Salud Reproductiva',
-      available: true,
-      rating: 4.9,
-      consultations: 156
-    },
-    {
-      name: 'Dr. Carlos Rodríguez',
-      specialty: 'Medicina General - Salud Sexual',
-      available: true,
-      rating: 4.8,
-      consultations: 203
-    },
-    {
-      name: 'Dra. Ana Martínez',
-      specialty: 'Psicología Perinatal',
-      available: false,
-      rating: 4.9,
-      consultations: 189
-    }
-  ];
+  const { specialists, isLoading, error } = useReproductiveHealthSpecialists({ availableOnly: false });
 
   return (
     <div className="space-y-6">
@@ -482,47 +461,70 @@ function DoctorsTab({ onRequestCall }: { onRequestCall: () => void }) {
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-stone-900">Profesionales Disponibles</h3>
-        {specialists.map((doctor, index) => (
-          <div key={index} className="bg-white border border-stone-200 shadow-md rounded-xl p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3 flex-1">
-                <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Stethoscope className="h-6 w-6 text-stone-700" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-stone-900">{doctor.name}</h4>
-                  <p className="text-sm text-stone-700 mb-2">{doctor.specialty}</p>
-                  <div className="flex items-center gap-3 text-xs text-stone-900/50">
-                    <span>⭐ {doctor.rating}</span>
-                    <span>•</span>
-                    <span>{doctor.consultations} consultas</span>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-stone-700" />
+          </div>
+        ) : error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            No se pudieron cargar los especialistas. Intenta de nuevo más tarde.
+          </div>
+        ) : specialists.length === 0 ? (
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-6 text-center text-sm text-stone-600">
+            <Stethoscope className="mx-auto mb-2 h-8 w-8 text-stone-400" />
+            No hay especialistas disponibles en este momento.
+          </div>
+        ) : (
+          specialists.map((doctor) => {
+            const isAvailable = doctor.availability_status === 'available';
+            const displayName = [doctor.first_name, doctor.last_name].filter(Boolean).join(' ') || 'Sin nombre';
+            return (
+              <div key={doctor.id} className="bg-white border border-stone-200 shadow-md rounded-xl p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="w-12 h-12 bg-stone-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Stethoscope className="h-6 w-6 text-stone-700" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-stone-900">{displayName}</h4>
+                      <p className="text-sm text-stone-700 mb-2">{doctor.specialty || 'Sin especialidad'}</p>
+                      <div className="flex items-center gap-3 text-xs text-stone-900/50">
+                        {doctor.rating != null && doctor.rating > 0 && (
+                          <>
+                            <span>&#11088; {doctor.rating.toFixed(1)}</span>
+                            <span>&bull;</span>
+                          </>
+                        )}
+                        <span>{doctor.total_consultations ?? 0} consultas</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {isAvailable ? (
+                      <>
+                        <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full flex items-center gap-1 border border-green-400">
+                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          Disponible
+                        </span>
+                        <button
+                          onClick={onRequestCall}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-stone-900 text-xs font-semibold rounded-lg transition flex items-center gap-1"
+                        >
+                          <Video className="h-3 w-3" />
+                          Llamar
+                        </button>
+                      </>
+                    ) : (
+                      <span className="px-3 py-1 bg-gray-500/20 text-gray-400 text-xs font-semibold rounded-full">
+                        No disponible
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {doctor.available ? (
-                  <>
-                    <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full flex items-center gap-1 border border-green-400">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      Disponible
-                    </span>
-                    <button
-                      onClick={onRequestCall}
-                      className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-stone-900 text-xs font-semibold rounded-lg transition flex items-center gap-1"
-                    >
-                      <Video className="h-3 w-3" />
-                      Llamar
-                    </button>
-                  </>
-                ) : (
-                  <span className="px-3 py-1 bg-gray-500/20 text-gray-400 text-xs font-semibold rounded-full">
-                    No disponible
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+            );
+          })
+        )}
       </div>
 
       {/* Qué preguntarle al médico */}

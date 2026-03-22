@@ -36,16 +36,16 @@ export function AltaAssistant() {
     setMessages(prev => [...prev, userMessage])
     setInputValue('')
 
-    // Simular respuesta de ALTA (en producción, esto llamaría a la API de OpenAI)
+    // Respuesta honesta: el asistente no está conectado a un backend real
     setTimeout(() => {
       const altaMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'alta',
-        content: getAltaResponse(inputValue),
+        content: 'Disculpa, el asistente ALTA no está conectado en este momento. Para consultas médicas, usa el chatbot Auta o agenda una cita con tu médico.',
         timestamp: new Date()
       }
       setMessages(prev => [...prev, altaMessage])
-    }, 1000)
+    }, 500)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -167,30 +167,3 @@ export function AltaAssistant() {
   )
 }
 
-// Función helper para simular respuestas de ALTA
-function getAltaResponse(userMessage: string): string {
-  const lowerMessage = userMessage.toLowerCase()
-
-  if (lowerMessage.includes('presión') || lowerMessage.includes('presion')) {
-    return 'Para consultar tu presión arterial, ve a la sección de Historia Clínica > Signos Vitales. Allí encontrarás tus últimas mediciones y gráficos de evolución.\n\n¿Te gustaría registrar una nueva medición?'
-  }
-
-  if (lowerMessage.includes('medicamento') || lowerMessage.includes('medicina')) {
-    return 'Puedes ver todos tus medicamentos activos en Historia Clínica > Medicamentos. Recuerda que es importante tomarlos a la hora indicada para mantener una buena adherencia.\n\n¿Necesitas un recordatorio?'
-  }
-
-  if (lowerMessage.includes('cita') || lowerMessage.includes('consulta')) {
-    return 'Tu próxima cita es mañana a las 10:00 AM con el Dr. García (Cardiología). ¿Te gustaría ver los detalles o preparar preguntas para la consulta?'
-  }
-
-  if (lowerMessage.includes('resultado') || lowerMessage.includes('laboratorio')) {
-    return 'Tus últimos resultados de laboratorio muestran:\n\n• Glucosa: 115 mg/dL (ligeramente elevada)\n• Colesterol: 195 mg/dL (normal)\n\nHe notificado a tu médico sobre la glucosa. ¿Quieres ver el informe completo?'
-  }
-
-  if (lowerMessage.includes('comunidad') || lowerMessage.includes('grupo')) {
-    return 'Estás en 2 grupos: Diabetes Tipo 2 y Hipertensión. Hay 5 publicaciones nuevas que podrían interesarte. ¿Quieres que te las muestre?'
-  }
-
-  // Respuesta por defecto
-  return 'Puedo ayudarte con:\n\n• Consultar signos vitales\n• Ver medicamentos y recordatorios\n• Información sobre citas\n• Resultados de laboratorio\n• Buscar en la comunidad\n\n¿Qué te gustaría saber?'
-}

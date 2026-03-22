@@ -418,8 +418,8 @@ export function generateRoomId(): string {
 
 // Create service instance with environment variables
 export function createCallService(): CallService {
-  const supabaseUrl = getClientEnvOrDefault('NEXT_PUBLIC_SUPABASE_URL', '')
-  const supabaseKey = getClientEnvOrDefault('NEXT_PUBLIC_SUPABASE_ANON_KEY', '')
+  const supabaseUrl = getClientEnvOrDefault('PUBLIC_SUPABASE_URL', '')
+  const supabaseKey = getClientEnvOrDefault('PUBLIC_SUPABASE_ANON_KEY', '')
 
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('Missing Supabase environment variables')

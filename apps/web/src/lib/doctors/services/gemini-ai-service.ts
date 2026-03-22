@@ -220,38 +220,18 @@ SOLO responde con el JSON, sin texto adicional.`;
   /**
    * Análisis mock para desarrollo
    */
-  private getMockAnalysis(request: AnalysisRequest): MedicalAnalysis {
-    const { symptoms = [] } = request.data;
-
+  private getMockAnalysis(_request: AnalysisRequest): MedicalAnalysis {
     return {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
-      summary: `[MOCK - GEMINI] Análisis simulado de ${symptoms.length} síntomas. Sistema Gemini AI en modo desarrollo.`,
-      recommendations: [
-        'Monitorear evolución clínica',
-        'Evaluación presencial recomendada',
-        'Seguimiento en 48 horas',
-        '[MOCK DATA - Configurar GOOGLE_AI_API_KEY en producción]',
-      ],
-      severity: this.calculateMockSeverity(symptoms.length),
-      confidence: 78,
+      summary: 'Servicio de IA no disponible. Configure GOOGLE_AI_API_KEY para habilitar análisis real.',
+      recommendations: [],
+      severity: 'low',
+      confidence: 0,
       metadata: {
-        modelUsed: 'gemini-mock-dev',
+        modelUsed: 'none',
       },
     };
-  }
-
-  /**
-   * Calcular severidad mock
-   */
-  private calculateMockSeverity(
-    symptomCount: number
-  ): 'low' | 'medium' | 'high' | 'critical' {
-    if (symptomCount === 0) return 'low';
-    if (symptomCount <= 2) return 'low';
-    if (symptomCount <= 4) return 'medium';
-    if (symptomCount <= 6) return 'high';
-    return 'critical';
   }
 
   /**

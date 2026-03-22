@@ -17,6 +17,9 @@ const PROTECTED_ROUTES = [
   '/admin',
   '/settings',
   '/appointments',
+  '/patients',
+  '/doctors',
+  '/companies',
 ];
 
 // Rutas de autenticación (redirigen si ya está autenticado)
@@ -81,28 +84,6 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/portals/empresas': '/companies',
 };
 
-const PORTAL_BRIDGE_TARGETS = {
-  '/patients': 'PUBLIC_PATIENTS_URL',
-  '/doctors': 'PUBLIC_DOCTORS_URL',
-  '/companies': 'PUBLIC_COMPANIES_URL',
-  '/admin': 'PUBLIC_ADMIN_URL',
-} as const;
-
-const ASTRO_OWNED_ROUTES = new Set([
-  '/patients',
-  '/patients/appointments',
-  '/patients/history',
-  '/patients/prevention',
-  '/doctors',
-  '/doctors/agenda',
-  '/doctors/consultations',
-  '/doctors/patients',
-  '/companies',
-  '/companies/crisis',
-  '/companies/marketplace',
-  '/companies/reports',
-]);
-
 function normalizePath(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith('/')) {
     return pathname.slice(0, -1);
@@ -110,62 +91,18 @@ function normalizePath(pathname: string): string {
   return pathname;
 }
 
-function parseExternalBase(value: string | undefined, envKey: keyof ImportMetaEnv): URL | null {
-  const raw = value?.trim();
-  if (!raw) {
-    logger.error(`Missing required env var for portal bridge: ${envKey}`);
-    return null;
-  }
-
-  try {
-    return new URL(raw);
-  } catch {
-    logger.error(`Invalid URL in env var ${envKey}: ${raw}`);
-    return null;
-  }
-}
-
-function buildExternalUrl(base: URL, pathname: string, search: string): string {
-  const url = new URL(base.toString());
-  const cleanPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  url.pathname = cleanPath === '/' ? '/' : cleanPath.replace(/\/{2,}/g, '/');
-  url.search = search;
-  return url.toString();
-}
-
-function resolveBridge(pathname: string): { prefix: keyof typeof PORTAL_BRIDGE_TARGETS; rest: string } | null {
-  const prefixes = Object.keys(PORTAL_BRIDGE_TARGETS) as Array<keyof typeof PORTAL_BRIDGE_TARGETS>;
-
-  for (const prefix of prefixes) {
-    if (pathname === prefix || pathname === `${prefix}/`) {
-      return { prefix, rest: '/' };
-    }
-    if (pathname.startsWith(`${prefix}/`)) {
-      return { prefix, rest: pathname.slice(prefix.length) || '/' };
-    }
-  }
-
-  return null;
-}
-
 function isProtectedPath(pathname: string): boolean {
   const normalizedPath = normalizePath(pathname);
 
   return PROTECTED_ROUTES.some((route) => {
     const normalizedRoute = normalizePath(route);
-
-    if (normalizedPath === normalizedRoute) {
-      return !ASTRO_OWNED_ROUTES.has(normalizedPath);
-    }
-
-    return normalizedPath.startsWith(`${normalizedRoute}/`);
+    return normalizedPath === normalizedRoute || normalizedPath.startsWith(`${normalizedRoute}/`);
   });
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
-  const normalizedPath = normalizePath(pathname);
 
   // SEO canonical host enforcement: redirect legacy/bare domains to www.autamedica.com
   if (import.meta.env.PROD && (requestUrl.hostname === 'autamedica.com' || requestUrl.hostname === 'autamedica-web.pages.dev')) {
@@ -236,14 +173,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (error) {
       logger.error('Middleware auth error:', error);
 
-      const bridgeOnError = resolveBridge(pathname);
-      if (bridgeOnError && !ASTRO_OWNED_ROUTES.has(normalizedPath)) {
-        const loginUrl = new URL('/auth/login', context.request.url);
-        loginUrl.searchParams.set('returnTo', pathname);
-        loginUrl.searchParams.set('portal', bridgeOnError.prefix.slice(1));
-        return context.redirect(loginUrl.toString());
-      }
-
       if (isProtectedPath(pathname)) {
         const loginUrl = new URL('/auth/login', context.request.url);
         loginUrl.searchParams.set('returnTo', pathname);
@@ -259,7 +188,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const isAuthenticated = !!session;
     const isProtectedRoute = isProtectedPath(pathname);
     const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
-    const bridge = resolveBridge(pathname);
 
     // Redirigir usuarios autenticados que intentan acceder a páginas de auth
     if (isAuthenticated && isAuthRoute) {
@@ -270,27 +198,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
 
       return context.redirect(ROLE_REDIRECTS[userRole] ?? '/');
-    }
-
-    // Bridge temporal de convivencia: rutas legacy continúan en apps Next.
-    if (bridge) {
-      if (!ASTRO_OWNED_ROUTES.has(normalizedPath)) {
-        if (!isAuthenticated) {
-          const loginUrl = new URL('/auth/login', context.request.url);
-          loginUrl.searchParams.set('returnTo', pathname);
-          const portal = bridge.prefix.slice(1);
-          loginUrl.searchParams.set('portal', portal);
-          return context.redirect(loginUrl.toString());
-        }
-
-        const envKey = PORTAL_BRIDGE_TARGETS[bridge.prefix];
-        const externalBase = parseExternalBase(import.meta.env[envKey], envKey);
-        if (!externalBase) {
-          return context.redirect('/auth/select-role');
-        }
-        const targetUrl = buildExternalUrl(externalBase, bridge.rest, requestUrl.search);
-        return context.redirect(targetUrl, 307);
-      }
     }
 
     // Redirigir usuarios no autenticados que intentan acceder a rutas protegidas

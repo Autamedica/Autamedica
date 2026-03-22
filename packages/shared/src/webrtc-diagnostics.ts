@@ -301,9 +301,9 @@ export class WebRTCDiagnostics {
     ]
 
     // Add TURN servers from environment
-    const turnUrls = process.env.NEXT_PUBLIC_TURN_URLS
-    const turnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME
-    const turnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL
+    const turnUrls = process.env.PUBLIC_TURN_URLS
+    const turnUsername = process.env.PUBLIC_TURN_USERNAME
+    const turnCredential = process.env.PUBLIC_TURN_CREDENTIAL
 
     if (turnUrls && turnUsername && turnCredential) {
       iceServers.push({

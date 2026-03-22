@@ -3,10 +3,12 @@
  *
  * Este módulo provee funciones para obtener, validar y manejar sesiones de usuario
  * con integración completa con los tipos de @autamedica/types.
+ *
+ * Framework-agnostic: lanza RedirectError que el caller (Astro middleware, etc.) debe manejar.
+ * Todas las funciones que requieren un cliente Supabase reciben un Request como parámetro.
  */
 
-import { createServerClient } from "./server";
-import { redirect } from "next/navigation";
+import { createServerClientFromRequest } from "./server";
 import type { User, UserSession } from "@autamedica/types";
 import { toISODateString } from "@autamedica/types";
 import type { UserRole, Portal } from "./roles";
@@ -38,8 +40,8 @@ function normalizeRole(role: unknown): UserRole {
 }
 
 function getCentralAuthOrigin(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.PUBLIC_APP_URL) {
+    return process.env.PUBLIC_APP_URL;
   }
 
   return process.env.NODE_ENV === 'production'
@@ -58,12 +60,28 @@ function buildCentralLoginUrl(returnTo?: string): string {
 }
 
 /**
- * Obtiene la sesión actual del usuario
+ * Redirect helper: throws a RedirectError that the caller must handle.
+ */
+export class RedirectError extends Error {
+  public readonly url: string;
+  constructor(url: string) {
+    super(`Redirect to ${url}`);
+    this.name = 'RedirectError';
+    this.url = url;
+  }
+}
+
+function performRedirect(url: string): never {
+  throw new RedirectError(url);
+}
+
+/**
+ * Obtiene la sesión actual del usuario a partir de un Request.
  * @returns La sesión del usuario o null si no está autenticado
  */
-export async function getSession(): Promise<UserSession | null> {
+export async function getSession(request: Request): Promise<UserSession | null> {
   try {
-    const supabase = await createServerClient();
+    const supabase = createServerClientFromRequest(request);
     const {
       data: { session },
       error,
@@ -73,7 +91,6 @@ export async function getSession(): Promise<UserSession | null> {
       return null;
     }
 
-    // Mapear la sesión de Supabase a nuestro tipo UserSession
     const userSession: UserSession = {
       user: {
         id: session.user.id,
@@ -96,18 +113,16 @@ export async function getSession(): Promise<UserSession | null> {
 }
 
 /**
- * Requiere una sesión válida, redirige al login si no está autenticado
- * @param redirectTo URL de redirección después del login (opcional)
- * @returns La sesión del usuario
- * @throws Redirect si no está autenticado
+ * Requiere una sesión válida, lanza RedirectError si no está autenticado.
  */
 export async function requireSession(
+  request: Request,
   redirectTo?: string
 ): Promise<UserSession> {
-  const session = await getSession();
+  const session = await getSession(request);
 
   if (!session) {
-    redirect(buildCentralLoginUrl(redirectTo));
+    performRedirect(buildCentralLoginUrl(redirectTo));
   }
 
   return session!;
@@ -115,20 +130,16 @@ export async function requireSession(
 
 /**
  * Requiere acceso a un portal específico
- * @param portal Portal requerido
- * @param redirectTo URL de redirección después del login (opcional)
- * @returns La sesión del usuario si tiene acceso
- * @throws Redirect si no tiene acceso o no está autenticado
  */
 export async function requirePortalAccess(
+  request: Request,
   portal: Portal,
   redirectTo?: string
 ): Promise<UserSession> {
-  const session = await requireSession(redirectTo);
+  const session = await requireSession(request, redirectTo);
 
   if (!canAccessPortal(session.user.role, portal)) {
-    // Redirigir al portal apropiado según el rol del usuario
-    redirect(DEFAULT_PORTAL_REDIRECT[session.user.role] || "/");
+    performRedirect(DEFAULT_PORTAL_REDIRECT[session.user.role] || "/");
   }
 
   return session;
@@ -137,48 +148,37 @@ export async function requirePortalAccess(
 /**
  * Cierra la sesión del usuario
  */
-export async function signOut() {
-  try {
-    const supabase = await createServerClient();
-    const { error } = await supabase.auth.signOut();
+export async function signOut(request: Request): Promise<never> {
+  const supabase = createServerClientFromRequest(request);
+  const { error } = await supabase.auth.signOut();
 
-    if (error) {
-      logger.error("Error signing out:", error);
-      throw new Error("Error cerrando sesión");
-    }
-
-    redirect("/");
-  } catch (error) {
-    logger.error("Error in signOut:", error);
-    throw error;
+  if (error) {
+    logger.error("Error signing out:", error);
   }
+
+  performRedirect("/");
 }
 
 /**
  * Obtiene solo el usuario actual sin la información completa de sesión
- * @returns El usuario actual o null si no está autenticado
  */
-export async function getCurrentUser(): Promise<User | null> {
-  const session = await getSession();
+export async function getCurrentUser(request: Request): Promise<User | null> {
+  const session = await getSession(request);
   return session?.user || null;
 }
 
 /**
  * Verifica si el usuario actual tiene un rol específico
- * @param role Rol a verificar
- * @returns true si el usuario tiene el rol especificado
  */
-export async function hasRole(role: UserRole): Promise<boolean> {
-  const user = await getCurrentUser();
+export async function hasRole(request: Request, role: UserRole): Promise<boolean> {
+  const user = await getCurrentUser(request);
   return user?.role === role;
 }
 
 /**
  * Verifica si el usuario actual puede acceder a un portal
- * @param portal Portal a verificar
- * @returns true si el usuario puede acceder al portal
  */
-export async function hasPortalAccess(portal: Portal): Promise<boolean> {
-  const user = await getCurrentUser();
+export async function hasPortalAccess(request: Request, portal: Portal): Promise<boolean> {
+  const user = await getCurrentUser(request);
   return user ? canAccessPortal(user.role, portal) : false;
 }

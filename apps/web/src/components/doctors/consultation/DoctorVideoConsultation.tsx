@@ -62,7 +62,7 @@ function DoctorControls() {
     // TODO(blocked): [Recording] Requiere configuración de S3/storage para grabación de consultas ticket:BACKLOG
     logger.info('Recording requested - S3 configuration needed');
     setIsRecording(true);
-    alert('Grabación iniciada (mock - requiere configuración S3)');
+    logger.warn('Grabación no disponible: requiere configuración de almacenamiento');
   };
 
   const stopRecording = async () => {

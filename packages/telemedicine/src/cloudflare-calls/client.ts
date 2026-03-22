@@ -42,7 +42,7 @@ export interface CloudflareCallsClientConfig {
   roomId?: string
   /** URL del proxy API (default: '/api/cloudflare-calls') */
   apiProxyUrl?: string
-  /** URL del servidor de señalización (default: NEXT_PUBLIC_SIGNALING_URL) */
+  /** URL del servidor de señalización (default: PUBLIC_SIGNALING_URL) */
   signalingUrl?: string
 }
 

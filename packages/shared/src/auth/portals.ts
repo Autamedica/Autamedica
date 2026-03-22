@@ -17,34 +17,34 @@ export function getPortalForRole(role: UserRole | undefined): string {
     // In development, use different ports
     switch (actualRole) {
       case 'doctor':
-        return process.env.NEXT_PUBLIC_PORTAL_DOCTORS || 'http://localhost:3001';
+        return process.env.PUBLIC_PORTAL_DOCTORS || 'http://localhost:3001';
       case 'patient':
-        return process.env.NEXT_PUBLIC_PORTAL_PATIENTS || 'http://localhost:3002';
+        return process.env.PUBLIC_PORTAL_PATIENTS || 'http://localhost:3002';
       case 'company':
       case 'company_admin':
-        return process.env.NEXT_PUBLIC_PORTAL_COMPANIES || 'http://localhost:3003';
+        return process.env.PUBLIC_PORTAL_COMPANIES || 'http://localhost:3003';
       case 'organization_admin':
       case 'platform_admin':
-        return process.env.NEXT_PUBLIC_PORTAL_ADMIN || 'http://localhost:3004';
+        return process.env.PUBLIC_PORTAL_ADMIN || 'http://localhost:3004';
       default:
-        return process.env.NEXT_PUBLIC_PORTAL_PATIENTS || 'http://localhost:3002';
+        return process.env.PUBLIC_PORTAL_PATIENTS || 'http://localhost:3002';
     }
   }
 
   // In production, use subdomains
   switch (actualRole) {
     case 'doctor':
-      return process.env.NEXT_PUBLIC_BASE_URL_DOCTORS || 'https://doctors.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_DOCTORS || 'https://doctors.autamedica.com';
     case 'patient':
-      return process.env.NEXT_PUBLIC_BASE_URL_PATIENTS || 'https://patients.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_PATIENTS || 'https://patients.autamedica.com';
     case 'company':
     case 'company_admin':
-      return process.env.NEXT_PUBLIC_BASE_URL_COMPANIES || 'https://companies.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_COMPANIES || 'https://companies.autamedica.com';
     case 'organization_admin':
     case 'platform_admin':
-      return process.env.NEXT_PUBLIC_BASE_URL_ADMIN || 'https://admin.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_ADMIN || 'https://admin.autamedica.com';
     default:
-      return process.env.NEXT_PUBLIC_BASE_URL_PATIENTS || 'https://patients.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_PATIENTS || 'https://patients.autamedica.com';
   }
 }
 
@@ -68,7 +68,7 @@ export function safeRedirectOrFallback(
   // Parse and validate absolute URLs
   try {
     const url = new URL(returnTo);
-    const allowedHosts = (process.env.NEXT_PUBLIC_ALLOWED_REDIRECTS || '')
+    const allowedHosts = (process.env.PUBLIC_ALLOWED_REDIRECTS || '')
       .split(',')
       .map(h => h.trim())
       .filter(Boolean);

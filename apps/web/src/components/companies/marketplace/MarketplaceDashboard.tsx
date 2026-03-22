@@ -53,70 +53,16 @@ const MarketplaceDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'active' | 'filled' | 'urgent'>('all');
 
-  // Mock marketplace data
   const stats: MarketplaceStats = {
-    totalJobs: 47,
-    activeJobs: 28,
-    totalApplications: 234,
-    totalViews: 1850,
-    averageTimeToFill: 18,
-    successfulHires: 15,
+    totalJobs: 0,
+    activeJobs: 0,
+    totalApplications: 0,
+    totalViews: 0,
+    averageTimeToFill: 0,
+    successfulHires: 0,
   };
 
-  const jobListings: JobListing[] = [
-    {
-      id: '1',
-      title: 'Cardiólogo Intervencionista',
-      department: 'Cardiología',
-      hospital: 'Hospital Central',
-      location: 'Buenos Aires, Argentina',
-      specialty: 'Cardiología',
-      type: 'full-time',
-      salary: { min: 8000, max: 12000, currency: 'USD' },
-      postedDate: '2025-01-15',
-      applications: 12,
-      views: 145,
-      status: 'active',
-      urgent: true,
-      description: 'Buscamos cardiólogo especializado en procedimientos intervencionistas.',
-      requirements: ['Especialidad en Cardiología', 'Experiencia 5+ años', 'Certificación internacional'],
-      benefits: ['Seguro médico familiar', 'Capacitación continua', 'Horario flexible'],
-    },
-    {
-      id: '2',
-      title: 'Enfermera Especializada UCI',
-      department: 'Cuidados Intensivos',
-      hospital: 'Clínica San Rafael',
-      location: 'Córdoba, Argentina',
-      specialty: 'Enfermería',
-      type: 'full-time',
-      salary: { min: 3500, max: 5000, currency: 'USD' },
-      postedDate: '2025-01-12',
-      applications: 28,
-      views: 187,
-      status: 'active',
-      description: 'Enfermera especializada para unidad de cuidados intensivos.',
-      requirements: ['Licenciatura en Enfermería', 'Especialización UCI', 'Experiencia 3+ años'],
-      benefits: ['Turnos rotativos', 'Bonos por desempeño', 'Capacitación especializada'],
-    },
-    {
-      id: '3',
-      title: 'Pediatra de Emergencias',
-      department: 'Pediatría',
-      hospital: 'Hospital Infantil',
-      location: 'Rosario, Argentina',
-      specialty: 'Pediatría',
-      type: 'contract',
-      salary: { min: 6000, max: 8500, currency: 'USD' },
-      postedDate: '2025-01-08',
-      applications: 8,
-      views: 92,
-      status: 'filled',
-      description: 'Pediatra para guardia de emergencias en hospital infantil.',
-      requirements: ['Especialidad en Pediatría', 'Experiencia emergencias', 'Disponibilidad guardias'],
-      benefits: ['Contrato temporal', 'Pago competitivo', 'Experiencia especializada'],
-    },
-  ];
+  const jobListings: JobListing[] = [];
 
   const filteredJobs = jobListings.filter(job => {
     const matchesSearch = searchTerm === '' ||
@@ -194,7 +140,7 @@ const MarketplaceDashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <Briefcase className="w-5 h-5 text-blue-400" />
               <span className="text-xs px-2 py-1 rounded-full bg-blue-600 text-white">
-                +{Math.round((stats.activeJobs / stats.totalJobs) * 100)}%
+                {stats.totalJobs > 0 ? `+${Math.round((stats.activeJobs / stats.totalJobs) * 100)}%` : '--'}
               </span>
             </div>
             <div className="text-2xl font-bold text-white">{stats.totalJobs}</div>
@@ -214,7 +160,7 @@ const MarketplaceDashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <Users className="w-5 h-5 text-purple-400" />
               <span className="text-xs px-2 py-1 rounded-full bg-purple-600 text-white">
-                +{Math.round((stats.totalApplications / stats.totalJobs))}
+                {stats.totalJobs > 0 ? `+${Math.round(stats.totalApplications / stats.totalJobs)}` : '--'}
               </span>
             </div>
             <div className="text-2xl font-bold text-white">{stats.totalApplications}</div>

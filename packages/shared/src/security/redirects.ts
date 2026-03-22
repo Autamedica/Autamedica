@@ -8,7 +8,7 @@
  * Example: "https://autamedica-*.pages.dev,https://*.autamedica.com"
  */
 function getAllowedPatterns(): string[] {
-  const envPatterns = process.env.NEXT_PUBLIC_ALLOWED_REDIRECTS || '';
+  const envPatterns = process.env.PUBLIC_ALLOWED_REDIRECTS || '';
   const patterns = envPatterns
     .split(',')
     .map(s => s.trim())
@@ -16,11 +16,11 @@ function getAllowedPatterns(): string[] {
 
   // Always include our known Cloudflare Pages URLs
   const defaultPatterns = [
-    process.env.NEXT_PUBLIC_BASE_URL_PATIENTS,
-    process.env.NEXT_PUBLIC_BASE_URL_DOCTORS,
-    process.env.NEXT_PUBLIC_BASE_URL_COMPANIES,
-    process.env.NEXT_PUBLIC_BASE_URL_ADMIN,
-    process.env.NEXT_PUBLIC_BASE_URL_WEB_APP,
+    process.env.PUBLIC_BASE_URL_PATIENTS,
+    process.env.PUBLIC_BASE_URL_DOCTORS,
+    process.env.PUBLIC_BASE_URL_COMPANIES,
+    process.env.PUBLIC_BASE_URL_ADMIN,
+    process.env.PUBLIC_BASE_URL_WEB_APP,
   ].filter((url): url is string => Boolean(url));
 
   return [...patterns, ...defaultPatterns];
@@ -140,10 +140,10 @@ function inferFallbackAuthOrigin(returnTo?: string | null): string {
 
 function resolveAuthBaseOrigin(returnTo?: string | null): string {
   const candidates = [
-    process.env.NEXT_PUBLIC_BASE_URL_AUTH,
-    process.env.NEXT_PUBLIC_AUTH_URL,
-    process.env.NEXT_PUBLIC_BASE_URL_WEB,
-    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.PUBLIC_BASE_URL_AUTH,
+    process.env.PUBLIC_AUTH_URL,
+    process.env.PUBLIC_BASE_URL_WEB,
+    process.env.PUBLIC_SITE_URL,
   ];
 
   for (const candidate of candidates) {

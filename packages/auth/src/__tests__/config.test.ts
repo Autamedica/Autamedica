@@ -24,25 +24,25 @@ describe('Config Utilities', () => {
   // ──────────────────────────────────────────────────────────────────
   describe('getEnvironment', () => {
     it('should return development by default', () => {
-      delete process.env.NEXT_PUBLIC_NODE_ENV
+      delete process.env.PUBLIC_NODE_ENV
       delete process.env.NODE_ENV
       expect(getEnvironment()).toBe('development')
     })
 
     it('should return production when NODE_ENV is production', () => {
       process.env.NODE_ENV = 'production'
-      delete process.env.NEXT_PUBLIC_NODE_ENV
+      delete process.env.PUBLIC_NODE_ENV
       expect(getEnvironment()).toBe('production')
     })
 
     it('should return staging when NODE_ENV is staging', () => {
       process.env.NODE_ENV = 'staging'
-      delete process.env.NEXT_PUBLIC_NODE_ENV
+      delete process.env.PUBLIC_NODE_ENV
       expect(getEnvironment()).toBe('staging')
     })
 
-    it('should prefer NEXT_PUBLIC_NODE_ENV over NODE_ENV', () => {
-      process.env.NEXT_PUBLIC_NODE_ENV = 'production'
+    it('should prefer PUBLIC_NODE_ENV over NODE_ENV', () => {
+      process.env.PUBLIC_NODE_ENV = 'production'
       process.env.NODE_ENV = 'development'
       expect(getEnvironment()).toBe('production')
     })
@@ -53,7 +53,7 @@ describe('Config Utilities', () => {
   // ──────────────────────────────────────────────────────────────────
   describe('getDomainConfig', () => {
     it('should return development config by default', () => {
-      delete process.env.NEXT_PUBLIC_NODE_ENV
+      delete process.env.PUBLIC_NODE_ENV
       delete process.env.NODE_ENV
       const config = getDomainConfig()
 
@@ -65,7 +65,7 @@ describe('Config Utilities', () => {
 
     it('should return production config', () => {
       process.env.NODE_ENV = 'production'
-      delete process.env.NEXT_PUBLIC_NODE_ENV
+      delete process.env.PUBLIC_NODE_ENV
       const config = getDomainConfig()
 
       expect(config.base).toBe('autamedica.com')
@@ -75,7 +75,7 @@ describe('Config Utilities', () => {
 
     it('should return staging config', () => {
       process.env.NODE_ENV = 'staging'
-      delete process.env.NEXT_PUBLIC_NODE_ENV
+      delete process.env.PUBLIC_NODE_ENV
       const config = getDomainConfig()
 
       expect(config.base).toBe('pages.dev')

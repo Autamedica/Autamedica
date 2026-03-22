@@ -14,7 +14,7 @@ interface ClientWrapperProps {
 export function ClientWrapper({ children }: ClientWrapperProps) {
   const handleAuthStateChange = (state: AuthState) => {
     if (!state.session && !state.loading) {
-      const authOrigin = getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', isProduction() ? 'https://www.autamedica.com' : 'http://localhost:3000');
+      const authOrigin = getClientEnvOrDefault('PUBLIC_APP_URL', isProduction() ? 'https://www.autamedica.com' : 'http://localhost:3000');
       const loginUrl = new URL('/auth/login', authOrigin)
       loginUrl.searchParams.set('portal', 'doctors')
       window.location.href = loginUrl.toString()

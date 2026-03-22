@@ -8,7 +8,7 @@ import type { DomainConfig, Environment, SessionConfig } from '../types'
  * Get the current environment
  */
 export function getEnvironment(): Environment {
-  const env = process.env.NEXT_PUBLIC_NODE_ENV || process.env.NODE_ENV || 'development'
+  const env = process.env.PUBLIC_NODE_ENV || process.env.NODE_ENV || 'development'
 
   if (env === 'production') return 'production'
   if (env === 'staging') return 'staging'
@@ -84,14 +84,12 @@ export function getSessionConfig(): SessionConfig {
 export function getSupabaseConfig() {
   const env = getEnvironment()
 
-  // Production and staging use the same Supabase instance for now
-  // In a real production setup, these would be different
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const url = process.env.PUBLIC_SUPABASE_URL
+  const anonKey = process.env.PUBLIC_SUPABASE_ANON_KEY
 
   // Validate configuration - NO FALLBACKS for security
   if (!url || !anonKey) {
-    throw new Error('Supabase configuration is missing. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    throw new Error('Supabase configuration is missing. Please set PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY')
   }
 
   // Development localhost override if needed

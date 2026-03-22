@@ -10,8 +10,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Set env vars BEFORE module loads so Supabase lazy client can init
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
+process.env.PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 
 // Mock de Supabase client
 const mockSupabase = {

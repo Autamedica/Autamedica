@@ -17,27 +17,27 @@ export const featureFlags = {
   // ===================
 
   /** Usar mock de video stream en lugar de WebRTC real */
-  USE_MOCK_VIDEO: process.env.NEXT_PUBLIC_USE_MOCK_VIDEO === 'true',
+  USE_MOCK_VIDEO: process.env.PUBLIC_USE_MOCK_VIDEO === 'true',
 
   /** Usar LiveKit para video calling real */
-  USE_LIVEKIT: process.env.NEXT_PUBLIC_USE_LIVEKIT === 'true',
+  USE_LIVEKIT: process.env.PUBLIC_USE_LIVEKIT === 'true',
 
   // ===================
   // Medical Data
   // ===================
 
   /** Usar datos médicos simulados en lugar de Supabase */
-  USE_MOCK_MEDICAL_DATA: process.env.NEXT_PUBLIC_USE_MOCK_MEDICAL_DATA === 'true',
+  USE_MOCK_MEDICAL_DATA: process.env.PUBLIC_USE_MOCK_MEDICAL_DATA === 'true',
 
   // ===================
   // AI Services
   // ===================
 
   /** Usar análisis de IA simulados */
-  USE_MOCK_AI: process.env.NEXT_PUBLIC_USE_MOCK_AI === 'true',
+  USE_MOCK_AI: process.env.PUBLIC_USE_MOCK_AI === 'true',
 
   /** Proveedor de AI a usar: 'anthropic' | 'google' | 'auto' */
-  AI_PROVIDER: (process.env.NEXT_PUBLIC_AI_PROVIDER || 'auto') as 'anthropic' | 'google' | 'auto',
+  AI_PROVIDER: (process.env.PUBLIC_AI_PROVIDER || 'auto') as 'anthropic' | 'google' | 'auto',
 
   /** Verificar si Anthropic Claude está disponible */
   USE_ANTHROPIC_AI: typeof process.env.ANTHROPIC_API_KEY !== 'undefined' &&
@@ -62,10 +62,10 @@ export const featureFlags = {
 
   /** Ambiente de desarrollo */
   IS_DEVELOPMENT: process.env.NODE_ENV === 'development' ||
-                  process.env.NEXT_PUBLIC_ENV === 'development',
+                  process.env.PUBLIC_ENV === 'development',
 
   /** Ambiente de staging */
-  IS_STAGING: process.env.NEXT_PUBLIC_ENV === 'staging',
+  IS_STAGING: process.env.PUBLIC_ENV === 'staging',
 
   /** Modo de testing (E2E, etc.) */
   IS_TESTING: process.env.NODE_ENV === 'test' ||
@@ -152,7 +152,7 @@ export function validateFeatureFlags(): void {
   if (featureFlags.IS_PRODUCTION && isMockMode()) {
     throw new Error(
       'FATAL: Mocks cannot be active in production environment. ' +
-      'Check NEXT_PUBLIC_USE_MOCK_* environment variables.'
+      'Check PUBLIC_USE_MOCK_* environment variables.'
     );
   }
 }

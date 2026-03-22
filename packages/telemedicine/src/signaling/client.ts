@@ -21,7 +21,7 @@ export class SignalingClient {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const signalingUrl = ensureClientEnv('NEXT_PUBLIC_SIGNALING_URL')
+        const signalingUrl = ensureClientEnv('PUBLIC_SIGNALING_URL')
         let wsUrl = `${signalingUrl}?userId=${this.userId}&userType=${this.userType}`
 
         if (this.roomId) {

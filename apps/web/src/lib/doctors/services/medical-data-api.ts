@@ -20,10 +20,10 @@ import { createClient } from '@supabase/supabase-js';
 // Cliente de Supabase (solo se inicializa si NO usamos mocks)
 const supabase = !featureFlags.USE_MOCK_MEDICAL_DATA
   ? (() => {
-    const url = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_URL');
-    const anonKey = getOptionalClientEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    const url = getOptionalClientEnv('PUBLIC_SUPABASE_URL');
+    const anonKey = getOptionalClientEnv('PUBLIC_SUPABASE_ANON_KEY');
 
-    // Solo inicializa si los valores existen (en el servidor/build podrían faltar sin NEXT_PUBLIC_)
+    // Solo inicializa si los valores existen (en el servidor/build podrían faltar sin PUBLIC_)
     if (url && anonKey) {
       return createClient<Database>(url, anonKey);
     }
@@ -124,54 +124,8 @@ class MedicalDataAPI {
     }
   }
 
-  private getMockVitalSigns(patientId: UUID): Promise<VitalSigns[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockData = patientId === '550e8400-e29b-41d4-a716-446655440000' ? [
-          {
-            id: '1' as UUID,
-            patient_id: patientId,
-            recorded_by_id: '660f9500-f30c-52e5-b827-556766550001' as UUID,
-            recorded_at: new Date().toISOString(),
-            blood_pressure_systolic: 120,
-            blood_pressure_diastolic: 80,
-            heart_rate: 72,
-            temperature: 36.5,
-            respiratory_rate: 16,
-            oxygen_saturation: 98,
-            weight: 65.5,
-            height: 168,
-            bmi: 23.2,
-            pain_scale: 0,
-            notes: 'Signos vitales dentro de parámetros normales. Paciente estable.',
-            measurement_context: 'routine_checkup',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: '2' as UUID,
-            patient_id: patientId,
-            recorded_by_id: '660f9500-f30c-52e5-b827-556766550001' as UUID,
-            recorded_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            blood_pressure_systolic: 125,
-            blood_pressure_diastolic: 82,
-            heart_rate: 75,
-            temperature: 36.4,
-            respiratory_rate: 15,
-            oxygen_saturation: 97,
-            weight: 65.8,
-            height: 168,
-            bmi: 23.3,
-            pain_scale: 1,
-            notes: 'Leve aumento en presión arterial, seguimiento necesario.',
-            measurement_context: 'follow_up',
-            created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ] as unknown as VitalSigns[] : [] as VitalSigns[]
-        resolve(mockData)
-      }, 100) // Simular latencia de red
-    })
+  private getMockVitalSigns(_patientId: UUID): Promise<VitalSigns[]> {
+    return Promise.resolve([])
   }
 
   // Historial médico
@@ -221,59 +175,12 @@ class MedicalDataAPI {
   }
 
   private getMockMedicalRecords(
-    patientId: UUID,
-    filters: MedicalRecordFilters = {},
-    page = 0,
-    pageSize = 10
+    _patientId: UUID,
+    _filters: MedicalRecordFilters = {},
+    _page = 0,
+    _pageSize = 10
   ): Promise<{ records: MedicalRecord[]; hasMore: boolean }> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockRecords = patientId === '550e8400-e29b-41d4-a716-446655440000' ? [
-          {
-            id: '1' as UUID,
-            patient_id: patientId,
-            doctor_id: '660f9500-f30c-52e5-b827-556766550001' as UUID,
-            consultation_date: new Date().toISOString(),
-            consultation_type: 'consulta_general',
-            chief_complaint: 'Control de diabetes tipo 2',
-            diagnosis: 'Diabetes mellitus tipo 2 estable',
-            treatment: 'Continuar con metformina 850mg c/12h',
-            notes: 'Paciente con buen control glicémico. HbA1c 6.8%',
-            follow_up_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: '2' as UUID,
-            patient_id: patientId,
-            doctor_id: '660f9500-f30c-52e5-b827-556766550001' as UUID,
-            consultation_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            consultation_type: 'seguimiento',
-            chief_complaint: 'Seguimiento diabetes',
-            diagnosis: 'Diabetes mellitus tipo 2 en control',
-            treatment: 'Ajuste de dosis de metformina',
-            notes: 'Mejora en niveles de glucosa. Continuar tratamiento.',
-            follow_up_date: new Date().toISOString(),
-            created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ] as unknown as MedicalRecord[] : [] as MedicalRecord[]
-
-        // Aplicar filtros
-        const filteredRecords = mockRecords
-          .filter((record: MedicalRecord) => !filters.consultation_type || record.consultation_type === filters.consultation_type)
-          .filter((record: MedicalRecord) => !filters.diagnosis_contains || record.diagnosis?.toLowerCase().includes(filters.diagnosis_contains.toLowerCase()))
-
-        const startIndex = page * pageSize
-        const paginatedRecords = filteredRecords.slice(startIndex, startIndex + pageSize)
-        const hasMore = startIndex + pageSize < filteredRecords.length
-
-        resolve({
-          records: paginatedRecords,
-          hasMore
-        })
-      }, 150) // Simular latencia de red
-    })
+    return Promise.resolve({ records: [], hasMore: false })
   }
 
   // Prescripciones
@@ -326,54 +233,8 @@ class MedicalDataAPI {
   }
 
   // Análisis de IA
-  async getAIAnalyses(patientId: UUID): Promise<AIAnalysis[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockAnalyses = patientId === '550e8400-e29b-41d4-a716-446655440000' ? [
-          {
-            id: '1' as UUID,
-            patient_id: patientId,
-            created_by_id: '660f9500-f30c-52e5-b827-556766550001' as UUID,
-            input_text: 'Paciente con diabetes tipo 2, presenta fatiga y visión borrosa ocasional',
-            input_symptoms: ['fatiga', 'visión borrosa'],
-            diagnosis_suggestions: [
-              {
-                condition: 'Diabetes mellitus tipo 2 descompensada',
-                confidence: 0.85,
-                reasoning: 'Los síntomas concuerdan con hiperglicemia',
-                icd_code: 'E11.9'
-              },
-              {
-                condition: 'Retinopatía diabética incipiente',
-                confidence: 0.65,
-                reasoning: 'Visión borrosa en paciente diabético',
-                icd_code: 'H36.0'
-              }
-            ],
-            treatment_suggestions: [
-              {
-                type: 'medication',
-                suggestion: 'Ajustar dosis de metformina',
-                priority: 'high',
-                reasoning: 'Control glicémico subóptimo'
-              },
-              {
-                type: 'lifestyle',
-                suggestion: 'Evaluación oftalmológica urgente',
-                priority: 'high',
-                reasoning: 'Prevenir progresión de retinopatía'
-              }
-            ],
-            confidence_score: 0.82,
-            analysis_model: 'AltaAgent-Medical-v1.0',
-            reviewed_by_doctor: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ] as unknown as AIAnalysis[] : [] as AIAnalysis[]
-        resolve(mockAnalyses)
-      }, 200) // Simular latencia de red
-    })
+  async getAIAnalyses(_patientId: UUID): Promise<AIAnalysis[]> {
+    return []
   }
 }
 

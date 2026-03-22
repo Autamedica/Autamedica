@@ -67,7 +67,7 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
   const normalizedConfig = useMemo(
     () => ({
       signalingUrl:
-        config.signalingUrl ?? getClientEnvOrDefault('NEXT_PUBLIC_SIGNALING_URL', 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling'),
+        config.signalingUrl ?? getClientEnvOrDefault('PUBLIC_SIGNALING_URL', 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling'),
       roomId: config.roomId,
       userId: config.userId,
       userType: config.userType as 'doctor' | 'patient' | 'nurse',

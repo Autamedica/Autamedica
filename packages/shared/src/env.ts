@@ -6,6 +6,14 @@ import { logger } from './services/logger.service';
 const processRef = typeof process !== 'undefined' ? process : null;
 
 /**
+ * Resolve a client env var by name.
+ * All client vars use the PUBLIC_* prefix (Astro convention).
+ */
+function resolveClientEnv(name: string): string | undefined {
+  return processRef?.env?.[name] ?? undefined;
+}
+
+/**
  * Check if the current environment is production
  * @returns true if NODE_ENV is 'production'
  */
@@ -88,70 +96,70 @@ export interface EnvironmentConfig {
   };
 }
 
-// Lista de variables client-side permitidas
+// Lista de variables client-side permitidas (PUBLIC_* prefix — Astro convention)
 const ALLOWED_CLIENT_VARS = new Set([
   // URLs y configuración pública
-  "NEXT_PUBLIC_API_URL",
-  "NEXT_PUBLIC_APP_URL",
-  "NEXT_PUBLIC_AUTH_HUB_URL",
-  "NEXT_PUBLIC_AUTH_HUB_DEV_URL",
-  "NEXT_PUBLIC_SITE_URL",
-  "NEXT_PUBLIC_DOCTORS_URL",
-  "NEXT_PUBLIC_DOCTORS_DEV_URL",
-  "NEXT_PUBLIC_PATIENTS_URL",
-  "NEXT_PUBLIC_PATIENTS_DEV_URL",
-  "NEXT_PUBLIC_COMPANIES_URL",
-  "NEXT_PUBLIC_SIGNALING_URL",
-  "NEXT_PUBLIC_AUTH_DEV_BYPASS",
+  "PUBLIC_API_URL",
+  "PUBLIC_APP_URL",
+  "PUBLIC_AUTH_HUB_URL",
+  "PUBLIC_AUTH_HUB_DEV_URL",
+  "PUBLIC_SITE_URL",
+  "PUBLIC_DOCTORS_URL",
+  "PUBLIC_DOCTORS_DEV_URL",
+  "PUBLIC_PATIENTS_URL",
+  "PUBLIC_PATIENTS_DEV_URL",
+  "PUBLIC_COMPANIES_URL",
+  "PUBLIC_SIGNALING_URL",
+  "PUBLIC_AUTH_DEV_BYPASS",
 
   // Supabase (cliente)
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "PUBLIC_SUPABASE_URL",
+  "PUBLIC_SUPABASE_ANON_KEY",
 
   // Auth callback
-  "NEXT_PUBLIC_AUTH_CALLBACK_URL",
+  "PUBLIC_AUTH_CALLBACK_URL",
 
   // Monitoring (cliente)
-  "NEXT_PUBLIC_SENTRY_DSN",
+  "PUBLIC_SENTRY_DSN",
 
   // reCAPTCHA (cliente)
-  "NEXT_PUBLIC_RECAPTCHA_SITE_KEY",
-  "NEXT_PUBLIC_RECAPTCHA_SITE_KEY_WEB",
-  "NEXT_PUBLIC_RECAPTCHA_SITE_KEY_IOS",
-  "NEXT_PUBLIC_RECAPTCHA_SITE_KEY_ANDROID",
+  "PUBLIC_RECAPTCHA_SITE_KEY",
+  "PUBLIC_RECAPTCHA_SITE_KEY_WEB",
+  "PUBLIC_RECAPTCHA_SITE_KEY_IOS",
+  "PUBLIC_RECAPTCHA_SITE_KEY_ANDROID",
 
   // Maps y geolocalización (cliente)
-  "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
-  "NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN",
+  "PUBLIC_GOOGLE_MAPS_API_KEY",
+  "PUBLIC_MAPBOX_ACCESS_TOKEN",
 
   // WebRTC y telemedicina (cliente)
-  "NEXT_PUBLIC_ICE_SERVERS",
-  "NEXT_PUBLIC_STUN_SERVER",
-  "NEXT_PUBLIC_WEBRTC_SIGNALING_URL",
-  "NEXT_PUBLIC_MEDIASOUP_URL",
+  "PUBLIC_ICE_SERVERS",
+  "PUBLIC_STUN_SERVER",
+  "PUBLIC_WEBRTC_SIGNALING_URL",
+  "PUBLIC_MEDIASOUP_URL",
 
-  // IA (cliente) - ⚠️ CUIDADO: Evaluar si es realmente necesario
-  "NEXT_PUBLIC_OPENAI_API_KEY",
+  // IA (cliente)
+  "PUBLIC_OPENAI_API_KEY",
 
   // Feature flags (cliente)
-  "NEXT_PUBLIC_AI_PREDICTOR_ENABLED",
-  "NEXT_PUBLIC_PATIENT_CRYSTAL_BALL_ENABLED",
-  "NEXT_PUBLIC_DIGITAL_PRESCRIPTION_ENABLED",
-  "NEXT_PUBLIC_AI_ASSISTANT_ENABLED",
-  "NEXT_PUBLIC_MARKETPLACE_ENABLED",
-  "NEXT_PUBLIC_HOSPITAL_REDISTRIBUTION_ENABLED",
-  "NEXT_PUBLIC_WHATSAPP_BUSINESS_ENABLED",
-  "NEXT_PUBLIC_IOT_SENSORS_ENABLED",
-  "NEXT_PUBLIC_HOSPITAL_API_ENABLED",
-  "NEXT_PUBLIC_ADMIN_PANEL_ENABLED",
-  "NEXT_PUBLIC_PROMETHEUS_ENABLED",
-  "NEXT_PUBLIC_HIPAA_AUDIT_ENABLED",
-  "NEXT_PUBLIC_REQUIRE_AUTH",
-  "NEXT_PUBLIC_DATABASE_ADMIN_ENABLED",
-  "NEXT_PUBLIC_AUDIT_LOGS_ENABLED",
+  "PUBLIC_AI_PREDICTOR_ENABLED",
+  "PUBLIC_PATIENT_CRYSTAL_BALL_ENABLED",
+  "PUBLIC_DIGITAL_PRESCRIPTION_ENABLED",
+  "PUBLIC_AI_ASSISTANT_ENABLED",
+  "PUBLIC_MARKETPLACE_ENABLED",
+  "PUBLIC_HOSPITAL_REDISTRIBUTION_ENABLED",
+  "PUBLIC_WHATSAPP_BUSINESS_ENABLED",
+  "PUBLIC_IOT_SENSORS_ENABLED",
+  "PUBLIC_HOSPITAL_API_ENABLED",
+  "PUBLIC_ADMIN_PANEL_ENABLED",
+  "PUBLIC_PROMETHEUS_ENABLED",
+  "PUBLIC_HIPAA_AUDIT_ENABLED",
+  "PUBLIC_REQUIRE_AUTH",
+  "PUBLIC_DATABASE_ADMIN_ENABLED",
+  "PUBLIC_AUDIT_LOGS_ENABLED",
 ]);
 
-// Lista de variables server-only prohibidas en cliente (variables que NO deben ser expuestas como NEXT_PUBLIC_)
+// Lista de variables server-only prohibidas en cliente (variables que NO deben ser expuestas como PUBLIC_)
 const SERVER_ONLY_VARS = new Set([
   // Secrets críticos de seguridad
   "JWT_SECRET",
@@ -203,56 +211,54 @@ export function ensureEnv(name: string): string {
 function assertClientEnvAllowed(name: string) {
   if (!ALLOWED_CLIENT_VARS.has(name)) {
     throw new Error(
-      `Invalid client environment variable: ${name}. Only approved NEXT_PUBLIC_* variables are allowed on client side.`,
+      `Invalid client environment variable: ${name}. Only approved PUBLIC_* variables are allowed on client side.`,
     );
   }
 
-  if (SERVER_ONLY_VARS.has(name.replace("NEXT_PUBLIC_", ""))) {
+  const bareName = name.replace("PUBLIC_", "");
+  if (SERVER_ONLY_VARS.has(bareName)) {
     throw new Error(
       `Security violation: ${name} appears to be a server-only variable exposed to client`,
     );
   }
 }
 
-// Mapa de variables de entorno del cliente para acceso estático
-// Next.js solo puede inyectar variables NEXT_PUBLIC_* con acceso estático
+// Mapa de variables de entorno del cliente para acceso estático.
 const CLIENT_ENV_MAP: Record<string, string | undefined> = Array.from(ALLOWED_CLIENT_VARS).reduce(
   (acc, key) => {
-    acc[key] = process.env[key];
+    acc[key] = resolveClientEnv(key);
     return acc;
   },
   {} as Record<string, string | undefined>
 );
 
-// Utilidad específica para variables de entorno del cliente (NEXT_PUBLIC_*)
-// Helper to read known NEXT_PUBLIC_* keys via direct property access so Next.js can inline them
+// Helper to read known client env keys via direct property access (Vite/Astro inlining).
 function readKnownClientEnv(name: string): string | undefined {
-  // Important: keep direct property access for Next.js compile-time inlining
   switch (name) {
-    case 'NEXT_PUBLIC_SUPABASE_URL':
-      return process.env.NEXT_PUBLIC_SUPABASE_URL;
-    case 'NEXT_PUBLIC_SUPABASE_ANON_KEY':
-      return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    case 'NEXT_PUBLIC_AUTH_HUB_URL':
-      return process.env.NEXT_PUBLIC_AUTH_HUB_URL;
-    case 'NEXT_PUBLIC_AUTH_HUB_DEV_URL':
-      return process.env.NEXT_PUBLIC_AUTH_HUB_DEV_URL;
-    case 'NEXT_PUBLIC_PATIENTS_DEV_URL':
-      return process.env.NEXT_PUBLIC_PATIENTS_DEV_URL;
-    case 'NEXT_PUBLIC_PATIENTS_URL':
-      return process.env.NEXT_PUBLIC_PATIENTS_URL;
-    case 'NEXT_PUBLIC_DOCTORS_DEV_URL':
-      return process.env.NEXT_PUBLIC_DOCTORS_DEV_URL;
-    case 'NEXT_PUBLIC_DOCTORS_URL':
-      return process.env.NEXT_PUBLIC_DOCTORS_URL;
-    case 'NEXT_PUBLIC_SIGNALING_URL':
-      return process.env.NEXT_PUBLIC_SIGNALING_URL;
-    case 'NEXT_PUBLIC_APP_URL':
-      return process.env.NEXT_PUBLIC_APP_URL;
-    case 'NEXT_PUBLIC_SITE_URL':
-      return process.env.NEXT_PUBLIC_SITE_URL;
-    case 'NEXT_PUBLIC_API_URL':
-      return process.env.NEXT_PUBLIC_API_URL;
+    case 'PUBLIC_SUPABASE_URL':
+      return process.env.PUBLIC_SUPABASE_URL;
+    case 'PUBLIC_SUPABASE_ANON_KEY':
+      return process.env.PUBLIC_SUPABASE_ANON_KEY;
+    case 'PUBLIC_AUTH_HUB_URL':
+      return process.env.PUBLIC_AUTH_HUB_URL;
+    case 'PUBLIC_AUTH_HUB_DEV_URL':
+      return process.env.PUBLIC_AUTH_HUB_DEV_URL;
+    case 'PUBLIC_PATIENTS_DEV_URL':
+      return process.env.PUBLIC_PATIENTS_DEV_URL;
+    case 'PUBLIC_PATIENTS_URL':
+      return process.env.PUBLIC_PATIENTS_URL;
+    case 'PUBLIC_DOCTORS_DEV_URL':
+      return process.env.PUBLIC_DOCTORS_DEV_URL;
+    case 'PUBLIC_DOCTORS_URL':
+      return process.env.PUBLIC_DOCTORS_URL;
+    case 'PUBLIC_SIGNALING_URL':
+      return process.env.PUBLIC_SIGNALING_URL;
+    case 'PUBLIC_APP_URL':
+      return process.env.PUBLIC_APP_URL;
+    case 'PUBLIC_SITE_URL':
+      return process.env.PUBLIC_SITE_URL;
+    case 'PUBLIC_API_URL':
+      return process.env.PUBLIC_API_URL;
     default:
       return undefined;
   }
@@ -263,13 +269,12 @@ export function ensureClientEnv(name: string): string {
 
   // Try static map first (server-side and build-time)
   let value = CLIENT_ENV_MAP[name];
-  // Fallback for client-side: use direct property access to allow Next.js inlining
+  // Fallback for client-side: use direct property access to allow Vite inlining
   if (!value) {
     value = readKnownClientEnv(name);
   }
   if (!value) {
-    // Last resort (server-side)
-    value = process.env[name];
+    value = resolveClientEnv(name);
   }
   if (!value) {
     throw new Error(`Missing required client environment variable: ${name}`);
@@ -282,21 +287,21 @@ export function getClientEnvOrDefault(name: string, defaultValue: string): strin
   return (
     CLIENT_ENV_MAP[name] ??
     readKnownClientEnv(name) ??
-    process.env[name] ??
+    resolveClientEnv(name) ??
     defaultValue
   );
 }
 
 export function getOptionalClientEnv(name: string): string | undefined {
   assertClientEnvAllowed(name);
-  return CLIENT_ENV_MAP[name] ?? process.env[name] ?? undefined;
+  return CLIENT_ENV_MAP[name] ?? resolveClientEnv(name) ?? undefined;
 }
 
-// Utilidad específica para variables de entorno del servidor (sin NEXT_PUBLIC_)
+// Utilidad específica para variables de entorno del servidor (sin PUBLIC_)
 export function ensureServerEnv(name: string): string {
-  if (name.startsWith("NEXT_PUBLIC_")) {
+  if (name.startsWith("PUBLIC_")) {
     throw new Error(
-      `Invalid server environment variable: ${name}. Server-side code should not use NEXT_PUBLIC_ variables directly.`,
+      `Invalid server environment variable: ${name}. Server-side code should not use PUBLIC_ variables directly.`,
     );
   }
 
@@ -308,9 +313,9 @@ export function ensureServerEnv(name: string): string {
 }
 
 export function getServerEnvOrDefault(name: string, defaultValue?: string): string | undefined {
-  if (name.startsWith("NEXT_PUBLIC_")) {
+  if (name.startsWith("PUBLIC_")) {
     throw new Error(
-      `Invalid server environment variable: ${name}. Server-side code should not use NEXT_PUBLIC_ variables directly.`,
+      `Invalid server environment variable: ${name}. Server-side code should not use PUBLIC_ variables directly.`,
     );
   }
 
@@ -322,26 +327,26 @@ export function getServerEnvOrDefault(name: string, defaultValue?: string): stri
 export function validateEnvironment(): EnvironmentConfig {
   // Validar variables obligatorias del cliente
   const client = {
-    apiUrl: ensureClientEnv("NEXT_PUBLIC_API_URL"),
-    appUrl: ensureClientEnv("NEXT_PUBLIC_APP_URL"),
-    siteUrl: ensureClientEnv("NEXT_PUBLIC_SITE_URL"),
+    apiUrl: ensureClientEnv("PUBLIC_API_URL"),
+    appUrl: ensureClientEnv("PUBLIC_APP_URL"),
+    siteUrl: ensureClientEnv("PUBLIC_SITE_URL"),
     supabase: {
-      url: ensureClientEnv("NEXT_PUBLIC_SUPABASE_URL"),
-      anonKey: ensureClientEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+      url: ensureClientEnv("PUBLIC_SUPABASE_URL"),
+      anonKey: ensureClientEnv("PUBLIC_SUPABASE_ANON_KEY"),
     },
-    recaptcha: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-      ? { siteKey: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }
+    recaptcha: resolveClientEnv('PUBLIC_RECAPTCHA_SITE_KEY')
+      ? { siteKey: resolveClientEnv('PUBLIC_RECAPTCHA_SITE_KEY')! }
       : undefined,
     analytics: {
-      sentryDsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-      gaTrackingId: undefined, // Deprecated
+      sentryDsn: resolveClientEnv('PUBLIC_SENTRY_DSN'),
+      gaTrackingId: undefined,
     },
   };
 
   // Validar variables críticas del servidor
   const server = {
     supabase: {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", // Usamos la misma URL
+      url: resolveClientEnv('PUBLIC_SUPABASE_URL') ?? "",
       serviceRoleKey: ensureServerEnv("SUPABASE_SERVICE_ROLE_KEY"),
     },
     jwt: {
@@ -349,8 +354,8 @@ export function validateEnvironment(): EnvironmentConfig {
       refreshSecret: ensureServerEnv("JWT_REFRESH_SECRET"),
     },
     urls: {
-      api: ensureClientEnv("NEXT_PUBLIC_API_URL"), // API URL es la misma
-      webApp: ensureClientEnv("NEXT_PUBLIC_APP_URL"), // App URL es la misma
+      api: ensureClientEnv("PUBLIC_API_URL"),
+      webApp: ensureClientEnv("PUBLIC_APP_URL"),
     },
     security: {
       phiEncryptionKey: ensureServerEnv("ENCRYPTION_KEY"),
@@ -418,9 +423,9 @@ export function validateProductionEnvironment(): EnvironmentValidation {
   });
 
   // Verificar monitoring
-  const monitoringVars = ["NEXT_PUBLIC_SENTRY_DSN"];
+  const monitoringVars = ["PUBLIC_SENTRY_DSN"];
   const monitoring = monitoringVars.every((varName) => {
-    const value = process.env[varName];
+    const value = resolveClientEnv(varName);
     if (!value) {
       issues.push(`Missing monitoring variable: ${varName}`);
       return false;
@@ -457,9 +462,9 @@ export function validateProductionEnvironment(): EnvironmentValidation {
 
 // Utilidad para verificar que no haya variables mal configuradas
 export function validateEnvironmentSecurity(): void {
-  // Verificar que no hay variables server-only expuestas como NEXT_PUBLIC_
+  // Verificar que no hay variables server-only expuestas como PUBLIC_
   for (const serverVar of Array.from(SERVER_ONLY_VARS)) {
-    const exposedVar = `NEXT_PUBLIC_${serverVar}`;
+    const exposedVar = `PUBLIC_${serverVar}`;
     if (process.env[exposedVar]) {
       throw new Error(
         `Security violation: Server-only variable ${serverVar} is exposed as ${exposedVar}`,
@@ -469,11 +474,11 @@ export function validateEnvironmentSecurity(): void {
 
   // Verificación especial para OPENAI_API_KEY expuesto al cliente
   if (
-    process.env.NEXT_PUBLIC_OPENAI_API_KEY &&
+    resolveClientEnv('PUBLIC_OPENAI_API_KEY') &&
     !process.env.ALLOW_CLIENT_OPENAI_KEY
   ) {
     logger.warn(
-      "⚠️  WARNING: NEXT_PUBLIC_OPENAI_API_KEY is exposed to client. This may pose security risks.",
+      "⚠️  WARNING: PUBLIC_OPENAI_API_KEY is exposed to client. This may pose security risks.",
     );
     logger.warn("⚠️  Consider moving OpenAI calls to server-side API routes.");
     logger.warn(
@@ -483,7 +488,7 @@ export function validateEnvironmentSecurity(): void {
 
   // Verificar que no hay variables duplicadas con diferentes prefijos (solo para SUPABASE_URL que puede tener ambas formas)
   const duplicateChecks: [string, string][] = [
-    ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"],
+    ["SUPABASE_URL", "PUBLIC_SUPABASE_URL"],
   ];
 
   for (const [serverVar, clientVar] of duplicateChecks) {
@@ -519,7 +524,7 @@ export function validateStagingEnvironment(): EnvironmentValidation {
   }
 
   // Staging should use test reCAPTCHA keys
-  const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  const recaptchaKey = resolveClientEnv('PUBLIC_RECAPTCHA_SITE_KEY');
   if (
     recaptchaKey &&
     !recaptchaKey.includes("6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI")
@@ -534,7 +539,7 @@ export function validateStagingEnvironment(): EnvironmentValidation {
   }
 
   // Check staging domain structure
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = resolveClientEnv('PUBLIC_APP_URL');
   if (appUrl && !appUrl.includes("staging")) {
     issues.push("Staging should use staging subdomain structure");
   }
@@ -573,7 +578,7 @@ export function validateEnvironmentByType(
       return {
         environment: "development",
         security: true,
-        database: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        database: !!resolveClientEnv('PUBLIC_SUPABASE_URL'),
         monitoring: true,
         compliance: true,
         payments: true, // Not required for development

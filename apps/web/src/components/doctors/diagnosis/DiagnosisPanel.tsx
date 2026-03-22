@@ -28,34 +28,7 @@ export function DiagnosisPanel() {
   const [medicalHistory, setMedicalHistory] = useState('')
   const [vitalSigns, setVitalSigns] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [diagnosisHistory, setDiagnosisHistory] = useState<DiagnosisRequest[]>([
-    {
-      id: '1',
-      patientId: '550e8400-e29b-41d4-a716-446655440000',
-      symptoms: 'Dolor torácico, disnea de esfuerzo, palpitaciones',
-      medicalHistory: 'HTA, diabetes tipo 2, tabaquismo previo',
-      vitalSigns: 'PA: 150/95, FC: 95, FR: 20, Sat O2: 96%',
-      status: 'completed',
-      createdAt: '2024-12-20T10:30:00Z',
-      result: {
-        primaryDiagnosis: 'Síndrome coronario agudo probable',
-        confidence: 85,
-        differentialDiagnoses: [
-          'Angina inestable',
-          'Infarto agudo de miocardio sin elevación del ST',
-          'Embolia pulmonar'
-        ],
-        recommendedTests: [
-          'ECG de 12 derivaciones',
-          'Troponinas cardíacas seriadas',
-          'Radiografía de tórax',
-          'D-dímero'
-        ],
-        urgencyLevel: 'high',
-        reasoning: 'La combinación de dolor torácico, factores de riesgo cardiovascular y alteraciones en signos vitales sugiere patología coronaria aguda. La hipertensión y taquicardia requieren evaluación inmediata.'
-      }
-    }
-  ])
+  const [diagnosisHistory, setDiagnosisHistory] = useState<DiagnosisRequest[]>([])
 
   const handleAnalyze = async () => {
     if (!symptoms.trim()) return
@@ -64,7 +37,7 @@ export function DiagnosisPanel() {
 
     const newRequest: DiagnosisRequest = {
       id: Date.now().toString(),
-      patientId: '550e8400-e29b-41d4-a716-446655440000',
+      patientId: '',
       symptoms,
       medicalHistory,
       vitalSigns,
@@ -74,37 +47,18 @@ export function DiagnosisPanel() {
 
     setDiagnosisHistory(prev => [newRequest, ...prev])
 
-    // Simulación de análisis IA (se reemplazará con API real)
-    setTimeout(() => {
-      const mockResult: DiagnosisResult = {
-        primaryDiagnosis: 'Diagnóstico basado en síntomas reportados',
-        confidence: Math.floor(Math.random() * 30) + 70,
-        differentialDiagnoses: [
-          'Diagnóstico diferencial 1',
-          'Diagnóstico diferencial 2',
-          'Diagnóstico diferencial 3'
-        ],
-        recommendedTests: [
-          'Examen físico completo',
-          'Estudios de laboratorio básicos',
-          'Estudios de imagen según indicación'
-        ],
-        urgencyLevel: 'medium',
-        reasoning: 'Análisis basado en la información proporcionada. Se recomienda evaluación clínica presencial para confirmación diagnóstica.'
-      }
-
-      setDiagnosisHistory(prev =>
-        prev.map(req =>
-          req.id === newRequest.id
-            ? { ...req, status: 'completed' as const, result: mockResult }
-            : req
-        )
+    // Servicio de IA no configurado — marcar como error
+    setDiagnosisHistory(prev =>
+      prev.map(req =>
+        req.id === newRequest.id
+          ? { ...req, status: 'error' as const }
+          : req
       )
-      setIsAnalyzing(false)
-      setSymptoms('')
-      setMedicalHistory('')
-      setVitalSigns('')
-    }, 3000)
+    )
+    setIsAnalyzing(false)
+    setSymptoms('')
+    setMedicalHistory('')
+    setVitalSigns('')
   }
 
   const getUrgencyColor = (level: string) => {

@@ -120,18 +120,17 @@ export type { AppNameConstant } from "./constants";
 // Clientes Supabase (browser)
 export { createBrowserClient, getSupabaseClient, signOutGlobally } from "./client/supabase";
 
-// Clientes Supabase (server-side)
-export { createServerClient, createMiddlewareClient, createRouteHandlerClient } from "./server";
+// Clientes Supabase (server-side, framework-agnostic)
+export { createAdminClient, createServerClientFromRequest, createServerClientWithCookies } from "./server";
+export type { CookieAdapter } from "./server";
 
 // Manejo de sesiones
-export { getSession, requireSession, requirePortalAccess, signOut, getCurrentUser, hasRole, hasPortalAccess } from "./session";
+export { RedirectError, getSession, requireSession, requirePortalAccess, signOut, getCurrentUser, hasRole, hasPortalAccess } from "./session";
 
-// Middleware y hooks de aplicación
+// Hooks de autenticación
 export { AuthProvider, useAuth, useRequireAuth, useRequireRole } from "./hooks/useAuth";
 
 export { useSupabase } from "./hooks/useSupabase";
-
-export { authMiddleware, createAppMiddleware } from "./middleware/auth";
 
 // Utilidades de configuración y redirección
 export { getEnvironment, getDomainConfig, getSessionConfig, getSupabaseConfig, isSameOrigin, sanitizeReturnUrl, getRedirectUrl, getLoginUrl } from "./utils";

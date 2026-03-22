@@ -26,8 +26,7 @@ export async function signInWithOAuth(
 ) {
   const supabase = createBrowserClient();
 
-  // Usar la URL de callback de la app actual
-  const callbackUrl = ensureClientEnv('NEXT_PUBLIC_AUTH_CALLBACK_URL');
+  const callbackUrl = ensureClientEnv('PUBLIC_AUTH_CALLBACK_URL');
 
   // Construir URL completa con parámetros
   const redirectUrl = new URL(callbackUrl);

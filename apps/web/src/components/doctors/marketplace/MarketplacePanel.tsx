@@ -38,69 +38,7 @@ export function MarketplacePanel() {
 
   const { doctors, loading: _doctorsLoading, error: _doctorsError } = useRealDoctors()
 
-  // Mock job offers
-  const jobOffers: MarketplaceJobOffer[] = [
-    {
-      id: '1',
-      title: 'Cardiólogo - Hospital Italiano',
-      company: 'Hospital Italiano',
-      specialty: 'Cardiología',
-      hospital: 'Hospital Italiano',
-      location: {
-        city: 'Buenos Aires',
-        province: 'CABA',
-        country: 'Argentina',
-        coordinates: { lat: -34.6037, lng: -58.3816 }
-      },
-      type: 'full-time',
-      salary: { min: 450000, max: 650000, currency: 'ARS', period: 'mes' },
-      urgent: true,
-      remote: false,
-      applicationsCount: 12,
-      viewsCount: 145,
-      publishedDate: new Date().toISOString(),
-      description: 'Buscamos cardiólogo con experiencia en procedimientos invasivos.',
-      requirements: ['Título habilitante', 'Residencia completa', 'Experiencia 3+ años'],
-      benefits: ['Prepaga OSDE 310', 'Bonos por resultados', 'Capacitación paga'],
-      status: 'active',
-      experience: 'Senior',
-      schedule: 'Lunes a Viernes 8-16hs',
-      contactInfo: {
-        name: 'RRHH Hospital Italiano',
-        email: 'rrhh@hospitalitaliano.org.ar'
-      }
-    },
-    {
-      id: '2',
-      title: 'Pediatra - Sanatorio Otamendi',
-      company: 'Sanatorio Otamendi',
-      specialty: 'Pediatría',
-      hospital: 'Sanatorio Otamendi',
-      location: {
-        city: 'Buenos Aires',
-        province: 'CABA',
-        country: 'Argentina',
-        coordinates: { lat: -34.5997, lng: -58.4016 }
-      },
-      type: 'part-time',
-      salary: { min: 280000, max: 350000, currency: 'ARS', period: 'mes' },
-      urgent: false,
-      remote: false,
-      applicationsCount: 8,
-      viewsCount: 92,
-      publishedDate: new Date(Date.now() - 86400000).toISOString(),
-      description: 'Pediatra para guardias nocturnas y fines de semana.',
-      requirements: ['Título especialista', 'Disponibilidad horaria'],
-      benefits: ['Buen clima laboral', 'Comedor en planta'],
-      status: 'active',
-      experience: 'Semi-Senior',
-      schedule: 'Fines de semana',
-      contactInfo: {
-        name: 'RRHH Sanatorio Otamendi',
-        email: 'rrhh@otamendi.com.ar'
-      }
-    }
-  ]
+  const jobOffers: MarketplaceJobOffer[] = []
 
   const mappedDoctors: MarketplaceDoctor[] = (doctors || []).map(doc => {
     const profile = doc.profile as DoctorProfileCandidate | null | undefined
@@ -113,25 +51,25 @@ export function MarketplacePanel() {
       name: name,
       specialties: [doc.specialty].filter(Boolean) as string[],
       location: {
-        city: 'Buenos Aires',
-        province: 'CABA',
+        city: '',
+        province: '',
         country: 'Argentina',
-        coordinates: { lat: -34.6037, lng: -58.3816 }
+        coordinates: { lat: 0, lng: 0 }
       },
-      rating: 4.8,
-      experience: 8,
-      hourlyRate: { amount: 15000, currency: 'ARS' },
-      availableForHiring: true,
-      responseTime: 2,
-      isUrgentAvailable: true,
-      isOnline: true,
-      workArrangement: 'remote',
-      languages: ['Español'],
-      verificationStatus: 'verified',
-      licenseNumber: 'MN 123456',
-      offersDirectServices: true,
-      totalJobs: 24,
-      successRate: 98
+      rating: 0,
+      experience: 0,
+      hourlyRate: { amount: 0, currency: 'ARS' },
+      availableForHiring: false,
+      responseTime: 0,
+      isUrgentAvailable: false,
+      isOnline: false,
+      workArrangement: 'flexible',
+      languages: [] as string[],
+      verificationStatus: 'pending',
+      licenseNumber: '',
+      offersDirectServices: false,
+      totalJobs: 0,
+      successRate: 0
     }
   })
 

@@ -78,29 +78,11 @@ export function LicenseValidationStep({
         return;
       }
 
-      // Simular diferentes resultados para demo
-      const mockResults = [
-        {
-          isValid: true,
-          message: 'Licencia médica verificada exitosamente',
-          doctorInfo: {
-            name: 'Dr. Juan Pérez',
-            specialty: 'Medicina Interna',
-            status: 'Activa'
-          }
-        },
-        {
-          isValid: false,
-          message: 'Licencia no encontrada en el registro nacional. Verifica los datos.'
-        },
-        {
-          isValid: false,
-          message: 'Licencia encontrada pero está suspendida. Contacta al colegio médico.'
-        }
-      ];
-
-      // Para demo, usar primer resultado (válido) si la licencia tiene más de 4 dígitos
-      const result = licenseNum.length >= 5 ? mockResults[0] : mockResults[1];
+      // Validación pendiente de integración con registro nacional
+      const result = {
+        isValid: true,
+        message: 'Licencia registrada. La verificación formal se completará durante la revisión de su perfil.',
+      };
 
       setValidationResult(result);
       onUpdate(licenseNum, result.isValid);

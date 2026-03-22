@@ -18,8 +18,8 @@ import MarketplaceDashboard from './marketplace/MarketplaceDashboard';
 
 export default function CompaniesHomePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [crisisLevel, _setCrisisLevel] = useState('HIGH');
-  const [activeIncidents, _setActiveIncidents] = useState(3);
+  const [crisisLevel, _setCrisisLevel] = useState('--');
+  const [activeIncidents, _setActiveIncidents] = useState(0);
   const [activeSection, setActiveSection] = useState<'crisis' | 'marketplace'>('crisis');
 
   useEffect(() => {
@@ -40,8 +40,7 @@ export default function CompaniesHomePage() {
     },
     {
       title: 'Personal Disponible',
-      value: '156/175',
-      percentage: 89,
+      value: '--',
       icon: Users,
       color: 'text-green-400',
       bgColor: 'bg-green-600/20',
@@ -49,8 +48,7 @@ export default function CompaniesHomePage() {
     },
     {
       title: 'Instalaciones Operativas',
-      value: '11/12',
-      percentage: 92,
+      value: '--',
       icon: Building2,
       color: 'text-blue-400',
       bgColor: 'bg-blue-600/20',
@@ -66,42 +64,17 @@ export default function CompaniesHomePage() {
     }
   ];
 
-  const recentIncidents = [
-    {
-      id: 1,
-      type: 'Brote de gripe',
-      location: 'Edificio Norte - Piso 3',
-      time: '14:30',
-      status: 'active',
-      severity: 'high',
-      affected: 12
-    },
-    {
-      id: 2,
-      type: 'Accidente laboral',
-      location: 'Almacén Principal',
-      time: '13:15',
-      status: 'contained',
-      severity: 'medium',
-      affected: 1
-    },
-    {
-      id: 3,
-      type: 'Emergencia cardíaca',
-      location: 'Oficinas Ejecutivas',
-      time: '11:45',
-      status: 'resolved',
-      severity: 'critical',
-      affected: 1
-    }
-  ];
+  const recentIncidents: Array<{
+    id: number;
+    type: string;
+    location: string;
+    time: string;
+    status: string;
+    severity: string;
+    affected: number;
+  }> = [];
 
-  const facilitiesStatus = [
-    { name: 'Edificio Norte', status: 'operational', capacity: 95 },
-    { name: 'Edificio Sur', status: 'operational', capacity: 87 },
-    { name: 'Almacén Principal', status: 'limited', capacity: 45 },
-    { name: 'Centro Médico', status: 'operational', capacity: 100 },
-  ];
+  const facilitiesStatus: Array<{ name: string; status: string; capacity: number }> = [];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -255,28 +228,35 @@ export default function CompaniesHomePage() {
               </h2>
 
               <div className="space-y-3">
-                {recentIncidents.map((incident) => (
-                  <div key={incident.id} className="bg-gray-700 rounded-lg p-3 border border-gray-600">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="text-white font-medium text-sm">{incident.type}</h4>
-                        <p className="text-gray-400 text-xs">{incident.location}</p>
-                      </div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getIncidentStatusColor(incident.status)}`}>
-                        {incident.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400 flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{incident.time}</span>
-                      </span>
-                      <span className="text-gray-400">
-                        {incident.affected} {incident.affected === 1 ? 'persona afectada' : 'personas afectadas'}
-                      </span>
-                    </div>
+                {recentIncidents.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Activity className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">Sin incidentes recientes</p>
                   </div>
-                ))}
+                ) : (
+                  recentIncidents.map((incident) => (
+                    <div key={incident.id} className="bg-gray-700 rounded-lg p-3 border border-gray-600">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="text-white font-medium text-sm">{incident.type}</h4>
+                          <p className="text-gray-400 text-xs">{incident.location}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getIncidentStatusColor(incident.status)}`}>
+                          {incident.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-400 flex items-center space-x-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{incident.time}</span>
+                        </span>
+                        <span className="text-gray-400">
+                          {incident.affected} {incident.affected === 1 ? 'persona afectada' : 'personas afectadas'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -289,38 +269,45 @@ export default function CompaniesHomePage() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {facilitiesStatus.map((facility, index) => (
-                <div key={index} className="bg-gray-700 rounded-lg p-4 border border-gray-600">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-white font-medium text-sm">{facility.name}</h4>
-                    {getStatusIcon(facility.status)}
-                  </div>
-                  <div className="mb-2">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-gray-400">Capacidad</span>
-                      <span className="text-white">{facility.capacity}%</span>
-                    </div>
-                    <div className="w-full bg-gray-600 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${
-                          facility.capacity >= 90 ? 'bg-green-500' :
-                          facility.capacity >= 70 ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ width: `${facility.capacity}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="text-xs">
-                    <span className={`capitalize ${
-                      facility.status === 'operational' ? 'text-green-400' :
-                      facility.status === 'limited' ? 'text-yellow-400' : 'text-red-400'
-                    }`}>
-                      {facility.status === 'operational' ? 'Operativo' :
-                       facility.status === 'limited' ? 'Limitado' : 'Fuera de servicio'}
-                    </span>
-                  </div>
+              {facilitiesStatus.length === 0 ? (
+                <div className="col-span-full text-center py-6">
+                  <Building2 className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm">Sin instalaciones registradas</p>
                 </div>
-              ))}
+              ) : (
+                facilitiesStatus.map((facility, index) => (
+                  <div key={index} className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-white font-medium text-sm">{facility.name}</h4>
+                      {getStatusIcon(facility.status)}
+                    </div>
+                    <div className="mb-2">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-400">Capacidad</span>
+                        <span className="text-white">{facility.capacity}%</span>
+                      </div>
+                      <div className="w-full bg-gray-600 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${
+                            facility.capacity >= 90 ? 'bg-green-500' :
+                            facility.capacity >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${facility.capacity}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="text-xs">
+                      <span className={`capitalize ${
+                        facility.status === 'operational' ? 'text-green-400' :
+                        facility.status === 'limited' ? 'text-yellow-400' : 'text-red-400'
+                      }`}>
+                        {facility.status === 'operational' ? 'Operativo' :
+                         facility.status === 'limited' ? 'Limitado' : 'Fuera de servicio'}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </>

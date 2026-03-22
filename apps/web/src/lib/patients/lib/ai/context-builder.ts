@@ -48,7 +48,7 @@ export async function buildPatientContext(userId: string, admin?: AppSupabaseCli
   const fullName = getString(p, 'full_name')
   const firstName = getString(p, 'first_name')
   const lastName = getString(p, 'last_name')
-  const derivedName = fullName ?? [firstName, lastName].filter(Boolean).join(' ').trim() || null
+  const derivedName = fullName ?? ([firstName, lastName].filter(Boolean).join(' ').trim() || null)
 
   const summary: PatientContextSummary = {
     name: derivedName,

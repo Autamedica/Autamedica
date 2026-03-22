@@ -28,17 +28,17 @@ export function useMockRemoteStream(isActive: boolean = false) {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Texto "DR. GARCÍA - MÉDICO ESPECIALISTA"
+      // Texto indicando stream de prueba (sin datos ficticios)
       ctx.fillStyle = 'white';
       ctx.font = 'bold 32px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Dr. García', canvas.width / 2, canvas.height / 2 - 30);
+      ctx.fillText('Video de prueba', canvas.width / 2, canvas.height / 2 - 30);
       ctx.font = '20px Arial';
-      ctx.fillText('Médico Especialista', canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillText('Esperando conexion real', canvas.width / 2, canvas.height / 2 + 10);
       ctx.font = '16px Arial';
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.fillText('(Stream de prueba - Mock)', canvas.width / 2, canvas.height / 2 + 40);
+      ctx.fillText('(Stream de desarrollo)', canvas.width / 2, canvas.height / 2 + 40);
 
       // Timestamp
       ctx.font = '14px monospace';

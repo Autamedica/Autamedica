@@ -1,156 +1,23 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getAppBaseUrl } from '../../lib/env';
-
-const externalBase = getAppBaseUrl('doctors').replace(/\/$/, '');
-const externalPatientsUrl = `${externalBase}/patients`;
-
-const panel = [
-  { name: 'Marta G.', condition: 'Hipertension', next: '26 Feb 2026', risk: 'Medio' },
-  { name: 'Ruben T.', condition: 'Control diabetologico', next: '27 Feb 2026', risk: 'Alto' },
-  { name: 'Nora L.', condition: 'Seguimiento post alta', next: '01 Mar 2026', risk: 'Bajo' },
-];
+import { PatientsPanel } from '../../components/doctors/patients/PatientsPanel';
 ---
 
 <Layout
-  title="Panel de pacientes para médicos"
-  description="Seguimiento de pacientes, riesgo clinico y proximas acciones para continuidad de atención."
+  title="Panel de pacientes"
+  description="Seguimiento y gestión de pacientes asignados al médico."
   canonical="https://www.autamedica.com/doctors/patients"
   robots="noindex, nofollow, noarchive"
 >
   <main class="page-shell">
-    <section class="page-card">
-      <p class="page-badge">Doctors Patient Panel</p>
-      <h1>Panel de pacientes</h1>
-      <p class="page-lead">
-        Prioriza casos y organiza seguimiento clinico con contexto suficiente para actuar rapido.
-      </p>
-
-      <ul class="list">
-        {panel.map((patient) => (
-          <li>
-            <div>
-              <h2>{patient.name}</h2>
-              <p>{patient.condition}</p>
-              <p>Proxima accion: {patient.next}</p>
-            </div>
-            <span>{patient.risk}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div class="actions">
-        <a class="primary" href="/doctors">Volver al portal doctors</a>
-        <a class="secondary" href={externalPatientsUrl}>Abrir panel legacy completo</a>
-      </div>
-    </section>
+    <PatientsPanel client:load />
   </main>
 </Layout>
 
 <style>
   .page-shell {
     min-height: 100vh;
-    padding: clamp(4.5rem, 9vh, 6.5rem) var(--section-px) var(--space-16);
-    background:
-      radial-gradient(circle at 15% -10%, rgba(59, 130, 246, 0.2), transparent 40%),
-      radial-gradient(circle at 88% 0%, rgba(16, 185, 129, 0.1), transparent 38%),
-      var(--au-bg);
+    padding: clamp(2rem, 4vh, 3rem) var(--section-px) var(--space-16);
+    background: var(--au-bg);
   }
-
-  .page-card {
-    max-width: 980px;
-    margin: 0 auto;
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-lg);
-    background: rgba(20, 20, 22, 0.94);
-    box-shadow: var(--shadow-glow);
-    padding: clamp(1.5rem, 3vw, 2.2rem);
-  }
-
-  .page-badge {
-    display: inline-flex;
-    margin: 0 0 var(--space-4);
-    padding: 0.35rem 0.8rem;
-    border: 1px solid var(--au-border-hover);
-    border-radius: var(--radius-full);
-    font-size: var(--text-xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--au-text-secondary);
-  }
-
-  h1 {
-    margin: 0;
-    font-size: clamp(1.7rem, 4vw, 2.5rem);
-    letter-spacing: -0.02em;
-  }
-
-  .page-lead {
-    margin: var(--space-3) 0 var(--space-7);
-    color: var(--au-text-secondary);
-    max-width: 70ch;
-  }
-
-  .list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-3);
-  }
-
-  .list li {
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-sm);
-    background: var(--au-surface);
-    padding: var(--space-3);
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-3);
-  }
-
-  .list h2 {
-    margin: 0 0 var(--space-1);
-    font-size: var(--text-sm);
-  }
-
-  .list p {
-    margin: 0;
-    color: var(--au-text-secondary);
-    font-size: var(--text-xs);
-    line-height: 1.5;
-  }
-
-  .list span {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid var(--au-border-hover);
-    border-radius: var(--radius-full);
-    padding: 0.15rem 0.55rem;
-    font-size: var(--text-xs);
-    white-space: nowrap;
-  }
-
-  .actions {
-    margin-top: var(--space-7);
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-  }
-
-  .actions a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-sm);
-    padding: 0.75rem 1rem;
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-    transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
-  }
-
-  .actions a:hover { transform: translateY(-1px); }
-  .actions .primary { background: var(--au-accent); color: #111; border: 1px solid transparent; }
-  .actions .secondary { border: 1px solid var(--au-border-hover); color: var(--au-text-primary); background: transparent; }
 </style>
-

@@ -27,9 +27,10 @@ export {
 
 // Export server utilities
 export {
-  createAdminClient, createMiddlewareClient,
-  createRouteHandlerClient, createServerClient
+  createAdminClient,
+  createServerClientFromRequest, createServerClientWithCookies
 } from './server'
+export type { CookieAdapter } from './server'
 
 // Export hooks and context
 export {
@@ -40,12 +41,6 @@ export {
 } from './hooks/useAuth'
 
 export { useSupabase } from './hooks/useSupabase'
-
-// Export middleware
-export {
-  authMiddleware,
-  createAppMiddleware
-} from './middleware/auth'
 
 // Export configuration utilities
 export {
@@ -62,5 +57,5 @@ export {
 
 // Export session utilities
 export {
-  getCurrentUser, getSession, hasPortalAccess, hasRole, requirePortalAccess, requireSession, signOut
+  getCurrentUser, getSession, hasPortalAccess, hasRole, RedirectError, requirePortalAccess, requireSession, signOut
 } from './session'

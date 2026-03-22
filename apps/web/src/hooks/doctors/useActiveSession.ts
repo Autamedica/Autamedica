@@ -2,7 +2,6 @@
  * Hook para manejar la sesión activa de consulta médica
  */
 
-import { DEMO_PATIENT_ID } from '@/lib/doctors/data/demoData'
 import type { UUID } from '@/types/medical'
 import { logger } from '@autamedica/shared'
 import { useCallback, useEffect, useState } from 'react'
@@ -33,7 +32,7 @@ export function useActiveSession(): UseActiveSessionResult {
     const guestSessionId = crypto.randomUUID() as UUID
 
     setSession({
-      patientId: DEMO_PATIENT_ID,
+      patientId: '' as UUID,
       sessionId: guestSessionId,
       sessionType: 'general',
       startTime: new Date().toISOString(),

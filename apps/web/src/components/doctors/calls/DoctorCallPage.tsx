@@ -84,8 +84,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
 
     return {
-      userId: `dev-doctor-${roomId}`,
-      userName: 'Doctor de prueba'
+      userId: '',
+      userName: 'Doctor'
     }
   }, [session, typedProfile, roomId])
 

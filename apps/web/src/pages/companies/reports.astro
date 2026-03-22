@@ -1,43 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getAppBaseUrl } from '../../lib/env';
-
-const externalBase = getAppBaseUrl('companies').replace(/\/$/, '');
-const externalReportsUrl = `${externalBase}/reports`;
-
-const kpis = [
-  { label: 'Ausentismo mensual', value: '-18%', detail: 'vs trimestre anterior' },
-  { label: 'Consultas resueltas', value: '1,284', detail: 'ultimos 30 dias' },
-  { label: 'Tiempo medio respuesta', value: '11 min', detail: 'SLA objetivo 15 min' },
-  { label: 'Cobertura preventiva', value: '74%', detail: 'plantilla activa' },
-];
-
-const reports = [
-  {
-    title: 'Salud ocupacional - Enero',
-    statusLabel: 'Listo',
-    statusTone: 'listo',
-    updatedAt: '22 Feb 2026',
-  },
-  {
-    title: 'Indicadores de emergencias Q1',
-    statusLabel: 'En revision',
-    statusTone: 'en-revision',
-    updatedAt: '20 Feb 2026',
-  },
-  {
-    title: 'Eficiencia de teleconsulta',
-    statusLabel: 'Listo',
-    statusTone: 'listo',
-    updatedAt: '18 Feb 2026',
-  },
-  {
-    title: 'Riesgo psicosocial - area comercial',
-    statusLabel: 'Borrador',
-    statusTone: 'borrador',
-    updatedAt: '16 Feb 2026',
-  },
-];
 ---
 
 <Layout
@@ -49,39 +11,19 @@ const reports = [
   <main class="reports-shell">
     <section class="reports-card">
       <p class="reports-badge">Companies Analytics</p>
-      <h1>Reportes y metricas</h1>
+      <h1>Reportes y métricas</h1>
       <p class="reports-lead">
-        Seguimiento de tendencias de salud corporativa y desempeno operativo para decisiones de RRHH y liderazgo.
+        Seguimiento de tendencias de salud corporativa y desempeño operativo para decisiones de RRHH y liderazgo.
       </p>
 
-      <div class="kpi-grid" role="list" aria-label="Indicadores corporativos">
-        {kpis.map((kpi) => (
-          <article class="kpi-item" role="listitem">
-            <p class="kpi-value">{kpi.value}</p>
-            <p class="kpi-label">{kpi.label}</p>
-            <p class="kpi-detail">{kpi.detail}</p>
-          </article>
-        ))}
+      <div class="empty-state">
+        <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+        <p class="empty-title">Sin reportes disponibles</p>
+        <p class="empty-detail">Los reportes se generarán automáticamente cuando haya actividad corporativa registrada.</p>
       </div>
-
-      <section class="reports-list">
-        <h2>Reportes recientes</h2>
-        <ul>
-          {reports.map((report) => (
-            <li>
-              <div>
-                <h3>{report.title}</h3>
-                <p>Actualizado: {report.updatedAt}</p>
-              </div>
-              <span class={report.statusTone}>{report.statusLabel}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
 
       <div class="reports-actions">
         <a class="primary" href="/companies">Volver al portal empresas</a>
-        <a class="secondary" href={externalReportsUrl}>Abrir analitica legacy completa</a>
       </div>
     </section>
   </main>
@@ -131,93 +73,30 @@ const reports = [
     max-width: 72ch;
   }
 
-  .kpi-grid {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    margin-bottom: var(--space-8);
-  }
-
-  .kpi-item {
-    border: 1px solid var(--au-border);
+  .empty-state {
+    text-align: center;
+    padding: var(--space-12) var(--space-4);
+    border: 1px dashed var(--au-border);
     border-radius: var(--radius-md);
     background: var(--au-surface);
-    padding: var(--space-4);
   }
 
-  .kpi-value {
-    margin: 0;
-    font-size: clamp(1.3rem, 3vw, 1.9rem);
-    font-weight: var(--font-semibold);
-  }
-
-  .kpi-label {
-    margin: var(--space-2) 0 0;
-    color: var(--au-text-secondary);
-    font-size: var(--text-sm);
-  }
-
-  .kpi-detail {
-    margin: var(--space-1) 0 0;
+  .empty-icon {
     color: var(--au-text-tertiary);
-    font-size: var(--text-xs);
+    margin: 0 auto var(--space-4);
   }
 
-  .reports-list {
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-md);
-    background: var(--au-surface);
-    padding: var(--space-4);
-  }
-
-  .reports-list h2 {
-    margin: 0 0 var(--space-4);
+  .empty-title {
+    margin: 0 0 var(--space-2);
     font-size: var(--text-lg);
+    color: var(--au-text-secondary);
   }
 
-  .reports-list ul {
-    list-style: none;
+  .empty-detail {
     margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-3);
-  }
-
-  .reports-list li {
-    border: 1px solid var(--au-border);
-    border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.01);
-    padding: var(--space-3);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--space-3);
-  }
-
-  .reports-list h3 {
-    margin: 0 0 var(--space-1);
+    color: var(--au-text-tertiary);
     font-size: var(--text-sm);
   }
-
-  .reports-list p {
-    margin: 0;
-    color: var(--au-text-secondary);
-    font-size: var(--text-xs);
-  }
-
-  .reports-list span {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid var(--au-border-hover);
-    border-radius: var(--radius-full);
-    padding: 0.15rem 0.55rem;
-    font-size: var(--text-xs);
-    white-space: nowrap;
-  }
-
-  .reports-list span.listo { border-color: rgba(34, 197, 94, 0.5); }
-  .reports-list span.en-revision { border-color: rgba(245, 158, 11, 0.5); }
-  .reports-list span.borrador { border-color: rgba(59, 130, 246, 0.5); }
 
   .reports-actions {
     margin-top: var(--space-8);
@@ -245,11 +124,5 @@ const reports = [
     background: var(--au-accent);
     color: #111;
     border: 1px solid transparent;
-  }
-
-  .reports-actions .secondary {
-    border: 1px solid var(--au-border-hover);
-    color: var(--au-text-primary);
-    background: transparent;
   }
 </style>

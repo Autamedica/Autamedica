@@ -51,7 +51,6 @@
   },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.57.4",
-    "next": "^15.5.0",
     "react": "^19.0.0"
   },
   "peerDependenciesMeta": {

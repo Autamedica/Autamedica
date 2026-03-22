@@ -20,33 +20,7 @@ interface MedicationEntry {
   taken?: boolean;
 }
 
-// Mock current medications - in production this would come from patient data
-const CURRENT_MEDICATIONS: MedicationEntry[] = [
-  {
-    id: '1',
-    name: 'Lisinopril',
-    dosage: '10mg',
-    frequency: 'Una vez al día',
-    nextDose: '08:00',
-    taken: false
-  },
-  {
-    id: '2',
-    name: 'Metformina',
-    dosage: '500mg',
-    frequency: 'Dos veces al día',
-    nextDose: '12:00',
-    taken: true
-  },
-  {
-    id: '3',
-    name: 'Aspirina',
-    dosage: '100mg',
-    frequency: 'Una vez al día',
-    nextDose: '20:00',
-    taken: false
-  }
-];
+const CURRENT_MEDICATIONS: MedicationEntry[] = [];
 
 export function MedicationTrackerModal({ isOpen, onClose, patientId = 'current-patient' }: MedicationTrackerModalProps) {
   const { recordMedicationTaken, isLoading: _isLoading } = usePatientMedicalStore();
@@ -118,7 +92,7 @@ export function MedicationTrackerModal({ isOpen, onClose, patientId = 'current-p
     }
   };
 
-  const adherenceScore = Math.round((medications.filter(med => med.taken).length / medications.length) * 100);
+  const adherenceScore = medications.length > 0 ? Math.round((medications.filter(med => med.taken).length / medications.length) * 100) : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

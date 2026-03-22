@@ -36,16 +36,16 @@ export async function signInWithOtp(
     const supabase = createBrowserClient();
 
     // Construir URL de redirección usando la URL base de la app actual
-    const baseUrl = ensureClientEnv("NEXT_PUBLIC_BASE_URL");
-    const callbackUrl = ensureClientEnv("NEXT_PUBLIC_AUTH_CALLBACK_URL");
+    const baseUrl = ensureClientEnv("PUBLIC_BASE_URL");
+    const callbackUrl = ensureClientEnv("PUBLIC_AUTH_CALLBACK_URL");
 
     // Si se especifica un portal, redirigir después del callback
     let finalRedirectTo = redirectTo;
     if (portal && !redirectTo) {
       const portalUrls = {
-        patients: `${ensureClientEnv("NEXT_PUBLIC_PATIENTS_URL")}/dashboard`,
-        doctors: `${ensureClientEnv("NEXT_PUBLIC_DOCTORS_URL")}/dashboard`,
-        companies: `${ensureClientEnv("NEXT_PUBLIC_COMPANIES_URL")}/dashboard`,
+        patients: `${ensureClientEnv("PUBLIC_PATIENTS_URL")}/dashboard`,
+        doctors: `${ensureClientEnv("PUBLIC_DOCTORS_URL")}/dashboard`,
+        companies: `${ensureClientEnv("PUBLIC_COMPANIES_URL")}/dashboard`,
         admin: `${baseUrl}/admin/dashboard`,
       };
       finalRedirectTo = portalUrls[portal];
@@ -142,12 +142,12 @@ export function getPortalRedirectUrl(
   }
 
   try {
-    const baseUrl = ensureClientEnv("NEXT_PUBLIC_APP_URL");
+    const baseUrl = ensureClientEnv("PUBLIC_APP_URL");
 
     const portalUrls = {
-      patients: `${ensureClientEnv("NEXT_PUBLIC_PATIENTS_URL")}/dashboard`,
-      doctors: `${ensureClientEnv("NEXT_PUBLIC_DOCTORS_URL")}/dashboard`,
-      companies: `${ensureClientEnv("NEXT_PUBLIC_COMPANIES_URL")}/dashboard`,
+      patients: `${ensureClientEnv("PUBLIC_PATIENTS_URL")}/dashboard`,
+      doctors: `${ensureClientEnv("PUBLIC_DOCTORS_URL")}/dashboard`,
+      companies: `${ensureClientEnv("PUBLIC_COMPANIES_URL")}/dashboard`,
       admin: `${baseUrl}/admin/dashboard`,
     };
 

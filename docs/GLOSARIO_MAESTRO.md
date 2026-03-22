@@ -2485,25 +2485,11 @@ pnpm docs:validate
 - **Descripción:** Constante del sistema para role_app_mapping.
 - **Contrato:** Pendiente de documentación detallada
 
-### authMiddleware
-
-- **Tipo:** unknown
-- **Package:** @autamedica/auth
-- **Descripción:** Utilidad del sistema AutaMedica para authmiddleware.
-- **Contrato:** Pendiente de documentación detallada
-
 ### clearLastPath
 
 - **Tipo:** unknown
 - **Package:** @autamedica/auth
 - **Descripción:** Utilidad del sistema AutaMedica para clearlastpath.
-- **Contrato:** Pendiente de documentación detallada
-
-### createAppMiddleware
-
-- **Tipo:** function
-- **Package:** @autamedica/auth
-- **Descripción:** Función utilitaria para createappmiddleware en el ecosistema AutaMedica.
 - **Contrato:** Pendiente de documentación detallada
 
 ### createBrowserClient
@@ -2718,26 +2704,12 @@ pnpm docs:validate
 
 ## 📋 Exports Auto-generados
 
-### createMiddlewareClient
+### CookieAdapter
 
-- **Tipo:** const
+- **Tipo:** interface
 - **Package:** @autamedica/auth
-- **Descripción:** Constante del sistema para createmiddlewareclient.
-- **Contrato:** Pendiente de documentación detallada
-
-### createRouteHandlerClient
-
-- **Tipo:** const
-- **Package:** @autamedica/auth
-- **Descripción:** Constante del sistema para createroutehandlerclient.
-- **Contrato:** Pendiente de documentación detallada
-
-### createServerClient
-
-- **Tipo:** function
-- **Package:** @autamedica/auth
-- **Descripción:** Función utilitaria para createserverclient en el ecosistema AutaMedica.
-- **Contrato:** Pendiente de documentación detallada
+- **Descripción:** Interfaz framework-agnostic para acceder a cookies. Usado por createServerClientWithCookies.
+- **Contrato:** `{ getAll(): Array<{name, value}>; setAll(cookies): void }`
 
 ## 📋 Exports Auto-generados
 
@@ -3185,6 +3157,29 @@ El esquema de base de datos está protegido por:
 - **Tipo:** unknown
 - **Package:** @autamedica/shared
 - **Descripción:** Utilidad del sistema AutaMedica para isonboardingrequired.
+- **Contrato:** Pendiente de documentación detallada
+
+## 📋 Exports Auto-generados
+
+### RedirectError
+
+- **Tipo:** unknown
+- **Package:** @autamedica/auth
+- **Descripción:** Utilidad del sistema AutaMedica para redirecterror.
+- **Contrato:** Pendiente de documentación detallada
+
+### createServerClientFromRequest
+
+- **Tipo:** const
+- **Package:** @autamedica/auth
+- **Descripción:** Constante del sistema para createserverclientfromrequest.
+- **Contrato:** Pendiente de documentación detallada
+
+### createServerClientWithCookies
+
+- **Tipo:** const
+- **Package:** @autamedica/auth
+- **Descripción:** Constante del sistema para createserverclientwithcookies.
 - **Contrato:** Pendiente de documentación detallada
 
 ## 🔗 Referencias Relacionadas

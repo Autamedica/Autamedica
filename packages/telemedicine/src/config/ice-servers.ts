@@ -9,7 +9,7 @@ import {
 /** Lee ICE desde env (cliente o server) */
 export function loadIceServers(): RTCIceServer[] {
   const raw =
-    getOptionalClientEnv('NEXT_PUBLIC_ICE_SERVERS') ??
+    getOptionalClientEnv('PUBLIC_ICE_SERVERS') ??
     getServerEnvOrDefault('ICE_SERVERS_JSON', '[]')
   try { return JSON.parse(raw) } catch { return [] }
 }
@@ -28,9 +28,9 @@ export function getProductionICEServers(): RTCIceServer[] {
   const iceServers: RTCIceServer[] = [...ICE_STUN_ONLY]
 
   // TURN servers desde environment variables
-  const turnUrls = process.env.NEXT_PUBLIC_TURN_URLS
-  const turnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME
-  const turnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL
+  const turnUrls = process.env.PUBLIC_TURN_URLS
+  const turnUsername = process.env.PUBLIC_TURN_USERNAME
+  const turnCredential = process.env.PUBLIC_TURN_CREDENTIAL
 
   if (turnUrls && turnUsername && turnCredential) {
     iceServers.push({
@@ -58,14 +58,14 @@ export function getProductionICEServers(): RTCIceServer[] {
  * Configurar con Twilio, Cloudflare Calls, o servidor propio
  *
  * Ejemplo con Twilio:
- * NEXT_PUBLIC_TURN_URLS=turn:global.turn.twilio.com:3478?transport=udp,turn:global.turn.twilio.com:3478?transport=tcp,turn:global.turn.twilio.com:443?transport=tcp
- * NEXT_PUBLIC_TURN_USERNAME=<twilio-sid>
- * NEXT_PUBLIC_TURN_CREDENTIAL=<twilio-credential>
+ * PUBLIC_TURN_URLS=turn:global.turn.twilio.com:3478?transport=udp,turn:global.turn.twilio.com:3478?transport=tcp,turn:global.turn.twilio.com:443?transport=tcp
+ * PUBLIC_TURN_USERNAME=<twilio-sid>
+ * PUBLIC_TURN_CREDENTIAL=<twilio-credential>
  *
  * Ejemplo con servidor propio (coturn):
- * NEXT_PUBLIC_TURN_URLS=turn:turn.autamedica.com:3478,turns:turn.autamedica.com:5349
- * NEXT_PUBLIC_TURN_USERNAME=autamedica
- * NEXT_PUBLIC_TURN_CREDENTIAL=<secure-credential>
+ * PUBLIC_TURN_URLS=turn:turn.autamedica.com:3478,turns:turn.autamedica.com:5349
+ * PUBLIC_TURN_USERNAME=autamedica
+ * PUBLIC_TURN_CREDENTIAL=<secure-credential>
  */
 /** @deprecated Usar getProductionICEServers() directamente para evitar side-effects en import */
 export const ICE_WITH_TURN: RTCIceServer[] = []
@@ -73,7 +73,7 @@ export const ICE_WITH_TURN: RTCIceServer[] = []
 /** Señalización URL desde env */
 export function loadSignalingUrl(): string {
   return getClientEnvOrDefault(
-    'NEXT_PUBLIC_SIGNALING_URL',
+    'PUBLIC_SIGNALING_URL',
     'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling'
   )
 }
@@ -89,12 +89,12 @@ const DEFAULT_STUN_SERVERS: RTCIceServer[] = [
 
 /**
  * Returns ICE servers config from environment variables.
- * Priority: NEXT_PUBLIC_ICE_SERVERS JSON → TURN_SERVER_URL vars → defaults
+ * Priority: PUBLIC_ICE_SERVERS JSON → TURN_SERVER_URL vars → defaults
  */
 export function getIceServersConfig(): RTCIceServer[] {
   // Try JSON env var first
   const raw =
-    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_ICE_SERVERS) || ''
+    (typeof process !== 'undefined' && process.env?.PUBLIC_ICE_SERVERS) || ''
 
   if (raw) {
     try {

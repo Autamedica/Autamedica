@@ -28,12 +28,12 @@ export class WebRTCPeer {
 
   private parseIceServers(): RTCIceServer[] {
     try {
-      const iceServersStr = getClientEnvOrDefault('NEXT_PUBLIC_ICE_SERVERS', '[]')
+      const iceServersStr = getClientEnvOrDefault('PUBLIC_ICE_SERVERS', '[]')
       const parsed = JSON.parse(iceServersStr)
       if (Array.isArray(parsed)) return parsed
-      logger.warn('[WebRTCPeer] NEXT_PUBLIC_ICE_SERVERS must be a JSON array; falling back to default')
+      logger.warn('[WebRTCPeer] PUBLIC_ICE_SERVERS must be a JSON array; falling back to default')
     } catch (error) {
-      logger.error('[WebRTCPeer] Failed to parse NEXT_PUBLIC_ICE_SERVERS:', error)
+      logger.error('[WebRTCPeer] Failed to parse PUBLIC_ICE_SERVERS:', error)
     }
 
     // Default ICE servers

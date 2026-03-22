@@ -6,13 +6,13 @@ import { buildSafeLoginUrl } from '../src/security/redirects';
 
 const ENV_KEYS = [
   'SUPABASE_JWT_SECRET',
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_ALLOWED_REDIRECTS',
-  'NEXT_PUBLIC_BASE_URL_AUTH',
-  'NEXT_PUBLIC_AUTH_URL',
-  'NEXT_PUBLIC_BASE_URL_WEB',
-  'NEXT_PUBLIC_SITE_URL',
-  'NEXT_PUBLIC_BASE_URL_WEB_APP',
+  'PUBLIC_SUPABASE_URL',
+  'PUBLIC_ALLOWED_REDIRECTS',
+  'PUBLIC_BASE_URL_AUTH',
+  'PUBLIC_AUTH_URL',
+  'PUBLIC_BASE_URL_WEB',
+  'PUBLIC_SITE_URL',
+  'PUBLIC_BASE_URL_WEB_APP',
 ] as const;
 
 type EnvSnapshot = Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
@@ -61,7 +61,7 @@ describe('shared auth/session + security/redirects', () => {
 
   it('rebuilds chunked Supabase cookies and verifies JWT session', async () => {
     process.env.SUPABASE_JWT_SECRET = 'test-secret';
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
+    process.env.PUBLIC_SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 
     const token = await signToken('test-secret', { role: 'doctor', email: 'doctor@autamedica.com' });
     const midpoint = Math.floor(token.length / 2);
@@ -81,7 +81,7 @@ describe('shared auth/session + security/redirects', () => {
 
   it('extracts access_token from base64 encoded session cookie payload', async () => {
     process.env.SUPABASE_JWT_SECRET = 'test-secret';
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
+    process.env.PUBLIC_SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';
 
     const token = await signToken('test-secret', {
       app_metadata: { role: 'company_admin' },
@@ -101,9 +101,9 @@ describe('shared auth/session + security/redirects', () => {
   });
 
   it('builds login URL from auth base env and never from legacy web-app base', () => {
-    process.env.NEXT_PUBLIC_BASE_URL_AUTH = 'https://auth.autamedica.com';
-    process.env.NEXT_PUBLIC_BASE_URL_WEB_APP = 'https://autamedica-web-app.pages.dev';
-    process.env.NEXT_PUBLIC_ALLOWED_REDIRECTS = 'https://doctors.autamedica.com';
+    process.env.PUBLIC_BASE_URL_AUTH = 'https://auth.autamedica.com';
+    process.env.PUBLIC_BASE_URL_WEB_APP = 'https://autamedica-web-app.pages.dev';
+    process.env.PUBLIC_ALLOWED_REDIRECTS = 'https://doctors.autamedica.com';
 
     const loginUrl = new URL(
       buildSafeLoginUrl('doctors', 'https://doctors.autamedica.com/dashboard', 'session_expired')
@@ -117,7 +117,7 @@ describe('shared auth/session + security/redirects', () => {
   });
 
   it('uses localhost:3005 as fallback auth origin for local returnTo', () => {
-    process.env.NEXT_PUBLIC_ALLOWED_REDIRECTS = 'http://localhost:3001';
+    process.env.PUBLIC_ALLOWED_REDIRECTS = 'http://localhost:3001';
 
     const loginUrl = new URL(buildSafeLoginUrl('doctors', 'http://localhost:3001/dashboard'));
 
@@ -126,7 +126,7 @@ describe('shared auth/session + security/redirects', () => {
   });
 
   it('removes unsafe external returnTo values', () => {
-    process.env.NEXT_PUBLIC_BASE_URL_AUTH = 'https://www.autamedica.com';
+    process.env.PUBLIC_BASE_URL_AUTH = 'https://www.autamedica.com';
 
     const loginUrl = new URL(buildSafeLoginUrl('patients', 'https://evil.example/phishing'));
 

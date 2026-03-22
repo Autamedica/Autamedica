@@ -33,7 +33,7 @@ describe('ICE Servers Configuration', () => {
 
       vi.stubGlobal('process', {
         env: {
-          NEXT_PUBLIC_ICE_SERVERS: JSON.stringify(testServers)
+          PUBLIC_ICE_SERVERS: JSON.stringify(testServers)
         }
       })
 
@@ -49,7 +49,7 @@ describe('ICE Servers Configuration', () => {
     it('should handle malformed JSON gracefully', () => {
       vi.stubGlobal('process', {
         env: {
-          NEXT_PUBLIC_ICE_SERVERS: 'invalid-json'
+          PUBLIC_ICE_SERVERS: 'invalid-json'
         }
       })
 
@@ -68,7 +68,7 @@ describe('ICE Servers Configuration', () => {
 
       vi.stubGlobal('process', {
         env: {
-          NEXT_PUBLIC_ICE_SERVERS: JSON.stringify(testServers)
+          PUBLIC_ICE_SERVERS: JSON.stringify(testServers)
         }
       })
 

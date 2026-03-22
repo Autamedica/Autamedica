@@ -76,24 +76,16 @@ export class AIAnalysisService {
   /**
    * Análisis mock para desarrollo
    */
-  private getMockAnalysis(request: AnalysisRequest): MedicalAnalysis {
-    const { symptoms = [], vitals = {} } = request.data;
-    const vitalsCount = Object.keys(vitals).length;
-
+  private getMockAnalysis(_request: AnalysisRequest): MedicalAnalysis {
     return {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
-      summary: `[MOCK] Análisis simulado de ${symptoms.length} síntomas reportados. ${vitalsCount} signos vitales registrados.`,
-      recommendations: [
-        'Monitorear evolución en las próximas 24-48 horas',
-        'Mantener hidratación adecuada',
-        'Seguimiento en 1 semana si persisten síntomas',
-        '[MOCK DATA - Usar Claude API real en producción]',
-      ],
-      severity: this.calculateMockSeverity(symptoms.length),
-      confidence: 75,
+      summary: 'Servicio de IA no disponible. Configure ANTHROPIC_API_KEY para habilitar análisis real.',
+      recommendations: [],
+      severity: 'low',
+      confidence: 0,
       metadata: {
-        modelUsed: 'mock-model-dev',
+        modelUsed: 'none',
       },
     };
   }
@@ -269,19 +261,6 @@ FORMATO DE RESPUESTA (JSON):
         confidence: 0,
       };
     }
-  }
-
-  /**
-   * Calcular severidad mock basado en número de síntomas
-   */
-  private calculateMockSeverity(
-    symptomCount: number
-  ): 'low' | 'medium' | 'high' | 'critical' {
-    if (symptomCount === 0) return 'low';
-    if (symptomCount <= 2) return 'low';
-    if (symptomCount <= 4) return 'medium';
-    if (symptomCount <= 6) return 'high';
-    return 'critical';
   }
 
   /**

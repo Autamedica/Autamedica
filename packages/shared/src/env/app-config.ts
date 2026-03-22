@@ -31,8 +31,8 @@ export interface LoginUrlBuilder {
  */
 function getAuthHubOrigin(): string {
   return isDevelopment()
-    ? getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', 'http://localhost:3000')
-    : getClientEnvOrDefault('NEXT_PUBLIC_APP_URL', 'https://www.autamedica.com');
+    ? getClientEnvOrDefault('PUBLIC_APP_URL', 'http://localhost:3000')
+    : getClientEnvOrDefault('PUBLIC_APP_URL', 'https://www.autamedica.com');
 }
 
 /**
@@ -43,11 +43,11 @@ function getAppOrigins(): Record<AppName, string> {
 
   return {
     patients: devMode
-      ? getClientEnvOrDefault('NEXT_PUBLIC_PATIENTS_DEV_URL', 'http://localhost:3002')
-      : getClientEnvOrDefault('NEXT_PUBLIC_PATIENTS_URL', 'https://patients.autamedica.com'),
+      ? getClientEnvOrDefault('PUBLIC_PATIENTS_DEV_URL', 'http://localhost:3002')
+      : getClientEnvOrDefault('PUBLIC_PATIENTS_URL', 'https://patients.autamedica.com'),
     doctors: devMode
-      ? getClientEnvOrDefault('NEXT_PUBLIC_DOCTORS_DEV_URL', 'http://localhost:3001')
-      : getClientEnvOrDefault('NEXT_PUBLIC_DOCTORS_URL', 'https://doctors.autamedica.com'),
+      ? getClientEnvOrDefault('PUBLIC_DOCTORS_DEV_URL', 'http://localhost:3001')
+      : getClientEnvOrDefault('PUBLIC_DOCTORS_URL', 'https://doctors.autamedica.com'),
   };
 }
 
@@ -67,19 +67,19 @@ export function getAppEnv(appName: AppName): AppEnvironmentConfig {
     appOrigin: appOrigins[appName],
     supabase: {
       url: getClientEnvOrDefault(
-        'NEXT_PUBLIC_SUPABASE_URL',
+        'PUBLIC_SUPABASE_URL',
         'https://qxjjrpksmwwrmubhvjew.supabase.co',
       ),
       anonKey: getClientEnvOrDefault(
-        'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+        'PUBLIC_SUPABASE_ANON_KEY',
         'REPLACE_WITH_ROTATED_KEY.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4',
       ),
     },
     signalingUrl: getClientEnvOrDefault(
-      'NEXT_PUBLIC_SIGNALING_URL',
+      'PUBLIC_SIGNALING_URL',
       'ws://localhost:8080',
     ),
-    authDevBypassEnabled: getClientEnvOrDefault('NEXT_PUBLIC_AUTH_DEV_BYPASS', 'false') === 'true',
+    authDevBypassEnabled: getClientEnvOrDefault('PUBLIC_AUTH_DEV_BYPASS', 'false') === 'true',
   };
 }
 

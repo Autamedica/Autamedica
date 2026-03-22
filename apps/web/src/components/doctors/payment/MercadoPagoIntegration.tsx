@@ -74,7 +74,7 @@ export function MercadoPagoCheckout({
   const initializeMercadoPago = useCallback(async () => {
     try {
       // En producción, esto se cargaría desde las variables de entorno
-      const _publicKey = 'TEST-your-public-key'
+      const _publicKey = import.meta.env.PUBLIC_MERCADOPAGO_KEY || ''
 
       // Simulación de inicialización del SDK
       // logger.info('Inicializando MercadoPago SDK con clave:', publicKey)
@@ -90,25 +90,7 @@ export function MercadoPagoCheckout({
 
   const loadSavedPaymentMethods = useCallback(async () => {
     try {
-      // Simulación de carga de métodos de pago guardados
-      const mockPaymentMethods: PaymentMethod[] = [
-        {
-          id: 'pm_1',
-          type: 'credit_card',
-          last_four_digits: '4321',
-          payment_method_id: 'visa',
-          issuer: {
-            id: '25',
-            name: 'Visa'
-          },
-          security_code: {
-            length: 3,
-            card_location: 'back'
-          }
-        }
-      ]
-
-      setPaymentMethods(mockPaymentMethods)
+      setPaymentMethods([])
     } catch (error) {
       logger.error('Error cargando métodos de pago:', error)
     }
@@ -128,37 +110,7 @@ export function MercadoPagoCheckout({
     setIsLoading(true)
 
     try {
-      // Simulación del proceso de pago con MercadoPago
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      const paymentData: PaymentData = {
-        id: 'payment_' + Date.now(),
-        status: 'approved',
-        status_detail: 'accredited',
-        operation_type: 'regular_payment',
-        date_approved: new Date().toISOString(),
-        transaction_amount: amount,
-        currency_id: currency,
-        description,
-        payment_method_id: selectedPaymentMethod || 'visa',
-        payer: {
-          id: 'payer_' + Date.now(),
-          email: 'médico@autamedica.com'
-        }
-      }
-
-      // Simular diferentes resultados
-      const random = Math.random()
-      if (random > 0.8) {
-        // 20% chance de error
-        throw new Error('Error en el procesamiento del pago')
-      } else if (random > 0.7) {
-        // 10% chance de pendiente
-        onPending?.({ ...paymentData, status: 'pending' })
-      } else {
-        // 70% chance de éxito
-        onSuccess(paymentData)
-      }
+      onError({ message: 'Integración de pagos pendiente de configuración. Contacte soporte.' })
     } catch (error) {
       onError(error)
     } finally {
@@ -392,24 +344,15 @@ export function MercadoPagoSubscriptionManager({
   currentPlanId: _currentPlanId,
   onPlanChange
 }: MercadoPagoSubscriptionManagerProps) {
-  const [subscriptionStatus, _setSubscriptionStatus] = useState<'active' | 'cancelled' | 'past_due'>('active')
-  const [nextBillingDate, _setNextBillingDate] = useState('2024-10-15')
-  const [paymentHistory, _setPaymentHistory] = useState([
-    {
-      id: 'pay_001',
-      date: '2024-09-15',
-      amount: 99000,
-      status: 'approved',
-      description: 'Suscripción Plan Profesional'
-    },
-    {
-      id: 'pay_002',
-      date: '2024-08-15',
-      amount: 99000,
-      status: 'approved',
-      description: 'Suscripción Plan Profesional'
-    }
-  ])
+  const [subscriptionStatus, _setSubscriptionStatus] = useState<'active' | 'cancelled' | 'past_due' | null>(null)
+  const [nextBillingDate, _setNextBillingDate] = useState('')
+  const [paymentHistory, _setPaymentHistory] = useState<Array<{
+    id: string
+    date: string
+    amount: number
+    status: string
+    description: string
+  }>>([])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -434,19 +377,19 @@ export function MercadoPagoSubscriptionManager({
       <div className="bg-slate-800/40 border border-slate-700 rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-slate-100">Estado de Suscripción</h3>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(subscriptionStatus)}`}>
-            {subscriptionStatus === 'active' ? 'Activa' : subscriptionStatus}
+          <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(subscriptionStatus || '')}`}>
+            {subscriptionStatus === 'active' ? 'Activa' : subscriptionStatus || 'Sin suscripción'}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-slate-400">Próxima facturación:</span>
-            <p className="text-slate-100 font-medium">{nextBillingDate}</p>
+            <p className="text-slate-100 font-medium">{nextBillingDate || '--'}</p>
           </div>
           <div>
             <span className="text-slate-400">Plan actual:</span>
-            <p className="text-slate-100 font-medium">Profesional</p>
+            <p className="text-slate-100 font-medium">--</p>
           </div>
         </div>
       </div>
@@ -455,7 +398,9 @@ export function MercadoPagoSubscriptionManager({
       <div>
         <h3 className="text-lg font-medium text-slate-100 mb-3">Historial de Pagos</h3>
         <div className="space-y-2">
-          {paymentHistory.map((payment) => (
+          {paymentHistory.length === 0 ? (
+            <p className="text-slate-400 text-sm py-4 text-center">Sin historial de pagos</p>
+          ) : paymentHistory.map((payment) => (
             <div key={payment.id} className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700 rounded-lg">
               <div className="flex items-center gap-3">
                 {getStatusIcon(payment.status)}

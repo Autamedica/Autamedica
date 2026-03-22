@@ -411,7 +411,7 @@ export default function DoctorsHomePage(): JSX.Element {
             ) : (
               <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-8 text-center overflow-hidden">
                 <img 
-                  src="/images/doctor_portal_mock.png" 
+                  src="/images/doctor_portal_bg.png" 
                   alt="" 
                   className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-luminosity" 
                   aria-hidden="true"
@@ -434,7 +434,7 @@ export default function DoctorsHomePage(): JSX.Element {
                   ) : user ? (
                     <StartCallButton
                       doctorId={user.id}
-                      patientId={session?.patientId || 'demo-patient-1'}
+                      patientId={session?.patientId || ''}
                       patientName={getPatientDisplayName(patient)}
                       className="group relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40 active:scale-95"
                     />

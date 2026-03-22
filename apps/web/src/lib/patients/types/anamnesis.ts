@@ -27,11 +27,49 @@ export type AnamnesisCategory =
   | 'antecedentes_familiares'
   | 'revision_sistemas';
 
-export type AnamnesisFieldValue = string | number | boolean | string[] | null | undefined;
+export type BodySymptomType =
+  | 'pain'
+  | 'pressure'
+  | 'burning'
+  | 'numbness'
+  | 'weakness'
+  | 'swelling'
+  | 'other'
+
+export type BodyLaterality = 'left' | 'right' | 'bilateral' | 'midline' | 'unknown'
+
+export type BodyAspect = 'anterior' | 'posterior' | 'diffuse'
+
+export interface BodyMapSelection {
+  partId: string
+  label: string
+  intensity: number
+  symptomType: BodySymptomType
+  laterality: BodyLaterality
+  aspect: BodyAspect
+}
+
+export type AnamnesisFieldValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | BodyMapSelection[]
+  | null
+  | undefined;
 
 export interface AnamnesisField {
   id: string;
-  type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'textarea' | 'boolean' | 'scale';
+  type:
+    | 'text'
+    | 'number'
+    | 'select'
+    | 'multiselect'
+    | 'date'
+    | 'textarea'
+    | 'boolean'
+    | 'scale'
+    | 'body_map';
   label: string;
   placeholder?: string;
   required: boolean;
@@ -71,6 +109,7 @@ export interface AnamnesisData {
     sintoma_principal: string;
     desde_cuando: string;
     intensidad: number; // 1-10
+    body_selections: BodyMapSelection[];
   };
 
   // Antecedentes Personales

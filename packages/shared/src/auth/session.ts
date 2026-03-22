@@ -4,7 +4,6 @@
  */
 
 import { jwtVerify, type JWTPayload } from 'jose';
-import type { NextRequest } from 'next/server';
 import { logger } from '../services/logger.service';
 
 export type SessionRole =
@@ -71,7 +70,8 @@ function getProjectRefFromSupabaseUrl(supabaseUrl?: string): string | null {
 
 function getSessionCookieNames(): string[] {
   const names = [...SESSION_COOKIE_BASENAMES];
-  const projectRef = getProjectRefFromSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const supabaseUrl = process.env.PUBLIC_SUPABASE_URL;
+  const projectRef = getProjectRefFromSupabaseUrl(supabaseUrl);
 
   if (projectRef) {
     names.unshift(`sb-${projectRef}-auth-token`);
@@ -253,10 +253,12 @@ function extractEmailFromPayload(payload: JWTPayload): string | undefined {
 }
 
 /**
- * Get session from request cookies using JWT verification
- * No Supabase client needed - prevents hardcoded credentials
+ * Get session from request cookies using JWT verification.
+ * No Supabase client needed - prevents hardcoded credentials.
+ * Accepts any object with a `cookies` property matching the CookieReader interface
+ * (compatible with NextRequest, Astro APIContext, and custom adapters).
  */
-export async function getSession(req: NextRequest): Promise<Session | null> {
+export async function getSession(req: { cookies: CookieReader }): Promise<Session | null> {
   const token = extractSessionTokenFromCookies(req.cookies);
 
   if (!token) {
