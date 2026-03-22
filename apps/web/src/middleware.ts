@@ -1,14 +1,16 @@
 /**
  * Middleware de Astro para autenticación y protección de rutas.
  *
- * Reescritura del middleware Next.js al formato Astro (defineMiddleware).
- * La lógica de rutas protegidas, redirecciones y roles es idéntica al original.
+ * Security: Uses getUser() for server-side JWT verification.
+ * Auth routes are checked BEFORE public routes to prevent authenticated users
+ * from seeing login/register forms.
  */
 
 import { logger } from '@autamedica/shared';
 import { createServerClient } from '@supabase/ssr';
 import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
+import { detectLocale, LOCALE_COOKIE } from './i18n/index';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
@@ -26,6 +28,8 @@ const PROTECTED_ROUTES = [
 const AUTH_ROUTES = ['/auth/login', '/auth/register'];
 
 // Rutas públicas que no requieren verificación
+// NOTE: /auth/login and /auth/register are NOT here — they're handled by AUTH_ROUTES
+// to ensure authenticated users get redirected to their dashboard.
 const PUBLIC_ROUTES = [
   '/',
   '/about',
@@ -35,15 +39,13 @@ const PUBLIC_ROUTES = [
   '/privacidad',
   '/auth/callback',
   '/auth/select-role',
-  '/auth/login',
-  '/auth/register',
   '/auth/forgot-password',
   '/auth/reset-password',
   '/api/health',
 ];
 
 const ROLE_REDIRECTS: Record<string, string> = {
-  patient: '/patients',
+  patient: '/dashboard',
   doctor: '/doctors',
   company: '/companies',
   company_admin: '/companies',
@@ -100,6 +102,12 @@ function isProtectedPath(pathname: string): boolean {
   });
 }
 
+/** Type-safe role extraction from user metadata */
+function extractRole(metadata: Record<string, unknown> | undefined): string | undefined {
+  const raw = metadata?.role;
+  return typeof raw === 'string' ? raw : undefined;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
@@ -126,22 +134,52 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-  // Interceptar redirects de OAuth o Magic Links que caen fuera del callback
-  if (pathname !== '/auth/callback' && requestUrl.searchParams.has('code')) {
+  // Intercept OAuth redirects that land outside /auth/callback
+  // Require both `code` and `state` params (OAuth standard) to avoid false positives
+  if (pathname !== '/auth/callback' && requestUrl.searchParams.has('code') && requestUrl.searchParams.has('state')) {
     const callbackUrl = new URL('/auth/callback', context.request.url);
     callbackUrl.search = requestUrl.search;
     return context.redirect(callbackUrl.toString(), 302);
   }
 
-  // Saltear verificación para archivos estáticos y rutas públicas
-  if (
-    pathname.startsWith('/_astro/') ||
-    pathname.includes('.') ||
-    PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))
-  ) {
+  // Skip auth for static assets
+  if (pathname.startsWith('/_astro/') || pathname.includes('.')) {
     return next();
   }
 
+  // ── LOCALE DETECTION ────────────────────────────────────────────────────────
+  // Prioridad: cookie au-locale > CF-IPCountry (Cloudflare) > Accept-Language > 'es'
+  {
+    const rawCookies = context.request.headers.get('cookie');
+    const cfIpCountry = context.request.headers.get('CF-IPCountry');
+    const acceptLanguage = context.request.headers.get('Accept-Language');
+
+    const locale = detectLocale(rawCookies, cfIpCountry, acceptLanguage);
+    context.locals.locale = locale;
+
+    // Persistir en cookie solo si no coincide (evita escribir en cada request)
+    const savedLocale = rawCookies?.match(/au-locale=([^;]+)/)?.[1]?.trim();
+    if (savedLocale !== locale) {
+      context.cookies.set(LOCALE_COOKIE, locale, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365, // 1 año
+        sameSite: 'lax',
+        secure: import.meta.env.PROD,
+        httpOnly: false, // legible por LanguageSwitcher en el cliente
+      } as AstroCookieSetOptions);
+    }
+  }
+  // ── FIN LOCALE DETECTION ────────────────────────────────────────────────────
+
+  // Check if this is an auth route (login/register) — these need special handling
+  const isAuthRoute = AUTH_ROUTES.some(route => pathname === route);
+
+  // Public routes that are NOT auth routes — skip auth entirely
+  if (!isAuthRoute && PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
+    return next();
+  }
+
+  // Everything below requires auth verification
   try {
     const supabase = createServerClient(
       import.meta.env.PUBLIC_SUPABASE_URL,
@@ -168,39 +206,37 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     );
 
-    const { data: { session }, error } = await supabase.auth.getSession();
+    // Server-side verification: getUser() validates JWT against Supabase server
+    // (unlike getSession() which only reads local cookie data without verification)
+    const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error) {
       logger.error('Middleware auth error:', error);
+    }
 
-      if (isProtectedPath(pathname)) {
-        const loginUrl = new URL('/auth/login', context.request.url);
-        loginUrl.searchParams.set('returnTo', pathname);
-        return context.redirect(loginUrl.toString());
+    // Get session for locals (only trust it if getUser succeeded)
+    const { data: { session } } = await supabase.auth.getSession();
+    context.locals.session = user ? session : null;
+    context.locals.supabase = supabase;
+
+    const isAuthenticated = !!user;
+
+    // Auth routes: redirect authenticated users to their dashboard
+    if (isAuthRoute) {
+      if (isAuthenticated) {
+        const userRole = extractRole(user.user_metadata as Record<string, unknown>);
+        if (!userRole) {
+          return context.redirect('/auth/select-role');
+        }
+        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/');
       }
-
+      // Not authenticated — show login/register form
       return next();
     }
 
-    context.locals.session = session;
-    context.locals.supabase = supabase;
-
-    const isAuthenticated = !!session;
+    // Protected routes: redirect unauthenticated users to login
     const isProtectedRoute = isProtectedPath(pathname);
-    const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
-    // Redirigir usuarios autenticados que intentan acceder a páginas de auth
-    if (isAuthenticated && isAuthRoute) {
-      const userRole = session.user.user_metadata?.role as string | undefined;
-
-      if (!userRole) {
-        return context.redirect('/auth/select-role');
-      }
-
-      return context.redirect(ROLE_REDIRECTS[userRole] ?? '/');
-    }
-
-    // Redirigir usuarios no autenticados que intentan acceder a rutas protegidas
     if (!isAuthenticated && isProtectedRoute) {
       let portal = 'patients';
       if (pathname.startsWith('/doctors')) portal = 'doctors';
@@ -214,9 +250,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return context.redirect(loginUrl.toString());
     }
 
-    // Verificar acceso por rol para rutas específicas
+    // Role-based access control for protected routes
     if (isAuthenticated && isProtectedRoute) {
-      const userRole = session.user.user_metadata?.role as string | undefined;
+      const userRole = extractRole(user.user_metadata as Record<string, unknown>);
 
       if (!userRole) {
         return context.redirect('/auth/select-role');

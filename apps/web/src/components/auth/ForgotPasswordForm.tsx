@@ -1,16 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
+import { getClientI18n } from '../../i18n/index';
+import type { Locale } from '../../i18n/index';
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({ locale = 'es' }: { locale?: Locale }) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  const { t } = getClientI18n(locale);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +39,8 @@ export function ForgotPasswordForm() {
         throw resetError;
       }
 
-      setMessage('Te hemos enviado un enlace de recuperación a tu email. Revisa tu bandeja de entrada.');
+      setMessage(t('auth.recoveryEmailSent'));
+      setCooldown(60);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error al enviar el enlace de recuperación';
       setError(errorMsg);
@@ -42,10 +54,10 @@ export function ForgotPasswordForm() {
       <div className="text-center mb-2">
         <AuthLogo size="md" />
         <h1 className="text-2xl font-bold text-[var(--au-text-primary)] mb-2">
-          Recuperar Acceso
+          {t('auth.recoverAccess')}
         </h1>
         <p className="text-sm text-[var(--au-text-secondary)]">
-          Introduce tu email para recibir un enlace de recuperación
+          {t('auth.recoverSubtitle')}
         </p>
       </div>
 
@@ -60,7 +72,7 @@ export function ForgotPasswordForm() {
         <form onSubmit={handleSubmit} className="space-y-4" aria-busy={isLoading}>
           <div>
             <label htmlFor="forgot-email" className="block text-sm font-medium text-[var(--au-text-secondary)] mb-2">
-              Correo electrónico registrado
+              {t('auth.registeredEmail')}
             </label>
             <div className="relative">
               <input
@@ -74,7 +86,7 @@ export function ForgotPasswordForm() {
                 disabled={isLoading}
                 aria-invalid={Boolean(error)}
                 className="w-full px-4 py-3 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
-                placeholder="tu@email.com"
+                placeholder={t('auth.emailPlaceholder')}
               />
               {email && email.includes('@') && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -87,13 +99,13 @@ export function ForgotPasswordForm() {
           </div>
 
           <AuthButton
-            disabled={isLoading || !email}
+            disabled={isLoading || !email || cooldown > 0}
             loading={isLoading}
             variant="primary"
             fullWidth
             type="submit"
           >
-            <span>Enviar enlace de recuperación</span>
+            <span>{cooldown > 0 ? `${t('auth.resendIn')} ${cooldown}${t('auth.seconds')}` : t('auth.sendRecoveryLink')}</span>
           </AuthButton>
         </form>
       )}
@@ -101,7 +113,7 @@ export function ForgotPasswordForm() {
       {/* Footer */}
       <div className="pt-6 border-t-2 border-[var(--au-border)] text-center space-y-4">
         <p className="text-sm text-[var(--au-text-tertiary)]">
-          ¿Recordaste tu contraseña?
+          {t('auth.rememberPassword')}
         </p>
         <a
           href="/auth/login"
@@ -110,14 +122,14 @@ export function ForgotPasswordForm() {
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
           </svg>
-          Volver al inicio de sesión
+          {t('auth.backToLogin')}
         </a>
 
         <div className="flex items-center justify-center text-xs text-[var(--au-text-tertiary)]">
           <svg className="w-4 h-4 mr-1.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          Recuperación segura y cifrada
+          {t('auth.recoverySecure')}
         </div>
       </div>
     </div>

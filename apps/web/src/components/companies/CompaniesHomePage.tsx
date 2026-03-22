@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import type { Locale } from '@/i18n/index';
 import {
   Activity,
   AlertTriangle,
@@ -16,7 +17,11 @@ import {
 } from 'lucide-react';
 import MarketplaceDashboard from './marketplace/MarketplaceDashboard';
 
-export default function CompaniesHomePage() {
+interface CompaniesHomePageProps {
+  locale?: Locale
+}
+
+export default function CompaniesHomePage({ locale: _locale }: CompaniesHomePageProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [crisisLevel, _setCrisisLevel] = useState('--');
   const [activeIncidents, _setActiveIncidents] = useState(0);

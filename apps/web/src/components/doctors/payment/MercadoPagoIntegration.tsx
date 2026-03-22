@@ -36,7 +36,7 @@ interface PaymentData {
 }
 
 interface MercadoPagoCheckoutProps {
-  _planId: string
+  planId: string
   amount: number
   currency: string
   description: string
@@ -51,7 +51,7 @@ interface MercadoPagoSubscriptionManagerProps {
 }
 
 export function MercadoPagoCheckout({
-  _planId,
+  planId: _planId,
   amount,
   currency: _currency,
   description,
@@ -74,12 +74,9 @@ export function MercadoPagoCheckout({
   const initializeMercadoPago = useCallback(async () => {
     try {
       // En producción, esto se cargaría desde las variables de entorno
-      const _publicKey = import.meta.env.PUBLIC_MERCADOPAGO_KEY || ''
-
-      // Simulación de inicialización del SDK
-      // logger.info('Inicializando MercadoPago SDK con clave:', publicKey)
-
+      // SDK de MercadoPago pendiente de integración
       // En implementación real:
+      // const publicKey = import.meta.env.PUBLIC_MERCADOPAGO_KEY || ''
       // await window.MercadoPago.initialize({ locale: 'es-AR', environment: 'sandbox' })
       // await window.MercadoPago.setPublishableKey(publicKey)
     } catch (error) {

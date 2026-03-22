@@ -1,29 +1,33 @@
 ---
+import { getI18n } from '../i18n/index';
+
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 const currentYear = new Date().getFullYear();
 
 const columns = [
   {
-    title: "PLATAFORMA",
+    title: t('landing.footer.platformTitle'),
     links: [
-      { text: "Pacientes", href: "/auth/select-role" },
-      { text: "Médicos", href: "/auth/select-role" },
-      { text: "Empresas", href: "/auth/select-role" },
+      { text: t('landing.footer.patients'), href: "/auth/select-role" },
+      { text: t('landing.footer.doctors'), href: "/auth/select-role" },
+      { text: t('landing.footer.companies'), href: "/auth/select-role" },
     ]
   },
   {
-    title: "RECURSOS",
+    title: t('landing.footer.resourcesTitle'),
     links: [
-      { text: "Cómo funciona", href: "#proceso" },
-      { text: "Seguridad", href: "#" },
-      { text: "Soporte", href: "#" },
+      { text: t('landing.footer.howItWorks'), href: "#proceso" },
+      { text: t('landing.footer.security'), href: "#" },
+      { text: t('landing.footer.support'), href: "#" },
     ]
   },
   {
-    title: "LEGAL",
+    title: t('landing.footer.legalTitle'),
     links: [
-      { text: "Privacidad", href: "/privacidad" },
-      { text: "Términos", href: "/terms" },
-      { text: "HIPAA Compliance", href: "#" },
+      { text: t('landing.footer.privacy'), href: "/privacidad" },
+      { text: t('landing.footer.terms'), href: "/terms" },
+      { text: t('landing.footer.hipaaCompliance'), href: "#" },
     ]
   }
 ];
@@ -40,9 +44,7 @@ const columns = [
           </div>
           <span class="text-2xl font-medium tracking-tight mt-6 block text-[var(--au-text-primary)]">AutaMedica</span>
         </a>
-        <p class="brand-desc mt-4 text-[var(--au-text-tertiary)] text-lg max-w-sm font-light">
-          Telemedicina sin fricciones.<br/>Desarrollado por profesionales de salud - UBA.
-        </p>
+        <p class="brand-desc mt-4 text-[var(--au-text-tertiary)] text-lg max-w-sm font-light" set:html={t('landing.footer.tagline').replace('\n', '<br/>')} />
       </div>
 
       <div class="nav-cols">
@@ -70,7 +72,7 @@ const columns = [
     </div>
 
     <div class="footer-bottom-bar flex flex-col md:flex-row justify-between items-center py-8 border-t border-[var(--au-border)] mt-16">
-      <p class="text-[var(--au-text-tertiary)] text-sm">&copy; {currentYear} AutaMedica. Todos los derechos reservados.</p>
+      <p class="text-[var(--au-text-tertiary)] text-sm">&copy; {currentYear} AutaMedica. {t('landing.footer.allRights')}</p>
 
       <div class="cert-badges flex gap-4 mt-6 md:mt-0">
         {['HIPAA', 'TLS 1.3', 'AES-256'].map(cert => (

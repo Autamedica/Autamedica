@@ -70,6 +70,20 @@ function parseAbsoluteUrl(value: string): URL | null {
   }
 }
 
+/** Allowed hosts for returnTo redirects (prevents open redirect) */
+function isAllowedReturnToHost(hostname: string): boolean {
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return true;
+  }
+  if (hostname === 'autamedica.com' || hostname === 'www.autamedica.com') {
+    return true;
+  }
+  if (hostname.endsWith('.autamedica.com')) {
+    return true;
+  }
+  return /^autamedica-[a-z0-9-]+\.pages\.dev$/i.test(hostname);
+}
+
 function sanitizeReturnTo(returnTo: string | null | undefined): string | undefined {
   if (!returnTo) {
     return undefined;
@@ -80,6 +94,7 @@ function sanitizeReturnTo(returnTo: string | null | undefined): string | undefin
     return undefined;
   }
 
+  // Relative paths are always safe
   if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
     return trimmed;
   }
@@ -90,6 +105,11 @@ function sanitizeReturnTo(returnTo: string | null | undefined): string | undefin
   }
 
   if (absolute.protocol !== 'https:' && absolute.protocol !== 'http:') {
+    return undefined;
+  }
+
+  // Validate host against allowlist (prevents open redirect)
+  if (!isAllowedReturnToHost(absolute.hostname)) {
     return undefined;
   }
 

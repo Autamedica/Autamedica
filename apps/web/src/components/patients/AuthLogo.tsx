@@ -1,5 +1,4 @@
 // AuthLogo.tsx
-import React from 'react';
 
 interface AuthLogoProps {
   size?: 'sm' | 'md' | 'lg';

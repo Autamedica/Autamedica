@@ -9,6 +9,7 @@ import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { usePatientData } from '@/hooks/doctors/usePatientData'
 import { useMedicalHistoryStore } from '@/lib/doctors/stores/medicalHistoryStore'
+import type { Locale } from '@/i18n/index'
 import { logger } from '@autamedica/shared'
 import {
     Activity,
@@ -83,7 +84,11 @@ function getPatientAge(patient: unknown): string {
   return Math.abs(ageDate.getUTCFullYear() - 1970).toString()
 }
 
-export default function DoctorsHomePage(): JSX.Element {
+interface DoctorsHomePageProps {
+  locale?: Locale
+}
+
+export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProps): JSX.Element {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const screenShareRef = useRef<HTMLVideoElement | null>(null)
 

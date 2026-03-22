@@ -1,7 +1,5 @@
 'use client';
 
-import React from 'react';
-
 export default function Header() {
   return (
     <div className="bg-gradient-to-r from-sky-600 to-blue-700 shadow-lg">

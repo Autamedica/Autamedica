@@ -378,9 +378,8 @@ export function useWebRTCCall(config: WebRTCCallConfig): [WebRTCCallState, WebRT
   useEffect(() => {
     if (callStatus !== 'connected') return;
 
-    const interval = setInterval(async () => {
-      const _stats = await webrtcActions.getConnectionStats();
-      // Stats se actualizan automáticamente en webrtcState
+    const interval = setInterval(() => {
+      webrtcActions.getConnectionStats();
     }, 2000);
 
     return () => clearInterval(interval);

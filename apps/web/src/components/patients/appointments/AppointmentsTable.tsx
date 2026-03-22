@@ -5,6 +5,7 @@ import { Calendar, Clock, Video, MapPin, ExternalLink } from 'lucide-react';
 
 interface AppointmentsTableProps {
   appointments: Appointment[];
+  locale?: string;
 }
 
 const statusConfig = {
@@ -25,10 +26,12 @@ const typeConfig = {
   checkup: { label: 'Chequeo', icon: '✅' },
 };
 
-export function AppointmentsTable({ appointments }: AppointmentsTableProps) {
+export function AppointmentsTable({ appointments, locale }: AppointmentsTableProps) {
+  const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-AR', {
+    return date.toLocaleDateString(intlLocale, {
       weekday: 'short',
       day: '2-digit',
       month: 'short',
@@ -38,7 +41,7 @@ export function AppointmentsTable({ appointments }: AppointmentsTableProps) {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('es-AR', {
+    return date.toLocaleTimeString(intlLocale, {
       hour: '2-digit',
       minute: '2-digit',
     });

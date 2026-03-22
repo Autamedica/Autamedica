@@ -18,6 +18,7 @@ import type { ScreeningCategoryType } from '@autamedica/types';
 
 interface PreventiveHealthHubProps {
   patientId: string;
+  locale?: string;
 }
 
 type TabType = 'recommendations' | 'my-screenings' | 'reminders' | 'cases';
@@ -68,7 +69,8 @@ const STATUS_LABELS = {
   not_applicable: 'No aplica'
 };
 
-export function PreventiveHealthHub({ patientId }: PreventiveHealthHubProps) {
+export function PreventiveHealthHub({ patientId, locale }: PreventiveHealthHubProps) {
+  const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
   const [activeTab, setActiveTab] = useState<TabType>('recommendations');
   const [selectedCategory, setSelectedCategory] = useState<ScreeningCategoryType | 'all'>('all');
 
@@ -321,7 +323,7 @@ export function PreventiveHealthHub({ patientId }: PreventiveHealthHubProps) {
                                 <p className="text-stone-600">Costo estimado</p>
                                 <p className="font-medium">
                                   {rec.screening.estimated_cost_ars
-                                    ? `$${rec.screening.estimated_cost_ars.toLocaleString('es-AR')} ARS`
+                                    ? `$${rec.screening.estimated_cost_ars.toLocaleString(intlLocale)} ARS`
                                     : 'Gratuito'}
                                 </p>
                               </div>
@@ -419,7 +421,7 @@ export function PreventiveHealthHub({ patientId }: PreventiveHealthHubProps) {
                               <div>
                                 <p className="text-stone-600">Fecha agendada</p>
                                 <p className="font-medium">
-                                  {new Date(screening.scheduled_date).toLocaleDateString('es-AR', {
+                                  {new Date(screening.scheduled_date).toLocaleDateString(intlLocale, {
                                     day: '2-digit',
                                     month: 'long',
                                     year: 'numeric'
@@ -432,7 +434,7 @@ export function PreventiveHealthHub({ patientId }: PreventiveHealthHubProps) {
                               <div>
                                 <p className="text-stone-600">Próxima fecha</p>
                                 <p className="font-medium">
-                                  {new Date(screening.next_due_date).toLocaleDateString('es-AR', {
+                                  {new Date(screening.next_due_date).toLocaleDateString(intlLocale, {
                                     day: '2-digit',
                                     month: 'long',
                                     year: 'numeric'

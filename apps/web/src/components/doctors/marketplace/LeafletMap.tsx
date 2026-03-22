@@ -21,9 +21,11 @@ interface LeafletMapProps {
     location?: string
     urgent?: boolean
   }
+  locale?: string
 }
 
-export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters }: LeafletMapProps) {
+export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters, locale }: LeafletMapProps) {
+  const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
   const [isClient, setIsClient] = useState(false)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
 
@@ -89,7 +91,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters 
   const formatSalary = (job: MarketplaceJobOffer) => {
     const { min, max, currency, period } = job.salary
     if (currency === 'ARS') {
-      return `$${min.toLocaleString('es-AR')} - $${max.toLocaleString('es-AR')}/${period}`
+      return `$${min.toLocaleString(intlLocale)} - $${max.toLocaleString(intlLocale)}/${period}`
     }
     return `${currency} ${min.toLocaleString()} - ${max.toLocaleString()}/${period}`
   }
@@ -97,7 +99,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters 
   const formatHourlyRate = (doctor: MarketplaceDoctor) => {
     const { amount, currency } = doctor.hourlyRate
     if (currency === 'ARS') {
-      return `$${amount.toLocaleString('es-AR')}/hora`
+      return `$${amount.toLocaleString(intlLocale)}/hora`
     }
     return `${currency} ${amount.toLocaleString()}/hora`
   }

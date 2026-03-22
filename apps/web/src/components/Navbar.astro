@@ -1,5 +1,10 @@
 ---
 import AccountMenu from './ui/AccountMenu';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { getI18n } from '../i18n/index';
+
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 ---
 
 <nav class="navbar" aria-label="Navegacion principal">
@@ -10,13 +15,14 @@ import AccountMenu from './ui/AccountMenu';
     </a>
 
     <ul class="navbar-links" role="list">
-      <li><a href="#producto">Producto</a></li>
-      <li><a href="#profesionales">Profesionales</a></li>
-      <li><a href="#sintomas">Especialidades</a></li>
-      <li><a href="#portales">Acceso</a></li>
+      <li><a href="#producto">{t('navbar.product')}</a></li>
+      <li><a href="#profesionales">{t('navbar.professionals')}</a></li>
+      <li><a href="#sintomas">{t('navbar.specialties')}</a></li>
+      <li><a href="#portales">{t('navbar.access')}</a></li>
     </ul>
 
     <div class="navbar-actions">
+      <LanguageSwitcher currentLocale={locale} client:load />
       <AccountMenu client:load />
     </div>
   </div>

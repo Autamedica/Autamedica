@@ -26,7 +26,12 @@ type DoctorProfileCandidate = {
   lastName?: string | null
 }
 
-export function MarketplacePanel() {
+interface MarketplacePanelProps {
+  locale?: string
+}
+
+export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
+  const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedItem, setSelectedItem] = useState<MarketplaceJobOffer | MarketplaceDoctor | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
@@ -102,7 +107,7 @@ export function MarketplacePanel() {
   const formatSalary = (job: MarketplaceJobOffer) => {
     const { min, max, currency, period } = job.salary
     if (currency === 'ARS') {
-      return `$${min.toLocaleString('es-AR')} - $${max.toLocaleString('es-AR')}/${period}`
+      return `$${min.toLocaleString(intlLocale)} - $${max.toLocaleString(intlLocale)}/${period}`
     }
     return `${currency} ${min.toLocaleString()} - ${max.toLocaleString()}/${period}`
   }

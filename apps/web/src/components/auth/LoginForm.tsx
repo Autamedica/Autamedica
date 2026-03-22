@@ -5,13 +5,14 @@ import type { EntryRole } from '../../lib/auth-flow';
 import {
   ROLE_ENTRIES,
   buildAuthPath,
-  getRoleEntry,
   resolveEntryRoleFromParams,
 } from '../../lib/auth-flow';
 import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
+import { getClientI18n } from '../../i18n/index';
+import type { Locale } from '../../i18n/index';
 
 function buildAuxHref(path: string, role?: EntryRole, returnTo?: string | null): string {
   const params = new URLSearchParams();
@@ -25,7 +26,7 @@ function buildAuxHref(path: string, role?: EntryRole, returnTo?: string | null):
   return query ? `${path}?${query}` : path;
 }
 
-export function LoginForm() {
+export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<EntryRole | undefined>(undefined);
@@ -33,6 +34,9 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const { t } = getClientI18n(locale);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -105,15 +109,10 @@ export function LoginForm() {
     () => buildAuthPath('register', { role, returnTo }),
     [role, returnTo]
   );
-  const _selectRoleHref = useMemo(
-    () => buildAuthPath('select-role', { returnTo }),
-    [returnTo]
-  );
   const forgotPasswordHref = useMemo(
     () => buildAuxHref('/auth/forgot-password', role, returnTo),
     [role, returnTo]
   );
-  const _roleContext = role ? getRoleEntry(role) : undefined;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -130,9 +129,10 @@ export function LoginForm() {
       if (signInError) {
         setError(
           signInError.message === 'Invalid login credentials'
-            ? 'Credenciales incorrectas. Revisa tu correo y tu contraseña.'
+            ? t('auth.wrongCredentials')
             : signInError.message
         );
+        if (signInError.message === 'Invalid login credentials') setPassword('');
         setIsSubmitting(false);
         return;
       }
@@ -147,7 +147,7 @@ export function LoginForm() {
 
       window.location.href = callbackUrl.toString();
     } catch {
-      setError('No pudimos iniciar sesión. Intenta nuevamente.');
+      setError(t('auth.loginError'));
       setIsSubmitting(false);
     }
   };
@@ -170,26 +170,26 @@ export function LoginForm() {
         provider: 'google',
         options: {
           redirectTo: callbackUrl.toString(),
-          queryParams: { access_type: 'offline', prompt: 'consent' },
+          queryParams: { access_type: 'offline', prompt: 'select_account' },
         },
       });
 
       if (oauthError) {
-        setError(oauthError.message || 'Error al conectar con Google.');
+        setError(oauthError.message || t('auth.googleError'));
         setIsSubmitting(false);
       }
     } catch {
-      setError('Error inesperado con Google. Intenta nuevamente.');
+      setError(t('auth.googleErrorUnexpected'));
       setIsSubmitting(false);
     }
   };
 
   const roleInfo: Record<string, { title: string; subtitle: string; icon: ReactNode; accent: string; buttonLabel: string }> = {
     patient: {
-      title: 'Portal de Pacientes',
-      subtitle: 'Gestiona tu salud con precisión y agilidad.',
+      title: t('roles.patient.title'),
+      subtitle: t('roles.patient.subtitle'),
       accent: 'text-emerald-400',
-      buttonLabel: 'Entrar como Paciente',
+      buttonLabel: t('roles.patient.buttonLabel'),
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -198,10 +198,10 @@ export function LoginForm() {
       ),
     },
     doctor: {
-      title: 'Portal Médico',
-      subtitle: 'Infraestructura clínica de alto rendimiento.',
+      title: t('roles.doctor.title'),
+      subtitle: t('roles.doctor.subtitle'),
       accent: 'text-cyan-400',
-      buttonLabel: 'Entrar como Médico',
+      buttonLabel: t('roles.doctor.buttonLabel'),
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h1a.3.3 0 1 0 .2-.7L4 10V4l.8-1.7zm14.4 0A.3.3 0 1 1 19 2h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1a.3.3 0 1 1-.2-.7l1.2-.3V4l-.8-1.7zM7 2h10l1 2v5l-1 2H7l-1-2V4l1-2z" />
@@ -209,11 +209,11 @@ export function LoginForm() {
         </svg>
       ),
     },
-    company: {
-      title: 'Portal Corporativo',
-      subtitle: 'Estrategias de bienestar para tu organización.',
+    company_admin: {
+      title: t('roles.company_admin.title'),
+      subtitle: t('roles.company_admin.subtitle'),
       accent: 'text-slate-300',
-      buttonLabel: 'Entrar como Empresa',
+      buttonLabel: t('roles.company_admin.buttonLabel'),
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -235,9 +235,9 @@ export function LoginForm() {
           </div>
         </div>
         <div className="space-y-3">
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--au-text-primary)]">Preparando tu acceso</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--au-text-primary)]">{t('auth.preparing')}</h1>
           <p className="max-w-[280px] text-sm leading-relaxed text-[var(--au-text-secondary)]">
-            Validando tu identidad para una conexión segura y sin fricciones.
+            {t('auth.preparingSubtitle')}
           </p>
         </div>
         <div className="relative flex h-12 w-12 items-center justify-center">
@@ -254,13 +254,13 @@ export function LoginForm() {
         {/* Portal Identifier Badge */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--au-accent-soft)] border border-[var(--au-border)] mb-8 animate-in slide-in-from-top-2 duration-1000">
           <span className={`h-1.5 w-1.5 rounded-full ${currentRoleInfo.accent.replace('text-', 'bg-')} shadow-[0_0_8px_currentColor]`}></span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--au-text-secondary)]">Modo de Acceso</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--au-text-secondary)]">{t('auth.accessMode')}</span>
         </div>
 
         <AuthLogo size="md" />
-        
+
         {/* Role Segmented Picker - High Contrast */}
-        <div className="mt-10 grid grid-cols-3 gap-1 p-1 bg-[var(--au-surface)] border border-[var(--au-border)] rounded-2xl">
+        <div role="tablist" aria-label="Portal de acceso" className="mt-10 grid grid-cols-3 gap-1 p-1 bg-[var(--au-surface)] border border-[var(--au-border)] rounded-2xl">
           {ROLE_ENTRIES.map((entry) => {
             const isCurrent = role === entry.role;
             const info = roleInfo[entry.role as string];
@@ -268,6 +268,9 @@ export function LoginForm() {
               <a
                 key={`role-tab-${entry.role}`}
                 href={buildAuthPath('login', { role: entry.role, returnTo })}
+                role="tab"
+                aria-selected={isCurrent}
+                tabIndex={isCurrent ? 0 : -1}
                 className={`flex flex-col items-center gap-2 py-3.5 rounded-xl transition-all ${
                   isCurrent
                     ? 'bg-[var(--au-accent-soft)] text-[var(--au-text-primary)] shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-[var(--au-border-hover)]'
@@ -305,7 +308,7 @@ export function LoginForm() {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          <span className="relative text-[var(--au-text-primary)]">Continuar con Google</span>
+          <span className="relative text-[var(--au-text-primary)]">{t('auth.continueWithGoogle')}</span>
         </button>
 
         <div className="relative py-2">
@@ -319,7 +322,7 @@ export function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isSubmitting}>
           <div className="space-y-2">
             <label htmlFor="email" className="ml-1 text-[11px] font-bold uppercase tracking-wider text-[var(--au-text-tertiary)]">
-              Email Institucional
+              {t('auth.emailLabel')}
             </label>
             <input
               id="email"
@@ -331,54 +334,72 @@ export function LoginForm() {
               inputMode="email"
               disabled={isSubmitting}
               className="w-full rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] px-5 py-4 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-[var(--au-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--au-accent-soft)] disabled:opacity-50"
-              placeholder="tu@email.com"
+              placeholder={t('auth.emailPlaceholder')}
             />
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <label htmlFor="password" className="text-[11px] font-bold uppercase tracking-wider text-[var(--au-text-tertiary)]">
-                Contraseña
+                {t('auth.passwordLabel')}
               </label>
               <a href={forgotPasswordHref} className="text-[11px] font-bold text-[var(--au-accent)] hover:underline">
-                Recuperar
+                {t('auth.recover')}
               </a>
             </div>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              autoComplete="current-password"
-              disabled={isSubmitting}
-              className="w-full rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] px-5 py-4 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-[var(--au-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--au-accent-soft)] disabled:opacity-50"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                autoComplete="current-password"
+                disabled={isSubmitting}
+                className="w-full rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] px-5 py-4 pr-14 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-[var(--au-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--au-accent-soft)] disabled:opacity-50"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                disabled={isSubmitting}
+                aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--au-text-tertiary)] hover:text-[var(--au-text-secondary)] transition-colors disabled:opacity-50"
+              >
+                {showPassword ? (
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           <AuthButton disabled={isSubmitting} variant="primary" fullWidth type="submit" className="h-[60px] text-lg lg:text-base">
-            <span>{isSubmitting ? 'Iniciando fase...' : currentRoleInfo.buttonLabel}</span>
+            <span>{isSubmitting ? t('auth.enterSession') : currentRoleInfo.buttonLabel}</span>
           </AuthButton>
         </form>
       </div>
 
       <div className="space-y-6 pt-6 text-center">
         <p className="text-xs text-[var(--au-text-tertiary)]">
-          ¿Sin cuenta?{' '}
+          {t('auth.noAccount')}{' '}
           <a href={registerHref} className="font-bold text-[var(--au-text-primary)] hover:text-[var(--au-accent)]">
-            Empieza hoy
+            {t('auth.startToday')}
           </a>
         </p>
 
         <div className="flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--au-text-tertiary)]">
           <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--au-success)] shadow-[0_0_8px_var(--au-accent-glow)]"></div>
-          Infraestructura Bio-Segura
+          {t('common.bioSecureInfra')}
         </div>
       </div>
     </div>
   );
 }
-
-
-

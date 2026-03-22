@@ -3,9 +3,12 @@ import Layout from '../../layouts/Layout.astro';
 import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
+import { getI18n } from '../../i18n/index';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 
-const pageTitle = 'Portal para Empresas';
-const pageDescription = 'Centro de control de crisis sanitarias, gestión de personal médico y marketplace de profesionales para empresas en AutaMedica.';
+const pageTitle = t('portals.companies.title');
+const pageDescription = t('portals.companies.description');
 ---
 
 <Layout
@@ -22,9 +25,9 @@ const pageDescription = 'Centro de control de crisis sanitarias, gestión de per
   />
 
   <PortalLanding
-    badge="Companies Slice"
-    title="Portal de Empresas en Astro"
-    subtitle="Centro de control de crisis sanitarias y marketplace médico integrado para gestión empresarial de salud."
+    badge={t('portals.companies.badge')}
+    title={t('portals.companies.title')}
+    subtitle={t('portals.companies.description')}
     accent="var(--portal-companies)"
     stats={[
       { value: '24/7', label: 'Monitoreo en tiempo real' },
@@ -47,17 +50,17 @@ const pageDescription = 'Centro de control de crisis sanitarias, gestión de per
     ]}
     primaryCta={{
       href: buildRoleAuthPath('login', 'company_admin'),
-      label: 'Entrar como empresa',
+      label: t('roles.company_admin.buttonLabel'),
     }}
     secondaryCta={{
       href: buildRoleAuthPath('register', 'company_admin'),
-      label: 'Registrar empresa',
+      label: t('auth.createAccount'),
     }}
   />
 
   <section class="quick-links" aria-label="Accesos rapidos companies">
     <div class="quick-links-inner">
-      <h2>Accesos rapidos del portal</h2>
+      <h2>Accesos rápidos del portal</h2>
       <div class="quick-links-grid">
         <a href="/companies/crisis">Centro de Control de Crisis</a>
         <a href="/companies/marketplace">Marketplace Médico</a>

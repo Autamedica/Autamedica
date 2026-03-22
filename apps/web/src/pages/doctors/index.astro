@@ -3,9 +3,12 @@ import Layout from '../../layouts/Layout.astro';
 import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
+import { getI18n } from '../../i18n/index';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 
-const pageTitle = 'Portal para Médicos';
-const pageDescription = 'Agenda clínica, teleconsulta y herramientas de productividad medica en el portal de profesionales AutaMedica.';
+const pageTitle = t('portals.doctors.title');
+const pageDescription = t('portals.doctors.description');
 ---
 
 <Layout
@@ -22,9 +25,9 @@ const pageDescription = 'Agenda clínica, teleconsulta y herramientas de product
   />
 
   <PortalLanding
-    badge="Doctors Slice"
-    title="Portal Médico en Astro"
-    subtitle="Optimizado para acciones frecuentes de consulta y seguimiento, con foco en densidad informativa equilibrada."
+    badge={t('portals.doctors.badge')}
+    title={t('portals.doctors.title')}
+    subtitle={t('portals.doctors.description')}
     accent="var(--portal-doctors)"
     stats={[
       { value: 'HD', label: 'Teleconsulta integrada' },
@@ -47,21 +50,21 @@ const pageDescription = 'Agenda clínica, teleconsulta y herramientas de product
     ]}
     primaryCta={{
       href: buildRoleAuthPath('login', 'doctor'),
-      label: 'Entrar como médico',
+      label: t('roles.doctor.buttonLabel'),
     }}
     secondaryCta={{
       href: buildRoleAuthPath('register', 'doctor'),
-      label: 'Crear cuenta medica',
+      label: t('auth.createAccount'),
     }}
   />
 
   <section class="quick-links" aria-label="Accesos rapidos doctors">
     <div class="quick-links-inner">
-      <h2>Accesos rapidos del portal</h2>
+      <h2>{t('portals.doctors.quickLinksTitle')}</h2>
       <div class="quick-links-grid">
-        <a href="/doctors/agenda">Agenda de consultas</a>
-        <a href="/doctors/consultations">Consultas en curso</a>
-        <a href="/doctors/patients">Panel de pacientes</a>
+        <a href="/doctors/agenda">{t('portals.doctors.links.agenda')}</a>
+        <a href="/doctors/consultations">{t('portals.doctors.links.consultations')}</a>
+        <a href="/doctors/patients">{t('portals.doctors.links.patients')}</a>
       </div>
     </div>
   </section>

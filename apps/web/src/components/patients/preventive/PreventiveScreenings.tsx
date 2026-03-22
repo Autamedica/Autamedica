@@ -16,6 +16,7 @@ interface PreventiveScreeningView {
 
 interface PreventiveScreeningsProps {
   screenings: PreventiveScreeningView[];
+  locale?: string;
 }
 
 const statusConfig = {
@@ -48,10 +49,12 @@ const priorityConfig = {
   low: 'Baja',
 };
 
-export function PreventiveScreenings({ screenings }: PreventiveScreeningsProps) {
+export function PreventiveScreenings({ screenings, locale }: PreventiveScreeningsProps) {
+  const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('es-AR', {
+    return date.toLocaleDateString(intlLocale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric',

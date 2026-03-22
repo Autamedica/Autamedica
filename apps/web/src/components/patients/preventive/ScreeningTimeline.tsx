@@ -85,8 +85,6 @@ export function ScreeningTimeline({ currentAge, gender }: ScreeningTimelineProps
             const isExpanded = expandedAges.has(age);
             const isCurrentAge = currentAge === age;
             const isPastAge = currentAge !== undefined && age < currentAge;
-            const _isFutureAge = currentAge !== undefined && age > currentAge;
-
             if (startingScreenings.length === 0 && endingScreenings.length === 0) {
               return null;
             }

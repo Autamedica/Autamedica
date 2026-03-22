@@ -3,6 +3,7 @@ import '../styles/globals.css';
 import StructuredData from '../components/seo/StructuredData.astro';
 import SeoMeta from '../components/seo/SeoMeta.astro';
 import ScrollProgress from '../components/ui/ScrollProgress.astro';
+import { getI18n } from '../i18n/index';
 
 interface Props {
   title?: string;
@@ -14,9 +15,12 @@ interface Props {
   robots?: string;
 }
 
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
+
 const {
-  title = 'AutaMedica - Telemedicina sin fricciones',
-  description = 'Plataforma de telemedicina innovadora. Conecta con profesionales de la salud, agenda consultas inmediatas y recibe atención médica de calidad. Tecnología segura HIPAA-compliant.',
+  title = t('layout.defaultTitle'),
+  description = t('layout.defaultDescription'),
   canonical,
   ogImage = '/og-image.png',
   ogType = 'website',
@@ -28,7 +32,7 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
 ---
 
 <!doctype html>
-<html lang="es" dir="ltr">
+<html lang={locale} dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
@@ -42,6 +46,7 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
       ogImage={ogImage}
       ogType={ogType}
       publishedTime={publishedTime}
+      locale={locale === 'pt' ? 'pt_BR' : 'es_AR'}
       twitterSite="@autamedica"
       twitterCreator="@autamedica"
       keywords="telemedicina, consulta virtual, médico online, salud digital, consultas online, HIPAA, AutaMedica, receta digital, historia clínica digital, inteligencia artificial médica, telemedicina Argentina, consulta médica virtual"

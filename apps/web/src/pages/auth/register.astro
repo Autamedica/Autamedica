@@ -4,5 +4,5 @@ import { RegisterForm } from '../../components/auth/RegisterForm';
 ---
 
 <AuthLayout title="Crear Cuenta">
-  <RegisterForm client:load />
+  <RegisterForm locale={Astro.locals.locale ?? 'es'} client:load />
 </AuthLayout>

@@ -22,8 +22,8 @@ import {
 import { PatientPortalProvider } from '@/components/layout/PatientPortalShell'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
-const formatClock = (date: Date): string =>
-  new Intl.DateTimeFormat('es-AR', {
+const formatClock = (date: Date, locale?: string): string =>
+  new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : 'es-AR', {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
@@ -108,18 +108,19 @@ const _SECONDARY_ITEMS: NavItem[] = [
 
 type PatientRootLayoutProps = {
   children: ReactNode
+  locale?: string
 }
 
-export function PatientRootLayout({ children }: PatientRootLayoutProps): JSX.Element {
+export function PatientRootLayout({ children, locale }: PatientRootLayoutProps): JSX.Element {
   const _pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
   const [themeId, setThemeId] = useState<ThemeId>('autamedica')
   const [_fontScale, _setFontScale] = useState<FontScale>('md')
   const [_highContrast, _setHighContrast] = useState(false)
-  const [_clock, setClock] = useState(() => formatClock(new Date()))
+  const [_clock, setClock] = useState(() => formatClock(new Date(), locale))
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setClock(formatClock(new Date()))
+      setClock(formatClock(new Date(), locale))
     }, 60_000)
 
     return () => clearInterval(interval)

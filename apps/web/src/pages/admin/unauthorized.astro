@@ -1,5 +1,8 @@
 ---
 import Layout from '@/layouts/Layout.astro';
+import { getI18n } from '../../i18n/index';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 
 const title = 'Acceso No Autorizado | AutaMedica Admin';
 const description = 'No tienes permisos para acceder al panel de administración';
@@ -27,12 +30,11 @@ const description = 'No tienes permisos para acceder al panel de administración
       </div>
 
       <h1 class="text-3xl font-bold text-gray-900 mb-4">
-        Acceso No Autorizado
+        {t('pages.unauthorized.title')}
       </h1>
 
       <p class="text-gray-600 mb-8">
-        No tienes permisos para acceder al panel de administración de AutaMedica.
-        Esta área está restringida solo para administradores de plataforma.
+        {t('pages.unauthorized.message')}
       </p>
 
       <div class="space-y-4">
@@ -40,7 +42,7 @@ const description = 'No tienes permisos para acceder al panel de administración
           href="/"
           class="block w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
         >
-          Volver al Inicio
+          {t('pages.unauthorized.backHome')}
         </a>
 
         <a

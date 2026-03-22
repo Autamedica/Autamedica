@@ -177,7 +177,7 @@ export function SubscriptionPanel(): JSX.Element {
 
         <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
           <MercadoPagoCheckout
-            _planId={checkoutPlan.id}
+            planId={checkoutPlan.id}
             amount={checkoutPlan.price}
             currency="ARS"
             description={`Plan ${checkoutPlan.name} - AutaMedica`}

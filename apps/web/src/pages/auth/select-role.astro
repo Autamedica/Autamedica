@@ -4,5 +4,5 @@ import { RoleSelectionForm } from '../../components/auth/RoleSelectionForm';
 ---
 
 <AuthLayout title="Selecciona tu Rol">
-  <RoleSelectionForm client:load />
+  <RoleSelectionForm locale={Astro.locals.locale ?? 'es'} client:load />
 </AuthLayout>

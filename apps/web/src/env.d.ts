@@ -21,5 +21,6 @@ declare namespace App {
   interface Locals {
     session: import('@supabase/supabase-js').Session | null;
     supabase: import('@supabase/supabase-js').SupabaseClient;
+    locale: import('./i18n/index').Locale;
   }
 }

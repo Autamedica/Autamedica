@@ -12,6 +12,8 @@ import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
 import { AuthCard } from './AuthCard';
 import { AuthButton } from './AuthButton';
 import { AuthLogo } from './AuthLogo';
+import { getClientI18n } from '../../i18n/index';
+import type { Locale } from '../../i18n/index';
 
 function getRoleIcon(role: EntryRole) {
   const cls = 'h-6 w-6';
@@ -40,10 +42,12 @@ function getRoleIcon(role: EntryRole) {
   }
 }
 
-export function RoleSelectionForm() {
+export function RoleSelectionForm({ locale = 'es' }: { locale?: Locale }) {
   const [selectedRole, setSelectedRole] = useState<EntryRole | null>(null);
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const { t } = getClientI18n(locale);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -61,6 +65,8 @@ export function RoleSelectionForm() {
     [selectedRole, returnTo]
   );
 
+  const PRIVILEGED_ROLES = new Set(['admin', 'platform_admin', 'organization_admin']);
+
   const handleContinue = async () => {
     if (!selectedRole) {
       return;
@@ -68,29 +74,42 @@ export function RoleSelectionForm() {
 
     setIsLoading(true);
     const supabase = getBrowserSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (session) {
-      await supabase.auth.updateUser({ data: { role: selectedRole } });
-      const { data: { session: freshSession } } = await supabase.auth.getSession();
+    if (user) {
+      const currentRole = typeof user.user_metadata?.role === 'string' ? user.user_metadata.role : undefined;
 
-      if (freshSession) {
-        const params = new URLSearchParams({
-          access_token: freshSession.access_token,
-          refresh_token: freshSession.refresh_token,
-          role: selectedRole,
-        });
-
-        if (returnTo) {
-          params.set('returnTo', returnTo);
-        }
-
-        window.location.href = `/auth/callback?${params.toString()}`;
+      // Never overwrite privileged roles from the UI
+      if (currentRole && PRIVILEGED_ROLES.has(currentRole)) {
+        const callbackUrl = new URL('/auth/callback', window.location.origin);
+        if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
+        window.location.href = callbackUrl.toString();
         return;
       }
+
+      if (currentRole !== selectedRole) {
+        await supabase.auth.updateUser({ data: { role: selectedRole } });
+      }
+
+      const callbackParams = new URLSearchParams({ role: selectedRole });
+      if (returnTo) callbackParams.set('returnTo', returnTo);
+      window.location.href = `/auth/callback?${callbackParams.toString()}`;
+      return;
     }
 
     window.location.href = buildAuthPath('login', { role: selectedRole, returnTo });
+  };
+
+  const getRoleLabel = (role: EntryRole): string => {
+    if (role === 'patient') return t('roles.patient.label');
+    if (role === 'doctor') return t('roles.doctor.label');
+    return t('roles.company_admin.label');
+  };
+
+  const getRoleDescription = (role: EntryRole): string => {
+    if (role === 'patient') return t('roles.patient.description');
+    if (role === 'doctor') return t('roles.doctor.description');
+    return t('roles.company_admin.description');
   };
 
   return (
@@ -98,10 +117,10 @@ export function RoleSelectionForm() {
       <div className="mb-2 text-center">
         <AuthLogo size="md" />
         <h1 className="mb-2 text-2xl font-bold text-[var(--au-text-primary)]">
-          Elige tu perfil de acceso
+          {t('auth.chooseProfile')}
         </h1>
         <p className="text-sm text-[var(--au-text-secondary)]">
-          Entrarás al portal correcto al terminar el login.
+          {t('auth.chooseProfileSubtitle')}
         </p>
       </div>
 
@@ -117,10 +136,10 @@ export function RoleSelectionForm() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="mb-1 text-base font-bold text-[var(--au-text-primary)]">
-                  {entry.label}
+                  {getRoleLabel(entry.role)}
                 </h3>
                 <p className="text-sm leading-snug text-[var(--au-text-secondary)]">
-                  {entry.description}
+                  {getRoleDescription(entry.role)}
                 </p>
               </div>
               {selectedRole === entry.role && (
@@ -150,12 +169,12 @@ export function RoleSelectionForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
         )}
-        <span>{isLoading ? 'Preparando acceso...' : 'Continuar al login'}</span>
+        <span>{isLoading ? t('auth.preparingAccess') : t('auth.continueToLogin')}</span>
       </AuthButton>
 
       <div className="rounded-xl border-2 border-[var(--au-border)] bg-[var(--au-hover)]/40 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.06em] text-[var(--au-text-tertiary)]">
-          Ingreso directo
+          {t('auth.directAccess')}
         </p>
         <div className="flex flex-wrap gap-2">
           {ROLE_ENTRIES.map((entry) => (
@@ -164,7 +183,7 @@ export function RoleSelectionForm() {
               href={buildRoleAuthPath('login', entry.role, returnTo)}
               className="inline-flex min-h-9 items-center justify-center rounded-full border border-[var(--au-border)] px-3 text-xs font-semibold text-[var(--au-text-secondary)] transition-colors hover:text-[var(--au-text-primary)]"
             >
-              {entry.shortLabel}
+              {getRoleLabel(entry.role)}
             </a>
           ))}
         </div>
@@ -172,9 +191,9 @@ export function RoleSelectionForm() {
 
       <div className="pt-2 text-center">
         <p className="text-sm text-[var(--au-text-tertiary)]">
-          ¿Ya tienes cuenta?{' '}
+          {t('auth.alreadyHaveAccountQ')}{' '}
           <a href={loginHref} className="font-medium text-[var(--au-accent)] transition-colors hover:text-[var(--au-text-primary)]">
-            Iniciar sesión
+            {t('auth.signIn')}
           </a>
         </p>
       </div>
@@ -183,7 +202,7 @@ export function RoleSelectionForm() {
         <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
-        <span className="text-xs text-[var(--au-text-tertiary)]">Conexión segura y cifrada</span>
+        <span className="text-xs text-[var(--au-text-tertiary)]">{t('common.secureConnection')}</span>
       </div>
     </div>
   );

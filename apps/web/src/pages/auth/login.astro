@@ -4,5 +4,5 @@ import { LoginForm } from '../../components/auth/LoginForm';
 ---
 
 <AuthLayout title="Iniciar Sesión">
-  <LoginForm client:load />
+  <LoginForm locale={Astro.locals.locale ?? 'es'} client:load />
 </AuthLayout>

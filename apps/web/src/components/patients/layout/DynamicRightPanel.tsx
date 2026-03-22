@@ -31,6 +31,7 @@ type PanelTab = 'brief' | 'community' | 'actions' | 'medical' | 'chat'
 
 interface DynamicRightPanelProps {
   context?: 'dashboard' | 'video' | 'appointments' | 'history'
+  locale?: string
 }
 
 type PanelContext = NonNullable<DynamicRightPanelProps['context']>
@@ -109,7 +110,7 @@ function defaultTabForContext(context: PanelContext): PanelTab {
   }
 }
 
-export function DynamicRightPanel({ context = 'dashboard' }: DynamicRightPanelProps) {
+export function DynamicRightPanel({ context = 'dashboard', locale }: DynamicRightPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>(() => defaultTabForContext(context))
   const tabs = useMemo(() => tabsForContext(context), [context])
 
@@ -152,7 +153,7 @@ export function DynamicRightPanel({ context = 'dashboard' }: DynamicRightPanelPr
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'brief' && <DailyBriefPanel />}
+        {activeTab === 'brief' && <DailyBriefPanel locale={locale} />}
         {activeTab === 'community' && <CommunityPanel />}
         {activeTab === 'actions' && <ClinicalLogPanel />}
         {activeTab === 'medical' && <MedicalContextPanel />}
@@ -162,7 +163,7 @@ export function DynamicRightPanel({ context = 'dashboard' }: DynamicRightPanelPr
   )
 }
 
-function DailyBriefPanel() {
+function DailyBriefPanel({ locale }: { locale?: string }) {
   const { user, profile, patient } = usePatientSession()
 
   const birthDate = patient?.birthDate ?? null
@@ -187,12 +188,12 @@ function DailyBriefPanel() {
 
   const dateLabel = useMemo(
     () =>
-      new Intl.DateTimeFormat('es-AR', {
+      new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : 'es-AR', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
       }).format(new Date()),
-    [],
+    [locale],
   )
 
   return (

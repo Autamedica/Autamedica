@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { createBrowserClient } from '@autamedica/auth/client';
 import { logger } from '@autamedica/shared';
 import type { MemberRole } from '@autamedica/shared';

@@ -2,6 +2,8 @@
 
 import { DynamicRightPanel } from '@/components/patients/layout/DynamicRightPanel'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
+import { getClientI18n } from '@/i18n/index'
+import type { Locale } from '@/i18n/index'
 import {
     Calendar,
     CheckCircle2,
@@ -24,11 +26,16 @@ function getPatientName(
   return profileName || metadataName || emailLocal || 'Paciente'
 }
 
-export default function PatientsHomePage() {
+interface PatientsHomePageProps {
+  locale?: Locale
+}
+
+export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
+  const { t } = getClientI18n(locale ?? 'es')
   const { user, profile, patient } = usePatientSession()
   const userName = getPatientName(profile, user)
 
-  const todayLabel = new Intl.DateTimeFormat('es-AR', {
+  const todayLabel = new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : 'es-AR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -54,8 +61,8 @@ export default function PatientsHomePage() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5" />
           <div className="relative">
-            <p className="inline-flex rounded-full bg-blue-100/50 px-3 py-1 text-xs font-semibold tracking-wide text-blue-800">Panel de paciente</p>
-            <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">Resumen de salud de <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">{userName}</span></h1>
+            <p className="inline-flex rounded-full bg-blue-100/50 px-3 py-1 text-xs font-semibold tracking-wide text-blue-800">{t('dashboard.patient.badge')}</p>
+            <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">{t('dashboard.patient.greeting')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">{userName}</span></h1>
             <p className="mt-3 text-base font-medium text-slate-600 max-w-2xl">
               {todayLabel}. Priorizamos contexto clínico y acciones claras para tu seguimiento.
             </p>
@@ -180,7 +187,7 @@ export default function PatientsHomePage() {
         </div>
       </div>
 
-      <DynamicRightPanel context="dashboard" />
+      <DynamicRightPanel context="dashboard" locale={locale} />
     </div>
   )
 }

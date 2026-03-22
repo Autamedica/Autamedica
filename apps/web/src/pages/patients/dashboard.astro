@@ -4,8 +4,9 @@ import PatientsHomePage from '@/components/patients/PatientsHomePage';
 
 const title = 'Panel de Paciente | AutaMedica';
 const description = 'Portal de videoconsultas y gestión de salud para pacientes';
+const locale = Astro.locals.locale ?? 'es';
 ---
 
 <Layout title={title} description={description}>
-  <PatientsHomePage client:load />
+  <PatientsHomePage client:load locale={locale} />
 </Layout>

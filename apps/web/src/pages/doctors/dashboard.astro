@@ -4,8 +4,9 @@ import DoctorsHomePage from '@/components/doctors/DoctorsHomePage';
 
 const title = 'Portal Médico | AutaMedica';
 const description = 'Portal de videoconsultas para profesionales médicos';
+const locale = Astro.locals.locale ?? 'es';
 ---
 
 <Layout title={title} description={description}>
-  <DoctorsHomePage client:load />
+  <DoctorsHomePage client:load locale={locale} />
 </Layout>

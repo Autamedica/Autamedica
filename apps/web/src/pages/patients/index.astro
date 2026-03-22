@@ -3,9 +3,12 @@ import Layout from '../../layouts/Layout.astro';
 import PortalLanding from '../../components/portal/PortalLanding.astro';
 import VerticalStructuredData from '../../components/seo/VerticalStructuredData.astro';
 import { buildRoleAuthPath } from '../../lib/auth-flow';
+import { getI18n } from '../../i18n/index';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 
-const pageTitle = 'Portal de Pacientes';
-const pageDescription = 'Consulta medica digital, seguimiento de historial y turnos en una sola experiencia para pacientes AutaMedica.';
+const pageTitle = t('portals.patients.title');
+const pageDescription = t('portals.patients.description');
 ---
 
 <Layout
@@ -22,9 +25,9 @@ const pageDescription = 'Consulta medica digital, seguimiento de historial y tur
   />
 
   <PortalLanding
-    badge="Patients Slice"
-    title="Portal de Pacientes en Astro"
-    subtitle="Acceso mas rapido a turnos, historia clínica y seguimiento preventivo con experiencia mobile-first y menos friccion."
+    badge={t('portals.patients.badge')}
+    title={t('portals.patients.title')}
+    subtitle={t('portals.patients.description')}
     accent="var(--portal-patients)"
     stats={[
       { value: '24/7', label: 'Acceso al portal' },
@@ -47,21 +50,21 @@ const pageDescription = 'Consulta medica digital, seguimiento de historial y tur
     ]}
     primaryCta={{
       href: buildRoleAuthPath('login', 'patient'),
-      label: 'Entrar como paciente',
+      label: t('roles.patient.buttonLabel'),
     }}
     secondaryCta={{
       href: buildRoleAuthPath('register', 'patient'),
-      label: 'Crear cuenta paciente',
+      label: t('auth.createAccount'),
     }}
   />
 
   <section class="quick-links" aria-label="Accesos rapidos patients">
     <div class="quick-links-inner">
-      <h2>Accesos rapidos del portal</h2>
+      <h2>{t('portals.patients.quickLinksTitle')}</h2>
       <div class="quick-links-grid">
-        <a href="/patients/appointments">Turnos y reservas</a>
-        <a href="/patients/history">Historial médico</a>
-        <a href="/patients/prevention">Prevencion y seguimiento</a>
+        <a href="/patients/appointments">{t('portals.patients.links.appointments')}</a>
+        <a href="/patients/history">{t('portals.patients.links.history')}</a>
+        <a href="/patients/prevention">{t('portals.patients.links.prevention')}</a>
       </div>
     </div>
   </section>

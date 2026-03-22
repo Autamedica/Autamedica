@@ -2,6 +2,8 @@
 import '../styles/globals.css';
 import '../styles/auth.css';
 import SeoMeta from '../components/seo/SeoMeta.astro';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { getI18n } from '../i18n/index';
 
 interface Props {
   title: string;
@@ -14,6 +16,10 @@ const {
   description = 'Acceso seguro a la plataforma AutaMedica',
   canonical,
 } = Astro.props;
+
+const locale = Astro.locals.locale ?? 'es';
+const { t, dict } = getI18n(locale);
+const testimonials = dict.landing.authLayout.testimonials;
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
 const currentPath = Astro.url.pathname;
@@ -48,6 +54,31 @@ const authFlowLinks = [
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+      .auth-mobile-branding {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 0;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid var(--au-border);
+      }
+      .auth-mobile-branding img {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+      }
+      .auth-mobile-branding p {
+        font-size: 0.875rem;
+        color: var(--au-text-secondary);
+        font-weight: 500;
+      }
+      @media (min-width: 1024px) {
+        .auth-mobile-branding {
+          display: none;
+        }
+      }
+    </style>
   </head>
   <body class="antialiased">
     <div class:list={["auth-layout", themeClass]}>
@@ -58,53 +89,29 @@ const authFlowLinks = [
         
         <div class="auth-branding">
           <img src="/logo_bioceramic.png" alt="AutaMedica Logo" width="72" height="72" class="auth-logo-img" />
-          <p class="auth-branding-tagline">Infraestructura digital para la medicina moderna.</p>
+          <p class="auth-branding-tagline">{t('layout.tagline')}</p>
         </div>
 
         <div class="auth-testimonials">
-          <div class="auth-testimonial-card">
-            <p class="auth-testimonial-quote">"Gestión de turnos y recetas en minutos. AutaMedica transformó mi práctica clínica por completo."</p>
-            <div class="auth-testimonial-author">
-              <div class="auth-testimonial-avatar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
-              <div>
-                <p class="auth-testimonial-name">Dra. Elena Rossi</p>
-                <p class="auth-testimonial-role">Cardióloga</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="auth-testimonial-card">
-            <p class="auth-testimonial-quote">"La mejor experiencia de telemedicina que he tenido. Simple, rápida y con doctores de primer nivel."</p>
-            <div class="auth-testimonial-author">
-              <div class="auth-testimonial-avatar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              </div>
-              <div>
-                <p class="auth-testimonial-name">Marcos Viale</p>
-                <p class="auth-testimonial-role">Paciente Platinum</p>
+          {testimonials.map((testimonial) => (
+            <div class="auth-testimonial-card">
+              <p class="auth-testimonial-quote">{testimonial.quote}</p>
+              <div class="auth-testimonial-author">
+                <div class="auth-testimonial-avatar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div>
+                  <p class="auth-testimonial-name">{testimonial.name}</p>
+                  <p class="auth-testimonial-role">{testimonial.role}</p>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div class="auth-testimonial-card">
-            <p class="auth-testimonial-quote">"Implementamos AutaMedica en nuestra empresa y el bienestar de los empleados subió un 40%."</p>
-            <div class="auth-testimonial-author">
-              <div class="auth-testimonial-avatar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
-              <div>
-                <p class="auth-testimonial-name">Sofía Méndez</p>
-                <p class="auth-testimonial-role">HR Manager</p>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
 
         <div class="auth-security-legend">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Infraestructura Segura HIPAA Compliant
+          {t('common.hipaaLegend')}
         </div>
       </aside>
 
@@ -113,7 +120,7 @@ const authFlowLinks = [
         <div class="auth-form-container">
           <a href="/" class="auth-back-link">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Volver al inicio
+            {t('common.backToHome')}
           </a>
 
           <nav class="auth-flow-nav" aria-label="Navegación de acceso">
@@ -132,6 +139,12 @@ const authFlowLinks = [
             })}
           </nav>
 
+          <!-- Mobile branding: visible only below lg breakpoint -->
+          <div class="auth-mobile-branding">
+            <img src="/logo_bioceramic.png" alt="AutaMedica" width="40" height="40" />
+            <p>{t('layout.tagline')}</p>
+          </div>
+
           <slot />
         </div>
 
@@ -142,12 +155,13 @@ const authFlowLinks = [
               <span class="auth-footer-tagline">AutaMedica Precision Systems • {new Date().getFullYear()}</span>
             </div>
             <div class="auth-footer-links">
-              <a href="#">Privacidad</a>
+              <a href="#">{t('common.privacy')}</a>
               <span class="auth-footer-sep">•</span>
-              <a href="#">Términos</a>
+              <a href="#">{t('common.terms')}</a>
               <span class="auth-footer-sep">•</span>
-              <a href="#">Accesibilidad</a>
+              <a href="#">{t('common.accessibility')}</a>
             </div>
+            <LanguageSwitcher currentLocale={locale} client:load />
           </div>
         </footer>
       </main>

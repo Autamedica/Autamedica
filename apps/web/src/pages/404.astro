@@ -1,5 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getI18n } from '../i18n/index';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 ---
 
 <Layout
@@ -13,30 +16,29 @@ import Layout from '../layouts/Layout.astro';
     <div class="max-w-lg mx-auto text-center">
       <p class="text-8xl font-light text-gray-600 mb-6 tracking-tight">404</p>
       <h1 class="text-3xl font-light text-white mb-4 tracking-wide">
-        Página no encontrada
+        {t('pages.notFound.title')}
       </h1>
       <p class="text-gray-400 mb-10 leading-relaxed">
-        La dirección que ingresaste no existe o fue movida.<br />
-        Podés volver al inicio o ir directamente a tu portal.
+        {t('pages.notFound.message')}
       </p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a
           href="/"
           class="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-gray-100 transition-colors"
         >
-          Volver al inicio
+          {t('pages.notFound.backHome')}
         </a>
         <a
           href="/patients"
           class="px-6 py-3 border border-gray-700 text-gray-300 font-medium rounded-lg hover:border-gray-500 hover:text-white transition-colors"
         >
-          Soy paciente
+          {t('roles.patient.label')}
         </a>
         <a
           href="/doctors"
           class="px-6 py-3 border border-gray-700 text-gray-300 font-medium rounded-lg hover:border-gray-500 hover:text-white transition-colors"
         >
-          Soy médico
+          {t('roles.doctor.label')}
         </a>
       </div>
     </div>
