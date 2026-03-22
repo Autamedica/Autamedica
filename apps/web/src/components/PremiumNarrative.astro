@@ -67,7 +67,7 @@ const pillars = [
     font-size: var(--text-xs);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--au-text-tertiary);
+    color: var(--au-text-secondary);
   }
 
   .narrative-grid {
@@ -82,7 +82,7 @@ const pillars = [
     padding: var(--space-8);
     border: 1px solid var(--au-border);
     border-radius: var(--radius-lg);
-    background: #000;
+    background: var(--au-bg);
     box-shadow: var(--shadow-glow);
     overflow: hidden;
   }
@@ -104,7 +104,7 @@ const pillars = [
   .narrative-bg-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, transparent 60%, rgba(0,0,0,0.4) 100%);
+    background: linear-gradient(135deg, rgba(9,9,11,0.85) 0%, transparent 60%, rgba(9,9,11,0.5) 100%);
   }
 
   .narrative-content-wrapper {
@@ -131,7 +131,7 @@ const pillars = [
     padding: var(--space-6);
     border: 1px solid var(--au-border);
     border-radius: var(--radius-lg);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--au-glass-bg);
   }
 
   .narrative-side-title {
@@ -139,7 +139,7 @@ const pillars = [
     font-size: var(--text-sm);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--au-text-tertiary);
+    color: var(--au-text-secondary);
   }
 
   .narrative-list {
@@ -155,8 +155,8 @@ const pillars = [
     gap: var(--space-1);
     padding: var(--space-4);
     border-radius: var(--radius-md);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid var(--au-glass-border);
+    background: var(--au-glass-bg);
   }
 
   .narrative-item strong {

@@ -100,12 +100,12 @@ const features = [
     margin-bottom: 0;
   }
 
-  .showcase-row.reversed {
-    direction: rtl;
+  .showcase-row.reversed .showcase-text {
+    order: 2;
   }
 
-  .showcase-row.reversed > * {
-    direction: ltr;
+  .showcase-row.reversed .showcase-video-wrap {
+    order: 1;
   }
 
   .showcase-step {
@@ -157,8 +157,9 @@ const features = [
       gap: var(--space-6);
     }
 
-    .showcase-row.reversed {
-      direction: ltr;
+    .showcase-row.reversed .showcase-text,
+    .showcase-row.reversed .showcase-video-wrap {
+      order: unset;
     }
 
     .showcase-row .showcase-video-wrap {

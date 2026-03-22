@@ -137,25 +137,25 @@ const doctors = [
   }
 
   .doctor-card {
-    width: 360px;
+    width: clamp(300px, 80vw, 360px);
     flex-shrink: 0;
     display: flex;
     gap: var(--space-4);
     padding: var(--space-6);
-    border: 1px solid rgba(255, 255, 255, 0.08); /* Premium subtle border */
+    border: 1px solid var(--au-glass-border);
     border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.02); /* Glass background */
+    background: var(--au-glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05); /* Inner light */
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* Smooth Apple-like easing */
+    box-shadow: var(--au-glass-highlight);
+    transition: all var(--au-transition-smooth);
   }
 
   .doctor-card:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--au-glass-border-hover);
+    background: var(--au-glass-bg-hover);
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    box-shadow: var(--au-glass-shadow-hover);
   }
 
   .doctor-avatar {
@@ -164,14 +164,14 @@ const doctors = [
     border-radius: var(--radius-full);
     object-fit: cover;
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    border: 2px solid var(--au-glass-border-hover);
+    box-shadow: 0 0 15px var(--au-glass-bg-hover);
     transition: transform var(--transition-base);
   }
 
   .doctor-card:hover .doctor-avatar {
     transform: scale(1.05);
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: var(--au-border-hover);
   }
 
   .doctor-info {
@@ -225,7 +225,7 @@ const doctors = [
   }
 
   .status-dot.available {
-    background: var(--portal-patients);
+    background: var(--au-success);
   }
 
   .directory-cta {
@@ -258,11 +258,7 @@ const doctors = [
     border-color: var(--au-border-hover);
   }
 
-  @media (max-width: 640px) {
-    .doctor-card {
-      width: 300px;
-    }
-  }
+  /* doctor-card uses clamp() for responsive width */
 </style>
 
 <script>
@@ -279,8 +275,8 @@ const doctors = [
   }
 
   const initMarquee = () => {
-    const marquee = document.querySelector('.doctor-marquee') as HTMLElement;
-    const wrapper = document.querySelector('.directory-marquee-wrapper') as HTMLElement;
+    const marquee = /** @type {HTMLElement} */ (document.querySelector('.doctor-marquee'));
+    const wrapper = /** @type {HTMLElement} */ (document.querySelector('.directory-marquee-wrapper'));
     
     if (marquee && wrapper) {
       // GPU-accelerate the animated element

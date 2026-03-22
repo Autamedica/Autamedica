@@ -99,22 +99,22 @@ const testimonials = [
 
   .testimonial-card {
     padding: var(--space-8);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--au-glass-border);
     border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--au-glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    box-shadow: var(--au-glass-highlight);
     display: flex;
     flex-direction: column;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all var(--au-transition-smooth);
   }
 
   .testimonial-card:hover {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--au-glass-border-hover);
+    background: var(--au-glass-bg-hover);
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    box-shadow: var(--au-glass-shadow-hover);
   }
 
   .testimonial-context {
@@ -140,8 +140,8 @@ const testimonials = [
     width: fit-content;
     font-size: var(--text-xs);
     font-weight: var(--font-semibold);
-    color: var(--portal-patients);
-    background: rgba(16, 185, 129, 0.1);
+    color: var(--au-success);
+    background: rgba(34, 197, 94, 0.1);
     border-radius: var(--radius-full);
     padding: var(--space-1) var(--space-3);
     margin-bottom: var(--space-6);
@@ -160,8 +160,8 @@ const testimonials = [
     height: 3rem;
     border-radius: var(--radius-full);
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--au-glass-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   .testimonial-name {

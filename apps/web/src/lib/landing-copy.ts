@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 // @ts-nocheck
 import landingCopyConfig from '@/config/landing-copy.json';
 import { buildRoleAuthPath } from './auth-flow';

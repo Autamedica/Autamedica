@@ -8,7 +8,8 @@
       },
       "hero": {
         "badge": "Telemedicina hecha para LATAM",
-        "title": "Tu médico,\nsin salas de guardia.",
+        "title": "Tu médico,",
+        "titleAccent": "sin salas de guardia.",
         "subtitle": "En Argentina, Colombia y Perú, una guardia puede demorar 4 horas. En AutaMédica, la consulta empieza cuando vos querés.",
         "primaryCtaLabel": "Buscar un médico ahora",
         "primaryCtaHref": "#portales",
@@ -54,7 +55,8 @@
       },
       "hero": {
         "badge": "Disponible en Argentina, Colombia y Perú",
-        "title": "Consulta médica hoy,\nno la semana que viene.",
+        "title": "Consulta médica hoy,",
+        "titleAccent": "no la semana que viene.",
         "subtitle": "Encontrá turno en minutos con un médico certificado. Receta digital al celular. Sin salir de casa.",
         "primaryCtaLabel": "Quiero mi consulta",
         "primaryCtaHref": "/auth/select-role",

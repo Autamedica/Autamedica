@@ -26,9 +26,9 @@ export function AuthButton({
 
   const variants = {
     primary: `
-      bg-[#fff] text-[#000] font-bold
-      shadow-[0_4px_20px_-5px_rgba(255,255,255,0.2)]
-      ${!disabled && !loading ? 'hover:scale-[1.01] hover:shadow-[0_8px_30px_-5px_rgba(255,255,255,0.3)] active:scale-[0.98]' : ''}
+      bg-[var(--au-accent)] text-[var(--au-bg)] font-bold
+      shadow-[0_4px_20px_-5px_var(--au-accent-glow)]
+      ${!disabled && !loading ? 'hover:scale-[1.01] hover:brightness-110 hover:shadow-[0_8px_30px_-5px_var(--au-accent-glow)] active:scale-[0.98]' : ''}
     `,
     secondary: `
       bg-[var(--au-surface)] text-[var(--au-text-primary)] border border-[var(--au-border)]

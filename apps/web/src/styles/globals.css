@@ -95,6 +95,15 @@
   --blur-lg: blur(24px);
   --shadow-glow: 0 0 60px rgba(255, 255, 255, 0.04);
   --shadow-glow-accent: 0 0 80px rgba(34, 211, 238, 0.15);
+
+  /* Glass card system — single source of truth for glassmorphism cards */
+  --au-glass-bg: rgba(255, 255, 255, 0.02);
+  --au-glass-bg-hover: rgba(255, 255, 255, 0.04);
+  --au-glass-border: rgba(255, 255, 255, 0.08);
+  --au-glass-border-hover: rgba(255, 255, 255, 0.18);
+  --au-glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  --au-glass-shadow-hover: 0 12px 24px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  --au-transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ═══════════════════════════════════════════

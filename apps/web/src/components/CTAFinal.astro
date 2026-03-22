@@ -57,7 +57,7 @@ const safeButtonHref = buttonHref ?? '';
   .cta-final {
     position: relative;
     padding: clamp(4rem, 10vh, 8rem) var(--section-px);
-    background: #000;
+    background: var(--au-bg);
     overflow: hidden;
   }
 
@@ -78,7 +78,7 @@ const safeButtonHref = buttonHref ?? '';
   .cta-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, #0A0A0A, transparent 20%, transparent 80%, #000);
+    background: linear-gradient(to bottom, var(--au-bg), transparent 20%, transparent 80%, var(--au-bg));
   }
 
   .cta-inner {
@@ -96,17 +96,17 @@ const safeButtonHref = buttonHref ?? '';
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 1.25rem 2.5rem;
-    font-size: 1.125rem;
-    font-weight: 500;
-    color: #0A0A0A;
-    background: #FFFFFF;
-    border-radius: 9999px;
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--text-lg);
+    font-weight: var(--font-medium);
+    color: var(--au-bg);
+    background: var(--au-text-primary);
+    border-radius: var(--radius-full);
     overflow: hidden;
-    transition: color 0.4s ease;
+    transition: color var(--transition-slow);
   }
 
   .cta-btn-premium:hover {
-    color: #000000;
+    color: var(--au-bg);
   }
 </style>

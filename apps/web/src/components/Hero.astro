@@ -16,6 +16,7 @@ interface RoleShortcut {
 interface Props {
   badge: string;
   title: string;
+  titleAccent?: string;
   subtitle: string;
   primaryCtaLabel: string;
   primaryCtaHref: string;
@@ -28,6 +29,7 @@ interface Props {
 const {
   badge,
   title,
+  titleAccent,
   subtitle,
   primaryCtaLabel,
   primaryCtaHref,
@@ -39,6 +41,7 @@ const {
 
 const safeBadge = badge ?? '';
 const safeTitle = title ?? '';
+const safeTitleAccent = titleAccent ?? '';
 const safeSubtitle = subtitle ?? '';
 const safePrimaryCtaLabel = primaryCtaLabel ?? '';
 const safePrimaryCtaHref = primaryCtaHref ?? '';
@@ -66,6 +69,7 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
   <div class="hero-content">
     <p class="hero-badge">{safeBadge}</p>
     <TextReveal text={safeTitle} className="hero-title" client:load delay={0.4} />
+    {safeTitleAccent && <span class="hero-title-accent">{safeTitleAccent}</span>}
     <p class="hero-subtitle">{safeSubtitle}</p>
     <div class="hero-actions">
       <MagneticButton client:load>
@@ -97,13 +101,11 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
 
     {metricItems.length > 0 && (
       <div class="hero-metrics" aria-label="Metricas de la plataforma">
-        {metricItems.map((m, i) => (
-          <>
-            {i > 0 && <span class="hero-metrics-dot" aria-hidden="true" />}
-            <span class="hero-metric">
-              <strong>{m.value}</strong> {m.label}
-            </span>
-          </>
+        {metricItems.map((m) => (
+          <div class="hero-metric">
+            <strong>{m.value}</strong>
+            <span>{m.label}</span>
+          </div>
         ))}
       </div>
     )}
@@ -144,13 +146,9 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse 70% 50% at 20% 60%, rgba(34, 211, 238, 0.10) 0%, transparent 60%),
-      linear-gradient(
-        to bottom,
-        rgba(9, 9, 11, 0.35) 0%,
-        rgba(9, 9, 11, 0.15) 50%,
-        rgba(9, 9, 11, 0.80) 100%
-      );
+      radial-gradient(ellipse 70% 50% at 20% 60%, rgba(34, 211, 238, 0.08) 0%, transparent 60%),
+      linear-gradient(to right, rgba(9, 9, 11, 0.85) 0%, rgba(9, 9, 11, 0.4) 60%, rgba(9, 9, 11, 0.2) 100%),
+      linear-gradient(to bottom, rgba(9, 9, 11, 0.3) 0%, rgba(9, 9, 11, 0.1) 50%, rgba(9, 9, 11, 0.85) 100%);
     z-index: 1;
   }
 
@@ -167,20 +165,41 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
     font-weight: var(--font-medium);
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--au-text-tertiary);
-    border: 1px solid var(--au-border);
+    color: var(--au-accent);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    background: rgba(34, 211, 238, 0.06);
     border-radius: var(--radius-full);
     padding: var(--space-2) var(--space-4);
     margin-bottom: var(--space-8);
   }
 
   .hero-title {
-    font-size: var(--text-5xl);
+    font-size: clamp(3.5rem, 8vw, 6rem);
     font-weight: var(--font-extrabold);
     line-height: 1.03;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.05em;
     color: var(--au-text-primary);
+    margin: 0;
+  }
+
+  .hero-title-accent {
+    display: block;
+    font-size: clamp(3.5rem, 8vw, 6rem);
+    font-weight: var(--font-extrabold);
+    line-height: 1.03;
+    letter-spacing: -0.05em;
+    background: linear-gradient(135deg, var(--au-accent), #67e8f9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin: 0 0 var(--space-6);
+    opacity: 0;
+    animation: accent-reveal 0.8s ease-out 1.2s forwards;
+  }
+
+  @keyframes accent-reveal {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .hero-subtitle {
@@ -263,30 +282,27 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
   }
 
   .hero-metrics {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
     margin-top: var(--space-12);
     padding-top: var(--space-8);
     border-top: 1px solid var(--au-border);
   }
 
   .hero-metric {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: var(--au-text-tertiary);
+    line-height: 1.4;
   }
 
   .hero-metric strong {
+    display: block;
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
     color: var(--au-text-primary);
-    font-weight: var(--font-semibold);
-  }
-
-  .hero-metrics-dot {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: var(--au-text-tertiary);
-    flex-shrink: 0;
+    letter-spacing: -0.02em;
+    margin-bottom: var(--space-1);
   }
 
   .hero-scroll-hint {
@@ -320,8 +336,8 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
     }
 
     .hero-metrics {
-      justify-content: center;
-      flex-wrap: wrap;
+      justify-items: center;
+      text-align: center;
     }
   }
 
@@ -337,12 +353,9 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
     }
 
     .hero-metrics {
-      flex-direction: column;
-      gap: var(--space-2);
-    }
-
-    .hero-metrics-dot {
-      display: none;
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+      text-align: center;
     }
 
     .hero-role-shortcuts {
