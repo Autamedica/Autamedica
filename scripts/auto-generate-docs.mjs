@@ -167,7 +167,7 @@ function analyzeExport(exportName, packagePath) {
 /**
  * Infiere descripción basada en el contexto del código
  */
-function inferDescription(exportName, type, content) {
+function inferDescription(exportName, type, _content) {
   const name = exportName.toLowerCase();
 
   // Patrones médicos específicos
@@ -214,7 +214,7 @@ function inferDescription(exportName, type, content) {
  * Infiere tipo y descripción solo por el nombre
  */
 function inferFromName(exportName) {
-  const name = exportName.toLowerCase();
+  const _name = exportName.toLowerCase();
 
   // Inferir tipo por convenciones de naming
   if (exportName.endsWith('Id') || exportName.endsWith('ID')) {

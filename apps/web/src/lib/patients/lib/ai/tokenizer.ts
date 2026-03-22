@@ -90,20 +90,20 @@ export class MedicalTokenizer {
     const normalized = this.normalizeText(text);
     const words = normalized.split(' ');
 
-    const tokens: number[] = [this.vocabulary.get('[CLS]')!];
+    const tokens: number[] = [this.vocabulary.get('[CLS]') ?? 0];
 
     for (const word of words) {
       if (tokens.length >= this.maxLength - 1) break;
 
-      const tokenId = this.vocabulary.get(word) ?? this.vocabulary.get('[UNK]')!;
+      const tokenId = this.vocabulary.get(word) ?? this.vocabulary.get('[UNK]') ?? 0;
       tokens.push(tokenId);
     }
 
-    tokens.push(this.vocabulary.get('[SEP]')!);
+    tokens.push(this.vocabulary.get('[SEP]') ?? 0);
 
     // Padding hasta maxLength
     while (tokens.length < this.maxLength) {
-      tokens.push(this.vocabulary.get('[PAD]')!);
+      tokens.push(this.vocabulary.get('[PAD]') ?? 0);
     }
 
     return tokens;
@@ -129,7 +129,7 @@ export class MedicalTokenizer {
   } {
     const tokens = this.encode(text);
     const attentionMask = tokens.map(t =>
-      t === this.vocabulary.get('[PAD]')! ? 0 : 1
+      t === (this.vocabulary.get('[PAD]') ?? 0) ? 0 : 1
     );
 
     return {

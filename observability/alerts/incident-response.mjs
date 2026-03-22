@@ -117,7 +117,7 @@ class IncidentResponseManager {
   }
 
   // Service down response
-  async handleServiceDown(incident) {
+  async handleServiceDown(_incident) {
     console.log('🔄 Attempting service recovery...');
 
     try {
@@ -144,7 +144,7 @@ class IncidentResponseManager {
   }
 
   // High error rate response
-  async handleHighErrorRate(incident) {
+  async handleHighErrorRate(_incident) {
     console.log('📊 Analyzing error patterns...');
 
     try {
@@ -168,7 +168,7 @@ class IncidentResponseManager {
   }
 
   // High response time response
-  async handleHighResponseTime(incident) {
+  async handleHighResponseTime(_incident) {
     console.log('⏱️ Investigating performance issues...');
 
     try {
@@ -197,7 +197,7 @@ class IncidentResponseManager {
   }
 
   // High memory usage response
-  async handleHighMemoryUsage(incident) {
+  async handleHighMemoryUsage(_incident) {
     console.log('🧠 Addressing memory issues...');
 
     try {
@@ -257,7 +257,7 @@ class IncidentResponseManager {
   }
 
   // Security issue response
-  async handleSecurityIssue(incident) {
+  async handleSecurityIssue(_incident) {
     console.log('🔒 Security incident detected...');
 
     try {
@@ -357,7 +357,7 @@ class IncidentResponseManager {
   }
 
   // Slack notification (placeholder)
-  async sendSlackNotification(message, incident) {
+  async sendSlackNotification(message, _incident) {
     console.log(`💬 Slack notification: ${message.title}`);
     return {
       channel: CHANNELS.SLACK,
@@ -390,7 +390,7 @@ class IncidentResponseManager {
   }
 
   // Webhook notification (placeholder)
-  async sendWebhookNotification(message, incident) {
+  async sendWebhookNotification(message, _incident) {
     console.log(`🔗 Webhook notification: ${message.title}`);
     return {
       channel: CHANNELS.WEBHOOK,

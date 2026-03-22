@@ -25,7 +25,7 @@ export interface SessionRecording {
   format: string;
   status: RecordingStatus;
   transcription_url?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   // HIPAA consent
   patient_consent: boolean;
@@ -90,7 +90,7 @@ export async function requestRecordingConsent(
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, unknown> = {};
 
   if (role === 'patient') {
     updateData.recording_consent_patient = true;
@@ -166,7 +166,7 @@ export async function stopRecording(
 ): Promise<SessionRecording> {
   const supabase = getSupabaseClient();
 
-  const updateData: Record<string, any> = {
+  const updateData: Record<string, unknown> = {
     status: 'processing' as RecordingStatus,
     ended_at: new Date().toISOString(),
   };
@@ -303,11 +303,11 @@ export async function deleteRecording(
 export async function updateRecordingStatus(
   recordingId: string,
   status: RecordingStatus,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<SessionRecording> {
   const supabase = getSupabaseClient();
 
-  const updateData: Record<string, any> = { status };
+  const updateData: Record<string, unknown> = { status };
   if (metadata) {
     updateData.metadata = metadata;
   }

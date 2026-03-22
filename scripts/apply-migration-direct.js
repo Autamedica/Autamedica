@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 const { createClient } = require('@supabase/supabase-js')
-const fs = require('fs')
-const path = require('path')
+const _fs = require('fs')
+const _path = require('path')
 
 // Load environment variables
 const supabaseUrl = 'https://qxjjrpksmwwrmubhvjew.supabase.co'
@@ -180,7 +180,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 async function executeSqlChunk(sql, description) {
   try {
     console.log(`Executing: ${description}...`)
-    const { data, error } = await supabase.rpc('exec', { sql })
+    const { data: _data, error } = await supabase.rpc('exec', { sql })
 
     if (error) {
       console.error(`Error in ${description}:`, error.message)
@@ -215,7 +215,7 @@ async function main() {
   // Test the installation
   console.log('\nTesting installation...')
   try {
-    const { data, error } = await supabase
+    const { data: _data2, error } = await supabase
       .from('calls')
       .select('count', { count: 'exact', head: true })
 

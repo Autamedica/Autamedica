@@ -68,7 +68,7 @@ describe('useAsync', () => {
   });
 
   it('cancels stale requests on unmount', async () => {
-    let resolve: (v: string) => void;
+    let resolve: ((v: string) => void) | undefined;
     const asyncFn = () =>
       new Promise<string>((r) => {
         resolve = r;
@@ -81,7 +81,7 @@ describe('useAsync', () => {
 
     // Resolve after unmount - should not cause state update
     act(() => {
-      resolve!('stale');
+      resolve?.('stale');
     });
 
     // No error thrown from updating unmounted component

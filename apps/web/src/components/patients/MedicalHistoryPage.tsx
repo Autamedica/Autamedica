@@ -3,6 +3,14 @@
 import { useState } from 'react'
 import { FileText, Download, Eye } from 'lucide-react'
 
+interface MedicalRecord {
+  id: string;
+  type: string;
+  created_at: string;
+  title: string;
+  description?: string;
+}
+
 const recordTypeConfig = {
   diagnosis: { label: 'Diagnóstico', color: 'bg-blue-50 text-blue-700 border-blue-300', icon: '🩺' },
   prescription: { label: 'Receta', color: 'bg-purple-50 text-purple-700 border-purple-300', icon: '💊' },
@@ -13,7 +21,7 @@ const recordTypeConfig = {
 }
 
 export default function MedicalHistoryPage() {
-  const [medicalRecords] = useState<any[]>([])
+  const [medicalRecords] = useState<MedicalRecord[]>([])
 
   return (
     <div className="p-6 space-y-6">
@@ -49,7 +57,7 @@ export default function MedicalHistoryPage() {
           </div>
         ) : (
           <div className="divide-y divide-stone-200">
-            {medicalRecords.map((record: any) => (
+            {medicalRecords.map((record) => (
               <div key={record.id} className="p-6 hover:bg-stone-50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

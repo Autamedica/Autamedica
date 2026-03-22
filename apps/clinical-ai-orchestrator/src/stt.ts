@@ -146,7 +146,7 @@ function extractGoogleTranscript(operationPayload: Record<string, unknown>): {
         : {}),
     },
     ...(parseGoogleDurationSeconds(metadata.totalBilledDuration) !== undefined
-      ? { durationSeconds: parseGoogleDurationSeconds(metadata.totalBilledDuration)! }
+      ? { durationSeconds: parseGoogleDurationSeconds(metadata.totalBilledDuration) ?? 0 }
       : {}),
   };
 }

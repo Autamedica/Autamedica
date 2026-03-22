@@ -94,15 +94,15 @@ export async function getSession(request: Request): Promise<UserSession | null> 
     const userSession: UserSession = {
       user: {
         id: session.user.id,
-        email: session.user.email!,
+        email: session.user.email ?? "",
         emailVerified: !!session.user.email_confirmed_at,
         role: normalizeRole(session.user.user_metadata?.role),
         createdAt: toISODateString(new Date(session.user.created_at)),
-        updatedAt: toISODateString(new Date(session.user.updated_at!)),
+        updatedAt: toISODateString(new Date(session.user.updated_at ?? session.user.created_at)),
       },
       accessToken: session.access_token,
       refreshToken: session.refresh_token || "",
-      expiresAt: toISODateString(new Date(session.expires_at! * 1000)),
+      expiresAt: toISODateString(new Date((session.expires_at ?? 0) * 1000)),
     };
 
     return userSession;
@@ -125,7 +125,7 @@ export async function requireSession(
     performRedirect(buildCentralLoginUrl(redirectTo));
   }
 
-  return session!;
+  return session as UserSession;
 }
 
 /**

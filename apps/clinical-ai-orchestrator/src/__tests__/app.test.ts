@@ -229,7 +229,7 @@ describe('clinical ai orchestrator', () => {
       MessageStatus: 'received',
     };
     const requestUrl = 'https://clinical.example.com/api/v1/whatsapp/webhooks/inbound';
-    const signature = computeTwilioSignature(config.twilioAuthToken!, requestUrl, form);
+    const signature = computeTwilioSignature(config.twilioAuthToken ?? '', requestUrl, form);
 
     await request(app)
       .post('/api/v1/whatsapp/webhooks/inbound')

@@ -41,7 +41,7 @@ export interface CallNotification {
   title: string;
   body: string;
   action_url?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   status: NotificationStatus;
   push_subscription?: PushSubscriptionJSON;
   priority: NotificationPriority;
@@ -59,7 +59,7 @@ export async function sendNotification(params: {
   body: string;
   sessionId?: string;
   actionUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   priority?: NotificationPriority;
   expiresIn?: number; // minutes
 }): Promise<CallNotification> {

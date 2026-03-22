@@ -10,7 +10,7 @@ import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import globby from 'globby';
 import type {
-  SQLParsingAdapter,
+  SQLParsingAdapter as ISQLParsingAdapter,
   SQLParsingResult,
   ParsedSQLStatement,
   ParsedSQLElement,
@@ -31,7 +31,7 @@ import { logger } from '@autamedica/shared';
  * Parses SQL files to extract schema information without requiring
  * a live database connection. Useful for CI/CD environments.
  */
-export class SQLParsingAdapter implements SQLParsingAdapter {
+export class SQLParsingAdapter implements ISQLParsingAdapter {
   private config: SQLParsingConfig;
 
   constructor(config: SQLParsingConfig) {
@@ -160,7 +160,7 @@ export class SQLParsingAdapter implements SQLParsingAdapter {
    */
   private async parseSQL(content: string, filePath: string): Promise<ParsedSQLStatement[]> {
     const statements: ParsedSQLStatement[] = [];
-    const lines = content.split('\n');
+    const _lines = content.split('\n');
 
     // Remove comments and normalize content
     const cleanContent = this.cleanSQLContent(content);
@@ -768,7 +768,7 @@ export function sqlResultsToSchema(results: SQLParsingResult[]): DatabaseSchema 
 
   // Group statements by table
   const tableStatements = allStatements.filter(s => s.statement_type === 'CREATE_TABLE');
-  const alterStatements = allStatements.filter(s => s.statement_type === 'ALTER_TABLE');
+  const _alterStatements = allStatements.filter(s => s.statement_type === 'ALTER_TABLE');
   const indexStatements = allStatements.filter(s => s.statement_type === 'CREATE_INDEX');
   const functionStatements = allStatements.filter(s => s.statement_type === 'CREATE_FUNCTION');
 

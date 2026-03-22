@@ -5,8 +5,8 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs');
-const path = require('path');
+const _fs = require('fs');
+const _path = require('path');
 
 // Supabase configuration
 const SUPABASE_URL = 'https://qxjjrpksmwwrmubhvjew.supabase.co';

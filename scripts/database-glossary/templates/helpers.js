@@ -39,7 +39,7 @@ function titleCase(str) {
   );
 }
 
-function paramCase(str) {
+function _paramCase(str) {
   return kebabCase(str);
 }
 

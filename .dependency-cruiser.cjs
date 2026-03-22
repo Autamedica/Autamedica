@@ -1,8 +1,7 @@
-/* eslint-env node */
 module.exports = {
   options: {
     tsConfig: { fileName: "tsconfig.eslint.json" },
-    doNotFollow: { path: ["node_modules", "\.next", "dist", "build"] },
+    doNotFollow: { path: ["node_modules", "\.astro", "dist", "build"] },
     includeOnly: "^((apps|packages|scripts)/)",
     exclude: { path: ["(\\.next/|/dist/|/build/|\\.open-next/)", "\.d\.ts$"] },
     preserveSymlinks: false,

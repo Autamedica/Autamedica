@@ -4,8 +4,8 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
-const fs = require('fs');
-const path = require('path');
+const _fs = require('fs');
+const _path = require('path');
 
 // Read environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qxjjrpksmwwrmubhvjew.supabase.co';
@@ -20,7 +20,7 @@ async function applyMigration() {
 
   try {
     // Test connection first
-    const { data: testData, error: testError } = await supabase
+    const { data: _testData, error: testError } = await supabase
       .from('profiles')
       .select('*')
       .limit(1);

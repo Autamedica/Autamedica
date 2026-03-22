@@ -9,7 +9,10 @@
     "preview": "astro preview",
     "check": "astro check",
     "typecheck": "astro check",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -17,8 +20,8 @@
     "@astrojs/react": "^4.0.0",
     "@astrojs/tailwind": "^5.0.0",
     "@autamedica/auth": "workspace:^",
-    "@autamedica/scheduling": "workspace:^",
     "@autamedica/hooks": "workspace:^",
+    "@autamedica/scheduling": "workspace:^",
     "@autamedica/session": "workspace:^",
     "@autamedica/shared": "workspace:^",
     "@autamedica/supabase-client": "workspace:^",
@@ -36,7 +39,6 @@
     "clsx": "^2.1.1",
     "driver.js": "^1.3.6",
     "framer-motion": "^12.23.12",
-    "geist": "^1.7.0",
     "gsap": "^3.13.0",
     "leaflet": "^1.9.4",
     "livekit-client": "^2.15.9",

@@ -12,15 +12,12 @@ import { test, expect, describe, beforeAll, afterAll } from 'bun:test';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   getAvailableSlots,
-  getOpenSlots,
   checkConflict,
   addToWaitlist,
-  processWaitlist,
   expireStaleOffers,
   cancelWaitlistEntry,
   getDoctorWaitlist,
   scheduleReminders,
-  getPendingReminders,
   markReminderSent,
   markReminderFailed,
   cancelReminders,
@@ -48,9 +45,9 @@ const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 // Test data IDs — will be populated during setup
 let testDoctorId: string;
 let testPatientId: string;
-let testDoctorUserId: string;
-let testPatientUserId: string;
-let testAppointmentId: string;
+let _testDoctorUserId: string;
+let _testPatientUserId: string;
+let _testAppointmentId: string;
 
 // IDs to clean up
 const cleanupAvailabilityIds: string[] = [];
@@ -103,7 +100,7 @@ beforeAll(async () => {
   }
 
   testDoctorId = doctors.id;
-  testDoctorUserId = doctors.user_id;
+  _testDoctorUserId = doctors.user_id;
 
   // Find an existing patient
   const { data: patients } = await supabase
@@ -117,7 +114,7 @@ beforeAll(async () => {
   }
 
   testPatientId = patients.id;
-  testPatientUserId = patients.user_id;
+  _testPatientUserId = patients.user_id;
 
   console.log(`[Integration] Doctor: ${testDoctorId}, Patient: ${testPatientId}`);
 });
@@ -258,7 +255,7 @@ describe('Integration: Availability & Slots', () => {
 
     expect(overErr).toBeNull();
     expect(override).not.toBeNull();
-    cleanupOverrideIds.push(override!.id);
+    if (override) cleanupOverrideIds.push(override.id);
 
     // Slots should be empty for this date
     const slots = await getAvailableSlots(supabase, {
@@ -273,7 +270,7 @@ describe('Integration: Availability & Slots', () => {
     await supabase
       .from('doctor_availability_overrides')
       .delete()
-      .eq('id', override!.id);
+      .eq('id', override?.id ?? '');
     cleanupOverrideIds.pop();
   });
 });
@@ -314,7 +311,7 @@ describe('Integration: Conflict Detection', () => {
       .single();
 
     expect(error).toBeNull();
-    cleanupAppointmentIds.push(appt!.id);
+    if (appt) cleanupAppointmentIds.push(appt.id);
 
     // Should detect conflict at same time
     const hasConflict = await checkConflict(supabase, testDoctorId, startTime, endTime);
@@ -394,21 +391,21 @@ describe('Integration: Reminders', () => {
       .single();
 
     expect(apptErr).toBeNull();
-    cleanupAppointmentIds.push(appt!.id);
+    if (appt) cleanupAppointmentIds.push(appt.id);
 
     // Schedule reminders
-    const reminders = await scheduleReminders(supabase, appt!.id, 'whatsapp');
+    const reminders = await scheduleReminders(supabase, appt?.id ?? '', 'whatsapp');
 
     expect(reminders.length).toBe(2); // 24h + 2h before
     for (const r of reminders) {
       cleanupReminderIds.push(r.id);
       expect(r.status).toBe('pending');
       expect(r.channel).toBe('whatsapp');
-      expect(r.appointment_id).toBe(appt!.id);
+      expect(r.appointment_id).toBe(appt?.id);
     }
 
     // Cancel all reminders
-    const cancelled = await cancelReminders(supabase, appt!.id);
+    const cancelled = await cancelReminders(supabase, appt?.id ?? '');
     expect(cancelled).toBe(2);
 
     // Verify they're cancelled
@@ -438,9 +435,9 @@ describe('Integration: Reminders', () => {
       .select('id')
       .single();
 
-    cleanupAppointmentIds.push(appt!.id);
+    if (appt) cleanupAppointmentIds.push(appt.id);
 
-    const reminders = await scheduleReminders(supabase, appt!.id, 'whatsapp');
+    const reminders = await scheduleReminders(supabase, appt?.id ?? '', 'whatsapp');
     for (const r of reminders) cleanupReminderIds.push(r.id);
 
     // Mark first as sent
@@ -539,19 +536,19 @@ describe('Integration: DB Triggers', () => {
       .single();
 
     expect(error).toBeNull();
-    cleanupAppointmentIds.push(appt!.id);
+    if (appt) cleanupAppointmentIds.push(appt.id);
 
     // Check that a history entry was auto-created by the trigger
     const { data: history } = await supabase
       .from('appointment_history')
       .select('*')
-      .eq('appointment_id', appt!.id)
+      .eq('appointment_id', appt?.id ?? '')
       .eq('action', 'created');
 
     expect(history).not.toBeNull();
-    expect(history!.length).toBeGreaterThanOrEqual(1);
+    expect((history ?? []).length).toBeGreaterThanOrEqual(1);
 
-    const entry = history![0];
+    const entry = (history ?? [])[0];
     expect(entry.patient_id).toBe(testPatientId);
     expect(entry.doctor_id).toBe(testDoctorId);
     expect(entry.new_status).toBe('scheduled');
@@ -575,32 +572,32 @@ describe('Integration: DB Triggers', () => {
       .select('id')
       .single();
 
-    cleanupAppointmentIds.push(appt!.id);
+    if (appt) cleanupAppointmentIds.push(appt.id);
 
     // Update status to confirmed
     await supabase
       .from('appointments')
       .update({ status: 'confirmed' })
-      .eq('id', appt!.id);
+      .eq('id', appt?.id ?? '');
 
     // Check history has both 'created' and 'confirmed' entries
     const { data: history } = await supabase
       .from('appointment_history')
       .select('*')
-      .eq('appointment_id', appt!.id)
+      .eq('appointment_id', appt?.id ?? '')
       .order('created_at', { ascending: true });
 
-    expect(history!.length).toBeGreaterThanOrEqual(2);
+    expect((history ?? []).length).toBeGreaterThanOrEqual(2);
 
-    const createEntry = history!.find(h => h.action === 'created');
-    const confirmEntry = history!.find(h => h.action === 'confirmed');
+    const createEntry = (history ?? []).find(h => h.action === 'created');
+    const confirmEntry = (history ?? []).find(h => h.action === 'confirmed');
 
     expect(createEntry).toBeDefined();
     expect(confirmEntry).toBeDefined();
-    expect(confirmEntry!.old_status).toBe('scheduled');
-    expect(confirmEntry!.new_status).toBe('confirmed');
+    expect(confirmEntry?.old_status).toBe('scheduled');
+    expect(confirmEntry?.new_status).toBe('confirmed');
 
-    for (const h of history!) cleanupHistoryIds.push(h.id);
+    for (const h of history ?? []) cleanupHistoryIds.push(h.id);
   });
 
   test('conflict trigger prevents overlapping appointments', async () => {
@@ -622,7 +619,7 @@ describe('Integration: DB Triggers', () => {
       .single();
 
     expect(err1).toBeNull();
-    cleanupAppointmentIds.push(appt1!.id);
+    if (appt1) cleanupAppointmentIds.push(appt1.id);
 
     // Second overlapping appointment should fail
     const { error: err2 } = await supabase
@@ -639,6 +636,6 @@ describe('Integration: DB Triggers', () => {
       .single();
 
     expect(err2).not.toBeNull();
-    expect(err2!.message).toContain('SCHEDULING_CONFLICT');
+    expect(err2?.message).toContain('SCHEDULING_CONFLICT');
   });
 });

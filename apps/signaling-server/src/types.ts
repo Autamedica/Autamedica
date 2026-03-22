@@ -21,7 +21,7 @@ export interface SignalingMessage {
   type: 'offer' | 'answer' | 'ice-candidate' | 'join-room' | 'leave-room' | 'call-init' | 'call-end';
   roomId: string;
   userId: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface Room {

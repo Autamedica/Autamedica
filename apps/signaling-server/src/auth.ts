@@ -89,7 +89,7 @@ export async function authenticateSocket(
 /**
  * Verify JWT token (sin Supabase, solo validación de firma)
  */
-export function verifyJWT(token: string): any {
+export function verifyJWT(token: string): unknown {
   try {
     const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 

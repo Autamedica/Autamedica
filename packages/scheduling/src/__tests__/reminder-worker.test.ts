@@ -1,6 +1,6 @@
-import { test, expect, describe, mock } from 'bun:test';
+import { test, expect, describe } from 'bun:test';
 import { processReminderCycle } from '../reminder-worker';
-import { createMockSupabase, createSequentialMockSupabase } from './mock-supabase';
+import { createMockSupabase } from './mock-supabase';
 import { DEFAULT_OPENCLAW_CONFIG } from '../openclaw';
 
 const workerConfig = {

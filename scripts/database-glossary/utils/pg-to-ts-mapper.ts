@@ -258,7 +258,7 @@ export function generateTableInterface(
       return acc;
     }, {} as Record<string, string[]>);
 
-    for (const [importPath, types] of Object.entries(groupedImports)) {
+    for (const [importPath, _types] of Object.entries(groupedImports)) {
       output += `import type { ${Array.from(new Set(columns.map(col => mapPgToTs(tableName, col.column_name, col.data_type)).filter(type =>
         getRequiredImports([type]).includes(importPath)
       ))).join(', ')} } from '${importPath}';\n`;

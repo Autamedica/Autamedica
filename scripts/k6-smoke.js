@@ -197,6 +197,6 @@ export function handleSummary(data) {
 }
 
 // Helper for text summary (fallback if not using default textSummary)
-function textSummary(data, options = {}) {
+function textSummary(data, _options = {}) {
   return JSON.stringify(data, null, 2);
 }

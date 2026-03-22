@@ -256,7 +256,7 @@ function extractEmailFromPayload(payload: JWTPayload): string | undefined {
  * Get session from request cookies using JWT verification.
  * No Supabase client needed - prevents hardcoded credentials.
  * Accepts any object with a `cookies` property matching the CookieReader interface
- * (compatible with NextRequest, Astro APIContext, and custom adapters).
+ * (compatible with Astro APIContext, standard Request, and custom adapters).
  */
 export async function getSession(req: { cookies: CookieReader }): Promise<Session | null> {
   const token = extractSessionTokenFromCookies(req.cookies);

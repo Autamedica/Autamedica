@@ -16,7 +16,7 @@ export class SignalingRoom implements DurableObject {
   // In-memory cache: connId -> UserMeta (rebuilt from storage on wake)
   private userCache = new Map<string, UserMeta>()
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+   
   constructor(state: DurableObjectState, _env: unknown) {
     this.state = state
   }
@@ -76,12 +76,12 @@ export class SignalingRoom implements DurableObject {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+   
   async webSocketClose(ws: WebSocket, _code: number, _reason: string, _wasClean: boolean): Promise<void> {
     await this.handleLeave(ws)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+   
   async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
     await this.handleLeave(ws)
   }

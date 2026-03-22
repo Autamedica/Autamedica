@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const rootDir = join(__dirname, '..');
+const _rootDir = join(__dirname, '..');
 
 // Colores para output
 const colors = {
@@ -198,7 +198,7 @@ function parseColumnTypeWithEnums(typeDefinition, columnName, tableDefinition, e
 /**
  * Parsea información de tipo de columna (versión simplificada para tests)
  */
-function parseColumnType(typeDefinition, columnName, tableDefinition) {
+function _parseColumnType(typeDefinition, columnName, tableDefinition) {
   const typeDef = typeDefinition.toUpperCase();
   const originalDef = typeDefinition;
 

@@ -1,0 +1,57 @@
+diff --git a/dist/vite-plugin-astro/compile.js b/dist/vite-plugin-astro/compile.js
+index 5bc32825ccaddca491908f39482006bd8426af91..5ecf7de1df13f90156ebfc2634e79d4c8616b6fb 100644
+--- a/dist/vite-plugin-astro/compile.js
++++ b/dist/vite-plugin-astro/compile.js
+@@ -1,4 +1,4 @@
+-import { transformWithEsbuild } from "vite";
++import { transformWithOxc } from "vite";
+ import { compile } from "../core/compile/index.js";
+ import { getFileInfo } from "../vite-plugin-utils/index.js";
+ import { frontmatterRE } from "./utils.js";
+@@ -8,18 +8,17 @@ async function compileAstro({
+   logger
+ }) {
+   let transformResult;
+-  let esbuildResult;
++  let oxcResult;
+   try {
+     transformResult = await compile(compileProps);
+-    esbuildResult = await transformWithEsbuild(transformResult.code, compileProps.filename, {
+-      ...compileProps.viteConfig.esbuild,
+-      loader: "ts",
+-      sourcemap: "external",
+-      tsconfigRaw: {
++    oxcResult = await transformWithOxc(transformResult.code, compileProps.filename, {
++      ...compileProps.viteConfig.oxc,
++      lang: "ts",
++      sourcemap: true,
++      tsconfig: {
+         compilerOptions: {
+           // Ensure client:only imports are treeshaken
+-          verbatimModuleSyntax: false,
+-          importsNotUsedAsValues: "remove"
++          verbatimModuleSyntax: false
+         }
+       }
+     });
+@@ -58,8 +57,8 @@ const $$url = ${JSON.stringify(
+   });
+   return {
+     ...transformResult,
+-    code: esbuildResult.code + SUFFIX,
+-    map: esbuildResult.map
++    code: oxcResult.code + SUFFIX,
++    map: oxcResult.map
+   };
+ }
+ async function enhanceCompileError({
+@@ -73,8 +72,7 @@ async function enhanceCompileError({
+     const frontmatter = scannedFrontmatter[1].replace(/\breturn\b/g, "throw");
+     if (lineText && !frontmatter.includes(lineText)) throw err;
+     try {
+-      await transformWithEsbuild(frontmatter, id, {
+-        loader: "ts",
++      await transformWithOxc(frontmatter, id, {
+         target: "esnext",
+         sourcemap: false
+       });

@@ -38,11 +38,11 @@ router.post('/api/consultations/create', async (req: Request, res: Response): Pr
       data: room
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('[API] Error creating consultation:', error);
     res.status(500).json({
       error: 'Failed to create consultation room',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -70,11 +70,11 @@ router.post('/api/consultations/:id/recording/start', async (req: Request, res: 
       data: result
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('[API] Error starting recording:', error);
     res.status(500).json({
       error: 'Failed to start recording',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -101,11 +101,11 @@ router.post('/api/consultations/:id/recording/stop', async (req: Request, res: R
       message: 'Recording stopped'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('[API] Error stopping recording:', error);
     res.status(500).json({
       error: 'Failed to stop recording',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -123,11 +123,11 @@ router.get('/api/rooms/active', async (_req: Request, res: Response): Promise<vo
       data: rooms
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('[API] Error listing rooms:', error);
     res.status(500).json({
       error: 'Failed to list rooms',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -152,11 +152,11 @@ router.get('/api/rooms/:roomName/stats', async (req: Request, res: Response): Pr
       data: stats
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('[API] Error getting room stats:', error);
     res.status(500).json({
       error: 'Failed to get room stats',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });
@@ -181,11 +181,11 @@ router.delete('/api/rooms/:roomName/participants/:identity', async (req: Request
       message: 'Participant disconnected'
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('[API] Error disconnecting participant:', error);
     res.status(500).json({
       error: 'Failed to disconnect participant',
-      message: error.message
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 });

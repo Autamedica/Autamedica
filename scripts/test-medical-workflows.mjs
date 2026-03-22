@@ -38,7 +38,7 @@ class MedicalWorkflowTest {
       // Paso 1: Paciente solicita cita con cardiólogo
       await this.logStep('👤 Paciente Juan Pérez solicita cita cardiológica')
       
-      const newAppointment = {
+      const _newAppointment = {
         patient_id: 'p0000001-0000-0000-0000-000000000001', // Juan Pérez
         doctor_id: 'd0000001-0000-0000-0000-000000000001',   // Dr. García (Cardiólogo)
         start_time: '2025-10-15T10:00:00Z',
@@ -63,7 +63,7 @@ class MedicalWorkflowTest {
       // Paso 3: Sistema verifica care team assignment
       await this.logStep('🔗 Verificando asignación médico-paciente')
       
-      const careTeamCheck = {
+      const _careTeamCheck = {
         patient_id: 'p0000001-0000-0000-0000-000000000001',
         doctor_id: 'd0000001-0000-0000-0000-000000000001',
         relationship: 'primary'
@@ -101,7 +101,7 @@ class MedicalWorkflowTest {
       // Paso 1: Cita en progreso
       await this.logStep('🕐 Cita iniciada - Dr. García atiende a Juan Pérez')
       
-      const appointmentUpdate = {
+      const _appointmentUpdate = {
         status: 'in-progress',
         notes: 'Paciente refiere mejoría post-cirugía. Examen físico en curso.'
       }
@@ -173,7 +173,7 @@ class MedicalWorkflowTest {
       // Paso 4: Actualizar estado de cita
       await this.logStep('✅ Cita completada exitosamente')
       
-      const finalAppointmentUpdate = {
+      const _finalAppointmentUpdate = {
         status: 'completed',
         notes: 'Consulta finalizada. Paciente estable, continuar tratamiento actual.'
       }
@@ -218,7 +218,7 @@ class MedicalWorkflowTest {
 
       // Paso 2: Programación de citas masivas
       for (const employee of employeeList) {
-        const appointment = {
+        const _appointment = {
           patient_id: employee.id,
           doctor_id: 'd0000003-0000-0000-0000-000000000003', // Dr. López
           company_id: 'c0000002-0000-0000-0000-000000000002', // TechCorp
@@ -271,7 +271,7 @@ class MedicalWorkflowTest {
       })
 
       // Paso 4: Certificado médico laboral
-      const occupationalRecord = {
+      const _occupationalRecord = {
         patient_id: 'p0000003-0000-0000-0000-000000000003',
         doctor_id: 'd0000003-0000-0000-0000-000000000003',
         title: 'Certificado Médico Laboral Anual 2025',
@@ -286,7 +286,7 @@ class MedicalWorkflowTest {
       // Paso 5: Notificación a empresa
       await this.logStep('📧 Resultados enviados a TechCorp SA')
       
-      const companyNotification = {
+      const _companyNotification = {
         company: 'TechCorp SA',
         employee: 'Carlos Ruiz',
         status: 'APTO',
@@ -494,7 +494,7 @@ class MedicalWorkflowTest {
       // Test 4: Auditoría de acceso a PHI
       await this.logStep('📊 Registrando acceso a información médica protegida (PHI)')
       
-      const auditLog = {
+      const _auditLog = {
         user_id: '33333333-3333-3333-3333-333333333333',
         action: 'read',
         resource_type: 'medical_record',

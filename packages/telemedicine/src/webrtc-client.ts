@@ -131,7 +131,7 @@ export class WebRTCClient {
   private localStream: MediaStream | null = null
   private config: WebRTCConfig
   private readonly sessionId = `${Math.random().toString(36).slice(2, 8)}-${Date.now()}`
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+   
   private eventListeners = new Map<keyof WebRTCEvents, Function[]>()
   private connectionState: ConnectionState = 'disconnected'
   private qualityInterval: ReturnType<typeof setInterval> | null = null

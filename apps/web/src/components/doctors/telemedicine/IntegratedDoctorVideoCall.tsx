@@ -12,12 +12,12 @@ import {
 import { logger } from '@autamedica/shared';
 
 // React 19 compatibility for Lucide icons
-const VideoIcon = Video as any;
-const VideoOffIcon = VideoOff as any;
-const MicIcon = Mic as any;
-const MicOffIcon = MicOff as any;
-const PhoneOffIcon = PhoneOff as any;
-const MonitorIcon = Monitor as any;
+const VideoIcon = Video as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+const VideoOffIcon = VideoOff as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+const MicIcon = Mic as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+const MicOffIcon = MicOff as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+const PhoneOffIcon = PhoneOff as React.ComponentType<React.SVGProps<SVGSVGElement>>;
+const MonitorIcon = Monitor as React.ComponentType<React.SVGProps<SVGSVGElement>>;
 
 interface PatientData {
   id: string;

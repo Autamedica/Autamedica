@@ -16,7 +16,7 @@ const stats = {
 async function revertFile(filePath) {
   const content = await fs.readFile(filePath, 'utf-8');
   let newContent = content;
-  let fileChanged = false;
+  let _fileChanged = false;
 
   // Solo revertir si tiene logger.* calls
   const hasLoggerUsage = /logger\.(info|error|warn|debug)\(/.test(content);
@@ -31,7 +31,7 @@ async function revertFile(filePath) {
     // Remover import de logger si existe
     newContent = newContent.replace(/import \{ logger \} from '@autamedica\/shared';\n?/g, '');
 
-    fileChanged = true;
+    _fileChanged = true;
     stats.filesChanged++;
 
     await fs.writeFile(filePath, newContent, 'utf-8');

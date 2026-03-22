@@ -82,18 +82,18 @@ export function useMedicalHistory(
       }
 
       if (filters.date_from) {
-        filtered = filtered.filter(r => (r.dateRecorded ?? '') >= filters.date_from!);
+        filtered = filtered.filter(r => (r.dateRecorded ?? '') >= (filters.date_from ?? ''));
       }
 
       if (filters.date_to) {
-        filtered = filtered.filter(r => (r.dateRecorded ?? '') <= filters.date_to!);
+        filtered = filtered.filter(r => (r.dateRecorded ?? '') <= (filters.date_to ?? ''));
       }
 
       // content is a JSON field that may contain diagnosis info
       if (filters.diagnosis_contains) {
         filtered = filtered.filter(r => {
           const contentStr = typeof r.content === 'string' ? r.content : JSON.stringify(r.content);
-          return contentStr.toLowerCase().includes(filters.diagnosis_contains!.toLowerCase());
+          return contentStr.toLowerCase().includes((filters.diagnosis_contains ?? '').toLowerCase());
         });
       }
 

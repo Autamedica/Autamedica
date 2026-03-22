@@ -50,14 +50,15 @@ interface UseTelemedicineReturn {
   livekit: LiveKitConfig | null;
 }
 
-function mapApiSession(data: any): ApiSession {
+function mapApiSession(data: unknown): ApiSession {
+  const d = data as Record<string, unknown> | null | undefined;
   return {
-    session_id: String(data?.session_id ?? data?.id ?? ''),
-    room_id: String(data?.room_id ?? ''),
-    status: String(data?.status ?? 'scheduled'),
-    scheduled_at: data?.scheduled_at ?? null,
-    started_at: data?.started_at ?? null,
-    ended_at: data?.ended_at ?? null,
+    session_id: String(d?.session_id ?? d?.id ?? ''),
+    room_id: String(d?.room_id ?? ''),
+    status: String(d?.status ?? 'scheduled'),
+    scheduled_at: (d?.scheduled_at as string | null) ?? null,
+    started_at: (d?.started_at as string | null) ?? null,
+    ended_at: (d?.ended_at as string | null) ?? null,
   };
 }
 

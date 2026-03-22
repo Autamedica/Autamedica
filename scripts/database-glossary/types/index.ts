@@ -146,14 +146,14 @@ export interface ParsedSQLElement {
 export interface SQLParsingResult {
   file_path: string;
   statements: ParsedSQLStatement[];
-  errors: SQLParsingError[];
+  errors: SQLParsingErrorInfo[];
   parsed_at: string;
 }
 
 /**
  * SQL parsing error information
  */
-export interface SQLParsingError {
+export interface SQLParsingErrorInfo {
   error_type: 'SYNTAX_ERROR' | 'UNSUPPORTED_STATEMENT' | 'PARSE_ERROR';
   message: string;
   line_number?: number;
@@ -687,9 +687,9 @@ export interface DatabaseAdapter {
  * Common interface for SQL parsing adapters
  */
 export interface SQLParsingAdapter {
-  parseFiles(file_paths: string[]): Promise<SQLParsingResult[]>;
-  parseSingleFile(file_path: string): Promise<SQLParsingResult>;
-  validateSQL(sql: string): Promise<boolean>;
+  parseFiles(_file_paths: string[]): Promise<SQLParsingResult[]>;
+  parseSingleFile(_file_path: string): Promise<SQLParsingResult>;
+  validateSQL(_sql: string): Promise<boolean>;
   getParserInfo(): AdapterInfo;
 }
 
@@ -711,6 +711,7 @@ export interface AdapterInfo {
 /**
  * Base error for database glossary operations
  */
+/* eslint-disable no-unused-vars */
 export class DatabaseGlossaryError extends Error {
   constructor(
     message: string,
@@ -721,6 +722,7 @@ export class DatabaseGlossaryError extends Error {
     this.name = 'DatabaseGlossaryError';
   }
 }
+/* eslint-enable no-unused-vars */
 
 /**
  * Database connection or query errors

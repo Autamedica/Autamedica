@@ -384,10 +384,11 @@ export class HIPAAClassifier {
         case 'DATA_TYPE':
           isMatch = new RegExp(rule.pattern, 'i').test(column.data_type);
           break;
-        case 'COMMENT':
+        case 'COMMENT': {
           const comment = column.column_comment || table.table_comment || '';
           isMatch = new RegExp(rule.pattern, 'i').test(comment);
           break;
+        }
       }
 
       if (isMatch && rule.auto_apply) {

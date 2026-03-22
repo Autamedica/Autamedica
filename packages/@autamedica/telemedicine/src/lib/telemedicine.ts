@@ -72,7 +72,7 @@ export interface SessionEvent {
   id: string;
   session_id: string;
   event_type: string;
-  event_data?: Record<string, any>;
+  event_data?: Record<string, unknown>;
   user_id?: string;
   created_at: string;
 }
@@ -168,7 +168,7 @@ export async function updateSessionStatus(
   }
 ): Promise<TelemedicineSession> {
   const supabase = getSupabaseClient();
-  const updateData: any = { status };
+  const updateData: Record<string, unknown> = { status };
 
   if (metadata?.actualStart) updateData.actual_start = metadata.actualStart;
   if (metadata?.actualEnd) updateData.actual_end = metadata.actualEnd;
@@ -346,7 +346,7 @@ export async function getSessionParticipants(sessionId: string): Promise<Session
 export async function logSessionEvent(
   sessionId: string,
   eventType: string,
-  eventData?: Record<string, any>,
+  eventData?: Record<string, unknown>,
   userId?: string
 ): Promise<SessionEvent> {
   const supabase = getSupabaseClient();

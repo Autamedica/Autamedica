@@ -35,11 +35,18 @@ export interface ReconnectionConfig {
   reconnectFn?: () => Promise<void>;
 }
 
+/** Minimal signaling interface for reconnection monitoring */
+interface SignalingLike {
+  emit?: (event: string, data: unknown) => void;
+  on?: (event: string, callback: () => void) => void;
+  off?: (event: string, callback: () => void) => void;
+}
+
 export interface UseReconnectionOptions {
   /** WebRTC peer connection to monitor */
   peerConnection: RTCPeerConnection | null;
   /** Socket.io or WebSocket connection to monitor */
-  signaling: any;
+  signaling: SignalingLike | null;
   /** Configuration options */
   config?: ReconnectionConfig;
   /** Enable automatic reconnection */

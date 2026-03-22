@@ -112,7 +112,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
       updates.duration_minutes = duration_minutes
     }
     if (scheduled_at !== undefined || duration_minutes !== undefined) {
-      const startIso = (scheduled_at as string) ?? existing.id // will re-derive below
+      const _startIso = (scheduled_at as string) ?? existing.id // will re-derive below
       // Re-fetch existing start_time if only duration changed
       if (scheduled_at !== undefined && duration_minutes !== undefined) {
         updates.end_time = computeEndTime(scheduled_at, duration_minutes)

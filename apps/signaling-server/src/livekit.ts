@@ -28,8 +28,8 @@ logger.info('[DEBUG] LiveKit Config:', {
   hasSecret: !!LIVEKIT_API_SECRET
 });
 
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
+const SUPABASE_URL = process.env.SUPABASE_URL ?? '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? '';
 
 export interface ConsultationRoom {
   consultationId: string;
@@ -115,7 +115,7 @@ export class LiveKitService {
       // Guardar en base de datos (skip si no está configurado)
       if (this.supabase) {
         try {
-          const { error } = await (this.supabase as any)
+          const { error } = await (this.supabase as SupabaseClient)
             .from('consultation_rooms')
             .insert({
               consultation_id: consultationId,
@@ -178,7 +178,7 @@ export class LiveKitService {
     );
 
     // Permisos según rol
-    const grants: any = {
+    const grants: Record<string, boolean | string | TrackSource[]> = {
       roomJoin: true,
       room: roomName,
       canPublish: role !== 'observer',
@@ -194,7 +194,7 @@ export class LiveKitService {
       grants.canPublishSources = [TrackSource.CAMERA, TrackSource.MICROPHONE];
     }
 
-    at.addGrant(grants);
+    at.addGrant(grants as Parameters<typeof at.addGrant>[0]);
 
     const token = await at.toJwt();
 
@@ -242,7 +242,7 @@ export class LiveKitService {
       // Actualizar base de datos (skip si no está configurado)
       if (this.supabase) {
         try {
-          const { error } = await (this.supabase as any)
+          const { error } = await (this.supabase as SupabaseClient)
             .from('consultation_recordings')
             .update({
               ended_at: new Date().toISOString(),

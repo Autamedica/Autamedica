@@ -191,7 +191,7 @@ async function main() {
 
   // 4. Detectar duplicaciones
   const duplications = [];
-  const missing = [];
+  const _missing = [];
 
   for (const [typeName, definitions] of localDefinitions) {
     if (documentedTypes.has(typeName)) {

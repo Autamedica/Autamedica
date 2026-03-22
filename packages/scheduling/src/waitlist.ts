@@ -9,7 +9,6 @@ import type {
   WaitlistEntry,
   WaitlistEntryInsert,
   SchedulingConfig,
-  DEFAULT_SCHEDULING_CONFIG,
 } from '@autamedica/types';
 import type { SupabaseLike } from './supabase';
 

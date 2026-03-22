@@ -531,7 +531,7 @@ function extractExpectedExports(glosarioContent) {
 
   // También procesar secciones de glosario completo (que incluye modulares)
   // Buscar secciones ## @autamedica/ en todo el contenido
-  const fullSectionRegex = /## @autamedica\/([^\n]+)\n([\s\S]*?)(?=## @autamedica\/|## [🎯📚]|---\n\n##|$)/g;
+  const fullSectionRegex = /## @autamedica\/([^\n]+)\n([\s\S]*?)(?=## @autamedica\/|## [🎯📚]|---\n\n##|$)/gu;
   let fullMatch;
   while ((fullMatch = fullSectionRegex.exec(glosarioContent)) !== null) {
     const packageName = fullMatch[1].trim();

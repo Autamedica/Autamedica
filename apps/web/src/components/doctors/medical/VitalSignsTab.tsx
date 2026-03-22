@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 // @ts-nocheck
 /**
  * Componente de signos vitales para el portal de médicos

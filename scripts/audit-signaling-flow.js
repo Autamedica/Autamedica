@@ -209,7 +209,7 @@ class SignalingAuditor {
 
     // Actualizar estado en DB
     try {
-      const { data, error } = await this.supabase
+      const { data: _data, error } = await this.supabase
         .rpc('update_call_status', {
           p_call_id: inviteMessage.callId,
           p_status: 'accepted'

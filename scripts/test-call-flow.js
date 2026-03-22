@@ -44,7 +44,7 @@ async function testCallFlow() {
     // Test 2: Check calls table
     console.log('')
     console.log('2. Testing calls table access...')
-    const { data: callsData, error: callsError } = await supabase
+    const { data: _callsData, error: callsError } = await supabase
       .from('calls')
       .select('count')
       .limit(1)
@@ -72,7 +72,7 @@ async function testCallFlow() {
       console.log('3. Testing update_call_status function...')
       const callId = data[0].id
 
-      const { data: updateData, error: updateError } = await supabase
+      const { data: _updateData, error: updateError } = await supabase
         .rpc('update_call_status', {
           p_call_id: callId,
           p_status: 'ringing'

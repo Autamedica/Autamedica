@@ -118,7 +118,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
     setSaveError(null)
 
     try {
-      const primaryMedication = normalizedMedications[0]!
+      const primaryMedication = normalizedMedications[0] ?? { name: '', dosage: '', frequency: '', duration: '', instructions: '' }
       const now = new Date().toISOString()
 
       await addPrescription({

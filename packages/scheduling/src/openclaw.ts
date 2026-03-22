@@ -72,7 +72,7 @@ export async function sendMessage(
   try {
     const { stdout, stderr } = await execAsync(cmd, { timeout: 30_000 });
 
-    if (stderr && stderr.includes('error')) {
+    if (stderr?.includes('error')) {
       return { ok: false, error: stderr.trim(), raw: stdout };
     }
 

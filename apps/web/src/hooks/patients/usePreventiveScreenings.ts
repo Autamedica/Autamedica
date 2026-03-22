@@ -1,4 +1,4 @@
-/* eslint-disable */
+ 
 // @ts-nocheck
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';

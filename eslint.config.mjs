@@ -1,33 +1,20 @@
-import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import unusedImports from 'eslint-plugin-unused-imports';
 import globals from 'globals';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [...compat.extends("next/core-web-vitals", "next/typescript"), {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"]
-}, // Global ignores - replaces .eslintignore
+const eslintConfig = [
+// Global ignores - replaces .eslintignore
 {
   ignores: [
     // Build outputs
-    '**/.next/**',
     '**/dist/**',
     '**/build/**',
     '**/out/**',
     '**/.turbo/**',
     '**/.vercel/**',
-    '.open-next/**',
-    '**/.open-next/**',
+    '**/.astro/**',
 
     // Dependencies
     '**/node_modules/**',
@@ -174,26 +161,15 @@ js.configs.recommended,
       }
     ],
 
-    // Monorepo: no pages/ at root – disable Next.js page-dir rules globally
-    '@next/next/no-html-link-for-pages': 'off',
-
-    // TypeScript estricto - Variables no usadas con patrones avanzados
+    // TypeScript estricto
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': 'off', // Deshabilitado en favor de unused-imports
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-non-null-assertion': 'warn',
-    // Temporarily disabled until TypeScript config is fully aligned
-    // '@typescript-eslint/prefer-nullish-coalescing': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
   },
-}, // Astro app — Next.js image/link rules don't apply (no next/image available)
-{
-  files: ['apps/web/**/*.{ts,tsx}'],
-  rules: {
-    '@next/next/no-img-element': 'off',
-    '@next/next/no-html-link-for-pages': 'off',
-  },
-}, // Package-specific parser configuration overrides
+},
+// Package-specific parser configuration overrides
 {
   files: ['packages/shared/**/*.{ts,tsx}'],
   languageOptions: {
@@ -202,7 +178,6 @@ js.configs.recommended,
     },
   },
 },
-// Package-specific parser configuration overrides
 {
   files: ['packages/telemedicine/**/*.{ts,tsx}'],
   languageOptions: {
@@ -210,7 +185,8 @@ js.configs.recommended,
       project: ['./packages/telemedicine/tsconfig.eslint.json'],
     },
   },
-}, // JavaScript files configuration
+},
+// JavaScript files configuration
 {
   files: ['**/*.{js,mjs,cjs}'],
   languageOptions: {
@@ -228,15 +204,8 @@ js.configs.recommended,
       caughtErrors: 'none'
     }],
   },
-}, // Next.js specific files
-{
-  files: ['**/app/**/route.{ts,tsx}', '**/app/**/layout.{ts,tsx}', '**/app/**/page.{ts,tsx}'],
-  languageOptions: {
-    globals: {
-      ...globals.node,
-    },
-  },
-}, // Allow process.env in specific packages and files
+},
+// Allow process.env in specific packages and files
 {
   files: [
     'packages/shared/**/*.{ts,tsx}',
@@ -249,12 +218,6 @@ js.configs.recommended,
     '**/oauth-handler.{ts,tsx}',
     '**/components/auth/**/*.{ts,tsx}',
     '**/components/layout/VSCodeLayout.{ts,tsx}',
-    // Doctors portal — server-side services use process.env directly
-    'apps/doctors/**/*.{ts,tsx}',
-    // Companies portal — server-side services use process.env directly
-    'apps/companies/**/*.{ts,tsx}',
-    'apps/admin/**/*.{ts,tsx}',
-    'apps/patients/**/*.{ts,tsx}',
     'apps/web/src/components/ErrorBoundary.tsx',
     'apps/signaling-server/**/*.{ts,tsx}',
     'packages/telemedicine/**/*.{ts,tsx}',
@@ -262,11 +225,11 @@ js.configs.recommended,
   rules: {
     'no-restricted-properties': 'off',
   },
-}, {
+},
+{
   files: [
     '**/*.config.{ts,mts}',
     '**/middleware.{ts,mts}',
-    '**/open-next.config.{ts,mts}',
     '**/tsup.config.{ts,mts}',
     '**/vitest.config.{ts,mts}',
     '**/vitest.config.example.{ts,mts}',
@@ -277,7 +240,7 @@ js.configs.recommended,
     parserOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      project: false, // Don't require tsconfig for config files
+      project: false,
     },
     globals: {
       ...globals.node,
@@ -297,7 +260,8 @@ js.configs.recommended,
     'unused-imports/no-unused-vars': 'off',
     'unused-imports/no-unused-imports': 'off',
   },
-}, // JavaScript configuration files
+},
+// JavaScript configuration files
 {
   files: [
     '**/*.config.{js,mjs,cjs}',
@@ -309,7 +273,8 @@ js.configs.recommended,
     '@typescript-eslint/no-explicit-any': 'off',
     'no-useless-escape': 'off',
   },
-}, // Test files
+},
+// Test files
 {
   files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', '**/tests/**/*.{ts,tsx,js,jsx}', 'packages/**/__tests__/**/*.{ts,tsx,js,jsx}', 'packages/**/vitest.setup.ts'],
   languageOptions: {
@@ -330,9 +295,10 @@ js.configs.recommended,
     'no-restricted-properties': 'off',
     'no-useless-escape': 'off',
   },
-}, // Script files
+},
+// Script files (shell scripts, supabase, tests, worker)
 {
-  files: ['apps/patients/**', 'apps/doctors/**', 'apps/companies/**', 'tests/**', 'worker/**', 'scripts/**', 'supabase/**'],
+  files: ['tests/**', 'worker/**', 'scripts/**', 'supabase/**'],
   languageOptions: {
     parser: tsparser,
     parserOptions: {
@@ -347,15 +313,12 @@ js.configs.recommended,
     '@typescript-eslint/no-require-imports': 'off',
     '@typescript-eslint/prefer-optional-chain': 'off',
     'no-empty': 'warn',
-    'react/no-unescaped-entities': 'warn',
     'no-case-declarations': 'warn',
     'no-misleading-character-class': 'warn',
-    'react-hooks/rules-of-hooks': 'warn',
     '@typescript-eslint/ban-ts-comment': 'warn',
     '@typescript-eslint/no-unsafe-declaration-merging': 'warn',
     'no-restricted-properties': 'off',
     'no-restricted-syntax': 'off',
-    'import/no-anonymous-default-export': 'off',
     'unused-imports/no-unused-imports': 'warn',
     'unused-imports/no-unused-vars': [
       'warn',
@@ -394,7 +357,8 @@ js.configs.recommended,
       }
     ]
   }
-}, // Script files
+},
+// Script .js files
 {
   files: ['**/scripts/**/*.{js,mjs,cjs}'],
   rules: {
@@ -405,7 +369,8 @@ js.configs.recommended,
     }],
     'no-empty': ['error', { allowEmptyCatch: true }],
   },
-}, // Observability files
+},
+// Observability files
 {
   files: ['**/observability/**/*.{js,mjs,ts}'],
   languageOptions: {
@@ -421,7 +386,18 @@ js.configs.recommended,
   rules: {
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': 'off',
-    'unused-imports/no-unused-vars': 'warn',
+    'unused-imports/no-unused-vars': [
+      'warn',
+      {
+        vars: 'all',
+        varsIgnorePattern: '^_',
+        args: 'after-used',
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+        caughtErrors: 'none'
+      }
+    ],
   },
 }];
 

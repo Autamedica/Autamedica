@@ -2,7 +2,6 @@ import { test, expect, describe } from 'bun:test';
 import {
   addToWaitlist,
   processWaitlist,
-  acceptWaitlistOffer,
   expireStaleOffers,
   cancelWaitlistEntry,
   getDoctorWaitlist,

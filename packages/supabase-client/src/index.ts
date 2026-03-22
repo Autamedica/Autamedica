@@ -17,7 +17,7 @@ export function getSupabaseBrowserClient(): AppSupabaseClient {
 
   if (!browserClient) {
     // Require root export to avoid fragile subpath resolution during package builds.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const { createBrowserClient } = require('@autamedica/auth') as {
       createBrowserClient: CreateBrowserClientFn;
     };

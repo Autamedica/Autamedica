@@ -224,7 +224,7 @@ class HTTPSignalingAuditor {
 
     // 1. Actualizar estado en DB
     try {
-      const { data, error } = await this.supabase
+      const { data: _data, error } = await this.supabase
         .rpc('update_call_status', {
           p_call_id: invitation.callId,
           p_status: 'accepted'
@@ -286,7 +286,7 @@ class HTTPSignalingAuditor {
       await this.createCall()
 
       // 4. Enviar invitación via signaling
-      const inviteResult = await this.sendSignalingInvitation()
+      const _inviteResult = await this.sendSignalingInvitation()
 
       // 5. Verificar que el paciente reciba la notificación
       await new Promise(resolve => setTimeout(resolve, 1000)) // Esperar 1s

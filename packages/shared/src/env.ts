@@ -335,7 +335,7 @@ export function validateEnvironment(): EnvironmentConfig {
       anonKey: ensureClientEnv("PUBLIC_SUPABASE_ANON_KEY"),
     },
     recaptcha: resolveClientEnv('PUBLIC_RECAPTCHA_SITE_KEY')
-      ? { siteKey: resolveClientEnv('PUBLIC_RECAPTCHA_SITE_KEY')! }
+      ? { siteKey: resolveClientEnv('PUBLIC_RECAPTCHA_SITE_KEY') ?? '' }
       : undefined,
     analytics: {
       sentryDsn: resolveClientEnv('PUBLIC_SENTRY_DSN'),

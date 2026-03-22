@@ -74,7 +74,7 @@ export function wordPieceTokenize(text: string, vocab: Vocab, maxLen = 128): Tok
   const attentionMask = new Int32Array(maxLen).fill(0);
   const tokenTypeIds = new Int32Array(maxLen).fill(0);
   for (let i = 0; i < tokens.length && i < maxLen; i++) {
-    inputIds[i] = vocab.get(tokens[i]!) ?? (vocab.get(UNK) ?? 0);
+    inputIds[i] = vocab.get(tokens[i] ?? '') ?? (vocab.get(UNK) ?? 0);
     attentionMask[i] = 1;
   }
   return { inputIds, attentionMask, tokenTypeIds };

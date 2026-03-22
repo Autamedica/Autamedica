@@ -49,7 +49,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       return
     }
 
-    if ((typedProfile as any)?.role !== 'doctor') {
+    if (typedProfile?.role !== 'doctor') {
       window.location.href = '/'
       return
     }
@@ -76,10 +76,10 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { userId, userName } = useMemo(() => {
     if (session && typedProfile) {
       return {
-        userId: (session as any).user.id,
+        userId: (session as { user: { id: string } }).user.id,
         userName: typedProfile.firstName && typedProfile.lastName
           ? `${typedProfile.firstName} ${typedProfile.lastName}`
-          : (typedProfile as any).email || 'Doctor'
+          : typedProfile?.email || 'Doctor'
       }
     }
 

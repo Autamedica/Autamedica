@@ -36,7 +36,7 @@ describe('predictNoShowProbability', () => {
     // Patient factor (weight 0.5) should be high, pushing overall up
     const patientFactor = result.factors.find(f => f.name === 'patient_history');
     expect(patientFactor).toBeDefined();
-    expect(patientFactor!.value).toBeGreaterThan(0.15);
+    expect(patientFactor?.value).toBeGreaterThan(0.15);
     expect(result.probability).toBeGreaterThan(0.15);
   });
 

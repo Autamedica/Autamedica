@@ -33,7 +33,7 @@ files.forEach(file => {
             let foundOn = false;
             let tableName = '';
             for (let j = i + 1; j < lines.length && j < i + 5; j++) {
-                const nextLineMatch = lines[j].match(/^\s+(?:ON\s+)?([a-zA-Z0-9_."]+)/i);
+                const _nextLineMatch = lines[j].match(/^\s+(?:ON\s+)?([a-zA-Z0-9_."]+)/i);
                 if (lines[j].match(/^\s*ON\s+([a-zA-Z0-9_."]+)/i)) {
                     tableName = lines[j].match(/^\s*ON\s+([a-zA-Z0-9_."]+)/i)[1];
                     foundOn = true;

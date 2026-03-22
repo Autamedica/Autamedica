@@ -25,7 +25,7 @@ async function executeSQL(sql, description) {
   console.log(`⚙️  ${description}...`);
   
   try {
-    const { data, error } = await supabase.rpc('exec_sql', {
+    const { data: _data, error } = await supabase.rpc('exec_sql', {
       query: sql
     });
     
@@ -42,7 +42,7 @@ async function executeSQL(sql, description) {
   }
 }
 
-async function createTables() {
+async function _createTables() {
   console.log('🔧 Iniciando creación de tablas...\n');
 
   // SQL simplificado para crear tablas básicas
@@ -195,7 +195,7 @@ async function verifyTables() {
   
   for (const table of tables) {
     try {
-      const { data, error } = await supabase
+      const { data: _tableData, error } = await supabase
         .from(table)
         .select('id')
         .limit(1);

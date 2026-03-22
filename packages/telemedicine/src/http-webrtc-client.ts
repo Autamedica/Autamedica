@@ -35,7 +35,7 @@ export class HttpWebRTCClient {
   private peerConnections = new Map<string, RTCPeerConnection>()
   private localStream: MediaStream | null = null
   private config: HttpWebRTCConfig
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+   
   private eventListeners = new Map<keyof HttpWebRTCEvents, Function[]>()
   private connectionState: ConnectionState = 'disconnected'
   private pollTimer: number | null = null
@@ -57,7 +57,7 @@ export class HttpWebRTCClient {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, [])
     }
-    this.eventListeners.get(event)!.push(listener)
+    this.eventListeners.get(event)?.push(listener)
   }
 
   off<T extends keyof HttpWebRTCEvents>(event: T, listener: HttpWebRTCEvents[T]): void {
@@ -98,7 +98,7 @@ export class HttpWebRTCClient {
     this.setConnectionState('connecting')
 
     try {
-      const finalRoomId = roomId || this.config.roomId!
+      const finalRoomId = roomId ?? this.config.roomId ?? 'default-room'
 
       // Join the room via HTTP API
       const joinResponse = await fetch(`${this.config.signalingUrl}/api/join`, {
@@ -153,7 +153,7 @@ export class HttpWebRTCClient {
       // Add tracks to all existing peer connections
       for (const [_userId, pc] of this.peerConnections) {
         this.localStream.getTracks().forEach(track => {
-          pc.addTrack(track, this.localStream!)
+          if (this.localStream) pc.addTrack(track, this.localStream)
         })
       }
 
@@ -223,7 +223,7 @@ export class HttpWebRTCClient {
 
       try {
         const response = await fetch(
-          `${this.config.signalingUrl}/api/poll?roomId=${encodeURIComponent(this.config.roomId!)}&userId=${encodeURIComponent(this.config.userId)}&since=${this.lastPollTimestamp}`,
+          `${this.config.signalingUrl}/api/poll?roomId=${encodeURIComponent(this.config.roomId ?? '')}&userId=${encodeURIComponent(this.config.userId)}&since=${this.lastPollTimestamp}`,
           {
             method: 'GET',
             headers: {
@@ -247,7 +247,7 @@ export class HttpWebRTCClient {
       }
 
       // Schedule next poll
-      this.pollTimer = window.setTimeout(poll, this.config.pollInterval!)
+      this.pollTimer = window.setTimeout(poll, this.config.pollInterval ?? 1000)
     }
 
     // Start polling immediately
@@ -262,7 +262,7 @@ export class HttpWebRTCClient {
     }
   }
 
-  private async sendSignalingMessage(message: any): Promise<void> {
+  private async sendSignalingMessage(message: Record<string, unknown>): Promise<void> {
     try {
       const response = await fetch(`${this.config.signalingUrl}/api/message`, {
         method: 'POST',
@@ -285,12 +285,12 @@ export class HttpWebRTCClient {
     }
   }
 
-  private async handleSignalingMessage(message: any): Promise<void> {
+  private async handleSignalingMessage(message: { type: string; from: string; data?: Record<string, unknown> }): Promise<void> {
     logger.info('Received signaling message:', message)
 
     switch (message.type) {
       case 'user-joined':
-        this.emit('user-joined', message.from, message.data?.userType || 'unknown')
+        this.emit('user-joined', message.from, (message.data?.userType as string) || 'unknown')
         // Create offer for the new user if we have local stream
         if (this.localStream) {
           await this.createPeerConnection(message.from, true)
@@ -308,15 +308,15 @@ export class HttpWebRTCClient {
       }
 
       case 'offer':
-        await this.handleOffer(message.from, message.data)
+        await this.handleOffer(message.from, message.data as unknown as RTCSessionDescriptionInit)
         break
 
       case 'answer':
-        await this.handleAnswer(message.from, message.data)
+        await this.handleAnswer(message.from, message.data as unknown as RTCSessionDescriptionInit)
         break
 
       case 'ice-candidate':
-        await this.handleIceCandidate(message.from, message.data)
+        await this.handleIceCandidate(message.from, message.data as unknown as RTCIceCandidateInit)
         break
 
       default:
@@ -330,7 +330,7 @@ export class HttpWebRTCClient {
     // Add local stream tracks if available
     if (this.localStream) {
       this.localStream.getTracks().forEach(track => {
-        pc.addTrack(track, this.localStream!)
+        if (this.localStream) pc.addTrack(track, this.localStream)
       })
     }
 

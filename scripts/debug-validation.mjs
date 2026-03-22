@@ -12,7 +12,7 @@ for (const file of glossaryFiles) {
 }
 
 // Simular extracción
-const fullSectionRegex = /## @autamedica\/([^\n]+)\n([\s\S]*?)(?=## @autamedica\/|## [🎯📚]|---\n\n##|$)/g;
+const fullSectionRegex = /## @autamedica\/([^\n]+)\n([\s\S]*?)(?=## @autamedica\/|## [🎯📚]|---\n\n##|$)/gu;
 let fullMatch;
 const packages = {};
 let matchCount = 0;
@@ -38,7 +38,7 @@ Object.keys(packages).forEach(pkg => {
 });
 
 // Check what's documented for @autamedica/shared specifically
-const sharedMatch = glosario.match(/## @autamedica\/shared\n([\s\S]*?)(?=## @autamedica\/|## [🎯📚]|$)/);
+const sharedMatch = glosario.match(/## @autamedica\/shared\n([\s\S]*?)(?=## @autamedica\/|## [🎯📚]|$)/u);
 if (sharedMatch) {
   const sharedContent = sharedMatch[1];
   const exportMatches = sharedContent.match(/export \{[\s\S]*?\}/g) || [];

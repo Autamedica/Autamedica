@@ -26,13 +26,13 @@ export interface CallEvent {
   call_id: string
   at: string
   type: string
-  payload?: Record<string, any>
+  payload?: Record<string, unknown>
 }
 
 // WebSocket message types for signaling
 export interface WSMessage {
   type: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // Control messages (user channel)

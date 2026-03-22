@@ -102,7 +102,7 @@ export function ScheduleSetupStep({
               <input
                 type="time"
                 value={daySchedule?.start || '09:00'}
-                onChange={(e) => updateDaySchedule(day, { ...daySchedule!, start: e.target.value })}
+                onChange={(e) => updateDaySchedule(day, { ...(daySchedule ?? { start: '09:00', end: '17:00', active: true }), start: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -111,7 +111,7 @@ export function ScheduleSetupStep({
               <input
                 type="time"
                 value={daySchedule?.end || '17:00'}
-                onChange={(e) => updateDaySchedule(day, { ...daySchedule!, end: e.target.value })}
+                onChange={(e) => updateDaySchedule(day, { ...(daySchedule ?? { start: '09:00', end: '17:00', active: true }), end: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
             </div>

@@ -17,7 +17,7 @@
  *   --rollback          Ejecutar en modo rollback
  */
 
-const { execSync, spawn } = require('child_process');
+const { execSync, spawn: _spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -304,7 +304,7 @@ async function main() {
     const testResult = runTests(options);
     
     // 6. Generar reporte de integración
-    const reportFile = generateIntegrationReport(testResult, commitInfo);
+    const _reportFile = generateIntegrationReport(testResult, commitInfo);
     
     // 7. Notificar resultados
     notifyResults(testResult, commitInfo);

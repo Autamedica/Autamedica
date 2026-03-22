@@ -144,7 +144,7 @@ async function processOneReminder(
     : buildReminder2h(messageData);
 
   if (config.dryRun) {
-    // eslint-disable-next-line no-console
+     
     console.log(`[DRY RUN] Would send to ${patientProfile.phone}:\n${message}`);
     await markReminderSent(supabase, reminder.id);
     return;

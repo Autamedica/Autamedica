@@ -25,7 +25,7 @@ export async function getAvailableSlots(
   supabase: SupabaseLike,
   query: SlotQuery,
 ): Promise<ScheduleSlot[]> {
-  const { doctor_id, date_from, date_to, appointment_type } = query;
+  const { doctor_id, date_from, date_to, appointment_type: _appointment_type } = query;
 
   // 1. Fetch weekly availability
   const { data: availability, error: availErr } = await supabase
@@ -78,8 +78,8 @@ export async function getAvailableSlots(
       const overrideSlots = generateSlotsForTimeRange(
         doctor_id,
         dateStr,
-        override.start_time!,
-        override.end_time!,
+        override.start_time ?? '00:00',
+        override.end_time ?? '23:59',
         30, // default duration for overrides
         null,
         bookedSlots,

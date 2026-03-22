@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SignJWT } from 'jose';
-import type { NextRequest } from 'next/server';
 import { getSession } from '../src/auth/session';
 import { buildSafeLoginUrl } from '../src/security/redirects';
 
@@ -17,7 +16,13 @@ const ENV_KEYS = [
 
 type EnvSnapshot = Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
 
-function createMockRequest(cookies: Record<string, string>): NextRequest {
+interface MockCookieRequest {
+  cookies: {
+    get(name: string): { value: string } | undefined;
+  };
+}
+
+function createMockRequest(cookies: Record<string, string>): MockCookieRequest {
   return {
     cookies: {
       get(name: string) {
@@ -25,7 +30,7 @@ function createMockRequest(cookies: Record<string, string>): NextRequest {
         return value ? { value } : undefined;
       },
     },
-  } as unknown as NextRequest;
+  };
 }
 
 async function signToken(secret: string, payload: Record<string, unknown>): Promise<string> {

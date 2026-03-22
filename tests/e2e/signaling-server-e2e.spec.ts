@@ -107,7 +107,7 @@ test.describe('Signaling Server E2E', () => {
     await patientPage?.context().close()
   })
 
-  test.afterEach(async ({}, testInfo) => {
+  test.afterEach(async (_fixtures, testInfo) => {
     const payload = {
       roomId: ROOM_ID,
       retry: testInfo.retry,
@@ -128,7 +128,7 @@ test.describe('Signaling Server E2E', () => {
     }
   })
 
-  test('doctor and patient connect via signaling server', async ({}, testInfo) => {
+  test('doctor and patient connect via signaling server', async (_fixtures, testInfo) => {
     testInfo.annotations.push({ type: 'room-id', description: ROOM_ID })
 
     // --- Step 1: Doctor navigates to test-call page ---

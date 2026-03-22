@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const { createClient } = require('@supabase/supabase-js')
-const fs = require('fs')
+const _fs = require('fs')
 
 const supabaseUrl = 'https://qxjjrpksmwwrmubhvjew.supabase.co'
 const supabaseKey = 'REPLACE_WITH_ROTATED_KEY.DeEm08k7QOrKObWaz8AUaOB5N6Z2QZhZHFaUf2siALA'
@@ -14,7 +14,7 @@ async function testSimpleTable() {
     console.log('Testing basic table operations...')
 
     // Try to create a simple test table first
-    const createTableSQL = `
+    const _createTableSQL = `
       CREATE TABLE IF NOT EXISTS test_calls (
         id SERIAL PRIMARY KEY,
         name TEXT,
@@ -23,7 +23,7 @@ async function testSimpleTable() {
     `
 
     // Try using RPC with a simple SQL command
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('test_calls')
       .select('count')
       .limit(1)
@@ -51,7 +51,7 @@ async function createMinimalMigration() {
     console.log('Creating minimal calls table via API...')
 
     // First, let's check what we can access
-    const { data: userData, error: userError } = await supabase.auth.getUser()
+    const { data: _userData, error: userError } = await supabase.auth.getUser()
     console.log('Auth status:', userError ? 'Not authenticated' : 'Authenticated')
 
     // Let's try to check existing tables

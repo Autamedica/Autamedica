@@ -28,7 +28,7 @@ export interface SignalingMessage {
   roomId: string;
   from: string;
   to?: string;
-  data?: any;
+  data?: unknown;
   timestamp: number;
 }
 

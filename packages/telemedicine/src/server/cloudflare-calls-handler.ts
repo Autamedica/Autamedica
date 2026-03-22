@@ -1,6 +1,6 @@
 /**
  * Framework-agnostic handler for proxying Cloudflare Calls API.
- * Apps wrap this with their framework's Response (NextResponse, Astro Response, etc.)
+ * Apps wrap this with their framework's Response (Astro Response, standard Response, etc.)
  */
 
 import { logger } from '@autamedica/shared'

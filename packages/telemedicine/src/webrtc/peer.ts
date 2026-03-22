@@ -8,7 +8,7 @@ export class WebRTCPeer {
   private localStream: MediaStream | null = null
   private remoteStream: MediaStream | null = null
   private isInitiator: boolean
-  private listeners: Map<string, Set<(event: any) => void>> = new Map()
+  private listeners: Map<string, Set<(event: unknown) => void>> = new Map()
 
   constructor(signaling: SignalingClient, isInitiator = false) {
     this.signaling = signaling
@@ -149,7 +149,7 @@ export class WebRTCPeer {
 
     this.signaling.sendToRoom({
       type: 'offer',
-      sdp: offer.sdp!
+      sdp: offer.sdp ?? ''
     })
   }
 
@@ -161,7 +161,7 @@ export class WebRTCPeer {
 
     this.signaling.sendToRoom({
       type: 'answer',
-      sdp: answer.sdp!
+      sdp: answer.sdp ?? ''
     })
   }
 
@@ -188,22 +188,22 @@ export class WebRTCPeer {
   }
 
   // Event handling
-  on(event: string, callback: (data: any) => void) {
+  on(event: string, callback: (data: unknown) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
-    this.listeners.get(event)!.add(callback)
+    this.listeners.get(event)?.add(callback)
 
     return () => {
       this.listeners.get(event)?.delete(callback)
     }
   }
 
-  off(event: string, callback: (data: any) => void) {
+  off(event: string, callback: (data: unknown) => void) {
     this.listeners.get(event)?.delete(callback)
   }
 
-  private emit(event: string, data?: any) {
+  private emit(event: string, data?: unknown) {
     const listeners = this.listeners.get(event)
     if (listeners) {
       listeners.forEach(callback => callback(data))

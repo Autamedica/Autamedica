@@ -10,7 +10,7 @@ export class SignalingClient {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private messageQueue: WSMessage[] = []
-  private listeners: Map<string, Set<(message: any) => void>> = new Map()
+  private listeners: Map<string, Set<(message: WSMessage) => void>> = new Map()
 
   constructor(userId: string, userType: 'doctor' | 'patient', roomId?: string) {
     this.userId = userId
@@ -36,7 +36,8 @@ export class SignalingClient {
 
           // Send queued messages
           while (this.messageQueue.length > 0) {
-            const message = this.messageQueue.shift()!
+            const message = this.messageQueue.shift()
+      if (!message) break
             this.send(message)
           }
 
@@ -130,11 +131,11 @@ export class SignalingClient {
   }
 
   // Event listeners
-  on(event: string, callback: (message: any) => void) {
+  on(event: string, callback: (message: WSMessage) => void) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
-    this.listeners.get(event)!.add(callback)
+    this.listeners.get(event)?.add(callback)
 
     // Return unsubscribe function
     return () => {
@@ -142,7 +143,7 @@ export class SignalingClient {
     }
   }
 
-  off(event: string, callback: (message: any) => void) {
+  off(event: string, callback: (message: WSMessage) => void) {
     this.listeners.get(event)?.delete(callback)
   }
 

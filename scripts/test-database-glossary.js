@@ -7,7 +7,7 @@
  * to ensure the system is working correctly.
  */
 
-const { execSync } = require('child_process');
+const { execSync: _execSync } = require('child_process');
 const { writeFileSync, mkdirSync, existsSync } = require('fs');
 const { join } = require('path');
 

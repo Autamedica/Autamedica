@@ -42,7 +42,7 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
 
     try {
       // Sistema híbrido: fetch from 'patients' joining 'profiles'
-      const data = await selectById<'patients', any>('patients', patientId, {
+      const data = await selectById<'patients', unknown>('patients', patientId, {
         // Query string includes the relationship
         // In the database.types.ts we have foreign keys defined
       });

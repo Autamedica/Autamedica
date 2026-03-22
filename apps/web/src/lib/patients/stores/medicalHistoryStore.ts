@@ -2,7 +2,7 @@ import { logger } from '@autamedica/shared'
 
 // Store simplificado para pacientes
 export const useMedicalHistoryStore = () => ({
-  addEntry: async (entry: any) => logger.info('Entry added:', entry),
+  addEntry: async (entry: unknown) => logger.info('Entry added:', entry),
   suggestPrescriptions: async () => [],
   analyzeVitals: async () => null
 })

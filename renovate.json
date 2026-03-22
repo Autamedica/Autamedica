@@ -76,9 +76,9 @@
       "automerge": false
     },
     {
-      "description": "Next.js ecosystem",
-      "matchPackagePatterns": ["next", "@next/*"],
-      "groupName": "Next.js",
+      "description": "Astro ecosystem",
+      "matchPackagePatterns": ["astro", "@astrojs/*"],
+      "groupName": "Astro",
       "automerge": false
     }
   ],
@@ -100,7 +100,7 @@
   "ignorePaths": [
     "**/node_modules/**",
     "**/dist/**",
-    "**/.next/**",
+    "**/.astro/**",
     "**/coverage/**"
   ]
 }

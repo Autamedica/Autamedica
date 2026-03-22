@@ -491,7 +491,7 @@ export class ClinicalAiPipelineService {
       .filter((item) => item.storageUriNormalized)
       .map((item) => ({
         mediaItemId: item.id,
-        storageUriNormalized: item.storageUriNormalized!,
+        storageUriNormalized: item.storageUriNormalized ?? '',
         ...(item.durationSeconds !== undefined ? { durationSeconds: item.durationSeconds } : {}),
       }));
 

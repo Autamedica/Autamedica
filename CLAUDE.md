@@ -74,7 +74,7 @@ Checklist:
 
 ### REGLA #3: Validación Cross-Layer (Antes / Durante / Después)
 
-Cada feature toca múltiples capas (DB → RPC → Supabase → Astro/Next.js API → Island → UI).
+Cada feature toca múltiples capas (DB → RPC → Supabase → Astro API → Island → UI).
 Código que compila en cada capa pero no conecta entre capas = bug invisible.
 
 **ANTES de codificar:**
@@ -109,7 +109,7 @@ Código que compila en cada capa pero no conecta entre capas = bug invisible.
 - Root solo para runtime/config/docs core.
 - Prohibido versionar ruido: `tmp-*`, logs, screenshots, `*.pid`, dumps, outputs ad-hoc.
 - Si aparece un nuevo patrón de ruido local, actualizar `.gitignore` en el mismo commit.
-- `dist/`, `.next/`, `.open-next/`, `.astro/` nunca se commitean.
+- `dist/`, `.astro/` nunca se commitean.
 
 Checklist de higiene:
 
@@ -149,12 +149,7 @@ Obligatorio:
 
 URLs de producción:
 
-- `www.autamedica.com` → `apps/web` (Astro — Fase 1, migración en curso)
-- `autamedica-web-app.pages.dev` → `apps/web-app` (Next.js — legacy)
-- `autamedica-doctors.pages.dev` → `apps/doctors`
-- `autamedica-patients.pages.dev` → `apps/patients`
-- `autamedica-companies.pages.dev` → `apps/companies`
-- `autamedica-admin.pages.dev` → `apps/admin`
+- `www.autamedica.com` → `apps/web` (Astro)
 
 ---
 
@@ -164,14 +159,12 @@ URLs de producción:
 
 ```
 apps/
-  web/           # Astro 5 + React 19 islands (MIGRACIÓN ACTIVA)
-  web-app/       # Next.js 15 (legacy — mantener hasta migración completa)
-  auth/          # Next.js — portal de autenticación central
-  doctors/       # Next.js — portal médicos
-  patients/      # Next.js — portal pacientes
-  companies/     # Next.js — portal empresas
-  admin/         # Next.js — panel administrativo
-  signaling-server/ # WebRTC signaling
+  web/                    # Astro 5 + React 19 islands — MAIN APP (migración completa)
+  signaling-server/       # WebRTC signaling
+  clinical-ai-orchestrator/
+  reminder-worker/
+  mobile/
+  android/
 packages/
   types/         # @autamedica/types — 190+ tipos TypeScript
   shared/        # @autamedica/shared — utils, env validation, logger
@@ -188,14 +181,12 @@ packages/
 2. **Ramas efímeras** (`feat/...`, `fix/...`): vida < 2 días, 1 rama = 1 objetivo.
 3. Ciclo: `git checkout -b feat/x` desde `main` → Code → Test → Lint → PR → Merge → Borrar rama.
 
-### Migración Next.js → Astro (EN CURSO)
+### Migración Next.js → Astro (COMPLETA)
 
-- Fase 1: `apps/web` (Astro) reemplaza `apps/web-app` (Next.js) como landing.
-- Fases 2-6: auth, doctors, patients, companies, admin.
-- **Regla:** NO migrar el siguiente app sin que el anterior esté deployado y verificado.
+Todas las apps Next.js han sido migradas y eliminadas. `apps/web` (Astro 5 + React 19) es la única app frontend.
+
 - Islands React: `client:load` para interactividad inmediata, `client:visible` para lazy.
-- Reemplazar `next/dynamic` → imports estáticos (Astro gestiona lazy natively).
-- `NEXT_PUBLIC_*` → `PUBLIC_*`, `process.env` → `import.meta.env`.
+- Variables de entorno: `PUBLIC_*` + `import.meta.env` (no `process.env`).
 
 ---
 
@@ -227,9 +218,7 @@ packages/
 - `supabase.*` directo en componentes → usar hooks de `@autamedica/auth` o `@autamedica/hooks`.
 - Deep imports: `@autamedica/types/src/foo` → usar solo el index público.
 - Cross-app imports: `apps/doctors/src/...` desde `apps/patients/` → PROHIBIDO.
-- `next/dynamic` en `apps/web/*` (Astro) → usar `client:*` directives.
-- `styled-jsx` (`<style jsx>`) → usar `<style>` regular o Tailwind.
-- `useRouter` de `next/navigation` en `apps/web/*` → usar `window.location` o `<a>`.
+- `process.env` en `apps/web/*` → usar `import.meta.env.PUBLIC_*`.
 
 ### Astro-Specific
 
@@ -393,7 +382,7 @@ grep "type UserRole" packages/types/src/
 - Evitar whack-a-mole: si un fix rompe otro dominio, frenar y re-scope.
 - Commits pequeños como checkpoints.
 - No mezclar cambios de auth + UI + DB en el mismo commit sin motivo explícito.
-- Antes de migrar siguiente app a Astro: verificar que la anterior funciona en prod.
+- Antes de deploy: verificar que la app funciona en prod.
 
 ### Criterios para frenar y preguntar
 
@@ -456,13 +445,9 @@ pnpm lint && pnpm typecheck && pnpm build:packages:core
 
 - **Cookies en Astro middleware:** `AstroCookies` no tiene `getAll()`. Parsear el Cookie header directamente: `request.headers.get('cookie').split('; ')`. `AstroCookies.set()` acepta `AstroCookieSetOptions` — castear con `as any` si Supabase SSR pasa `Partial<CookieSerializeOptions>`.
 
-- **`styled-jsx` es Next.js only:** Al migrar componentes a `apps/web` (Astro), reemplazar `<style jsx>` y `<style jsx global>` con `<style>` regular. Astro no tiene styled-jsx.
-
 - **Imports con extensión `.tsx` en archivos Astro:** TypeScript en Astro rechaza `import Foo from './Foo.tsx'`. Omitir la extensión: `import Foo from './Foo'`.
 
-- **`next/dynamic` → imports estáticos en Astro:** Las directivas `client:*` de Astro reemplazan el lazy loading de `dynamic()`. Usar imports estáticos + `client:visible` para lazy load.
-
-- **Variables de entorno Astro vs Next.js:** `PUBLIC_SUPABASE_URL` (Astro) ≠ `NEXT_PUBLIC_SUPABASE_URL` (Next.js). En `apps/web` siempre usar `PUBLIC_*` y `import.meta.env`.
+- **Variables de entorno Astro:** En `apps/web` siempre usar `PUBLIC_*` y `import.meta.env` (nunca `process.env`).
 
 - **PL/pgSQL lazy validation:** PostgreSQL NO valida nombres de columnas al crear funciones — solo al ejecutarlas. Una función con `INSERT INTO ... (metadata)` compila OK pero falla en runtime si la columna real es `provider_metadata`.
 
@@ -499,7 +484,7 @@ Detalle operativo completo: `docs/AGENTS-2.md` sección 23.
 
 - `docs/GLOSARIO_MAESTRO.md` — Contratos TypeScript centralizados (fuente de verdad)
 - `docs/database/_generated/` — Schema DB generado
-- `apps/web/` — App Astro en migración activa
+- `apps/web/` — App Astro principal (migración completa)
 - `docs/FILOSOFIA_EDITORIAL.md` — **LEER ANTES de modificar `apps/web`**. Define el modelo NYT: contenido primero, CTAs como consecuencia, newsletter como canal de retención. Incluye reglas concretas sobre qué botones están prohibidos en el landing y el roadmap de implementación.
 
 ### Comandos de deployment
@@ -507,13 +492,6 @@ Detalle operativo completo: `docs/AGENTS-2.md` sección 23.
 ```bash
 # Deploy app Astro (apps/web)
 pnpm deploy:web              # build + wrangler pages deploy
-
-# Deploy apps Next.js (legacy)
-pnpm deploy:web-app
-pnpm deploy:doctors
-pnpm deploy:patients
-pnpm deploy:companies
-pnpm deploy:admin
 ```
 
 ### Supabase

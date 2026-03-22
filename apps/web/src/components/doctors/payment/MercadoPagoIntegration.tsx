@@ -53,11 +53,11 @@ interface MercadoPagoSubscriptionManagerProps {
 export function MercadoPagoCheckout({
   _planId,
   amount,
-  currency,
+  currency: _currency,
   description,
-  onSuccess,
+  onSuccess: _onSuccess,
   onError,
-  onPending
+  onPending: _onPending
 }: MercadoPagoCheckoutProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])

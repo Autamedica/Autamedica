@@ -146,7 +146,7 @@ async function verifyTablesAfterApply() {
   
   for (const table of tables) {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from(table)
         .select('count', { count: 'exact', head: true });
       
