@@ -90,6 +90,21 @@ interface UiChatMessage extends ChatMessage {
 
 /* ── Helpers ── */
 
+function sanitizeErrorForUser(raw: string): string {
+  const lower = raw.toLowerCase()
+  if (lower.includes('permission') || lower.includes('notallowed') || lower.includes('not allowed'))
+    return 'Necesitamos acceso a tu cámara y micrófono. Revisá los permisos del navegador.'
+  if (lower.includes('notfound') || lower.includes('not found') || lower.includes('no device'))
+    return 'No se encontró cámara o micrófono. Verificá que estén conectados.'
+  if (lower.includes('signaling') || lower.includes('websocket'))
+    return 'No pudimos conectar con el servidor. Recargá la página para reintentar.'
+  if (lower.includes('icecandidate') || lower.includes('ice candidate') || lower.includes('ice failed') || lower.includes('stun') || lower.includes('relay'))
+    return 'Problema de red. Verificá tu conexión a internet.'
+  if (lower.includes('timeout') || lower.includes('timed out'))
+    return 'La conexión tardó demasiado. Intentá de nuevo.'
+  return 'Ocurrió un error. Recargá la página para reintentar.'
+}
+
 function formatDuration(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
@@ -454,7 +469,7 @@ export function UnifiedVideoCall({
         logger.error('[UnifiedVideoCall] WebRTC error:', error)
         emitDebug('error', 'Evento de error WebRTC recibido', { error })
         const msg = error instanceof Error ? error.message : 'Error desconocido'
-        setCallError(`Error de videollamada: ${msg}`)
+        setCallError(sanitizeErrorForUser(msg))
         onErrorRef.current?.(error)
       })
     )
@@ -585,7 +600,7 @@ export function UnifiedVideoCall({
     } catch (error) {
       emitDebug('error', 'Fallo al iniciar videollamada', { error })
       const msg = error instanceof Error ? error.message : 'Error desconocido'
-      setCallError(`No se pudo iniciar: ${msg}`)
+      setCallError(sanitizeErrorForUser(msg))
     }
   }, [autoStart, callId, client, connectionState, emitDebug, persistCallStatus, roomId, warmUpResult])
 
@@ -1067,11 +1082,13 @@ export function UnifiedVideoCall({
                   </div>
                 </div>
                 <p className="text-lg font-medium text-white">Esperando al participante...</p>
-                <p className="mt-1.5 text-sm text-slate-500">La consulta comenzará cuando se una</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs text-slate-500">Tu conexión está activa</span>
-                </div>
+                <p className="mt-1.5 text-sm text-slate-500">La consulta comenzará cuando se conecte el otro participante</p>
+                {!callError && (
+                  <div className="mt-4 flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs text-slate-500">Tu conexión está activa</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1095,10 +1112,11 @@ export function UnifiedVideoCall({
                   <VideoOff className="h-8 w-8 text-slate-500" />
                 </div>
               )}
-              <div className="absolute bottom-0 inset-x-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-2 py-2">
-                <span className="text-[11px] font-medium text-white/80">Tú</span>
-                {!isAudioEnabled && <MicOff className="h-3 w-3 text-red-400" />}
-              </div>
+              {!isAudioEnabled && (
+                <div className="absolute bottom-0 inset-x-0 flex items-center justify-end bg-gradient-to-t from-black/70 to-transparent px-2 py-2">
+                  <MicOff className="h-3 w-3 text-red-400" />
+                </div>
+              )}
             </div>
 
             {/* Screen share overlay */}
