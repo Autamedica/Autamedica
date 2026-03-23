@@ -14,6 +14,7 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
 
   // Blog
   { path: '/blog', priority: '0.85', changefreq: 'weekly' },
+  { path: '/blog/vacuna-antigripal-h3n2-2026', priority: '0.80', changefreq: 'monthly' },
   { path: '/blog/telemedicina-cardiologia', priority: '0.75', changefreq: 'monthly' },
   { path: '/blog/guia-consulta-medica-online', priority: '0.75', changefreq: 'monthly' },
   { path: '/blog/acceso-especialistas-provincias', priority: '0.75', changefreq: 'monthly' },

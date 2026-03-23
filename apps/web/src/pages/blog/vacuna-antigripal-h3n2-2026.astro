@@ -1,0 +1,505 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Vacunarse Contra la Gripe en 2026 No Puede Esperar a Junio',
+  author: 'Dra. Valentina Salas',
+  role: 'Infectóloga, AutaMedica',
+  date: '23 de marzo, 2026',
+  readTime: '9 min',
+  image: '/images/article_telemed.webp',
+  category: 'Infectología',
+};
+---
+
+<Layout
+  title="Vacuna Antigripal 2026 Argentina: Todo lo que Tenés que Saber sobre H3N2 | AutaMedica"
+  description="La campaña antigripal 2026 arrancó antes de lo habitual por la nueva variante H3N2. Quiénes deben vacunarse, cuándo, y por qué la cobertura importa más que nunca."
+  canonical="https://www.autamedica.com/blog/vacuna-antigripal-h3n2-2026"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-23T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+  keywords="vacuna antigripal 2026 argentina, gripe H3N2, influenza A H3N2, cuando vacunarse gripe, vacuna gripe gratuita argentina, campaña antigripal 2026"
+>
+  <Navbar />
+  <main class="article-container">
+    <!-- Article Header -->
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+          <section>
+            <h2>Por Qué Esta Campaña Llegó Tres Semanas Antes</h2>
+            <p>
+              El Ministerio de Salud de la Nación arrancó la campaña antigripal 2026 el 11 de marzo.
+              Eso es casi un mes antes de lo habitual. No fue una decisión administrativa: fue una señal
+              de alerta. Los sistemas de vigilancia epidemiológica detectaron circulación temprana de
+              virus respiratorios en varias regiones del país, y una variante del virus influenza A
+              que está dando que hablar en todo el hemisferio.
+            </p>
+            <p>
+              La variante se llama H3N2, específicamente el subclado K —también identificado como J.2.4.1—
+              y su característica más relevante es que se contagia con más facilidad que las cepas de temporadas
+              anteriores. No es más letal. Los síntomas son los mismos: fiebre, decaimiento, tos seca, dolores
+              musculares. Pero cuando algo se transmite más rápido, llega a más personas, y un sistema de salud
+              que recibe más pacientes simultáneamente colapsa antes.
+            </p>
+            <p>
+              Argentina adquirió más de 8 millones de dosis y empezó la distribución a las 24 jurisdicciones
+              con el objetivo de que las provincias tuvieran vacunas disponibles desde principios de marzo.
+              El razonamiento es simple: el pico de circulación viral ocurre entre abril y julio. Si esperás
+              a vacunarte en mayo, llegás tarde.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Problema de la Cobertura</h2>
+            <p>
+              Hay un dato que no se habla lo suficiente: las coberturas de vacunación antigripal en Argentina
+              son bajas. En adultos mayores —uno de los grupos con mayor riesgo de complicaciones— la cobertura
+              en los últimos tres años osciló entre el 41,6% y el 42,2%. Menos de la mitad de las personas
+              que deberían vacunarse, lo hacen.
+            </p>
+            <p>
+              En niños menores de dos años la situación es peor: menos del 70% completó el esquema de dos dosis
+              requerido. Y eso en un grupo que puede complicarse gravemente con una gripe, porque su sistema
+              inmune todavía no está maduro para responder a infecciones respiratorias intensas.
+            </p>
+            <p>
+              ¿Por qué tanta gente no se vacuna? Las razones son siempre parecidas: "me olvido", "no tuve
+              tiempo", "el año pasado me vacuné y de todas formas me resfrié", "no creo que sirva para mucho".
+              Cada una de esas razones tiene una respuesta clara, así que las vamos a trabajar una por una.
+            </p>
+            <p>
+              <strong>¿La vacuna te puede dar gripe?</strong> No. La vacuna antigripal en Argentina es de virus
+              inactivados. No hay virus vivo en la jeringa. Lo que algunas personas experimentan en las 24-48 horas
+              posteriores a la vacunación —cansancio leve, algo de fiebre baja, dolor en el lugar de la inyección—
+              es la respuesta inmune del cuerpo generando anticuerpos. Es exactamente lo que tiene que pasar.
+            </p>
+            <p>
+              <strong>¿Te vacunaste y de todas formas te enfermaste?</strong> La vacuna protege contra los virus
+              que incluye la formulación de ese año, que se actualiza anualmente según la circulación esperada.
+              No protege contra todos los virus respiratorios: adenovirus, rinovirus, SARS-CoV-2, VRS.
+              Si te resfriaste después de vacunarte, probablemente fue uno de esos otros virus. Eso no significa
+              que la vacuna no funcione: significa que hay muchos virus dando vueltas, y la vacuna cubre los
+              de influenza específicamente.
+            </p>
+          </section>
+
+          <section>
+            <h2>Quiénes Tienen Vacuna Gratuita y Prioritaria</h2>
+            <p>
+              El Calendario Nacional de Vacunación establece los grupos que reciben la vacuna sin costo.
+              Si entrás en alguna de estas categorías, no tenés excusa para no vacunarte este mes:
+            </p>
+            <ul>
+              <li>
+                <strong>Niños de 6 a 24 meses:</strong> Requieren dos dosis la primera vez que se vacunan —con
+                un mes de diferencia entre dosis—, y una sola dosis cada año siguiente. Es el grupo donde la
+                cobertura está más baja, y donde el impacto de la enfermedad puede ser más serio
+              </li>
+              <li>
+                <strong>Embarazadas, en cualquier trimestre:</strong> La vacuna protege a la madre y al bebé,
+                que nace con anticuerpos maternos y queda cubierto hasta que pueda vacunarse a los 6 meses.
+                Es una de las pocas intervenciones que protege a dos personas con una sola inyección
+              </li>
+              <li>
+                <strong>Puérperas:</strong> Hasta 10 días después del parto, si no recibieron la vacuna
+                durante el embarazo
+              </li>
+              <li>
+                <strong>Personas de 65 años o más:</strong> En este grupo el riesgo de hospitalización
+                y complicaciones graves es significativamente mayor. La cobertura actual ronda el 42%.
+                El objetivo debería estar cerca del 80%
+              </li>
+              <li>
+                <strong>Personas con factores de riesgo:</strong> Enfermedades respiratorias crónicas (EPOC,
+                asma persistente moderada o grave), diabetes, enfermedades cardiovasculares, obesidad severa,
+                inmunosupresión, enfermedad renal crónica, pacientes oncológicos en tratamiento. Si tenés
+                alguna de estas condiciones, la gripe puede no ser "una gripecita que se pasa"
+              </li>
+              <li>
+                <strong>Personal de salud:</strong> Médicos, enfermeros, kinesiólogos, personal de atención
+                directa. Protegerse a uno mismo es proteger al paciente que no puede vacunarse
+              </li>
+            </ul>
+            <p>
+              Si no entrás en ninguno de estos grupos y querés vacunarte igual, podés hacerlo en farmacias
+              y centros de vacunación privados. El costo varía, pero la protección es la misma.
+            </p>
+          </section>
+
+          <section>
+            <h2>Gripe vs. Resfrío: La Distinción que Importa</h2>
+            <p>
+              Una de las razones por las que la gente subestima la influenza es que confunde el cuadro gripal
+              con un resfrío común. No son lo mismo, y las consecuencias de confundirlos pueden llevar a
+              subestimar cuándo consultar.
+            </p>
+            <p>
+              <strong>El resfrío</strong> empieza de a poco. Primero molestia en la garganta, después congestión
+              nasal, después tos. La fiebre es baja o ausente. Podés seguir trabajando, aunque con incomodidad.
+              En 5-7 días pasó.
+            </p>
+            <p>
+              <strong>La gripe</strong> no da aviso. Un síntoma característico es que el paciente puede recordar
+              la hora en que se enfermó: estaba bien a las 10, y a las 12 no se podía levantar de la silla.
+              La fiebre es alta —38,5 a 40 grados—, hay dolores musculares importantes, fatiga extrema,
+              y tos seca persistente. El cuadro dura entre 7 y 10 días. Las complicaciones —neumonía,
+              exacerbación de enfermedades crónicas, hospitalización— ocurren sobre todo en los grupos
+              de riesgo, pero también en personas previamente sanas.
+            </p>
+            <p>
+              En la temporada 2026, con el subclado H3N2 circulando, la distinción importa especialmente
+              porque la capacidad de contagio es mayor. Una persona con influenza contagia a un promedio
+              de 1,3 a 2 personas en condiciones normales. Con variantes más transmisibles, ese número sube.
+              En un hogar con adultos mayores o personas con factores de riesgo, un cuadro gripal no tratado
+              a tiempo puede derivar en una internación.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo Vacunarse y Dónde</h2>
+            <p>
+              La respuesta corta: ahora. Marzo y abril son los meses ideales. La vacuna tarda entre 2 y 3 semanas
+              en generar protección completa, y el pico de circulación gripal en Argentina ocurre entre mayo y julio.
+              Si esperás a junio, estás llegando al pico sin cobertura o recién alcanzándola.
+            </p>
+            <p>
+              Los puntos de vacunación gratuita son hospitales públicos, centros de salud (CAPS) y vacunatorios
+              provinciales en todo el país. No hace falta turno previo en la mayoría de los casos: llegás,
+              presentás tu documento o carnet de vacunación si tenés, te vacunan y listo. El trámite tarda
+              menos de 15 minutos.
+            </p>
+            <p>
+              Para los niños de 6 a 24 meses que se vacunan por primera vez, la segunda dosis se aplica
+              un mes después de la primera. Es importante no saltarla: con una sola dosis, la protección
+              es parcial.
+            </p>
+            <p>
+              Si pertenecés a un grupo de riesgo y no podés salir fácilmente de tu casa por movilidad reducida
+              o enfermedad crónica, consultá con tu médico de cabecera o con el centro de salud más cercano
+              sobre la posibilidad de vacunación domiciliaria. Algunos distritos la ofrecen, especialmente
+              para adultos mayores.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo Consultar si Creés que Tenés Gripe</h2>
+            <p>
+              La mayoría de los cuadros gripales en personas sanas se resuelven con reposo, hidratación
+              y paracetamol para la fiebre. No requieren antibióticos —la influenza es un virus, los antibióticos
+              no tienen ningún efecto sobre ella— ni antivirales en la mayoría de los casos.
+            </p>
+            <p>
+              <strong>Tenés que consultar si:</strong>
+            </p>
+            <ul>
+              <li>
+                <strong>La fiebre dura más de 5 días o reaparece después de haber bajado:</strong>
+                La fiebre que vuelve después de 2-3 días de mejoría puede indicar una sobreinfección
+                bacteriana, como una neumonía
+              </li>
+              <li>
+                <strong>Sentís dificultad para respirar o dolor en el pecho:</strong>
+                Puede ser señal de compromiso pulmonar. En grupos de riesgo, esto requiere evaluación
+                médica inmediata, no esperar a ver cómo evoluciona
+              </li>
+              <li>
+                <strong>Síntomas neurológicos:</strong> Confusión, convulsiones, desorientación. Son raros,
+                pero pueden ocurrir especialmente en niños pequeños con fiebre muy alta
+              </li>
+              <li>
+                <strong>No podés tomar líquidos:</strong> La deshidratación se instala rápido en cuadros
+                febriles intensos. Si no podés mantener ningún líquido, necesitás atención
+              </li>
+              <li>
+                <strong>Sos parte de un grupo de riesgo y el cuadro se intensifica:</strong>
+                La progresión puede ser más rápida. No esperes a que sea urgente para llamar a tu médico
+              </li>
+            </ul>
+            <p>
+              Para una primera evaluación no urgente —saber si lo que tenés es gripe, entender si necesitás
+              antivirales, o recibir indicaciones de seguimiento— una consulta por telemedicina funciona
+              muy bien. Un médico puede evaluar tus síntomas, tu historial, y decirte si necesitás ir
+              presencialmente o podés manejarlo en casa.
+            </p>
+          </section>
+
+          <section>
+            <h2>Lo que Sí y lo que No Hace la Vacuna</h2>
+            <p>
+              La vacuna antigripal reduce la probabilidad de enfermar, reduce la gravedad del cuadro si de todas
+              formas te infectás, y reduce el riesgo de complicaciones. No es una promesa de que no vas a tener
+              gripe. Es una reducción de riesgo significativa.
+            </p>
+            <p>
+              En adultos mayores, la efectividad varía año a año según qué tan bien coincide la formulación
+              con las cepas que efectivamente circulan. En años de buena coincidencia, puede reducir
+              la hospitalización por influenza en un 40-60% en ese grupo. No es perfecto, pero en términos
+              de salud pública, es uno de los instrumentos más costo-efectivos que existen.
+            </p>
+            <p>
+              En la temporada 2026 se formuló teniendo en cuenta el subclado H3N2 que está circulando.
+              Eso la hace especialmente relevante este año. Si en otra temporada la coincidencia hubiera sido
+              parcial, este año las cuentas cierran mejor.
+            </p>
+            <p>
+              La vacuna no genera protección permanente. El virus influenza muta todos los años, y la formulación
+              se actualiza en consecuencia. Por eso se vacuna anualmente. Si te vacunaste en 2025, esa protección
+              no cubre la cepa de 2026. Son dos vacunas distintas, aunque la inyección sea igual.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="article-author">
+          <div class="author-content">
+            <h3>Sobre la Autora</h3>
+            <p>
+              <strong>Dra. Valentina Salas</strong> es médica infectóloga con formación en enfermedades
+              respiratorias y vacunología. Se especializa en comunicación de riesgos epidemiológicos
+              y educación preventiva para pacientes y familias.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="related-articles">
+          <h3>Artículos Relacionados</h3>
+          <div class="related-grid">
+            <a href="/blog/guia-consulta-medica-online" class="related-card">
+              <span class="category">Guía Práctica</span>
+              <h4>Cómo Hacer una Consulta Médica Online Sin Complicaciones</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="related-card">
+              <span class="category">Telemedicina</span>
+              <h4>Acceso a Especialistas en Provincias: La Brecha que la Telemedicina Cierra</h4>
+            </a>
+            <a href="/blog/5-senales-alerta-cardiaca" class="related-card">
+              <span class="category">Cardiología</span>
+              <h4>5 Señales de Alerta Cardíaca que No Hay que Ignorar</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container {
+    min-height: 100vh;
+    background: var(--au-bg);
+  }
+
+  .article-hero {
+    padding: 4rem var(--section-px) 2rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: #1f2937;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .category {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .read-time {
+    color: #a1a1a1;
+    font-size: 0.9rem;
+  }
+
+  .article-image-section {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .article-image-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 4rem var(--section-px);
+  }
+
+  .article-body {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: white;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  section:first-child h2 {
+    margin-top: 0;
+  }
+
+  p {
+    color: #c1c1c1;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+
+  li {
+    color: #c1c1c1;
+    padding: 0.75rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #f59e0b;
+    font-weight: bold;
+  }
+
+  .article-author {
+    background: rgba(245, 158, 11, 0.05);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin: 3rem auto;
+    max-width: 800px;
+  }
+
+  .author-content h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-content p {
+    color: #a1a1a1;
+    margin: 0;
+  }
+
+  .related-articles {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 0 var(--section-px);
+  }
+
+  .related-articles h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: rgba(245, 158, 11, 0.05);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .related-card:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-card .category {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .related-card h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+  }
+</style>
