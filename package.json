@@ -165,7 +165,7 @@
     "globals": "^16.5.0",
     "globby": "^11.1.0",
     "handlebars": "^4.7.8",
-    "happy-dom": "^19.0.2",
+    "happy-dom": "^20.0.2",
     "husky": "^8.0.3",
     "jscpd": "^4.0.8",
     "lint-staged": "^15.5.2",
@@ -203,13 +203,22 @@
       "vite": "^8.0.1",
       "@vitejs/plugin-react": "^6.0.1",
       "esbuild": "^0.25.4",
-      "undici": "^5.28.5",
+      "undici": "^7.10.0",
       "cookie": "^0.7.0",
       "@types/react": "19.1.0",
       "@types/react-dom": "19.1.0",
       "react": "19.0.0",
       "react-dom": "19.0.0",
-      "vitest": "^4.1.0"
+      "vitest": "^4.1.0",
+      "h3": ">=1.15.6",
+      "rollup": ">=4.59.0",
+      "wrangler": ">=4.59.1",
+      "minimatch": ">=10.2.3",
+      "socket.io-parser": ">=4.2.6",
+      "path-to-regexp": ">=0.1.12",
+      "jws": ">=3.2.3",
+      "svgo": ">=4.0.1",
+      "flatted": ">=3.4.2"
     },
     "patchedDependencies": {
       "astro": "patches/astro.patch"
