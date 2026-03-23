@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import type { Database } from '@autamedica/types'
+import type { Database, Json } from '@autamedica/types'
 import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 
@@ -57,13 +57,13 @@ export const POST: APIRoute = async ({ request }) => {
       specialty: specialty.trim(),
       subspecialty: typeof subspecialty === 'string' ? subspecialty.trim() || null : null,
       years_experience: typeof years_experience === 'number' ? years_experience : null,
-      education: (education as unknown) ?? null,
-      certifications: (certifications as unknown) ?? null,
-      schedule: (schedule as unknown) ?? null,
+      education: (education as Json) ?? null,
+      certifications: (certifications as Json) ?? null,
+      schedule: (schedule as Json) ?? null,
       consultation_fee: typeof consultation_fee === 'number' ? consultation_fee : null,
-      accepted_insurance: (accepted_insurance as unknown) ?? null,
+      accepted_insurance: (accepted_insurance as Json) ?? null,
       bio: typeof bio === 'string' ? bio.trim() || null : null,
-      languages: (languages as unknown) ?? null,
+      languages: (languages as Json) ?? null,
       active: typeof active === 'boolean' ? active : true,
     }
 
