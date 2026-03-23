@@ -212,6 +212,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     if (error) {
       logger.error('Middleware auth error:', error);
+      // Clear invalid session cookies so the browser stops sending them and
+      // the browser-side Supabase client stops entering an infinite refresh loop.
+      // signOut({ scope: 'local' }) calls setAll() with max-age=0 cookies in the
+      // response — no network call to Supabase required.
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
 
     // Get session for locals (only trust it if getUser succeeded)

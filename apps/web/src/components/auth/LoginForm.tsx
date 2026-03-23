@@ -48,6 +48,13 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
     let active = true;
 
+    // Safety timeout: never leave the user stuck on the loading screen.
+    // If session validation takes longer than 8s (e.g. Supabase is slow or
+    // the refresh token loop is already running), abort and show the form.
+    const timeoutId = window.setTimeout(() => {
+      if (active) setIsCheckingSession(false);
+    }, 8000);
+
     const bootstrap = async () => {
       try {
         const supabase = getBrowserSupabaseClient();
@@ -57,28 +64,43 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
         const errorParam = params.get('error');
         if (errorParam) {
           await supabase.auth.signOut({ scope: 'local' });
+          clearTimeout(timeoutId);
           if (active) setIsCheckingSession(false);
           return;
         }
 
-        // Use getUser() instead of getSession() to verify the session
-        // is actually valid server-side (network call), not just locally cached.
+        // Fast path: check local storage first (no network call).
+        // If there is no locally cached session, skip the server round-trip and
+        // show the form immediately — this also prevents the autoRefreshToken
+        // timer from firing because there is nothing to refresh.
+        const { data: { session: localSession } } = await supabase.auth.getSession();
+
+        if (!localSession) {
+          clearTimeout(timeoutId);
+          if (active) setIsCheckingSession(false);
+          return;
+        }
+
+        // Session exists locally — verify it is still valid server-side.
+        // getUser() makes one network call and does NOT start a retry loop.
         const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         if (!active) {
+          clearTimeout(timeoutId);
           return;
         }
 
         if (userError || !user) {
-          // No valid session — clear any stale local data and show login form.
+          // Invalid session — stop the autoRefreshToken timer immediately and
+          // clear all local auth state (localStorage + accessible cookies).
           await supabase.auth.signOut({ scope: 'local' });
+          clearTimeout(timeoutId);
           if (active) setIsCheckingSession(false);
           return;
         }
 
         // User is authenticated — redirect to callback for role routing.
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token && session?.refresh_token) {
+        if (localSession.access_token && localSession.refresh_token) {
           const callbackUrl = new URL('/auth/callback', window.location.origin);
           if (resolvedRole) {
             callbackUrl.searchParams.set('role', resolvedRole);
@@ -86,6 +108,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
           if (returnToParam) {
             callbackUrl.searchParams.set('returnTo', returnToParam);
           }
+          clearTimeout(timeoutId);
           window.location.replace(callbackUrl.toString());
           return;
         }
@@ -93,6 +116,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
         // Ignore bootstrap errors and show the login form.
       }
 
+      clearTimeout(timeoutId);
       if (active) {
         setIsCheckingSession(false);
       }
@@ -102,6 +126,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
     return () => {
       active = false;
+      clearTimeout(timeoutId);
     };
   }, []);
 
