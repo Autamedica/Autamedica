@@ -12,7 +12,7 @@
  *   - Press release: ./campaigns/press-release.txt
  */
 
-import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 
 interface Contact {
@@ -22,11 +22,7 @@ interface Contact {
   da: number;
 }
 
-interface EmailTemplate {
-  contact: Contact;
-  subject: string;
-  body: string;
-}
+
 
 const CONTACTS: Contact[] = [
   {
