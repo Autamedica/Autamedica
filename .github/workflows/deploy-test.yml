@@ -5,6 +5,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - run: echo "workflow started successfully"
+      - run: node --version && pnpm --version
