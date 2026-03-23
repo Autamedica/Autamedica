@@ -81,7 +81,7 @@ export const GET: APIRoute = async ({ request }) => {
 
       const avgDurationMs = calls
         .filter(c => c.status === 'ended' && c.ended_at)
-        .map(c => new Date(c.ended_at!).getTime() - new Date(c.created_at).getTime())
+        .map(c => new Date(c.ended_at as string).getTime() - new Date(c.created_at).getTime())
         .reduce((sum, d, _, arr) => sum + d / arr.length, 0)
 
       stats = {
