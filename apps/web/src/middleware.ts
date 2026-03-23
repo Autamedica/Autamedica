@@ -110,6 +110,16 @@ function extractRole(metadata: Record<string, unknown> | undefined): string | un
 export const onRequest = defineMiddleware(async (context, next) => {
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
+  const isDoctorHost = requestUrl.hostname === 'doctor.autamedica.com';
+  const isDoctorHostRoot = isDoctorHost && pathname === '/';
+
+  if (isDoctorHost && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
+    if (pathname === '/dashboard' || pathname === '/doctors' || pathname === '/doctors/dashboard') {
+      const doctorRootUrl = new URL('/', requestUrl);
+      doctorRootUrl.search = requestUrl.search;
+      return context.redirect(doctorRootUrl.toString(), 302);
+    }
+  }
 
   // SEO canonical host enforcement: redirect legacy/bare domains to www.autamedica.com
   if (import.meta.env.PROD && (requestUrl.hostname === 'autamedica.com' || requestUrl.hostname === 'autamedica-web.pages.dev')) {
@@ -174,7 +184,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isAuthRoute = AUTH_ROUTES.some(route => pathname === route);
 
   // Public routes that are NOT auth routes — skip auth entirely
-  if (!isAuthRoute && PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
+  if (!isAuthRoute && !isDoctorHostRoot && PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
     return next();
   }
 
@@ -243,16 +253,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     // Protected routes: redirect unauthenticated users to login
-    const isProtectedRoute = isProtectedPath(pathname);
+    const isProtectedRoute = isProtectedPath(pathname) || isDoctorHostRoot;
 
     if (!isAuthenticated && isProtectedRoute) {
       let portal = 'patients';
-      if (pathname.startsWith('/doctors')) portal = 'doctors';
+      if (isDoctorHostRoot || pathname.startsWith('/doctors')) portal = 'doctors';
       else if (pathname.startsWith('/companies')) portal = 'companies';
       else if (pathname.startsWith('/admin')) portal = 'admin';
 
       const loginUrl = new URL('/auth/login', context.request.url);
-      loginUrl.searchParams.set('returnTo', pathname);
+      loginUrl.searchParams.set('returnTo', isDoctorHostRoot ? '/' : pathname);
       loginUrl.searchParams.set('portal', portal);
 
       return context.redirect(loginUrl.toString());
@@ -270,8 +280,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect('/');
       }
 
-      if (pathname.startsWith('/doctors') && !['doctor', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect('/');
+      if ((isDoctorHostRoot || pathname.startsWith('/doctors')) && !['doctor', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
+        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/');
       }
 
       if (pathname.startsWith('/companies') && !['company', 'company_admin', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
@@ -284,9 +294,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   } catch (err) {
     logger.error('Middleware error:', err);
 
-    if (isProtectedPath(pathname)) {
+    if (isProtectedPath(pathname) || isDoctorHostRoot) {
       const loginUrl = new URL('/auth/login', context.request.url);
-      loginUrl.searchParams.set('returnTo', pathname);
+      loginUrl.searchParams.set('returnTo', isDoctorHostRoot ? '/' : pathname);
       return context.redirect(loginUrl.toString());
     }
 

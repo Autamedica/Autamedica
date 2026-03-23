@@ -9,7 +9,7 @@ import { logger } from '@autamedica/shared'
 interface AuthenticatedUser {
   id: string
   email: string
-  role: 'doctor' | 'patient' | 'company_admin' | 'platform_admin'
+  role?: 'doctor' | 'patient' | 'company_admin' | 'platform_admin'
   profile?: {
     full_name?: string
     first_name?: string
@@ -52,8 +52,7 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
 
       // Get role from user_metadata or app_metadata
       const role = authUser.user.user_metadata?.role ||
-                  authUser.user.app_metadata?.role ||
-                  'doctor' // Default for doctors app
+                  authUser.user.app_metadata?.role
 
       // Try to get profile from public.profiles table
       // profiles PK is user_id, not id
@@ -87,7 +86,7 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
       const authenticatedUser: AuthenticatedUser = {
         id: userId,
         email: userEmail,
-        role: role as AuthenticatedUser['role'],
+        role: typeof role === 'string' ? role as AuthenticatedUser['role'] : undefined,
         profile: profileData
       }
 

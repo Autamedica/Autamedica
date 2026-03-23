@@ -30,9 +30,9 @@ export async function onRequest(context: {
   const hostname = url.hostname
   let currentApp: AppName = 'web-app'
 
-  if (hostname.includes('patients')) currentApp = 'patients'
-  else if (hostname.includes('doctors')) currentApp = 'doctors'
-  else if (hostname.includes('companies')) currentApp = 'companies'
+  if (hostname.includes('patient') || hostname.includes('paciente')) currentApp = 'patients'
+  else if (hostname.includes('doctor')) currentApp = 'doctors'
+  else if (hostname.includes('compan') || hostname.includes('empresa')) currentApp = 'companies'
   else if (hostname.includes('admin')) currentApp = 'admin'
 
   // Check for auth paths on web-app

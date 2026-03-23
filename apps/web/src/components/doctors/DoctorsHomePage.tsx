@@ -11,7 +11,7 @@ import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { usePatientData } from '@/hooks/doctors/usePatientData'
 import type { Locale } from '@/i18n/index'
 import { createBrowserClient } from '@autamedica/auth/client'
-import { logger } from '@autamedica/shared'
+import { getClientEnvOrDefault, isProduction, logger } from '@autamedica/shared'
 import {
     Activity,
     Brain,
@@ -56,6 +56,11 @@ type PatientAgeCandidate = {
   date_of_birth?: string | null
 }
 
+type DoctorIdentityCandidate = {
+  email?: string | null
+  profile?: PatientNameCandidate | null
+}
+
 export function getPatientDisplayName(patient: unknown): string {
   if (!patient || typeof patient !== 'object') {
     return 'Paciente'
@@ -85,6 +90,19 @@ function getPatientAge(patient: unknown): string {
   return Math.abs(ageDate.getUTCFullYear() - 1970).toString()
 }
 
+function getDoctorDisplayName(user: DoctorIdentityCandidate | null | undefined): string {
+  const profileName = user?.profile ? getPatientDisplayName(user.profile) : null
+  if (profileName && profileName !== 'Paciente') {
+    return profileName
+  }
+
+  if (user?.email?.trim()) {
+    return user.email.trim()
+  }
+
+  return 'Cuenta médica'
+}
+
 interface DoctorsHomePageProps {
   locale?: Locale
 }
@@ -98,7 +116,16 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   const [onboardingRequired, setOnboardingRequired] = useState<boolean | null>(null)
 
   useEffect(() => {
-    if (!user) return
+    if (authLoading) {
+      return
+    }
+
+    if (!user) {
+      setOnboardingRequired(false)
+      return
+    }
+
+    let cancelled = false
     const checkOnboarding = async () => {
       try {
         const supabase = createBrowserClient()
@@ -107,18 +134,31 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle()
-        setOnboardingRequired(!data)
+
+        if (!cancelled) {
+          setOnboardingRequired(!data)
+        }
       } catch {
-        setOnboardingRequired(false)
+        if (!cancelled) {
+          setOnboardingRequired(false)
+        }
       }
     }
-    checkOnboarding()
-  }, [user])
+
+    void checkOnboarding()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authLoading, user])
 
   const { session } = useActiveSession()
   const { patient } = usePatientData(session?.patientId ?? null)
   const authBaseUrl = useMemo(
-    () => import.meta.env.PUBLIC_APP_URL || 'https://www.autamedica.com',
+    () => getClientEnvOrDefault(
+      'PUBLIC_APP_URL',
+      isProduction() ? 'https://www.autamedica.com' : 'http://localhost:3000'
+    ),
     []
   )
 
@@ -150,7 +190,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   const signalingRoomId = useMemo(() => session?.sessionId ?? '', [session?.sessionId])
   const signalingUserId = useMemo(() => {
     if (typeof window === 'undefined' || typeof crypto === 'undefined') {
-      return 'dr-invitado'
+      return ''
     }
     const storageKey = 'autamedica-doctor-signaling-id'
     const cached = window.sessionStorage.getItem(storageKey)
@@ -380,7 +420,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   }
 
 
-  if (authLoading || onboardingRequired === null) {
+  if (authLoading || (user && onboardingRequired === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -453,7 +493,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   ) : user ? (
                     <StartCallButton
                       doctorId={user.id}
-                      doctorName={user.email?.split('@')[0] || undefined}
+                      doctorName={getDoctorDisplayName(user)}
                       patientId={session?.patientId || ''}
                       patientName={getPatientDisplayName(patient)}
                       className="group relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40 active:scale-95"
@@ -589,7 +629,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
             </div>
           </div>
 
-          {showTelemedicinePanel && (
+          {showTelemedicinePanel && signalingRoomId && signalingUserId && (
             <TelemedicineSignalingPanel
               roomId={signalingRoomId}
               userId={signalingUserId}

@@ -44,7 +44,7 @@ export async function signInWithOtp(
     if (portal && !redirectTo) {
       const portalUrls = {
         patients: `${ensureClientEnv("PUBLIC_PATIENTS_URL")}/dashboard`,
-        doctors: `${ensureClientEnv("PUBLIC_DOCTORS_URL")}/dashboard`,
+        doctors: ensureClientEnv("PUBLIC_DOCTORS_URL"),
         companies: `${ensureClientEnv("PUBLIC_COMPANIES_URL")}/dashboard`,
         admin: `${baseUrl}/admin/dashboard`,
       };
@@ -146,7 +146,7 @@ export function getPortalRedirectUrl(
 
     const portalUrls = {
       patients: `${ensureClientEnv("PUBLIC_PATIENTS_URL")}/dashboard`,
-      doctors: `${ensureClientEnv("PUBLIC_DOCTORS_URL")}/dashboard`,
+      doctors: ensureClientEnv("PUBLIC_DOCTORS_URL"),
       companies: `${ensureClientEnv("PUBLIC_COMPANIES_URL")}/dashboard`,
       admin: `${baseUrl}/admin/dashboard`,
     };

@@ -98,7 +98,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-500/20 p-2">
@@ -181,21 +181,21 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                   key={appointment.id}
                   className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 transition hover:border-slate-600 hover:bg-slate-800/50"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
                         {getTypeIcon(appointment.type)}
                       </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <h3 className="font-medium text-slate-100">{appointment.patient_id ? `Paciente ${appointment.patient_id.slice(0, 8)}` : 'Sin asignar'}</h3>
                           <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(appointment.status ?? 'scheduled')}`}>
                             {appointment.status ?? 'scheduled'}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-4 text-sm text-slate-400 mb-2">
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 mb-2">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
                             {new Date(appointment.start_time).toLocaleDateString('es-ES')}
@@ -212,7 +212,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-start shrink-0 sm:self-auto">
                       {appointment.type === 'telemedicine' && doctorId && appointment.patient_id && (
                         <StartCallButton
                           doctorId={doctorId}

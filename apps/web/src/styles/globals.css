@@ -180,3 +180,28 @@ a {
   .desktop-only { display: block; }
   .mobile-only  { display: none; }
 }
+
+/* ═══════════════════════════════════════════
+   Doctor Portal Shell — Responsive Layout
+   ═══════════════════════════════════════════ */
+
+/* dvh: corrige iOS Safari donde 100vh no descuenta la barra del browser */
+.app {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* video-badge: overlay de info del paciente durante videollamada */
+.video-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+}
+
+/* touch devices: botones de acción siempre visibles (sin hover) */
+@media (hover: none) {
+  .touch-always-visible {
+    opacity: 1 !important;
+  }
+}

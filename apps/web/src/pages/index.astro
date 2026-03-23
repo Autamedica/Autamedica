@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { DoctorsDashboardPage } from '../components/doctors/DoctorsDashboardPage';
 import Navbar from '../components/Navbar.astro';
 import Hero from '../components/Hero.astro';
 import PremiumNarrative from '../components/PremiumNarrative.astro';
@@ -19,6 +20,7 @@ import { resolveLandingCopy } from '../lib/landing-copy';
 import { getI18n } from '../i18n';
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
+const isDoctorHost = Astro.url.hostname === 'doctor.autamedica.com';
 
 const {
   variant: copyVariant,
@@ -28,42 +30,53 @@ const {
 } = resolveLandingCopy(Astro.url, import.meta.env.PUBLIC_LANDING_COPY_VARIANT, locale);
 ---
 
-<Layout
-  title={seoCopy.title}
-  description={seoCopy.description}
-  canonical="https://www.autamedica.com"
-  ogImage="/images/seo/og-main.webp"
->
-  <Navbar />
-  <main data-copy-variant={copyVariant}>
-    <Hero {...heroCopy} />
-    <PremiumNarrative />
-    <ValueProps />
-    <ProductShowcase />
-    <DoctorDirectory />
-    <IntentLinks />
+{isDoctorHost ? (
+  <Layout
+    title="Portal Médico | AutaMedica"
+    description="Portal de videoconsultas para profesionales médicos"
+    canonical="https://doctor.autamedica.com/"
+    ogImage="/images/seo/og-doctors.webp"
+  >
+    <DoctorsDashboardPage client:load locale={locale} />
+  </Layout>
+) : (
+  <Layout
+    title={seoCopy.title}
+    description={seoCopy.description}
+    canonical="https://www.autamedica.com"
+    ogImage="/images/seo/og-main.webp"
+  >
+    <Navbar />
+    <main data-copy-variant={copyVariant}>
+      <Hero {...heroCopy} />
+      <PremiumNarrative />
+      <ValueProps />
+      <ProductShowcase />
+      <DoctorDirectory />
+      <IntentLinks />
 
-    <!-- Symptom Checker: herramienta interactiva sin login -->
-    <section id="sintomas" class="symptom-section">
-      <div class="symptom-inner">
-        <div class="symptom-header animate-on-scroll">
-          <h2 class="symptom-title">{t('landing.symptomTitle')}</h2>
-          <p class="symptom-subtitle">{t('landing.symptomSubtitle')}</p>
+      <!-- Symptom Checker: herramienta interactiva sin login -->
+      <section id="sintomas" class="symptom-section">
+        <div class="symptom-inner">
+          <div class="symptom-header animate-on-scroll">
+            <h2 class="symptom-title">{t('landing.symptomTitle')}</h2>
+            <p class="symptom-subtitle">{t('landing.symptomSubtitle')}</p>
+          </div>
+          <SymptomChecker locale={locale} client:visible />
         </div>
-        <SymptomChecker locale={locale} client:visible />
-      </div>
-    </section>
+      </section>
 
-    <HorizontalScroll locale={locale} client:visible />
+      <HorizontalScroll locale={locale} client:visible />
 
-    <Process />
-    <Testimonials />
-    <HealthContent />
-    <FAQSection />
-    <CTAFinal {...ctaCopy} />
-  </main>
-  <Footer />
-</Layout>
+      <Process />
+      <Testimonials />
+      <HealthContent />
+      <FAQSection />
+      <CTAFinal {...ctaCopy} />
+    </main>
+    <Footer />
+  </Layout>
+)}
 
 <style>
   .symptom-section {

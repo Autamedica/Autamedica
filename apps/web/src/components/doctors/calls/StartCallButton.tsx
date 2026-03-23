@@ -23,8 +23,14 @@ export function StartCallButton({
 }: StartCallButtonProps) {
   const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const hasPatient = patientId.trim().length > 0
 
   const handleStartCall = async () => {
+    if (!hasPatient) {
+      setError('Selecciona un paciente antes de iniciar la llamada')
+      return
+    }
+
     setIsStarting(true)
     setError(null)
 
@@ -72,13 +78,20 @@ export function StartCallButton({
     <div className="space-y-2">
       <button
         onClick={handleStartCall}
-        disabled={isStarting}
-        className={`${className} ${isStarting ? 'opacity-50 cursor-not-allowed' : ''}`}
+        disabled={isStarting || !hasPatient}
+        className={`${className} ${isStarting || !hasPatient ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isStarting ? (
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             <span>Conectando...</span>
+          </div>
+        ) : !hasPatient ? (
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 3c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z" />
+            </svg>
+            <span>Selecciona un paciente</span>
           </div>
         ) : (
           <div className="flex items-center space-x-2">

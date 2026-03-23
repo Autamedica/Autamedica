@@ -8,7 +8,7 @@ const DOMAINS = Object.freeze({
   web: 'www.autamedica.com',
   authHub: 'www.autamedica.com',
   patients: 'patients.autamedica.com',
-  doctors: 'doctors.autamedica.com',
+  doctors: 'doctor.autamedica.com',
   companies: 'companies.autamedica.com',
   admin: 'admin.autamedica.com',
 });

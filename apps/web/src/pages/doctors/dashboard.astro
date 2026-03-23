@@ -1,6 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import DoctorsHomePage from '@/components/doctors/DoctorsHomePage';
+import { DoctorsDashboardPage } from '@/components/doctors/DoctorsDashboardPage';
 
 const title = 'Portal Médico | AutaMedica';
 const description = 'Portal de videoconsultas para profesionales médicos';
@@ -8,5 +8,5 @@ const locale = Astro.locals.locale ?? 'es';
 ---
 
 <Layout title={title} description={description}>
-  <DoctorsHomePage client:only="react" locale={locale} />
+  <DoctorsDashboardPage client:load locale={locale} />
 </Layout>

@@ -47,6 +47,10 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+function getDefaultLastPath(role: UserRole): string {
+  return role === ROLES.DOCTOR ? '/' : '/dashboard'
+}
+
 /**
  * Extract user profile from Supabase user
  */
@@ -81,7 +85,7 @@ function extractUserProfile(user: User): UserProfile | null {
     company_name: user.user_metadata?.company_name,
     created_at: user.created_at,
     updated_at: user.updated_at || user.created_at,
-    last_path: getLastPath(user.id) ?? '/dashboard'
+    last_path: getLastPath(user.id) ?? getDefaultLastPath(role)
   }
 }
 
@@ -163,7 +167,7 @@ export function AuthProvider({
         last_name: role === ROLES.DOCTOR ? 'Doctor' : 'Patient',
         created_at: mockUser.created_at,
         updated_at: mockUser.updated_at ?? mockUser.created_at,
-        last_path: '/dashboard'
+        last_path: getDefaultLastPath(role)
       }
 
       setState({

@@ -1,5 +1,6 @@
 'use client';
 
+import { ensureClientEnv } from '@autamedica/shared';
 import { TelemedicineSignalingPanel as SharedPanel } from '@autamedica/ui';
 import type { TelemedicineRole } from '@autamedica/telemedicine';
 
@@ -12,7 +13,7 @@ interface TelemedicineSignalingPanelProps {
 }
 
 export function TelemedicineSignalingPanel(props: TelemedicineSignalingPanelProps) {
-  const signalingUrl = 'wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling';
+  const signalingUrl = ensureClientEnv('PUBLIC_SIGNALING_URL');
   const iceCandidateStyle = {
     bg: 'bg-purple-500/10',
     text: 'text-purple-200',
