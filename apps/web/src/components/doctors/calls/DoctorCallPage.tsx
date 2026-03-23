@@ -5,6 +5,8 @@ import { UnifiedVideoCall } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
+import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
+import { ConsultationContextPanel } from './ConsultationContextPanel'
 
 interface DoctorCallPageProps {
   roomId: string
@@ -23,6 +25,8 @@ export default function DoctorCallPage({ roomId }: DoctorCallPageProps) {
 function DoctorCallContent({ roomId }: { roomId: string }) {
   const { session, profile, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
+  const [panelCollapsed, setPanelCollapsed] = useState(false)
+  const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
 
   // Type guard to ensure profile is properly typed
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
@@ -93,17 +97,31 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#101d32] overflow-hidden">
-      <UnifiedVideoCall
-        roomId={roomId}
-        userId={userId}
-        userType="doctor"
-        userName={userName}
-        theme="doctor"
-        onCallEnd={handleCallEnd}
-        onCallStart={handleCallStart}
-        className="h-screen"
-      />
+    <div className="h-screen bg-[#101d32] overflow-hidden flex">
+      {/* Video Call */}
+      <div className={`flex-1 min-w-0 transition-all duration-300 ${panelCollapsed ? '' : 'mr-0'}`}>
+        <UnifiedVideoCall
+          roomId={roomId}
+          userId={userId}
+          userType="doctor"
+          userName={userName}
+          theme="doctor"
+          onCallEnd={handleCallEnd}
+          onCallStart={handleCallStart}
+          className="h-screen"
+        />
+      </div>
+
+      {/* Clinical Context Panel */}
+      <div className={`shrink-0 transition-all duration-300 ${panelCollapsed ? 'w-0' : 'w-80'}`}>
+        <ConsultationContextPanel
+          context={context}
+          loading={contextLoading}
+          error={contextError}
+          collapsed={panelCollapsed}
+          onToggle={() => setPanelCollapsed(prev => !prev)}
+        />
+      </div>
     </div>
   )
 }
