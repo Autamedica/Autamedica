@@ -102,13 +102,23 @@ jobs:
           echo "id=${ID}" >> $GITHUB_OUTPUT
         continue-on-error: true
 
-      - name: Deploy
+      - name: Deploy (www)
         uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/web
           command: pages deploy dist --project-name=autamedica-web --branch=main
+
+      - name: Deploy (subdomains)
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          for project in autamedica-doctors autamedica-patients autamedica-companies; do
+            npx wrangler pages deploy dist --project-name="$project" --branch=main
+          done
 
   smoke-tests:
     name: Smoke Tests
