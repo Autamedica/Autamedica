@@ -151,4 +151,5 @@ apps/android/gradle.properties
 
 # Large media — use CDN, not git
 *.mp4
+!apps/web/public/videos/*.mp4
 play-permission-videos/
