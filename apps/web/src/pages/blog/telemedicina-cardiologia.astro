@@ -1,0 +1,503 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Telemedicina en Cardiología: Consultantes Online Seguras y Eficaces',
+  author: 'Dr. Federico Rossi',
+  role: 'Cardiólogo, AutaMedica',
+  date: '25 de marzo, 2026',
+  readTime: '11 min',
+  image: '/images/article_cardio.png',
+  category: 'Cardiología',
+};
+---
+
+<Layout
+  title="Telemedicina en Cardiología: Consultas Online Seguras | AutaMedica"
+  description="Cómo funciona la telemedicina en cardiología. Qué se puede evaluar online, limitaciones, y seguridad de las consultas virtuales cardíacas."
+  canonical="https://www.autamedica.com/blog/telemedicina-cardiologia"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-25T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+    <!-- Article Header -->
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+          <section>
+            <h2>¿Puede un Cardiólogo Evaluar tu Corazón por Video?</h2>
+            <p>
+              La pregunta es legítima. El corazón es un órgano complejo. ¿Cómo un cardiólogo puede saber qué le pasa si no lo ve presencialmente?
+            </p>
+            <p>
+              La respuesta es más matizada de lo que parece. Sí, un cardiólogo puede evaluar muchas cosas por telemedicina.
+              Pero no todo. Y es importante entender qué sí y qué no.
+            </p>
+            <p>
+              Este artículo está escrito para médicos, estudiantes de medicina, y pacientes cardíacos que quieren entender
+              los límites y posibilidades reales de la telemedicina cardíaca.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué SÍ se Puede Evaluar por Telemedicina</h2>
+            <p>
+              Un cardiólogo puede hacer mucho en una consulta virtual:
+            </p>
+            <ul>
+              <li><strong>Historia clínica detallada:</strong> Síntomas, factores de riesgo, antecedentes familiares, medicaciones actuales</li>
+              <li><strong>Evaluación de síntomas:</strong> Presión en pecho, disnea, palpitaciones, mareos. Localización, duración, provocadores, alivio</li>
+              <li><strong>Factores de riesgo cardiovascular:</strong> Hipertensión, diabetes, dislipidemia, tabaquismo, sedentarismo, obesidad</li>
+              <li><strong>Revisión de ECG previos:</strong> Si el paciente puede escanear y compartir ECG, el cardiólogo lo interpreta</li>
+              <li><strong>Revisión de ecocardiografías:</strong> Si el paciente tiene videos de ecos, el cardiólogo puede revisar</li>
+              <li><strong>Interpretación de laboratorios:</strong> Troponina, BNP, perfil lipídico — el cardiólogo interpreta resultados</li>
+              <li><strong>Manejo de medicamentos:</strong> Ajustes de dosis, cambios de fármacos, optimización de tratamiento</li>
+              <li><strong>Educación del paciente:</strong> Explicar diagnósticos, cambios en estilo de vida, dieta, ejercicio</li>
+              <li><strong>Seguimiento de enfermedades crónicas:</strong> Insuficiencia cardíaca, arritmias, coronariopatía estable</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Qué NO se Puede Evaluar por Telemedicina</h2>
+            <p>
+              Pero hay límites físicos claros:
+            </p>
+            <ul>
+              <li><strong>Examen cardiovascular físico:</strong> No se puede palpar el pulso con precisión, no se puede auscultar el corazón realmente
+                (por la calidad de audio del video), no se puede medir presión arterial presencialmente</li>
+              <li><strong>Electrocardiograma en tiempo real:</strong> El paciente no tiene un aparato de ECG en casa (salvo casos especiales)</li>
+              <li><strong>Ecocardiograma:</strong> Requiere equipo especializado. No se puede hacer virtualmente. Se pide que el paciente se haga uno</li>
+              <li><strong>Stress test o cateterismo:</strong> Estos requieren laboratorio especializado</li>
+              <li><strong>Procedimientos:</strong> Ablación, implante de marcapasos, angioplastía — todos presenciales obligatorios</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>La Importancia del Contexto Clínico</h2>
+            <p>
+              La telemedicina en cardiología NO es inferior a la consulta presencial en ciertos contextos. Es diferente.
+            </p>
+            <p>
+              <strong>Caso 1: Paciente con diagnóstico ya confirmado.</strong>
+            </p>
+            <p>
+              Paciente con insuficiencia cardíaca diagnosticada hace 2 años. Toma furosemida, lisinopril, carvedilol. Quiere ajustar dosis
+              porque siente más hinchazón en las piernas.
+            </p>
+            <p>
+              En consulta presencial: cardiólogo ausculta pulmones, mide presión, palpa edemas, pide nuevo eco y laboratorios.
+            </p>
+            <p>
+              En telemedicina: cardiólogo pregunta sobre síntomas, pide que el paciente se haga laboratorios y eco (que paga de su bolsillo),
+              revisa los resultados y ajusta medicinas.
+            </p>
+            <p>
+              El resultado es similar. El cardiólogo toma la decisión basado en datos objetivos (laboratorios, eco), no en el examen físico.
+            </p>
+            <p>
+              <strong>Caso 2: Paciente con pecho agudo.</strong>
+            </p>
+            <p>
+              Paciente con dolor de pecho. Llamó a telemedicina.
+            </p>
+            <p>
+              Decisión correcta: El médico debe derivar a emergencia inmediatamente. La telemedicina NO es apropiada.
+              Síntomas cardíacos agudos requieren urgencia presencial (ECG, troponina, monitoreo).
+            </p>
+          </section>
+
+          <section>
+            <h2>El Rol de los Estudios Complementarios</h2>
+            <p>
+              En telemedicina cardíaca, los estudios son más importantes que el examen físico.
+            </p>
+            <p>
+              Un cardiólogo que atiende telemedicina típicamente pide:
+            </p>
+            <ul>
+              <li><strong>ECG de 12 derivaciones:</strong> Si hay síntomas coronarios, arritmias o cambios en el ritmo</li>
+              <li><strong>Ecocardiograma:</strong> Si sospecha enfermedad valvular o disfunción del ventrículo</li>
+              <li><strong>Laboratorios:</strong> Troponina (para isquemia), BNP (para insuficiencia cardíaca), lípidos, glucosa, función renal</li>
+              <li><strong>Monitor Holter (24-48h):</strong> Si hay palpitaciones o arritmias intermitentes</li>
+              <li><strong>Presión ambulatoria (MAPA):</strong> Si hay dudas sobre diagnóstico de hipertensión</li>
+            </ul>
+            <p>
+              El cardiólogo toma decisiones basadas en DATOS, no en sensaciones durante el examen físico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Casos de Uso Ideales para Telemedicina Cardíaca</h2>
+            <p>
+              <strong>1. Seguimiento de cardiopatía diagnosticada.</strong>
+              Paciente con miocardiopatía dilatada, historia conocida, bajo control. Consulta virtual cada 3 meses para revisar síntomas,
+              ajustar medicinas basado en nuevos eco y laboratorios. Funciona perfectamente.
+            </p>
+            <p>
+              <strong>2. Consulta por síntomas indefinidos.</strong>
+              Paciente con "pecho apretado" esporádico que no sabe si es cardíaco. Cardiólogo hace historia detallada,
+              solicita ECG y laboratorios para descartar, y brinda tranquilidad. Mejor que en presencial porque el tiempo de consulta es el mismo
+              pero sin viajar.
+            </p>
+            <p>
+              <strong>3. Segunda opinión.</strong>
+              Cardiólogo local dijo "necesitás cateterismo". Paciente quiere segunda opinión. Cardiólogo telemedicina revisa el caso,
+              los estudios, y da perspectiva. Evita viaje innecesario si la segunda opinión difiere.
+            </p>
+            <p>
+              <strong>4. Optimización de medicamentos.</strong>
+              Paciente post-infarto. Cardiólogo ajusta dosis de betabloqueantes, ACE inhibidores, estatinas según síntomas y laboratorios.
+              Ideal para telemedicina.
+            </p>
+            <p>
+              <strong>5. Educación y prevención.</strong>
+              Paciente sin diagnóstico cardíaco previo pero con múltiples factores de riesgo. Cardiólogo hace educación intensiva sobre
+              cambios en estilo de vida, recomendaciones de ejercicio, dieta. Consulta virtual es perfecta.
+            </p>
+          </section>
+
+          <section>
+            <h2>Casos NO Apropiados para Telemedicina</h2>
+            <ul>
+              <li><strong>Dolor de pecho agudo:</strong> Requiere urgencia, ECG, monitoreo. Llamar 911.</li>
+              <li><strong>Síncope o presíncope:</strong> Requiere evaluación presencial de causas mecánicas, neurológicas.</li>
+              <li><strong>Disnea severa aguda:</strong> Puede ser edema pulmonar. Requiere presencial inmediato.</li>
+              <li><strong>Primera evaluación sospechando enfermedad valvular severa:</strong> Necesita eco completo presencial.</li>
+              <li><strong>Evaluación pre-procedimiento:</strong> Antes de cateterismo o ablación, algunos cardiólogos prefieren examen presencial.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>La Curva de Aprendizaje: Cardiólogos Adaptándose a Telemedicina</h2>
+            <p>
+              La telemedicina requiere que el cardiólogo adapte su enfoque:
+            </p>
+            <ul>
+              <li><strong>Historia más minuciosa:</strong> Sin examen físico detallado, la historia es más importante. Cardiólogo debe ser muy sistemático</li>
+              <li><strong>Criterios claros para derivar a presencial:</strong> Si hay duda, derivar. No asumir sin confirmar con estudios</li>
+              <li><strong>Aprovechamiento máximo de estudios:</strong> Pedir los estudios correctos, en el orden correcto, para dilucidar el diagnóstico</li>
+              <li><strong>Comunicación clara:</strong> Sin mímicas ni gestos, el cardiólogo debe ser muy explícito en explicaciones</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Seguridad Médico-Legal</h2>
+            <p>
+              ¿Hay riesgo legal para el cardiólogo atendiendo telemedicina? Potencialmente sí, como en cualquier tipo de medicina.
+            </p>
+            <p>
+              Pero la evidencia actual es que telemedicina en cardiología es tan segura como presencial para los casos apropiados.
+              Un meta-análisis de 2024 en JAMA Cardiology mostró que:
+            </p>
+            <ul>
+              <li>Tasas de eventos adversos similares entre telemedicina y presencial</li>
+              <li>Satisfacción del paciente equivalente o superior en telemedicina</li>
+              <li>Adherencia a medicinas aumentada con telemedicina (más seguimientos frecuentes)</li>
+            </ul>
+            <p>
+              Lo importante: documentar bien el motivo de la consulta, los hallazgos, los estudios pedidos, y cuando se refiere a presencial, hacer explícito por qué.
+            </p>
+          </section>
+
+          <section>
+            <h2>Limitaciones Tecnológicas Reales</h2>
+            <p>
+              <strong>Conectividad:</strong> Si el paciente tiene internet lento, la consulta sufre. Especialmente si hay que compartir estudios.
+            </p>
+            <p>
+              <strong>Presión arterial:</strong> Idealmente, el paciente tiene un tensiómetro en casa. Si no, pide que se la tomen en una farmacia.
+            </p>
+            <p>
+              <strong>Frecuencia cardíaca:</strong> El paciente puede contarse el pulso manualmente, pero no es lo ideal. Monitor de ritmo portátil sería mejor.
+            </p>
+            <p>
+              <strong>Audio de calidad:</strong> El cardiólogo no puede auscultar un soplo cardíaco bien por video. Necesitaría estetoscopio digital
+              (que no todos tienen).
+            </p>
+          </section>
+
+          <section>
+            <h2>El Futuro: Telemedicina Cardíaca Aumentada</h2>
+            <p>
+              En los próximos años, esperamos:
+            </p>
+            <ul>
+              <li><strong>Wearables más sofisticados:</strong> Pulseras que capturan ECG, presión, saturación O2 en tiempo real</li>
+              <li><strong>IA para análisis:</strong> Algoritmos que interpretan ECG automáticamente, detectan arritmias</li>
+              <li><strong>Estetoscopios digitales:</strong> Mejor audio para auscultar</li>
+              <li><strong>Ecografía portátil:</strong> Dispositivos de bolsillo que el paciente usa y envía al cardiólogo</li>
+            </ul>
+            <p>
+              Estos avances harán que telemedicina cardíaca sea aún más cercana a la calidad presencial.
+            </p>
+          </section>
+
+          <section>
+            <h2>Conclusión: Telemedicina Cardíaca es Real, Pero Contextual</h2>
+            <p>
+              Sí, un cardiólogo puede evaluar el corazón por video. Pero no para todo, ni en todos los contextos.
+            </p>
+            <p>
+              Para consultas iniciales de bajo riesgo, seguimiento de cardiopatía conocida, ajuste de medicinas y educación,
+              telemedicina es segura y efectiva.
+            </p>
+            <p>
+              Para síntomas agudos, evaluación presencial de nuevas arritmias, o procedimientos, presencial es obligatorio.
+            </p>
+            <p>
+              Un cardiólogo competente sabe la diferencia. Y usa telemedicina donde es apropiada, y presencial donde es necesaria.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="article-author">
+          <div class="author-content">
+            <h3>Sobre el Autor</h3>
+            <p>
+              <strong>Dr. Federico Rossi</strong> es cardiólogo con especialización en cardiopatía isquémica.
+              Ha atendido tanto en cardiología presencial como telemédica, y publica sobre seguridad y eficacia de telemedicina cardíaca.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="related-articles">
+          <h3>Artículos Relacionados</h3>
+          <div class="related-grid">
+            <a href="/blog/5-senales-alerta-cardiaca" class="related-card">
+              <span class="category">Cardiología</span>
+              <h4>5 Señales de Alerta Cardíaca que No Hay que Ignorar</h4>
+            </a>
+            <a href="/blog/telemedicina-revolucion-salud" class="related-card">
+              <span class="category">Telemedicina</span>
+              <h4>¿Por Qué la Telemedicina es la Revolución?</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="related-card">
+              <span class="category">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container {
+    min-height: 100vh;
+    background: var(--au-bg);
+  }
+
+  .article-hero {
+    padding: 4rem var(--section-px) 2rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: #1f2937;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .read-time {
+    color: #a1a1a1;
+    font-size: 0.9rem;
+  }
+
+  .article-image-section {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .article-image-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 4rem var(--section-px);
+  }
+
+  .article-body {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: white;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  section:first-child h2 {
+    margin-top: 0;
+  }
+
+  p {
+    color: #c1c1c1;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+
+  li {
+    color: #c1c1c1;
+    padding: 0.75rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+    font-weight: bold;
+  }
+
+  .article-author {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin: 3rem auto;
+    max-width: 800px;
+  }
+
+  .author-content h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-content p {
+    color: #a1a1a1;
+    margin: 0;
+  }
+
+  .related-articles {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 0 var(--section-px);
+  }
+
+  .related-articles h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .related-card:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-card .category {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .related-card h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+  }
+</style>

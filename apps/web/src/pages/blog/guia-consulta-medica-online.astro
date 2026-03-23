@@ -1,0 +1,508 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Guía Completa: Cómo Hacer una Consulta Médica Online Sin Complicaciones',
+  author: 'Dra. Patricia Mendez',
+  role: 'Medicina General, AutaMedica',
+  date: '24 de marzo, 2026',
+  readTime: '8 min',
+  image: '/images/hero_doctor.webp',
+  category: 'Guía Práctica',
+};
+---
+
+<Layout
+  title="Guía Completa: Cómo Hacer una Consulta Médica Online | AutaMedica"
+  description="Paso a paso: cómo prepararse, qué necesitás, cómo funciona una consulta telemédica, y qué esperar. Guía práctica para tu primer consulta online."
+  canonical="https://www.autamedica.com/blog/guia-consulta-medica-online"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-24T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+    <!-- Article Header -->
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+          <section>
+            <h2>¿Qué es una Consulta Médica Online?</h2>
+            <p>
+              Una consulta telemédica es una cita con un médico profesional a través de video. Funciona como una consulta presencial,
+              pero desde tu casa, sin necesidad de viajar ni esperar en una sala de espera.
+            </p>
+            <p>
+              En Argentina, está regulada y es completamente legal desde 2020. Los médicos que atienden telemedicina tienen las mismas
+              credenciales que en consulta presencial, y pueden hacer diagnósticos, prescribir medicinas y ajustar tratamientos.
+            </p>
+            <p>
+              <em>Nota:</em> La telemedicina no es para emergencias. Si tenés dolor de pecho, accidente cerebrovascular o emergencia médica,
+              llama a una ambulancia o acude a una guardia.
+            </p>
+          </section>
+
+          <section>
+            <h2>Paso 1: Registrate en la Plataforma</h2>
+            <p>
+              El proceso es simple y toma 5 minutos:
+            </p>
+            <ul>
+              <li><strong>Ingresa a AutaMedica.com</strong> y clickea "Registrate"</li>
+              <li><strong>Completa tu perfil:</strong> Nombre, email, teléfono</li>
+              <li><strong>Sube foto de DNI</strong> (obligatorio, para verificación de identidad)</li>
+              <li><strong>Acepta términos</strong> de servicio y política de privacidad</li>
+            </ul>
+            <p>
+              Eso es todo. En 2 minutos tenés acceso a la plataforma.
+            </p>
+          </section>
+
+          <section>
+            <h2>Paso 2: Selecciona un Médico</h2>
+            <p>
+              AutaMedica tiene especialistas en:
+            </p>
+            <ul>
+              <li>Medicina general</li>
+              <li>Cardiología</li>
+              <li>Dermatología</li>
+              <li>Salud mental / Psicología</li>
+              <li>Pediatría</li>
+              <li>Ginecología</li>
+              <li>Neurology</li>
+              <li>Y más</li>
+            </ul>
+            <p>
+              Cada doctor tiene:
+            </p>
+            <ul>
+              <li><strong>Foto y credenciales:</strong> Matrícula, universidad, especializaciones</li>
+              <li><strong>Horario disponible:</strong> Ves slots libres en tiempo real</li>
+              <li><strong>Reseñas de pacientes:</strong> Comentarios y calificaciones</li>
+              <li><strong>Precio:</strong> Transparente, sin sorpresas</li>
+            </ul>
+            <p>
+              Elegí el que te parezca mejor. Si tenés dudas sobre si es el especialista correcto, la plataforma te ayuda a navegar.
+            </p>
+          </section>
+
+          <section>
+            <h2>Paso 3: Prepara tu Espacio y Dispositivo</h2>
+            <p>
+              Esto es importante. Una buena consulta depende de que el médico te vea y escuche claramente.
+            </p>
+            <ul>
+              <li><strong>Dispositivo:</strong> Cualquier cosa funciona: celular, tablet, laptop. Lo importante es tener cámara y micrófono</li>
+              <li><strong>Conexión de Internet:</strong> Wifi estable es mejor. Si usás datos móviles, verifica que tengas buena señal</li>
+              <li><strong>Lugar tranquilo:</strong> Evita ruido de fondo (TV, música, gente hablando)</li>
+              <li><strong>Luz adecuada:</strong> Siéntate donde el médico pueda verte claramente (no contra una ventana brillante)</li>
+              <li><strong>Privacidad:</strong> Cierra la puerta. Aunque el médico no verá más que tu cara/torso, es mejor tener privacidad</li>
+            </ul>
+            <p>
+              Si preparás bien el espacio, la consulta es mucho más profesional y clara.
+            </p>
+          </section>
+
+          <section>
+            <h2>Paso 4: Reúne Documentos Relevantes (Opcional pero Útil)</h2>
+            <p>
+              Si tienes documentos médicos anteriores, prepáralos. El médico puede necesitar:
+            </p>
+            <ul>
+              <li>Resultados de análisis recientes</li>
+              <li>Medicinas que estés tomando (una foto es suficiente)</li>
+              <li>Radiografías, ecografías u otros estudios</li>
+              <li>Diagnósticos previos o informes médicos</li>
+            </ul>
+            <p>
+              Podés subirlos a la plataforma ANTES de la cita, o mostrarle la foto por video durante la consulta. El médico te guiará.
+            </p>
+          </section>
+
+          <section>
+            <h2>Paso 5: Cuando Se Acerca la Consulta</h2>
+            <p>
+              <strong>15 minutos antes:</strong> Recibís un aviso en tu teléfono/email. Clickea el link y verás un botón de "Iniciar consulta".
+            </p>
+            <p>
+              <strong>5 minutos antes:</strong> Entra a la sala virtual. Verás la cámara del médico cargando.
+            </p>
+            <p>
+              <strong>A la hora:</strong> El médico se conecta. La consulta comienza.
+            </p>
+            <p>
+              <em>Consejo:</em> Entra un poco antes. Si hay problemas de conexión, tenés tiempo para solucionarlos.
+            </p>
+          </section>
+
+          <section>
+            <h2>Paso 6: Durante la Consulta</h2>
+            <p>
+              La consulta funciona como cualquier cita médica presencial:
+            </p>
+            <ul>
+              <li><strong>Saludo:</strong> El médico se presenta, pregunta tu nombre y cómo estás</li>
+              <li><strong>Antecedentes:</strong> Cuenta el médico qué te trae (síntomas, preocupaciones)</li>
+              <li><strong>Preguntas:</strong> El médico hace preguntas para entender tu situación</li>
+              <li><strong>Evaluación:</strong> Te pide que describas síntomas con más detalle, ubicación, duración, etc.</li>
+              <li><strong>Diagnóstico o derivación:</strong> El médico sugiere un diagnóstico preliminar o te pide estudios</li>
+              <li><strong>Tratamiento:</strong> Si aplica, te prescribe medicinas o recomendaciones</li>
+            </ul>
+            <p>
+              <em>Diferencias con consulta presencial:</em> El médico no puede palparte el abdomen ni hacer maniobras complejas.
+              Pero puede ver tu cara, escuchar tus síntomas, revisar estudios y tomar decisiones sobre tu salud.
+            </p>
+          </section>
+
+          <section>
+            <h2>Paso 7: Después de la Consulta</h2>
+            <p>
+              Dentro de 30 minutos recibís:
+            </p>
+            <ul>
+              <li><strong>Resumen escrito</strong> de lo que hablaron</li>
+              <li><strong>Receta digital</strong> (si el médico prescribió medicinas)</li>
+              <li><strong>Recomendaciones</strong> de qué hacer a continuación</li>
+              <li><strong>Nombre del médico y su matrícula</strong> (para tu registro)</li>
+            </ul>
+            <p>
+              Podés descargar todo y guardarlo. Es tu historia clínica digital. Si necesitás una segunda opinión, compartí el resumen con otro médico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Preguntas Frecuentes sobre Consultas Online</h2>
+            <p>
+              <strong>¿Es legal?</strong>
+            </p>
+            <p>
+              Sí. Argentina reguló la telemedicina en 2020. Los médicos que atienden están registrados y tienen las mismas obligaciones legales
+              que en consulta presencial.
+            </p>
+            <p>
+              <strong>¿Puedo conseguir una receta digital?</strong>
+            </p>
+            <p>
+              Sí. Las recetas digitales son legales en Argentina desde 2021. Las podés presentar en cualquier farmacia. No hay papeles.
+            </p>
+            <p>
+              <strong>¿Qué pasa si necesito un certificado médico?</strong>
+            </p>
+            <p>
+              El médico puede emitirte un certificado digital. Para algunos usos (como incapacidad laboral), puede necesitar validación
+              posterior o firma física. El médico te lo explicará.
+            </p>
+            <p>
+              <strong>¿Es confidencial?</strong>
+            </p>
+            <p>
+              Completamente. Está cubierto por secreto médico. Nadie además del médico (y el personal de AutaMedica para soporte técnico)
+              puede ver tus datos médicos.
+            </p>
+            <p>
+              <strong>¿Qué pasa si necesito hacerme estudios (análisis, radiografía)?</strong>
+            </p>
+            <p>
+              El médico puede prescribir estudios. Vos los hacés en un laboratorio o centro de radiología de tu zona.
+              Luego subís los resultados a AutaMedica y el médico los revisa. Puede hacer seguimiento virtual o derivarte a presencial si es necesario.
+            </p>
+            <p>
+              <strong>¿Puedo pedir una segunda opinión?</strong>
+            </p>
+            <p>
+              Sí. Podés compartir el resumen de tu consulta anterior con otro médico en la plataforma. Muchos pacientes lo hacen.
+            </p>
+          </section>
+
+          <section>
+            <h2>Coses Que NO se Pueden Hacer por Telemedicina</h2>
+            <p>
+              Hay límites claros en lo que la telemedicina puede ofrecer:
+            </p>
+            <ul>
+              <li><strong>Emergencias:</strong> Dolor de pecho, accidente cerebrovascular, traumatismos graves → Llama 911</li>
+              <li><strong>Examen físico detallado:</strong> Si necesitás palpación abdominal o movimientos específicos → Consulta presencial</li>
+              <li><strong>Procedimientos:</strong> Inyecciones, extracciones de sangre, suturas → Presencial obligatorio</li>
+              <li><strong>Algunos diagnósticos complejos:</strong> Pueden requerir múltiples especialistas coordinados y exámenes complejos</li>
+            </ul>
+            <p>
+              La telemedicina es excelente para consultas iniciales, seguimientos y decisiones. No es sustituto de la medicina presencial en todos los casos.
+            </p>
+          </section>
+
+          <section>
+            <h2>Consejos Finales</h2>
+            <ul>
+              <li><strong>Sé honesto:</strong> Cuenta al médico todos tus síntomas, medicinas que tomas, alergias. Sin omisiones.</li>
+              <li><strong>Haz preguntas:</strong> Si no entiendes algo, pregunta. Es tu salud.</li>
+              <li><strong>Toma notas:</strong> Anota lo que el médico te dice. Luego lo tenés por escrito en el resumen, pero tomar notas ayuda.</li>
+              <li><strong>Sigue indicaciones:</strong> Si el médico te dice que necesitás estudios o consulta presencial, hazlo. El telemedicina es una herramienta, no la única opción.</li>
+              <li><strong>Acumula tu historia médica:</strong> Guarda todos los resúmenes de consultas. Será útil para futuros médicos.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Conclusión: Consultas Simples, Acceso Fácil</h2>
+            <p>
+              Una consulta médica online no es complicada. Es un video llamada profesional con un médico de verdad.
+            </p>
+            <p>
+              Si nunca lo hiciste, probablemente sea porque no lo necesitabas. Pero si alguna vez necesitás una consulta rápida sin viajar ni esperar,
+              sabés que es una opción segura, legal y fácil.
+            </p>
+            <p>
+              La medicina está evolucionando. Y vos podés ser parte de esa evolución hoy.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="article-author">
+          <div class="author-content">
+            <h3>Sobre la Autora</h3>
+            <p>
+              <strong>Dra. Patricia Mendez</strong> es médica general con 12 años de experiencia clínica.
+              Ha atendido tanto en consulta presencial como telemédica, y cree que ambas modalidades son complementarias en la medicina moderna.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="related-articles">
+          <h3>Artículos Relacionados</h3>
+          <div class="related-grid">
+            <a href="/blog/telemedicina-revolucion-salud" class="related-card">
+              <span class="category">Telemedicina</span>
+              <h4>¿Por Qué la Telemedicina es la Revolución?</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="related-card">
+              <span class="category">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+            <a href="/blog/historia-clinica-digital" class="related-card">
+              <span class="category">Tecnología Médica</span>
+              <h4>Historia Clínica Digital: Por Qué es Crucial</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container {
+    min-height: 100vh;
+    background: var(--au-bg);
+  }
+
+  .article-hero {
+    padding: 4rem var(--section-px) 2rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: #1f2937;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .read-time {
+    color: #a1a1a1;
+    font-size: 0.9rem;
+  }
+
+  .article-image-section {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .article-image-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 4rem var(--section-px);
+  }
+
+  .article-body {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: white;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  section:first-child h2 {
+    margin-top: 0;
+  }
+
+  p {
+    color: #c1c1c1;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+
+  li {
+    color: #c1c1c1;
+    padding: 0.75rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+    font-weight: bold;
+  }
+
+  .article-author {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin: 3rem auto;
+    max-width: 800px;
+  }
+
+  .author-content h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-content p {
+    color: #a1a1a1;
+    margin: 0;
+  }
+
+  .related-articles {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 0 var(--section-px);
+  }
+
+  .related-articles h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .related-card:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-card .category {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .related-card h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+  }
+</style>

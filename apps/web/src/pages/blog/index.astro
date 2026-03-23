@@ -5,6 +5,36 @@ import Footer from '../../components/Footer.astro';
 
 const articles = [
   {
+    slug: 'telemedicina-cardiologia',
+    title: 'Telemedicina en Cardiología: Consultas Online Seguras y Eficaces',
+    excerpt: 'Cómo funciona la telemedicina cardíaca, qué se puede evaluar virtualmente, limitaciones, y seguridad de las consultas cardíacas online.',
+    author: 'Dr. Federico Rossi',
+    date: '25 de marzo, 2026',
+    readTime: '11 min',
+    category: 'Cardiología',
+    image: '/images/article_cardio.webp',
+  },
+  {
+    slug: 'guia-consulta-medica-online',
+    title: 'Guía Completa: Cómo Hacer una Consulta Médica Online Sin Complicaciones',
+    excerpt: 'Paso a paso: cómo prepararse, qué necesitás, cómo funciona una consulta telemédica, y qué esperar. Guía práctica para tu primer consulta.',
+    author: 'Dra. Patricia Mendez',
+    date: '24 de marzo, 2026',
+    readTime: '8 min',
+    category: 'Guía Práctica',
+    image: '/images/hero_doctor.webp',
+  },
+  {
+    slug: 'acceso-especialistas-provincias',
+    title: 'Acceso a Especialistas en Provincias: La Brecha Que la Telemedicina Cierra',
+    excerpt: 'Datos sobre la brecha de especialistas en Argentina. En provincias, esperar un cardiólogo puede tomar meses. Cómo la telemedicina lo resuelve.',
+    author: 'Dr. Martín González',
+    date: '23 de marzo, 2026',
+    readTime: '9 min',
+    category: 'Telemedicina',
+    image: '/images/article_telemed.webp',
+  },
+  {
     slug: 'telemedicina-revolucion-salud',
     title: '¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina?',
     excerpt: 'Desde reducir esperas hasta acceso a especialistas de todo el país. Descubrí cómo la telemedicina está transformando la atención médica.',
@@ -12,7 +42,7 @@ const articles = [
     date: '22 de marzo, 2026',
     readTime: '7 min',
     category: 'Telemedicina',
-    image: '/images/article_telemed.png',
+    image: '/images/article_telemed.webp',
   },
   {
     slug: '5-senales-alerta-cardiaca',
@@ -22,7 +52,7 @@ const articles = [
     date: '20 de marzo, 2026',
     readTime: '8 min',
     category: 'Cardiología',
-    image: '/images/article_cardio.png',
+    image: '/images/article_cardio.webp',
   },
   {
     slug: 'ansiedad-cronica-herramientas',
@@ -32,7 +62,7 @@ const articles = [
     date: '18 de marzo, 2026',
     readTime: '10 min',
     category: 'Salud Mental',
-    image: '/images/article_mental.png',
+    image: '/images/article_mental.webp',
   },
   {
     slug: 'dermatologia-acne-adulto',
@@ -42,7 +72,7 @@ const articles = [
     date: '16 de marzo, 2026',
     readTime: '6 min',
     category: 'Dermatología',
-    image: '/images/testi_maria.png',
+    image: '/images/testi_maria.webp',
   },
   {
     slug: 'historia-clinica-digital',
@@ -52,7 +82,7 @@ const articles = [
     date: '14 de marzo, 2026',
     readTime: '5 min',
     category: 'Tecnología Médica',
-    image: '/images/hero_doctor.png',
+    image: '/images/hero_doctor.webp',
   },
 ];
 
@@ -62,6 +92,7 @@ const categoryColors = {
   'Salud Mental': '#8b5cf6',
   'Dermatología': '#ec4899',
   'Tecnología Médica': '#06b6d4',
+  'Guía Práctica': '#10b981',
 };
 ---
 
