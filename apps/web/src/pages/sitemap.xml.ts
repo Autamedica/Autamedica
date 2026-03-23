@@ -18,10 +18,6 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/blog/guia-consulta-medica-online', priority: '0.75', changefreq: 'monthly' },
   { path: '/blog/acceso-especialistas-provincias', priority: '0.75', changefreq: 'monthly' },
   { path: '/blog/telemedicina-revolucion-salud', priority: '0.75', changefreq: 'monthly' },
-  { path: '/blog/5-senales-alerta-cardiaca', priority: '0.7', changefreq: 'monthly' },
-  { path: '/blog/ansiedad-cronica-herramientas', priority: '0.7', changefreq: 'monthly' },
-  { path: '/blog/dermatologia-acne-adulto', priority: '0.7', changefreq: 'monthly' },
-  { path: '/blog/historia-clinica-digital', priority: '0.7', changefreq: 'monthly' },
 
   { path: '/privacidad', priority: '0.4', changefreq: 'yearly' },
   { path: '/terms', priority: '0.4', changefreq: 'yearly' },
