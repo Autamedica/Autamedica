@@ -44,13 +44,13 @@ const PUBLIC_ROUTES = [
 ];
 
 const ROLE_REDIRECTS: Record<string, string> = {
-  patient: '/patients',
-  doctor: '/doctors',
-  company: '/companies',
-  company_admin: '/companies',
-  organization_admin: '/admin',
-  platform_admin: '/admin',
-  admin: '/admin',
+  patient: 'https://paciente.autamedica.com',
+  doctor: 'https://doctor.autamedica.com',
+  company: 'https://empresa.autamedica.com',
+  company_admin: 'https://empresa.autamedica.com',
+  organization_admin: 'https://admin.autamedica.com',
+  platform_admin: 'https://admin.autamedica.com',
+  admin: 'https://admin.autamedica.com',
 };
 
 // Unified legacy redirects: handles both exact match (/empresa → /companies)

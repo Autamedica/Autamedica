@@ -96,13 +96,13 @@ function resolveRole(
 
 /** Map role to same-origin redirect path */
 const ROLE_PATHS: Record<string, string> = {
-  patient: '/patients',
-  doctor: '/doctors',
-  company: '/companies',
-  company_admin: '/companies',
-  organization_admin: '/admin',
-  platform_admin: '/admin',
-  admin: '/admin',
+  patient: 'https://paciente.autamedica.com',
+  doctor: 'https://doctor.autamedica.com',
+  company: 'https://empresa.autamedica.com',
+  company_admin: 'https://empresa.autamedica.com',
+  organization_admin: 'https://admin.autamedica.com',
+  platform_admin: 'https://admin.autamedica.com',
+  admin: 'https://admin.autamedica.com',
 };
 
 export const GET: APIRoute = async ({ request, cookies, redirect }) => {
