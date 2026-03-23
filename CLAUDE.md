@@ -3,6 +3,32 @@
 > Fuente de verdad operativa para Claude en AutaMedica.
 > Compacto por diseño: reglas + checklists + enlaces.
 
+## ⚠️ FASE ACTUAL: Integración y Testing E2E (NO más features)
+
+**La plataforma está COMPLETA en features.** No se agregan funcionalidades nuevas.
+
+**ÚNICO PROPÓSITO:** Verificar con MCP Patchright Streaming que las features existentes FUNCIONAN en un entorno real. Testing de integración end-to-end automatizado.
+
+**Flujos a probar (no exhaustivo):**
+
+- Llenar una anamnesis completa (formulario real, datos reales)
+- Descargar el PDF generado de la consulta
+- Verificar el JSON enviado al doctor
+- Generar JSON para que la IA produzca el informe médico
+- Flujo completo de teleconsulta: agendar → conectar → consulta → informe
+- Autenticación y roles (patient, doctor, company, admin)
+- Pagos y facturación
+
+**Reglas de esta fase:**
+
+1. **CERO features nuevas.** Si algo no funciona, se ARREGLA — no se reescribe ni se agrega.
+2. **Todo se prueba con Patchright Streaming** (MCP browser automation).
+3. **Si un test falla:** investigar, corregir el bug, volver a probar. El ciclo es test → fix → retest.
+4. **Evidencia obligatoria:** Cada flujo probado debe tener resultado documentado (pass/fail + detalle).
+5. **El objetivo es confianza de producción:** que cada feature funcione de punta a punta con datos reales.
+
+---
+
 ## 0) Filosofía Operativa
 
 **Operar SIEMPRE como senior engineer.** Tomar decisiones autónomamente — no pedir permiso para decisiones de implementación, elección de herramientas, o decisiones estándar de ingeniería. Cuando ves un problema, arreglalo. Nunca dejar `TODO(human)` — investigar e implementar la solución directamente. <!-- ticket:ZERO-DEBT --> Default a acción, no a preguntas.
@@ -17,6 +43,16 @@ Cuando se pide análisis de código, debugging o comprensión del sistema: siemp
 - Si push falla por remote HEAD changes: stash → pull --rebase → pop → push, sin preguntar.
 - Commits atómicos y temáticos con mensajes conventional commits.
 - Después de cambios, verificar que no quedan archivos uncommitted antes de push.
+
+### Repo Público/Privado — Higiene de Seguridad
+
+**El repo alterna entre público (CI gratis) y privado.** Operar SIEMPRE como si fuera público:
+
+- **PROHIBIDO commitear:** credenciales, API keys, tokens, passwords, connection strings, account IDs, service role keys — ni como placeholder, ni como "ejemplo", ni en docs, ni en scripts.
+- **Variables de entorno:** usar SIEMPRE `import.meta.env.PUBLIC_*` o references a `${{ secrets.* }}` en CI. Nunca valores reales en código.
+- **Docs operativos** con IDs de infraestructura (Cloudflare, Supabase, etc.) van en `.gitignore`, NO en el repo.
+- **Videos y binarios pesados** (`.mp4`, dumps, backups) van en CDN o storage externo, NO en git.
+- **Antes de cada commit:** verificar que `git diff --cached` no contenga strings que parezcan secrets (eyJ*, sk\_*, passwords, URLs con credenciales).
 
 ### Deployment Supabase
 

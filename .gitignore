@@ -114,3 +114,41 @@ supabase/.temp/
 
 # Experimental apps (not in active development)
 apps/mobile/
+
+# Archive — operational docs with credentials/secrets
+.archive/
+
+# Scripts with hardcoded credentials
+scripts/validate-production-values.mjs
+scripts/setup-and-test-supabase.sh
+scripts/cloudflare/apply-nodejs-compat.sh
+scripts/configure-domains.sh
+
+# Docs with infrastructure IDs and secrets
+docs/CLOUDFLARE_SECRETS_CONFIG.md
+docs/DEPLOYMENT_STRATEGY.md
+docs/FIX-AUTH-CUSTOM-DOMAIN.md
+docs/SUPABASE_SETUP.md
+docs/CHROME_DEVTOOLS_DATA.md
+docs/exec-report-*.md
+docs/platform-automation-log.md
+docs/releases/release-notes-*.md
+docs/reports/AUDIT_REPORT.md
+docs/reports/AUTH_AUDIT_FINAL_REPORT.md
+
+# Scripts with credentials or infra references
+scripts/security-check.sh
+scripts/test-supabase-rls.mjs
+
+# Supabase README with keys
+supabase/README.md
+
+# E2E tests with hardcoded credentials
+tests/e2e/doctor-login-videocall-flow.spec.ts
+
+# Android credentials
+apps/android/gradle.properties
+
+# Large media — use CDN, not git
+*.mp4
+play-permission-videos/
