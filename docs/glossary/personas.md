@@ -202,13 +202,7 @@ export interface Appointment {
   startTime: ISODateString;
   duration: number; // minutos
   type: "consultation" | "follow-up" | "emergency";
-  status:
-    | "scheduled"
-    | "in-progress"
-    | "completed"
-    | "cancelled"
-    | "no-show"
-    | "rescheduled";
+  status: "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show" | "rescheduled";
   notes?: string;
   createdAt: ISODateString;
   updatedAt: ISODateString;
@@ -224,24 +218,17 @@ export interface Appointment {
 ```typescript
 // Visibilidad de registro médico
 export type MedicalRecordVisibility =
-  | "normal"        // Visibilidad estándar según RLS
-  | "permanent"     // No se aplica data retention (crítico)
-  | "private"       // Solo doctor que lo creó
-  | "care_team"     // Equipo médico del paciente
-  | "patient"       // Paciente puede ver
-  | "emergency"     // Acceso en emergencias
-  | "restricted";   // Solo con autorización explícita
+  | "normal" // Visibilidad estándar según RLS
+  | "permanent" // No se aplica data retention (crítico)
+  | "private" // Solo doctor que lo creó
+  | "care_team" // Equipo médico del paciente
+  | "patient" // Paciente puede ver
+  | "emergency" // Acceso en emergencias
+  | "restricted"; // Solo con autorización explícita
 
 export const MEDICAL_RECORD_VISIBILITIES: readonly MedicalRecordVisibility[];
 
-export type MedicalRecordType =
-  | "consultation"
-  | "diagnosis"
-  | "treatment"
-  | "lab_result"
-  | "prescription"
-  | "imaging"
-  | "procedure";
+export type MedicalRecordType = "consultation" | "diagnosis" | "treatment" | "lab_result" | "prescription" | "imaging" | "procedure";
 ```
 
 ### Interfaz Principal
@@ -337,13 +324,61 @@ export const isPermanentRecord: (visibility: string | null) => boolean;
 ```
 
 **Notas de Seguridad**:
+
 - ✅ HIPAA Compliant: Audit logs automáticos via RLS
 - ✅ Soft Delete: `deleted_at` para retención de datos
 - ✅ Data Retention: `visibility: "permanent"` previene eliminación automática
 - ✅ Access Control: Niveles granulares de visibilidad
 - ✅ Immutability: Solo additive updates en `content`
 
+## Reporte de Consulta SOAP (ConsultationReport) 📋
+
+Tipos para reportes clínicos post-consulta formato SOAP, generados por AI cruzando transcripción + anamnesis + notas del doctor.
+
+```typescript
+// @autamedica/types — entities/consultation-report.ts
+
+export interface SOAPReport {
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+}
+
+export interface ConsultationReportContent extends SOAPReport {
+  chiefComplaint: string | null;
+  differentialDiagnosis: string[];
+  followUpRecommendations: string[];
+  aiGenerated: boolean;
+  aiProvider: string | null;
+  aiModel: string | null;
+  transcriptionWordCount: number;
+  anamnesisAvailable: boolean;
+  doctorNotes: string | null;
+}
+
+export interface GenerateReportRequest {
+  transcriptionText: string;
+  anamnesisSummary: string | null;
+  anamnesisExtraction: Record<string, unknown> | null;
+  doctorNotes: string | null;
+  patientName: string;
+  patientAge: number | null;
+  patientGender: string | null;
+}
+
+export interface GenerateReportResponse {
+  report: SOAPReport;
+  chiefComplaint: string | null;
+  differentialDiagnosis: string[];
+  followUpRecommendations: string[];
+  confidence: number;
+  provider: string;
+  model: string;
+}
+```
+
 ---
 
-**Última actualización**: 2025-10-04
+**Última actualización**: 2026-03-22
 **Mantenido por**: Sistema de validación automática

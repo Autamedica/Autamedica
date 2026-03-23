@@ -6,3 +6,10 @@ export type { MediaControlsState, MediaControlsActions, MediaControlsHook } from
 
 export { useRtcStats } from './useRtcStats'
 export type { RtcStatsData, RtcStatsState, RtcStatsActions, RtcStatsHook } from './useRtcStats'
+
+export { useAudioTranscription } from './useAudioTranscription'
+export type {
+  TranscriptSegment,
+  AudioTranscriptionState,
+  AudioTranscriptionActions,
+} from './useAudioTranscription'

@@ -1309,6 +1309,34 @@ pnpm docs:validate
 - **Descripción:** Utilidad del sistema AutaMedica para isloading.
 - **Contrato:** Pendiente de documentación detallada
 
+### SOAPReport
+
+- **Tipo:** interface
+- **Package:** @autamedica/types
+- **Descripción:** Estructura de reporte clínico formato SOAP (Subjetivo, Objetivo, Evaluación, Plan) para informes post-consulta.
+- **Contrato:** `{ subjective: string; objective: string; assessment: string; plan: string }`
+
+### ConsultationReportContent
+
+- **Tipo:** interface
+- **Package:** @autamedica/types
+- **Descripción:** Contenido completo de reporte de consulta, extiende SOAPReport con metadata de generación AI.
+- **Contrato:** Extiende SOAPReport con chiefComplaint, differentialDiagnosis, followUpRecommendations, aiGenerated, aiProvider, aiModel, transcriptionWordCount, anamnesisAvailable, doctorNotes.
+
+### GenerateReportRequest
+
+- **Tipo:** interface
+- **Package:** @autamedica/types
+- **Descripción:** Request para generar reporte SOAP via AI, incluye transcripción, anamnesis y notas del doctor.
+- **Contrato:** `{ transcriptionText: string; anamnesisSummary: string | null; anamnesisExtraction: Record<string, unknown> | null; doctorNotes: string | null; patientName: string; patientAge: number | null; patientGender: string | null }`
+
+### GenerateReportResponse
+
+- **Tipo:** interface
+- **Package:** @autamedica/types
+- **Descripción:** Respuesta de generación de reporte SOAP con datos del provider AI utilizado.
+- **Contrato:** `{ report: SOAPReport; chiefComplaint: string | null; differentialDiagnosis: string[]; followUpRecommendations: string[]; confidence: number; provider: string; model: string }`
+
 ### isMedicalRecordVisibility
 
 - **Tipo:** unknown

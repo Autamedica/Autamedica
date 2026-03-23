@@ -548,6 +548,14 @@ export {
   isPermanentRecord
 } from "./entities/medical-record";
 
+// Consultation Report types (SOAP format)
+export type {
+  SOAPReport,
+  ConsultationReportContent,
+  GenerateReportRequest,
+  GenerateReportResponse
+} from "./entities/consultation-report";
+
 // Supabase API Response types
 export type {
   SupabaseApiResponse,

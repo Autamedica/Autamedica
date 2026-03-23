@@ -1,0 +1,13 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import PostConsultationReport from '@/components/doctors/calls/PostConsultationReport';
+
+const { roomId } = Astro.params;
+
+const title = `Reporte de consulta | AutaMedica`;
+const description = 'Reporte clínico post-consulta';
+---
+
+<Layout title={title} description={description}>
+  <PostConsultationReport roomId={roomId!} client:load />
+</Layout>
