@@ -154,38 +154,19 @@ export function AutaChatbot() {
         heightCm: serverHeightCm,
         weightKg: serverWeightKg,
       },
-      medications: [
-        {
-          name: 'Lisinopril',
-          dosage: '10mg',
-          frequency: '1 vez al día',
-          nextDose: '8:00 AM'
-        },
-        {
-          name: 'Metformina',
-          dosage: '500mg',
-          frequency: '2 veces al día',
-          nextDose: '2:00 PM'
-        },
-      ],
-      vitals: {
-        bloodPressure: { systolic: 120, diastolic: 80, date: 'Hace 2 horas' },
-        heartRate: { bpm: 72, date: 'Hace 2 horas' }
-      },
-      appointments: [
-        { date: '15 de octubre', doctor: 'Dr. García', specialty: 'Cardiología', status: 'scheduled' },
-        { date: '20 de octubre', doctor: 'Dr. Rodríguez', specialty: 'Urología', status: 'scheduled' },
-      ],
+      medications: [],
+      vitals: {},
+      appointments: [],
       screenings: screenings.map(s => ({
         name: s.title,
         status: s.status === 'overdue' ? 'due' : s.status === 'due_soon' ? 'upcoming' : 'completed',
         lastCompleted: s.last_done_date,
         nextDue: s.next_due_date
       })),
-      allergies: ['Penicilina'],
+      allergies: [],
       progress: {
         level: Math.floor(achievements.filter(a => a.earned).length / 2) + 1,
-        streak: 15,
+        streak: 0,
         completedScreenings: stats.upToDate,
         totalScreenings: stats.total
       }
