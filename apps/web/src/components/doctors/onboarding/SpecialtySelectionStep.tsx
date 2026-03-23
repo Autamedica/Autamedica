@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  MEDICAL_SPECIALTIES,
+  SUBSPECIALTIES,
+} from '@autamedica/types';
 
 interface SpecialtySelectionStepProps {
   specialty: string;
@@ -11,85 +15,20 @@ interface SpecialtySelectionStepProps {
   onBack: () => void;
 }
 
-const MEDICAL_SPECIALTIES = [
-  'Cardiología',
-  'Dermatología',
-  'Endocrinología',
-  'Gastroenterología',
-  'Geriatría',
-  'Ginecología y Obstetricia',
-  'Hematología',
-  'Medicina Interna',
-  'Neumología',
-  'Neurología',
-  'Oftalmología',
-  'Oncología',
-  'Ortopedia y Traumatología',
-  'Otorrinolaringología',
-  'Pediatría',
-  'Psiquiatría',
-  'Radiología',
-  'Reumatología',
-  'Urología',
-  'Medicina Familiar',
-  'Medicina de Emergencias',
-  'Anestesiología',
-  'Cirugía General',
-  'Medicina del Deporte',
-  'Medicina Preventiva'
-] as const;
+const SPECIALTY_NAMES = Object.values(MEDICAL_SPECIALTIES).sort((a, b) => a.localeCompare(b, 'es'));
 
-const SUBSPECIALTIES: Record<string, string[]> = {
-  'Cardiología': [
-    'Cardiología Intervencionista',
-    'Electrofisiología',
-    'Insuficiencia Cardíaca',
-    'Cardiopatías Congénitas'
-  ],
-  'Dermatología': [
-    'Dermatología Pediátrica',
-    'Dermatología Oncológica',
-    'Dermatología Estética',
-    'Dermatopatología'
-  ],
-  'Ginecología y Obstetricia': [
-    'Medicina Materno-Fetal',
-    'Oncología Ginecológica',
-    'Endocrinología Reproductiva',
-    'Ginecología Infantojuvenil'
-  ],
-  'Medicina Interna': [
-    'Medicina Intensiva',
-    'Medicina Geriátrica',
-    'Medicina Hospitalaria',
-    'Medicina Ambulatoria'
-  ],
-  'Neurología': [
-    'Neurología Pediátrica',
-    'Epileptología',
-    'Enfermedades Neuromusculares',
-    'Cefaleas y Dolor'
-  ],
-  'Pediatría': [
-    'Neonatología',
-    'Pediatría Intensiva',
-    'Gastroenterología Pediátrica',
-    'Cardiología Pediátrica',
-    'Neurología Pediátrica'
-  ],
-  'Psiquiatría': [
-    'Psiquiatría Infantojuvenil',
-    'Psicogeriatría',
-    'Psiquiatría de Enlace',
-    'Adicciones'
-  ],
-  'Cirugía General': [
-    'Cirugía Laparoscópica',
-    'Cirugía Bariátrica',
-    'Cirugía de Mama',
-    'Cirugía Colorrectal'
-  ]
-};
+const NAME_TO_CODE = Object.fromEntries(
+  Object.entries(MEDICAL_SPECIALTIES).map(([code, name]) => [name, code])
+);
+
+function getSubspecialtiesForName(specialtyName: string): string[] {
+  const code = NAME_TO_CODE[specialtyName];
+  if (!code) return [];
+  const prefix = code + '_';
+  return Object.entries(SUBSPECIALTIES)
+    .filter(([key]) => key.startsWith(prefix))
+    .map(([, name]) => name);
+}
 
 export function SpecialtySelectionStep({
   specialty,
@@ -104,7 +43,7 @@ export function SpecialtySelectionStep({
   const [experience, setExperience] = useState(yearsExperience);
   const [showSubspecialties, setShowSubspecialties] = useState(false);
 
-  const availableSubspecialties = selectedSpecialty ? SUBSPECIALTIES[selectedSpecialty] || [] : [];
+  const availableSubspecialties = selectedSpecialty ? getSubspecialtiesForName(selectedSpecialty) : [];
 
   const handleSpecialtyChange = (newSpecialty: string) => {
     setSelectedSpecialty(newSpecialty);
@@ -155,7 +94,7 @@ export function SpecialtySelectionStep({
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Selecciona una especialidad</option>
-            {MEDICAL_SPECIALTIES.map(spec => (
+            {SPECIALTY_NAMES.map(spec => (
               <option key={spec} value={spec}>
                 {spec}
               </option>

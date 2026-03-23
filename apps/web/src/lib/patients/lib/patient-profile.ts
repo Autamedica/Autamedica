@@ -1,21 +1,9 @@
-/**
- * Utilidades para verificar completitud de perfil de paciente
- */
-
 interface PatientProfile {
   birth_date: string | null;
   gender: string | null;
   emergency_contact: Record<string, unknown> | null;
 }
 
-/**
- * Verifica si el perfil de paciente está completo
- *
- * Campos mínimos requeridos:
- * - birth_date
- * - gender
- * - emergency_contact (con name y phone)
- */
 export function isPatientProfileComplete(patient: PatientProfile): boolean {
   if (!patient.birth_date) return false;
   if (!patient.gender) return false;
@@ -28,9 +16,6 @@ export function isPatientProfileComplete(patient: PatientProfile): boolean {
   return true;
 }
 
-/**
- * Retorna lista de campos faltantes en el perfil
- */
 export function getMissingPatientFields(patient: PatientProfile): string[] {
   const missing: string[] = [];
 
@@ -48,9 +33,6 @@ export function getMissingPatientFields(patient: PatientProfile): string[] {
   return missing;
 }
 
-/**
- * Calcula progreso de completitud del perfil (0-100%)
- */
 export function getPatientProfileCompletion(patient: PatientProfile): number {
   const totalFields = 7; // birth_date, gender, blood_type, height_cm, weight_kg, emergency_contact, insurance_info
   let completedFields = 0;

@@ -1,8 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getServerEnvOrDefault, logger, featureFlags } from '@autamedica/shared';
-/**
- * Tipos para el servicio de AI
- */
 export interface MedicalAnalysis {
   id: string;
   timestamp: string;
@@ -31,17 +28,11 @@ export interface AnalysisRequest {
   context?: string;
 }
 
-/**
- * Servicio de Análisis Médico con IA
- * Usa Claude (Anthropic) en producción, mocks en desarrollo
- */
 export class AIAnalysisService {
   private anthropic: Anthropic | null = null;
   private readonly model = 'claude-sonnet-4-5-20250929';
 
   constructor() {
-    // Solo inicializar Anthropic si NO estamos en modo mock
-    // y tenemos API key disponible
     const anthropicKey = getServerEnvOrDefault('ANTHROPIC_API_KEY', '');
     if (!featureFlags.USE_MOCK_AI && anthropicKey) {
       this.anthropic = new Anthropic({
@@ -58,24 +49,16 @@ export class AIAnalysisService {
     }
   }
 
-  /**
-   * Analizar datos médicos con IA
-   */
   async analyzeMedicalData(
     request: AnalysisRequest
   ): Promise<MedicalAnalysis> {
-    // Modo mock para desarrollo
     if (featureFlags.USE_MOCK_AI || !this.anthropic) {
       return this.getMockAnalysis(request);
     }
 
-    // Modo producción con Claude
     return this.getRealAnalysis(request);
   }
 
-  /**
-   * Análisis mock para desarrollo
-   */
   private getMockAnalysis(_request: AnalysisRequest): MedicalAnalysis {
     return {
       id: crypto.randomUUID(),
@@ -90,9 +73,6 @@ export class AIAnalysisService {
     };
   }
 
-  /**
-   * Análisis real con Claude
-   */
   private async getRealAnalysis(
     request: AnalysisRequest
   ): Promise<MedicalAnalysis> {
@@ -164,9 +144,6 @@ FORMATO DE RESPUESTA (JSON):
     }
   }
 
-  /**
-   * Construir prompt médico estructurado
-   */
   private buildMedicalPrompt(request: AnalysisRequest): string {
     const { data, context } = request;
 
@@ -223,9 +200,6 @@ FORMATO DE RESPUESTA (JSON):
     return prompt;
   }
 
-  /**
-   * Parsear respuesta de Claude
-   */
   private parseClaudeResponse(responseText: string): Partial<MedicalAnalysis> {
     try {
       // Intentar extraer JSON de la respuesta
@@ -261,16 +235,10 @@ FORMATO DE RESPUESTA (JSON):
     }
   }
 
-  /**
-   * Verificar si el servicio está en modo producción
-   */
   isProductionMode(): boolean {
     return !featureFlags.USE_MOCK_AI && this.anthropic !== null;
   }
 
-  /**
-   * Obtener información del servicio
-   */
   getServiceInfo() {
     return {
       mode: featureFlags.USE_MOCK_AI ? 'mock' : 'production',

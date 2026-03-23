@@ -1,17 +1,8 @@
-/**
- * Servicio Unificado de AI
- * Decide automáticamente qué proveedor usar (Anthropic Claude o Google Gemini)
- * basado en feature flags y disponibilidad
- */
-
 import { logger, getAIProvider } from '@autamedica/shared';
 import { getAIAnalysisService, AIAnalysisService } from './ai-analysis-service';
 import { getGeminiAIService, GeminiAIService } from './gemini-ai-service';
 import type { MedicalAnalysis, AnalysisRequest } from './ai-analysis-service';
 
-/**
- * Servicio Unificado que abstrae el proveedor de AI
- */
 export class UnifiedAIService {
   private anthropicService: AIAnalysisService;
   private geminiService: GeminiAIService;
@@ -29,9 +20,6 @@ export class UnifiedAIService {
     }
   }
 
-  /**
-   * Analizar datos médicos con el proveedor disponible
-   */
   async analyzeMedicalData(
     request: AnalysisRequest
   ): Promise<MedicalAnalysis> {
@@ -47,15 +35,11 @@ export class UnifiedAIService {
         return this.geminiService.analyzeMedicalData(request);
 
       default:
-        // Modo mock - intentar con cualquier servicio disponible
-        logger.info('Modo mock - usando fallback');
+            logger.info('Modo mock - usando fallback');
         return this.anthropicService.analyzeMedicalData(request);
     }
   }
 
-  /**
-   * Análisis con imágenes (solo Gemini lo soporta nativamente)
-   */
   async analyzeWithImage(
     request: AnalysisRequest,
     imageBase64: string,
@@ -72,7 +56,6 @@ export class UnifiedAIService {
       );
     }
 
-    // Anthropic también soporta imágenes, pero de forma diferente
     if (provider === 'anthropic') {
       logger.warn(
         'Anthropic soporta imagenes pero requiere implementacion especial'
@@ -80,14 +63,10 @@ export class UnifiedAIService {
       return this.anthropicService.analyzeMedicalData(request);
     }
 
-    // Fallback sin imagen
     logger.warn('No hay proveedor de AI con soporte de imagenes disponible');
     return this.analyzeMedicalData(request);
   }
 
-  /**
-   * Cambiar proveedor manualmente
-   */
   switchProvider(provider: 'anthropic' | 'google'): boolean {
     const geminiInfo = this.geminiService.getServiceInfo();
     const anthropicInfo = this.anthropicService.getServiceInfo();
@@ -107,9 +86,6 @@ export class UnifiedAIService {
     return true;
   }
 
-  /**
-   * Obtener información de ambos proveedores
-   */
   getProvidersInfo() {
     const anthropicInfo = this.anthropicService.getServiceInfo();
     const geminiInfo = this.geminiService.getServiceInfo();
@@ -132,9 +108,6 @@ export class UnifiedAIService {
     };
   }
 
-  /**
-   * Verificar disponibilidad de features
-   */
   hasFeature(feature: 'multimodal' | 'vision' | 'longContext' | 'thinking'): boolean {
     const provider = this.currentProvider || getAIProvider();
 
@@ -144,19 +117,14 @@ export class UnifiedAIService {
     }
 
     if (provider === 'anthropic') {
-      // Anthropic tiene diferentes capabilities
       if (feature === 'multimodal' || feature === 'vision') return true;
-      if (feature === 'longContext') return true; // 200K tokens
-      if (feature === 'thinking') return false; // No tiene modo thinking
+      if (feature === 'longContext') return true;
+      if (feature === 'thinking') return false;
     }
 
     return false;
   }
 
-  /**
-   * Análisis comparativo con ambos proveedores
-   * Útil para validación cruzada
-   */
   async compareAnalysis(
     request: AnalysisRequest
   ): Promise<{
@@ -179,7 +147,6 @@ export class UnifiedAIService {
       },
     };
 
-    // Ejecutar análisis en paralelo si ambos están disponibles
     const promises: Promise<void>[] = [];
 
     if (anthropicInfo.apiKeyConfigured) {
@@ -210,7 +177,6 @@ export class UnifiedAIService {
 
     await Promise.all(promises);
 
-    // Comparar resultados
     if (results.anthropic && results.google) {
       results.comparison = this.compareResults(
         results.anthropic,
@@ -221,23 +187,18 @@ export class UnifiedAIService {
     return results;
   }
 
-  /**
-   * Comparar dos análisis
-   */
   private compareResults(
     analysis1: MedicalAnalysis,
     analysis2: MedicalAnalysis
   ): { agreement: number; differences: string[] } {
     const differences: string[] = [];
 
-    // Comparar severidad
     if (analysis1.severity !== analysis2.severity) {
       differences.push(
         `Severidad diferente: ${analysis1.severity} vs ${analysis2.severity}`
       );
     }
 
-    // Comparar confianza
     const confidenceDiff = Math.abs(analysis1.confidence - analysis2.confidence);
     if (confidenceDiff > 20) {
       differences.push(
@@ -245,14 +206,12 @@ export class UnifiedAIService {
       );
     }
 
-    // Comparar recomendaciones (simplificado)
     if (analysis1.recommendations.length !== analysis2.recommendations.length) {
       differences.push(
         `Diferente número de recomendaciones: ${analysis1.recommendations.length} vs ${analysis2.recommendations.length}`
       );
     }
 
-    // Calcular agreement básico
     let agreement = 100;
     agreement -= differences.length * 15; // -15% por cada diferencia
     agreement = Math.max(0, Math.min(100, agreement));

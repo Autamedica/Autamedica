@@ -1,50 +1,19 @@
-/**
- * Servicio de señalización para WebRTC
- *
- * Maneja la coordinación entre peers para establecer conexión WebRTC:
- * - Intercambio de SDP (Session Description Protocol)
- * - Intercambio de ICE candidates
- * - Gestión de salas y presencia
- *
- * NOTA: Este servicio se conectará al Signaling Server (FASE 4)
- * Por ahora incluye la interfaz y mock para desarrollo local
- */
-
 import { EventEmitter } from 'events';
 import { logger } from '@autamedica/shared';
 
-/**
- * Eventos que emite el servicio de señalización
- */
 export enum SignalingEvent {
-  /** Conexión establecida con servidor */
   CONNECTED = 'connected',
-  /** Desconexión del servidor */
   DISCONNECTED = 'disconnected',
-  /** Error de conexión */
   ERROR = 'error',
-
-  /** Usuario se unió a la sala */
   USER_JOINED = 'user-joined',
-  /** Usuario salió de la sala */
   USER_LEFT = 'user-left',
-
-  /** Oferta SDP recibida */
   OFFER_RECEIVED = 'offer-received',
-  /** Respuesta SDP recibida */
   ANSWER_RECEIVED = 'answer-received',
-  /** ICE candidate recibido */
   ICE_CANDIDATE_RECEIVED = 'ice-candidate-received',
-
-  /** Llamada iniciada por peer remoto */
   CALL_INITIATED = 'call-initiated',
-  /** Llamada terminada */
   CALL_ENDED = 'call-ended',
 }
 
-/**
- * Mensajes del protocolo de señalización
- */
 export interface SignalingMessage {
   type: 'offer' | 'answer' | 'ice-candidate' | 'join-room' | 'leave-room' | 'call-init' | 'call-end';
   roomId: string;
@@ -53,21 +22,13 @@ export interface SignalingMessage {
 }
 
 export interface SignalingConfig {
-  /** URL del servidor de señalización (WebSocket) */
   serverUrl: string;
-  /** ID del usuario actual */
   userId: string;
-  /** Token de autenticación */
   authToken?: string;
-  /** Auto-reconexión */
   autoReconnect?: boolean;
-  /** Intervalo de heartbeat (ms) */
   heartbeatInterval?: number;
 }
 
-/**
- * Cliente de señalización para WebRTC
- */
 export class SignalingService extends EventEmitter {
   private ws: WebSocket | null = null;
   private config: Required<SignalingConfig>;
@@ -88,9 +49,6 @@ export class SignalingService extends EventEmitter {
     };
   }
 
-  /**
-   * Conectar al servidor de señalización
-   */
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
@@ -137,9 +95,6 @@ export class SignalingService extends EventEmitter {
     });
   }
 
-  /**
-   * Desconectar del servidor
-   */
   disconnect(): void {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -157,9 +112,6 @@ export class SignalingService extends EventEmitter {
     this.currentRoomId = null;
   }
 
-  /**
-   * Unirse a una sala de videoconsulta
-   */
   joinRoom(roomId: string): void {
     this.currentRoomId = roomId;
 
@@ -172,9 +124,6 @@ export class SignalingService extends EventEmitter {
     this.send(message);
   }
 
-  /**
-   * Salir de la sala actual
-   */
   leaveRoom(): void {
     if (!this.currentRoomId) {
       logger.warn('[SignalingService] Not in any room');
@@ -191,9 +140,6 @@ export class SignalingService extends EventEmitter {
     this.currentRoomId = null;
   }
 
-  /**
-   * Enviar oferta SDP al peer remoto
-   */
   sendOffer(roomId: string, offer: RTCSessionDescriptionInit): void {
     const message: SignalingMessage = {
       type: 'offer',
@@ -205,9 +151,6 @@ export class SignalingService extends EventEmitter {
     this.send(message);
   }
 
-  /**
-   * Enviar respuesta SDP al peer remoto
-   */
   sendAnswer(roomId: string, answer: RTCSessionDescriptionInit): void {
     const message: SignalingMessage = {
       type: 'answer',
@@ -219,9 +162,6 @@ export class SignalingService extends EventEmitter {
     this.send(message);
   }
 
-  /**
-   * Enviar ICE candidate al peer remoto
-   */
   sendIceCandidate(roomId: string, candidate: RTCIceCandidate): void {
     const message: SignalingMessage = {
       type: 'ice-candidate',
@@ -237,9 +177,6 @@ export class SignalingService extends EventEmitter {
     this.send(message);
   }
 
-  /**
-   * Enviar mensaje al servidor
-   */
   private send(message: SignalingMessage): void {
     if (this.ws?.readyState !== WebSocket.OPEN) {
       logger.error('[SignalingService] Cannot send message: WebSocket not connected');
@@ -253,9 +190,6 @@ export class SignalingService extends EventEmitter {
     }
   }
 
-  /**
-   * Manejar mensajes recibidos del servidor
-   */
   private handleMessage(data: string): void {
     try {
       const message: SignalingMessage = JSON.parse(data);
@@ -307,9 +241,6 @@ export class SignalingService extends EventEmitter {
     }
   }
 
-  /**
-   * Iniciar heartbeat para mantener conexión viva
-   */
   private startHeartbeat(): void {
     this.heartbeatTimer = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
@@ -318,9 +249,6 @@ export class SignalingService extends EventEmitter {
     }, this.config.heartbeatInterval);
   }
 
-  /**
-   * Detener heartbeat
-   */
   private stopHeartbeat(): void {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
@@ -328,30 +256,17 @@ export class SignalingService extends EventEmitter {
     }
   }
 
-  /**
-   * Verificar si está conectado
-   */
   get connected(): boolean {
     return this.isConnected && this.ws?.readyState === WebSocket.OPEN;
   }
 
-  /**
-   * Obtener sala actual
-   */
   get roomId(): string | null {
     return this.currentRoomId;
   }
 }
 
-/**
- * Instancia singleton del servicio de señalización
- * (se inicializa cuando el usuario inicia una llamada)
- */
 let signalingInstance: SignalingService | null = null;
 
-/**
- * Obtener instancia del servicio de señalización
- */
 export function getSignalingService(config?: SignalingConfig): SignalingService {
   if (!signalingInstance && config) {
     signalingInstance = new SignalingService(config);
@@ -364,9 +279,6 @@ export function getSignalingService(config?: SignalingConfig): SignalingService 
   return signalingInstance;
 }
 
-/**
- * Limpiar instancia singleton (útil para testing)
- */
 export function resetSignalingService(): void {
   if (signalingInstance) {
     signalingInstance.disconnect();

@@ -1,11 +1,3 @@
-/**
- * Application configuration helpers
- * Migrated from @autamedica/config for consolidation
- *
- * IMPORTANT: Uses environment utilities from shared/env
- * No direct process.env access per monorepo rules
- */
-
 import { getClientEnvOrDefault, isDevelopment } from '../env';
 
 export type AppName = 'patients' | 'doctors';
@@ -26,18 +18,12 @@ export interface LoginUrlBuilder {
   build(returnTo?: string): string;
 }
 
-/**
- * Gets the auth hub origin based on environment
- */
 function getAuthHubOrigin(): string {
   return isDevelopment()
     ? getClientEnvOrDefault('PUBLIC_APP_URL', 'http://localhost:3000')
     : getClientEnvOrDefault('PUBLIC_APP_URL', 'https://www.autamedica.com');
 }
 
-/**
- * Gets app origins configuration
- */
 function getAppOrigins(): Record<AppName, string> {
   const devMode = isDevelopment();
 
@@ -51,12 +37,6 @@ function getAppOrigins(): Record<AppName, string> {
   };
 }
 
-/**
- * Gets environment configuration for a specific app
- *
- * @param appName - The application name ('patients' | 'doctors')
- * @returns Complete environment configuration for the app
- */
 export function getAppEnv(appName: AppName): AppEnvironmentConfig {
   const appOrigins = getAppOrigins();
   const authHubOrigin = getAuthHubOrigin();
@@ -83,12 +63,6 @@ export function getAppEnv(appName: AppName): AppEnvironmentConfig {
   };
 }
 
-/**
- * Creates a login URL builder for a specific app
- *
- * @param appName - The application name
- * @returns Login URL builder with build() method
- */
 export function getLoginUrlBuilder(_appName: AppName): LoginUrlBuilder {
   const authHubOrigin = getAuthHubOrigin();
 

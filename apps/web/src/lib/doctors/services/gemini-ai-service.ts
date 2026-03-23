@@ -1,17 +1,9 @@
 /* eslint-disable */
 // @ts-nocheck
-/**
- * Servicio de Google Gemini AI para análisis médico
- * Alternativa a Anthropic Claude
- */
-
 import { getServerEnvOrDefault, logger, featureFlags } from '@autamedica/shared';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import type { AnalysisRequest, MedicalAnalysis } from './ai-analysis-service';
 
-/**
- * Servicio de Análisis Médico con Google Gemini
- */
 export class GeminiAIService {
   private genAI: GoogleGenerativeAI | null = null;
   private readonly model = 'gemini-2.5-flash-preview-05-20'; // Más rápido y económico
@@ -29,24 +21,16 @@ export class GeminiAIService {
     }
   }
 
-  /**
-   * Analizar datos médicos con Gemini
-   */
   async analyzeMedicalData(
     request: AnalysisRequest
   ): Promise<MedicalAnalysis> {
-    // Modo mock
     if (featureFlags.USE_MOCK_AI || !this.genAI) {
       return this.getMockAnalysis(request);
     }
 
-    // Modo producción con Gemini
     return this.getRealAnalysis(request);
   }
 
-  /**
-   * Análisis real con Gemini
-   */
   private async getRealAnalysis(
     request: AnalysisRequest
   ): Promise<MedicalAnalysis> {
@@ -103,9 +87,6 @@ export class GeminiAIService {
     }
   }
 
-  /**
-   * Construir prompt médico estructurado
-   */
   private buildMedicalPrompt(request: AnalysisRequest): string {
     const { data, context } = request;
 
@@ -178,9 +159,6 @@ SOLO responde con el JSON, sin texto adicional.`;
     return prompt;
   }
 
-  /**
-   * Parsear respuesta de Gemini
-   */
   private parseGeminiResponse(responseText: string): Partial<MedicalAnalysis> {
     try {
       // Intentar extraer JSON
@@ -216,9 +194,6 @@ SOLO responde con el JSON, sin texto adicional.`;
     }
   }
 
-  /**
-   * Análisis mock para desarrollo
-   */
   private getMockAnalysis(_request: AnalysisRequest): MedicalAnalysis {
     return {
       id: crypto.randomUUID(),
@@ -233,16 +208,10 @@ SOLO responde con el JSON, sin texto adicional.`;
     };
   }
 
-  /**
-   * Verificar si el servicio está en modo producción
-   */
   isProductionMode(): boolean {
     return !featureFlags.USE_MOCK_AI && this.genAI !== null;
   }
 
-  /**
-   * Obtener información del servicio
-   */
   getServiceInfo() {
     return {
       provider: 'Google Gemini',
@@ -259,10 +228,6 @@ SOLO responde con el JSON, sin texto adicional.`;
     };
   }
 
-  /**
-   * Análisis con imágenes (multimodal)
-   * Feature única de Gemini
-   */
   async analyzeWithImage(
     request: AnalysisRequest,
     imageBase64: string,
