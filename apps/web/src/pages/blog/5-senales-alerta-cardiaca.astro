@@ -1,0 +1,643 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: '5 Señales de Alerta Cardíaca que No Deberías Ignorar',
+  author: 'Dr. Federico Rossi',
+  role: 'Cardiólogo, AutaMedica',
+  date: '20 de marzo, 2026',
+  readTime: '10 min',
+  image: '/images/article_cardio.webp',
+  category: 'Cardiología',
+};
+---
+
+<Layout
+  title="5 Señales de Alerta Cardíaca que No Deberías Ignorar | AutaMedica"
+  description="Las 5 señales de alerta cardíaca más comunes que la gente ignora. Dolor de pecho, disnea, palpitaciones: cuándo es urgente y cuándo no."
+  canonical="https://www.autamedica.com/blog/5-senales-alerta-cardiaca"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-20T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+    <!-- Article Header -->
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+          <section>
+            <h2>Por Qué la Gente Ignora los Síntomas Cardíacos</h2>
+            <p>
+              El corazón manda señales. El problema es que la mayoría de las personas las ignora, las minimiza
+              o las atribuye a otra cosa. "Es estrés", "comí algo pesado", "estoy cansado". Estas frases se repiten
+              en las guardias cardíacas todos los días, dichas por pacientes que llevaban semanas o meses con síntomas
+              que no supieron interpretar.
+            </p>
+            <p>
+              La realidad es que la enfermedad cardiovascular sigue siendo la primera causa de muerte en Argentina
+              y en el mundo. Según la Organización Mundial de la Salud, 17.9 millones de personas mueren anualmente
+              por enfermedades cardiovasculares. Muchas de estas muertes son prevenibles si se detectan los síntomas
+              a tiempo.
+            </p>
+            <p>
+              ¿Por qué la gente no consulta? Por varios motivos:
+            </p>
+            <ul>
+              <li><strong>Negación:</strong> "A mí no me va a pasar". El infarto es algo que le pasa a otros, hasta que te pasa a vos</li>
+              <li><strong>Desconocimiento:</strong> No saben que la fatiga inexplicable o la falta de aire al subir escaleras pueden ser signos cardíacos</li>
+              <li><strong>Miedo al diagnóstico:</strong> Prefieren no saber. El pensamiento mágico de "si no consulto, no existe" es más común de lo que parece</li>
+              <li><strong>Síntomas atípicos:</strong> Especialmente en mujeres, los síntomas cardíacos no siempre se presentan como el dolor de pecho clásico. Pueden ser náuseas, dolor de mandíbula o fatiga extrema</li>
+              <li><strong>Normalización:</strong> "Siempre me falta el aire, ya estoy acostumbrado". Adaptan su vida al síntoma en vez de consultar</li>
+            </ul>
+            <p>
+              Este artículo está pensado para que puedas reconocer las 5 señales de alerta cardíaca más importantes,
+              entiendas cuándo podés esperar para consultar y cuándo necesitás ir a una guardia inmediatamente.
+              No es alarmismo. Es información que puede salvarte la vida.
+            </p>
+          </section>
+
+          <section>
+            <h2>Señal 1: Dolor o Presión en el Pecho</h2>
+            <p>
+              El dolor de pecho es el síntoma cardíaco por excelencia, pero no todo dolor de pecho es cardíaco.
+              Esa es la primera distinción fundamental que hay que hacer.
+            </p>
+            <p>
+              <strong>¿Qué es la angina de pecho?</strong>
+            </p>
+            <p>
+              La angina es el dolor que se produce cuando el músculo cardíaco no recibe suficiente oxígeno.
+              Generalmente se debe a obstrucciones parciales en las arterias coronarias (aterosclerosis).
+              El corazón necesita más sangre de la que le llega, y avisa con dolor.
+            </p>
+            <p>
+              Hay dos tipos principales:
+            </p>
+            <ul>
+              <li><strong>Angina estable:</strong> Aparece con el esfuerzo (subir escaleras, caminar rápido, hacer ejercicio)
+                y cede con el reposo en menos de 5-10 minutos. Es predecible: el paciente sabe que si camina cierta distancia,
+                le va a doler. Requiere evaluación cardiológica, pero no es una emergencia inmediata</li>
+              <li><strong>Angina inestable:</strong> Aparece en reposo, sin provocador claro, o el patrón cambió
+                (antes aparecía al caminar 10 cuadras, ahora aparece al caminar 2). Dura más, no cede fácil con el reposo.
+                <strong>Esto sí es una emergencia.</strong> Puede ser la antesala de un infarto agudo de miocardio</li>
+            </ul>
+            <p>
+              <strong>¿Cómo se siente el dolor cardíaco típico?</strong>
+            </p>
+            <ul>
+              <li><strong>Localización:</strong> Centro del pecho, detrás del esternón. Puede irradiar al brazo izquierdo, mandíbula, espalda o epigastrio</li>
+              <li><strong>Carácter:</strong> Opresivo ("como si me apretaran el pecho"), pesadez, sensación de "elefante sentado encima". No es un pinchazo puntual</li>
+              <li><strong>Duración:</strong> La angina estable dura 2-10 minutos. Si dura más de 20 minutos, pensar en infarto</li>
+              <li><strong>Síntomas acompañantes:</strong> Sudoración fría, náuseas, sensación de muerte inminente (angor animi)</li>
+            </ul>
+            <p>
+              <strong>¿Cuándo NO es cardíaco (probablemente)?</strong>
+            </p>
+            <ul>
+              <li><strong>Dolor puntual y fugaz:</strong> Un pinchazo de 1-2 segundos que no se repite generalmente es osteomuscular</li>
+              <li><strong>Dolor que cambia con la posición:</strong> Si duele más al girar el torso o al presionar una zona, probablemente es de la pared torácica</li>
+              <li><strong>Dolor que mejora con antiácidos:</strong> Puede ser reflujo gastroesofágico (ERGE), que es muy frecuente y simula dolor cardíaco</li>
+              <li><strong>Dolor asociado a ansiedad:</strong> Crisis de pánico con hiperventilación, taquicardia y hormigueo en manos. No obstante, ante la duda, siempre descartar lo cardíaco primero</li>
+            </ul>
+            <p>
+              <strong>Regla de oro:</strong> Si tenés más de 40 años, factores de riesgo cardiovascular (hipertensión, diabetes,
+              tabaquismo, dislipidemia, antecedentes familiares) y un dolor de pecho opresivo que dura más de 5 minutos,
+              consultá inmediatamente. No esperes a ver si pasa.
+            </p>
+          </section>
+
+          <section>
+            <h2>Señal 2: Falta de Aire (Disnea)</h2>
+            <p>
+              La disnea — falta de aire o dificultad respiratoria — es un síntoma que muchas personas atribuyen
+              al sedentarismo, la edad o el sobrepeso. "Estoy fuera de forma". Y a veces sí, es eso. Pero otras veces
+              es el corazón que no bombea bien y el pulmón se congestiona.
+            </p>
+            <p>
+              Hay tres formas de disnea cardíaca que debés conocer:
+            </p>
+            <ul>
+              <li><strong>Disnea de esfuerzo:</strong> Falta de aire al hacer actividad física que antes hacías sin problemas.
+                Si hace 6 meses subías las escaleras sin problema y ahora necesitás parar en el segundo piso,
+                eso es un cambio significativo. El corazón no puede aumentar el gasto cardíaco para cubrir la demanda
+                del ejercicio, y la sangre se acumula en los pulmones</li>
+              <li><strong>Ortopnea:</strong> Falta de aire al acostarte. El paciente necesita dormir con 2-3 almohadas
+                o sentado. ¿Por qué? Porque al acostarse, la sangre se redistribuye hacia el tórax, y un corazón
+                que ya está fallando no puede manejar ese volumen extra. Los pulmones se congestionan. Es un signo
+                clásico de insuficiencia cardíaca</li>
+              <li><strong>Disnea paroxística nocturna (DPN):</strong> El paciente se despierta a las 2-3 de la mañana
+                con sensación de ahogo, necesita sentarse o pararse y abrir la ventana. Dura varios minutos.
+                Es aterrador. Ocurre porque durante el sueño, el cuerpo reabsorbe líquido intersticial que vuelve
+                al torrente sanguíneo, y el corazón insuficiente no lo tolera. <strong>Este síntoma es altamente
+                sugestivo de insuficiencia cardíaca y requiere evaluación urgente</strong></li>
+            </ul>
+            <p>
+              <strong>Importante:</strong> La disnea tiene muchas causas no cardíacas: asma, EPOC, anemia, ansiedad,
+              obesidad. No toda falta de aire es el corazón. Pero cuando la disnea es de aparición reciente,
+              progresiva, o acompañada de edema en las piernas (hinchazón), es cardíaca hasta que se demuestre lo contrario.
+            </p>
+            <p>
+              El estudio básico incluye: radiografía de tórax (para ver congestión pulmonar), ECG, ecocardiograma
+              (para medir la función del ventrículo izquierdo), y un análisis de BNP o NT-proBNP en sangre
+              (marcador de insuficiencia cardíaca). Con estos cuatro estudios, el cardiólogo puede determinar
+              si el corazón es el responsable.
+            </p>
+          </section>
+
+          <section>
+            <h2>Señal 3: Palpitaciones y Ritmo Cardíaco Irregular</h2>
+            <p>
+              Sentir el corazón. Eso es una palpitación. Puede ser que late más rápido, más fuerte, o de manera
+              irregular. La mayoría de las personas experimentan palpitaciones en algún momento de su vida,
+              y la mayoría de las veces son benignas. Pero no siempre.
+            </p>
+            <p>
+              <strong>Palpitaciones benignas (la mayoría):</strong>
+            </p>
+            <ul>
+              <li><strong>Extrasístoles:</strong> Latidos "extras" o "saltados". Son contracciones prematuras
+                del corazón, seguidas de una pausa compensatoria que se siente como un "vuelco". Son extremadamente
+                comunes. El café, el alcohol, el estrés y la falta de sueño los aumentan. Si son aisladas
+                y el corazón es estructuralmente normal, no requieren tratamiento</li>
+              <li><strong>Taquicardia sinusal:</strong> El corazón late más rápido de lo normal pero con ritmo regular.
+                Puede ser por ejercicio, fiebre, anemia, hipertiroidismo, ansiedad, deshidratación.
+                Es una respuesta normal del cuerpo a un estímulo. No es una arritmia</li>
+            </ul>
+            <p>
+              <strong>Palpitaciones que requieren atención:</strong>
+            </p>
+            <ul>
+              <li><strong>Fibrilación auricular (FA):</strong> El corazón late de manera completamente irregular
+                ("como un caballo al galope desordenado"). Es la arritmia sostenida más frecuente. Aumenta el riesgo
+                de ACV (accidente cerebrovascular) porque la sangre se estanca en las aurículas y puede formar coágulos.
+                Requiere anticoagulación y control del ritmo o la frecuencia</li>
+              <li><strong>Taquicardia supraventricular paroxística (TSVP):</strong> Episodios de taquicardia
+                muy rápida (150-220 latidos/minuto) que empiezan y terminan abruptamente. "De repente me empezó
+                a latir a mil y después paró de golpe". Generalmente no es peligrosa pero sí muy sintomática
+                y puede requerir ablación</li>
+              <li><strong>Taquicardia ventricular:</strong> Esta sí es peligrosa. Ritmo rápido que se origina
+                en los ventrículos. Puede causar síncope, hipotensión severa y muerte súbita.
+                Generalmente ocurre en corazones enfermos (post-infarto, miocardiopatía).
+                <strong>Es una emergencia médica</strong></li>
+            </ul>
+            <p>
+              <strong>¿Cuándo preocuparse por las palpitaciones?</strong>
+            </p>
+            <ul>
+              <li><strong>Duran más de unos segundos:</strong> Extrasístoles aisladas son normales. Palpitaciones sostenidas por minutos u horas necesitan evaluación</li>
+              <li><strong>Se acompañan de mareo, presíncope o síncope:</strong> Indica que la arritmia está comprometiendo el gasto cardíaco</li>
+              <li><strong>Se acompañan de dolor de pecho:</strong> Puede haber isquemia asociada</li>
+              <li><strong>Tenés cardiopatía de base:</strong> Infarto previo, miocardiopatía, valvulopatía. Las arritmias en corazones enfermos son más peligrosas</li>
+              <li><strong>Antecedente familiar de muerte súbita:</strong> Especialmente si fue en menores de 50 años. Puede haber una canalopatía o miocardiopatía hereditaria</li>
+            </ul>
+            <p>
+              El estudio básico es un ECG de 12 derivaciones y, si las palpitaciones son intermitentes,
+              un Holter de 24-48 horas. Si el Holter no captura nada, se puede usar un monitor de eventos
+              por 1-2 semanas. También es útil un ecocardiograma para evaluar la estructura del corazón.
+            </p>
+          </section>
+
+          <section>
+            <h2>Señal 4: Desmayos o Sensación de Desmayo (Síncope y Presíncope)</h2>
+            <p>
+              Un desmayo es una pérdida transitoria de la conciencia con recuperación espontánea. El presíncope
+              es la sensación de "me voy a desmayar" sin llegar a perder la conciencia: visión borrosa, piernas
+              flojas, sudoración, sensación de que el mundo se oscurece.
+            </p>
+            <p>
+              La causa del síncope importa mucho, porque hay una diferencia enorme entre un desmayo vasovagal
+              (benigno) y un síncope cardíaco (potencialmente mortal).
+            </p>
+            <p>
+              <strong>Síncope vasovagal (benigno):</strong>
+            </p>
+            <p>
+              Es el desmayo más común. Lo provoca el calor, estar parado mucho tiempo, el dolor intenso,
+              la visión de sangre, la deshidratación. El nervio vago se sobreactiva, baja la frecuencia cardíaca
+              y la presión arterial, y el paciente se desvanece. Generalmente hay pródromos: el paciente siente
+              que se va a desmayar varios segundos antes (náuseas, sudor, visión en túnel). Se recupera rápido
+              y completamente. No es peligroso en sí mismo (salvo el golpe al caer), pero debe diferenciarse
+              del síncope cardíaco.
+            </p>
+            <p>
+              <strong>Síncope cardíaco (peligroso):</strong>
+            </p>
+            <ul>
+              <li><strong>Arritmias:</strong> Taquicardia ventricular, bloqueo auriculoventricular completo,
+                bradicardia severa. El corazón deja de bombear efectivamente por segundos, el cerebro no recibe sangre
+                y el paciente se desmaya. Puede ser la primera manifestación de una cardiopatía grave</li>
+              <li><strong>Estenosis aórtica severa:</strong> La válvula aórtica está tan estrecha que durante el esfuerzo
+                no pasa suficiente sangre al cerebro. El paciente se desmaya durante el ejercicio.
+                Es un signo de enfermedad valvular avanzada que puede requerir reemplazo valvular</li>
+              <li><strong>Miocardiopatía hipertrófica:</strong> Engrosamiento anormal del músculo cardíaco que puede
+                obstruir la salida de sangre del ventrículo, especialmente durante el ejercicio. Es una causa conocida
+                de muerte súbita en deportistas jóvenes</li>
+              <li><strong>Embolia pulmonar:</strong> Un coágulo que llega a los pulmones puede causar hipotensión severa
+                y síncope. Es una emergencia médica</li>
+            </ul>
+            <p>
+              <strong>¿Cómo diferenciarlos?</strong>
+            </p>
+            <ul>
+              <li><strong>Desmayo durante el ejercicio:</strong> Cardíaco hasta que se demuestre lo contrario. Requiere evaluación urgente</li>
+              <li><strong>Desmayo sin pródromos:</strong> "Estaba hablando y de repente me encontré en el piso". Sin aviso. Altamente sospechoso de arritmia</li>
+              <li><strong>Desmayo recurrente:</strong> Más de 2-3 episodios merecen estudio completo</li>
+              <li><strong>Desmayo con palpitaciones previas:</strong> Sugiere arritmia como causa</li>
+              <li><strong>Antecedente de cardiopatía:</strong> Cualquier síncope en un paciente con enfermedad cardíaca conocida es cardíaco hasta que se demuestre lo contrario</li>
+            </ul>
+            <p>
+              El estudio incluye ECG, ecocardiograma, Holter, y en algunos casos, estudio electrofisiológico
+              o tilt test (mesa basculante). El tilt test es especialmente útil para confirmar el síncope vasovagal.
+            </p>
+          </section>
+
+          <section>
+            <h2>Señal 5: Fatiga Inusual e Inexplicable</h2>
+            <p>
+              Esta es la señal más subestimada de todas. La fatiga extrema, la sensación de agotamiento
+              desproporcionado a la actividad realizada, puede ser un signo temprano de insuficiencia cardíaca.
+            </p>
+            <p>
+              ¿Por qué? Porque cuando el corazón no bombea eficientemente, los órganos y los músculos reciben
+              menos sangre oxigenada. El cuerpo prioriza los órganos vitales (cerebro, riñones) y "sacrifica"
+              los músculos periféricos. El resultado: te sentís agotado todo el tiempo, incluso sin hacer nada.
+            </p>
+            <p>
+              <strong>Características de la fatiga cardíaca:</strong>
+            </p>
+            <ul>
+              <li><strong>Desproporcionada:</strong> No está en relación con la actividad. Dormís 8 horas y te levantás destruido. Caminás una cuadra y necesitás sentarte</li>
+              <li><strong>Progresiva:</strong> Empeora con el tiempo. Hace un mes podías hacer las compras sin problema, ahora necesitás descansar</li>
+              <li><strong>Asociada a otros síntomas:</strong> Edema en piernas (retención de líquido), disnea, nicturia (levantarse a orinar de noche varias veces, porque acostado el riñón recibe más sangre y filtra más)</li>
+              <li><strong>No mejora con descanso:</strong> A diferencia de la fatiga por estrés o falta de sueño, la fatiga cardíaca no se resuelve con una buena noche de sueño</li>
+            </ul>
+            <p>
+              <strong>Importante en mujeres:</strong> La fatiga inusual es uno de los síntomas más frecuentes
+              de enfermedad cardíaca en mujeres, incluso más que el dolor de pecho. Las mujeres tienden a presentar
+              síntomas "atípicos": fatiga, náuseas, dolor de espalda, disnea, malestar epigástrico. Estos síntomas
+              son frecuentemente atribuidos a estrés o depresión, retrasando el diagnóstico.
+            </p>
+            <p>
+              Si tenés fatiga inexplicable que dura más de 2-3 semanas, empeora progresivamente, y no se explica
+              por falta de sueño, anemia u otra causa obvia, consultá. Un ecocardiograma y un análisis de BNP
+              pueden descartar o confirmar insuficiencia cardíaca en una sola consulta.
+            </p>
+          </section>
+
+          <section>
+            <h2>¿Cuándo Ir a la Guardia vs. Cuándo Usar Telemedicina?</h2>
+            <p>
+              Esta es una distinción práctica y fundamental. No todo síntoma cardíaco requiere una guardia,
+              pero algunos no admiten demora.
+            </p>
+            <p>
+              <strong>Ir a la guardia AHORA (llamar al 107 o SAME):</strong>
+            </p>
+            <ul>
+              <li><strong>Dolor de pecho opresivo que dura más de 20 minutos</strong> y no cede con el reposo</li>
+              <li><strong>Dolor de pecho acompañado de sudoración fría, náuseas, sensación de muerte</strong></li>
+              <li><strong>Desmayo sin pródromos o durante el ejercicio</strong></li>
+              <li><strong>Disnea severa aguda</strong> (no puede completar una frase sin parar a respirar)</li>
+              <li><strong>Palpitaciones sostenidas con mareo o pérdida de conciencia</strong></li>
+              <li><strong>Edema pulmonar</strong> (sensación de ahogo con espuma rosada al toser)</li>
+            </ul>
+            <p>
+              <strong>Consultá en las próximas 24-48 horas (presencial o telemedicina):</strong>
+            </p>
+            <ul>
+              <li><strong>Angina estable:</strong> Dolor de pecho que aparece con el esfuerzo y cede con el reposo, patrón conocido que no cambió</li>
+              <li><strong>Palpitaciones aisladas sin síntomas acompañantes:</strong> Extrasístoles que notás pero no te marean ni te duelen</li>
+              <li><strong>Fatiga progresiva sin síntomas agudos:</strong> Cansancio que empeoró en las últimas semanas</li>
+              <li><strong>Edema leve en piernas:</strong> Hinchazón que notás al final del día, no severa</li>
+              <li><strong>Disnea de esfuerzo leve:</strong> Te falta un poco el aire al subir escaleras pero podés completar la actividad</li>
+            </ul>
+            <p>
+              <strong>La telemedicina es especialmente útil para:</strong>
+            </p>
+            <ul>
+              <li><strong>Primera orientación:</strong> Un cardiólogo puede evaluar tus síntomas por videollamada y determinar si necesitás estudios urgentes o podés esperar</li>
+              <li><strong>Seguimiento de cardiopatía conocida:</strong> Ajuste de medicación, revisión de laboratorios y estudios</li>
+              <li><strong>Segunda opinión:</strong> Revisar un diagnóstico o plan de tratamiento propuesto por otro médico</li>
+              <li><strong>Educación sobre factores de riesgo:</strong> Cómo modificar hábitos para reducir el riesgo cardiovascular</li>
+            </ul>
+            <p>
+              En AutaMedica podés acceder a un cardiólogo por telemedicina para estas consultas no urgentes,
+              evitando la espera de turnos que a veces demora semanas. Lo importante es no demorar la consulta
+              cuando el síntoma lo amerita.
+            </p>
+          </section>
+
+          <section>
+            <h2>Prevención y Factores de Riesgo</h2>
+            <p>
+              La mejor estrategia contra la enfermedad cardíaca es no llegar a tenerla. Y si ya tenés factores
+              de riesgo, controlarlos agresivamente. Los factores de riesgo cardiovascular se dividen en
+              modificables y no modificables.
+            </p>
+            <p>
+              <strong>Factores no modificables (no podés cambiarlos, pero debés conocerlos):</strong>
+            </p>
+            <ul>
+              <li><strong>Edad:</strong> El riesgo aumenta significativamente después de los 45 años en hombres y 55 en mujeres</li>
+              <li><strong>Sexo:</strong> Los hombres tienen mayor riesgo a edades más tempranas. Las mujeres post-menopáusicas igualan el riesgo</li>
+              <li><strong>Antecedentes familiares:</strong> Padre o hermano con enfermedad coronaria antes de los 55, o madre/hermana antes de los 65. Este factor es especialmente importante y no se puede modificar</li>
+            </ul>
+            <p>
+              <strong>Factores modificables (estos sí los podés cambiar):</strong>
+            </p>
+            <ul>
+              <li><strong>Hipertensión arterial:</strong> El factor de riesgo número 1. Presión mayor a 140/90 mmHg sostenida daña las arterias silenciosamente. Control estricto con medicación y cambios de hábito</li>
+              <li><strong>Dislipidemia:</strong> Colesterol LDL elevado (el "malo") se deposita en las paredes arteriales formando placas. Objetivo de LDL depende del riesgo individual, pero en general menor a 130 mg/dL, y menor a 70 mg/dL en pacientes de alto riesgo</li>
+              <li><strong>Diabetes:</strong> La hiperglucemia crónica daña los vasos sanguíneos. Un diabético mal controlado tiene el mismo riesgo cardiovascular que alguien que ya tuvo un infarto</li>
+              <li><strong>Tabaquismo:</strong> El cigarrillo es probablemente el factor de riesgo más agresivo. No existe un nivel seguro de consumo. Dejar de fumar reduce el riesgo cardiovascular a la mitad en 1 año</li>
+              <li><strong>Sedentarismo:</strong> La actividad física regular (150 minutos semanales de actividad moderada) reduce el riesgo cardiovascular significativamente. No hace falta correr maratones: caminar a paso vivo cuenta</li>
+              <li><strong>Obesidad:</strong> Especialmente la grasa abdominal (visceral). Un perímetro de cintura mayor a 102 cm en hombres o 88 cm en mujeres se asocia a mayor riesgo</li>
+              <li><strong>Estrés crónico:</strong> El cortisol elevado de forma sostenida aumenta la presión arterial, la glucemia y la inflamación. La gestión del estrés no es un lujo, es prevención cardiovascular</li>
+            </ul>
+            <p>
+              <strong>Recomendaciones prácticas:</strong>
+            </p>
+            <ul>
+              <li><strong>Hacete un chequeo cardiovascular anual</strong> a partir de los 40 (o antes si tenés antecedentes familiares): ECG, laboratorio con perfil lipídico y glucemia, y medición de presión</li>
+              <li><strong>Conocé tus números:</strong> Tu presión arterial, tu colesterol total, LDL, HDL, triglicéridos, glucemia en ayunas. Son gratuitos o baratos y pueden salvarte la vida</li>
+              <li><strong>Si fumás, dejá.</strong> Es lo más importante que podés hacer por tu corazón. Consultá con tu médico sobre estrategias de cesación tabáquica</li>
+              <li><strong>Mové el cuerpo:</strong> 30 minutos de caminata 5 días por semana ya marca una diferencia medible</li>
+              <li><strong>Controlá el estrés:</strong> Dormí 7-8 horas. Hacé actividades que disfrutes. Si el estrés es inmanejable, consultá con un profesional de salud mental</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Conclusión: Escuchá a Tu Corazón (Literalmente)</h2>
+            <p>
+              Las 5 señales que cubrimos en este artículo — dolor de pecho, falta de aire, palpitaciones,
+              desmayos y fatiga inusual — son la forma que tiene tu corazón de avisarte que algo no está bien.
+            </p>
+            <p>
+              No todas significan que tenés una enfermedad grave. Muchas veces la causa es benigna: estrés,
+              ansiedad, reflujo, sedentarismo. Pero la única forma de saberlo con certeza es consultar.
+              Un ECG tarda 5 minutos. Un ecocardiograma, 20. Un análisis de sangre, unas horas. Son estudios
+              simples que pueden descartar lo grave y darte tranquilidad.
+            </p>
+            <p>
+              Lo que no debés hacer es ignorar los síntomas. No normalizar lo que no es normal. No esperar
+              a que "pase solo". La enfermedad cardiovascular es tratable, y cuanto más temprano se detecta,
+              mejores son los resultados.
+            </p>
+            <p>
+              Si reconociste alguna de estas señales en vos o en alguien cercano, no lo dejes pasar.
+              Una consulta cardiológica — presencial o por telemedicina — puede ser el primer paso
+              para cuidar tu corazón de verdad.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="article-author">
+          <div class="author-content">
+            <h3>Sobre el Autor</h3>
+            <p>
+              <strong>Dr. Federico Rossi</strong> es cardiólogo con especialización en prevención cardiovascular.
+              Publica sobre educación del paciente cardíaco y detección temprana de enfermedades cardíacas.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="related-articles">
+          <h3>Artículos Relacionados</h3>
+          <div class="related-grid">
+            <a href="/blog/telemedicina-cardiologia" class="related-card">
+              <span class="category">Cardiología</span>
+              <h4>Telemedicina en Cardiología: Consultas Online Seguras</h4>
+            </a>
+            <a href="/blog/guia-consulta-medica-online" class="related-card">
+              <span class="category">Guía Práctica</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+            <a href="/blog/ansiedad-cronica-herramientas" class="related-card">
+              <span class="category">Salud Mental</span>
+              <h4>Ansiedad Crónica: Herramientas</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container {
+    min-height: 100vh;
+    background: var(--au-bg);
+  }
+
+  .article-hero {
+    padding: 4rem var(--section-px) 2rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: #1f2937;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .read-time {
+    color: #a1a1a1;
+    font-size: 0.9rem;
+  }
+
+  .article-image-section {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .article-image-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 4rem var(--section-px);
+  }
+
+  .article-body {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: white;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  section:first-child h2 {
+    margin-top: 0;
+  }
+
+  p {
+    color: #c1c1c1;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+
+  li {
+    color: #c1c1c1;
+    padding: 0.75rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+    font-weight: bold;
+  }
+
+  .article-author {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin: 3rem auto;
+    max-width: 800px;
+  }
+
+  .author-content h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-content p {
+    color: #a1a1a1;
+    margin: 0;
+  }
+
+  .related-articles {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 0 var(--section-px);
+  }
+
+  .related-articles h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .related-card:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-card .category {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .related-card h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+  }
+</style>

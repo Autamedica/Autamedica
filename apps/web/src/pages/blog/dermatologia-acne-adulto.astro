@@ -1,0 +1,629 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Acné en Adultos: Por Qué Aparece y Cómo Tratarlo Según la Evidencia',
+  author: 'Dra. Sofía Ramírez',
+  role: 'Dermatología, AutaMedica',
+  date: '18 de marzo, 2026',
+  readTime: '9 min',
+  image: '/images/article_telemed.webp',
+  category: 'Dermatología',
+};
+---
+
+<Layout
+  title="Acné en Adultos: Por Qué Aparece y Cómo Tratarlo | AutaMedica"
+  description="El acné adulto tiene causas diferentes al adolescente. Hormonas, estrés, productos incorrectos. Tratamientos basados en evidencia y cuándo consultar un dermatólogo."
+  canonical="https://www.autamedica.com/blog/dermatologia-acne-adulto"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-18T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+    <!-- Article Header -->
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+          <section>
+            <h2>El Acné Adulto NO Es el Mismo que el Adolescente</h2>
+            <p>
+              Tenés 30 años, terminaste la adolescencia hace más de una década, y sin embargo te levantás con un brote
+              en la mandíbula que no tenías a los 16. No estás solo. El acné en adultos afecta entre el 12% y el 22%
+              de las mujeres y entre el 3% y el 5% de los hombres mayores de 25 años, según datos publicados en el
+              Journal of the American Academy of Dermatology.
+            </p>
+            <p>
+              Pero hay un error fundamental que comete la mayoría: tratar el acné adulto con las mismas estrategias
+              que funcionaban en la adolescencia. Los mecanismos son diferentes. Las causas son diferentes. Y por lo tanto,
+              el tratamiento debe ser diferente.
+            </p>
+            <p>
+              Este artículo está escrito para adultos que quieren entender por qué les aparece acné ahora, qué dice
+              la evidencia científica sobre los tratamientos disponibles, y cuándo es momento de consultar con un
+              dermatólogo en lugar de seguir probando productos por cuenta propia.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por Qué los Adultos Tienen Acné: Las Causas Reales</h2>
+            <p>
+              El acné adolescente se produce principalmente por el aumento de andrógenos durante la pubertad, que
+              estimulan las glándulas sebáceas. En adultos, el panorama es más complejo.
+            </p>
+            <p>
+              <strong>Hormonas: andrógenos y cortisol.</strong> En mujeres, las fluctuaciones hormonales del ciclo
+              menstrual, el síndrome de ovario poliquístico (SOP), la perimenopausia e incluso la suspensión de
+              anticonceptivos orales generan picos de andrógenos que estimulan la producción de sebo. La
+              deshidroepiandrosterona sulfato (DHEA-S) y la testosterona libre son los principales responsables.
+              En hombres, el acné adulto suele estar vinculado a la sensibilidad periférica de los receptores
+              androgénicos en la piel, más que a niveles absolutos de testosterona.
+            </p>
+            <p>
+              <strong>Cortisol y estrés crónico.</strong> El cortisol, la hormona del estrés, estimula directamente
+              las glándulas sebáceas a través de receptores CRH (hormona liberadora de corticotropina) presentes
+              en los sebocitos. Estudios publicados en Archives of Dermatological Research confirmaron que
+              estudiantes universitarios durante períodos de exámenes presentaban brotes de acné estadísticamente
+              significativos comparados con períodos de vacaciones. El estrés crónico no es un mito dermatológico:
+              es un mecanismo fisiopatológico documentado.
+            </p>
+            <p>
+              <strong>SOP en mujeres.</strong> El síndrome de ovario poliquístico es una de las causas más
+              infradiagnosticadas de acné persistente en mujeres adultas. Si el acné se acompaña de ciclos
+              irregulares, hirsutismo (vello excesivo en mentón, pecho o abdomen) y dificultad para perder peso,
+              es fundamental descartar SOP con análisis hormonal completo. No se puede tratar el acné sin tratar
+              la causa subyacente.
+            </p>
+            <p>
+              <strong>Barrera cutánea dañada.</strong> Años de uso de productos agresivos, limpieza excesiva o
+              tratamientos mal indicados pueden comprometer la función barrera de la piel. Una barrera dañada
+              permite mayor pérdida de agua transepidérmica, genera inflamación compensatoria y, paradójicamente,
+              aumenta la producción de sebo. El resultado: más acné, no menos.
+            </p>
+          </section>
+
+          <section>
+            <h2>Tipos de Acné Adulto: No Todo Es Igual</h2>
+            <p>
+              Identificar correctamente el tipo de acné es el primer paso para elegir el tratamiento adecuado.
+            </p>
+            <ul>
+              <li><strong>Acné comedónico:</strong> Predominan los puntos negros (comedones abiertos) y puntos
+                blancos (comedones cerrados). Poca inflamación. Común en frente y nariz. Responde bien a
+                retinoides tópicos y exfoliantes químicos.</li>
+              <li><strong>Acné inflamatorio:</strong> Pápulas rojas, pústulas, lesiones dolorosas. Hay componente
+                inflamatorio activo. Requiere antiinflamatorios tópicos (peróxido de benzoílo, niacinamida) y
+                posiblemente antibióticos tópicos por tiempo limitado.</li>
+              <li><strong>Acné hormonal (patrón en U):</strong> Se concentra en mandíbula, mentón y cuello.
+                Empeora antes de la menstruación. Lesiones profundas, quísticas, dolorosas. Es el patrón más
+                común en mujeres adultas y el que peor responde a tratamientos tópicos solos. Frecuentemente
+                requiere abordaje hormonal.</li>
+              <li><strong>Acné por fricción o irritación (acné mecánica):</strong> Provocado por barbijos,
+                cascos, apoyo constante de la mano en la mandíbula, o uso de celular contra la mejilla.
+                La solución es reducir la fricción, no agregar más productos.</li>
+            </ul>
+            <p>
+              <strong>Zona T vs. Zona U.</strong> El acné adolescente típicamente afecta la zona T (frente,
+              nariz, mentón central) donde hay mayor densidad de glándulas sebáceas. El acné adulto, especialmente
+              el hormonal, afecta la zona U (mandíbula, mejillas inferiores, cuello). Esta distinción topográfica
+              es diagnósticamente útil y orienta el tratamiento.
+            </p>
+          </section>
+
+          <section>
+            <h2>Errores Comunes: Productos que Empeoran Todo</h2>
+            <p>
+              Antes de hablar de qué funciona, hay que hablar de qué empeora el acné adulto. Estos son los
+              errores más frecuentes que veo en consultorio:
+            </p>
+            <ul>
+              <li><strong>Aceite de coco como humectante:</strong> El aceite de coco es altamente comedogénico
+                (índice de comedogenicidad 4 sobre 5). Obstruye poros. No importa que sea "natural". Aplicarlo
+                en piel acneica es contraproducente.</li>
+              <li><strong>Exfoliantes físicos agresivos (scrubs):</strong> Micropartículas abrasivas (cáscara de
+                nuez, azúcar gruesa, cuentas plásticas) generan microtraumatismos en la piel, diseminan bacterias
+                y empeoran la inflamación. La exfoliación química es superior en todos los estudios comparativos.</li>
+              <li><strong>Limpieza excesiva:</strong> Lavarse la cara 4 o 5 veces al día con jabones astringentes
+                no reduce el acné. Destruye la barrera cutánea, aumenta la producción reactiva de sebo y genera
+                dermatitis irritativa superpuesta al acné. Dos limpiezas al día con un limpiador suave pH 5.5
+                es lo óptimo.</li>
+              <li><strong>Pasta de dientes sobre los granos:</strong> Contiene fluoruro de sodio, sulfato de
+                sodio laurilo y mentol. Irrita la piel, puede generar quemaduras químicas superficiales y no
+                tiene ningún efecto antibacteriano relevante sobre Cutibacterium acnes.</li>
+              <li><strong>Cambiar de producto cada semana:</strong> Los tratamientos dermatológicos necesitan
+                entre 6 y 12 semanas para mostrar resultados. Cambiar cada semana impide evaluar eficacia y
+                puede sensibilizar la piel por acumulación de activos irritantes.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Tratamientos Basados en Evidencia: Qué Realmente Funciona</h2>
+            <p>
+              La dermatología basada en evidencia tiene tratamientos probados con ensayos clínicos controlados.
+              No opiniones. Datos.
+            </p>
+            <p>
+              <strong>Retinoides tópicos: tretinoína y adapaleno.</strong> Los retinoides son el tratamiento
+              de primera línea para acné, avalado por todas las guías internacionales (AAD, EDF, BAD). Actúan
+              normalizando la queratinización folicular (evitan que las células muertas obstruyan el poro),
+              reducen la inflamación mediada por TLR-2 y tienen efecto comedolítico directo. La tretinoína
+              (0.025% a 0.05%) es la más potente pero requiere prescripción médica. El adapaleno (0.1%) es
+              mejor tolerado, tiene menor potencial irritativo y en muchos países es de venta libre. Se aplican
+              por la noche sobre piel seca. Los primeros 2-4 semanas pueden empeorar el acné (purga retinoidea).
+              Resultados significativos a partir de la semana 8-12.
+            </p>
+            <p>
+              <strong>Peróxido de benzoílo: mecanismo y concentración correcta.</strong> El peróxido de benzoílo
+              es bactericida: mata Cutibacterium acnes por liberación de oxígeno libre. A diferencia de los
+              antibióticos, NO genera resistencia bacteriana, lo que lo convierte en un pilar permanente del
+              tratamiento. Error común: usar concentración al 10% pensando que "más es mejor". La evidencia
+              muestra que el peróxido de benzoílo al 2.5% es igual de eficaz que al 10% para reducir lesiones,
+              pero con significativamente menos irritación, descamación y sequedad (estudio de Yentzer et al.,
+              Journal of Drugs in Dermatology). La concentración recomendada es 2.5% a 5%.
+            </p>
+            <p>
+              <strong>Niacinamida (vitamina B3): antiinflamatorio subestimado.</strong> La niacinamida al 4-5%
+              tiene propiedades antiinflamatorias documentadas: reduce la producción de interleucinas
+              proinflamatorias (IL-6, IL-8) y disminuye la producción de sebo. Un ensayo clínico publicado en
+              el International Journal of Dermatology mostró que niacinamida al 4% fue comparable a clindamicina
+              al 1% en reducción de lesiones inflamatorias, sin los riesgos de resistencia antibiótica. Se puede
+              usar mañana y noche. Es compatible con casi todos los activos.
+            </p>
+            <p>
+              <strong>Exfoliantes químicos: AHA y BHA.</strong> El ácido salicílico (BHA, 0.5% a 2%) es
+              liposoluble, penetra dentro del poro y disuelve el sebo acumulado. Es ideal para acné comedónico
+              y piel grasa. Los ácidos alfa-hidroxi (AHA) como el ácido glicólico (5-10%) exfolian la superficie,
+              mejoran textura y manchas post-inflamatorias, pero no penetran el poro. Para acné activo, el BHA
+              es superior. Para post-acné (manchas, textura irregular), el AHA es mejor opción. No combinar
+              ambos en la misma aplicación si la piel está sensibilizada.
+            </p>
+          </section>
+
+          <section>
+            <h2>Tratamientos Hormonales en Mujeres: Cuándo los Indica un Dermatólogo</h2>
+            <p>
+              Cuando el acné adulto en mujeres tiene patrón hormonal claro (zona U, brotes premenstruales,
+              lesiones quísticas profundas) y no responde a 3-4 meses de tratamiento tópico bien hecho, el
+              dermatólogo evalúa opciones hormonales.
+            </p>
+            <p>
+              <strong>Espironolactona.</strong> Es un antiandrógeno que bloquea los receptores de andrógenos
+              en la piel y reduce la producción de sebo. Dosis habitual: 50-150 mg/día. Un metaanálisis de
+              2020 en el Journal of the American Academy of Dermatology confirmó reducción significativa de
+              lesiones inflamatorias y no inflamatorias. Efectos adversos posibles: hiperpotasemia (se
+              monitorea con laboratorio), irregularidades menstruales iniciales, mareos por hipotensión leve.
+              Contraindicada en embarazo (teratogénica). Requiere prescripción y seguimiento médico.
+            </p>
+            <p>
+              <strong>Anticonceptivos orales combinados.</strong> Las píldoras con etinilestradiol +
+              progestágeno antiandrogénico (drospirenona, acetato de ciproterona, desogestrel) reducen los
+              andrógenos circulantes y mejoran el acné hormonal. La FDA aprobó tres formulaciones
+              específicamente para acné. Pero: no todas las píldoras son iguales. Algunas con progestágenos
+              androgénicos (levonorgestrel) pueden empeorar el acné. La elección del anticonceptivo debe ser
+              individualizada por el médico.
+            </p>
+            <p>
+              Estos tratamientos NO son automedicables. Requieren evaluación médica, laboratorio previo
+              (perfil hormonal, función renal para espironolactona) y seguimiento regular.
+            </p>
+          </section>
+
+          <section>
+            <h2>Dieta y Acné: Qué Dice la Evidencia Real</h2>
+            <p>
+              Durante décadas, la dermatología académica dijo que la dieta no influía en el acné. Eso cambió.
+              La evidencia actual es más matizada.
+            </p>
+            <p>
+              <strong>Índice glucémico alto.</strong> Dietas con alto índice glucémico (pan blanco, azúcar
+              refinada, arroz blanco, papas fritas, gaseosas) aumentan la insulina y el IGF-1 (factor de
+              crecimiento insulínico tipo 1). El IGF-1 estimula la producción de andrógenos y sebo. Un
+              ensayo clínico controlado publicado en el American Journal of Clinical Nutrition mostró que
+              pacientes con dieta de bajo índice glucémico tuvieron reducción significativa de lesiones
+              acneicas comparados con el grupo control a las 12 semanas. No es mito: hay mecanismo
+              fisiopatológico y datos clínicos.
+            </p>
+            <p>
+              <strong>Lácteos.</strong> La asociación entre lácteos y acné tiene evidencia epidemiológica
+              moderada. Estudios observacionales grandes (Nurses' Health Study II, Growing Up Today Study)
+              encontraron asociación positiva entre consumo de leche descremada y acné, posiblemente por
+              las hormonas bovinas y el efecto insulinotrópico del suero lácteo. La evidencia es más débil
+              para quesos y yogur. No es necesario eliminar todos los lácteos: si notás que empeora con
+              leche, probá reducirla 4-6 semanas y evaluá.
+            </p>
+            <p>
+              <strong>Chocolate.</strong> Estudios recientes sugieren que el chocolate con leche (por el
+              componente lácteo y azúcar) puede empeorar el acné, pero el chocolate negro con alto porcentaje
+              de cacao (>70%) no mostró asociación significativa. La culpa no es del cacao sino de los
+              acompañantes.
+            </p>
+            <p>
+              <strong>Lo que NO tiene evidencia:</strong> eliminar gluten (salvo celiaquía diagnosticada),
+              "detox" de jugos, suplementos de biotina (puede empeorar el acné), dietas extremadamente
+              restrictivas. La evidencia apoya moderación del índice glucémico y evaluación individual de
+              lácteos, no dietas de eliminación radicales.
+            </p>
+          </section>
+
+          <section>
+            <h2>Rutina de Skincare: Lo que un Dermatólogo Realmente Recomienda</h2>
+            <p>
+              La rutina ideal para acné adulto es simple. Pocos productos, bien elegidos, usados
+              consistentemente. Nada de 12 pasos.
+            </p>
+            <p>
+              <strong>Mañana:</strong>
+            </p>
+            <ul>
+              <li><strong>Limpiador suave pH 5.5:</strong> Sin sulfatos agresivos (evitar sodium lauryl
+                sulfate). Un limpiador con ácido salicílico al 0.5% es una buena opción para piel grasa.
+                Para piel mixta o sensible, limpiador con niacinamida.</li>
+              <li><strong>Sérum de niacinamida al 4-5%:</strong> Antiinflamatorio, regulador de sebo,
+                fortalece barrera cutánea. Se aplica sobre piel húmeda.</li>
+              <li><strong>Protector solar SPF 30-50, oil-free:</strong> Obligatorio. Los retinoides y
+                exfoliantes químicos aumentan la fotosensibilidad. Elegir fórmulas no comedogénicas.
+                Filtros minerales (óxido de zinc, dióxido de titanio) son menos irritantes que los
+                químicos para piel acneica.</li>
+            </ul>
+            <p>
+              <strong>Noche:</strong>
+            </p>
+            <ul>
+              <li><strong>Doble limpieza (si se usó protector solar):</strong> Primero un limpiador oleoso
+                o micelar para remover protector solar. Luego el limpiador suave habitual.</li>
+              <li><strong>Retinoide tópico:</strong> Adapaleno 0.1% o tretinoína 0.025% sobre piel seca
+                (esperar 10-15 minutos post-lavado para reducir irritación). Empezar 2-3 veces por semana
+                e ir aumentando según tolerancia.</li>
+              <li><strong>Humectante no comedogénico:</strong> Sí, incluso piel grasa necesita humectante.
+                Fórmulas con ceramidas y ácido hialurónico reparan la barrera sin obstruir poros.</li>
+            </ul>
+            <p>
+              <strong>Noches sin retinoide:</strong> Se puede usar peróxido de benzoílo al 2.5% como
+              tratamiento puntual sobre lesiones activas, o ácido salicílico al 2% en zonas propensas.
+              Nunca combinar peróxido de benzoílo con retinoides en la misma aplicación (se inactivan
+              mutuamente).
+            </p>
+            <p>
+              Lo más importante: consistencia. Un tratamiento mediocre usado todos los días supera a un
+              tratamiento perfecto usado de forma errática.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo Consultar con un Dermatólogo</h2>
+            <p>
+              El tratamiento por cuenta propia con productos de venta libre tiene límites. Estas son las
+              señales de que necesitás evaluación profesional:
+            </p>
+            <ul>
+              <li><strong>Acné quístico o nodular:</strong> Lesiones profundas, dolorosas, que no drenan
+                solas. Este tipo de acné tiene alto riesgo de cicatrización permanente si no se trata
+                adecuadamente. No responde a tratamientos tópicos solos.</li>
+              <li><strong>Cicatrices activas:</strong> Si ya estás desarrollando cicatrices (depresiones,
+                marcas elevadas), necesitás intervención profesional urgente. Prevenir cicatrices es mucho
+                más fácil que tratarlas después.</li>
+              <li><strong>Sin respuesta a 12 semanas de tratamiento OTC:</strong> Si usaste retinoides y
+                peróxido de benzoílo correctamente durante 3 meses y no hay mejora significativa, el acné
+                probablemente requiere tratamiento sistémico o evaluación hormonal.</li>
+              <li><strong>Sospecha de causa hormonal:</strong> Ciclos irregulares, hirsutismo, caída de
+                cabello con patrón androgénico, acné concentrado en zona U. Necesitás laboratorio hormonal
+                y posiblemente ecografía ovárica.</li>
+              <li><strong>Impacto psicológico significativo:</strong> El acné adulto afecta la autoestima,
+                las relaciones sociales y la productividad laboral. Si el acné te genera ansiedad, evitás
+                situaciones sociales o afecta tu estado de ánimo, buscar tratamiento profesional es
+                prioritario. No es vanidad: es salud mental.</li>
+              <li><strong>Reacciones adversas a productos:</strong> Dermatitis de contacto, quemaduras
+                químicas por uso incorrecto de ácidos, irritación severa por retinoides. Un dermatólogo
+                ajusta la estrategia sin abandonar el tratamiento.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Teledermatología: La Consulta por Foto que Funciona</h2>
+            <p>
+              La dermatología es una de las especialidades más aptas para telemedicina. La razón es simple:
+              la dermatología es visual. Un dermatólogo entrenado puede diagnosticar y tratar acné a partir
+              de fotografías de buena calidad con la misma precisión que en una consulta presencial para la
+              mayoría de los casos.
+            </p>
+            <p>
+              Estudios publicados en JAMA Dermatology y el British Journal of Dermatology demostraron
+              concordancia diagnóstica superior al 80% entre teledermatología y consulta presencial para
+              lesiones de acné. Para seguimiento de tratamiento, la concordancia es aún mayor.
+            </p>
+            <p>
+              <strong>Qué necesitás para una teleconsulta dermatológica efectiva:</strong>
+            </p>
+            <ul>
+              <li><strong>Fotos con buena iluminación natural:</strong> Sin flash. Luz natural indirecta
+                (al lado de una ventana). Fondo neutro.</li>
+              <li><strong>Fotos de cerca y de lejos:</strong> Una foto general del área afectada y fotos
+                de detalle de las lesiones más representativas.</li>
+              <li><strong>Lista de productos actuales:</strong> Todo lo que te ponés en la cara, incluyendo
+                maquillaje, protector solar, limpiador. El dermatólogo necesita saber qué estás usando
+                para evaluar si algo está empeorando el cuadro.</li>
+              <li><strong>Historia de tratamientos previos:</strong> Qué probaste, durante cuánto tiempo,
+                y qué resultado tuvo.</li>
+            </ul>
+            <p>
+              En AutaMedica ofrecemos consultas dermatológicas online donde el dermatólogo evalúa las
+              imágenes, solicita información complementaria si es necesario, y elabora un plan de
+              tratamiento personalizado. Para acné adulto no complicado, es una modalidad eficaz, cómoda
+              y con evidencia que la respalda.
+            </p>
+          </section>
+
+          <section>
+            <h2>Conclusión: Tratá el Acné Adulto Como lo que Es</h2>
+            <p>
+              El acné adulto no es un problema estético menor ni una prolongación del acné adolescente.
+              Tiene causas específicas (hormonales, inflamatorias, de barrera cutánea), tipos
+              diferenciados (comedónico, inflamatorio, hormonal) y tratamientos con evidencia sólida
+              (retinoides, peróxido de benzoílo, niacinamida, espironolactona en casos seleccionados).
+            </p>
+            <p>
+              Lo que NO funciona: automedicarse con productos agresivos, cambiar de rutina cada semana,
+              seguir consejos sin sustento científico, o ignorar el componente hormonal.
+            </p>
+            <p>
+              Lo que SÍ funciona: una rutina simple y consistente, activos con evidencia clínica, paciencia
+              (mínimo 8-12 semanas para evaluar un tratamiento), y consulta profesional cuando los productos
+              de venta libre no alcanzan.
+            </p>
+            <p>
+              Tu piel a los 30 o 40 no es la misma que a los 15. Tratala con la estrategia que corresponde.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="article-author">
+          <div class="author-content">
+            <h3>Sobre el Autor</h3>
+            <p>
+              <strong>Dra. Sofía Ramírez</strong> es dermatóloga con formación en dermatología clínica y estética
+              basada en evidencia. Publica sobre desmitificación del cuidado de la piel y educación dermatológica
+              para pacientes.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="related-articles">
+          <h3>Artículos Relacionados</h3>
+          <div class="related-grid">
+            <a href="/blog/guia-consulta-medica-online" class="related-card">
+              <span class="category">Telemedicina</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="related-card">
+              <span class="category">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+            <a href="/blog/historia-clinica-digital" class="related-card">
+              <span class="category">Tecnología</span>
+              <h4>Historia Clínica Digital</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container {
+    min-height: 100vh;
+    background: var(--au-bg);
+  }
+
+  .article-hero {
+    padding: 4rem var(--section-px) 2rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: #1f2937;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .read-time {
+    color: #a1a1a1;
+    font-size: 0.9rem;
+  }
+
+  .article-image-section {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .article-image-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 4rem var(--section-px);
+  }
+
+  .article-body {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: white;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  section:first-child h2 {
+    margin-top: 0;
+  }
+
+  p {
+    color: #c1c1c1;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+
+  li {
+    color: #c1c1c1;
+    padding: 0.75rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '\2192';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+    font-weight: bold;
+  }
+
+  .article-author {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin: 3rem auto;
+    max-width: 800px;
+  }
+
+  .author-content h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-content p {
+    color: #a1a1a1;
+    margin: 0;
+  }
+
+  .related-articles {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 0 var(--section-px);
+  }
+
+  .related-articles h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .related-card:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-card .category {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .related-card h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+  }
+</style>

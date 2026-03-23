@@ -1,0 +1,588 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Historia Clínica Digital: Por Qué es Crucial para Tu Salud',
+  author: 'Dr. Lucas Fernández',
+  role: 'Medicina Interna, AutaMedica',
+  date: '17 de marzo, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Tecnología Médica',
+};
+---
+
+<Layout
+  title="Historia Clínica Digital: Por Qué es Crucial para Tu Salud | AutaMedica"
+  description="Tu historia clínica digital es tu pasaporte médico. Acceso inmediato a diagnósticos, medicamentos y estudios previos. Cómo funciona y por qué la necesitás."
+  canonical="https://www.autamedica.com/blog/historia-clinica-digital"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-17T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+    <!-- Article Header -->
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+          <section>
+            <h2>El Problema del Papel: Una Historia que se Repite</h2>
+            <p>
+              Pensá en la última vez que fuiste a un médico nuevo. ¿Qué pasó? Probablemente te pidieron que
+              "cuentes todo desde el principio". Tus cirugías, tus alergias, los medicamentos que tomás, los
+              estudios que te hiciste. Todo de memoria. Y probablemente olvidaste algo.
+            </p>
+            <p>
+              En Argentina, la historia clínica de un paciente promedio está repartida entre tres, cuatro o
+              cinco instituciones distintas. Una carpeta en el hospital público donde te operaron hace diez años.
+              Otra en la clínica privada donde te atendés ahora. Resultados de laboratorio en un cajón. Placas
+              de rayos X en una bolsa que ya no encontrás. Recetas escritas a mano que nadie puede descifrar.
+            </p>
+            <p>
+              Este problema no es menor. Según la Organización Mundial de la Salud, los errores médicos derivados
+              de información clínica incompleta o inaccesible son una de las principales causas de eventos adversos
+              evitables en el sistema de salud. Duplicación de estudios, interacciones medicamentosas no detectadas,
+              alergias no registradas: todo esto ocurre cuando tu historia clínica es un rompecabezas con piezas
+              perdidas.
+            </p>
+            <p>
+              La solución existe, y se llama Historia Clínica Electrónica.
+            </p>
+          </section>
+
+          <section>
+            <h2>¿Qué es la Historia Clínica Electrónica (HCE)?</h2>
+            <p>
+              La Historia Clínica Electrónica es la versión digital, estructurada y centralizada de tu historial
+              médico completo. No es simplemente un PDF escaneado de tus papeles viejos. Es un sistema vivo que
+              organiza toda tu información de salud en un formato estandarizado, consultable y actualizable en
+              tiempo real.
+            </p>
+            <p>
+              Una HCE bien implementada incluye:
+            </p>
+            <ul>
+              <li><strong>Datos demográficos y de contacto:</strong> Nombre, fecha de nacimiento, obra social, cobertura, datos de emergencia</li>
+              <li><strong>Antecedentes personales y familiares:</strong> Enfermedades previas, cirugías, internaciones, antecedentes hereditarios relevantes</li>
+              <li><strong>Medicación activa:</strong> Todos los fármacos que tomás actualmente, dosis, frecuencia y médico prescriptor</li>
+              <li><strong>Alergias e intolerancias:</strong> Medicamentosas, alimentarias, ambientales — con nivel de severidad documentado</li>
+              <li><strong>Resultados de laboratorio:</strong> Análisis de sangre, orina, cultivos — con valores históricos para comparar tendencias</li>
+              <li><strong>Estudios de imagen:</strong> Radiografías, tomografías, resonancias, ecografías — con informes e imágenes accesibles</li>
+              <li><strong>Notas de consulta:</strong> Lo que cada médico evaluó, diagnosticó y recomendó en cada visita</li>
+              <li><strong>Vacunación:</strong> Calendario completo de vacunas aplicadas</li>
+            </ul>
+            <p>
+              La diferencia fundamental con el papel es que esta información está estructurada. No es texto libre
+              que cada médico escribe como quiere. Son campos estandarizados que cualquier profesional de salud
+              puede interpretar inmediatamente, sin perder tiempo descifrando caligrafía o buscando entre hojas
+              sueltas.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Marco Legal Argentino: Tu Derecho a Tu Historia Clínica</h2>
+            <p>
+              En Argentina, la Ley 26.529 de Derechos del Paciente establece de manera explícita que toda persona
+              tiene derecho a acceder a su historia clínica completa. No es un favor que te hace el médico o la
+              institución: es tu derecho.
+            </p>
+            <p>
+              La ley establece varios puntos fundamentales:
+            </p>
+            <ul>
+              <li><strong>Derecho de acceso:</strong> Podés solicitar copia de tu historia clínica en cualquier momento, y la institución tiene 48 horas para entregártela</li>
+              <li><strong>Titularidad del paciente:</strong> Aunque el documento físico lo custodia la institución, los datos son tuyos</li>
+              <li><strong>Obligación de conservación:</strong> Las instituciones deben guardar tu historia clínica por un mínimo de 15 años desde la última actuación</li>
+              <li><strong>Consentimiento informado:</strong> Cualquier tratamiento requiere tu consentimiento documentado, que forma parte de la historia clínica</li>
+              <li><strong>Confidencialidad:</strong> Tu información médica es confidencial y solo puede compartirse con tu autorización expresa o por orden judicial</li>
+            </ul>
+            <p>
+              La Ley 27.706, promulgada en 2023, avanzó aún más al establecer el marco para la implementación
+              de la historia clínica electrónica a nivel federal, con el objetivo de lograr interoperabilidad
+              entre los distintos subsistemas de salud del país: público, obras sociales y prepagas. Es un avance
+              significativo, aunque la implementación completa todavía está en proceso.
+            </p>
+            <p>
+              En la práctica, esto significa que la digitalización de tu historia clínica no solo es conveniente:
+              es una política de Estado. Y vos tenés derecho a exigirla.
+            </p>
+          </section>
+
+          <section>
+            <h2>Beneficios para Pacientes: Tu Salud en Tus Manos</h2>
+            <p>
+              <strong>Portabilidad real.</strong> Tu historia clínica digital viaja con vos. Si te mudás de provincia,
+              cambiás de obra social o necesitás atenderte en una guardia de otra ciudad, tu información está disponible.
+              No dependés de que alguien encuentre una carpeta en un archivo, ni de que el médico anterior mande un
+              fax que nunca llega. Desde cualquier dispositivo con conexión a internet, vos o tu médico pueden acceder
+              a tu historial completo.
+            </p>
+            <p>
+              <strong>Completitud sin lagunas.</strong> En el sistema de papel, cada institución tiene un fragmento de tu
+              historia. Tu clínico sabe una cosa, tu cardiólogo otra, y tu traumatólogo una tercera. Nadie tiene la
+              foto completa. Con la HCE, todos los diagnósticos, medicamentos, alergias, resultados de laboratorio y
+              estudios de imagen están en un solo lugar. Tu médico ve TODO, no solo la parte que le corresponde.
+            </p>
+            <p>
+              <strong>Acceso de emergencia.</strong> Imaginá que llegás inconsciente a una guardia. No podés hablar. No tenés
+              un familiar cerca que conozca tu historial. Con una historia clínica digital, el médico de emergencia accede
+              inmediatamente a tus alergias medicamentosas, tus condiciones crónicas, tu medicación actual y tus cirugías
+              previas. Esa información puede ser la diferencia entre un tratamiento correcto y un error fatal.
+            </p>
+            <p>
+              <strong>Reducción de errores médicos.</strong> Los errores de medicación son uno de los problemas más graves del
+              sistema de salud. Un paciente que toma warfarina y le recetan un antiinflamatorio que interactúa peligrosamente.
+              Un paciente alérgico a la penicilina que recibe un antibiótico de la misma familia porque la alergia estaba
+              anotada en una carpeta de otro hospital. Con la HCE, estas interacciones y contraindicaciones se detectan
+              automáticamente antes de que el médico firme la receta.
+            </p>
+            <p>
+              <strong>Eliminación de estudios duplicados.</strong> ¿Cuántas veces te pidieron un análisis de sangre que ya te
+              habías hecho hace dos semanas con otro médico? Cada estudio innecesario es tiempo perdido, dinero gastado y, en
+              el caso de estudios con radiación como tomografías, exposición innecesaria. La HCE elimina esta redundancia porque
+              todos los estudios previos están visibles.
+            </p>
+          </section>
+
+          <section>
+            <h2>Beneficios para Médicos: Mejor Información, Mejores Decisiones</h2>
+            <p>
+              <strong>Diagnóstico más rápido y preciso.</strong> Un médico que recibe un paciente nuevo y tiene acceso a su
+              historia clínica completa puede diagnosticar en minutos lo que de otra manera llevaría semanas de estudios
+              exploratorios. Ver el historial de laboratorios, las imágenes previas, los tratamientos que ya se intentaron
+              y sus resultados permite tomar decisiones informadas desde la primera consulta.
+            </p>
+            <p>
+              <strong>Continuidad de cuidado real.</strong> Cuando un paciente pasa de un clínico a un especialista, del
+              especialista a un cirujano, y del cirujano de vuelta al clínico, cada transición es un punto donde se pierde
+              información. La HCE elimina estas brechas. Cada profesional ve exactamente qué hizo el anterior, qué observó
+              y qué recomendó.
+            </p>
+            <p>
+              <strong>Reconocimiento de patrones asistido por IA.</strong> Este es quizás el avance más transformador. Con datos
+              estructurados y digitalizados, los sistemas de inteligencia artificial pueden analizar el historial completo de
+              un paciente y detectar patrones que un humano podría pasar por alto. Un aumento gradual en ciertos marcadores
+              de laboratorio a lo largo de años. Una correlación entre síntomas reportados en distintas consultas que,
+              vistos en conjunto, sugieren un diagnóstico que ningún médico individual habría conectado.
+            </p>
+            <p>
+              <strong>Reducción de carga administrativa.</strong> Los médicos en Argentina dedican entre el 30% y el 40% de su
+              tiempo a tareas administrativas y documentación. Una HCE bien diseñada reduce ese tiempo significativamente con
+              plantillas inteligentes, dictado automático, autocompletado basado en códigos CIE-10 y generación automática de
+              resúmenes de consulta. Más tiempo con el paciente, menos tiempo con el papeleo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Escenarios Reales donde la HCE Salva Vidas</h2>
+            <p>
+              <strong>Escenario 1: Paciente inconsciente en la guardia.</strong>
+            </p>
+            <p>
+              María, 67 años, llega en ambulancia tras un accidente de tránsito. Está inconsciente. No tiene familiar
+              presente. El médico de guardia accede a su HCE y descubre en segundos que María es alérgica a los opiáceos,
+              toma anticoagulantes orales y tiene antecedente de aneurisma cerebral operado. Esta información cambia
+              completamente el abordaje terapéutico: el equipo evita el analgésico que habría usado por default, ajusta la
+              estrategia quirúrgica por los anticoagulantes y solicita una angiotomografía cerebral de urgencia por el
+              antecedente neuroquirúrgico.
+            </p>
+            <p>
+              Sin la HCE, nada de esto se hubiera sabido hasta que fuera demasiado tarde.
+            </p>
+            <p>
+              <strong>Escenario 2: Especialista con contexto completo.</strong>
+            </p>
+            <p>
+              Roberto consulta a un neumonólogo por tos crónica. El especialista accede a la HCE y ve que el clínico ya
+              pidió una radiografía de tórax (normal), que el otorrinolaringólogo descartó goteo post-nasal, y que Roberto
+              empezó a tomar enalapril para la presión hace seis meses. El neumonólogo reconoce inmediatamente que la tos
+              es un efecto adverso conocido de los inhibidores de la ECA. Le sugiere al clínico cambiar el antihipertensivo
+              y la tos desaparece en dos semanas. Sin la HCE, Roberto habría pasado por tomografía de tórax, fibrobroncoscopía
+              y meses de estudios innecesarios.
+            </p>
+            <p>
+              <strong>Escenario 3: Evitando radiación innecesaria.</strong>
+            </p>
+            <p>
+              Luciana tiene dolor abdominal y el médico de guardia quiere pedir una tomografía. Al consultar la HCE, ve que
+              Luciana se hizo una tomografía abdominal hace tres semanas en otra institución — el informe y las imágenes están
+              disponibles. El resultado fue normal. El médico evita exponer a Luciana a otra dosis de radiación ionizante
+              (equivalente a 200 radiografías de tórax) y decide monitorear clínicamente. Además, el sistema de salud se
+              ahorra el costo del estudio duplicado.
+            </p>
+          </section>
+
+          <section>
+            <h2>Privacidad y Seguridad: Cómo se Protegen tus Datos Médicos</h2>
+            <p>
+              Es razonable preguntarse: si toda mi información médica está en un sistema digital, ¿no es más vulnerable
+              que en una carpeta de papel? La respuesta corta es no. La carpeta de papel la puede leer cualquiera que
+              entre al archivo del hospital. Un sistema digital bien implementado tiene múltiples capas de protección.
+            </p>
+            <ul>
+              <li><strong>Cifrado en tránsito y en reposo:</strong> Toda la información viaja cifrada con TLS 1.3 (el mismo estándar que usa tu banco) y se almacena cifrada con AES-256. Aunque alguien intercepte los datos, sin la clave son ilegibles</li>
+              <li><strong>Control de acceso basado en roles:</strong> No todos ven todo. Tu clínico ve lo que necesita, tu oftalmólogo ve lo que necesita. Cada acceso queda registrado en un log auditable: quién accedió, cuándo, a qué dato y por qué</li>
+              <li><strong>Autenticación multifactor:</strong> Los profesionales de salud acceden con credenciales verificadas y segundo factor de autenticación. No es solo usuario y contraseña</li>
+              <li><strong>Consentimiento del paciente:</strong> Vos controlás quién puede ver tu información. Podés otorgar y revocar accesos en cualquier momento</li>
+              <li><strong>Auditoría permanente:</strong> Cada operación sobre tu historia clínica queda registrada. Si alguien accede sin justificación, es detectable y sancionable</li>
+            </ul>
+            <p>
+              En Argentina, la Ley 25.326 de Protección de Datos Personales clasifica los datos de salud como datos
+              sensibles, otorgándoles el nivel más alto de protección legal. Cualquier sistema que maneje historia clínica
+              electrónica debe cumplir con estos estándares, y la Agencia de Acceso a la Información Pública supervisa
+              su cumplimiento.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Desafío de la Interoperabilidad</h2>
+            <p>
+              El mayor obstáculo para que la HCE funcione como debe en Argentina no es tecnológico: es organizacional.
+              Existen cientos de sistemas distintos en hospitales, clínicas, laboratorios y centros de imagen que no se
+              comunican entre sí.
+            </p>
+            <p>
+              Tu hospital público usa un sistema. Tu prepaga usa otro. El laboratorio donde te hacés los análisis usa
+              un tercero. Y ninguno habla con los demás.
+            </p>
+            <p>
+              La interoperabilidad — la capacidad de que sistemas distintos intercambien información de manera automática
+              y estandarizada — es el santo grial de la salud digital. Los estándares internacionales como HL7 FHIR
+              (Fast Healthcare Interoperability Resources) proporcionan el lenguaje común necesario, pero adoptarlos
+              requiere inversión, voluntad institucional y coordinación a nivel nacional.
+            </p>
+            <p>
+              El Bus de Interoperabilidad Sanitaria que el Ministerio de Salud impulsa desde 2023 busca exactamente esto:
+              crear una capa de comunicación entre los distintos sistemas de salud del país. El progreso es lento pero
+              real, y cada institución que se suma amplía la red de información disponible para cada paciente.
+            </p>
+            <p>
+              Mientras tanto, plataformas como AutaMedica trabajan para resolver este problema desde el lado del paciente:
+              centralizando la información que el paciente genera en cada consulta en un formato estandarizado y accesible,
+              independientemente de qué sistema use cada prestador.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Hace AutaMedica de Forma Diferente</h2>
+            <p>
+              En AutaMedica entendemos que la historia clínica digital no es solo un repositorio de datos. Es una
+              herramienta activa que debe trabajar para el paciente y para el médico.
+            </p>
+            <p>
+              <strong>Anamnesis asistida por inteligencia artificial.</strong> Antes de cada consulta, nuestro sistema guía
+              al paciente a través de un cuestionario inteligente que recopila síntomas, antecedentes y medicación actual
+              de forma estructurada. El médico recibe esta información organizada antes de que empiece la videoconsulta,
+              lo que permite dedicar el tiempo de consulta a lo que realmente importa: evaluar, diagnosticar y tratar.
+            </p>
+            <p>
+              <strong>Datos estructurados desde el origen.</strong> En lugar de notas de texto libre que varían según cada
+              médico, AutaMedica estructura la información clínica con codificación estándar (CIE-10 para diagnósticos,
+              ATC para medicamentos, LOINC para laboratorios). Esto significa que los datos son comparables, analizables y
+              transferibles entre profesionales y sistemas.
+            </p>
+            <p>
+              <strong>Accesibilidad como principio.</strong> Tu historia clínica en AutaMedica es accesible desde cualquier
+              dispositivo, en cualquier momento. Y está diseñada para ser comprensible por el paciente, no solo por el
+              médico. Cada diagnóstico incluye una explicación en lenguaje claro. Cada estudio tiene un resumen de lo
+              que significa para tu salud.
+            </p>
+            <p>
+              <strong>Alertas inteligentes.</strong> El sistema cruza automáticamente tu medicación con nuevas prescripciones,
+              verifica alergias documentadas, detecta estudios duplicados y señala valores de laboratorio fuera de rango
+              comparándolos con tu historial. No reemplaza al médico: le da herramientas para que no se le escape nada.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo Empezar a Construir tu Historia Clínica Digital Hoy</h2>
+            <p>
+              No necesitás esperar a que el sistema de salud se digitalice completamente. Podés empezar a tomar
+              control de tu información médica ahora mismo.
+            </p>
+            <ul>
+              <li><strong>Pedí copia de tu historia clínica:</strong> Tenés derecho por la Ley 26.529. Solicitá copias en cada institución donde te hayas atendido. Guardá todo en formato digital (escaneado o PDF)</li>
+              <li><strong>Mantené un registro actualizado de tu medicación:</strong> Nombre del fármaco, dosis, frecuencia, médico prescriptor y fecha de inicio. Actualizalo cada vez que haya un cambio</li>
+              <li><strong>Registrá tus alergias y reacciones adversas:</strong> Medicamentos, alimentos, sustancias de contraste, látex. Incluí el tipo de reacción (anafilaxia, rash, broncoespasmo)</li>
+              <li><strong>Digitalizá tus estudios:</strong> Pedí los resultados de laboratorio y estudios de imagen en formato digital. La mayoría de los laboratorios y centros de imagen ya ofrecen descarga online</li>
+              <li><strong>Usá una plataforma que centralice todo:</strong> AutaMedica te permite concentrar tu información clínica en un solo lugar, accesible y organizado, que podés compartir con cualquier médico que necesites</li>
+              <li><strong>Llevá tu información a cada consulta:</strong> Hasta que la interoperabilidad sea completa, sé vos quien conecte los puntos. Compartí tu historial con cada nuevo médico</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Conclusión: Tu Historia Clínica es Tu Activo de Salud Más Valioso</h2>
+            <p>
+              La historia clínica no es un trámite burocrático. Es el registro más importante que existe sobre tu salud.
+              Es lo que permite que un médico que te ve por primera vez tome las decisiones correctas. Es lo que evita
+              que te den un medicamento que podría hacerte daño. Es lo que conecta los puntos entre síntomas dispersos
+              para llegar a un diagnóstico temprano.
+            </p>
+            <p>
+              Tenerla en papel, repartida entre cajones y archivos de distintas instituciones, es perder ese valor. Es
+              como tener un mapa del tesoro partido en diez pedazos guardados en diez lugares distintos: técnicamente
+              la información existe, pero no te sirve.
+            </p>
+            <p>
+              La historia clínica digital resuelve esto. La centraliza, la estructura, la protege y la hace accesible
+              cuando más la necesitás. Y en Argentina, tanto la legislación como la tecnología ya están listas para que
+              esto sea una realidad.
+            </p>
+            <p>
+              No esperes a que una emergencia te demuestre por qué era importante tener tu información médica organizada.
+              Empezá hoy. Tu salud futura te lo va a agradecer.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="article-author">
+          <div class="author-content">
+            <h3>Sobre el Autor</h3>
+            <p>
+              <strong>Dr. Lucas Fernández</strong> es médico internista con especialización en sistemas de información en salud.
+              Trabaja en la intersección entre medicina clínica y tecnología, promoviendo la adopción de herramientas digitales
+              que mejoren la atención al paciente.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="related-articles">
+          <h3>Artículos Relacionados</h3>
+          <div class="related-grid">
+            <a href="/blog/telemedicina-revolucion-salud" class="related-card">
+              <span class="category">Telemedicina</span>
+              <h4>¿Por Qué la Telemedicina es la Revolución?</h4>
+            </a>
+            <a href="/blog/guia-consulta-medica-online" class="related-card">
+              <span class="category">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="related-card">
+              <span class="category">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container {
+    min-height: 100vh;
+    background: var(--au-bg);
+  }
+
+  .article-hero {
+    padding: 4rem var(--section-px) 2rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: #1f2937;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .read-time {
+    color: #a1a1a1;
+    font-size: 0.9rem;
+  }
+
+  .article-image-section {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .article-image-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 4rem var(--section-px);
+  }
+
+  .article-body {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: white;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  section:first-child h2 {
+    margin-top: 0;
+  }
+
+  p {
+    color: #c1c1c1;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+
+  li {
+    color: #c1c1c1;
+    padding: 0.75rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+    font-weight: bold;
+  }
+
+  .article-author {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin: 3rem auto;
+    max-width: 800px;
+  }
+
+  .author-content h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-content p {
+    color: #a1a1a1;
+    margin: 0;
+  }
+
+  .related-articles {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 0 var(--section-px);
+  }
+
+  .related-articles h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .related-card:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-card .category {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .related-card h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+  }
+</style>
