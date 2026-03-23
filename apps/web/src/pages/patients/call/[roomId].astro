@@ -1,6 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import { RealVideoCall } from '@/components/patients/telemedicine/RealVideoCall';
+import PatientCallPage from '@/components/patients/calls/PatientCallPage';
 
 const { roomId } = Astro.params;
 const title = `Videollamada | AutaMedica`;
@@ -9,7 +9,7 @@ const description = 'Videollamada con tu médico';
 
 <Layout title={title} description={description} robots="noindex, nofollow, noarchive">
   <main class="page-shell">
-    <RealVideoCall client:load roomId={roomId!} />
+    <PatientCallPage client:load roomId={roomId!} />
   </main>
 </Layout>
 

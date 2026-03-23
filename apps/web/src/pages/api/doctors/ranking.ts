@@ -1,10 +1,12 @@
 import type { APIRoute } from 'astro';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@autamedica/types';
 import { createServerClientFromRequest } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    let supabase;
+    let supabase: SupabaseClient<Database>;
     try {
       supabase = createServerClientFromRequest(request);
     } catch {
@@ -77,24 +79,24 @@ export const GET: APIRoute = async ({ request }) => {
     // Get doctor profiles for the ranked doctors
     let rankedDoctors: Array<Record<string, unknown>> = [];
     if (topRanked && topRanked.length > 0) {
-      const doctorIds = topRanked.map(r => r.doctor_id);
+      const doctorIds = topRanked.map((r: Record<string, unknown>) => r.doctor_id as string);
 
       const { data: doctors } = await supabase
         .from('doctors')
         .select('id, specialty, years_experience, user_id')
         .in('id', doctorIds);
 
-      const userIds = (doctors ?? []).map(d => d.user_id).filter(Boolean);
+      const userIds = (doctors ?? []).map((d: { user_id: string | null }) => d.user_id).filter(Boolean) as string[];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, first_name, last_name')
         .in('id', userIds);
 
-      const profileMap = new Map((profiles ?? []).map(p => [p.id, p]));
-      const doctorMap = new Map((doctors ?? []).map(d => [d.id, d]));
+      const profileMap = new Map((profiles ?? []).map((p: { id: string; first_name: string | null; last_name: string | null }) => [p.id, p]));
+      const doctorMap = new Map((doctors ?? []).map((d: { id: string; user_id: string | null; specialty: string; years_experience: number | null }) => [d.id, d]));
 
-      rankedDoctors = topRanked.map(metrics => {
-        const doctor = doctorMap.get(metrics.doctor_id);
+      rankedDoctors = topRanked.map((metrics: Record<string, unknown>) => {
+        const doctor = doctorMap.get(metrics.doctor_id as string);
         const profile = doctor?.user_id ? profileMap.get(doctor.user_id) : null;
         return {
           ...metrics,
