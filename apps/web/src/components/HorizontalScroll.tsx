@@ -3,7 +3,9 @@
 import { gsap } from 'gsap';
 import { ScrollToPlugin } from 'gsap/dist/ScrollToPlugin';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getClientI18n } from '../i18n';
+import type { Locale } from '../i18n';
 import { MagneticButton } from './ui/MagneticButton';
 
 if (typeof window !== 'undefined') {
@@ -23,62 +25,19 @@ interface Portal {
   name: string;
   color: string;
   description: string;
-  features: string[];
+  features: readonly string[];
   cta: string;
   href: string;
   video: string;
 }
 
-const portals: Portal[] = [
-  {
-    name: 'Pacientes',
-    color: 'var(--portal-patients)',
-    description: 'Portal clínico personal con acceso a recetas, historial propio y triage virtual.',
-    features: [
-      'Videoconsultas P2P',
-      'Historia clínica unificada',
-      'Gestor de turnos',
-      'Emisión de recetas digitales'
-    ],
-    cta: 'Acceder como paciente',
-    href: '/auth/select-role',
-    video: '/videos/video1.mp4',
-  },
-  {
-    name: 'Profesionales',
-    color: 'var(--portal-doctors)',
-    description: 'Infraestructura para telemedicina y gestión electrónica de pacientes.',
-    features: [
-      'Consultorio virtual seguro',
-      'Vademécum integrado',
-      'Transcripción clínica por IA',
-      'Firma digital de documentos'
-    ],
-    cta: 'Portal médico',
-    href: '/auth/select-role',
-    video: '/videos/video2.mp4',
-  },
-  {
-    name: 'Empresas',
-    color: 'var(--portal-companies)',
-    description: 'Panel de control para seguimiento de ausentismo y medicina ocupacional.',
-    features: [
-      'Dashboard de métricas agregadas',
-      'Subida de aptos físicos',
-      'Validación de certificados',
-      'Asignación de coberturas'
-    ],
-    cta: 'Portal corporativo',
-    href: '/auth/select-role',
-    video: '/videos/video3.mp4',
-  },
+const PORTAL_META = [
+  { color: 'var(--portal-patients)', href: '/auth/select-role', video: '/videos/video1.mp4' },
+  { color: 'var(--portal-doctors)', href: '/auth/select-role', video: '/videos/video2.mp4' },
+  { color: 'var(--portal-companies)', href: '/auth/select-role', video: '/videos/video3.mp4' },
 ];
 
-const portalHex: Record<string, string> = {
-  Pacientes: '#10b981',
-  Profesionales: '#3b82f6',
-  Empresas: '#f59e0b',
-};
+const PORTAL_HEX = ['#10b981', '#3b82f6', '#f59e0b'];
 
 function CheckIcon({ hex }: { hex: string }) {
   return (
@@ -96,7 +55,13 @@ function ArrowIcon() {
   );
 }
 
-export default function HorizontalScroll() {
+export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale }) {
+  const { dict } = getClientI18n(locale);
+  const portals: Portal[] = useMemo(
+    () => dict.landing.horizontalScroll.portals.map((p, i) => ({ ...p, ...PORTAL_META[i] })),
+    [dict],
+  );
+
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -231,7 +196,7 @@ export default function HorizontalScroll() {
       aria-label="Portales de acceso"
       style={containerStyle}
     >
-      <h2 className="sr-only">Nuestros Portales</h2>
+      <h2 className="sr-only">{locale === 'pt' ? 'Nossos Portais' : 'Nuestros Portales'}</h2>
 
       {/* Track */}
       <div
@@ -240,7 +205,7 @@ export default function HorizontalScroll() {
         className={isMobile ? 'hide-scrollbar' : ''}
       >
         {portals.map((portal, index) => {
-          const hex = portalHex[portal.name] || '#ffffff';
+          const hex = PORTAL_HEX[index] ?? '#ffffff';
           const isFocused = isMobile ? true : activeIndex === index;
 
           return (

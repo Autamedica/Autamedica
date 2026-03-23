@@ -50,11 +50,11 @@ const {
           <h2 class="symptom-title">{t('landing.symptomTitle')}</h2>
           <p class="symptom-subtitle">{t('landing.symptomSubtitle')}</p>
         </div>
-        <SymptomChecker client:visible />
+        <SymptomChecker locale={locale} client:visible />
       </div>
     </section>
 
-    <HorizontalScroll client:visible />
+    <HorizontalScroll locale={locale} client:visible />
 
     <Process />
     <Testimonials />
