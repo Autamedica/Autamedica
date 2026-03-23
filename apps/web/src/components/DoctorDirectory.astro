@@ -244,24 +244,24 @@ const doctors = dict.landing.doctorDirectory.doctors.map((d, i) => ({
   }
 
   const initMarquee = () => {
-    const marquee = document.querySelector('.doctor-marquee') as HTMLElement | null;
-    const wrapper = document.querySelector('.directory-marquee-wrapper') as HTMLElement | null;
+    const marqueeEl = document.querySelector('.doctor-marquee');
+    const wrapperEl = document.querySelector('.directory-marquee-wrapper');
 
-    if (marquee && wrapper) {
+    if (marqueeEl instanceof HTMLElement && wrapperEl instanceof HTMLElement) {
       // GPU-accelerate the animated element
-      marquee.style.willChange = 'transform';
+      marqueeEl.style.willChange = 'transform';
 
-      const containerWidth = marquee.offsetWidth;
+      const containerWidth = marqueeEl.offsetWidth;
       const windowWidth = window.innerWidth;
       
       if (containerWidth > windowWidth) {
         const scrollDistance = containerWidth - windowWidth + 64; 
         
-        gsap.to(marquee, {
+        gsap.to(marqueeEl, {
           x: -scrollDistance,
           ease: 'none',
           scrollTrigger: {
-            trigger: wrapper,
+            trigger: wrapperEl,
             start: 'center center',
             end: () => `+=${scrollDistance}`,
             scrub: 1,

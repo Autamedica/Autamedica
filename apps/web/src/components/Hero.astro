@@ -1,5 +1,4 @@
 ---
-import { TextReveal } from './ui/TextReveal';
 import { MagneticButton } from './ui/MagneticButton';
 
 interface Metric {
@@ -49,6 +48,8 @@ const safeSecondaryCtaLabel = secondaryCtaLabel ?? '';
 const safeSecondaryCtaHref = secondaryCtaHref ?? '';
 const metricItems = Array.isArray(metrics) ? metrics : [];
 const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
+
+const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w => w.trim() !== ''));
 ---
 
 <section class="hero" aria-label="Presentacion principal">
@@ -70,11 +71,20 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
 
   <div class="hero-content">
     <p class="hero-badge">{safeBadge}</p>
-    <TextReveal text={safeTitle} className="hero-title" client:load delay={0.4} />
+    <h1 id="hero-title" class="hero-title">
+      {titleWords.map((line, li) => (
+        <>
+          {line.map((word) => (
+            <span class="hero-word"><span class="hero-word-inner">{word}</span></span>
+          ))}
+          {li < titleWords.length - 1 && <br />}
+        </>
+      ))}
+    </h1>
     {safeTitleAccent && <span class="hero-title-accent">{safeTitleAccent}</span>}
     <p class="hero-subtitle">{safeSubtitle}</p>
     <div class="hero-actions">
-      <MagneticButton client:load>
+      <MagneticButton client:idle>
         <a href={safePrimaryCtaHref} class="btn-primary">
           {safePrimaryCtaLabel}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -82,7 +92,7 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
           </svg>
         </a>
       </MagneticButton>
-      <MagneticButton client:load>
+      <MagneticButton client:idle>
         <a href={safeSecondaryCtaHref} class="btn-secondary">
           {safeSecondaryCtaLabel}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -182,6 +192,40 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
     letter-spacing: -0.05em;
     color: var(--au-text-primary);
     margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.3em;
+  }
+
+  .hero-word {
+    display: inline-block;
+    overflow: hidden;
+    padding-bottom: 0.05em;
+  }
+
+  .hero-word-inner {
+    display: inline-block;
+    animation: hero-word-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .hero-word:nth-child(1) .hero-word-inner { animation-delay: 0.1s; }
+  .hero-word:nth-child(2) .hero-word-inner { animation-delay: 0.15s; }
+  .hero-word:nth-child(3) .hero-word-inner { animation-delay: 0.2s; }
+  .hero-word:nth-child(4) .hero-word-inner { animation-delay: 0.25s; }
+  .hero-word:nth-child(5) .hero-word-inner { animation-delay: 0.3s; }
+  .hero-word:nth-child(6) .hero-word-inner { animation-delay: 0.35s; }
+  .hero-word:nth-child(7) .hero-word-inner { animation-delay: 0.4s; }
+  .hero-word:nth-child(8) .hero-word-inner { animation-delay: 0.45s; }
+
+  @keyframes hero-word-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(100%) rotate(3deg);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) rotate(0deg);
+    }
   }
 
   .hero-title-accent {
@@ -331,6 +375,10 @@ const shortcutItems = Array.isArray(roleQuickAccess) ? roleQuickAccess : [];
     .hero-content {
       text-align: center;
       padding: clamp(5rem, 12vh, 8rem) var(--section-px) var(--space-12);
+    }
+
+    .hero-title {
+      justify-content: center;
     }
 
     .hero-actions {
