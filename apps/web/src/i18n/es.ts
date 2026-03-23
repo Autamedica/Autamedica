@@ -184,6 +184,8 @@ export const es = {
       ],
     },
     valueProps: {
+      label: 'La Diferencia',
+      tagline: 'Menos burocracia. Más medicina.',
       items: [
         {
           title: 'Privacidad por diseño',
@@ -226,10 +228,83 @@ export const es = {
       subtitle: 'Verificados en Argentina, Colombia, Perú y más. Disponibles hoy, no la semana que viene.',
       available: 'Disponible',
       yearsExp: 'años exp.',
+      today: 'hoy',
+      tomorrow: 'mañana',
+      ctaText: 'Más de 150 médicos matriculados disponibles en AutaMédica',
+      ctaLink: 'Ver todas las especialidades',
+      doctors: [
+        { name: 'Dr. Martín Álvarez', specialty: 'Medicina General', languages: ['Español'] },
+        { name: 'Dra. Carolina Vega', specialty: 'Cardiología', languages: ['Español', 'Inglés'] },
+        { name: 'Dr. Lucas Fernández', specialty: 'Dermatología', languages: ['Español'] },
+        { name: 'Dra. Sofía Ramírez', specialty: 'Pediatría', languages: ['Español', 'Portugués'] },
+        { name: 'Dr. Nicolás Herrera', specialty: 'Neurología', languages: ['Español', 'Inglés'] },
+        { name: 'Dra. Valentina López', specialty: 'Ginecología y Obstetricia', languages: ['Español'] },
+      ],
     },
     healthContent: {
       title: 'Para entender lo que te pasa',
       subtitle: 'Artículos escritos por los médicos que atienden en AutaMédica, no por redactores de contenido',
+      comingSoon: 'Más artículos cada semana, escritos por los médicos que también atienden en AutaMédica.',
+      articles: [
+        {
+          tag: 'Prevención',
+          title: '5 señales de alerta cardíaca que no hay que ignorar',
+          excerpt: 'El dolor de pecho no es la única señal. Hay síntomas sutiles que pueden indicar un problema cardiovascular y que muchas veces se confunden con estrés o cansancio.',
+          author: 'Dra. Carolina Vega',
+          authorRole: 'Cardiología',
+          date: 'Feb 2026',
+        },
+        {
+          tag: 'Telemedicina',
+          title: 'Consulta virtual o presencial: cuándo conviene cada una',
+          excerpt: 'No toda consulta requiere ir al consultorio. Esta guía explica cuándo una videoconsulta es igual de efectiva, y cuándo es mejor ir en persona.',
+          author: 'Dr. Martín Álvarez',
+          authorRole: 'Medicina General',
+          date: 'Feb 2026',
+        },
+        {
+          tag: 'Salud Mental',
+          title: 'Ansiedad crónica: herramientas que funcionan sin medicación',
+          excerpt: 'Estrategias basadas en evidencia para gestionar la ansiedad del día a día. Técnicas que podés aplicar ahora mismo, respaldadas por la ciencia.',
+          author: 'Dr. Pablo Gutiérrez',
+          authorRole: 'Psiquiatría',
+          date: 'Ene 2026',
+        },
+      ],
+    },
+    symptomChecker: {
+      symptoms: [
+        { id: 'headache', label: 'Dolor de cabeza', specialty: 'Neurología', description: 'Un neurólogo puede evaluar cefaleas frecuentes, migrañas y otros trastornos del sistema nervioso.' },
+        { id: 'chest', label: 'Dolor en el pecho', specialty: 'Cardiología', description: 'Un cardiólogo puede evaluar dolor torácico, palpitaciones, presión arterial y salud cardiovascular.' },
+        { id: 'skin', label: 'Problemas de piel', specialty: 'Dermatología', description: 'Un dermatólogo puede evaluar erupciones, acné, manchas, alergias cutáneas y lesiones de piel.' },
+        { id: 'stomach', label: 'Problemas digestivos', specialty: 'Gastroenterología', description: 'Un gastroenterólogo puede evaluar acidez, reflujo, dolor abdominal y trastornos digestivos.' },
+        { id: 'anxiety', label: 'Ansiedad o estrés', specialty: 'Psiquiatría', description: 'Un psiquiatra puede evaluar ansiedad, estrés crónico, insomnio y trastornos del ánimo.' },
+        { id: 'joints', label: 'Dolor articular', specialty: 'Reumatología', description: 'Un reumatólogo puede evaluar dolor en articulaciones, rigidez matutina y enfermedades autoinmunes.' },
+        { id: 'child', label: 'Fiebre en niños', specialty: 'Pediatría', description: 'Un pediatra puede evaluar fiebre, infecciones, crecimiento y salud general de niños y adolescentes.' },
+        { id: 'fatigue', label: 'Cansancio persistente', specialty: 'Endocrinología', description: 'Un endocrinólogo puede evaluar fatiga crónica, problemas de tiroides, metabolismo y desequilibrios hormonales.' },
+      ],
+    },
+    horizontalScroll: {
+      portals: [
+        {
+          name: 'Pacientes',
+          description: 'Portal clínico personal con acceso a recetas, historial propio y triage virtual.',
+          features: ['Videoconsultas P2P', 'Historia clínica unificada', 'Gestor de turnos', 'Emisión de recetas digitales'],
+          cta: 'Acceder como paciente',
+        },
+        {
+          name: 'Profesionales',
+          description: 'Infraestructura para telemedicina y gestión electrónica de pacientes.',
+          features: ['Consultorio virtual seguro', 'Vademécum integrado', 'Transcripción clínica por IA', 'Firma digital de documentos'],
+          cta: 'Portal médico',
+        },
+        {
+          name: 'Empresas',
+          description: 'Panel de control para seguimiento de ausentismo y medicina ocupacional.',
+          features: ['Dashboard de métricas agregadas', 'Subida de aptos físicos', 'Validación de certificados', 'Asignación de coberturas'],
+          cta: 'Portal corporativo',
+        },
+      ],
     },
     intentLinks: {
       title: '¿Qué necesitás hacer hoy?',

@@ -1,0 +1,388 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: '¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina?',
+  author: 'Dra. Carolina Vega',
+  role: 'Cardiología, AutaMedica',
+  date: '22 de marzo, 2026',
+  readTime: '7 min',
+  image: '/images/article_cardio.png',
+  category: 'Telemedicina',
+};
+---
+
+<Layout
+  title="¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina? | AutaMedica"
+  description="La telemedicina está transformando cómo accedemos a la salud. Menos esperas, más especialistas disponibles, atención de calidad. Descubrí cómo funciona."
+  canonical="https://www.autamedica.com/blog/telemedicina-revolucion-salud"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-22T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+    <!-- Article Header -->
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+          <section>
+            <h2>Introducción: El Cambio que Argentina Necesitaba</h2>
+            <p>
+              Argentina enfrenta un desafío crítico en salud: esperas interminables, falta de especialistas en el interior,
+              y dificultad para acceder a atención de calidad. La telemedicina no es una solución futurista — es la solución presente.
+            </p>
+            <p>
+              En 2023, durante la pandemia aceleró su adopción, pero hoy es una realidad consolidada. Más de 15 millones de argentinos
+              ya utilizan consultas virtuales. La pregunta ya no es "¿funciona?", sino "¿cómo la aprovecho?"
+            </p>
+          </section>
+
+          <section>
+            <h2>1. Menos Esperas, Más Acceso</h2>
+            <p>
+              Una consulta médica presencial en Buenos Aires puede llevar semanas de espera. En provincias, puede llevar meses.
+              La telemedicina cambia esto radicalmente:
+            </p>
+            <ul>
+              <li><strong>Consulta en menos de 24h:</strong> Elegís el horario que te conviene</li>
+              <li><strong>Disponibilidad 24/7:</strong> Médicos disponibles a cualquier hora</li>
+              <li><strong>Sin desplazamientos:</strong> Desde tu casa, oficina o donde estés</li>
+              <li><strong>Sin filas de espera:</strong> La consulta comienza cuando dicen</li>
+            </ul>
+            <p>
+              Para pacientes con síntomas leves, infecciones o seguimiento de enfermedades crónicas, la telemedicina es
+              perfecta. No es sustituto de la urgencia, pero sí para la mayoría de casos.
+            </p>
+          </section>
+
+          <section>
+            <h2>2. Acceso a Especialistas Antes Inalcanzables</h2>
+            <p>
+              En Jujuy, encontrar un cardiólogo con disponibilidad puede ser misión imposible. En telemedicina,
+              tenés acceso a especialistas de Buenos Aires, Córdoba, Rosario — al instante.
+            </p>
+            <p>
+              Esto es especialmente importante para:
+            </p>
+            <ul>
+              <li>Enfermedades raras que requieren subespecialistas</li>
+              <li>Segundas opiniones médicas</li>
+              <li>Seguimiento de condiciones crónicas</li>
+              <li>Evaluación urgente de síntomas</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>3. Costo Significativamente Más Bajo</h2>
+            <p>
+              Una consulta privada en Argentina cuesta entre $2,000 y $5,000 ARS (presencial).
+              Una consulta online cuesta entre $800 y $2,000 ARS — sin gastos de transporte ni tiempo perdido.
+            </p>
+            <p>
+              Para familias con múltiples miembros o personas con enfermedades crónicas que requieren seguimiento regular,
+              el ahorro es sustancial.
+            </p>
+          </section>
+
+          <section>
+            <h2>4. Histórico Clínico Centralizado</h2>
+            <p>
+              En telemedicina, tu historial está siempre disponible:
+            </p>
+            <ul>
+              <li>Medicamentos que tomaste previamente</li>
+              <li>Resultados de estudios anteriores</li>
+              <li>Diagnósticos previos</li>
+              <li>Alergias y reacciones adversas</li>
+            </ul>
+            <p>
+              Esto reduce errores médicos, evita duplicación de estudios y acelera diagnósticos.
+            </p>
+          </section>
+
+          <section>
+            <h2>5. Recetas Digitales y Entregas en Farmacia</h2>
+            <p>
+              La receta digital es legal en Argentina desde 2021. El médico te envía la receta tras la consulta,
+              y la presentas en cualquier farmacia — sin papeles físicos, sin errores de lectura.
+            </p>
+          </section>
+
+          <section>
+            <h2>¿Cuándo la Telemedicina NO es Suficiente?</h2>
+            <p>
+              La telemedicina es excelente, pero no es para todo. No es apropiada cuando:
+            </p>
+            <ul>
+              <li><strong>Emergencias severas:</strong> Traumatismos, dolor de pecho, accidente cerebrovascular</li>
+              <li><strong>Examen físico detallado:</strong> Algunos casos requieren palpación, auscultación</li>
+              <li><strong>Procedimientos:</strong> Cirugías, biopsias, inyecciones</li>
+              <li><strong>Pacientes que no saben usar tecnología:</strong> (aunque cada vez menos)</li>
+            </ul>
+            <p>
+              La telemedicina y la medicina presencial no compiten — se complementan.
+            </p>
+          </section>
+
+          <section>
+            <h2>Conclusión: El Futuro es Ahora</h2>
+            <p>
+              La telemedicina en Argentina dejó de ser tendencia para convertirse en realidad consolidada.
+              En los próximos 5 años, será el modelo estándar para consultas iniciales, seguimientos y evaluaciones rutinarias.
+            </p>
+            <p>
+              Si todavía no probaste, es hora de hacerlo. Tu salud y tu bolsillo te lo agradecerán.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="article-author">
+          <div class="author-content">
+            <h3>Sobre la Autora</h3>
+            <p>
+              <strong>Dra. Carolina Vega</strong> es cardióloga con especialización en cardiología interventiva.
+              Trabaja en AutaMedica desde 2024 brindando consultas virtuales de cardiología.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="related-articles">
+          <h3>Artículos Relacionados</h3>
+          <div class="related-grid">
+            <a href="/blog/5-senales-alerta-cardiaca" class="related-card">
+              <span class="category">Cardiología</span>
+              <h4>5 Señales de Alerta Cardíaca que No Hay que Ignorar</h4>
+            </a>
+            <a href="/blog/historia-clinica-digital" class="related-card">
+              <span class="category">Tecnología Médica</span>
+              <h4>Historia Clínica Digital: Por Qué es Crucial para tu Salud</h4>
+            </a>
+            <a href="/telemedicina-argentina" class="related-card">
+              <span class="category">Telemedicina</span>
+              <h4>Telemedicina en Argentina Sin Fricciones</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container {
+    min-h-screen;
+    background: var(--au-bg);
+  }
+
+  .article-hero {
+    padding: 4rem var(--section-px) 2rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
+    border-bottom: 1px solid var(--au-border);
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .back-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-size: 0.95rem;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    transition: color 0.3s;
+  }
+
+  .back-link:hover {
+    color: #1f2937;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .category {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .read-time {
+    color: #a1a1a1;
+    font-size: 0.9rem;
+  }
+
+  .article-image-section {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .article-image-section img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 4rem var(--section-px);
+  }
+
+  .article-body {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  section {
+    margin-bottom: 3rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: white;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  section:first-child h2 {
+    margin-top: 0;
+  }
+
+  p {
+    color: #c1c1c1;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+
+  li {
+    color: #c1c1c1;
+    padding: 0.75rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #3b82f6;
+    font-weight: bold;
+  }
+
+  .article-author {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    margin: 3rem auto;
+    max-width: 800px;
+  }
+
+  .author-content h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .author-content p {
+    color: #a1a1a1;
+    margin: 0;
+  }
+
+  .related-articles {
+    max-width: 800px;
+    margin: 4rem auto;
+    padding: 0 var(--section-px);
+  }
+
+  .related-articles h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .related-card {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s;
+  }
+
+  .related-card:hover {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .related-card .category {
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .related-card h4 {
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin: 0;
+  }
+</style>

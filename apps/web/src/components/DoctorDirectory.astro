@@ -1,57 +1,23 @@
 ---
 import { getI18n } from '../i18n';
 const locale = Astro.locals.locale ?? 'es';
-const { t } = getI18n(locale);
-const doctors = [
-  {
-    name: "Dr. Martín Álvarez",
-    specialty: "Medicina General",
-    experience: 12,
-    languages: ["Español"],
-    available: true,
-    photo: "/images/doctors/martin-alvarez.png",
-  },
-  {
-    name: "Dra. Carolina Vega",
-    specialty: "Cardiología",
-    experience: 8,
-    languages: ["Español", "Inglés"],
-    available: true,
-    photo: "/images/doctors/carolina-vega.png",
-  },
-  {
-    name: "Dr. Lucas Fernández",
-    specialty: "Dermatología",
-    experience: 15,
-    languages: ["Español"],
-    available: false,
-    photo: "/images/doctors/lucas-fernandez.png",
-  },
-  {
-    name: "Dra. Sofía Ramírez",
-    specialty: "Pediatría",
-    experience: 10,
-    languages: ["Español", "Portugués"],
-    available: true,
-    photo: "/images/doctors/sofia-ramirez.png",
-  },
-  {
-    name: "Dr. Nicolás Herrera",
-    specialty: "Neurología",
-    experience: 20,
-    languages: ["Español", "Inglés"],
-    available: false,
-    photo: "/images/doctors/nicolas-herrera.png",
-  },
-  {
-    name: "Dra. Valentina López",
-    specialty: "Ginecología y Obstetricia",
-    experience: 7,
-    languages: ["Español"],
-    available: true,
-    photo: "/images/doctors/valentina-lopez.png",
-  },
+const { t, dict } = getI18n(locale);
+const PHOTOS = [
+  "/images/doctors/martin-alvarez.png",
+  "/images/doctors/carolina-vega.png",
+  "/images/doctors/lucas-fernandez.png",
+  "/images/doctors/sofia-ramirez.png",
+  "/images/doctors/nicolas-herrera.png",
+  "/images/doctors/valentina-lopez.png",
 ];
+const EXPERIENCE = [12, 8, 15, 10, 20, 7];
+const AVAILABLE = [true, true, false, true, false, true];
+const doctors = dict.landing.doctorDirectory.doctors.map((d, i) => ({
+  ...d,
+  experience: EXPERIENCE[i],
+  available: AVAILABLE[i],
+  photo: PHOTOS[i],
+}));
 ---
 
 <section id="profesionales" class="directory" aria-label="Nuestros profesionales">
@@ -76,7 +42,7 @@ const doctors = [
               </div>
               <div class="doctor-availability">
                 <span class={`status-dot ${d.available ? 'available' : ''}`} aria-hidden="true" />
-                <span>{d.available ? `${t('landing.doctorDirectory.available')} hoy` : `${t('landing.doctorDirectory.available')} mañana`}</span>
+                <span>{d.available ? `${t('landing.doctorDirectory.available')} ${t('landing.doctorDirectory.today')}` : `${t('landing.doctorDirectory.available')} ${t('landing.doctorDirectory.tomorrow')}`}</span>
               </div>
             </div>
           </article>
@@ -85,9 +51,9 @@ const doctors = [
     </div>
 
     <div class="directory-cta animate-on-scroll">
-      <p class="directory-cta-text">Más de 150 médicos matriculados disponibles en AutaMédica</p>
+      <p class="directory-cta-text">{t('landing.doctorDirectory.ctaText')}</p>
       <a href="#sintomas" class="directory-cta-link">
-        Ver todas las especialidades
+        {t('landing.doctorDirectory.ctaLink')}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
     </div>

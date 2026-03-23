@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { getClientI18n } from '../i18n';
+import type { Locale } from '../i18n';
 
 interface Symptom {
   id: string;
@@ -69,69 +71,27 @@ const EnergyIcon = () => (
   </svg>
 );
 
-const SYMPTOMS: Symptom[] = [
-  {
-    id: 'headache',
-    label: 'Dolor de cabeza',
-    icon: <BrainIcon />,
-    specialty: 'Neurologia',
-    description: 'Un neurologo puede evaluar cefaleas frecuentes, migranas y otros trastornos del sistema nervioso.',
-  },
-  {
-    id: 'chest',
-    label: 'Dolor en el pecho',
-    icon: <HeartIcon />,
-    specialty: 'Cardiologia',
-    description: 'Un cardiologo puede evaluar dolor toracico, palpitaciones, presion arterial y salud cardiovascular.',
-  },
-  {
-    id: 'skin',
-    label: 'Problemas de piel',
-    icon: <SkinIcon />,
-    specialty: 'Dermatologia',
-    description: 'Un dermatologo puede evaluar erupciones, acne, manchas, alergias cutaneas y lesiones de piel.',
-  },
-  {
-    id: 'stomach',
-    label: 'Problemas digestivos',
-    icon: <StomachIcon />,
-    specialty: 'Gastroenterologia',
-    description: 'Un gastroenterologo puede evaluar acidez, reflujo, dolor abdominal y trastornos digestivos.',
-  },
-  {
-    id: 'anxiety',
-    label: 'Ansiedad o estres',
-    icon: <MindIcon />,
-    specialty: 'Psiquiatria',
-    description: 'Un psiquiatra puede evaluar ansiedad, estres cronico, insomnio y trastornos del animo.',
-  },
-  {
-    id: 'joints',
-    label: 'Dolor articular',
-    icon: <BoneIcon />,
-    specialty: 'Reumatologia',
-    description: 'Un reumatologo puede evaluar dolor en articulaciones, rigidez matutina y enfermedades autoinmunes.',
-  },
-  {
-    id: 'child',
-    label: 'Fiebre en ninos',
-    icon: <ChildIcon />,
-    specialty: 'Pediatria',
-    description: 'Un pediatra puede evaluar fiebre, infecciones, crecimiento y salud general de ninos y adolescentes.',
-  },
-  {
-    id: 'fatigue',
-    label: 'Cansancio persistente',
-    icon: <EnergyIcon />,
-    specialty: 'Endocrinologia',
-    description: 'Un endocrinologo puede evaluar fatiga cronica, problemas de tiroides, metabolismo y desequilibrios hormonales.',
-  },
-];
+const ICON_MAP: Record<string, React.ReactNode> = {
+  headache: <BrainIcon />,
+  chest: <HeartIcon />,
+  skin: <SkinIcon />,
+  stomach: <StomachIcon />,
+  anxiety: <MindIcon />,
+  joints: <BoneIcon />,
+  child: <ChildIcon />,
+  fatigue: <EnergyIcon />,
+};
 
-export default function SymptomChecker() {
+export default function SymptomChecker({ locale = 'es' }: { locale?: Locale }) {
+  const { dict } = getClientI18n(locale);
+  const symptoms: Symptom[] = dict.landing.symptomChecker.symptoms.map((s) => ({
+    ...s,
+    icon: ICON_MAP[s.id] ?? null,
+  }));
+
   const [selected, setSelected] = useState<string | null>(null);
 
-  const selectedSymptom = SYMPTOMS.find((s) => s.id === selected);
+  const selectedSymptom = symptoms.find((s) => s.id === selected);
 
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto' }}>
@@ -143,7 +103,7 @@ export default function SymptomChecker() {
         justifyContent: 'center',
         marginBottom: selectedSymptom ? 'var(--space-8)' : '0',
       }}>
-        {SYMPTOMS.map((s) => (
+        {symptoms.map((s) => (
           <button
             key={s.id}
             type="button"
@@ -188,7 +148,7 @@ export default function SymptomChecker() {
             textTransform: 'uppercase' as const,
             margin: '0 0 var(--space-3)',
           }}>
-            Especialidad recomendada
+            {locale === 'pt' ? 'Especialidade recomendada' : 'Especialidad recomendada'}
           </p>
           <h3 style={{
             fontSize: 'var(--text-2xl)',
@@ -234,7 +194,7 @@ export default function SymptomChecker() {
               (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
             }}
           >
-            Agendar con {selectedSymptom.specialty}
+            {locale === 'pt' ? `Agendar com ${selectedSymptom.specialty}` : `Agendar con ${selectedSymptom.specialty}`}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
