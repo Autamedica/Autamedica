@@ -68,10 +68,14 @@ jobs:
     runs-on: self-hosted
     needs: [validate, deploy-db]
     if: always() && needs.validate.result == 'success' && needs.deploy-db.result != 'failure'
+    env:
+      TURBO_FORCE: 'true'
     outputs:
       prev_deployment: ${{ steps.snapshot.outputs.id }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          clean: true
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
 

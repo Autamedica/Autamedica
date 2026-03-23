@@ -536,12 +536,44 @@ Detalle operativo completo: `docs/AGENTS-2.md` sección 23.
 - `apps/web/` — App Astro principal (migración completa)
 - `docs/FILOSOFIA_EDITORIAL.md` — **LEER ANTES de modificar `apps/web`**. Define el modelo NYT: contenido primero, CTAs como consecuencia, newsletter como canal de retención. Incluye reglas concretas sobre qué botones están prohibidos en el landing y el roadmap de implementación.
 
-### Comandos de deployment
+### Deployment (GitHub Actions — ÚNICO método)
+
+**NO deployar manualmente.** Todo deploy a producción pasa por CI/CD:
+
+```
+git push origin main
+  → Pre-flight (typecheck + lint)
+  → DB Migrations (si hay nuevas)
+  → Build & Deploy (Cloudflare Pages)
+  → Smoke Tests (homepage + assets + API)
+  → Auto-rollback si smoke falla
+```
+
+**Flujo obligatorio del agente:**
+
+1. Commit atómico con `conventional commits`.
+2. `git pull --rebase && git push origin main`.
+3. Verificar estado: `gh run list --limit 2`.
+4. Si falla: leer logs (`gh run view <id> --log`), corregir, push de nuevo.
+5. Confirmar sitio respondiendo 200: `curl -so /dev/null -w '%{http_code}' https://www.autamedica.com`.
+
+**Deploy manual solo en emergencia** (sitio caído, pipeline bloqueado):
 
 ```bash
-# Deploy app Astro (apps/web)
-pnpm deploy:web              # build + wrangler pages deploy
+pnpm deploy:web    # build + wrangler pages deploy directo
 ```
+
+**Workflows activos** (`.github/workflows/`):
+
+| Workflow                | Trigger               | Gate                                           |
+| ----------------------- | --------------------- | ---------------------------------------------- |
+| `ci.yml`                | push (no main), PR    | Build + Lint (blocking), Tests (informational) |
+| `deploy-production.yml` | push main             | Pre-flight → DB → Deploy → Smoke → Rollback    |
+| `pr-validation.yml`     | PR                    | WIP guard, secrets, binarios, size             |
+| `quality-gates.yml`     | PR (paths), weekly    | DB drift, edge functions, clinical, policies   |
+| `security-scan.yml`     | PR, push main, weekly | Audit (high=fail), TruffleHog, dep review      |
+| `e2e-tests.yml`         | PR (paths), dispatch  | Playwright (informational)                     |
+| `deploy-test.yml`       | dispatch              | Runner canary                                  |
 
 ### Supabase
 
