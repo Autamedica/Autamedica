@@ -84,7 +84,7 @@ export function MedicalRankingPanel() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/doctors/ranking')
+    fetch('/api/doctors/ranking', { credentials: 'include' })
       .then(res => res.json())
       .then(json => {
         if (json.ok) {
