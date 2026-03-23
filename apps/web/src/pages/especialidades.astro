@@ -1,0 +1,402 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import CTAFinal from '../components/CTAFinal.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="Especialidades Médicas Online - Doctores por Especialidad | AutaMedica"
+  description="Encuentra especialistas médicos por área. Dermatólogo, psicólogo, cardiólogo online. Consultas virtuales con profesionales certificados en Argentina."
+  canonical="https://www.autamedica.com/especialidades"
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="min-h-screen">
+    <!-- Hero -->
+    <section class="hero-section">
+      <div class="container">
+        <h1>Especialidades Médicas Online</h1>
+        <p class="subtitle">
+          Accede a médicos especializados de diferentes áreas. Todos certificados, verificados y disponibles 24/7.
+        </p>
+      </div>
+    </section>
+
+    <!-- Specialties Grid -->
+    <section class="specialties-section">
+      <div class="container">
+        <div class="specialties-grid">
+          <!-- Medicina General -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">👨‍⚕️</span>
+              <h2>Medicina General</h2>
+            </div>
+            <p class="description">
+              Primera consulta, diagnóstico inicial, seguimiento de enfermedades crónicas, evaluación general de salud.
+            </p>
+            <ul class="includes">
+              <li>Evaluación de síntomas</li>
+              <li>Prescripción de medicamentos</li>
+              <li>Referencia a especialistas</li>
+              <li>Seguimiento de salud</li>
+            </ul>
+            <a href="/patients?specialty=general" class="btn">Ver Médicos</a>
+          </div>
+
+          <!-- Cardiología -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">❤️</span>
+              <h2>Cardiología</h2>
+            </div>
+            <p class="description">
+              Evaluación de problemas cardíacos, hipertensión, arritmias, seguimiento post-infarto.
+            </p>
+            <ul class="includes">
+              <li>Problemas del corazón</li>
+              <li>Control de presión arterial</li>
+              <li>Palpitaciones y arritmias</li>
+              <li>Riesgo cardiovascular</li>
+            </ul>
+            <a href="/patients?specialty=cardiology" class="btn">Ver Médicos</a>
+          </div>
+
+          <!-- Dermatología -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">🔬</span>
+              <h2>Dermatología</h2>
+            </div>
+            <p class="description">
+              Problemas de piel, acné, eccema, alergias dermatológicas, lunares y lesiones de piel.
+            </p>
+            <ul class="includes">
+              <li>Acné y puntos negros</li>
+              <li>Eccema y dermatitis</li>
+              <li>Hongos y infecciones</li>
+              <li>Evaluación de lunares</li>
+            </ul>
+            <a href="/patients?specialty=dermatology" class="btn">Ver Médicos</a>
+          </div>
+
+          <!-- Psicología -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">🧠</span>
+              <h2>Psicología & Salud Mental</h2>
+            </div>
+            <p class="description">
+              Apoyo emocional, ansiedad, depresión, estrés, terapia psicológica y bienestar mental.
+            </p>
+            <ul class="includes">
+              <li>Ansiedad y pánico</li>
+              <li>Depresión</li>
+              <li>Estrés y burn-out</li>
+              <li>Terapia psicológica</li>
+            </ul>
+            <a href="/patients?specialty=psychology" class="btn">Ver Psicólogos</a>
+          </div>
+
+          <!-- Ginecología -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">👩‍⚕️</span>
+              <h2>Ginecología</h2>
+            </div>
+            <p class="description">
+              Salud femenina, métodos anticonceptivos, ciclo menstrual, infecciones, control del embarazo.
+            </p>
+            <ul class="includes">
+              <li>Ciclo menstrual</li>
+              <li>Anticonceptivos</li>
+              <li>Infecciones vaginales</li>
+              <li>Control de embarazo</li>
+            </ul>
+            <a href="/patients?specialty=gynecology" class="btn">Ver Ginecólogas</a>
+          </div>
+
+          <!-- Pediatría -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">👧</span>
+              <h2>Pediatría</h2>
+            </div>
+            <p class="description">
+              Consultas para menores de edad, evaluación de síntomas, desarrollo infantil, vacunación.
+            </p>
+            <ul class="includes">
+              <li>Síntomas en niños</li>
+              <li>Desarrollo infantil</li>
+              <li>Nutrición pediátrica</li>
+              <li>Seguimiento de salud</li>
+            </ul>
+            <a href="/patients?specialty=pediatrics" class="btn">Ver Pediatras</a>
+          </div>
+
+          <!-- Gastroenterología -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">🍽️</span>
+              <h2>Gastroenterología</h2>
+            </div>
+            <p class="description">
+              Problemas digestivos, gastritis, reflujo, colon irritable, evaluación intestinal.
+            </p>
+            <ul class="includes">
+              <li>Gastritis y úlceras</li>
+              <li>Reflujo gástrico</li>
+              <li>Síndrome del colon irritable</li>
+              <li>Trastornos digestivos</li>
+            </ul>
+            <a href="/patients?specialty=gastroenterology" class="btn">Ver Médicos</a>
+          </div>
+
+          <!-- Neumología -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">💨</span>
+              <h2>Neumología</h2>
+            </div>
+            <p class="description">
+              Problemas respiratorios, asma, alergias pulmonares, tos crónica, EPOC.
+            </p>
+            <ul class="includes">
+              <li>Asma</li>
+              <li>Alergias respiratorias</li>
+              <li>Tos crónica</li>
+              <li>Problemas pulmonares</li>
+            </ul>
+            <a href="/patients?specialty=pneumology" class="btn">Ver Neumólogos</a>
+          </div>
+
+          <!-- Neurología -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">⚡</span>
+              <h2>Neurología</h2>
+            </div>
+            <p class="description">
+              Dolores de cabeza, migrañas, vértigo, neuropatías, trastornos neurológicos.
+            </p>
+            <ul class="includes">
+              <li>Migrañas y cefaleas</li>
+              <li>Vértigo y mareos</li>
+              <li>Nervios pinzados</li>
+              <li>Problemas neurológicos</li>
+            </ul>
+            <a href="/patients?specialty=neurology" class="btn">Ver Neurólogos</a>
+          </div>
+
+          <!-- Nutrición -->
+          <div class="specialty-card">
+            <div class="specialty-header">
+              <span class="icon">🥗</span>
+              <h2>Nutrición & Dietética</h2>
+            </div>
+            <p class="description">
+              Planes de nutrición, pérdida de peso, dietas especializadas, educación alimentaria.
+            </p>
+            <ul class="includes">
+              <li>Planes nutricionales</li>
+              <li>Pérdida de peso</li>
+              <li>Dietas especiales</li>
+              <li>Educación alimentaria</li>
+            </ul>
+            <a href="/patients?specialty=nutrition" class="btn">Ver Nutricionistas</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why Choose Specialists -->
+    <section class="why-section">
+      <div class="container">
+        <h2>¿Por Qué Consultar con Especialistas Online?</h2>
+        <div class="reasons">
+          <div class="reason">
+            <h3>🎯 Expertos Certificados</h3>
+            <p>Cada especialista tiene años de experiencia y certificaciones en su área.</p>
+          </div>
+          <div class="reason">
+            <h3>⏱️ Tiempo Eficiente</h3>
+            <p>Consulta con el experto correcto desde el inicio, sin derivaciones innecesarias.</p>
+          </div>
+          <div class="reason">
+            <h3>💻 Acceso Amplio</h3>
+            <p>Especialistas que quizás no encuentres en tu zona geográfica.</p>
+          </div>
+          <div class="reason">
+            <h3>📱 Disponibilidad 24/7</h3>
+            <p>Múltiples horarios matutinos, vespertinos y nocturnos.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <CTAFinal
+      title="Encuentra tu Especialista Ahora"
+      subtitle="Acceso a médicos certificados en múltiples especialidades. Disponibles 24/7 para tu consulta."
+      buttonLabel="Buscar Especialista"
+      buttonHref="/patients"
+    />
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .hero-section {
+    padding: 6rem var(--section-px) 4rem;
+    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(6,78,140,0.3));
+    border-bottom: 1px solid var(--au-border);
+    text-align: center;
+  }
+
+  .container {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 1rem;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    color: #a1a1a1;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  h2 {
+    font-size: 2.25rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: white;
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+
+  .specialties-section {
+    padding: 4rem var(--section-px);
+  }
+
+  .specialties-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .specialty-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(255,255,255,0.02));
+    border: 1px solid var(--au-border);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    transition: all 0.3s ease;
+  }
+
+  .specialty-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .specialty-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .icon {
+    font-size: 2.5rem;
+  }
+
+  .specialty-card h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    text-align: left;
+  }
+
+  .description {
+    color: #a1a1a1;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  .includes {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .includes li {
+    color: #a1a1a1;
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+  }
+
+  .includes li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #10b981;
+    font-weight: bold;
+  }
+
+  .btn {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 500;
+  }
+
+  .btn:hover {
+    background: #1f2937;
+    transform: translateY(-2px);
+  }
+
+  .why-section {
+    padding: 4rem var(--section-px);
+    border-top: 1px solid var(--au-border);
+    background: rgba(59, 130, 246, 0.02);
+  }
+
+  .reasons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  .reason {
+    text-align: center;
+  }
+
+  .reason h3 {
+    font-size: 1.25rem;
+    color: white;
+    margin-bottom: 0.75rem;
+  }
+
+  .reason p {
+    color: #a1a1a1;
+    line-height: 1.6;
+  }
+
+  p {
+    color: #a1a1a1;
+    line-height: 1.6;
+  }
+</style>
