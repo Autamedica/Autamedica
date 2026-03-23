@@ -13,6 +13,9 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
+permissions:
+  contents: read
+
 env:
   HUSKY: '0'
 
@@ -20,13 +23,14 @@ jobs:
   changes:
     name: Detect
     runs-on: self-hosted
+    if: github.event_name == 'pull_request'
     outputs:
       migrations: ${{ steps.filter.outputs.migrations }}
       functions: ${{ steps.filter.outputs.functions }}
       types: ${{ steps.filter.outputs.types }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: filter
         with:
           filters: |
@@ -41,10 +45,13 @@ jobs:
     name: DB Type Drift
     runs-on: self-hosted
     needs: changes
-    if: needs.changes.outputs.migrations == 'true' || needs.changes.outputs.types == 'true'
+    if: |
+      github.event_name == 'schedule' ||
+      needs.changes.outputs.migrations == 'true' ||
+      needs.changes.outputs.types == 'true'
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm check:db:type-drift
@@ -53,14 +60,17 @@ jobs:
     name: Edge Functions
     runs-on: self-hosted
     needs: changes
-    if: needs.changes.outputs.functions == 'true'
+    if: |
+      github.event_name == 'schedule' ||
+      needs.changes.outputs.functions == 'true'
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Auth headers
         run: |
           for fn in supabase/functions/*/index.ts; do
+            [[ ! -f "$fn" ]] && continue
             if ! grep -q 'authorization\|Authorization\|service_role\|anon' "$fn" 2>/dev/null; then
               echo "::warning::$fn — no auth check detected"
             fi
@@ -68,7 +78,12 @@ jobs:
 
       - name: Deno check
         run: |
+          if ! command -v deno &>/dev/null; then
+            echo "::warning::deno not installed — skipping edge function type check"
+            exit 0
+          fi
           for fn in supabase/functions/*/index.ts; do
+            [[ ! -f "$fn" ]] && continue
             deno check --no-lock "$fn" 2>&1 || echo "::warning::$fn failed deno check"
           done
 
@@ -77,7 +92,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: node scripts/ci/verify-clinical-observability.mjs
@@ -87,7 +102,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm check:policy

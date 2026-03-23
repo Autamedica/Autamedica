@@ -9,6 +9,9 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 env:
   HUSKY: '0'
 
@@ -18,7 +21,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm typecheck
@@ -29,19 +32,23 @@ jobs:
     runs-on: self-hosted
     needs: validate
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Detect migrations
         id: check
         run: |
-          COUNT=$(git diff --name-only HEAD~1 HEAD -- 'supabase/migrations/*.sql' | wc -l)
+          BASE="${{ github.event.before }}"
+          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+            BASE=$(git rev-parse HEAD~1)
+          fi
+          COUNT=$(git diff --name-only "$BASE" HEAD -- 'supabase/migrations/*.sql' | wc -l)
           echo "has_migrations=$([[ $COUNT -gt 0 ]] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Apply migrations
         if: steps.check.outputs.has_migrations == 'true'
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51 # v1.6.0
         with:
           version: latest
 
@@ -64,7 +71,7 @@ jobs:
     outputs:
       prev_deployment: ${{ steps.snapshot.outputs.id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
 
@@ -85,7 +92,7 @@ jobs:
         continue-on-error: true
 
       - name: Deploy
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -95,16 +102,14 @@ jobs:
     name: Smoke Tests
     runs-on: self-hosted
     needs: [build-and-deploy]
+    timeout-minutes: 5
     steps:
-      - name: Wait for CDN
-        run: sleep 10
-
       - name: Homepage
         run: |
-          for i in 1 2 3 4 5; do
+          for i in $(seq 1 8); do
             status=$(curl -so /dev/null -w '%{http_code}' -L https://www.autamedica.com)
             [[ "$status" == "200" ]] && echo "OK" && exit 0
-            echo "Attempt $i: $status" && sleep 5
+            sleep 5
           done
           exit 1
 
@@ -140,6 +145,7 @@ jobs:
   summary:
     name: Summary
     runs-on: self-hosted
+    timeout-minutes: 2
     needs: [validate, deploy-db, build-and-deploy, smoke-tests, auto-rollback]
     if: always()
     steps:

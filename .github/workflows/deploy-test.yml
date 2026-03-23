@@ -3,6 +3,9 @@ name: Runner Canary
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   HUSKY: '0'
 
@@ -16,7 +19,7 @@ jobs:
       - run: deno --version 2>/dev/null || echo "deno not installed"
       - run: git --version
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm typecheck

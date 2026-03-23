@@ -18,6 +18,10 @@ on:
           - local
           - production
 
+permissions:
+  contents: read
+  actions: write
+
 env:
   HUSKY: '0'
 
@@ -29,7 +33,7 @@ jobs:
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.target == 'local')
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm --filter @autamedica/web build
@@ -41,9 +45,13 @@ jobs:
 
       - name: Serve and test
         run: |
-          npx serve apps/web/dist -l 4321 &
+          pnpm dlx serve apps/web/dist -l 4321 &
           SERVER_PID=$!
-          sleep 3
+
+          for i in $(seq 1 15); do
+            curl -sf http://localhost:4321 > /dev/null && break
+            sleep 1
+          done
 
           npx playwright test tests/e2e/role-routing.spec.ts tests/e2e/astro-bridge-routing.spec.ts \
             --config=tests/e2e/playwright.simple.config.ts \
@@ -52,7 +60,7 @@ jobs:
           kill $SERVER_PID 2>/dev/null || true
           exit ${TEST_EXIT:-0}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: e2e-report
@@ -65,12 +73,12 @@ jobs:
     timeout-minutes: 10
     if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
 
       - name: Production tests
         run: |
-          BASE_URL=https://www.autamedica.com npx playwright test tests/e2e/role-routing.spec.ts \
+          npx playwright test tests/e2e/role-routing.spec.ts \
             --config=tests/e2e/playwright.simple.config.ts \
             --reporter=github
         env:

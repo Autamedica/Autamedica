@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: '0 7 * * 1'
 
+permissions:
+  contents: read
+
 env:
   HUSKY: '0'
 
@@ -17,7 +20,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile
 
       - name: Moderate
@@ -31,12 +34,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
       - name: TruffleHog
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@6c64db94d5b2e09d7e0948fb6bd3166cc6fffbc7 # v3.94.0
         with:
           extra_args: --only-verified
 
@@ -53,8 +56,11 @@ jobs:
     name: Dep Review
     runs-on: self-hosted
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
         with:
           fail-on-severity: high
