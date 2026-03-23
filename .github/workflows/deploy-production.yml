@@ -104,9 +104,12 @@ jobs:
     needs: [build-and-deploy]
     timeout-minutes: 5
     steps:
+      - name: CDN propagation
+        run: sleep 15
+
       - name: Homepage
         run: |
-          for i in $(seq 1 8); do
+          for i in $(seq 1 10); do
             status=$(curl -so /dev/null -w '%{http_code}' -L https://www.autamedica.com)
             [[ "$status" == "200" ]] && echo "OK" && exit 0
             sleep 5
