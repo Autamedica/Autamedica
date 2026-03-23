@@ -24,7 +24,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
   const [showEducationalNote, setShowEducationalNote] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const handleChange = (newValue: AnamnesisFieldValue) => {
+  const updateFieldValue = (newValue: AnamnesisFieldValue) => {
     onChange(newValue);
     if (field.educationalNote && newValue) {
       setShowEducationalNote(true);
@@ -40,7 +40,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
           <input
             type={field.type}
             value={toInputValue(value) || ''}
-            onChange={(e) => handleChange(field.type === 'number' ? Number(e.target.value) : e.target.value)}
+            onChange={(e) => updateFieldValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
             min={field.validation?.min}
@@ -53,7 +53,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
         return (
           <textarea
             value={toInputValue(value) || ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e) => updateFieldValue(e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
             rows={4}
@@ -65,7 +65,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
         return (
           <select
             value={toInputValue(value) || ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e) => updateFieldValue(e.target.value)}
             required={field.required}
             className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
           >
@@ -100,7 +100,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
                       const newValue = e.target.checked
                         ? [...currentValue, option.value]
                         : currentValue.filter((v) => v !== option.value);
-                      handleChange(newValue);
+                      updateFieldValue(newValue);
                     }}
                     className="mt-0.5 h-4 w-4 text-sky-600 border-stone-300 rounded focus:ring-sky-500"
                   />
@@ -125,7 +125,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
               <input
                 type="radio"
                 checked={value === true}
-                onChange={() => handleChange(true)}
+                onChange={() => updateFieldValue(true)}
                 className="sr-only"
               />
               <span className="text-sm font-semibold text-stone-900">✓ Sí</span>
@@ -136,7 +136,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
               <input
                 type="radio"
                 checked={value === false}
-                onChange={() => handleChange(false)}
+                onChange={() => updateFieldValue(false)}
                 className="sr-only"
               />
               <span className="text-sm font-semibold text-stone-900">✗ No</span>
@@ -152,7 +152,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
               min={field.validation?.min || 1}
               max={field.validation?.max || 10}
               value={toInputValue(value) || field.validation?.min || 1}
-              onChange={(e) => handleChange(Number(e.target.value))}
+              onChange={(e) => updateFieldValue(Number(e.target.value))}
               className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
             />
             <div className="flex justify-between text-sm text-stone-600">
@@ -168,7 +168,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
           <input
             type="date"
             value={toInputValue(value) || ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e) => updateFieldValue(e.target.value)}
             required={field.required}
             className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
           />

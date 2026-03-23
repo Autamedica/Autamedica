@@ -75,7 +75,7 @@ export function PatientProfileForm({
     setFormState(buildInitialState(profile, patient));
   }, [profile, patient]);
 
-  const handleChange = (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const updateProfileField = (field: keyof FormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const value = event.target.value;
     setFormState(prev => ({ ...prev, [field]: value }));
   };
@@ -131,7 +131,7 @@ export function PatientProfileForm({
             <input
               type="text"
               value={formState.firstName}
-              onChange={handleChange('firstName')}
+              onChange={updateProfileField('firstName')}
               className="input-ivory"
               placeholder="Tu nombre"
             />
@@ -141,7 +141,7 @@ export function PatientProfileForm({
             <input
               type="text"
               value={formState.lastName}
-              onChange={handleChange('lastName')}
+              onChange={updateProfileField('lastName')}
               className="input-ivory"
               placeholder="Tu apellido"
             />
@@ -151,7 +151,7 @@ export function PatientProfileForm({
             <input
               type="tel"
               value={formState.phone}
-              onChange={handleChange('phone')}
+              onChange={updateProfileField('phone')}
               className="input-ivory"
               placeholder="Ej: +54 11 1234 5678"
             />
@@ -161,7 +161,7 @@ export function PatientProfileForm({
             <input
               type="date"
               value={formState.birthDate ?? ''}
-              onChange={handleChange('birthDate')}
+              onChange={updateProfileField('birthDate')}
               className="input-ivory"
             />
           </label>
@@ -169,7 +169,7 @@ export function PatientProfileForm({
             <span className="text-label text-stone-600">Género</span>
             <select
               value={formState.gender}
-              onChange={handleChange('gender')}
+              onChange={updateProfileField('gender')}
               className="input-ivory"
             >
               {GENDER_OPTIONS.map(option => (
@@ -183,7 +183,7 @@ export function PatientProfileForm({
             <span className="text-label text-stone-600">Tipo de sangre</span>
             <select
               value={formState.bloodType}
-              onChange={handleChange('bloodType')}
+              onChange={updateProfileField('bloodType')}
               className="input-ivory"
             >
               <option value="">Seleccioná una opción</option>
@@ -207,7 +207,7 @@ export function PatientProfileForm({
               inputMode="numeric"
               min="0"
               value={formState.heightCm}
-              onChange={handleChange('heightCm')}
+              onChange={updateProfileField('heightCm')}
               className="input-ivory"
               placeholder="Ej: 170"
             />
@@ -220,7 +220,7 @@ export function PatientProfileForm({
               min="0"
               step="0.1"
               value={formState.weightKg}
-              onChange={handleChange('weightKg')}
+              onChange={updateProfileField('weightKg')}
               className="input-ivory"
               placeholder="Ej: 70"
             />
@@ -236,7 +236,7 @@ export function PatientProfileForm({
             <input
               type="text"
               value={formState.emergencyName}
-              onChange={handleChange('emergencyName')}
+              onChange={updateProfileField('emergencyName')}
               className="input-ivory"
               placeholder="Nombre y apellido"
             />
@@ -246,7 +246,7 @@ export function PatientProfileForm({
             <input
               type="text"
               value={formState.emergencyRelationship}
-              onChange={handleChange('emergencyRelationship')}
+              onChange={updateProfileField('emergencyRelationship')}
               className="input-ivory"
               placeholder="Ej: Madre, pareja"
             />
@@ -256,7 +256,7 @@ export function PatientProfileForm({
             <input
               type="tel"
               value={formState.emergencyPhone}
-              onChange={handleChange('emergencyPhone')}
+              onChange={updateProfileField('emergencyPhone')}
               className="input-ivory"
               placeholder="Número de contacto"
             />
@@ -266,7 +266,7 @@ export function PatientProfileForm({
             <input
               type="email"
               value={formState.emergencyEmail}
-              onChange={handleChange('emergencyEmail')}
+              onChange={updateProfileField('emergencyEmail')}
               className="input-ivory"
               placeholder="Correo de contacto"
             />

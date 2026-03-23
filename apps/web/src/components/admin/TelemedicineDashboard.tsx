@@ -64,7 +64,7 @@ export default function TelemedicineDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchData = useCallback(async () => {
+  const loadTelemedicineStats = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/telemedicine-stats')
       if (!res.ok) {
@@ -83,10 +83,10 @@ export default function TelemedicineDashboard() {
   }, [])
 
   useEffect(() => {
-    void fetchData()
-    const interval = setInterval(() => void fetchData(), 30000)
+    void loadTelemedicineStats()
+    const interval = setInterval(() => void loadTelemedicineStats(), 30000)
     return () => clearInterval(interval)
-  }, [fetchData])
+  }, [loadTelemedicineStats])
 
   if (loading) {
     return (
@@ -102,7 +102,7 @@ export default function TelemedicineDashboard() {
         <p className="font-medium">Error cargando datos</p>
         <p className="text-sm mt-1">{error}</p>
         <button
-          onClick={() => { setLoading(true); void fetchData() }}
+          onClick={() => { setLoading(true); void loadTelemedicineStats() }}
           className="mt-2 text-sm underline"
         >
           Reintentar

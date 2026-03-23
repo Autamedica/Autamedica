@@ -38,7 +38,7 @@ export function QuickNotesModal({ patientName, patientId, doctorId, onClose }: Q
   const [priority, setPriority] = useState<'normal' | 'high'>('normal')
   const [expandedSection, setExpandedSection] = useState<string>('subjective')
 
-  const handleSave = async () => {
+  const saveSoapNoteAndClose = async () => {
     const soapNote = `
 NOTA SOAP - ${new Date().toLocaleDateString('es-ES')}
 
@@ -197,7 +197,7 @@ Prioridad: ${priority === 'high' ? 'ALTA' : 'Normal'}
           </button>
           <button
             type="button"
-            onClick={handleSave}
+            onClick={saveSoapNoteAndClose}
             className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
           >
             <Save className="h-4 w-4" />

@@ -65,7 +65,7 @@ function ReportContent({ roomId }: { roomId: string }) {
     }
   }, [roomId, doctorNotes]);
 
-  const handleSave = useCallback(async () => {
+  const saveReportAndRedirect = useCallback(async () => {
     if (!editedReport || !reportData) return;
     setSaving(true);
 
@@ -279,7 +279,7 @@ function ReportContent({ roomId }: { roomId: string }) {
                 Descartar
               </a>
               <button
-                onClick={handleSave}
+                onClick={saveReportAndRedirect}
                 disabled={saving || saved}
                 className="flex-1 py-3 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >

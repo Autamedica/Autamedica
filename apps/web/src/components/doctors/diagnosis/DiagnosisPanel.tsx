@@ -30,7 +30,7 @@ export function DiagnosisPanel() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [diagnosisHistory, setDiagnosisHistory] = useState<DiagnosisRequest[]>([])
 
-  const handleAnalyze = async () => {
+  const submitDiagnosisRequest = async () => {
     if (!symptoms.trim()) return
 
     setIsAnalyzing(true)
@@ -142,7 +142,7 @@ export function DiagnosisPanel() {
             </div>
 
             <button
-              onClick={handleAnalyze}
+              onClick={submitDiagnosisRequest}
               disabled={!symptoms.trim() || isAnalyzing}
               className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >

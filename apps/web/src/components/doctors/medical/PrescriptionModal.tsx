@@ -106,7 +106,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
     setAiSuggestions(suggestions)
   }
 
-  const handleSave = async () => {
+  const savePrescription = async () => {
     const normalizedMedications = medications.filter((med) => med.name.trim())
 
     if (normalizedMedications.length === 0) {
@@ -340,7 +340,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
             </button>
             <button
               type="button"
-              onClick={handleSave}
+              onClick={savePrescription}
               disabled={saving}
               className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
             >

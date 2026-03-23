@@ -299,7 +299,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
     }))
   }
 
-  const handleSave = () => {
+  const persistSettingsToLocalStorage = () => {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
     }
@@ -423,7 +423,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           <button
             type="button"
             className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
-            onClick={handleSave}
+            onClick={persistSettingsToLocalStorage}
           >
             Guardar cambios
           </button>
