@@ -89,10 +89,10 @@ export const GET: APIRoute = async ({ request }) => {
       const userIds = (doctors ?? []).map((d: { user_id: string | null }) => d.user_id).filter(Boolean) as string[];
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name')
-        .in('id', userIds);
+        .select('user_id, first_name, last_name')
+        .in('user_id', userIds);
 
-      const profileMap = new Map((profiles ?? []).map((p: { id: string; first_name: string | null; last_name: string | null }) => [p.id, p]));
+      const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p]));
       const doctorMap = new Map((doctors ?? []).map((d: { id: string; user_id: string | null; specialty: string; years_experience: number | null }) => [d.id, d]));
 
       rankedDoctors = topRanked.map((metrics: Record<string, unknown>) => {

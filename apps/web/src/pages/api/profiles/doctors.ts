@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro'
+import type { Database } from '@autamedica/types'
 import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 
@@ -50,26 +51,25 @@ export const POST: APIRoute = async ({ request }) => {
 
     const admin = createAdminClient()
 
+    const doctorData: Database['public']['Tables']['doctors']['Insert'] = {
+      user_id: user.id,
+      license_number: license_number.trim(),
+      specialty: specialty.trim(),
+      subspecialty: typeof subspecialty === 'string' ? subspecialty.trim() || null : null,
+      years_experience: typeof years_experience === 'number' ? years_experience : null,
+      education: (education as unknown) ?? null,
+      certifications: (certifications as unknown) ?? null,
+      schedule: (schedule as unknown) ?? null,
+      consultation_fee: typeof consultation_fee === 'number' ? consultation_fee : null,
+      accepted_insurance: (accepted_insurance as unknown) ?? null,
+      bio: typeof bio === 'string' ? bio.trim() || null : null,
+      languages: (languages as unknown) ?? null,
+      active: typeof active === 'boolean' ? active : true,
+    }
+
     const { data, error } = await admin
       .from('doctors')
-      .upsert(
-        {
-          user_id: user.id,
-          license_number: license_number.trim(),
-          specialty: specialty.trim(),
-          subspecialty: typeof subspecialty === 'string' ? subspecialty.trim() || null : null,
-          years_experience: typeof years_experience === 'number' ? years_experience : null,
-          education: (education as unknown) ?? null,
-          certifications: (certifications as unknown) ?? null,
-          schedule: (schedule as unknown) ?? null,
-          consultation_fee: typeof consultation_fee === 'number' ? consultation_fee : null,
-          accepted_insurance: (accepted_insurance as unknown) ?? null,
-          bio: typeof bio === 'string' ? bio.trim() || null : null,
-          languages: (languages as unknown) ?? null,
-          active: typeof active === 'boolean' ? active : true,
-        },
-        { onConflict: 'user_id' },
-      )
+      .upsert(doctorData, { onConflict: 'user_id' })
       .select('id')
       .single()
 
