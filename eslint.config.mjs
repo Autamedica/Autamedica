@@ -12,6 +12,7 @@ const eslintConfig = [
     '**/dist/**',
     '**/build/**',
     '**/out/**',
+    '**/.next/**',
     '**/.turbo/**',
     '**/.vercel/**',
     '**/.astro/**',

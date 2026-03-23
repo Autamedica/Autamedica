@@ -1,38 +1,20 @@
 ---
-const intents = [
-  {
-    title: 'Me siento mal y quiero hablar con un médico hoy',
-    copy: 'Encontrá turno con un médico ahora mismo, sin guardia y sin traslado. La receta digital llega al celular.',
-    href: '/platform',
-    cta: 'Buscar médico disponible',
-  },
-  {
-    title: 'Atiendo pacientes y quiero organizar mi agenda',
-    copy: 'Agenda digital, videoconsulta y historia clínica en un solo lugar. Sin administración de más.',
-    href: '/doctors',
-    cta: 'Ver portal para médicos',
-  },
-  {
-    title: 'Gestiono salud en una empresa',
-    copy: 'Menos ausentismo, más salud. Tus empleados consultan desde el trabajo o su casa, sin perder medio día.',
-    href: '/companies',
-    cta: 'Ver solución para empresas',
-  },
-  {
-    title: 'Quiero ver mis recetas y mi historial',
-    copy: 'Todo tu historial clínico en un solo lugar. Recetas digitales, resultados y seguimiento desde el celular.',
-    href: '/patients',
-    cta: 'Entrar a mi perfil',
-  },
-];
+import { getI18n } from '../i18n';
+const locale = Astro.locals.locale ?? 'es';
+const { t, dict } = getI18n(locale);
+const intentHrefs = ['/platform', '/doctors', '/companies', '/patients'];
+const intents = dict.landing.intentLinks.items.map((item, i) => ({
+  ...item,
+  href: intentHrefs[i] ?? '/platform',
+}));
 ---
 
 <section id="necesidades" class="intent-links" aria-label="Explorar por necesidad">
   <div class="intent-inner">
     <div class="intent-header animate-on-scroll">
-      <h2 class="intent-title">¿Qué necesitás hacer hoy?</h2>
+      <h2 class="intent-title">{t('landing.intentLinks.title')}</h2>
       <p class="intent-subtitle">
-        Elegí tu caso y empezá sin formularios largos ni llamadas telefónicas.
+        {t('landing.intentLinks.subtitle')}
       </p>
     </div>
 

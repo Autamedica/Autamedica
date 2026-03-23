@@ -1,4 +1,7 @@
 ---
+import { getI18n } from '../i18n';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 const doctors = [
   {
     name: "Dr. Martín Álvarez",
@@ -54,8 +57,8 @@ const doctors = [
 <section id="profesionales" class="directory" aria-label="Nuestros profesionales">
   <div class="directory-inner">
     <div class="directory-header animate-on-scroll">
-      <h2 class="directory-title">Médicos reales, con nombre y matrícula</h2>
-      <p class="directory-subtitle">Verificados en Argentina, Colombia, Perú y más. Disponibles hoy, no la semana que viene.</p>
+      <h2 class="directory-title">{t('landing.doctorDirectory.title')}</h2>
+      <p class="directory-subtitle">{t('landing.doctorDirectory.subtitle')}</p>
     </div>
 
     <div class="directory-marquee-wrapper">
@@ -67,13 +70,13 @@ const doctors = [
               <h3 class="doctor-name">{d.name}</h3>
               <p class="doctor-specialty">{d.specialty}</p>
               <div class="doctor-meta">
-                <span>{d.experience} años exp.</span>
+                <span>{d.experience} {t('landing.doctorDirectory.yearsExp')}</span>
                 <span class="doctor-meta-dot" aria-hidden="true" />
                 <span>{d.languages.join(', ')}</span>
               </div>
               <div class="doctor-availability">
                 <span class={`status-dot ${d.available ? 'available' : ''}`} aria-hidden="true" />
-                <span>{d.available ? 'Disponible hoy' : 'Disponible mañana'}</span>
+                <span>{d.available ? `${t('landing.doctorDirectory.available')} hoy` : `${t('landing.doctorDirectory.available')} mañana`}</span>
               </div>
             </div>
           </article>

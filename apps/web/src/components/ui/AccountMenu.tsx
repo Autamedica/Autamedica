@@ -5,6 +5,9 @@ import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { EntryRole } from '../../lib/auth-flow';
 import { ROLE_ENTRIES, buildAuthPath, buildRoleAuthPath } from '../../lib/auth-flow';
+import { getClientI18n } from '../../i18n';
+import type { Locale } from '../../i18n';
+import type { TranslationKey } from '../../i18n';
 
 function getRoleIcon(role: EntryRole) {
   const cls = 'w-5 h-5';
@@ -43,7 +46,8 @@ function getRoleIcon(role: EntryRole) {
   );
 }
 
-export default function AccountMenu() {
+export default function AccountMenu({ locale }: { locale?: Locale }) {
+  const { t } = getClientI18n(locale ?? 'es');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -77,7 +81,7 @@ export default function AccountMenu() {
         ref={buttonRef}
         onClick={() => setDropdownOpen((open) => !open)}
         className={`group relative inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/60 px-4 py-2 text-sm font-semibold text-zinc-100 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-white/20 hover:bg-zinc-900/80 hover:shadow-md ${dropdownOpen ? 'ring-2 ring-white/20 border-white/30' : ''}`}
-        aria-label="Abrir accesos de cuenta"
+        aria-label={t('navbar.openMenu')}
         aria-expanded={dropdownOpen}
         aria-haspopup="true"
       >
@@ -90,7 +94,7 @@ export default function AccountMenu() {
             />
           </svg>
         </span>
-        <span className="hidden sm:inline tracking-wide">Acceder</span>
+        <span className="hidden sm:inline tracking-wide">{t('navbar.access')}</span>
         <svg
           className={`h-4 w-4 text-zinc-400 transition-transform duration-300 ${dropdownOpen ? 'rotate-180' : ''}`}
           fill="none"
@@ -112,10 +116,10 @@ export default function AccountMenu() {
           >
             <div className="px-6 pb-3 pt-6">
               <h3 className="text-xs font-bold tracking-[0.15em] text-zinc-500 uppercase">
-                Ingreso Rápido
+                {t('navbar.quickAccess')}
               </h3>
               <p className="mt-1.5 text-sm font-medium text-zinc-400">
-                Elige tu perfil y entra en segundos
+                {t('navbar.chooseProfileSubtitle')}
               </p>
             </div>
 
@@ -133,10 +137,10 @@ export default function AccountMenu() {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold tracking-wide text-zinc-100 transition-colors group-hover:text-[var(--role-accent)]">
-                      Ingresar como {entry.shortLabel}
+                      {t('navbar.enterAs') + ' ' + t((`roles.${entry.role}.shortLabel`) as TranslationKey)}
                     </p>
                     <p className="mt-0.5 text-xs text-zinc-500 transition-colors group-hover:text-zinc-400">
-                      {entry.description}
+                      {t((`roles.${entry.role}.description`) as TranslationKey)}
                     </p>
                   </div>
                   <svg
@@ -156,13 +160,13 @@ export default function AccountMenu() {
                 href={buildAuthPath('select-role')}
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-white/5 text-[13px] font-semibold text-zinc-400 shadow-sm transition-all duration-200 hover:bg-white/10 hover:text-zinc-100 hover:shadow-md"
               >
-                Elegir perfil
+                {t('navbar.chooseProfile')}
               </a>
               <a
                 href={buildAuthPath('register')}
                 className="inline-flex h-10 items-center justify-center rounded-xl bg-white/5 text-[13px] font-semibold text-zinc-400 shadow-sm transition-all duration-200 hover:bg-white/10 hover:text-zinc-100 hover:shadow-md"
               >
-                Crear cuenta
+                {t('auth.createAccount')}
               </a>
             </div>
           </motion.div>

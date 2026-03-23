@@ -23,7 +23,7 @@ const { t } = getI18n(locale);
 
     <div class="navbar-actions">
       <LanguageSwitcher currentLocale={locale} client:load />
-      <AccountMenu client:load />
+      <AccountMenu locale={locale} client:load />
     </div>
   </div>
 </nav>

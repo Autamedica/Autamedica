@@ -1,23 +1,13 @@
 ---
-const pillars = [
-  {
-    title: 'Sin traslado, sin espera',
-    detail: 'Consultás desde tu barrio, desde el trabajo, desde Mendoza si estás de viaje. El médico es el que conecta.',
-  },
-  {
-    title: 'Médicos con matrícula verificada',
-    detail: 'Cada profesional tiene matrícula activa en su país. No es IA ni chatbot — es un médico real que firma la receta.',
-  },
-  {
-    title: 'Tu historial en tu celular',
-    detail: 'Recetas, indicaciones y seguimiento en tu teléfono. La farmacia acepta la receta digital.',
-  },
-];
+import { getI18n } from '../i18n';
+const locale = Astro.locals.locale ?? 'es';
+const { t, dict } = getI18n(locale);
+const pillars = dict.landing.premiumNarrative.pillars;
 ---
 
 <section class="premium-narrative" aria-label="Experiencia clínica premium">
   <div class="narrative-inner">
-    <p class="narrative-kicker animate-on-scroll">No es solo una videollamada</p>
+    <p class="narrative-kicker animate-on-scroll">{t('landing.premiumNarrative.kicker')}</p>
     <div class="narrative-grid">
       <div class="narrative-main animate-on-scroll">
         <div class="narrative-main-bg">
@@ -25,16 +15,15 @@ const pillars = [
           <div class="narrative-bg-overlay"></div>
         </div>
         <div class="narrative-content-wrapper relative z-10">
-          <h2 class="narrative-title">La sala de espera era el problema, no el médico</h2>
+          <h2 class="narrative-title">{t('landing.premiumNarrative.title')}</h2>
           <p class="narrative-copy">
-            En LATAM, millones de consultas se posponen por distancia, tiempo o costo del traslado.
-            AutaMédica conecta pacientes con médicos verificados — en Buenos Aires, Bogotá, Lima o donde estés.
+            {t('landing.premiumNarrative.copy')}
           </p>
         </div>
       </div>
 
       <aside class="narrative-side animate-on-scroll">
-        <h3 class="narrative-side-title">Lo que sí podemos prometerte</h3>
+        <h3 class="narrative-side-title">{t('landing.premiumNarrative.sideTitle')}</h3>
         <ul class="narrative-list">
           {pillars.map((pillar) => (
             <li class="narrative-item">

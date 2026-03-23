@@ -1,4 +1,7 @@
 ---
+import { getI18n } from '../i18n';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
 const articles = [
   {
     tagIcon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>`,
@@ -39,8 +42,8 @@ const articles = [
 <section class="health-content" aria-label="Recursos de salud">
   <div class="content-inner">
     <div class="content-header animate-on-scroll">
-      <h2 class="content-title">Para entender lo que te pasa</h2>
-      <p class="content-subtitle">Artículos escritos por los médicos que atienden en AutaMédica, no por redactores de contenido</p>
+      <h2 class="content-title">{t('landing.healthContent.title')}</h2>
+      <p class="content-subtitle">{t('landing.healthContent.subtitle')}</p>
     </div>
 
     <div class="content-grid">

@@ -1,33 +1,25 @@
 ---
-const steps = [
-  {
-    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
-    title: "Buscá tu especialidad",
-    description: "Escribís lo que te pasa. Ves los médicos disponibles ahora mismo, con especialidad, años de experiencia y reseñas de otros pacientes."
-  },
-  {
-    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`,
-    title: "Elegís el horario que te cierra",
-    description: "Hoy, mañana, en 20 minutos — vos elegís. No hay lista de espera ni secretaria que te dé turno para el mes que viene."
-  },
-  {
-    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 11.6a1 1 0 0 1 0 1.4l-4.2 4.2a1 1 0 0 1-1.4 0l-2.2-2.2a1 1 0 0 1 0-1.4"/><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
-    title: "Consulta por videollamada",
-    description: "Te conectás desde el celular o la computadora. Si ya consultaste antes, el médico ve tu historial y el contexto completo."
-  },
-  {
-    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>`,
-    title: "La receta llega al celular",
-    description: "Terminando la consulta, la receta digital te llega al teléfono. La farmacia la acepta. No hay papel, no hay escáner."
-  }
+import { getI18n } from '../i18n';
+const locale = Astro.locals.locale ?? 'es';
+const { t, dict } = getI18n(locale);
+
+const stepIcons = [
+  `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
+  `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>`,
+  `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 11.6a1 1 0 0 1 0 1.4l-4.2 4.2a1 1 0 0 1-1.4 0l-2.2-2.2a1 1 0 0 1 0-1.4"/><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>`,
 ];
+const steps = dict.landing.process.steps.map((step, i) => ({
+  ...step,
+  icon: stepIcons[i] ?? '',
+}));
 ---
 
 <section id="proceso" class="process" aria-label="Como funciona">
   <div class="process-inner">
     <div class="process-header animate-on-scroll">
-      <h2 class="process-title">Así funciona, en serio</h2>
-      <p class="process-subtitle">De buscar el médico a tener la receta. Sin llamar a nadie.</p>
+      <h2 class="process-title">{t('landing.process.title')}</h2>
+      <p class="process-subtitle">{t('landing.process.subtitle')}</p>
     </div>
 
     <div class="process-timeline">

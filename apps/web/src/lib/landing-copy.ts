@@ -1,10 +1,11 @@
- 
 // @ts-nocheck
-import landingCopyConfig from '@/config/landing-copy.json';
+import landingCopyEs from '@/config/landing-copy.json';
+import landingCopyPt from '@/config/landing-copy.pt.json';
 import { buildRoleAuthPath } from './auth-flow';
 import type { AuthPage, EntryRole } from './auth-flow';
+import type { Locale } from '../i18n/index';
 
-type LandingCopyConfig = typeof landingCopyConfig;
+type LandingCopyConfig = typeof landingCopyEs;
 export type LandingCopyVariant = keyof LandingCopyConfig['variants'];
 type LandingCopyVariantConfig = LandingCopyConfig['variants'][LandingCopyVariant];
 
@@ -32,10 +33,11 @@ export interface ResolvedLandingCopy {
 }
 
 function isLandingCopyVariant(value: string): value is LandingCopyVariant {
-  return Object.prototype.hasOwnProperty.call(landingCopyConfig.variants, value);
+  return Object.prototype.hasOwnProperty.call(landingCopyEs.variants, value);
 }
 
-export function resolveLandingCopy(url: URL, requestedVariant?: string | null): ResolvedLandingCopy {
+export function resolveLandingCopy(url: URL, requestedVariant?: string | null, locale?: Locale): ResolvedLandingCopy {
+  const landingCopyConfig = locale === 'pt' ? landingCopyPt : landingCopyEs;
   const queryVariant = url.searchParams.get('copy');
   const candidate = queryVariant ?? requestedVariant ?? landingCopyConfig.defaultVariant;
   const variant = isLandingCopyVariant(candidate) ? candidate : landingCopyConfig.defaultVariant;

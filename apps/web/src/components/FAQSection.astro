@@ -1,23 +1,8 @@
 ---
-const faqs = [
-  {
-    question: '¿Cuánto tarda una consulta médica online?',
-    answer: 'La atención suele comenzar en minutos y la consulta promedio dura alrededor de 15 minutos.',
-  },
-  {
-    question: '¿Puedo obtener receta digital al finalizar?',
-    answer: 'Sí. Los profesionales habilitados pueden emitir recetas digitales y dejar indicaciones en tu perfil.',
-  },
-  {
-    question: '¿La plataforma sirve para equipos médicos y empresas?',
-    answer: 'Sí. AutaMedica tiene portales específicos para médicos, pacientes y empresas, con flujos adaptados.',
-  },
-  {
-    question: '¿Qué nivel de seguridad tiene la plataforma?',
-    answer: 'Se opera con estándares HIPAA-compliant, cifrado TLS y controles de acceso por rol.',
-  },
-];
-
+import { getI18n } from '../i18n';
+const locale = Astro.locals.locale ?? 'es';
+const { t, dict } = getI18n(locale);
+const faqs = dict.landing.faq.items;
 const faqJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
@@ -35,8 +20,8 @@ const faqJsonLd = {
 <section id="faq" class="landing-faq" aria-label="Preguntas frecuentes">
   <div class="faq-inner">
     <div class="faq-header animate-on-scroll">
-      <h2 class="faq-title">Preguntas frecuentes</h2>
-      <p class="faq-subtitle">Respuestas rápidas para decidir tu primera consulta.</p>
+      <h2 class="faq-title">{t('landing.faq.title')}</h2>
+      <p class="faq-subtitle">{t('landing.faq.subtitle')}</p>
     </div>
 
     <div class="faq-list">

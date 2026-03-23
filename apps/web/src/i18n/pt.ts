@@ -145,6 +145,160 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
   landing: {
     symptomTitle: 'O que você precisa hoje?',
     symptomSubtitle: 'Selecione um sintoma e recomendamos a especialidade adequada',
+    premiumNarrative: {
+      kicker: 'Não é só uma videochamada',
+      title: 'A sala de espera era o problema, não o médico',
+      copy: 'No Brasil e na América Latina, milhões de consultas são adiadas por distância, tempo ou custo do deslocamento. AutaMedica conecta pacientes com médicos verificados — em São Paulo, Rio, Brasília ou onde você estiver.',
+      sideTitle: 'O que podemos prometer',
+      pillars: [
+        {
+          title: 'Sem deslocamento, sem espera',
+          detail: 'Consulte do seu bairro, do trabalho ou de viagem. O médico é quem se conecta com você.',
+        },
+        {
+          title: 'Médicos com CRM verificado',
+          detail: 'Cada profissional tem registro ativo no seu estado. Não é IA nem chatbot — é um médico real que assina a receita.',
+        },
+        {
+          title: 'Seu histórico no celular',
+          detail: 'Receitas, indicações e acompanhamento no seu telefone. A farmácia aceita a receita digital.',
+        },
+      ],
+    },
+    testimonials: {
+      title: 'Casos reais, não marketing',
+      subtitle: 'O que escreveram pacientes e médicos do Brasil, Argentina e Colômbia que usam AutaMedica',
+      items: [
+        {
+          name: 'Carlos Ruiz',
+          role: 'Paciente · Córdoba, Argentina',
+          avatar: '/images/testi_carlos.png',
+          context: 'Reação alérgica num domingo às 3h da tarde',
+          quote: 'Com o rosto inchado, encontrei consulta com uma dermatologista em 4 minutos. Ela enviou a receita para o celular e às 5h eu já tinha o anti-histamínico. Num domingo, sem ir à UPA.',
+          result: 'Resolvido em menos de 2 horas',
+        },
+        {
+          name: 'Dra. María González',
+          role: 'Clínica Médica · Bogotá, Colômbia',
+          avatar: '/images/testi_maria.png',
+          context: 'Consultório com 40+ pacientes semanais',
+          quote: 'Antes perdia 2 horas por dia com papelada e coordenação. O prontuário digital me devolveu esse tempo para atender melhor. Meus pacientes agora fazem acompanhamento pelo celular sem ligar para o consultório.',
+          result: '2 horas/dia de volta com os pacientes',
+        },
+        {
+          name: 'Ana Martínez',
+          role: 'Diretora de RH · Lima, Peru — 200 funcionários',
+          avatar: '/images/testi_ana.png',
+          context: 'Funcionários perdiam meio dia em consultas presenciais',
+          quote: 'Implementamos AutaMedica e os funcionários agendam no horário de almoço, da mesa deles. No primeiro trimestre, o absenteísmo caiu 40%.',
+          result: '-40% de absenteísmo em 3 meses',
+        },
+        {
+          name: 'Federico Torres',
+          role: 'Paciente · Buenos Aires, Argentina',
+          avatar: '/images/testi_federico.png',
+          context: 'Consulta cardiológica a 1.000 km do seu médico',
+          quote: 'Meu cardiologista está em Buenos Aires. Em viagem de trabalho, tive a consulta de controle por vídeo. Ele viu meus exames no histórico e ajustou a medicação no mesmo dia. Não adiou nada.',
+          result: 'Consulta médica sem cancelar a viagem',
+        },
+      ],
+    },
+    valueProps: {
+      items: [
+        {
+          title: 'Privacidade por design',
+          description: 'Criptografia de ponta a ponta. AutaMedica está em conformidade com as normas HIPAA e a LGPD brasileira.',
+        },
+        {
+          title: 'O médico olha para o paciente, não para o teclado',
+          description: 'Em uma consulta clínica tradicional, o profissional passa 40% do tempo escrevendo. Na AutaMedica, um agente de IA transcreve e estrutura o prontuário em tempo real durante a videochamada.',
+        },
+        {
+          title: 'Especialistas na hora',
+          description: 'Infraestrutura P2P que conecta pacientes com profissionais de saúde sem intermediários geográficos nem filas de espera.',
+        },
+      ],
+    },
+    process: {
+      title: 'Veja como funciona, de verdade',
+      subtitle: 'De buscar o médico até ter a receita. Sem ligar para ninguém.',
+      steps: [
+        {
+          title: 'Busque sua especialidade',
+          description: 'Descreva o que está sentindo. Veja os médicos disponíveis agora, com especialidade, anos de experiência e avaliações de outros pacientes.',
+        },
+        {
+          title: 'Escolha o horário que funciona',
+          description: 'Hoje, amanhã, em 20 minutos — você decide. Sem fila de espera nem secretária marcando para o mês seguinte.',
+        },
+        {
+          title: 'Consulta por videochamada',
+          description: 'Conecte-se pelo celular ou computador. Se já consultou antes, o médico vê seu histórico e o contexto completo.',
+        },
+        {
+          title: 'A receita chega no celular',
+          description: 'Ao final da consulta, a receita digital chega no seu telefone. A farmácia aceita. Sem papel, sem escâner.',
+        },
+      ],
+    },
+    doctorDirectory: {
+      title: 'Médicos reais, com nome e registro',
+      subtitle: 'Verificados no Brasil, Argentina, Colômbia e mais. Disponíveis hoje, não na semana que vem.',
+      available: 'Disponível',
+      yearsExp: 'anos exp.',
+    },
+    healthContent: {
+      title: 'Para entender o que está acontecendo',
+      subtitle: 'Artigos escritos pelos médicos que atendem na AutaMedica, não por redatores de conteúdo',
+    },
+    intentLinks: {
+      title: 'O que você precisa fazer hoje?',
+      subtitle: 'Escolha seu caso e comece sem formulários longos nem ligações.',
+      items: [
+        {
+          title: 'Estou mal e quero falar com um médico hoje',
+          copy: 'Encontre consulta com um médico agora mesmo, sem pronto-socorro e sem deslocamento. A receita digital chega no celular.',
+          cta: 'Buscar médico disponível',
+        },
+        {
+          title: 'Atendo pacientes e quero organizar minha agenda',
+          copy: 'Agenda digital, videoconsulta e prontuário em um só lugar. Sem burocracia extra.',
+          cta: 'Ver portal para médicos',
+        },
+        {
+          title: 'Gerencio saúde em uma empresa',
+          copy: 'Menos absenteísmo, mais saúde. Seus funcionários consultam do trabalho ou de casa, sem perder meio dia.',
+          cta: 'Ver solução para empresas',
+        },
+        {
+          title: 'Quero ver minhas receitas e meu histórico',
+          copy: 'Todo o seu histórico clínico em um só lugar. Receitas digitais, resultados e acompanhamento pelo celular.',
+          cta: 'Entrar no meu perfil',
+        },
+      ],
+    },
+    productShowcase: {
+      title: 'Veja como a AutaMedica funciona',
+      subtitle: 'Cada etapa do processo, no seu celular ou computador',
+      features: [
+        {
+          title: 'Agendamento imediato',
+          description: 'Escolha a especialidade, veja os horários disponíveis e confirme em menos de um minuto. Sem ligações, sem espera.',
+        },
+        {
+          title: 'Consulta virtual em HD',
+          description: 'Videochamada com seu médico em qualquer dispositivo. Compartilhe tela, chat em tempo real e conexão estável.',
+        },
+        {
+          title: 'Prontuário digital',
+          description: 'Seu histórico completo acessível a qualquer momento. Seus médicos veem o contexto, você vê seus resultados.',
+        },
+        {
+          title: 'Acompanhamento pós-consulta',
+          description: 'Receita digital, indicações e acompanhamento automático. Tudo no seu telefone, pronto para a farmácia.',
+        },
+      ],
+    },
     faq: {
       title: 'Perguntas frequentes',
       subtitle: 'Respostas rápidas para decidir sua primeira consulta.',
