@@ -80,7 +80,6 @@ export class GeminiAIService {
       const text = response.text();
       const processingTime = Date.now() - startTime;
 
-      // Parsear respuesta JSON
       const analysis = this.parseGeminiResponse(text);
 
       return {
@@ -321,12 +320,8 @@ SOLO responde con el JSON, sin texto adicional.`;
   }
 }
 
-// Singleton instance
 let geminiServiceInstance: GeminiAIService | null = null;
 
-/**
- * Obtener instancia única del servicio
- */
 export function getGeminiAIService(): GeminiAIService {
   if (!geminiServiceInstance) {
     geminiServiceInstance = new GeminiAIService();

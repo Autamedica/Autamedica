@@ -19,18 +19,15 @@ interface RemoteUser {
 }
 
 export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: VideoCallComponentProps) {
-  // WebRTC client state
   const [client, setClient] = useState<WebRTCClient | null>(null)
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
   const [remoteUsers, setRemoteUsers] = useState<Map<string, RemoteUser>>(new Map())
 
-  // Video refs
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideosRef = useRef<Map<string, HTMLVideoElement>>(new Map())
 
-  // Initialize WebRTC client
   useEffect(() => {
     const webrtcClient = new WebRTCClient({
       userId,
@@ -38,22 +35,17 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
       roomId
     })
 
-    // Set up event listeners
     webrtcClient.on('connection-state', (state) => {
       setConnectionState(state)
-      // logger.info('Connection state changed:', state)
     })
 
     webrtcClient.on('local-stream', (stream) => {
-      // logger.info('Got local stream')
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream
       }
     })
 
     webrtcClient.on('remote-stream', (stream, remoteUserId) => {
-      // logger.info('Got remote stream from:', remoteUserId)
-
       setRemoteUsers(prev => {
         const updated = new Map(prev)
         const existingUser = updated.get(remoteUserId) || { userId: remoteUserId, userType: 'unknown' }
@@ -61,7 +53,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
         return updated
       })
 
-      // Set video element source
       const videoElement = remoteVideosRef.current.get(remoteUserId)
       if (videoElement) {
         videoElement.srcObject = stream
@@ -69,7 +60,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
     })
 
     webrtcClient.on('user-joined', (remoteUserId, remoteUserType) => {
-      // logger.info('User joined:', remoteUserId, remoteUserType)
       setRemoteUsers(prev => {
         const updated = new Map(prev)
         const existingUser = updated.get(remoteUserId)
@@ -83,7 +73,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
     })
 
     webrtcClient.on('user-left', (remoteUserId) => {
-      // logger.info('User left:', remoteUserId)
       setRemoteUsers(prev => {
         const updated = new Map(prev)
         updated.delete(remoteUserId)
@@ -94,7 +83,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
 
     webrtcClient.on('error', (error) => {
       logger.error('WebRTC error:', error)
-      // Could show error toast here
     })
 
     setClient(webrtcClient)
@@ -104,14 +92,12 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
     }
   }, [userId, userType, roomId])
 
-  // Start call
   const startCall = useCallback(async () => {
     if (!client) return
 
     try {
       await client.connect()
 
-      // Start local stream
       const constraints: MediaConstraints = {
         video: true,
         audio: true
@@ -123,7 +109,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
     }
   }, [client])
 
-  // End call
   const endCall = useCallback(async () => {
     if (!client) return
 
@@ -135,7 +120,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
     }
   }, [client, onCallEnd])
 
-  // Toggle video
   const toggleVideo = useCallback(() => {
     if (!client) return
 
@@ -143,7 +127,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
     setIsVideoEnabled(newState)
   }, [client])
 
-  // Toggle audio
   const toggleAudio = useCallback(() => {
     if (!client) return
 
@@ -151,7 +134,6 @@ export function VideoCallComponent({ roomId, userId, userType, onCallEnd }: Vide
     setIsAudioEnabled(newState)
   }, [client])
 
-  // Update video element refs when remote users change
   useEffect(() => {
     remoteUsers.forEach((user, userId) => {
       if (user.stream) {

@@ -6,9 +6,7 @@
 import type { AnamnesisStep } from '../types/anamnesis';
 
 export const anamnesisSteps: AnamnesisStep[] = [
-  // ==========================================
-  // PASO 1: EDAD - El contexto que cambia todo
-  // ==========================================
+  // PASO 1: Edad
   {
     id: 'edad',
     title: '📅 Tu Edad: El Primer Detective',
@@ -41,9 +39,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 2: OCUPACIÓN - Riesgos Ocultos
-  // ==========================================
+  // PASO 2: Ocupación
   {
     id: 'ocupacion',
     title: '💼 Tu Trabajo: Pistas Escondidas',
@@ -85,9 +81,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 3: MOTIVO DE CONSULTA - Tu Historia Hoy
-  // ==========================================
+  // PASO 3: Motivo de consulta
   {
     id: 'motivo_consulta',
     title: '🎯 ¿Por Qué Consultas Hoy?',
@@ -128,9 +122,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 4: ANTECEDENTES - Tu Historia Médica
-  // ==========================================
+  // PASO 4: Enfermedades previas
   {
     id: 'enfermedades_previas',
     title: '📋 Tus Enfermedades Previas',
@@ -159,9 +151,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 5: MEDICAMENTOS - Tu Arsenal Actual
-  // ==========================================
+  // PASO 5: Medicamentos
   {
     id: 'medicamentos',
     title: '💊 Tus Medicamentos Actuales',
@@ -193,9 +183,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 6: ALERGIAS - Tu Sistema de Alarma
-  // ==========================================
+  // PASO 6: Alergias
   {
     id: 'alergias',
     title: '⚠️ Alergias: Tu Sistema de Alarma',
@@ -227,9 +215,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 7: ANTECEDENTES FAMILIARES - Tu Código Genético
-  // ==========================================
+  // PASO 7: Antecedentes familiares
   {
     id: 'antecedentes_familiares',
     title: '👨‍👩‍👧‍👦 Tu Historia Familiar: El Código Genético',
@@ -329,9 +315,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 8: HÁBITOS - Tu Estilo de Vida
-  // ==========================================
+  // PASO 8: Hábitos
   {
     id: 'habitos',
     title: '🏃‍♂️ Tus Hábitos: Lo Que Haces Cada Día',
@@ -424,9 +408,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 9: REVISIÓN POR SISTEMAS - Cardiovascular
-  // ==========================================
+  // PASO 9: Cardiovascular
   {
     id: 'cardiovascular',
     title: '❤️ Sistema Cardiovascular',
@@ -488,9 +470,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 10: REVISIÓN POR SISTEMAS - Respiratorio
-  // ==========================================
+  // PASO 10: Respiratorio
   {
     id: 'respiratorio',
     title: '🫁 Sistema Respiratorio',
@@ -547,9 +527,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 11: REVISIÓN POR SISTEMAS - Digestivo
-  // ==========================================
+  // PASO 11: Digestivo
   {
     id: 'digestivo',
     title: '🍽️ Sistema Digestivo',
@@ -605,9 +583,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 12: REVISIÓN POR SISTEMAS - Genitourinario
-  // ==========================================
+  // PASO 12: Genitourinario
   {
     id: 'genitourinario',
     title: '💧 Sistema Genitourinario',
@@ -655,9 +631,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     ],
   },
 
-  // ==========================================
-  // PASO 13: PANTALLA FINAL - Resumen y Envío
-  // ==========================================
+  // PASO 13: Resumen final
   {
     id: 'resumen_final',
     title: '✅ ¡Completaste tu Anamnesis!',

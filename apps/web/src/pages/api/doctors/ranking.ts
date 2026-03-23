@@ -25,7 +25,6 @@ export const GET: APIRoute = async ({ request }) => {
       });
     }
 
-    // Get current doctor
     const { data: currentDoctor } = await supabase
       .from('doctors')
       .select('id, specialty, years_experience')
@@ -39,28 +38,24 @@ export const GET: APIRoute = async ({ request }) => {
       });
     }
 
-    // Get current doctor's metrics
     const { data: myMetrics } = await supabase
       .from('doctor_ranking_metrics')
       .select('*')
       .eq('doctor_id', currentDoctor.id)
       .single();
 
-    // Get current doctor's badges
     const { data: myBadges } = await supabase
       .from('doctor_badges')
       .select('*')
       .eq('doctor_id', currentDoctor.id)
       .order('earned_at', { ascending: false });
 
-    // Get current doctor's category ratings from reviews
     const { data: myReviews } = await supabase
       .from('doctor_reviews')
       .select('overall_rating, punctuality_rating, communication_rating, professionalism_rating, clinical_quality_rating')
       .eq('doctor_id', currentDoctor.id)
       .eq('status', 'approved');
 
-    // Get top ranked doctors (with their profile names)
     const { data: topRanked } = await supabase
       .from('doctor_ranking_metrics')
       .select(`
@@ -76,7 +71,6 @@ export const GET: APIRoute = async ({ request }) => {
       .order('rank_position', { ascending: true })
       .limit(20);
 
-    // Get doctor profiles for the ranked doctors
     let rankedDoctors: Array<Record<string, unknown>> = [];
     if (topRanked && topRanked.length > 0) {
       const doctorIds = topRanked.map((r: Record<string, unknown>) => r.doctor_id as string);
@@ -109,7 +103,6 @@ export const GET: APIRoute = async ({ request }) => {
       });
     }
 
-    // Get badges for top doctors
     const topDoctorIds = rankedDoctors.map(d => d.doctor_id as string);
     const { data: allBadges } = topDoctorIds.length > 0
       ? await supabase

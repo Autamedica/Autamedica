@@ -261,12 +261,8 @@ export class UnifiedAIService {
   }
 }
 
-// Singleton instance
 let unifiedAIServiceInstance: UnifiedAIService | null = null;
 
-/**
- * Obtener instancia única del servicio unificado
- */
 export function getUnifiedAIService(): UnifiedAIService {
   if (!unifiedAIServiceInstance) {
     unifiedAIServiceInstance = new UnifiedAIService();
@@ -274,5 +270,4 @@ export function getUnifiedAIService(): UnifiedAIService {
   return unifiedAIServiceInstance;
 }
 
-// Export default para uso fácil
 export default getUnifiedAIService;

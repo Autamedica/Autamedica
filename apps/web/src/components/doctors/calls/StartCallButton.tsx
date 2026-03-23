@@ -29,32 +29,13 @@ export function StartCallButton({
     setError(null)
 
     try {
-      // logger.info('Starting call flow...', { doctorId, patientId })
-
-      // Create call service
-      // logger.info('Creating call service...')
       const callService = createCallService()
-      // logger.info('Call service created successfully')
-
-      // Create call record (status will be 'requested')
-      // logger.info('Creating call record...')
       const call = await callService.createCall(doctorId, patientId, appointmentId)
-      // logger.info('Call created:', call)
 
-      // Create signaling client for sending invite
-      // logger.info('Creating signaling client...')
       const signaling = createSignalingClient(doctorId, 'doctor')
-      // logger.info('Connecting to signaling server...')
       await signaling.connect()
-      // logger.info('Signaling connected successfully')
 
-      // Update call status to 'ringing' when sending invite
-      // logger.info('Updating call status to ringing...')
       await callService.updateCallStatus(call.id, 'ringing')
-      // logger.info('Call status updated to ringing')
-
-      // Send invite to patient
-      // logger.info('Sending invite to patient...')
       signaling.sendToUser(patientId, {
         type: 'invite',
         callId: call.id,
@@ -62,10 +43,8 @@ export function StartCallButton({
         from: { doctorId, name: doctorName || 'Médico' },
         to: { patientId }
       })
-      // logger.info('Invite sent successfully')
 
-      // Navigate to waiting room
-      // logger.info('Navigating to waiting room...')
+
       window.location.href = `/doctors/call/${call.room_id}/${call.id}?waiting=true`
 
     } catch (err) {

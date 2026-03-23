@@ -91,11 +91,9 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState<TimelineItem | null>(null);
 
-  // Consolidate all medical data into timeline items
   const createTimelineItems = (): TimelineItem[] => {
     const items: TimelineItem[] = [];
 
-    // Add conditions
     timeline.sections.conditions.forEach((condition) => {
       items.push({
         id: condition.id,
@@ -109,7 +107,6 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
       });
     });
 
-    // Add allergies
     timeline.sections.allergies.forEach((allergy) => {
       items.push({
         id: allergy.id,
@@ -122,7 +119,6 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
       });
     });
 
-    // Add medications
     timeline.sections.medications.forEach((medication) => {
       items.push({
         id: medication.id,
@@ -136,7 +132,6 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
       });
     });
 
-    // Add procedures
     timeline.sections.procedures.forEach((procedure) => {
       items.push({
         id: procedure.id,
@@ -149,7 +144,6 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
       });
     });
 
-    // Add encounters
     timeline.sections.encounters.forEach((encounter) => {
       items.push({
         id: encounter.id,
@@ -162,7 +156,6 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
       });
     });
 
-    // Add immunizations
     timeline.sections.immunizations.forEach((immunization) => {
       items.push({
         id: immunization.id,
@@ -180,7 +173,6 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
 
   const timelineItems = createTimelineItems();
 
-  // Filter items
   const filteredItems = timelineItems.filter(item => {
     const matchesFilter = activeFilter === 'all' || item.type === activeFilter;
     const matchesSearch = searchTerm === '' ||

@@ -133,12 +133,10 @@ FORMATO DE RESPUESTA (JSON):
         ],
       });
 
-      // Extraer respuesta
       const firstContent = message.content[0];
       const responseText =
         firstContent?.type === 'text' ? firstContent.text : '';
 
-      // Parsear JSON de la respuesta
       const analysis = this.parseClaudeResponse(responseText);
 
       return {
@@ -283,12 +281,8 @@ FORMATO DE RESPUESTA (JSON):
   }
 }
 
-// Singleton instance
 let aiServiceInstance: AIAnalysisService | null = null;
 
-/**
- * Obtener instancia única del servicio
- */
 export function getAIAnalysisService(): AIAnalysisService {
   if (!aiServiceInstance) {
     aiServiceInstance = new AIAnalysisService();

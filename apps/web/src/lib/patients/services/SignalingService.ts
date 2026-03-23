@@ -93,40 +93,31 @@ export class SignalingService extends EventEmitter {
    */
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // logger.info('[SignalingService] Connecting to:', this.config.serverUrl);
-
       try {
-        // Crear WebSocket connection
         const wsUrl = `${this.config.serverUrl}?userId=${this.config.userId}${
           this.config.authToken ? `&token=${this.config.authToken}` : ''
         }`;
 
         this.ws = new WebSocket(wsUrl);
 
-        // Handler: Connection opened
         this.ws.onopen = () => {
-          // logger.info('[SignalingService] Connected successfully');
           this.isConnected = true;
           this.emit(SignalingEvent.CONNECTED);
           this.startHeartbeat();
           resolve();
         };
 
-        // Handler: Message received
         this.ws.onmessage = (event) => {
           this.handleMessage(event.data);
         };
 
-        // Handler: Connection error
         this.ws.onerror = (error) => {
           logger.error('[SignalingService] WebSocket error:', error);
           this.emit(SignalingEvent.ERROR, error);
           reject(error);
         };
 
-        // Handler: Connection closed
         this.ws.onclose = (event) => {
-          // logger.info('[SignalingService] Connection closed:', event.code, event.reason);
           this.isConnected = false;
           this.stopHeartbeat();
           this.emit(SignalingEvent.DISCONNECTED);
@@ -150,8 +141,6 @@ export class SignalingService extends EventEmitter {
    * Desconectar del servidor
    */
   disconnect(): void {
-    // logger.info('[SignalingService] Disconnecting...');
-
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -172,8 +161,6 @@ export class SignalingService extends EventEmitter {
    * Unirse a una sala de videoconsulta
    */
   joinRoom(roomId: string): void {
-    // logger.info('[SignalingService] Joining room:', roomId);
-
     this.currentRoomId = roomId;
 
     const message: SignalingMessage = {
@@ -194,8 +181,6 @@ export class SignalingService extends EventEmitter {
       return;
     }
 
-    // logger.info('[SignalingService] Leaving room:', this.currentRoomId);
-
     const message: SignalingMessage = {
       type: 'leave-room',
       roomId: this.currentRoomId,
@@ -210,8 +195,6 @@ export class SignalingService extends EventEmitter {
    * Enviar oferta SDP al peer remoto
    */
   sendOffer(roomId: string, offer: RTCSessionDescriptionInit): void {
-    // logger.info('[SignalingService] Sending SDP offer to room:', roomId);
-
     const message: SignalingMessage = {
       type: 'offer',
       roomId,
@@ -226,8 +209,6 @@ export class SignalingService extends EventEmitter {
    * Enviar respuesta SDP al peer remoto
    */
   sendAnswer(roomId: string, answer: RTCSessionDescriptionInit): void {
-    // logger.info('[SignalingService] Sending SDP answer to room:', roomId);
-
     const message: SignalingMessage = {
       type: 'answer',
       roomId,
@@ -242,8 +223,6 @@ export class SignalingService extends EventEmitter {
    * Enviar ICE candidate al peer remoto
    */
   sendIceCandidate(roomId: string, candidate: RTCIceCandidate): void {
-    // logger.info('[SignalingService] Sending ICE candidate to room:', roomId);
-
     const message: SignalingMessage = {
       type: 'ice-candidate',
       roomId,
@@ -280,8 +259,6 @@ export class SignalingService extends EventEmitter {
   private handleMessage(data: string): void {
     try {
       const message: SignalingMessage = JSON.parse(data);
-
-      // logger.info('[SignalingService] Message received:', message.type);
 
       switch (message.type) {
         case 'offer':
