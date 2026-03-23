@@ -44,10 +44,10 @@ function getAppOrigins(): Record<AppName, string> {
   return {
     patients: devMode
       ? getClientEnvOrDefault('PUBLIC_PATIENTS_DEV_URL', 'http://localhost:3002')
-      : getClientEnvOrDefault('PUBLIC_PATIENTS_URL', 'https://patients.autamedica.com'),
+      : getClientEnvOrDefault('PUBLIC_PATIENTS_URL', 'https://paciente.autamedica.com'),
     doctors: devMode
       ? getClientEnvOrDefault('PUBLIC_DOCTORS_DEV_URL', 'http://localhost:3001')
-      : getClientEnvOrDefault('PUBLIC_DOCTORS_URL', 'https://doctors.autamedica.com'),
+      : getClientEnvOrDefault('PUBLIC_DOCTORS_URL', 'https://doctor.autamedica.com'),
   };
 }
 

@@ -18,9 +18,9 @@ export function getBaseUrlForRole(portal: AppRole): string {
   }
 
   const urls: Record<AppRole, string> = {
-    'patients': 'https://patients.autamedica.com',
-    'doctors': 'https://doctors.autamedica.com',
-    'companies': 'https://companies.autamedica.com',
+    'patients': 'https://paciente.autamedica.com',
+    'doctors': 'https://doctor.autamedica.com',
+    'companies': 'https://empresa.autamedica.com',
     'admin': 'https://admin.autamedica.com',
     'web-app': 'https://www.autamedica.com'
   };

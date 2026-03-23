@@ -14,7 +14,6 @@ import { detectLocale, LOCALE_COOKIE } from './i18n/index';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
-  '/dashboard',
   '/profile',
   '/admin',
   '/settings',
@@ -45,7 +44,7 @@ const PUBLIC_ROUTES = [
 ];
 
 const ROLE_REDIRECTS: Record<string, string> = {
-  patient: '/dashboard',
+  patient: '/patients',
   doctor: '/doctors',
   company: '/companies',
   company_admin: '/companies',

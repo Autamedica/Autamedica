@@ -96,7 +96,7 @@ function resolveRole(
 
 /** Map role to same-origin redirect path */
 const ROLE_PATHS: Record<string, string> = {
-  patient: '/dashboard',
+  patient: '/patients',
   doctor: '/doctors',
   company: '/companies',
   company_admin: '/companies',

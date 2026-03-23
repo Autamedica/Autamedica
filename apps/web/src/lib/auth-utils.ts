@@ -8,9 +8,9 @@ const ALLOWED_LOCAL_PORTS = new Set(['3000', '3001', '3002', '3003', '3004', '30
 const ALLOWED_REDIRECT_HOSTS = new Set([
   'autamedica.com',
   'www.autamedica.com',
-  'doctors.autamedica.com',
-  'patients.autamedica.com',
-  'companies.autamedica.com',
+  'doctor.autamedica.com',
+  'paciente.autamedica.com',
+  'empresa.autamedica.com',
   'admin.autamedica.com',
   'autamedica-doctors.pages.dev',
   'autamedica-patients.pages.dev',

@@ -92,9 +92,9 @@ function getAppUrl(app: AppName, path: string = '/'): string {
   const appUrls: Record<AppName, string> = {
     'web-app': 'https://www.autamedica.com',
     'auth': 'https://www.autamedica.com',
-    'patients': 'https://patients.autamedica.com',
-    'doctors': 'https://doctors.autamedica.com',
-    'companies': 'https://companies.autamedica.com',
+    'patients': 'https://paciente.autamedica.com',
+    'doctors': 'https://doctor.autamedica.com',
+    'companies': 'https://empresa.autamedica.com',
     'admin': 'https://admin.autamedica.com'
   }
 

@@ -14,10 +14,10 @@ import type { UserRole } from './auth/portals';
  * Mapping from roles to their corresponding portal URLs
  */
 export const roleToPortal: Record<UserRole, string> = {
-  doctor: 'https://doctors.autamedica.com',
-  patient: 'https://patients.autamedica.com',
-  company: 'https://companies.autamedica.com',
-  company_admin: 'https://companies.autamedica.com',
+  doctor: 'https://doctor.autamedica.com',
+  patient: 'https://paciente.autamedica.com',
+  company: 'https://empresa.autamedica.com',
+  company_admin: 'https://empresa.autamedica.com',
   organization_admin: 'https://admin.autamedica.com',
   platform_admin: 'https://admin.autamedica.com'
 } as const;

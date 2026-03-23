@@ -34,17 +34,17 @@ export function getPortalForRole(role: UserRole | undefined): string {
   // In production, use subdomains
   switch (actualRole) {
     case 'doctor':
-      return process.env.PUBLIC_BASE_URL_DOCTORS || 'https://doctors.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_DOCTORS || 'https://doctor.autamedica.com';
     case 'patient':
-      return process.env.PUBLIC_BASE_URL_PATIENTS || 'https://patients.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_PATIENTS || 'https://paciente.autamedica.com';
     case 'company':
     case 'company_admin':
-      return process.env.PUBLIC_BASE_URL_COMPANIES || 'https://companies.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_COMPANIES || 'https://empresa.autamedica.com';
     case 'organization_admin':
     case 'platform_admin':
       return process.env.PUBLIC_BASE_URL_ADMIN || 'https://admin.autamedica.com';
     default:
-      return process.env.PUBLIC_BASE_URL_PATIENTS || 'https://patients.autamedica.com';
+      return process.env.PUBLIC_BASE_URL_PATIENTS || 'https://paciente.autamedica.com';
   }
 }
 
