@@ -1,0 +1,46 @@
+name: Content Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/src/pages/blog/**'
+      - 'apps/web/src/pages/sitemap.xml.ts'
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: '0'
+  TURBO_FORCE: 'true'
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Content
+    runs-on: self-hosted
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build:packages:core
+
+      - name: Build web
+        run: pnpm --filter @autamedica/web build
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/web/dist --project-name=autamedica-web --branch=main
