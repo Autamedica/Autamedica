@@ -50,6 +50,13 @@ const authFlowLinks = [
       twitterCard="summary"
       includeHreflang={false}
     />
+    <!-- Env vars for pre-compiled packages (@autamedica/auth) that can't use import.meta.env -->
+    <script is:inline define:vars={{
+      PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL ?? '',
+      PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+    }}>
+      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
+    </script>
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

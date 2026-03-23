@@ -52,6 +52,14 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
       keywords="telemedicina, consulta virtual, médico online, salud digital, consultas online, HIPAA, AutaMedica, receta digital, historia clínica digital, inteligencia artificial médica, telemedicina Argentina, consulta médica virtual"
     />
 
+    <!-- Env vars for pre-compiled packages (@autamedica/auth) that can't use import.meta.env -->
+    <script is:inline define:vars={{
+      PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL ?? '',
+      PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+    }}>
+      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
+    </script>
+
     <!-- Performance: font preload (eliminates FOUT delay) -->
     <link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
 

@@ -79,13 +79,43 @@ export function getSessionConfig(): SessionConfig {
 }
 
 /**
+ * Resolve an env var across multiple sources.
+ * In browser bundles built by Vite/Astro, `process.env` is often undefined
+ * because only `import.meta.env.PUBLIC_*` gets replaced at build time —
+ * but that replacement only works inside the app, not in pre-compiled packages.
+ * We also try `NEXT_PUBLIC_*` aliases for backwards compat with the shared pkg.
+ */
+function resolveEnv(name: string): string | undefined {
+  // 1. process.env (Node / Vite define replacements inside the app)
+  if (typeof process !== 'undefined' && process.env?.[name]) {
+    return process.env[name]
+  }
+
+  // 2. Browser: env vars injected on window by the host app
+  if (typeof window !== 'undefined') {
+    const win = window as unknown as Record<string, unknown>
+    // window.__ENV.PUBLIC_SUPABASE_URL pattern
+    const envBag = win.__ENV as Record<string, string> | undefined
+    if (envBag?.[name]) return envBag[name]
+  }
+
+  // 3. NEXT_PUBLIC_ alias (used by @autamedica/shared compat layer)
+  const nextName = name.replace(/^PUBLIC_/, 'NEXT_PUBLIC_')
+  if (typeof process !== 'undefined' && process.env?.[nextName]) {
+    return process.env[nextName]
+  }
+
+  return undefined
+}
+
+/**
  * Get Supabase configuration
  */
 export function getSupabaseConfig() {
   const env = getEnvironment()
 
-  const url = process.env.PUBLIC_SUPABASE_URL
-  const anonKey = process.env.PUBLIC_SUPABASE_ANON_KEY
+  const url = resolveEnv('PUBLIC_SUPABASE_URL')
+  const anonKey = resolveEnv('PUBLIC_SUPABASE_ANON_KEY')
 
   // Validate configuration - NO FALLBACKS for security
   if (!url || !anonKey) {
