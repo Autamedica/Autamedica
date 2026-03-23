@@ -256,6 +256,19 @@ Todas las apps Next.js han sido migradas y eliminadas. `apps/web` (Astro 5 + Rea
 - Cross-app imports: `apps/doctors/src/...` desde `apps/patients/` → PROHIBIDO.
 - `process.env` en `apps/web/*` → usar `import.meta.env.PUBLIC_*`.
 
+### Código con Oficio (Anti-IA Pattern)
+
+Todo código generado debe parecer escrito por un senior con contexto del proyecto:
+
+- **Sin comentarios obvios.** `pnpm install` no necesita `# Install dependencies`. El YAML/código se lee solo.
+- **Nombres con intención, no acción.** `Build` > `Run build command`. `Secrets in diff` > `Step 3: Check for secrets`.
+- **Solo lo necesario.** 7 workflows consolidados, no 97. Si un step no agrega valor, no existe.
+- **Reutilización real.** Un build artifact compartido, no `pnpm install && pnpm build:packages:core` repetido en cada job sin motivo.
+- **Contexto del proyecto.** Usar los scripts reales de `package.json` (`pnpm check:policy`, `pnpm hardcode:check`, `pnpm test:unit`), no comandos genéricos inventados.
+- **Sin bloques copiados.** Cada workflow refleja su propósito específico, no un template genérico con variables cambiadas.
+- **Decisiones visibles.** `continue-on-error: true` en tests = decisión consciente de que son informativos. `timeout-minutes: 5` = conoces cuánto tarda tu CI.
+- **Formato humano.** Líneas vacías donde un humano las pondría. Sin alineación obsesiva. Sin emojis en nombres de jobs.
+
 ### Astro-Specific
 
 - Variables de entorno: siempre `import.meta.env.PUBLIC_*` (nunca `process.env`).

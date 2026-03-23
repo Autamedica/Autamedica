@@ -1,11 +1,20 @@
-name: Deploy Test
+name: Runner Canary
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  canary:
+    name: Environment
     runs-on: self-hosted
+    timeout-minutes: 2
     steps:
-      - run: echo "workflow started successfully"
       - run: node --version && pnpm --version
+      - run: deno --version 2>/dev/null || echo "deno not installed"
+      - run: git --version
+
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: pnpm typecheck
+      - run: echo "Runner OK — $(hostname) — $(date -u)"

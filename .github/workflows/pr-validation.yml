@@ -1,0 +1,69 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  validate:
+    name: PR Quality
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - name: WIP guard
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.pull_request.title.toLowerCase();
+            const wip = ['wip', 'work in progress', 'do not merge', 'dnm', 'draft', 'broken'];
+            if (wip.some(w => title.includes(w)) && !context.payload.pull_request.draft) {
+              core.setFailed('PR has WIP indicators but is not marked as draft');
+            }
+
+      - name: Title and body quality
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          ISSUES=0
+          [[ ${#PR_TITLE} -gt 140 ]] && echo "::warning::Title too long" && ISSUES=$((ISSUES+1))
+          [[ "$PR_TITLE" == *'`'* ]] && echo "::warning::Title has backticks" && ISSUES=$((ISSUES+1))
+          echo "$PR_TITLE" | grep -qiE '(Fix: The error|indicates that|ERR_PNPM|Missing script)' && echo "::warning::Auto-generated title" && ISSUES=$((ISSUES+1))
+          [[ -z "${PR_BODY// }" ]] && echo "::warning::Empty body" && ISSUES=$((ISSUES+1))
+          [[ $ISSUES -ge 2 ]] && exit 1 || true
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Size check
+        run: |
+          FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | wc -l)
+          [[ $FILES -gt 50 ]] && echo "::warning::Large PR: $FILES files. Consider splitting."
+          echo "Files changed: $FILES"
+
+      - name: Secrets in diff
+        run: |
+          if git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.tsx' '*.js' '*.json' \
+            | grep -E 'eyJ[a-zA-Z0-9]{20,}|sk_live|pk_live|service_role_key\s*[:=]' \
+            | grep -v 'process\.env\|import\.meta\.env\|secrets\.\|EXAMPLE\|placeholder'; then
+            echo "::error::Secrets detected in diff"
+            exit 1
+          fi
+
+      - name: Blocked files
+        run: |
+          BLOCKED=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} \
+            | grep -iE '\.(exe|dll|zip|rar|dmg|apk|mp4|avi|mov)$' || true)
+          ENV=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} \
+            | grep -E '^\.env($|\.local|\.production)' || true)
+          [[ -n "$BLOCKED" ]] && echo "::error::Blocked binaries: $BLOCKED" && exit 1
+          [[ -n "$ENV" ]] && echo "::error::.env files in PR: $ENV" && exit 1
+          echo "No blocked files"
+
+      - name: console.log check
+        run: |
+          COUNT=$(git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.tsx' \
+            | grep '^\+' | grep -c 'console\.log' || true)
+          [[ $COUNT -gt 0 ]] && echo "::warning::$COUNT new console.log — use @autamedica/shared logger"
+          true

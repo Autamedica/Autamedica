@@ -1,0 +1,92 @@
+name: Quality Gates
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'packages/types/**'
+      - 'scripts/ci/**'
+      - 'scripts/check-policy.mjs'
+      - 'scripts/validate-no-hardcode.mjs'
+  schedule:
+    - cron: '0 6 * * 1'
+
+jobs:
+  changes:
+    name: Detect
+    runs-on: self-hosted
+    outputs:
+      migrations: ${{ steps.filter.outputs.migrations }}
+      functions: ${{ steps.filter.outputs.functions }}
+      types: ${{ steps.filter.outputs.types }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            migrations:
+              - 'supabase/migrations/**'
+            functions:
+              - 'supabase/functions/**'
+            types:
+              - 'packages/types/**'
+
+  db-type-drift:
+    name: DB Type Drift
+    runs-on: self-hosted
+    needs: changes
+    if: needs.changes.outputs.migrations == 'true' || needs.changes.outputs.types == 'true'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: pnpm check:db:type-drift
+
+  edge-function-lint:
+    name: Edge Functions
+    runs-on: self-hosted
+    needs: changes
+    if: needs.changes.outputs.functions == 'true'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth headers
+        run: |
+          for fn in supabase/functions/*/index.ts; do
+            if ! grep -q 'authorization\|Authorization\|service_role\|anon' "$fn" 2>/dev/null; then
+              echo "::warning::$fn — no auth check detected"
+            fi
+          done
+
+      - name: Deno check
+        run: |
+          for fn in supabase/functions/*/index.ts; do
+            deno check --no-lock "$fn" 2>&1 || echo "::warning::$fn failed deno check"
+          done
+
+  clinical-coherence:
+    name: Clinical
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: node scripts/ci/verify-clinical-observability.mjs
+
+  policy:
+    name: Policies
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: pnpm check:policy
+      - run: pnpm hardcode:check
+      - run: pnpm docs:validate

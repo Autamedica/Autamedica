@@ -11,25 +11,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Typecheck & Build
+  build-gate:
+    name: Build
     runs-on: self-hosted
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build core packages
-        run: pnpm build:packages:core
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Build web (Astro)
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: pnpm typecheck
+      - name: Build web
         run: pnpm --filter @autamedica/web build
         env:
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
-          PUBLIC_SIGNALING_URL: wss://autamedica-signaling-server.marques-eduardo95466020.workers.dev/signaling
-          PUBLIC_APP_URL: https://www.autamedica.com
+          PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
+
+  lint-gate:
+    name: Lint
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: pnpm lint
+
+  unit-tests:
+    name: Tests
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: [build-gate]
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: pnpm test:unit
+
+  ci-status:
+    name: CI
+    runs-on: self-hosted
+    needs: [build-gate, lint-gate, unit-tests]
+    if: always()
+    steps:
+      - name: Evaluate gates
+        run: |
+          echo "## CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Gate | Result |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build-gate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint-gate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ needs.unit-tests.result }} (non-blocking) |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" ]]; then
+            exit 1
+          fi
