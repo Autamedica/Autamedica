@@ -152,7 +152,7 @@ export const es = {
         {
           name: 'Carlos Ruiz',
           role: 'Paciente · Córdoba, Argentina',
-          avatar: '/images/testi_carlos.png',
+          avatar: '/images/testi_carlos.webp',
           context: 'Reacción alérgica un domingo a las 3pm',
           quote: 'Con la cara hinchada, encontré turno con una dermatóloga en 4 minutos. Me mandó la receta al celular y a las 5 ya tenía el antihistamínico. Un domingo en Córdoba, sin ir a urgencias.',
           result: 'Resuelto en menos de 2 horas',
@@ -160,7 +160,7 @@ export const es = {
         {
           name: 'Dra. María González',
           role: 'Clínica Médica · Bogotá, Colombia',
-          avatar: '/images/testi_maria.png',
+          avatar: '/images/testi_maria.webp',
           context: 'Consultorio con 40+ pacientes semanales',
           quote: 'Antes perdía 2 horas por día en papelería y coordinación. La historia clínica digital me devolvió ese tiempo para atender mejor. Mis pacientes en Bogotá ahora hacen seguimiento desde el celular sin llamar al consultorio.',
           result: '2 horas/día de vuelta con los pacientes',
@@ -168,7 +168,7 @@ export const es = {
         {
           name: 'Ana Martínez',
           role: 'Directora de RRHH · Lima, Perú — 200 empleados',
-          avatar: '/images/testi_ana.png',
+          avatar: '/images/testi_ana.webp',
           context: 'Empleados perdían medio día por consultas presenciales en Lima',
           quote: 'En Lima, ir al médico puede ser medio día perdido entre tráfico y espera. Implementamos AutaMédica y los empleados agendan en el almuerzo, desde su escritorio. En el primer trimestre, el ausentismo bajó 40%.',
           result: '-40% ausentismo en 3 meses',
@@ -176,7 +176,7 @@ export const es = {
         {
           name: 'Federico Torres',
           role: 'Paciente · Buenos Aires, Argentina',
-          avatar: '/images/testi_federico.png',
+          avatar: '/images/testi_federico.webp',
           context: 'Control cardiológico a 1.000 km de su médico de cabecera',
           quote: 'Mi cardiólogo está en Buenos Aires. Estando de viaje de trabajo en Mendoza, tuve la consulta de control por video. Vio mis estudios en el historial y ajustó la medicación ese mismo día. No postergué nada.',
           result: 'Control médico sin cancelar el viaje',

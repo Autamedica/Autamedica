@@ -416,7 +416,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
             ) : (
               <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-8 text-center overflow-hidden">
                 <img 
-                  src="/images/doctor_portal_bg.png" 
+                  src="/images/doctor_portal_bg.webp" 
                   alt="" 
                   className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-luminosity" 
                   aria-hidden="true"

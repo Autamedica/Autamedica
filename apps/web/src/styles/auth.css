@@ -61,7 +61,7 @@
   z-index: 0;
   background-image:
     radial-gradient(circle at 30% 15%, rgba(34, 211, 238, 0.06) 0%, transparent 35%),
-    url('/images/auth_bg.png');
+    url('/images/auth_bg.webp');
   background-size: cover;
   background-position: center 55%;
   opacity: 0.85;

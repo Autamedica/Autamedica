@@ -172,7 +172,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
         {
           name: 'Carlos Ruiz',
           role: 'Paciente · Córdoba, Argentina',
-          avatar: '/images/testi_carlos.png',
+          avatar: '/images/testi_carlos.webp',
           context: 'Reação alérgica num domingo às 3h da tarde',
           quote: 'Com o rosto inchado, encontrei consulta com uma dermatologista em 4 minutos. Ela enviou a receita para o celular e às 5h eu já tinha o anti-histamínico. Num domingo, sem ir à UPA.',
           result: 'Resolvido em menos de 2 horas',
@@ -180,7 +180,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
         {
           name: 'Dra. María González',
           role: 'Clínica Médica · Bogotá, Colômbia',
-          avatar: '/images/testi_maria.png',
+          avatar: '/images/testi_maria.webp',
           context: 'Consultório com 40+ pacientes semanais',
           quote: 'Antes perdia 2 horas por dia com papelada e coordenação. O prontuário digital me devolveu esse tempo para atender melhor. Meus pacientes agora fazem acompanhamento pelo celular sem ligar para o consultório.',
           result: '2 horas/dia de volta com os pacientes',
@@ -188,7 +188,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
         {
           name: 'Ana Martínez',
           role: 'Diretora de RH · Lima, Peru — 200 funcionários',
-          avatar: '/images/testi_ana.png',
+          avatar: '/images/testi_ana.webp',
           context: 'Funcionários perdiam meio dia em consultas presenciais',
           quote: 'Implementamos AutaMedica e os funcionários agendam no horário de almoço, da mesa deles. No primeiro trimestre, o absenteísmo caiu 40%.',
           result: '-40% de absenteísmo em 3 meses',
@@ -196,7 +196,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
         {
           name: 'Federico Torres',
           role: 'Paciente · Buenos Aires, Argentina',
-          avatar: '/images/testi_federico.png',
+          avatar: '/images/testi_federico.webp',
           context: 'Consulta cardiológica a 1.000 km do seu médico',
           quote: 'Meu cardiologista está em Buenos Aires. Em viagem de trabalho, tive a consulta de controle por vídeo. Ele viu meus exames no histórico e ajustou a medicação no mesmo dia. Não adiou nada.',
           result: 'Consulta médica sem cancelar a viagem',
