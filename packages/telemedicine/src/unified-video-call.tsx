@@ -23,6 +23,7 @@ import {
   type WarmUpResult,
 } from './webrtc-client'
 import { CloudflareCallsClient } from './cloudflare-calls'
+import { useCallRecording } from './hooks/useCallRecording'
 import {
   Video,
   VideoOff,
@@ -46,6 +47,8 @@ import {
   ChevronDown,
   Volume2,
   PictureInPicture2,
+  Circle,
+  Square,
 } from 'lucide-react'
 
 /* ── Props ── */
@@ -214,6 +217,9 @@ export function UnifiedVideoCall({
   onStatusChangeRef.current = onStatusChange
   onErrorRef.current = onError
 
+  /* ── Recording ── */
+  const [recordingState, recordingActions] = useCallRecording()
+
   /* ── Green Room state ── */
   const [warmUpResult, setWarmUpResult] = useState<WarmUpResult | null>(null)
   const [isWarmingUp, setIsWarmingUp] = useState(false)
@@ -330,6 +336,20 @@ export function UnifiedVideoCall({
       }
     },
     [callId, debugLogger, roomId, userId, userType]
+  )
+
+  const logCallEvent = useCallback(
+    async (type: string, payload?: Record<string, unknown>) => {
+      if (!callId) return
+      try {
+        const callService = callServiceRef.current ?? createCallService()
+        callServiceRef.current = callService
+        await callService.logEvent(callId, type, (payload ?? null) as import('@autamedica/types').Json)
+      } catch {
+        // non-critical: don't block the call flow
+      }
+    },
+    [callId]
   )
 
   /* ── WebRTC setup ── */
@@ -465,6 +485,39 @@ export function UnifiedVideoCall({
     )
 
     unsubs.push(
+      webrtcClient.on('audio-only-fallback', (info) => {
+        emitDebug('warn', 'Fallback a audio-only', info)
+        setIsVideoEnabled(false)
+        setShowAudioOnlySuggestion(false)
+      })
+    )
+
+    // Observability: lifecycle events persisted to call_events
+    unsubs.push(
+      webrtcClient.on('media-acquired', (info) => {
+        emitDebug('info', 'Media adquirida', info)
+        void logCallEvent('media_acquired', info)
+      })
+    )
+    unsubs.push(
+      webrtcClient.on('signaling-connected', (info) => {
+        emitDebug('info', 'Signaling conectado', info)
+        void logCallEvent('signaling_connected', info)
+      })
+    )
+    unsubs.push(
+      webrtcClient.on('ice-state-change', (info) => {
+        void logCallEvent('ice_state_change', info)
+      })
+    )
+    unsubs.push(
+      webrtcClient.on('peer-connected', (info) => {
+        emitDebug('info', 'Peer conectado', info)
+        void logCallEvent('peer_connected', info)
+      })
+    )
+
+    unsubs.push(
       webrtcClient.on('error', (error) => {
         logger.error('[UnifiedVideoCall] WebRTC error:', error)
         emitDebug('error', 'Evento de error WebRTC recibido', { error })
@@ -498,7 +551,7 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, retryKey, roomId, userId, userName, userType])
+  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, retryKey, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
@@ -618,6 +671,7 @@ export function UnifiedVideoCall({
         setScreenStream(null)
         setIsScreenSharing(false)
       }
+      if (recordingState.isRecording) recordingActions.stop()
       onCallEndRef.current?.()
     } catch (error) {
       emitDebug('error', 'Error al finalizar videollamada', { error })
@@ -649,6 +703,10 @@ export function UnifiedVideoCall({
       screenStream?.getTracks().forEach((t) => t.stop())
       setScreenStream(null)
       setIsScreenSharing(false)
+      // Restore camera track in WebRTC connection
+      if (client && 'replaceVideoTrack' in client) {
+        await (client as { replaceVideoTrack: (t: MediaStreamTrack | null) => Promise<void> }).replaceVideoTrack(null)
+      }
       return
     }
     try {
@@ -656,14 +714,33 @@ export function UnifiedVideoCall({
       applyScreenShareHint(stream)
       setScreenStream(stream)
       setIsScreenSharing(true)
-      stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+      // Send screen share track to remote peers
+      const screenTrack = stream.getVideoTracks()[0]
+      if (screenTrack && client && 'replaceVideoTrack' in client) {
+        await (client as { replaceVideoTrack: (t: MediaStreamTrack | null) => Promise<void> }).replaceVideoTrack(screenTrack)
+      }
+      screenTrack?.addEventListener('ended', async () => {
         setScreenStream(null)
         setIsScreenSharing(false)
+        if (client && 'replaceVideoTrack' in client) {
+          await (client as { replaceVideoTrack: (t: MediaStreamTrack | null) => Promise<void> }).replaceVideoTrack(null)
+        }
       })
     } catch {
       setIsScreenSharing(false)
     }
-  }, [isScreenSharing, screenStream])
+  }, [isScreenSharing, screenStream, client])
+
+  const toggleRecording = useCallback(() => {
+    if (recordingState.isRecording) {
+      recordingActions.stop()
+      return
+    }
+    if (!client) return
+    const localStream = client.getLocalStream()
+    const firstRemote = remoteUsers.values().next().value as RemoteUser | undefined
+    recordingActions.start(localStream, firstRemote?.stream ?? null)
+  }, [recordingState.isRecording, recordingActions, client, remoteUsers])
 
   const toggleChatPanel = useCallback(() => {
     setIsChatPanelOpen((prev) => {
@@ -1154,6 +1231,13 @@ export function UnifiedVideoCall({
                 </>
               )}
             </div>
+            {/* Recording indicator */}
+            {recordingState.isRecording && (
+              <div className="flex items-center gap-1.5 rounded-full bg-red-500/30 px-3 py-1 text-[11px] backdrop-blur-xl">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="font-medium text-red-300">REC</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -1235,6 +1319,21 @@ export function UnifiedVideoCall({
                 title={isScreenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}
               >
                 {isScreenSharing ? <ScreenShare className="h-5 w-5" /> : <ScreenShareOff className="h-5 w-5" />}
+              </button>
+            )}
+
+            {/* Record */}
+            {userType === 'doctor' && (
+              <button
+                onClick={toggleRecording}
+                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
+                  recordingState.isRecording
+                    ? 'bg-red-500 text-white hover:bg-red-400'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                title={recordingState.isRecording ? 'Detener grabacion' : 'Grabar consulta'}
+              >
+                {recordingState.isRecording ? <Square className="h-4 w-4" /> : <Circle className="h-5 w-5" />}
               </button>
             )}
 

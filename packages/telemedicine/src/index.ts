@@ -84,7 +84,7 @@ export type {
 } from './debug'
 
 // Hooks
-export { useTelemedicineClient, useMediaControls, useRtcStats, useAudioTranscription } from './hooks'
+export { useTelemedicineClient, useMediaControls, useRtcStats, useAudioTranscription, useCallRecording } from './hooks'
 export { useTurnCredentials } from './hooks/useTurnCredentials'
 export type {
   TelemedicineClientState,
@@ -100,6 +100,9 @@ export type {
   TranscriptSegment,
   AudioTranscriptionState,
   AudioTranscriptionActions,
+  CallRecordingState,
+  CallRecordingActions,
+  CallRecordingHook,
 } from './hooks'
 
 // Signaling

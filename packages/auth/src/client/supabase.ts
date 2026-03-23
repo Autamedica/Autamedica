@@ -3,9 +3,9 @@
  */
 
 import type { Database } from '@autamedica/types'
-import { createBrowserClient as createSupabaseBrowserClient, type CookieOptions } from '@supabase/ssr'
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getDomainConfig, getSessionConfig, getSupabaseConfig } from '../utils/config'
+import { getDomainConfig, getSupabaseConfig } from '../utils/config'
 
 let supabaseClient: SupabaseClient<Database> | null = null
 
@@ -25,52 +25,17 @@ export function createBrowserClient(): SupabaseClient<Database> {
   }
 
   const { url, anonKey } = getSupabaseConfig()
-  const sessionConfig = getSessionConfig()
   const domainConfig = getDomainConfig()
 
-  // Create the client with SSO cookie configuration
+  // Use @supabase/ssr's built-in document.cookie handling (cookieOptions path).
+  // This is the modern API (v0.5+) — avoids the deprecated get/set/remove adapter.
+  // The cookieOptions.domain enables cross-subdomain SSO (.autamedica.com).
   supabaseClient = createSupabaseBrowserClient<Database>(url, anonKey, {
-    cookies: {
-      get(name: string) {
-        // Use js-cookie for better cross-domain support
-        if (typeof window !== 'undefined') {
-          const cookies = document.cookie.split('; ')
-          const cookie = cookies.find(c => c.startsWith(`${name}=`))
-          return cookie ? decodeURIComponent(cookie.split('=')[1] || '') : undefined
-        }
-        return undefined
-      },
-      set(name: string, value: string, options: CookieOptions) {
-        if (typeof window !== 'undefined') {
-          // Set cookie with domain for SSO
-          const cookieOptions = [
-            `${name}=${encodeURIComponent(value)}`,
-            `path=/`,
-            `domain=${domainConfig.cookie}`,
-            `max-age=${options.maxAge || sessionConfig.maxAge}`,
-            `SameSite=Lax`,
-            // Add Secure flag for production (HTTPS)
-            process.env.NODE_ENV === 'production' ? `Secure` : '',
-          ].filter(Boolean) // Remove empty strings
-
-          document.cookie = cookieOptions.join('; ')
-        }
-      },
-      remove(name: string) {
-        if (typeof window !== 'undefined') {
-          // Remove cookie from all possible domains
-          const domains = [
-            domainConfig.cookie,
-            `.${domainConfig.base}`,
-            domainConfig.base,
-            'localhost'
-          ]
-
-          domains.forEach(domain => {
-            document.cookie = `${name}=; path=/; domain=${domain}; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-          })
-        }
-      }
+    cookieOptions: {
+      domain: domainConfig.cookie,
+      secure: window.location.protocol === 'https:',
+      sameSite: 'lax',
+      path: '/',
     },
     auth: {
       autoRefreshToken: true,

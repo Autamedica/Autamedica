@@ -141,6 +141,10 @@ const ALLOWED_CLIENT_VARS = new Set([
   // IA (cliente)
   "PUBLIC_OPENAI_API_KEY",
 
+  // ONNX (cliente)
+  "PUBLIC_AUTA_ONNX",
+  "PUBLIC_AUTA_ONNX_MODEL",
+
   // Feature flags (cliente)
   "PUBLIC_AI_PREDICTOR_ENABLED",
   "PUBLIC_PATIENT_CRYSTAL_BALL_ENABLED",
@@ -259,6 +263,10 @@ function readKnownClientEnv(name: string): string | undefined {
       return process.env.PUBLIC_SITE_URL;
     case 'PUBLIC_API_URL':
       return process.env.PUBLIC_API_URL;
+    case 'PUBLIC_AUTA_ONNX':
+      return process.env.PUBLIC_AUTA_ONNX;
+    case 'PUBLIC_AUTA_ONNX_MODEL':
+      return process.env.PUBLIC_AUTA_ONNX_MODEL;
     default:
       return undefined;
   }

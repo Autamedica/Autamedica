@@ -5,8 +5,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, User, Bot, Loader2, Sparkles } from 'lucide-react';
 import { usePatientScreenings } from '@/hooks/patients/usePatientScreenings';
-import { getONNXService, initializeONNX } from '@/lib/ai/onnx-service';
-import type { PatientContext } from '@/lib/ai/medical-qa';
+import { getONNXService, initializeONNX } from '@/lib/patients/lib/ai/onnx-service';
+import type { PatientContext } from '@/lib/patients/lib/ai/medical-qa';
 import { logger } from '@autamedica/shared';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import { computeAgeFromIso, normalizeGender } from '@/lib/patients/lib/demographics';

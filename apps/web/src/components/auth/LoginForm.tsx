@@ -13,6 +13,7 @@ import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
 import { getClientI18n } from '../../i18n/index';
 import type { Locale } from '../../i18n/index';
+import { logger } from '@autamedica/shared';
 
 function buildAuxHref(path: string, role?: EntryRole, returnTo?: string | null): string {
   const params = new URLSearchParams();
@@ -171,7 +172,8 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
       }
 
       window.location.href = callbackUrl.toString();
-    } catch {
+    } catch (err) {
+      logger.error('[LoginForm] signInWithPassword threw unexpectedly', { err: String(err) })
       setError(t('auth.loginError'));
       setIsSubmitting(false);
     }
@@ -203,7 +205,8 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
         setError(oauthError.message || t('auth.googleError'));
         setIsSubmitting(false);
       }
-    } catch {
+    } catch (err) {
+      logger.error('[LoginForm] signInWithOAuth threw unexpectedly', { err: String(err), provider: 'google', role })
       setError(t('auth.googleErrorUnexpected'));
       setIsSubmitting(false);
     }

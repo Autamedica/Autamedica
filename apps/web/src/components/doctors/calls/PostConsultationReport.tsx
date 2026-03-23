@@ -69,16 +69,33 @@ function ReportContent({ roomId }: { roomId: string }) {
     if (!editedReport || !reportData) return;
     setSaving(true);
 
-    // The report was already saved during generation.
-    // If the doctor edited it, we'd update here.
-    // For now, mark as saved and redirect.
-    setSaved(true);
-    setSaving(false);
+    try {
+      const res = await fetch(`/api/doctors/consultations/${roomId}/report`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recordId: reportData.recordId,
+          report: editedReport,
+          doctorNotes,
+        }),
+      });
 
-    setTimeout(() => {
-      window.location.href = '/doctors/schedule';
-    }, 1500);
-  }, [editedReport, reportData]);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        logger.warn('[PostConsultationReport] Save returned non-OK', json);
+      }
+
+      setSaved(true);
+      setTimeout(() => {
+        window.location.href = '/doctors/schedule';
+      }, 1500);
+    } catch (err) {
+      logger.error('[PostConsultationReport] Save error', err);
+      setError('Error al guardar el reporte');
+    } finally {
+      setSaving(false);
+    }
+  }, [editedReport, reportData, roomId, doctorNotes]);
 
   const updateField = useCallback((field: keyof SOAPReport, value: string) => {
     setEditedReport(prev => prev ? { ...prev, [field]: value } : null);

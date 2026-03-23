@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { doctorId, patientId } = await req.json()
+    const { doctorId, patientId, appointmentId } = await req.json()
 
     if (!doctorId || !patientId) {
       return new Response(
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    console.info('Creating call for:', { doctorId, patientId })
+    console.info('Creating call for:', { doctorId, patientId, appointmentId })
 
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
@@ -75,15 +75,27 @@ Deno.serve(async (req) => {
 
     console.info('Authenticated user:', user.id)
 
-    // Optional: Verify user has permission to create calls as this doctor
-    // For now, we'll trust the frontend sends the correct doctorId
-    // In production, you might want to verify user.id === doctorId or check roles
+    // Verify the authenticated user is actually this doctor
+    const { data: doctorRecord, error: doctorError } = await supabaseAdmin
+      .from('doctors')
+      .select('id, user_id')
+      .or(`id.eq.${doctorId},user_id.eq.${doctorId}`)
+      .maybeSingle()
+
+    if (doctorError || !doctorRecord || (doctorRecord.user_id !== user.id)) {
+      console.error('Doctor identity mismatch:', { userId: user.id, doctorId, doctorRecord })
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: authenticated user is not the specified doctor' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Call the create_call function using admin privileges
     const { data: callData, error: callError } = await supabaseAdmin
       .rpc('create_call', {
         p_doctor_id: doctorId,
-        p_patient_id: patientId
+        p_patient_id: patientId,
+        p_appointment_id: appointmentId || null
       })
 
     if (callError) {

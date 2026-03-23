@@ -13,6 +13,7 @@ import {
     MessageSquare,
     Video,
 } from 'lucide-react'
+import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
 
 function getPatientName(
   profile: ReturnType<typeof usePatientSession>['profile'],
@@ -188,6 +189,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       </div>
 
       <DynamicRightPanel context="dashboard" locale={locale} />
+
+      {/* Global incoming call listener */}
+      {user?.id && <IncomingCallHandler patientId={user.id} />}
     </div>
   )
 }

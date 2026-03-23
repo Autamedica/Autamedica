@@ -1,197 +1,152 @@
 'use client'
 
-import { useState } from 'react'
-import { Award, Star, TrendingUp, Users, Clock, Eye, ThumbsUp, FileText, Medal, Crown, Trophy } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, Loader2 } from 'lucide-react'
 
-interface RankingMetric {
-  id: string
-  category: 'patient-satisfaction' | 'clinical-outcomes' | 'efficiency' | 'collaboration'
-  name: string
-  value: number
-  maxValue: number
-  trend: 'up' | 'down' | 'stable'
-  percentile: number
-  description: string
-}
-
-interface Doctor {
-  id: string
-  name: string
-  specialty: string
-  overallScore: number
-  rank: number
-  avatar?: string
-  metrics: RankingMetric[]
-  badges: Badge[]
-  totalPatients: number
-  yearsExperience: number
+interface RankingMetrics {
+  doctor_id: string
+  avg_rating: number
+  total_reviews: number
+  total_consultations: number
+  completed_consultations: number
+  completion_rate: number
+  avg_punctuality: number
+  avg_communication: number
+  avg_professionalism: number
+  avg_clinical_quality: number
+  overall_score: number
+  rank_position: number | null
 }
 
 interface Badge {
   id: string
-  name: string
-  icon: string
+  doctor_id: string
+  badge: string
   level: 'bronze' | 'silver' | 'gold' | 'platinum'
-  earnedAt: string
   description: string
+  earned_at: string
+}
+
+interface RankedDoctor {
+  doctor_id: string
+  avg_rating: number
+  total_reviews: number
+  total_consultations: number
+  completed_consultations: number
+  completion_rate: number
+  overall_score: number
+  rank_position: number | null
+  specialty: string | null
+  years_experience: number | null
+  first_name: string | null
+  last_name: string | null
+  is_current_user: boolean
+  badges: Badge[]
+}
+
+interface RankingData {
+  current_doctor: {
+    doctor_id: string
+    specialty: string
+    years_experience: number
+    metrics: RankingMetrics | null
+    badges: Badge[]
+    review_count: number
+  }
+  ranked_doctors: RankedDoctor[]
+}
+
+const BADGE_LABELS: Record<string, string> = {
+  clinical_excellence: 'Excelencia Clínica',
+  patient_favorite: 'Favorito de Pacientes',
+  punctuality_star: 'Puntualidad',
+  high_volume: 'Alto Volumen',
+  mentor: 'Mentor',
+  early_adopter: 'Pionero Digital',
+  zero_no_show: 'Cero Ausencias',
+  telemedicine_pioneer: 'Pionero Telemedicina',
+}
+
+const BADGE_ICONS: Record<string, string> = {
+  clinical_excellence: '🏆',
+  patient_favorite: '❤️',
+  punctuality_star: '⏰',
+  high_volume: '📊',
+  mentor: '👨‍🏫',
+  early_adopter: '💡',
+  zero_no_show: '✅',
+  telemedicine_pioneer: '📹',
 }
 
 export function MedicalRankingPanel() {
-  const [selectedFilter, setSelectedFilter] = useState<string>('all')
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
+  const [data, setData] = useState<RankingData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const currentUser: Doctor = {
-    id: 'current',
-    name: 'Dr. Eduardo Martínez',
-    specialty: 'Cardiología',
-    overallScore: 94.5,
-    rank: 3,
-    totalPatients: 247,
-    yearsExperience: 8,
-    badges: [
-      {
-        id: 'b1',
-        name: 'Excelencia Clínica',
-        icon: '🏆',
-        level: 'gold',
-        earnedAt: '2024-12-15T00:00:00Z',
-        description: '95%+ de satisfacción del paciente por 6 meses consecutivos'
-      },
-      {
-        id: 'b2',
-        name: 'Innovador Digital',
-        icon: '💡',
-        level: 'silver',
-        earnedAt: '2024-11-20T00:00:00Z',
-        description: 'Adopción temprana de herramientas de IA médica'
-      },
-      {
-        id: 'b3',
-        name: 'Mentor Reconocido',
-        icon: '👨‍🏫',
-        level: 'bronze',
-        earnedAt: '2024-10-10T00:00:00Z',
-        description: 'Formación de 5+ residentes con calificación sobresaliente'
-      }
-    ],
-    metrics: [
-      {
-        id: 'm1',
-        category: 'patient-satisfaction',
-        name: 'Satisfacción del Paciente',
-        value: 96,
-        maxValue: 100,
-        trend: 'up',
-        percentile: 89,
-        description: 'Evaluación promedio de satisfacción basada en encuestas post-consulta'
-      },
-      {
-        id: 'm2',
-        category: 'clinical-outcomes',
-        name: 'Resultados Clínicos',
-        value: 93,
-        maxValue: 100,
-        trend: 'stable',
-        percentile: 85,
-        description: 'Medición de efectividad en tratamientos y diagnósticos precisos'
-      },
-      {
-        id: 'm3',
-        category: 'efficiency',
-        name: 'Eficiencia Operativa',
-        value: 88,
-        maxValue: 100,
-        trend: 'up',
-        percentile: 76,
-        description: 'Tiempo promedio de consulta, adherencia a horarios y productividad'
-      },
-      {
-        id: 'm4',
-        category: 'collaboration',
-        name: 'Colaboración Interdisciplinaria',
-        value: 91,
-        maxValue: 100,
-        trend: 'down',
-        percentile: 82,
-        description: 'Trabajo en equipo, comunicación con colegas y participación en casos complejos'
-      }
-    ]
+  useEffect(() => {
+    fetch('/api/doctors/ranking')
+      .then(res => res.json())
+      .then(json => {
+        if (json.ok) {
+          setData(json.data)
+        } else {
+          setError(json.error ?? 'Error al cargar ranking')
+        }
+      })
+      .catch(() => setError('Error de conexión'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="h-full bg-[#101d32] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+      </div>
+    )
   }
 
-  const topDoctors: Doctor[] = [
-    {
-      id: '1',
-      name: 'Dra. Carmen Silva',
-      specialty: 'Neurología',
-      overallScore: 97.2,
-      rank: 1,
-      totalPatients: 312,
-      yearsExperience: 12,
-      badges: [
-        { id: 'b1', name: 'Líder Nacional', icon: '👑', level: 'platinum', earnedAt: '2024-12-01T00:00:00Z', description: 'Top 1 en ranking nacional' },
-        { id: 'b2', name: 'Investigadora Destacada', icon: '🔬', level: 'gold', earnedAt: '2024-11-15T00:00:00Z', description: '10+ publicaciones científicas este año' }
-      ],
-      metrics: []
-    },
-    {
-      id: '2',
-      name: 'Dr. Alejandro Ruiz',
-      specialty: 'Cirugía General',
-      overallScore: 95.8,
-      rank: 2,
-      totalPatients: 189,
-      yearsExperience: 15,
-      badges: [
-        { id: 'b3', name: 'Cirujano de Élite', icon: '🏥', level: 'gold', earnedAt: '2024-12-10T00:00:00Z', description: '99%+ tasa de éxito quirúrgico' }
-      ],
-      metrics: []
-    },
-    currentUser,
-    {
-      id: '4',
-      name: 'Dra. Patricia Morales',
-      specialty: 'Pediatría',
-      overallScore: 92.1,
-      rank: 4,
-      totalPatients: 445,
-      yearsExperience: 9,
-      badges: [
-        { id: 'b4', name: 'Defensora Pediátrica', icon: '👶', level: 'silver', earnedAt: '2024-11-25T00:00:00Z', description: 'Excelencia en cuidado infantil' }
-      ],
-      metrics: []
-    },
-    {
-      id: '5',
-      name: 'Dr. Fernando López',
-      specialty: 'Dermatología',
-      overallScore: 90.7,
-      rank: 5,
-      totalPatients: 278,
-      yearsExperience: 7,
-      badges: [
-        { id: 'b5', name: 'Innovador Dermatológico', icon: '✨', level: 'bronze', earnedAt: '2024-12-05T00:00:00Z', description: 'Adopción de tecnologías avanzadas' }
-      ],
-      metrics: []
-    }
-  ]
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'patient-satisfaction': return <ThumbsUp className="w-4 h-4" />
-      case 'clinical-outcomes': return <FileText className="w-4 h-4" />
-      case 'efficiency': return <Clock className="w-4 h-4" />
-      case 'collaboration': return <Users className="w-4 h-4" />
-      default: return <Star className="w-4 h-4" />
-    }
+  if (error || !data) {
+    return (
+      <div className="h-full bg-[#101d32] flex items-center justify-center text-slate-400">
+        <p>{error ?? 'Sin datos'}</p>
+      </div>
+    )
   }
 
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up': return <TrendingUp className="w-3 h-3 text-green-400" />
-      case 'down': return <TrendingUp className="w-3 h-3 text-red-400 transform rotate-180" />
-      default: return <div className="w-3 h-3 rounded-full bg-slate-400" />
-    }
-  }
+  const { current_doctor, ranked_doctors } = data
+  const metrics = current_doctor.metrics
+  const hasMetrics = metrics && metrics.total_reviews > 0
+
+  const categoryMetrics = hasMetrics ? [
+    {
+      id: 'satisfaction',
+      name: 'Satisfacción',
+      value: metrics.avg_rating,
+      maxValue: 5,
+      icon: <ThumbsUp className="w-4 h-4" />,
+    },
+    {
+      id: 'clinical',
+      name: 'Calidad Clínica',
+      value: metrics.avg_clinical_quality,
+      maxValue: 5,
+      icon: <FileText className="w-4 h-4" />,
+    },
+    {
+      id: 'communication',
+      name: 'Comunicación',
+      value: metrics.avg_communication,
+      maxValue: 5,
+      icon: <Users className="w-4 h-4" />,
+    },
+    {
+      id: 'punctuality',
+      name: 'Puntualidad',
+      value: metrics.avg_punctuality,
+      maxValue: 5,
+      icon: <Clock className="w-4 h-4" />,
+    },
+  ] : []
 
   const getBadgeColor = (level: string) => {
     switch (level) {
@@ -203,11 +158,18 @@ export function MedicalRankingPanel() {
     }
   }
 
-  const getRankIcon = (rank: number) => {
+  const getRankIcon = (rank: number | null) => {
     if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />
     if (rank === 2) return <Trophy className="w-5 h-5 text-slate-400" />
     if (rank === 3) return <Medal className="w-5 h-5 text-amber-600" />
-    return <span className="text-lg font-bold text-slate-400">#{rank}</span>
+    return <span className="text-lg font-bold text-slate-400">#{rank ?? '-'}</span>
+  }
+
+  const getDoctorName = (doc: RankedDoctor) => {
+    if (doc.first_name || doc.last_name) {
+      return `${doc.first_name ?? ''} ${doc.last_name ?? ''}`.trim()
+    }
+    return 'Médico'
   }
 
   return (
@@ -223,191 +185,197 @@ export function MedicalRankingPanel() {
               <p className="text-sm text-slate-400">Evaluación y reconocimiento del desempeño médico</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-2xl font-bold text-amber-400">#{currentUser.rank}</p>
-              <p className="text-sm text-slate-400">Tu posición</p>
+          {metrics && (
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-2xl font-bold text-amber-400">
+                  {metrics.rank_position ? `#${metrics.rank_position}` : '-'}
+                </p>
+                <p className="text-sm text-slate-400">Tu posición</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-slate-100">{metrics.overall_score}</p>
+                <p className="text-sm text-slate-400">Puntuación</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-slate-100">{currentUser.overallScore}</p>
-              <p className="text-sm text-slate-400">Puntuación</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
       <div className="flex h-[calc(100%-100px)]">
         {/* Panel de métricas personales */}
-        <div className="w-1/2 border-r border-slate-800/60 p-6">
+        <div className="w-1/2 border-r border-slate-800/60 p-6 overflow-y-auto">
           <h2 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
             <Star className="w-5 h-5 text-amber-400" />
             Tu Desempeño
           </h2>
 
-          {/* Métricas principales */}
-          <div className="space-y-4 mb-6">
-            {currentUser.metrics.map((metric) => (
-              <div key={metric.id} className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    {getCategoryIcon(metric.category)}
-                    <span className="font-medium text-slate-100">{metric.name}</span>
+          {!hasMetrics ? (
+            <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-6 text-center">
+              <TrendingUp className="w-8 h-8 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300 mb-1">Sin evaluaciones aún</p>
+              <p className="text-sm text-slate-500">
+                Las métricas se calcularán automáticamente cuando tus pacientes dejen evaluaciones después de sus consultas.
+              </p>
+              {metrics && (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="bg-slate-700/40 rounded-lg p-3">
+                    <p className="text-2xl font-bold text-slate-200">{metrics.total_consultations}</p>
+                    <p className="text-xs text-slate-400">Consultas totales</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getTrendIcon(metric.trend)}
-                    <span className="text-sm text-slate-400">Top {100 - metric.percentile}%</span>
+                  <div className="bg-slate-700/40 rounded-lg p-3">
+                    <p className="text-2xl font-bold text-slate-200">{metrics.completed_consultations}</p>
+                    <p className="text-xs text-slate-400">Completadas</p>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl font-bold text-slate-100">{metric.value}</span>
-                  <span className="text-sm text-slate-400">/{metric.maxValue}</span>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
+                  <p className="text-2xl font-bold text-slate-200">{metrics.total_consultations}</p>
+                  <p className="text-xs text-slate-400">Consultas</p>
                 </div>
-
-                <div className="w-full bg-slate-700 rounded-full h-2 mb-2">
-                  <div
-                    className="h-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-400"
-                    style={{ width: `${(metric.value / metric.maxValue) * 100}%` }}
-                  />
+                <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
+                  <p className="text-2xl font-bold text-slate-200">{metrics.completion_rate}%</p>
+                  <p className="text-xs text-slate-400">Tasa de completitud</p>
                 </div>
-
-                <p className="text-xs text-slate-400">{metric.description}</p>
               </div>
-            ))}
-          </div>
 
-          {/* Badges/Logros */}
-          <div>
-            <h3 className="text-md font-medium text-slate-100 mb-3 flex items-center gap-2">
-              <Medal className="w-4 h-4 text-amber-400" />
-              Logros Recientes
-            </h3>
-            <div className="space-y-2">
-              {currentUser.badges.map((badge) => (
-                <div key={badge.id} className="flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg">
-                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-lg`}>
-                    {badge.icon}
+              <div className="space-y-3 mb-6">
+                {categoryMetrics.map((metric) => (
+                  <div key={metric.id} className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {metric.icon}
+                        <span className="font-medium text-slate-100">{metric.name}</span>
+                      </div>
+                      <span className="text-lg font-bold text-slate-100">
+                        {metric.value.toFixed(1)}
+                        <span className="text-sm text-slate-400 font-normal">/{metric.maxValue}</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-400"
+                        style={{ width: `${(metric.value / metric.maxValue) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-100">{badge.name}</p>
-                    <p className="text-xs text-slate-400">{badge.description}</p>
-                    <p className="text-xs text-slate-500">
-                      {new Date(badge.earnedAt).toLocaleDateString('es-ES')}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getBadgeColor(badge.level)}`}>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Badges */}
+          {current_doctor.badges.length > 0 && (
+            <div>
+              <h3 className="text-md font-medium text-slate-100 mb-3 flex items-center gap-2">
+                <Medal className="w-4 h-4 text-amber-400" />
+                Logros
+              </h3>
+              <div className="space-y-2">
+                {current_doctor.badges.map((badge) => (
+                  <div key={badge.id} className="flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg">
+                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-lg`}>
+                      {BADGE_ICONS[badge.badge] ?? '🏅'}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-100">{BADGE_LABELS[badge.badge] ?? badge.badge}</p>
+                      <p className="text-xs text-slate-400">{badge.description}</p>
+                      <p className="text-xs text-slate-500">
+                        {new Date(badge.earned_at).toLocaleDateString('es-ES')}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize bg-gradient-to-br ${getBadgeColor(badge.level)}`}>
                       {badge.level}
                     </span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Panel de rankings */}
-        <div className="w-1/2 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-slate-100 flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-400" />
-              Ranking General
-            </h2>
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="bg-slate-800/60 border border-slate-700 rounded-lg text-slate-100 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="all">Todos los médicos</option>
-              <option value="cardiology">Cardiología</option>
-              <option value="neurology">Neurología</option>
-              <option value="surgery">Cirugía</option>
-              <option value="pediatrics">Pediatría</option>
-            </select>
-          </div>
+        <div className="w-1/2 p-6 overflow-y-auto">
+          <h2 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-400" />
+            Ranking General
+          </h2>
 
-          <div className="space-y-3 max-h-[600px] overflow-y-auto">
-            {topDoctors.map((doctor) => (
-              <div
-                key={doctor.id}
-                onClick={() => setSelectedDoctor(doctor)}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  doctor.id === currentUser.id
-                    ? 'bg-amber-900/20 border-amber-700/40 ring-1 ring-amber-500/30'
-                    : selectedDoctor?.id === doctor.id
-                    ? 'bg-slate-800/60 border-slate-600'
-                    : 'bg-slate-800/40 border-slate-700/60 hover:bg-slate-800/60'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    {getRankIcon(doctor.rank)}
-                    <div>
-                      <h3 className="font-medium text-slate-100 flex items-center gap-2">
-                        {doctor.name}
-                        {doctor.id === currentUser.id && (
-                          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
-                            TÚ
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-sm text-slate-400">{doctor.specialty}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-slate-100">{doctor.overallScore}</p>
-                    <p className="text-xs text-slate-400">puntos</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-sm text-slate-400">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {doctor.totalPatients} pacientes
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {doctor.yearsExperience} años
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Award className="w-3 h-3" />
-                    {doctor.badges.length} logros
-                  </div>
-                </div>
-
-                {doctor.badges.length > 0 && (
-                  <div className="flex items-center gap-1 mt-2">
-                    {doctor.badges.slice(0, 3).map((badge) => (
-                      <div
-                        key={badge.id}
-                        className={`w-6 h-6 rounded bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-xs`}
-                        title={badge.name}
-                      >
-                        {badge.icon}
+          {ranked_doctors.length === 0 ? (
+            <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-6 text-center">
+              <Trophy className="w-8 h-8 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300">Sin datos de ranking aún</p>
+              <p className="text-sm text-slate-500 mt-1">
+                El ranking se calculará cuando haya consultas completadas y evaluaciones de pacientes.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {ranked_doctors.map((doctor) => (
+                <div
+                  key={doctor.doctor_id}
+                  className={`p-4 border rounded-lg transition-colors ${
+                    doctor.is_current_user
+                      ? 'bg-amber-900/20 border-amber-700/40 ring-1 ring-amber-500/30'
+                      : 'bg-slate-800/40 border-slate-700/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      {getRankIcon(doctor.rank_position)}
+                      <div>
+                        <h3 className="font-medium text-slate-100 flex items-center gap-2">
+                          {getDoctorName(doctor)}
+                          {doctor.is_current_user && (
+                            <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">TÚ</span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-slate-400">{doctor.specialty ?? 'Sin especialidad'}</p>
                       </div>
-                    ))}
-                    {doctor.badges.length > 3 && (
-                      <span className="text-xs text-slate-400 ml-1">+{doctor.badges.length - 3}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-slate-100">{doctor.overall_score}</p>
+                      <p className="text-xs text-slate-400">puntos</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm text-slate-400">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        {doctor.avg_rating.toFixed(1)}/5
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {doctor.total_reviews} evaluaciones
+                      </div>
+                      {doctor.years_experience != null && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {doctor.years_experience} años
+                        </div>
+                      )}
+                    </div>
+                    {doctor.badges.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        {doctor.badges.slice(0, 3).map((badge) => (
+                          <div
+                            key={badge.id}
+                            className={`w-6 h-6 rounded bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-xs`}
+                            title={BADGE_LABELS[badge.badge] ?? badge.badge}
+                          >
+                            {BADGE_ICONS[badge.badge] ?? '🏅'}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {selectedDoctor && selectedDoctor.id !== currentUser.id && (
-            <div className="mt-4 p-4 bg-slate-800/40 border border-slate-700/60 rounded-lg">
-              <h3 className="font-medium text-slate-100 mb-2">Perfil Detallado</h3>
-              <p className="text-sm text-slate-400 mb-3">
-                {selectedDoctor.name} es un especialista en {selectedDoctor.specialty} con {selectedDoctor.yearsExperience} años de experiencia.
-                Ha atendido a {selectedDoctor.totalPatients} pacientes y mantiene una puntuación de {selectedDoctor.overallScore}.
-              </p>
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-slate-400">Ver perfil completo</span>
-              </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

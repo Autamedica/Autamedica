@@ -139,6 +139,28 @@ export class CloudflareCallsClient {
     return next
   }
 
+  async replaceVideoTrack(newTrack: MediaStreamTrack | null): Promise<void> {
+    if (!this.localStream) return
+    if (!newTrack) {
+      const currentVideo = this.localStream.getVideoTracks()[0]
+      if (currentVideo?.readyState === 'live') return
+      try {
+        const camStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        })
+        newTrack = camStream.getVideoTracks()[0]
+        if (!newTrack) return
+      } catch { return }
+    }
+    for (const old of this.localStream.getVideoTracks()) {
+      this.localStream.removeTrack(old)
+      if (newTrack.id !== old.id) old.stop()
+    }
+    this.localStream.addTrack(newTrack)
+    this.emit('local-stream', this.localStream)
+  }
+
   async switchDevice(kind: 'video' | 'audio', deviceId: string): Promise<void> {
     if (!this.localStream) return
     const constraint = kind === 'video' ? { video: { deviceId: { exact: deviceId } } } : { audio: { deviceId: { exact: deviceId } } }

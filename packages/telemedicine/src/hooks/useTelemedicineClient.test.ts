@@ -21,17 +21,19 @@ const mockClient = {
 
 // Mock WebRTCClient — always returns the same mockClient instance
 vi.mock('../webrtc-client', () => ({
-  WebRTCClient: vi.fn(() => mockClient)
+  WebRTCClient: vi.fn().mockImplementation(function () { return mockClient })
 }))
 
 // Mock MediaStream
 Object.defineProperty(global, 'MediaStream', {
   writable: true,
-  value: vi.fn(() => ({
-    getTracks: vi.fn(() => []),
-    getVideoTracks: vi.fn(() => []),
-    getAudioTracks: vi.fn(() => [])
-  }))
+  value: vi.fn().mockImplementation(function () {
+    return {
+      getTracks: vi.fn(() => []),
+      getVideoTracks: vi.fn(() => []),
+      getAudioTracks: vi.fn(() => [])
+    }
+  })
 })
 
 describe('useTelemedicineClient', () => {

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { getClientEnvOrDefault } from '@autamedica/shared';
 import { TourHub } from '@/components/tours/TourHub';
-import { AutaFloatingButton } from '@/components/chat/AutaFloatingButton';
+import { AutaFloatingButton } from '@/components/patients/chat/AutaFloatingButton';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
 
 interface DashboardLayoutProps {

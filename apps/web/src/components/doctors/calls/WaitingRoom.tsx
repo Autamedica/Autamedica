@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { createCallService } from '@autamedica/telemedicine'
 import type { Call } from '@autamedica/telemedicine'
+import { logger } from '@autamedica/shared'
+import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
 
-import { logger } from '@autamedica/shared';
 interface WaitingRoomProps {
   callId: string
   doctorId: string
@@ -17,6 +18,7 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
   const [state, setState] = useState<WaitingState>('ringing')
   const [timeLeft, setTimeLeft] = useState(45) // 45 seconds timeout
   const [_call, setCall] = useState<Call | null>(null)
+  const { context, loading: contextLoading } = useConsultationContext(roomId)
 
   useEffect(() => {
     const callService = createCallService()
@@ -177,6 +179,40 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
               className="bg-blue-600 h-2 rounded-full transition-all duration-1000 ease-linear"
               style={{ width: `${(timeLeft / 45) * 100}%` }}
             />
+          </div>
+        )}
+
+        {/* Clinical context */}
+        {!contextLoading && context && (
+          <div className="text-left bg-slate-50 rounded-lg p-4 mb-4 space-y-2">
+            {context.patient && (
+              <div>
+                <span className="text-xs font-semibold text-slate-500 uppercase">Paciente</span>
+                <p className="text-sm font-medium text-slate-800">{context.patient.name}</p>
+              </div>
+            )}
+            {context.summary?.headline && (
+              <div>
+                <span className="text-xs font-semibold text-slate-500 uppercase">Motivo</span>
+                <p className="text-sm text-slate-700">{context.summary.headline}</p>
+              </div>
+            )}
+            {context.suggestedQuestions && context.suggestedQuestions.length > 0 && (
+              <div>
+                <span className="text-xs font-semibold text-slate-500 uppercase">Preguntas sugeridas</span>
+                <ul className="mt-1 space-y-1">
+                  {context.suggestedQuestions.slice(0, 3).map((q, i) => (
+                    <li key={i} className="text-xs text-slate-600 flex items-start gap-1.5">
+                      <span className={`mt-0.5 h-1.5 w-1.5 rounded-full shrink-0 ${
+                        q.priority === 'critical' ? 'bg-red-400' :
+                        q.priority === 'high' ? 'bg-orange-400' : 'bg-blue-400'
+                      }`} />
+                      {q.question}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

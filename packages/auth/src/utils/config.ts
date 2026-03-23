@@ -5,10 +5,24 @@
 import type { DomainConfig, Environment, SessionConfig } from '../types'
 
 /**
- * Get the current environment
+ * Get the current environment.
+ * In the browser, process.env is undefined so we detect from hostname.
+ * On the server (Node/Deno), we use process.env as usual.
  */
 export function getEnvironment(): Environment {
-  const env = process.env.PUBLIC_NODE_ENV || process.env.NODE_ENV || 'development'
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    if (hostname.endsWith('.autamedica.com') || hostname === 'autamedica.com') {
+      return 'production'
+    }
+    if (hostname.endsWith('.pages.dev')) {
+      return 'staging'
+    }
+    return 'development'
+  }
+
+  const proc = typeof process !== 'undefined' ? process.env : undefined
+  const env = proc?.PUBLIC_NODE_ENV || proc?.NODE_ENV || 'development'
 
   if (env === 'production') return 'production'
   if (env === 'staging') return 'staging'
@@ -24,7 +38,7 @@ export function getDomainConfig(): DomainConfig {
   const configs: Record<Environment, DomainConfig> = {
     production: {
       base: 'autamedica.com',
-      cookie: process.env.AUTH_COOKIE_DOMAIN || '.autamedica.com',
+      cookie: (typeof process !== 'undefined' && process.env?.AUTH_COOKIE_DOMAIN) || '.autamedica.com',
       apps: {
         web: 'https://www.autamedica.com',
         auth: 'https://www.autamedica.com',

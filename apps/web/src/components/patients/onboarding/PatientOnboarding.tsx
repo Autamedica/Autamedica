@@ -281,10 +281,15 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
       ],
 
       onDestroyStarted: () => {
-        // Marcar onboarding como completado
         localStorage.setItem('autamedica_onboarding_completed', 'true');
         setHasSeenOnboarding(true);
         driverObj.destroy();
+
+        // Sync a BD (fire-and-forget)
+        fetch('/api/patients/profile/onboarding-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }).catch(() => {});
       }
     });
 

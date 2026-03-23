@@ -135,7 +135,12 @@ export function DoctorOnboardingWizard({
 
       const result = await response.json();
 
-      // Notificar completación
+      // Marcar onboarding como completado en profiles + user_metadata
+      await fetch('/api/doctors/onboarding-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(() => {});
+
       onComplete?.(doctorProfile);
 
       setCurrentStep('complete');

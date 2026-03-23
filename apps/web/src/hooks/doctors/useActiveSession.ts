@@ -1,10 +1,12 @@
 /**
- * Hook para manejar la sesión activa de consulta médica
+ * Hook para manejar la sesión activa de consulta médica.
+ * La sesión se inicia explícitamente cuando el doctor selecciona un paciente
+ * o entra a una llamada de telemedicina.
  */
 
 import type { UUID } from '@/types/medical'
 import { logger } from '@autamedica/shared'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 export interface ActiveSessionData {
   patientId: UUID | null
@@ -24,84 +26,42 @@ export interface UseActiveSessionResult {
 
 export function useActiveSession(): UseActiveSessionResult {
   const [session, setSession] = useState<ActiveSessionData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const createGuestSession = useCallback(async () => {
-    // Usar datos de invitado con UUID válido predefinido
-    const guestSessionId = crypto.randomUUID() as UUID
-
-    setSession({
-      patientId: '' as UUID,
-      sessionId: guestSessionId,
-      sessionType: 'general',
-      startTime: new Date().toISOString(),
-      status: 'en_progreso'
-    })
-  }, [])
-
-  const fetchActiveSession = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
+  const startSession = useCallback(async (patientId: UUID, sessionType: ActiveSessionData['sessionType']) => {
     try {
-      // Para pruebas, usar datos de invitado con UUIDs válidos
-      // En producción, esto consultaría la base de datos real
-      await createGuestSession()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(`Error al cargar sesión activa: ${errorMessage}`)
-      logger.error('[useActiveSession] Error:', err)
-
-      // Fallback a sesión de invitado
-      await createGuestSession()
-    } finally {
-      setLoading(false)
-    }
-  }, [createGuestSession])
-
-  const startSession = async (patientId: UUID, sessionType: ActiveSessionData['sessionType']) => {
-    try {
+      setError(null)
       const sessionId = crypto.randomUUID() as UUID
-      const startTime = new Date().toISOString()
 
       setSession({
         patientId,
         sessionId,
         sessionType,
-        startTime,
+        startTime: new Date().toISOString(),
         status: 'en_progreso'
       })
 
-      // En producción, esto insertaría en la base de datos real
-      // logger.info('Sesión iniciada:', { patientId, sessionType })
-
+      logger.info('[useActiveSession] Sesión iniciada', { patientId, sessionType })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(`Error al iniciar sesión: ${errorMessage}`)
       throw err
     }
-  }
+  }, [])
 
-  const endSession = async () => {
+  const endSession = useCallback(async () => {
     if (!session) return
 
     try {
       setSession(null)
-
-      // En producción, esto actualizaría la base de datos real
-      // logger.info('Sesión finalizada')
-
+      logger.info('[useActiveSession] Sesión finalizada')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(`Error al finalizar sesión: ${errorMessage}`)
       throw err
     }
-  }
-
-  useEffect(() => {
-    fetchActiveSession()
-  }, [fetchActiveSession])
+  }, [session])
 
   return {
     session,

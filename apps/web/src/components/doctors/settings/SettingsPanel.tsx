@@ -38,9 +38,9 @@ interface SettingsPanelProps {
 const SETTINGS_STORAGE_KEY = 'autamedica-doctors-settings'
 
 export function SettingsPanel({ doctorName, specialty, licenseNumber }: SettingsPanelProps): JSX.Element {
-  const resolvedDoctorName = doctorName?.trim() || 'Profesional médico'
-  const resolvedSpecialty = specialty?.trim() || 'Medicina General'
-  const resolvedLicense = licenseNumber?.trim() || 'No registrado'
+  const resolvedDoctorName = doctorName?.trim() || 'Sin nombre'
+  const resolvedSpecialty = specialty?.trim() || 'Sin especialidad'
+  const resolvedLicense = licenseNumber?.trim() || 'Sin registro'
 
   const [activeCategory, setActiveCategory] = useState('profile')
   const [saveMessage, setSaveMessage] = useState<string | null>(null)

@@ -2,7 +2,6 @@ import {
   getClientEnvOrDefault,
   getOptionalClientEnv,
   getServerEnvOrDefault,
-  isProduction,
   logger,
 } from '@autamedica/shared'
 
@@ -39,15 +38,7 @@ export function getProductionICEServers(): RTCIceServer[] {
       credential: turnCredential,
     })
   } else {
-    // Fallback a servidores TURN públicos temporales (solo desarrollo)
-    if (isProduction()) {
-      logger.warn('⚠️ No TURN servers configured. Using public fallback (not recommended for production)')
-    }
-    iceServers.push({
-      urls: ['turns:global.relay.metered.ca:443?transport=tcp'],
-      username: 'demo',
-      credential: 'demo',
-    })
+    logger.warn('No TURN servers configured. Connections behind strict NAT/firewall may fail. Set PUBLIC_TURN_URLS, PUBLIC_TURN_USERNAME, PUBLIC_TURN_CREDENTIAL.')
   }
 
   return iceServers

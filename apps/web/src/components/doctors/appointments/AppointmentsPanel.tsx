@@ -7,8 +7,13 @@ import type { JSX } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
 import { createBrowserClient } from '@autamedica/auth/client'
 import { useAppointments } from '@autamedica/hooks'
+import { StartCallButton } from '../calls/StartCallButton'
 
-export function AppointmentsPanel(): JSX.Element {
+interface AppointmentsPanelProps {
+  doctorId?: string
+}
+
+export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
   const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const isClientInitializing = supabaseClient === null
 
@@ -208,13 +213,13 @@ export function AppointmentsPanel(): JSX.Element {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {appointment.type === 'telemedicine' && (
-                        <button
-                          type="button"
+                      {appointment.type === 'telemedicine' && doctorId && appointment.patient_id && (
+                        <StartCallButton
+                          doctorId={doctorId}
+                          patientId={appointment.patient_id}
+                          patientName="Paciente"
                           className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-green-700"
-                        >
-                          Iniciar Videollamada
-                        </button>
+                        />
                       )}
                       <button
                         type="button"

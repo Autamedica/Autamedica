@@ -1,12 +1,9 @@
 /**
  * Telemedicine Components - Componentes para videoconsulta
  *
- * Suite completa de componentes React para implementar videollamadas
- * médicas con WebRTC/LiveKit
+ * Suite de componentes React auxiliares para videollamadas médicas.
+ * El componente principal de videollamada es UnifiedVideoCall de @autamedica/telemedicine.
  */
-
-// Main video call component
-export { EnhancedVideoCall } from './EnhancedVideoCall'
 
 // Session controls
 export { SessionControls } from './SessionControls'

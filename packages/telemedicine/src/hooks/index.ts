@@ -13,3 +13,10 @@ export type {
   AudioTranscriptionState,
   AudioTranscriptionActions,
 } from './useAudioTranscription'
+
+export { useCallRecording } from './useCallRecording'
+export type {
+  CallRecordingState,
+  CallRecordingActions,
+  CallRecordingHook,
+} from './useCallRecording'

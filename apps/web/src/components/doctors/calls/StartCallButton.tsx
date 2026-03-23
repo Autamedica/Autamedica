@@ -6,15 +6,19 @@ import { logger } from '@autamedica/shared'
 
 interface StartCallButtonProps {
   doctorId: string
+  doctorName?: string
   patientId: string
   patientName?: string
+  appointmentId?: string
   className?: string
 }
 
 export function StartCallButton({
   doctorId,
+  doctorName,
   patientId,
   patientName = 'Paciente',
+  appointmentId,
   className = "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
 }: StartCallButtonProps) {
   const [isStarting, setIsStarting] = useState(false)
@@ -34,7 +38,7 @@ export function StartCallButton({
 
       // Create call record (status will be 'requested')
       // logger.info('Creating call record...')
-      const call = await callService.createCall(doctorId, patientId)
+      const call = await callService.createCall(doctorId, patientId, appointmentId)
       // logger.info('Call created:', call)
 
       // Create signaling client for sending invite
@@ -55,7 +59,7 @@ export function StartCallButton({
         type: 'invite',
         callId: call.id,
         roomId: call.room_id,
-        from: { doctorId, name: 'Doctor' },
+        from: { doctorId, name: doctorName || 'Médico' },
         to: { patientId }
       })
       // logger.info('Invite sent successfully')

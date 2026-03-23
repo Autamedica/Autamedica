@@ -1,0 +1,155 @@
+import type { APIRoute } from 'astro';
+import { createServerClientFromRequest } from '@autamedica/auth/server';
+import { logger } from '@autamedica/shared';
+
+export const GET: APIRoute = async ({ request }) => {
+  try {
+    let supabase;
+    try {
+      supabase = createServerClientFromRequest(request);
+    } catch {
+      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get current doctor
+    const { data: currentDoctor } = await supabase
+      .from('doctors')
+      .select('id, specialty, years_experience')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!currentDoctor) {
+      return new Response(JSON.stringify({ ok: false, error: 'not_a_doctor' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get current doctor's metrics
+    const { data: myMetrics } = await supabase
+      .from('doctor_ranking_metrics')
+      .select('*')
+      .eq('doctor_id', currentDoctor.id)
+      .single();
+
+    // Get current doctor's badges
+    const { data: myBadges } = await supabase
+      .from('doctor_badges')
+      .select('*')
+      .eq('doctor_id', currentDoctor.id)
+      .order('earned_at', { ascending: false });
+
+    // Get current doctor's category ratings from reviews
+    const { data: myReviews } = await supabase
+      .from('doctor_reviews')
+      .select('overall_rating, punctuality_rating, communication_rating, professionalism_rating, clinical_quality_rating')
+      .eq('doctor_id', currentDoctor.id)
+      .eq('status', 'approved');
+
+    // Get top ranked doctors (with their profile names)
+    const { data: topRanked } = await supabase
+      .from('doctor_ranking_metrics')
+      .select(`
+        doctor_id,
+        avg_rating,
+        total_reviews,
+        total_consultations,
+        completed_consultations,
+        completion_rate,
+        overall_score,
+        rank_position
+      `)
+      .order('rank_position', { ascending: true })
+      .limit(20);
+
+    // Get doctor profiles for the ranked doctors
+    let rankedDoctors: Array<Record<string, unknown>> = [];
+    if (topRanked && topRanked.length > 0) {
+      const doctorIds = topRanked.map(r => r.doctor_id);
+
+      const { data: doctors } = await supabase
+        .from('doctors')
+        .select('id, specialty, years_experience, user_id')
+        .in('id', doctorIds);
+
+      const userIds = (doctors ?? []).map(d => d.user_id).filter(Boolean);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
+
+      const profileMap = new Map((profiles ?? []).map(p => [p.id, p]));
+      const doctorMap = new Map((doctors ?? []).map(d => [d.id, d]));
+
+      rankedDoctors = topRanked.map(metrics => {
+        const doctor = doctorMap.get(metrics.doctor_id);
+        const profile = doctor?.user_id ? profileMap.get(doctor.user_id) : null;
+        return {
+          ...metrics,
+          specialty: doctor?.specialty ?? null,
+          years_experience: doctor?.years_experience ?? null,
+          first_name: profile?.first_name ?? null,
+          last_name: profile?.last_name ?? null,
+          is_current_user: metrics.doctor_id === currentDoctor.id,
+        };
+      });
+    }
+
+    // Get badges for top doctors
+    const topDoctorIds = rankedDoctors.map(d => d.doctor_id as string);
+    const { data: allBadges } = topDoctorIds.length > 0
+      ? await supabase
+          .from('doctor_badges')
+          .select('*')
+          .in('doctor_id', topDoctorIds)
+      : { data: [] };
+
+    const badgesByDoctor = new Map<string, typeof allBadges>();
+    for (const badge of (allBadges ?? [])) {
+      const existing = badgesByDoctor.get(badge.doctor_id) ?? [];
+      existing.push(badge);
+      badgesByDoctor.set(badge.doctor_id, existing);
+    }
+
+    rankedDoctors = rankedDoctors.map(d => ({
+      ...d,
+      badges: badgesByDoctor.get(d.doctor_id as string) ?? [],
+    }));
+
+    return new Response(JSON.stringify({
+      ok: true,
+      data: {
+        current_doctor: {
+          doctor_id: currentDoctor.id,
+          specialty: currentDoctor.specialty,
+          years_experience: currentDoctor.years_experience,
+          metrics: myMetrics ?? null,
+          badges: myBadges ?? [],
+          review_count: myReviews?.length ?? 0,
+        },
+        ranked_doctors: rankedDoctors,
+      },
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    logger.error('Ranking API error:', err);
+    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+};

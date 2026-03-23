@@ -122,8 +122,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const userName = doctor?.profile ? getPatientDisplayName(doctor.profile) :
                    user?.profile ? getPatientDisplayName(user.profile) :
                    `Dr. ${user?.email?.split('@')[0] || 'Médico'}`
-  const doctorSpecialty = doctor?.specialty || 'Medicina General'
-  const doctorLicense = doctor?.license_number || 'No registrado'
+  const doctorSpecialty = doctor?.specialty || 'Sin especialidad'
+  const doctorLicense = doctor?.license_number || 'Sin registro'
 
   // Contadores reales (se actualizarán con stats cuando estén disponibles)
   const patientsCount = 0 // TODO(blocked): [Stats] Requiere endpoint/query de conteo de pacientes del doctor ticket:BACKLOG
@@ -549,9 +549,9 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   <span>AutaMedica Clínica</span>
                 </span>
                 <span className="hidden text-slate-600 sm:inline">|</span>
-                <span className="flex items-center gap-1 text-emerald-400">
+                <span className="flex items-center gap-1 text-slate-400">
                   <span>●</span>
-                  Sincronización segura
+                  Conectado
                 </span>
               </div>
             </footer>

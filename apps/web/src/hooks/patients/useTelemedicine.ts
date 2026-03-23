@@ -20,13 +20,6 @@ interface StartSessionResponse {
     server_url: string;
     ice_servers: Array<{ urls: string | string[]; username?: string; credential?: string }>;
   };
-  livekit?: LiveKitConfig;
-}
-
-interface LiveKitConfig {
-  token: string;
-  url: string;
-  roomName?: string;
 }
 
 interface UseTelemedicineReturn {
@@ -47,7 +40,6 @@ interface UseTelemedicineReturn {
   joinSession: (role?: string, sessionIdOverride?: string) => Promise<boolean>;
   leaveSession: (sessionIdOverride?: string) => Promise<boolean>;
   logEvent: (eventType: string, details?: string, sessionIdOverride?: string) => Promise<void>;
-  livekit: LiveKitConfig | null;
 }
 
 function mapApiSession(data: unknown): ApiSession {
@@ -66,7 +58,6 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
   const [session, setSession] = useState<ApiSession | null>(null);
   const [participants, setParticipants] = useState<SessionParticipant[]>([]);
   const [events, setEvents] = useState<SessionEvent[]>([]);
-  const [livekit, setLivekit] = useState<LiveKitConfig | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionQuality, setConnectionQuality] = useState<ConnectionQuality>('good');
@@ -97,12 +88,10 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
         setSession(mapApiSession(rawSession));
         setParticipants(payload.participants ?? []);
         setEvents(payload.events ?? []);
-        setLivekit(payload.livekit ?? null);
       } else {
         setSession(null);
         setParticipants([]);
         setEvents([]);
-        setLivekit(null);
       }
     } catch (err) {
       logger.error('[useTelemedicine] fetchSession error', err);
@@ -131,7 +120,6 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
       setSession(apiSession);
       setParticipants(json?.data?.participants ?? []);
       setEvents(json?.data?.events ?? []);
-      setLivekit(json?.data?.livekit ?? null);
       return json?.data as StartSessionResponse;
     } catch (err) {
       logger.error('[useTelemedicine] startSession error', err);
@@ -301,6 +289,5 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
     joinSession,
     leaveSession,
     logEvent,
-    livekit,
   };
 }

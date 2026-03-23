@@ -79,7 +79,7 @@ export function usePreventiveScreenings(
             requires_specialist,
             preparation_instructions
           ),
-          assigned_doctor:doctors (
+          assigned_doctor:doctors!assigned_doctor_id (
             id,
             first_name,
             last_name

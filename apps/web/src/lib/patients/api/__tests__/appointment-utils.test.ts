@@ -141,6 +141,7 @@ describe('mapAppointment', () => {
       first_name: 'Ana',
       last_name: 'García',
       specialty: 'Cardiología',
+      profile_picture_url: null,
     });
   });
 

@@ -66,7 +66,13 @@ export interface WebRTCEvents {
   'chat-message': (message: ChatMessage) => void
   'chat-ready': (ready: boolean) => void
   'stream-quality': (summary: StreamQualitySummary) => void
+  'audio-only-fallback': (info: { reason: string; error: unknown }) => void
   'error': (error: Error) => void
+  // Observability events
+  'media-acquired': (info: { videoTracks: number; audioTracks: number; source: string }) => void
+  'signaling-connected': (info: { latencyMs: number }) => void
+  'ice-state-change': (info: { peerId: string; state: string }) => void
+  'peer-connected': (info: { peerId: string; connectionState: string; iceConnectionState: string }) => void
 }
 
 type ServerSignalingMessage =
@@ -668,10 +674,10 @@ export class WebRTCClient {
     if (streamResult.status === 'fulfilled') {
       this.localStream = streamResult.value
       this.emit('local-stream', this.localStream)
-      this.logInfo('Pre-warm: local media acquired', {
-        videoTracks: this.localStream.getVideoTracks().length,
-        audioTracks: this.localStream.getAudioTracks().length,
-      })
+      const videoTracks = this.localStream.getVideoTracks().length
+      const audioTracks = this.localStream.getAudioTracks().length
+      this.logInfo('Pre-warm: local media acquired', { videoTracks, audioTracks })
+      this.emit('media-acquired', { videoTracks, audioTracks, source: 'warm-up' })
       applyContentHints(this.localStream)
     } else {
       this.logWarn('Pre-warm: getUserMedia failed, will retry on connect', {
@@ -770,6 +776,7 @@ export class WebRTCClient {
     }
 
     return new Promise<void>((resolve, reject) => {
+      const wsOpenedAt = performance.now()
       this.ws = new WebSocket(wsUrl)
       this.logInfo('Opening signaling socket', { signalingUrl: this.config.signalingUrl, wsUrl })
 
@@ -779,7 +786,9 @@ export class WebRTCClient {
 
       this.ws.onopen = () => {
         clearTimeout(timeout)
-        this.logInfo('WebSocket connected (pre-warm)')
+        const latencyMs = Math.round(performance.now() - wsOpenedAt)
+        this.logInfo('WebSocket connected (pre-warm)', { latencyMs })
+        this.emit('signaling-connected', { latencyMs })
         resolve()
       }
 
@@ -828,9 +837,21 @@ export class WebRTCClient {
 
       // Acquire media if not pre-warmed
       if (!this.localStream) {
-        this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
+        } catch (mediaError) {
+          // Fallback to audio-only if video fails
+          this.logWarn('Video getUserMedia failed, falling back to audio-only', { error: mediaError })
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+          this.emit('audio-only-fallback', { reason: 'getUserMedia_video_failed', error: mediaError })
+        }
         applyContentHints(this.localStream)
         this.emit('local-stream', this.localStream)
+        this.emit('media-acquired', {
+          videoTracks: this.localStream.getVideoTracks().length,
+          audioTracks: this.localStream.getAudioTracks().length,
+          source: 'connect',
+        })
       }
 
       // Send join — this is the only thing the user "waits" for
@@ -849,12 +870,22 @@ export class WebRTCClient {
 
   async startLocalStream(constraints: MediaConstraints = { video: true, audio: true }): Promise<MediaStream> {
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints)
+      try {
+        this.localStream = await navigator.mediaDevices.getUserMedia(constraints)
+      } catch (mediaError) {
+        if (constraints.video) {
+          this.logWarn('Video getUserMedia failed in startLocalStream, falling back to audio-only', { error: mediaError })
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+          this.emit('audio-only-fallback', { reason: 'getUserMedia_video_failed', error: mediaError })
+        } else {
+          throw mediaError
+        }
+      }
       this.emit('local-stream', this.localStream)
-      this.logInfo('Local media stream started', {
-        videoTrackCount: this.localStream.getVideoTracks().length,
-        audioTrackCount: this.localStream.getAudioTracks().length,
-      })
+      const videoTrackCount = this.localStream.getVideoTracks().length
+      const audioTrackCount = this.localStream.getAudioTracks().length
+      this.logInfo('Local media stream started', { videoTrackCount, audioTrackCount })
+      this.emit('media-acquired', { videoTracks: videoTrackCount, audioTracks: audioTrackCount, source: 'startLocalStream' })
 
       // Add tracks to all existing peer connections
       for (const [, peerState] of this.peerConnections) {
@@ -1017,6 +1048,13 @@ export class WebRTCClient {
         connectionState: pc.connectionState,
         iceConnectionState: pc.iceConnectionState,
       })
+      if (pc.connectionState === 'connected') {
+        this.emit('peer-connected', {
+          peerId: userId,
+          connectionState: pc.connectionState,
+          iceConnectionState: pc.iceConnectionState,
+        })
+      }
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         this.peerConnections.delete(userId)
         this.peerStatsSamples.delete(userId)
@@ -1027,13 +1065,12 @@ export class WebRTCClient {
     }
 
     pc.oniceconnectionstatechange = () => {
-      this.logInfo('ICE connection state changed', {
-        peerId: userId,
-        iceConnectionState: pc.iceConnectionState,
-      })
+      const iceState = pc.iceConnectionState
+      this.logInfo('ICE connection state changed', { peerId: userId, iceConnectionState: iceState })
+      this.emit('ice-state-change', { peerId: userId, state: iceState })
 
       // ICE Restart for seamless recovery on network changes (Streamer level resilience)
-      if (pc.iceConnectionState === 'failed') {
+      if (iceState === 'failed') {
         this.logWarn('ICE connection failed, attempting restart', { peerId: userId })
         pc.restartIce()
       }
@@ -1379,6 +1416,51 @@ export class WebRTCClient {
 
   getLocalStream(): MediaStream | null {
     return this.localStream
+  }
+
+  /**
+   * Replace the current video track sent to all peers.
+   * Used for screen sharing: pass a screen track to share, then pass `null`
+   * to restore the original camera track.
+   */
+  async replaceVideoTrack(newTrack: MediaStreamTrack | null): Promise<void> {
+    if (!this.localStream) return
+
+    const currentVideoTrack = this.localStream.getVideoTracks()[0]
+
+    // If null, try to restore the camera by re-requesting getUserMedia
+    if (!newTrack) {
+      if (currentVideoTrack?.readyState === 'live') return
+      try {
+        const camStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        })
+        newTrack = camStream.getVideoTracks()[0]
+        if (!newTrack) return
+      } catch {
+        return
+      }
+    }
+
+    // Swap in the local stream
+    for (const old of this.localStream.getVideoTracks()) {
+      this.localStream.removeTrack(old)
+      // Only stop if it's the camera track being replaced by screen share
+      if (newTrack.id !== old.id) old.stop()
+    }
+    this.localStream.addTrack(newTrack)
+
+    // Replace in all peer connections (no renegotiation needed)
+    for (const [, peerState] of this.peerConnections) {
+      const sender = peerState.pc.getSenders().find((s) => s.track?.kind === 'video')
+      if (sender) {
+        await sender.replaceTrack(newTrack)
+      }
+    }
+
+    this.emit('local-stream', this.localStream)
+    this.logInfo('Video track replaced', { trackLabel: newTrack.label })
   }
 
   getPeerConnections(): Map<string, RTCPeerConnection> {

@@ -11,8 +11,10 @@ export class CallService {
   private anonKey: string
   private readonly debugLogger = createTelemedicineLogger({ source: 'CallService' })
 
-  constructor(supabaseUrl: string, supabaseKey: string) {
-    this.supabase = createClient<Database>(supabaseUrl, supabaseKey)
+  constructor(supabaseUrl: string, supabaseKey: string, existingClient?: SupabaseClient<Database>) {
+    this.supabase = existingClient ?? createClient<Database>(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
     this.anonKey = supabaseKey
     this.functionsBaseUrl = `${new URL(supabaseUrl).origin}/functions/v1`
   }
@@ -60,8 +62,8 @@ export class CallService {
     }
   }
 
-  async createCall(doctorId: string, patientId: string): Promise<Call> {
-    this.writeLocalDebug('info', 'Iniciando createCall', { doctorId, patientId })
+  async createCall(doctorId: string, patientId: string, appointmentId?: string): Promise<Call> {
+    this.writeLocalDebug('info', 'Iniciando createCall', { doctorId, patientId, appointmentId })
 
     try {
       // Get auth session for authorization header
@@ -82,7 +84,8 @@ export class CallService {
         },
         body: JSON.stringify({
           doctorId,
-          patientId
+          patientId,
+          ...(appointmentId && { appointmentId })
         })
       })
 
@@ -92,8 +95,9 @@ export class CallService {
         this.writeLocalDebug('warn', 'create-call edge function ausente; usando RPC', {
           doctorId,
           patientId,
+          appointmentId,
         })
-        return await this.createCallViaRpc(doctorId, patientId)
+        return await this.createCallViaRpc(doctorId, patientId, appointmentId)
       }
 
       if (!response.ok) {
@@ -215,10 +219,16 @@ export class CallService {
     }
   }
 
-  private async createCallViaRpc(doctorId: string, patientId: string): Promise<Call> {
-    const { data, error } = await this.supabase.rpc('create_call', {
+  private async createCallViaRpc(doctorId: string, patientId: string, appointmentId?: string): Promise<Call> {
+    // p_appointment_id added in migration 20260323100000 — cast needed until types are regenerated
+    const rpcArgs: Record<string, unknown> = {
       p_doctor_id: doctorId,
-      p_patient_id: patientId
+      p_patient_id: patientId,
+      ...(appointmentId && { p_appointment_id: appointmentId }),
+    }
+    const { data, error } = await this.supabase.rpc('create_call', rpcArgs as {
+      p_doctor_id: string
+      p_patient_id: string
     })
 
     if (error) throw error
@@ -416,8 +426,9 @@ export function generateRoomId(): string {
   return `room_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`
 }
 
-// Create service instance with environment variables
-export function createCallService(): CallService {
+// Create service instance with environment variables.
+// Passing an existing SupabaseClient avoids creating a new GoTrueClient instance.
+export function createCallService(existingClient?: SupabaseClient<Database>): CallService {
   const supabaseUrl = getClientEnvOrDefault('PUBLIC_SUPABASE_URL', '')
   const supabaseKey = getClientEnvOrDefault('PUBLIC_SUPABASE_ANON_KEY', '')
 
@@ -425,5 +436,5 @@ export function createCallService(): CallService {
     throw new Error('Missing Supabase environment variables')
   }
 
-  return new CallService(supabaseUrl, supabaseKey)
+  return new CallService(supabaseUrl, supabaseKey, existingClient)
 }

@@ -97,7 +97,7 @@ interface AuthProviderProps {
  * Check if dev bypass is enabled
  */
 const isDevBypass = typeof window !== 'undefined' &&
-  process.env.PUBLIC_AUTH_DEV_BYPASS === 'true'
+  typeof process !== 'undefined' && process.env?.PUBLIC_AUTH_DEV_BYPASS === 'true'
 
 /**
  * Authentication provider component

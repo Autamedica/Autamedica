@@ -104,7 +104,8 @@ export function SubscriptionPanel(): JSX.Element {
     }
   ]
 
-  const currentPlan = plans.find(p => p.id === 'pro') // Simulamos que tienen el plan Pro activo
+  // Sin sistema de suscripciones activo — el usuario no tiene plan asignado
+  const currentPlan: SubscriptionPlan | undefined = undefined
 
   const getColorClasses = (color: string, variant: 'border' | 'bg' | 'text' | 'button') => {
     const colorMap = {
@@ -216,7 +217,7 @@ export function SubscriptionPanel(): JSX.Element {
 
         <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
           <MercadoPagoSubscriptionManager
-            currentPlanId="pro"
+            currentPlanId={currentPlan?.id ?? ''}
             onPlanChange={handlePlanChange}
           />
         </div>
@@ -239,19 +240,28 @@ export function SubscriptionPanel(): JSX.Element {
         </div>
 
         {/* Plan actual */}
-        {currentPlan && (
+        {currentPlan ? (
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Star className="h-5 w-5 text-emerald-400" />
                 <div>
                   <p className="font-medium text-emerald-200">Plan Actual: {currentPlan.name}</p>
-                  <p className="text-sm text-emerald-300/70">Renovación: 15 de octubre, 2024</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-emerald-200">${currentPlan.price}</p>
                 <p className="text-sm text-emerald-300/70">{currentPlan.period}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 p-4">
+            <div className="flex items-center gap-3">
+              <Star className="h-5 w-5 text-slate-500" />
+              <div>
+                <p className="font-medium text-slate-300">Sin plan activo</p>
+                <p className="text-sm text-slate-500">Selecciona un plan para comenzar</p>
               </div>
             </div>
           </div>
@@ -358,26 +368,27 @@ export function SubscriptionPanel(): JSX.Element {
         <h3 className="mb-4 text-lg font-semibold text-slate-100">Uso del mes actual</h3>
         <div className="grid gap-4 md:grid-cols-4">
           <div className="text-center">
-            <Users className="mx-auto mb-2 h-6 w-6 text-emerald-400" />
-            <p className="text-2xl font-bold text-slate-100">47</p>
-            <p className="text-sm text-slate-400">Consultas</p>
+            <Users className="mx-auto mb-2 h-6 w-6 text-slate-500" />
+            <p className="text-2xl font-bold text-slate-400">—</p>
+            <p className="text-sm text-slate-500">Consultas</p>
           </div>
           <div className="text-center">
-            <Calendar className="mx-auto mb-2 h-6 w-6 text-blue-400" />
-            <p className="text-2xl font-bold text-slate-100">23h</p>
-            <p className="text-sm text-slate-400">Tiempo total</p>
+            <Calendar className="mx-auto mb-2 h-6 w-6 text-slate-500" />
+            <p className="text-2xl font-bold text-slate-400">—</p>
+            <p className="text-sm text-slate-500">Tiempo total</p>
           </div>
           <div className="text-center">
-            <BarChart3 className="mx-auto mb-2 h-6 w-6 text-purple-400" />
-            <p className="text-2xl font-bold text-slate-100">92%</p>
-            <p className="text-sm text-slate-400">Satisfacción</p>
+            <BarChart3 className="mx-auto mb-2 h-6 w-6 text-slate-500" />
+            <p className="text-2xl font-bold text-slate-400">—</p>
+            <p className="text-sm text-slate-500">Satisfacción</p>
           </div>
           <div className="text-center">
-            <Brain className="mx-auto mb-2 h-6 w-6 text-amber-400" />
-            <p className="text-2xl font-bold text-slate-100">15</p>
-            <p className="text-sm text-slate-400">Análisis IA</p>
+            <Brain className="mx-auto mb-2 h-6 w-6 text-slate-500" />
+            <p className="text-2xl font-bold text-slate-400">—</p>
+            <p className="text-sm text-slate-500">Análisis IA</p>
           </div>
         </div>
+        <p className="mt-3 text-center text-xs text-slate-500">Las estadísticas se mostrarán cuando tengas consultas registradas</p>
       </div>
 
       {/* Botones de acción */}

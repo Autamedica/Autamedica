@@ -46,7 +46,7 @@ function lintFile(filePath) {
     },
     {
       id: 'UPDATE_WITHOUT_WHERE',
-      regex: /\bUPDATE\b[\s\S]*?\bSET\b[\s\S]*?;/gi,
+      regex: /(?<!DO\s)(?<!AFTER\s)(?<!BEFORE\s)\bUPDATE\s+(?!OF\b)\w[\s\S]*?\bSET\b[\s\S]*?;/gi,
       message: 'UPDATE sin WHERE.',
       validator: (statement) => !/\bWHERE\b/i.test(statement),
     },

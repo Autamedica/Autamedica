@@ -1,10 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-// useRouter removed - using window.location for Astro compatibility
+import { useEffect, useRef, useState } from 'react'
+import { createBrowserClient } from '@autamedica/auth'
 import { createCallService } from '@autamedica/telemedicine'
 import type { InviteMessage } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
+
+function tryShowBrowserNotification(title: string, body: string) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+  try {
+    new Notification(title, { body, icon: '/icons/logo-192.png', tag: 'incoming-call' })
+  } catch {
+    // Notification constructor may fail in some contexts
+  }
+}
 
 interface IncomingCallHandlerProps {
   patientId: string
@@ -14,21 +23,41 @@ interface IncomingCallHandlerProps {
 export function IncomingCallHandler({ patientId, patientName: _patientName = 'Paciente' }: IncomingCallHandlerProps) {
   const [incomingCall, setIncomingCall] = useState<InviteMessage | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
+  // Singleton del servicio de llamadas — evita crear múltiples GoTrueClient
+  const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
+
+  function getCallService() {
+    if (!callServiceRef.current) {
+      try {
+        callServiceRef.current = createCallService(createBrowserClient())
+      } catch {
+        callServiceRef.current = createCallService()
+      }
+    }
+    return callServiceRef.current
+  }
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
+  }, [])
 
   useEffect(() => {
-    if (!patientId) return
+    if (!patientId) {
+      logger.warn('[IncomingCallHandler] No hay patientId configurado — llamadas entrantes no monitoreadas')
+      return
+    }
 
-    const callService = createCallService()
+    const callService = getCallService()
 
-    // Subscribe to calls where this patient is the recipient and status is 'ringing'
     const setupCallListener = async () => {
       try {
-        // Subscribe to new calls for this patient
         const subscription = callService.subscribeToUserCalls(patientId, 'patient', (call) => {
           logger.info('[IncomingCallHandler] New call received:', call)
 
           if (call.status === 'ringing') {
-            // Transform call data to InviteMessage format for UI compatibility
             const inviteMessage: InviteMessage = {
               type: 'invite',
               callId: call.id,
@@ -37,8 +66,11 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
               to: { patientId: call.patient_id }
             }
             setIncomingCall(inviteMessage)
+            tryShowBrowserNotification(
+              'Llamada entrante',
+              `${inviteMessage.from.name || 'Tu doctor'} te esta llamando`
+            )
           } else if (call.status === 'canceled') {
-            // Call was canceled, hide modal
             setIncomingCall(null)
             setIsConnecting(false)
           }
@@ -65,14 +97,8 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
     setIsConnecting(true)
 
     try {
-      const callService = createCallService()
-
-      // Update call status to 'accepted' - realtime will handle UI updates
-      await callService.updateCallStatus(incomingCall.callId, 'accepted')
-
-      // Navigate to call room
+      await getCallService().updateCallStatus(incomingCall.callId, 'accepted')
       window.location.href = `/call/${incomingCall.roomId}/${incomingCall.callId}`
-
     } catch (error) {
       logger.error('[IncomingCallHandler] Failed to accept call:', error)
       setIsConnecting(false)
@@ -83,20 +109,13 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
     if (!incomingCall) return
 
     try {
-      const callService = createCallService()
-
-      // Update call status to 'declined' - realtime will handle UI updates
-      await callService.updateCallStatus(incomingCall.callId, 'declined', 'patient_declined')
-
-      // Hide modal immediately for better UX
+      await getCallService().updateCallStatus(incomingCall.callId, 'declined', 'patient_declined')
       setIncomingCall(null)
-
     } catch (error) {
       logger.error('[IncomingCallHandler] Failed to decline call:', error)
     }
   }
 
-  // Don't render anything if no incoming call
   if (!incomingCall) return null
 
   return (

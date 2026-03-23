@@ -23,20 +23,13 @@ import { authenticateSocket } from './auth.js';
 import { logger } from './logger.js';
 import { RoomManager } from './rooms.js';
 import type { ClientToServerEvents, ServerToClientEvents } from './types.js';
-// LiveKit REST routes disabled: Express 4 Router crashes under tsx ESM
-// (path-to-regexp incompatibility). Socket.io signaling is unaffected.
-// import { livekitRoutes } from './routes.js';
-
 const PORT = parseInt(process.env.PORT || '8888', 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3003';
 
 // Express app
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN }));
-app.use(express.json()); // Parse JSON bodies
-
-// LiveKit REST API routes (disabled — see note above)
-// app.use(livekitRoutes);
+app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (_req, res) => {

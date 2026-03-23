@@ -1,31 +1,12 @@
-import { createBrowserClient } from '@supabase/ssr';
-
-let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+/**
+ * Cliente Supabase para browser.
+ * Delega al singleton de @autamedica/auth para evitar múltiples instancias de GoTrueClient.
+ */
+import { createBrowserClient } from '@autamedica/auth';
 
 export function getBrowserSupabaseClient() {
   if (typeof window === 'undefined') {
     throw new Error('getBrowserSupabaseClient can only be called in the browser');
   }
-
-  if (!browserClient) {
-    browserClient = createBrowserClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: false,
-          flowType: 'pkce',
-        },
-        global: {
-          headers: {
-            'X-Client-Info': '@autamedica/web-auth',
-          },
-        },
-      }
-    );
-  }
-
-  return browserClient;
+  return createBrowserClient();
 }

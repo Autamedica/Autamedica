@@ -13,8 +13,6 @@ interface DoctorCallPageProps {
   roomId: string
 }
 
-const REQUIRE_AUTH = false
-
 export default function DoctorCallPage({ roomId }: DoctorCallPageProps) {
   return (
     <AuthProvider onAuthStateChange={() => {}}>
@@ -35,27 +33,29 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const transcriptionSavedRef = useRef(false)
   const transcriptionStartedRef = useRef(false)
 
+  // Request notification permission for incoming patient notifications
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
+  }, [])
+
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
 
   useEffect(() => {
     if (loading) return
 
     if (!session) {
-      if (REQUIRE_AUTH) {
-        const authOrigin = getClientEnvOrDefault(
-          'PUBLIC_APP_URL',
-          import.meta.env.MODE === 'production'
-            ? 'https://www.autamedica.com'
-            : 'http://localhost:3000'
-        )
-        const loginUrl = new URL('/auth/login', authOrigin)
-        loginUrl.searchParams.set('portal', 'doctors')
-        loginUrl.searchParams.set('returnTo', `${window.location.origin}/doctors/call/${roomId}`)
-        window.location.href = loginUrl.toString()
-      } else {
-        logger.warn('[UnifiedVideoCall][doctor] sin sesión; usando identidad de desarrollo')
-        setIsReady(true)
-      }
+      const authOrigin = getClientEnvOrDefault(
+        'PUBLIC_APP_URL',
+        import.meta.env.MODE === 'production'
+          ? 'https://www.autamedica.com'
+          : 'http://localhost:3000'
+      )
+      const loginUrl = new URL('/auth/login', authOrigin)
+      loginUrl.searchParams.set('portal', 'doctors')
+      loginUrl.searchParams.set('returnTo', `${window.location.origin}/doctors/call/${roomId}`)
+      window.location.href = loginUrl.toString()
       return
     }
 
@@ -111,6 +111,16 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     if (transcriptionState.isSupported && !transcriptionStartedRef.current) {
       transcriptionStartedRef.current = true
       transcriptionActions.start()
+    }
+    // Notify doctor that patient connected
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      try {
+        new Notification('Paciente conectado', {
+          body: 'El paciente se ha unido a la consulta',
+          icon: '/icons/logo-192.png',
+          tag: 'patient-connected',
+        })
+      } catch { /* ignore */ }
     }
   }, [transcriptionState.isSupported, transcriptionActions])
 

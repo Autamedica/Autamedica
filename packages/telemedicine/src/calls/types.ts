@@ -19,6 +19,7 @@ export interface Call {
   accepted_at?: string
   ended_at?: string
   reason?: string
+  appointment_id?: string
 }
 
 export interface CallEvent {

@@ -1,8 +1,7 @@
 /**
- * Waiting Room Component
- * Virtual waiting room with media device testing
- *
- * @module WaitingRoom
+ * Waiting Room Component — Minimalist
+ * Auto-requests camera (front) + mic, shows preview and enter button.
+ * No device selection, no speaker test, no individual test buttons.
  */
 
 'use client';
@@ -15,368 +14,147 @@ export interface WaitingRoomProps {
   userId: string;
   userRole: 'patient' | 'doctor';
   onReady: () => void;
-  estimatedWaitTime?: number; // minutes
+  estimatedWaitTime?: number;
   className?: string;
 }
 
-type DeviceTestStatus = 'untested' | 'testing' | 'success' | 'failed';
+type MediaStatus = 'requesting' | 'ready' | 'denied' | 'error';
 
 export function WaitingRoom({
   sessionId: _sessionId,
   userId: _userId,
-  userRole: _userRole,
+  userRole,
   onReady,
-  estimatedWaitTime = 5,
+  estimatedWaitTime,
   className = '',
 }: WaitingRoomProps) {
-  const [cameraStatus, setCameraStatus] = useState<DeviceTestStatus>('untested');
-  const [micStatus, setMicStatus] = useState<DeviceTestStatus>('untested');
-  const [speakerStatus, setSpeakerStatus] = useState<DeviceTestStatus>('untested');
-  const [isReady, setIsReady] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [mediaStatus, setMediaStatus] = useState<MediaStatus>('requesting');
   const [audioLevel, setAudioLevel] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef<number>(0);
 
-  // Test camera
-  const testCamera = useCallback(async () => {
+  const requestMedia = useCallback(async () => {
     try {
-      setCameraStatus('testing');
-
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
+      setMediaStatus('requesting');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
 
-      setStream(mediaStream);
-      setCameraStatus('success');
-    } catch (error) {
-      logger.error('Camera test failed:', error);
-      setCameraStatus('failed');
-    }
-  }, []);
-
-  // Test microphone
-  const testMicrophone = useCallback(async () => {
-    try {
-      setMicStatus('testing');
-
-      const audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-        video: false,
-      });
-
-      // Setup audio analysis
-      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-      const analyser = audioContext.createAnalyser();
-      const microphone = audioContext.createMediaStreamSource(audioStream);
-
+      // Audio level analysis
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
-      microphone.connect(analyser);
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      audioCtxRef.current = ctx;
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-
-      // Start analyzing audio level
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      const checkAudioLevel = () => {
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        setAudioLevel(average);
-        requestAnimationFrame(checkAudioLevel);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(buf);
+        setAudioLevel(buf.reduce((a, b) => a + b, 0) / buf.length);
+        rafRef.current = requestAnimationFrame(tick);
       };
-      checkAudioLevel();
+      tick();
 
-      // Combine with existing stream
-      if (stream) {
-        audioStream.getAudioTracks().forEach((track) => {
-          stream.addTrack(track);
-        });
-      } else {
-        setStream(audioStream);
-      }
-
-      setMicStatus('success');
-    } catch (error) {
-      logger.error('Microphone test failed:', error);
-      setMicStatus('failed');
-    }
-  }, [stream]);
-
-  // Test speaker (play test sound)
-  const testSpeaker = useCallback(async () => {
-    try {
-      setSpeakerStatus('testing');
-
-      const audio = new Audio('/sounds/test-tone.mp3'); // You'll need to add this file
-      await audio.play();
-
-      // Wait for audio to finish
-      await new Promise((resolve) => {
-        audio.onended = resolve;
-        setTimeout(resolve, 2000); // Fallback timeout
-      });
-
-      setSpeakerStatus('success');
-    } catch (error) {
-      logger.error('Speaker test failed:', error);
-      // Assume success if autoplay blocked (common in browsers)
-      setSpeakerStatus('success');
+      setMediaStatus('ready');
+    } catch (err) {
+      logger.error('[WaitingRoom] Media access failed:', err);
+      const name = (err as DOMException)?.name;
+      setMediaStatus(name === 'NotAllowedError' ? 'denied' : 'error');
     }
   }, []);
 
-  // Run all tests
-  const runAllTests = useCallback(async () => {
-    await testCamera();
-    await testMicrophone();
-    await testSpeaker();
-  }, [testCamera, testMicrophone, testSpeaker]);
-
-  // Check if ready
+  // Auto-request on mount
   useEffect(() => {
-    const ready =
-      cameraStatus === 'success' &&
-      micStatus === 'success' &&
-      speakerStatus === 'success';
-
-    setIsReady(ready);
-  }, [cameraStatus, micStatus, speakerStatus]);
-
-  // Cleanup
-  useEffect(() => {
+    requestMedia();
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      audioCtxRef.current?.close();
+      cancelAnimationFrame(rafRef.current);
     };
-  }, [stream]);
+  }, [requestMedia]);
 
-  const allTestsPassed = cameraStatus === 'success' && micStatus === 'success' && speakerStatus === 'success';
-  const anyTestFailed = cameraStatus === 'failed' || micStatus === 'failed' || speakerStatus === 'failed';
+  const isDoctor = userRole === 'doctor';
 
   return (
-    <div className={`mx-auto max-w-4xl space-y-6 p-6 ${className}`}>
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">Sala de Espera Virtual</h1>
-        <p className="text-gray-600">
-          Prepárate para tu consulta médica verificando tu cámara y micrófono
-        </p>
-        {estimatedWaitTime > 0 && (
-          <p className="mt-2 text-sm text-gray-500">
-            ⏱️ Tiempo estimado de espera: {estimatedWaitTime} {estimatedWaitTime === 1 ? 'minuto' : 'minutos'}
-          </p>
-        )}
-      </div>
-
-      {/* Video Preview */}
-      <div className="relative overflow-hidden rounded-lg bg-gray-900 shadow-xl">
+    <div className={`mx-auto flex max-w-lg flex-col items-center gap-4 p-4 ${className}`}>
+      {/* Video preview */}
+      <div className="relative w-full overflow-hidden rounded-2xl bg-neutral-900 shadow-lg">
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className="aspect-video w-full object-cover"
+          className="aspect-[4/3] w-full object-cover"
         />
 
-        {cameraStatus === 'untested' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-90">
-            <div className="text-center">
-              <span className="mb-3 block text-6xl">📹</span>
-              <p className="text-white">Tu cámara aparecerá aquí</p>
-            </div>
+        {mediaStatus === 'requesting' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-800/90">
+            <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            <p className="text-sm text-white/80">Activando camara y microfono...</p>
           </div>
         )}
 
-        {cameraStatus === 'testing' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-90">
-            <div className="text-center">
-              <div className="mb-3 inline-block h-12 w-12 animate-spin rounded-full border-4 border-white border-t-transparent"></div>
-              <p className="text-white">Activando cámara...</p>
+        {(mediaStatus === 'denied' || mediaStatus === 'error') && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-neutral-800/95 px-6">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20">
+              <svg className="h-7 w-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
             </div>
+            <p className="text-center text-sm text-white">
+              {mediaStatus === 'denied'
+                ? 'Necesitamos acceso a tu camara y microfono para la consulta.'
+                : 'No se pudo acceder a los dispositivos.'}
+            </p>
+            <button
+              onClick={requestMedia}
+              className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20"
+            >
+              Reintentar
+            </button>
           </div>
         )}
 
-        {cameraStatus === 'failed' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-red-900 bg-opacity-90">
-            <div className="text-center">
-              <span className="mb-3 block text-6xl">❌</span>
-              <p className="text-white font-semibold">Error al acceder a la cámara</p>
-              <p className="text-sm text-white/80">Verifica los permisos del navegador</p>
-            </div>
-          </div>
-        )}
-
-        {/* Audio Level Indicator */}
-        {micStatus === 'success' && (
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="rounded-lg bg-black bg-opacity-50 p-3">
-              <p className="mb-2 text-xs font-medium text-white">Nivel de Micrófono</p>
-              <div className="h-2 overflow-hidden rounded-full bg-gray-700">
-                <div
-                  className="h-full bg-green-500 transition-all duration-100"
-                  style={{ width: `${Math.min((audioLevel / 128) * 100, 100)}%` }}
-                />
-              </div>
-              <p className="mt-1 text-xs text-white/70">
-                {audioLevel > 20 ? '🎤 Detectando audio' : '🔇 Silencio'}
-              </p>
-            </div>
+        {/* Mic level — subtle bar at bottom */}
+        {mediaStatus === 'ready' && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-neutral-700">
+            <div
+              className="h-full bg-green-500 transition-all duration-75"
+              style={{ width: `${Math.min((audioLevel / 80) * 100, 100)}%` }}
+            />
           </div>
         )}
       </div>
 
-      {/* Device Tests */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-900">Verificación de Dispositivos</h2>
-
-        {/* Camera Test */}
-        <div className="flex items-center justify-between rounded-lg border border-gray-300 bg-white p-4">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-              cameraStatus === 'success' ? 'bg-green-100' :
-              cameraStatus === 'failed' ? 'bg-red-100' : 'bg-gray-100'
-            }`}>
-              {cameraStatus === 'success' && <span className="text-xl">✓</span>}
-              {cameraStatus === 'failed' && <span className="text-xl">✗</span>}
-              {cameraStatus === 'testing' && <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>}
-              {cameraStatus === 'untested' && <span className="text-xl">📹</span>}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Cámara</p>
-              <p className="text-sm text-gray-600">
-                {cameraStatus === 'success' && 'Funcionando correctamente'}
-                {cameraStatus === 'failed' && 'Error al acceder'}
-                {cameraStatus === 'testing' && 'Probando...'}
-                {cameraStatus === 'untested' && 'No verificada'}
-              </p>
-            </div>
-          </div>
-
-          {cameraStatus === 'untested' && (
-            <button
-              onClick={testCamera}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Probar
-            </button>
-          )}
-        </div>
-
-        {/* Microphone Test */}
-        <div className="flex items-center justify-between rounded-lg border border-gray-300 bg-white p-4">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-              micStatus === 'success' ? 'bg-green-100' :
-              micStatus === 'failed' ? 'bg-red-100' : 'bg-gray-100'
-            }`}>
-              {micStatus === 'success' && <span className="text-xl">✓</span>}
-              {micStatus === 'failed' && <span className="text-xl">✗</span>}
-              {micStatus === 'testing' && <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>}
-              {micStatus === 'untested' && <span className="text-xl">🎤</span>}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Micrófono</p>
-              <p className="text-sm text-gray-600">
-                {micStatus === 'success' && 'Funcionando correctamente'}
-                {micStatus === 'failed' && 'Error al acceder'}
-                {micStatus === 'testing' && 'Probando...'}
-                {micStatus === 'untested' && 'No verificado'}
-              </p>
-            </div>
-          </div>
-
-          {micStatus === 'untested' && (
-            <button
-              onClick={testMicrophone}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Probar
-            </button>
-          )}
-        </div>
-
-        {/* Speaker Test */}
-        <div className="flex items-center justify-between rounded-lg border border-gray-300 bg-white p-4">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-              speakerStatus === 'success' ? 'bg-green-100' :
-              speakerStatus === 'failed' ? 'bg-red-100' : 'bg-gray-100'
-            }`}>
-              {speakerStatus === 'success' && <span className="text-xl">✓</span>}
-              {speakerStatus === 'failed' && <span className="text-xl">✗</span>}
-              {speakerStatus === 'testing' && <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>}
-              {speakerStatus === 'untested' && <span className="text-xl">🔊</span>}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Altavoces</p>
-              <p className="text-sm text-gray-600">
-                {speakerStatus === 'success' && 'Funcionando correctamente'}
-                {speakerStatus === 'failed' && 'Error de reproducción'}
-                {speakerStatus === 'testing' && 'Reproduciendo tono de prueba...'}
-                {speakerStatus === 'untested' && 'No verificados'}
-              </p>
-            </div>
-          </div>
-
-          {speakerStatus === 'untested' && (
-            <button
-              onClick={testSpeaker}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Probar
-            </button>
-          )}
-        </div>
+      {/* Status text */}
+      <div className="text-center">
+        {mediaStatus === 'ready' && (
+          <p className="text-sm text-neutral-500">
+            {isDoctor ? 'Listo para la consulta' : 'Tu doctor te esta esperando'}
+            {estimatedWaitTime != null && estimatedWaitTime > 0 && !isDoctor && (
+              <span className="ml-1 text-neutral-400">
+                (~{estimatedWaitTime} min)
+              </span>
+            )}
+          </p>
+        )}
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-3">
-        <button
-          onClick={runAllTests}
-          disabled={cameraStatus === 'testing' || micStatus === 'testing' || speakerStatus === 'testing'}
-          className="flex-1 rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-        >
-          {allTestsPassed ? 'Volver a Probar' : 'Probar Todo'}
-        </button>
-
-        <button
-          onClick={onReady}
-          disabled={!isReady}
-          className="flex-1 rounded-lg bg-green-600 px-6 py-3 font-medium text-white transition-colors hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          {isReady ? '✓ Entrar a la Consulta' : 'Completa las Pruebas'}
-        </button>
-      </div>
-
-      {/* Help Text */}
-      {anyTestFailed && (
-        <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4">
-          <p className="mb-2 font-semibold text-yellow-800">Problemas con los dispositivos?</p>
-          <ul className="ml-4 list-disc space-y-1 text-sm text-yellow-700">
-            <li>Verifica que el navegador tenga permisos para cámara y micrófono</li>
-            <li>Asegúrate de que ningún otro programa esté usando los dispositivos</li>
-            <li>Prueba recargar la página</li>
-            <li>Si persiste el problema, contacta con soporte técnico</li>
-          </ul>
-        </div>
-      )}
+      {/* Enter button */}
+      <button
+        onClick={onReady}
+        disabled={mediaStatus !== 'ready'}
+        className="w-full rounded-xl bg-green-600 py-3 text-base font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
+      >
+        {mediaStatus === 'ready' ? 'Entrar a la consulta' : 'Preparando...'}
+      </button>
     </div>
   );
 }

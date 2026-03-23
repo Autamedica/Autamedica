@@ -8,5 +8,5 @@ const locale = Astro.locals.locale ?? 'es';
 ---
 
 <Layout title={title} description={description}>
-  <DoctorsHomePage client:load locale={locale} />
+  <DoctorsHomePage client:only="react" locale={locale} />
 </Layout>

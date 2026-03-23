@@ -8,6 +8,7 @@ import { useMedicalHistoryStore } from '@/lib/doctors/stores/medicalHistoryStore
 interface QuickNotesModalProps {
   patientName: string
   patientId: string
+  doctorId?: string
   onClose: () => void
 }
 
@@ -26,7 +27,7 @@ const QUICK_NOTES = [
   'Exámenes pendientes'
 ]
 
-export function QuickNotesModal({ patientName, patientId, onClose }: QuickNotesModalProps): JSX.Element {
+export function QuickNotesModal({ patientName, patientId, doctorId, onClose }: QuickNotesModalProps): JSX.Element {
   const { addEntry } = useMedicalHistoryStore()
   const [notes, setNotes] = useState<Record<string, string>>({
     subjective: '',
@@ -55,7 +56,7 @@ Prioridad: ${priority === 'high' ? 'ALTA' : 'Normal'}
     await addEntry({
       type: 'note',
       content: soapNote,
-      doctorId: 'current-doctor',
+      doctorId: doctorId || '',
       patientId,
       metadata: {}
     })

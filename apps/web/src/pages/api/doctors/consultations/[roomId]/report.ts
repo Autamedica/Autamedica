@@ -92,6 +92,93 @@ interface SectionRecord {
   updated_at: string | null;
 }
 
+export const PATCH: APIRoute = async ({ request, params }) => {
+  const roomId = params.roomId;
+  if (!roomId) {
+    return new Response(JSON.stringify({ ok: false, error: 'missing_room_id' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  try {
+    const supabase = createServerClientFromRequest(request);
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const admin = createAdminClient() as unknown as AdminClient;
+    const doctorId = await resolveDoctorId(admin, session.user.id);
+    if (!doctorId) {
+      return new Response(JSON.stringify({ ok: false, error: 'doctor_not_found' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body = (await request.json()) as {
+      recordId: string;
+      report: Record<string, unknown>;
+      doctorNotes?: string;
+    };
+
+    if (!body.recordId) {
+      return new Response(JSON.stringify({ ok: false, error: 'missing_record_id' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Verify the record belongs to this doctor
+    const { data: existing } = await admin
+      .from('medical_records')
+      .select('id, doctor_id, content')
+      .eq('id', body.recordId)
+      .maybeSingle();
+
+    const record = existing as { id: string; doctor_id: string; content: Record<string, unknown> } | null;
+    if (record?.doctor_id !== doctorId) {
+      return new Response(JSON.stringify({ ok: false, error: 'forbidden' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Merge the edited report into existing content
+    const updatedContent = {
+      ...record.content,
+      ...body.report,
+      doctorReviewed: true,
+      doctorNotes: body.doctorNotes ?? record.content.doctorNotes ?? null,
+      reviewedAt: new Date().toISOString(),
+    };
+
+    const { error: updateError } = await admin
+      .from('medical_records')
+      .update({ content: updatedContent as Json })
+      .eq('id', body.recordId);
+
+    if (updateError) throw updateError;
+
+    logger.info('[consultation-report] PATCH saved', { roomId, recordId: body.recordId });
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    logger.error('[consultation-report] PATCH error', error);
+    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+};
+
 export const POST: APIRoute = async ({ request, params }) => {
   const roomId = params.roomId;
   if (!roomId) {
