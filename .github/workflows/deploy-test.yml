@@ -3,6 +3,9 @@ name: Runner Canary
 on:
   workflow_dispatch:
 
+env:
+  HUSKY: '0'
+
 jobs:
   canary:
     name: Environment

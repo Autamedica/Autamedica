@@ -18,6 +18,9 @@ on:
           - local
           - production
 
+env:
+  HUSKY: '0'
+
 jobs:
   e2e-critical:
     name: Critical Paths

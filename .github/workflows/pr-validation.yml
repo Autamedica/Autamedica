@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+env:
+  HUSKY: '0'
+
 jobs:
   validate:
     name: PR Quality
