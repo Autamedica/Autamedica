@@ -64,6 +64,9 @@ export type TenantId = Id<'Tenant'>;
 /** ID tipado para usuarios del sistema */
 export type UserId = Id<'User'>;
 
+/** DNI argentino con marca de tipo */
+export type DNI = Brand<string, 'DNI'>;
+
 // ==========================================
 // Guards y validadores runtime
 // ==========================================

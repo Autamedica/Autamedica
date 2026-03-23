@@ -12,8 +12,6 @@ import type { PatientId } from '../patient/patient.types';
 // =====================================================
 
 export type PreventiveScreeningId = UUID & { readonly __brand: 'PreventiveScreeningId' };
-export type MedicalCaseId = UUID & { readonly __brand: 'MedicalCaseId' };
-export type ScreeningReminderNotificationId = UUID & { readonly __brand: 'ScreeningReminderNotificationId' };
 
 // =====================================================
 // Enums y Tipos Literales
@@ -117,47 +115,6 @@ export interface PatientRiskFactor {
   readonly created_at: ISODateString;
 }
 
-/**
- * Recordatorios automáticos
- */
-export interface ScreeningReminderNotification {
-  readonly id: ScreeningReminderNotificationId;
-  readonly patient_screening_id: UUID;
-  readonly patient_id: PatientId;
-  readonly reminder_date: ISODateString;
-  readonly sent_at: ISODateString | null;
-  readonly message: string;
-  readonly notification_channel: 'email' | 'sms' | 'push' | 'in_app';
-  readonly is_read: boolean;
-  readonly created_at: ISODateString;
-}
-
-/**
- * Caso médico educativo
- * Ejemplo: Guía sobre prevención de cáncer de mama
- */
-export interface MedicalCase {
-  readonly id: MedicalCaseId;
-  readonly title: string;
-  readonly category: ScreeningCategoryType;
-  readonly description: string;
-  readonly target_gender: GenderType;
-  readonly target_age_min: number | null;
-  readonly target_age_max: number | null;
-  readonly content_sections: MedicalCaseSection[];
-  readonly related_screenings: PreventiveScreeningId[];
-  readonly related_specialists: string[]; // Specialty names
-  readonly is_published: boolean;
-  readonly created_at: ISODateString;
-  readonly updated_at: ISODateString;
-}
-
-export interface MedicalCaseSection {
-  readonly heading: string;
-  readonly content: string;
-  readonly order: number;
-  readonly media_url?: string;
-}
 
 // =====================================================
 // Tipos de Inserción (para crear nuevos registros)
@@ -166,7 +123,6 @@ export interface MedicalCaseSection {
 export type PreventiveScreeningInsert = Omit<PreventiveScreening, 'id' | 'created_at' | 'updated_at'>;
 export type PatientScreeningInsert = Omit<PatientScreening, 'id' | 'created_at' | 'updated_at'>;
 export type PatientRiskFactorInsert = Omit<PatientRiskFactor, 'id' | 'created_at'>;
-export type ScreeningReminderNotificationInsert = Omit<ScreeningReminderNotification, 'id' | 'created_at'>;
 
 // =====================================================
 // Tipos con Joins (para queries con relaciones)

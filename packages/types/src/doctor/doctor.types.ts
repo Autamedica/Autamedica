@@ -5,12 +5,13 @@
  * pública/privada para compliance médico argentino.
  */
 
-import type { Brand, ISODateString, DoctorId } from '../core/brand.types';
+import type { Brand, ISODateString, DoctorId, DNI } from '../core/brand.types';
 import type { ApiResponse } from '../core/api.types';
 import type { NonEmptyString, PositiveNumber, NonEmptyArray } from '../core/utility.types';
 import type { Address } from '../core/location.types';
 import type { PhoneE164 } from '../core/phone.types';
 import type { SpecialtyCode, SubspecialtyCode, MedicalLicense } from '../medical/specialty.types';
+import type { EmergencyContact } from '../entities/profiles';
 
 // ==========================================
 // Branded primitives de soporte
@@ -36,11 +37,6 @@ export type TimeHHmm = Brand<string, 'TimeHHmm'>;
  * Monto en pesos argentinos
  */
 export type ARS = Brand<number, 'ARS'>;
-
-/**
- * DNI argentino con marca de tipo
- */
-export type DNI = Brand<string, 'DNI'>;
 
 /**
  * Código de provincia para matrícula médica
@@ -106,19 +102,8 @@ export interface ProfessionalInsurance {
   isActive: boolean;
 }
 
-/**
- * Contacto de emergencia del médico
- */
-export interface EmergencyContact {
-  /** Nombre completo del contacto */
-  name: NonEmptyString;
-  /** Relación con el médico */
-  relationship: NonEmptyString;
-  /** Teléfono de contacto */
-  phone: PhoneE164;
-  /** Dirección opcional */
-  address?: Address;
-}
+// EmergencyContact: canonical definition in entities/profiles
+export type { EmergencyContact } from '../entities/profiles';
 
 // ==========================================
 // Perfil completo del médico

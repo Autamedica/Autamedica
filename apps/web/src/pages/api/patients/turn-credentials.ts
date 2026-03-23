@@ -1,7 +1,16 @@
 import type { APIRoute } from 'astro'
 import { handleTurnCredentials } from '@autamedica/telemedicine/server'
+import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 
-export const POST: APIRoute = async () => {
+export const POST: APIRoute = async ({ request }) => {
+  const context = await resolvePatientContext(request)
+  if (!context) {
+    return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   const result = await handleTurnCredentials({
     keyId: import.meta.env.CLOUDFLARE_CALLS_TURN_KEY_ID,
     token: import.meta.env.CLOUDFLARE_CALLS_TURN_TOKEN,

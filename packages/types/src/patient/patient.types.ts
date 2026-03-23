@@ -7,8 +7,9 @@
 
 import type {
   Brand,
-  Id,
   ISODateString,
+  PatientId,
+  DNI,
 } from '../core/brand.types';
 import type {
   NonEmptyString,
@@ -21,20 +22,10 @@ import type { PhoneE164 } from '../core/phone.types';
 import type { BaseEntity } from '../core/base.types';
 import type { ApiResponse } from '../core/api.types';
 import type { Address } from '../core/location.types';
+import type { EmergencyContact } from '../entities/profiles';
 
-// ==========================================
-// IDs y tipos branded
-// ==========================================
-
-/**
- * ID tipado para pacientes
- */
-export type PatientId = Id<'Patient'>;
-
-/**
- * DNI argentino con marca de tipo
- */
-export type DNI = Brand<string, 'DNI'>;
+// Re-export PatientId and DNI for consumers that import from this module
+export type { PatientId, DNI } from '../core/brand.types';
 
 /**
  * Código ICD-10 para clasificación médica internacional
@@ -198,19 +189,8 @@ export interface InsurancePlan {
   coverageLevel: 'basic' | 'standard' | 'premium';
 }
 
-/**
- * Contacto de emergencia
- */
-export interface EmergencyContact {
-  /** Nombre completo */
-  name: NonEmptyString;
-  /** Relación con el paciente */
-  relationship: string;
-  /** Teléfono de contacto */
-  phone: PhoneE164;
-  /** Dirección opcional */
-  address?: Address;
-}
+// EmergencyContact: canonical definition in entities/profiles
+export type { EmergencyContact } from '../entities/profiles';
 
 // ==========================================
 // Perfil completo del paciente

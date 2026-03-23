@@ -7,6 +7,7 @@
 
 import type { ISODateString } from "../primitives/date";
 import type { DoctorId, PatientId, UUID } from "../primitives/id";
+import type { EmergencyContact } from "./profiles";
 
 // ==========================================
 // Patient Care Team Types
@@ -53,15 +54,8 @@ export interface PatientAddress {
   country: string;
 }
 
-/**
- * Contacto de emergencia
- */
-export interface EmergencyContact {
-  name: string;
-  relationship: string;
-  phone: string;
-  email?: string;
-}
+// EmergencyContact imported from ./profiles (canonical location)
+export type { EmergencyContact } from "./profiles";
 
 // ==========================================
 // Patient Care Team Interfaces

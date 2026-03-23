@@ -1,7 +1,7 @@
-// Identificadores únicos con branded types
-export type UUID = string & { readonly brand: "UUID" };
-export type PatientId = UUID & { readonly brand: "PatientId" };
-export type DoctorId = UUID & { readonly brand: "DoctorId" };
-export type AppointmentId = UUID & { readonly brand: "AppointmentId" };
-export type FacilityId = UUID & { readonly brand: "FacilityId" };
-export type SpecialtyId = UUID & { readonly brand: "SpecialtyId" };
+// Re-exports from canonical location for backward compatibility
+// Canonical definitions live in core/brand.types.ts
+export type { UUID, PatientId, DoctorId, AppointmentId, FacilityId } from './core/brand.types';
+
+// SpecialtyId only exists here (legacy)
+import type { Brand } from './core/brand.types';
+export type SpecialtyId = Brand<string, 'SpecialtyId'>;

@@ -1,5 +1,8 @@
 import type { UUID, PatientId, DoctorId, AppointmentId } from "./ids";
 import type { ISODateString } from "./scalars";
+import type { EmergencyContact } from "./entities/profiles";
+
+export type { EmergencyContact } from "./entities/profiles";
 
 export interface User {
   id: UUID;
@@ -7,13 +10,6 @@ export interface User {
   role: "admin" | "staff" | "doctor" | "patient";
   createdAt: ISODateString;
   updatedAt: ISODateString;
-}
-
-export interface EmergencyContact {
-  name: string;
-  relationship: string;
-  phone: string;
-  email?: string;
 }
 
 export interface Patient {

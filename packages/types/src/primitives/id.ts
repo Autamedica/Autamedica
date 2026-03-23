@@ -1,79 +1,43 @@
 /**
- * Tipos de identificadores branded para type safety
- * Previene mezclar IDs de diferentes entidades
+ * Re-exports from canonical location (core/brand.types)
+ * Kept for backward compatibility with existing consumers
  */
 
-/**
- * UUID genérico branded
- */
-export type UUID = string & { readonly __brand: "UUID" };
+export type {
+  UUID,
+  PatientId,
+  DoctorId,
+  CompanyId,
+  OrganizationId,
+  AppointmentId,
+  FacilityId,
+  UserId,
+} from '../core/brand.types';
 
-/**
- * ID de paciente
- */
-export type PatientId = UUID & { readonly __entity: "Patient" };
+import type { Brand } from '../core/brand.types';
 
-/**
- * ID de doctor
- */
-export type DoctorId = UUID & { readonly __entity: "Doctor" };
+// SpecialtyId only defined here (not in brand.types)
+export type SpecialtyId = Brand<string, 'SpecialtyId'>;
 
-/**
- * ID de empresa/compañía
- */
-export type CompanyId = UUID & { readonly __entity: "Company" };
-export type OrganizationId = UUID & { readonly __entity: "Organization" };
+// Legacy helper functions
+import type { UUID, PatientId, DoctorId, CompanyId, OrganizationId } from '../core/brand.types';
 
-/**
- * ID de cita médica
- */
-export type AppointmentId = UUID & { readonly __entity: "Appointment" };
-
-/**
- * ID de facilidad médica
- */
-export type FacilityId = UUID & { readonly __entity: "Facility" };
-
-/**
- * ID de especialidad médica
- */
-export type SpecialtyId = UUID & { readonly __entity: "Specialty" };
-
-/**
- * ID de usuario (auth)
- */
-export type UserId = UUID & { readonly __entity: "User" };
-
-/**
- * Helper para crear UUID desde string
- * @param id - String que representa un UUID válido
- */
 export function createUUID(id: string): UUID {
-  // En producción aquí se podría validar el formato UUID
   return id as UUID;
 }
 
-/**
- * Helper para crear PatientId
- */
 export function createPatientId(id: string): PatientId {
-  return createUUID(id) as PatientId;
+  return id as unknown as PatientId;
 }
 
-/**
- * Helper para crear DoctorId
- */
 export function createDoctorId(id: string): DoctorId {
-  return createUUID(id) as DoctorId;
+  return id as unknown as DoctorId;
 }
 
-/**
- * Helper para crear CompanyId
- */
 export function createCompanyId(id: string): CompanyId {
-  return createUUID(id) as CompanyId;
+  return id as unknown as CompanyId;
 }
 
 export function createOrganizationId(id: string): OrganizationId {
-  return createUUID(id) as OrganizationId;
+  return id as unknown as OrganizationId;
 }
