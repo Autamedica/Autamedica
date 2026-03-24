@@ -207,7 +207,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
       { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
       { id: 'diagnosis', icon: Brain, label: 'Asistente Clínico' },
       { id: 'ranking', icon: Star, label: 'Ranking' },
-      { id: 'marketplace', icon: MapPin, label: 'Trabajo Médico' },
+      { id: 'marketplace', icon: MapPin, label: 'Cobertura' },
       { id: 'settings', icon: Settings, label: 'Configuración' },
     ],
     [patientsCount, appointmentsCount, historyCount],
