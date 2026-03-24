@@ -56,17 +56,17 @@ export function ProfileCompletionStep({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-am-surface-900 mb-2">
           Completa tu Perfil Profesional
         </h3>
-        <p className="text-gray-600">
+        <p className="text-am-surface-500">
           Agrega una biografía profesional y los idiomas que hablas para completar tu perfil.
         </p>
       </div>
 
-      {/* Biografía profesional */}
+      {/* Biografía */}
       <div>
-        <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="bio" className="block text-sm font-medium text-am-surface-700 mb-1.5">
           Biografía Profesional
         </label>
         <textarea
@@ -76,13 +76,13 @@ export function ProfileCompletionStep({
           placeholder="Cuéntanos sobre tu experiencia médica, áreas de interés, filosofía de atención al paciente..."
           rows={6}
           maxLength={maxBioLength}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+          className="w-full px-3.5 py-2.5 border border-am-surface-300 rounded-xl bg-white text-am-surface-900 placeholder:text-am-surface-400 focus:ring-2 focus:ring-am-doctor-400 focus:border-am-doctor-400 transition-colors resize-none"
         />
-        <div className="flex justify-between items-center mt-1">
-          <p className="text-xs text-gray-500">
+        <div className="flex justify-between items-center mt-1.5">
+          <p className="text-xs text-am-surface-400">
             Una buena biografía ayuda a los pacientes a conocerte y generar confianza
           </p>
-          <span className={`text-xs ${bioCharacterCount > maxBioLength * 0.9 ? 'text-red-500' : 'text-gray-500'}`}>
+          <span className={`text-xs font-medium ${bioCharacterCount > maxBioLength * 0.9 ? 'text-red-500' : 'text-am-surface-400'}`}>
             {bioCharacterCount}/{maxBioLength}
           </span>
         </div>
@@ -90,24 +90,24 @@ export function ProfileCompletionStep({
 
       {/* Idiomas */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
           Idiomas que Hablas
         </label>
 
         <div className="relative">
           <button
             onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-            className="w-full px-3 py-2 text-left border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3.5 py-2.5 text-left border border-am-surface-300 rounded-xl hover:bg-am-surface-50 focus:ring-2 focus:ring-am-doctor-400 focus:border-am-doctor-400 transition-colors"
           >
             <div className="flex justify-between items-center">
-              <span className="text-gray-700">
+              <span className="text-am-surface-600">
                 {selectedLanguages.length > 0
                   ? `${selectedLanguages.length} idioma${selectedLanguages.length > 1 ? 's' : ''} seleccionado${selectedLanguages.length > 1 ? 's' : ''}`
                   : 'Seleccionar idiomas...'
                 }
               </span>
               <svg
-                className={`w-5 h-5 text-gray-400 transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}
+                className={`w-5 h-5 text-am-surface-400 transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -118,16 +118,16 @@ export function ProfileCompletionStep({
           </button>
 
           {showLanguageDropdown && (
-            <div className="absolute z-10 w-full mt-1 border border-gray-200 rounded-lg p-2 bg-white shadow-lg max-h-48 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 border border-am-surface-200 rounded-xl p-2 bg-white shadow-am-md max-h-48 overflow-y-auto">
               {AVAILABLE_LANGUAGES.map(language => (
-                <label key={language} className="flex items-center px-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
+                <label key={language} className="flex items-center px-3 py-2 hover:bg-am-surface-50 rounded-lg cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={selectedLanguages.includes(language)}
                     onChange={() => toggleLanguage(language)}
-                    className="mr-3"
+                    className="mr-3 w-4 h-4 rounded border-am-surface-300 text-am-doctor-500 focus:ring-am-doctor-400"
                   />
-                  <span className="text-gray-900">{language}</span>
+                  <span className="text-am-surface-900">{language}</span>
                 </label>
               ))}
             </div>
@@ -139,12 +139,12 @@ export function ProfileCompletionStep({
             {selectedLanguages.map(language => (
               <span
                 key={language}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-am-doctor-50 text-am-doctor-700"
               >
                 {language}
                 <button
                   onClick={() => toggleLanguage(language)}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  className="ml-2 text-am-doctor-500 hover:text-am-doctor-700 transition-colors"
                 >
                   ×
                 </button>
@@ -153,30 +153,30 @@ export function ProfileCompletionStep({
           </div>
         )}
 
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-am-surface-400 mt-2">
           Los pacientes pueden filtrar médicos por idioma disponible
         </p>
       </div>
 
-      {/* Preview del perfil */}
+      {/* Preview */}
       {(currentBio || selectedLanguages.length > 0) && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-3">Vista Previa del Perfil</h4>
+        <div className="bg-am-surface-50 border border-am-surface-200 rounded-xl p-4">
+          <h4 className="text-sm font-medium text-am-surface-900 mb-3">Vista Previa del Perfil</h4>
 
           {currentBio && (
             <div className="mb-3">
-              <p className="text-sm text-gray-700 leading-relaxed">{currentBio}</p>
+              <p className="text-sm text-am-surface-600 leading-relaxed">{currentBio}</p>
             </div>
           )}
 
           {selectedLanguages.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 mb-1">Idiomas:</p>
+              <p className="text-xs text-am-surface-400 mb-1.5">Idiomas:</p>
               <div className="flex flex-wrap gap-1">
                 {selectedLanguages.map(language => (
                   <span
                     key={language}
-                    className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-200 text-gray-700"
+                    className="inline-flex items-center px-2 py-1 rounded-lg text-xs bg-am-surface-200 text-am-surface-600"
                   >
                     {language}
                   </span>
@@ -187,30 +187,30 @@ export function ProfileCompletionStep({
         </div>
       )}
 
-      {/* Información de finalización */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+      {/* Info */}
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
         <div className="flex">
-          <svg className="w-5 h-5 text-green-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-emerald-500 mr-2 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
           <div>
-            <p className="text-green-800 text-sm">
+            <p className="text-emerald-800 text-sm">
               <strong>¡Casi terminamos!</strong> Al completar este paso, tu perfil médico estará listo
               y podrás comenzar a recibir pacientes en AutaMedica.
             </p>
-            <p className="text-green-700 text-sm mt-1">
+            <p className="text-emerald-700 text-sm mt-1">
               Podrás editar toda esta información desde tu dashboard en cualquier momento.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Botones de navegación */}
-      <div className="flex justify-between pt-6">
+      {/* Navigation */}
+      <div className="flex justify-between pt-6 border-t border-am-surface-100">
         <button
           onClick={onBack}
           disabled={isSubmitting}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+          className="px-4 py-2.5 text-am-surface-500 hover:text-am-surface-900 hover:bg-am-surface-100 rounded-xl transition-all duration-am-fast disabled:opacity-50"
         >
           Atrás
         </button>
@@ -218,7 +218,7 @@ export function ProfileCompletionStep({
         <button
           onClick={onComplete}
           disabled={isSubmitting}
-          className="px-8 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+          className="px-8 py-2.5 bg-am-doctor-500 text-white rounded-xl hover:bg-am-doctor-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-am-fast font-medium shadow-am-sm active:scale-[0.97] flex items-center"
         >
           {isSubmitting ? (
             <>

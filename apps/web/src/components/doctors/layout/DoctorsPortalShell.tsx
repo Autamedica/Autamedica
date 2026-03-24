@@ -41,6 +41,7 @@ import {
     Video,
     X,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { JSX, ReactNode } from 'react'
 import { Suspense, createContext, lazy, useContext, useEffect, useMemo, useState } from 'react'
 
@@ -371,7 +372,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     <TabIcon className={`h-3.5 w-3.5 transition-colors ${isActive ? 'text-am-doctor-600' : ''}`} />
                     <span className="whitespace-nowrap">{tab.label}</span>
                     {isActive && (
-                      <span className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-am-doctor-500" />
+                      <motion.span
+                        layoutId="tab-indicator"
+                        className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-am-doctor-500"
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      />
                     )}
                   </button>
                 )
@@ -547,6 +552,15 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 role="main"
                 aria-label="Panel de contenido médico principal"
               >
+                <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeSection || activeTab}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex min-h-0 flex-1 flex-col"
+                >
                 {activeSection === 'settings' && (
                   <SettingsPanel
                     doctorName={userName}
@@ -615,6 +629,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     )}
                   </div>
                 )}
+                </motion.div>
+                </AnimatePresence>
               </div>
             </section>
             <footer className="hidden items-center justify-between border-t border-am-surface-200 bg-white px-4 py-2 text-[11px] sm:px-6 md:flex">

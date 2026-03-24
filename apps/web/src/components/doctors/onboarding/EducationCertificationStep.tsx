@@ -1,4 +1,3 @@
- 
 // @ts-nocheck
 'use client';
 
@@ -75,34 +74,36 @@ export function EducationCertificationStep({
     onUpdate(educationList, updated);
   };
 
+  const inputClass = 'w-full px-3.5 py-2.5 border border-am-surface-300 rounded-xl bg-white text-am-surface-900 placeholder:text-am-surface-400 focus:ring-2 focus:ring-am-doctor-400 focus:border-am-doctor-400 transition-colors';
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-am-surface-900 mb-2">
           Educación y Certificaciones
         </h3>
-        <p className="text-gray-600">
+        <p className="text-am-surface-500">
           Agrega tu formación académica y certificaciones profesionales para generar confianza en los pacientes.
         </p>
       </div>
 
-      {/* Sección de Educación */}
+      {/* Educación */}
       <div>
         <div className="flex justify-between items-center mb-4">
-          <h4 className="text-md font-medium text-gray-900">Educación Médica</h4>
+          <h4 className="text-md font-medium text-am-surface-900">Educación Médica</h4>
           <button
             onClick={addEducation}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-3 py-1.5 text-sm bg-am-doctor-50 text-am-doctor-700 rounded-lg hover:bg-am-doctor-100 font-medium transition-colors"
           >
             + Agregar
           </button>
         </div>
 
         {educationList.map((edu, index) => (
-          <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
+          <div key={index} className="border border-am-surface-200 rounded-xl p-4 mb-4 hover:border-am-surface-300 transition-colors">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Institución
                 </label>
                 <input
@@ -110,12 +111,12 @@ export function EducationCertificationStep({
                   value={edu.institution}
                   onChange={(e) => updateEducation(index, 'institution', e.target.value)}
                   placeholder="Universidad de Buenos Aires"
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Título/Grado
                 </label>
                 <input
@@ -123,18 +124,18 @@ export function EducationCertificationStep({
                   value={edu.degree}
                   onChange={(e) => updateEducation(index, 'degree', e.target.value)}
                   placeholder="Médico"
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Año de Graduación
                 </label>
                 <select
                   value={edu.year}
                   onChange={(e) => updateEducation(index, 'year', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 >
                   {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i).map(year => (
                     <option key={year} value={year}>{year}</option>
@@ -143,7 +144,7 @@ export function EducationCertificationStep({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Especialización (Opcional)
                 </label>
                 <input
@@ -151,14 +152,14 @@ export function EducationCertificationStep({
                   value={edu.specialization || ''}
                   onChange={(e) => updateEducation(index, 'specialization', e.target.value)}
                   placeholder="Medicina Interna"
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             <button
               onClick={() => removeEducation(index)}
-              className="mt-2 text-red-600 text-sm hover:text-red-800"
+              className="mt-3 text-red-500 text-sm hover:text-red-700 font-medium transition-colors"
             >
               Eliminar educación
             </button>
@@ -166,35 +167,38 @@ export function EducationCertificationStep({
         ))}
 
         {educationList.length === 0 && (
-          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500">No has agregado educación médica</p>
+          <div className="text-center py-10 border-2 border-dashed border-am-surface-200 rounded-2xl bg-am-surface-50/50">
+            <svg className="mx-auto w-10 h-10 text-am-surface-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" />
+            </svg>
+            <p className="text-am-surface-500 mb-3">No has agregado educación médica</p>
             <button
               onClick={addEducation}
-              className="mt-2 text-blue-600 hover:text-blue-800"
+              className="text-am-doctor-600 hover:text-am-doctor-700 font-medium text-sm"
             >
-              Agregar tu primera educación
+              + Agregar tu primera educación
             </button>
           </div>
         )}
       </div>
 
-      {/* Sección de Certificaciones */}
+      {/* Certificaciones */}
       <div>
         <div className="flex justify-between items-center mb-4">
-          <h4 className="text-md font-medium text-gray-900">Certificaciones Profesionales</h4>
+          <h4 className="text-md font-medium text-am-surface-900">Certificaciones Profesionales</h4>
           <button
             onClick={addCertification}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-3 py-1.5 text-sm bg-am-doctor-50 text-am-doctor-700 rounded-lg hover:bg-am-doctor-100 font-medium transition-colors"
           >
             + Agregar
           </button>
         </div>
 
         {certificationsList.map((cert, index) => (
-          <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
+          <div key={index} className="border border-am-surface-200 rounded-xl p-4 mb-4 hover:border-am-surface-300 transition-colors">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Nombre de la Certificación
                 </label>
                 <input
@@ -202,12 +206,12 @@ export function EducationCertificationStep({
                   value={cert.name}
                   onChange={(e) => updateCertification(index, 'name', e.target.value)}
                   placeholder="Certificación en Cardiología"
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Institución Emisora
                 </label>
                 <input
@@ -215,24 +219,24 @@ export function EducationCertificationStep({
                   value={cert.issuer}
                   onChange={(e) => updateCertification(index, 'issuer', e.target.value)}
                   placeholder="Sociedad Argentina de Cardiología"
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Fecha de Emisión
                 </label>
                 <input
                   type="date"
                   value={cert.date_issued.split('T')[0]}
                   onChange={(e) => updateCertification(index, 'date_issued', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Número de Certificado (Opcional)
                 </label>
                 <input
@@ -240,26 +244,26 @@ export function EducationCertificationStep({
                   value={cert.certificate_number || ''}
                   onChange={(e) => updateCertification(index, 'certificate_number', e.target.value)}
                   placeholder="CERT-2024-001"
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
                   Fecha de Vencimiento (Opcional)
                 </label>
                 <input
                   type="date"
                   value={cert.expiry_date?.split('T')[0] || ''}
                   onChange={(e) => updateCertification(index, 'expiry_date', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             <button
               onClick={() => removeCertification(index)}
-              className="mt-2 text-red-600 text-sm hover:text-red-800"
+              className="mt-3 text-red-500 text-sm hover:text-red-700 font-medium transition-colors"
             >
               Eliminar certificación
             </button>
@@ -267,43 +271,44 @@ export function EducationCertificationStep({
         ))}
 
         {certificationsList.length === 0 && (
-          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500">No has agregado certificaciones</p>
+          <div className="text-center py-10 border-2 border-dashed border-am-surface-200 rounded-2xl bg-am-surface-50/50">
+            <svg className="mx-auto w-10 h-10 text-am-surface-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-am-surface-500 mb-3">No has agregado certificaciones</p>
             <button
               onClick={addCertification}
-              className="mt-2 text-blue-600 hover:text-blue-800"
+              className="text-am-doctor-600 hover:text-am-doctor-700 font-medium text-sm"
             >
-              Agregar tu primera certificación
+              + Agregar tu primera certificación
             </button>
           </div>
         )}
       </div>
 
-      {/* Información */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
         <div className="flex">
-          <svg className="w-5 h-5 text-yellow-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-amber-400 mr-2 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-yellow-800 text-sm">
+          <p className="text-amber-800 text-sm">
             <strong>Tip:</strong> Agregar tu educación y certificaciones ayuda a generar confianza en los pacientes.
             Puedes saltar este paso y agregar esta información más tarde desde tu perfil.
           </p>
         </div>
       </div>
 
-      {/* Botones de navegación */}
-      <div className="flex justify-between pt-6">
+      <div className="flex justify-between pt-6 border-t border-am-surface-100">
         <button
           onClick={onBack}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+          className="px-4 py-2.5 text-am-surface-500 hover:text-am-surface-900 hover:bg-am-surface-100 rounded-xl transition-all duration-am-fast"
         >
           Atrás
         </button>
 
         <button
           onClick={onNext}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-6 py-2.5 bg-am-doctor-500 text-white rounded-xl hover:bg-am-doctor-600 transition-all duration-am-fast font-medium shadow-am-sm active:scale-[0.97]"
         >
           Continuar
         </button>

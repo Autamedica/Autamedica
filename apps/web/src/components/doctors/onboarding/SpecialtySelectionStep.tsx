@@ -47,7 +47,7 @@ export function SpecialtySelectionStep({
 
   const handleSpecialtyChange = (newSpecialty: string) => {
     setSelectedSpecialty(newSpecialty);
-    setSelectedSubspecialty(''); // Reset subspecialty cuando cambia especialidad
+    setSelectedSubspecialty('');
     setShowSubspecialties(false);
     onUpdate(newSpecialty, '', experience);
   };
@@ -70,56 +70,54 @@ export function SpecialtySelectionStep({
     onNext();
   };
 
+  const inputClass = 'w-full px-3.5 py-2.5 border border-am-surface-300 rounded-xl bg-white text-am-surface-900 placeholder:text-am-surface-400 focus:ring-2 focus:ring-am-doctor-400 focus:border-am-doctor-400 transition-colors';
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-am-surface-900 mb-2">
           Especialidad Médica
         </h3>
-        <p className="text-gray-600">
+        <p className="text-am-surface-500">
           Selecciona tu especialidad principal y años de experiencia profesional.
         </p>
       </div>
 
       <div className="space-y-4">
-        {/* Especialidad principal */}
         <div>
-          <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="specialty" className="block text-sm font-medium text-am-surface-700 mb-1.5">
             Especialidad Principal <span className="text-red-500">*</span>
           </label>
           <select
             id="specialty"
             value={selectedSpecialty}
             onChange={(e) => handleSpecialtyChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={inputClass}
           >
             <option value="">Selecciona una especialidad</option>
             {SPECIALTY_NAMES.map(spec => (
-              <option key={spec} value={spec}>
-                {spec}
-              </option>
+              <option key={spec} value={spec}>{spec}</option>
             ))}
           </select>
         </div>
 
-        {/* Subspecialidad */}
         {selectedSpecialty && availableSubspecialties.length > 0 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-am-surface-700 mb-1.5">
               Subspecialidad (Opcional)
             </label>
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => setShowSubspecialties(!showSubspecialties)}
-                className="w-full px-3 py-2 text-left border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3.5 py-2.5 text-left border border-am-surface-300 rounded-xl hover:bg-am-surface-50 focus:ring-2 focus:ring-am-doctor-400 focus:border-am-doctor-400 transition-colors"
               >
                 <div className="flex justify-between items-center">
-                  <span className={selectedSubspecialty ? 'text-gray-900' : 'text-gray-500'}>
+                  <span className={selectedSubspecialty ? 'text-am-surface-900' : 'text-am-surface-400'}>
                     {selectedSubspecialty || 'Seleccionar subspecialidad...'}
                   </span>
                   <svg
-                    className={`w-5 h-5 text-gray-400 transition-transform ${showSubspecialties ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 text-am-surface-400 transition-transform ${showSubspecialties ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -130,9 +128,9 @@ export function SpecialtySelectionStep({
               </button>
 
               {showSubspecialties && (
-                <div className="border border-gray-200 rounded-lg p-2 bg-gray-50 max-h-40 overflow-y-auto">
+                <div className="border border-am-surface-200 rounded-xl p-2 bg-am-surface-50 max-h-40 overflow-y-auto shadow-am-md">
                   <div
-                    className="px-3 py-2 hover:bg-white rounded cursor-pointer text-gray-600"
+                    className="px-3 py-2 hover:bg-white rounded-lg cursor-pointer text-am-surface-500 transition-colors"
                     onClick={() => {
                       handleSubspecialtyChange('');
                       setShowSubspecialties(false);
@@ -143,7 +141,7 @@ export function SpecialtySelectionStep({
                   {availableSubspecialties.map(subspec => (
                     <div
                       key={subspec}
-                      className="px-3 py-2 hover:bg-white rounded cursor-pointer"
+                      className="px-3 py-2 hover:bg-white rounded-lg cursor-pointer text-am-surface-900 transition-colors"
                       onClick={() => {
                         handleSubspecialtyChange(subspec);
                         setShowSubspecialties(false);
@@ -158,16 +156,15 @@ export function SpecialtySelectionStep({
           </div>
         )}
 
-        {/* Años de experiencia */}
         <div>
-          <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="experience" className="block text-sm font-medium text-am-surface-700 mb-1.5">
             Años de Experiencia Profesional <span className="text-red-500">*</span>
           </label>
           <select
             id="experience"
             value={experience}
             onChange={(e) => handleExperienceChange(parseInt(e.target.value))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={inputClass}
           >
             <option value={0}>Recién graduado</option>
             <option value={1}>1 año</option>
@@ -176,31 +173,28 @@ export function SpecialtySelectionStep({
             <option value={4}>4 años</option>
             <option value={5}>5 años</option>
             {Array.from({ length: 15 }, (_, i) => i + 6).map(year => (
-              <option key={year} value={year}>
-                {year} años
-              </option>
+              <option key={year} value={year}>{year} años</option>
             ))}
             <option value={21}>Más de 20 años</option>
           </select>
         </div>
 
-        {/* Información adicional sobre especialidades */}
         {selectedSpecialty && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-am-doctor-50 border border-am-doctor-200 rounded-xl p-4">
             <div className="flex">
-              <svg className="w-5 h-5 text-blue-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-am-doctor-400 mr-2 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
-                <p className="text-blue-800 text-sm">
+                <p className="text-am-doctor-800 text-sm">
                   <strong>Especialidad seleccionada:</strong> {selectedSpecialty}
                 </p>
                 {selectedSubspecialty && (
-                  <p className="text-blue-700 text-sm mt-1">
+                  <p className="text-am-doctor-700 text-sm mt-1">
                     <strong>Subspecialidad:</strong> {selectedSubspecialty}
                   </p>
                 )}
-                <p className="text-blue-700 text-sm mt-1">
+                <p className="text-am-doctor-700 text-sm mt-1">
                   Esta información aparecerá en tu perfil público y ayudará a los pacientes a encontrarte.
                 </p>
               </div>
@@ -209,11 +203,10 @@ export function SpecialtySelectionStep({
         )}
       </div>
 
-      {/* Botones de navegación */}
-      <div className="flex justify-between pt-6">
+      <div className="flex justify-between pt-6 border-t border-am-surface-100">
         <button
           onClick={onBack}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+          className="px-4 py-2.5 text-am-surface-500 hover:text-am-surface-900 hover:bg-am-surface-100 rounded-xl transition-all duration-am-fast"
         >
           Atrás
         </button>
@@ -221,7 +214,7 @@ export function SpecialtySelectionStep({
         <button
           onClick={handleNext}
           disabled={!selectedSpecialty}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2.5 bg-am-doctor-500 text-white rounded-xl hover:bg-am-doctor-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-am-fast font-medium shadow-am-sm active:scale-[0.97]"
         >
           Continuar
         </button>
