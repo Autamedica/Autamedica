@@ -29,32 +29,34 @@ export const GET: APIRoute = async ({ request }) => {
       .from('doctors')
       .select('id, specialty, years_experience')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (!currentDoctor) {
-      return new Response(JSON.stringify({ ok: false, error: 'not_a_doctor' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    let myMetrics = null;
+    let myBadges: Array<Record<string, unknown>> = [];
+    let myReviews: Array<Record<string, unknown>> = [];
+
+    if (currentDoctor) {
+      const { data: metrics } = await supabase
+        .from('doctor_ranking_metrics')
+        .select('*')
+        .eq('doctor_id', currentDoctor.id)
+        .single();
+      myMetrics = metrics;
+
+      const { data: badges } = await supabase
+        .from('doctor_badges')
+        .select('*')
+        .eq('doctor_id', currentDoctor.id)
+        .order('earned_at', { ascending: false });
+      myBadges = badges ?? [];
+
+      const { data: reviews } = await supabase
+        .from('doctor_reviews')
+        .select('overall_rating, punctuality_rating, communication_rating, professionalism_rating, clinical_quality_rating')
+        .eq('doctor_id', currentDoctor.id)
+        .eq('status', 'approved');
+      myReviews = reviews ?? [];
     }
-
-    const { data: myMetrics } = await supabase
-      .from('doctor_ranking_metrics')
-      .select('*')
-      .eq('doctor_id', currentDoctor.id)
-      .single();
-
-    const { data: myBadges } = await supabase
-      .from('doctor_badges')
-      .select('*')
-      .eq('doctor_id', currentDoctor.id)
-      .order('earned_at', { ascending: false });
-
-    const { data: myReviews } = await supabase
-      .from('doctor_reviews')
-      .select('overall_rating, punctuality_rating, communication_rating, professionalism_rating, clinical_quality_rating')
-      .eq('doctor_id', currentDoctor.id)
-      .eq('status', 'approved');
 
     const { data: topRanked } = await supabase
       .from('doctor_ranking_metrics')
@@ -98,7 +100,7 @@ export const GET: APIRoute = async ({ request }) => {
           years_experience: doctor?.years_experience ?? null,
           first_name: profile?.first_name ?? null,
           last_name: profile?.last_name ?? null,
-          is_current_user: metrics.doctor_id === currentDoctor.id,
+          is_current_user: currentDoctor ? metrics.doctor_id === currentDoctor.id : false,
         };
       });
     }
@@ -126,14 +128,14 @@ export const GET: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({
       ok: true,
       data: {
-        current_doctor: {
+        current_doctor: currentDoctor ? {
           doctor_id: currentDoctor.id,
           specialty: currentDoctor.specialty,
           years_experience: currentDoctor.years_experience,
           metrics: myMetrics ?? null,
-          badges: myBadges ?? [],
-          review_count: myReviews?.length ?? 0,
-        },
+          badges: myBadges,
+          review_count: myReviews.length,
+        } : null,
         ranked_doctors: rankedDoctors,
       },
     }), {

@@ -3,12 +3,15 @@
 import { useState, useMemo } from 'react'
 import { AppointmentsTable } from '@/components/patients/appointments/AppointmentsTable'
 import { CreateAppointmentModal } from '@/components/patients/appointments/CreateAppointmentModal'
+import { ReviewModal } from '@/components/patients/appointments/ReviewModal'
 import { useAppointments } from '@/hooks/patients/useAppointments'
+import { useReviews } from '@/hooks/patients/useReviews'
 import { Calendar, Plus, CheckCircle, Clock } from 'lucide-react'
-import type { CreateAppointmentInput } from '@/lib/patients/types/appointment'
+import type { CreateAppointmentInput, AppointmentWithDoctor } from '@/lib/patients/types/appointment'
 
 export default function AppointmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [reviewTarget, setReviewTarget] = useState<AppointmentWithDoctor | null>(null)
   const {
     appointments,
     loading,
@@ -16,6 +19,12 @@ export default function AppointmentsPage() {
     createAppointment,
     refreshAppointments,
   } = useAppointments()
+  const {
+    reviewedAppointmentIds,
+    submitting: reviewSubmitting,
+    error: reviewError,
+    submitReview,
+  } = useReviews()
 
   const stats = useMemo(() => {
     const upcoming = appointments.filter(
@@ -136,7 +145,11 @@ export default function AppointmentsPage() {
             </button>
           </div>
         ) : (
-          <AppointmentsTable appointments={appointments} />
+          <AppointmentsTable
+            appointments={appointments}
+            reviewedAppointmentIds={reviewedAppointmentIds}
+            onReviewClick={(apt) => setReviewTarget(apt)}
+          />
         )}
       </div>
 
@@ -145,6 +158,17 @@ export default function AppointmentsPage() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateAppointment}
       />
+
+      {reviewTarget && (
+        <ReviewModal
+          isOpen={!!reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          appointment={reviewTarget}
+          onSubmit={submitReview}
+          submitting={reviewSubmitting}
+          error={reviewError}
+        />
+      )}
     </div>
   )
 }

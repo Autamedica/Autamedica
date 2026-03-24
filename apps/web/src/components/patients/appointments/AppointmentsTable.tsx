@@ -1,11 +1,13 @@
 'use client';
 
 import type { AppointmentWithDoctor } from '@/lib/patients/types/appointment';
-import { Calendar, Clock, Video, MapPin, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, Video, MapPin, ExternalLink, Star } from 'lucide-react';
 
 interface AppointmentsTableProps {
   appointments: AppointmentWithDoctor[];
   locale?: string;
+  reviewedAppointmentIds?: Set<string>;
+  onReviewClick?: (appointment: AppointmentWithDoctor) => void;
 }
 
 const statusConfig = {
@@ -26,7 +28,7 @@ const typeConfig = {
   checkup: { label: 'Chequeo', icon: '✅' },
 };
 
-export function AppointmentsTable({ appointments, locale }: AppointmentsTableProps) {
+export function AppointmentsTable({ appointments, locale, reviewedAppointmentIds, onReviewClick }: AppointmentsTableProps) {
   const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
 
   const formatDate = (dateString: string) => {
@@ -129,6 +131,30 @@ export function AppointmentsTable({ appointments, locale }: AppointmentsTablePro
                 <button className="btn-secondary-ivory px-4 py-2 text-sm">
                   Reprogramar
                 </button>
+              )}
+              {appointment.status === 'completed' &&
+                onReviewClick &&
+                !reviewedAppointmentIds?.has(appointment.id) &&
+                (() => {
+                  const daysSince = Math.floor(
+                    (Date.now() - new Date(appointment.start_time).getTime()) / (1000 * 60 * 60 * 24),
+                  );
+                  return daysSince >= 1 && daysSince <= 30;
+                })() && (
+                <button
+                  onClick={() => onReviewClick(appointment)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                >
+                  <Star className="h-4 w-4" />
+                  Evaluar
+                </button>
+              )}
+              {appointment.status === 'completed' &&
+                reviewedAppointmentIds?.has(appointment.id) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg">
+                  <Star className="h-3.5 w-3.5 fill-green-600" />
+                  Evaluado
+                </span>
               )}
             </div>
           </div>

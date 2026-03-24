@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, ShieldAlert } from 'lucide-react'
 
 interface RankingMetrics {
@@ -52,7 +52,7 @@ interface RankingData {
     metrics: RankingMetrics | null
     badges: Badge[]
     review_count: number
-  }
+  } | null
   ranked_doctors: RankedDoctor[]
 }
 
@@ -83,19 +83,32 @@ export function MedicalRankingPanel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/doctors/ranking', { credentials: 'include' })
-      .then(res => res.json())
-      .then(json => {
-        if (json.ok) {
-          setData(json.data)
-        } else {
-          setError(json.error ?? 'Error al cargar ranking')
-        }
-      })
-      .catch(() => setError('Error de conexión'))
-      .finally(() => setLoading(false))
+  const fetchRanking = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true)
+    try {
+      const res = await fetch('/api/doctors/ranking', { credentials: 'include' })
+      const json = await res.json()
+      if (json.ok) {
+        setData(json.data)
+        setError(null)
+      } else if (isInitial) {
+        setError(json.error ?? 'Error al cargar ranking')
+      }
+    } catch {
+      if (isInitial) setError('Error de conexion')
+    } finally {
+      if (isInitial) setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchRanking(true)
+  }, [fetchRanking])
+
+  useEffect(() => {
+    const interval = setInterval(() => fetchRanking(false), 60_000)
+    return () => clearInterval(interval)
+  }, [fetchRanking])
 
   if (loading) {
     return (
@@ -125,7 +138,6 @@ export function MedicalRankingPanel() {
   }
 
   if (error || !data) {
-    const isAuthError = error === 'unauthorized' || error === 'not_a_doctor'
     return (
       <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-12 text-center shadow-am-sm">
         <div className="relative mb-6">
@@ -136,19 +148,19 @@ export function MedicalRankingPanel() {
           </div>
         </div>
         <h3 className="text-lg font-semibold text-am-surface-900">
-          {isAuthError ? 'Perfil médico requerido' : 'Error al cargar ranking'}
+          {error === 'unauthorized' ? 'Sesion requerida' : 'Error al cargar ranking'}
         </h3>
         <p className="mt-2 max-w-sm text-sm text-am-surface-500">
-          {isAuthError
-            ? 'Completa la configuración de tu perfil médico para acceder al sistema de ranking y ver tu posición.'
-            : (error ?? 'No se pudieron cargar los datos del ranking. Intenta recargar la página.')}
+          {error === 'unauthorized'
+            ? 'Inicia sesion para ver el ranking de medicos.'
+            : (error ?? 'No se pudieron cargar los datos del ranking. Intenta recargar la pagina.')}
         </p>
       </div>
     )
   }
 
   const { current_doctor, ranked_doctors } = data
-  const metrics = current_doctor.metrics
+  const metrics = current_doctor?.metrics ?? null
   const hasMetrics = metrics && metrics.total_reviews > 0
 
   const categoryMetrics = hasMetrics ? [
@@ -237,103 +249,105 @@ export function MedicalRankingPanel() {
       </div>
 
       <div className="flex flex-col lg:flex-row h-[calc(100%-100px)]">
-        {/* Panel de metricas personales */}
-        <div className="w-full lg:w-1/2 border-r border-am-surface-200 p-6 overflow-y-auto">
-          <h2 className="text-lg font-medium text-am-surface-900 mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-am-doctor-500" />
-            Tu Desempeno
-          </h2>
+        {/* Panel de metricas personales — solo si el usuario es doctor */}
+        {current_doctor && (
+          <div className="w-full lg:w-1/2 border-r border-am-surface-200 p-6 overflow-y-auto">
+            <h2 className="text-lg font-medium text-am-surface-900 mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-am-doctor-500" />
+              Tu Desempeno
+            </h2>
 
-          {!hasMetrics ? (
-            <div className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-6 text-center">
-              <TrendingUp className="w-8 h-8 text-am-surface-400 mx-auto mb-3" />
-              <p className="text-am-surface-700 mb-1">Sin evaluaciones aun</p>
-              <p className="text-sm text-am-surface-400">
-                Las metricas se calcularan automaticamente cuando tus pacientes dejen evaluaciones despues de sus consultas.
-              </p>
-              {metrics && (
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="bg-am-surface-50 rounded-2xl p-3">
-                    <p className="text-2xl font-bold text-am-surface-800">{metrics.total_consultations}</p>
-                    <p className="text-xs text-am-surface-500">Consultas totales</p>
+            {!hasMetrics ? (
+              <div className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-6 text-center">
+                <TrendingUp className="w-8 h-8 text-am-surface-400 mx-auto mb-3" />
+                <p className="text-am-surface-700 mb-1">Sin evaluaciones aun</p>
+                <p className="text-sm text-am-surface-400">
+                  Las metricas se calcularan automaticamente cuando tus pacientes dejen evaluaciones despues de sus consultas.
+                </p>
+                {metrics && (
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="bg-am-surface-50 rounded-2xl p-3">
+                      <p className="text-2xl font-bold text-am-surface-800">{metrics.total_consultations}</p>
+                      <p className="text-xs text-am-surface-500">Consultas totales</p>
+                    </div>
+                    <div className="bg-am-surface-50 rounded-2xl p-3">
+                      <p className="text-2xl font-bold text-am-surface-800">{metrics.completed_consultations}</p>
+                      <p className="text-xs text-am-surface-500">Completadas</p>
+                    </div>
                   </div>
-                  <div className="bg-am-surface-50 rounded-2xl p-3">
-                    <p className="text-2xl font-bold text-am-surface-800">{metrics.completed_consultations}</p>
-                    <p className="text-xs text-am-surface-500">Completadas</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-3">
-                  <p className="text-2xl font-bold text-am-surface-800">{metrics.total_consultations}</p>
-                  <p className="text-xs text-am-surface-500">Consultas</p>
-                </div>
-                <div className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-3">
-                  <p className="text-2xl font-bold text-am-surface-800">{metrics.completion_rate}%</p>
-                  <p className="text-xs text-am-surface-500">Tasa de completitud</p>
-                </div>
+                )}
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-3">
+                    <p className="text-2xl font-bold text-am-surface-800">{metrics.total_consultations}</p>
+                    <p className="text-xs text-am-surface-500">Consultas</p>
+                  </div>
+                  <div className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-3">
+                    <p className="text-2xl font-bold text-am-surface-800">{metrics.completion_rate}%</p>
+                    <p className="text-xs text-am-surface-500">Tasa de completitud</p>
+                  </div>
+                </div>
 
-              <div className="space-y-3 mb-6">
-                {categoryMetrics.map((metric) => (
-                  <div key={metric.id} className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {metric.icon}
-                        <span className="font-medium text-am-surface-900">{metric.name}</span>
+                <div className="space-y-3 mb-6">
+                  {categoryMetrics.map((metric) => (
+                    <div key={metric.id} className="bg-white border border-am-surface-200 rounded-2xl shadow-am-sm p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {metric.icon}
+                          <span className="font-medium text-am-surface-900">{metric.name}</span>
+                        </div>
+                        <span className="text-lg font-bold text-am-surface-900">
+                          {metric.value.toFixed(1)}
+                          <span className="text-sm text-am-surface-500 font-normal">/{metric.maxValue}</span>
+                        </span>
                       </div>
-                      <span className="text-lg font-bold text-am-surface-900">
-                        {metric.value.toFixed(1)}
-                        <span className="text-sm text-am-surface-500 font-normal">/{metric.maxValue}</span>
+                      <div className="w-full bg-am-surface-200 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full bg-gradient-to-r from-am-doctor-500 to-am-doctor-600"
+                          style={{ width: `${(metric.value / metric.maxValue) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Badges */}
+            {current_doctor.badges.length > 0 && (
+              <div>
+                <h3 className="text-md font-medium text-am-surface-900 mb-3 flex items-center gap-2">
+                  <Medal className="w-4 h-4 text-am-doctor-500" />
+                  Logros
+                </h3>
+                <div className="space-y-2">
+                  {current_doctor.badges.map((badge) => (
+                    <div key={badge.id} className="flex items-center gap-3 p-3 bg-white border border-am-surface-200 rounded-2xl shadow-am-sm">
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-lg`}>
+                        {BADGE_ICONS[badge.badge] ?? '🏅'}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-am-surface-900">{BADGE_LABELS[badge.badge] ?? badge.badge}</p>
+                        <p className="text-xs text-am-surface-500">{badge.description}</p>
+                        <p className="text-xs text-am-surface-400">
+                          {new Date(badge.earned_at).toLocaleDateString('es-ES')}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize bg-gradient-to-br ${getBadgeColor(badge.level)}`}>
+                        {badge.level}
                       </span>
                     </div>
-                    <div className="w-full bg-am-surface-200 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full bg-gradient-to-r from-am-doctor-500 to-am-doctor-600"
-                        style={{ width: `${(metric.value / metric.maxValue) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* Badges */}
-          {current_doctor.badges.length > 0 && (
-            <div>
-              <h3 className="text-md font-medium text-am-surface-900 mb-3 flex items-center gap-2">
-                <Medal className="w-4 h-4 text-am-doctor-500" />
-                Logros
-              </h3>
-              <div className="space-y-2">
-                {current_doctor.badges.map((badge) => (
-                  <div key={badge.id} className="flex items-center gap-3 p-3 bg-white border border-am-surface-200 rounded-2xl shadow-am-sm">
-                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-lg`}>
-                      {BADGE_ICONS[badge.badge] ?? '🏅'}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-am-surface-900">{BADGE_LABELS[badge.badge] ?? badge.badge}</p>
-                      <p className="text-xs text-am-surface-500">{badge.description}</p>
-                      <p className="text-xs text-am-surface-400">
-                        {new Date(badge.earned_at).toLocaleDateString('es-ES')}
-                      </p>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize bg-gradient-to-br ${getBadgeColor(badge.level)}`}>
-                      {badge.level}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Panel de rankings */}
-        <div className="w-full lg:w-1/2 p-6 overflow-y-auto">
+        {/* Panel de rankings — full width si no hay doctor, mitad si hay */}
+        <div className={`${current_doctor ? 'w-full lg:w-1/2' : 'w-full'} p-6 overflow-y-auto`}>
           <h2 className="text-lg font-medium text-am-surface-900 mb-4 flex items-center gap-2">
             <Trophy className="w-5 h-5 text-am-doctor-500" />
             Ranking General
