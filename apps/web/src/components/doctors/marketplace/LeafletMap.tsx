@@ -59,7 +59,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
 
     const L = require('leaflet')
 
-    const color = urgent ? '#ef4444' : type === 'job' ? '#3b82f6' : '#10b981'
+    const color = urgent ? '#ef4444' : type === 'job' ? '#3b82f6' : '#2563eb'
     const size = urgent ? 35 : 25
 
     return L.divIcon({
@@ -106,10 +106,10 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
 
   if (!isClient || !leafletLoaded) {
     return (
-      <div className="flex items-center justify-center h-[600px] bg-slate-900 rounded-lg">
+      <div className="flex items-center justify-center h-[600px] bg-neutral-50 rounded-lg">
         <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-emerald-400 mx-auto mb-4" />
-          <p className="text-slate-300">Cargando mapa...</p>
+          <Loader className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-700">Cargando mapa...</p>
         </div>
       </div>
     )
@@ -119,7 +119,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
   const center: [number, number] = [-34.6037, -58.3816]
 
   return (
-    <div className="relative w-full h-[600px] rounded-lg overflow-hidden border border-slate-700">
+    <div className="relative w-full h-[600px] rounded-lg overflow-hidden border border-gray-200">
       <MapContainer
         center={center}
         zoom={6}
@@ -153,7 +153,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
               <Popup className="custom-popup">
                 <div className="p-3 min-w-[250px]">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-slate-800 text-sm">{job.title}</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm">{job.title}</h3>
                     {job.urgent && (
                       <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2">
                         URGENTE
@@ -161,11 +161,11 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
                     )}
                   </div>
 
-                  <p className="text-slate-600 text-xs mb-2">{job.company}</p>
+                  <p className="text-gray-600 text-xs mb-2">{job.company}</p>
 
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-slate-500" />
+                      <MapPin className="w-3 h-3 text-gray-400" />
                       <span>{job.location.city}, {job.location.province}</span>
                     </div>
 
@@ -182,7 +182,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
 
                   <button
                     onClick={() => onItemSelect(job)}
-                    className="w-full mt-3 bg-emerald-500 hover:bg-emerald-600 text-white text-xs py-2 px-3 rounded transition-colors"
+                    className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3 rounded transition-colors"
                   >
                     Ver detalles
                   </button>
@@ -204,7 +204,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
               <Popup className="custom-popup">
                 <div className="p-3 min-w-[250px]">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-slate-800 text-sm">{doctor.name}</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm">{doctor.name}</h3>
                     {doctor.isOnline && (
                       <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full ml-2">
                         En línea
@@ -212,11 +212,11 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
                     )}
                   </div>
 
-                  <p className="text-slate-600 text-xs mb-2">{doctor.specialties.join(', ')}</p>
+                  <p className="text-gray-600 text-xs mb-2">{doctor.specialties.join(', ')}</p>
 
                   <div className="space-y-1 text-xs">
                     <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-slate-500" />
+                      <MapPin className="w-3 h-3 text-gray-400" />
                       <span>{doctor.location.city}, {doctor.location.province}</span>
                     </div>
 
@@ -253,42 +253,42 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
       </MapContainer>
 
       {/* Leyenda del mapa */}
-      <div className="absolute bottom-4 left-4 bg-white border border-slate-300 rounded-lg p-3 shadow-lg">
-        <h4 className="text-slate-800 font-medium text-sm mb-2">Leyenda</h4>
+      <div className="absolute bottom-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+        <h4 className="text-gray-900 font-medium text-sm mb-2">Leyenda</h4>
         <div className="space-y-1 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow"></div>
-            <span className="text-slate-700">Ofertas urgentes</span>
+            <span className="text-gray-700">Ofertas urgentes</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow"></div>
-            <span className="text-slate-700">Ofertas disponibles</span>
+            <span className="text-gray-700">Ofertas disponibles</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow"></div>
-            <span className="text-slate-700">Médicos disponibles</span>
+            <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow"></div>
+            <span className="text-gray-700">Médicos disponibles</span>
           </div>
         </div>
       </div>
 
       {/* Estadísticas */}
-      <div className="absolute top-4 right-4 bg-white border border-slate-300 rounded-lg p-3 shadow-lg">
+      <div className="absolute top-4 right-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div className="text-center">
             <div className="text-lg font-bold text-blue-600">{jobs.length}</div>
-            <div className="text-slate-600">Trabajos</div>
+            <div className="text-gray-600">Trabajos</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-bold text-red-600">{jobs.filter(j => j.urgent).length}</div>
-            <div className="text-slate-600">Urgentes</div>
+            <div className="text-gray-600">Urgentes</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-bold text-emerald-600">{doctors.length}</div>
-            <div className="text-slate-600">Médicos</div>
+            <div className="text-lg font-bold text-blue-600">{doctors.length}</div>
+            <div className="text-gray-600">Médicos</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-bold text-green-600">{doctors.filter(d => d.isOnline).length}</div>
-            <div className="text-slate-600">En línea</div>
+            <div className="text-gray-600">En línea</div>
           </div>
         </div>
       </div>
@@ -315,11 +315,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
         }
 
         .leaflet-container {
-          background: #1e293b;
-        }
-
-        .leaflet-tile {
-          filter: brightness(0.8) contrast(1.1);
+          background: #f9fafb;
         }
       `}</style>
     </div>

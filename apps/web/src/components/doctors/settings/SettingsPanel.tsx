@@ -9,7 +9,7 @@ import {
     Video
 } from 'lucide-react'
 import type { JSX } from 'react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 type SettingsCategory = {
   id: string
@@ -299,12 +299,51 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
     }))
   }
 
-  const persistSettingsToLocalStorage = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+  const [isSaving, setIsSaving] = useState(false)
+
+  const persistSettings = useCallback(async () => {
+    setIsSaving(true)
+    setSaveMessage(null)
+
+    try {
+      // Persist UI preferences to localStorage
+      const uiSettings = { ...settings }
+      delete uiSettings.fullName
+      delete uiSettings.specialty
+      delete uiSettings.license
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(uiSettings))
+      }
+
+      // Persist profile fields to backend
+      const profileChanged =
+        String(settings.specialty) !== resolvedSpecialty ||
+        String(settings.license) !== resolvedLicense
+
+      if (profileChanged) {
+        const res = await fetch('/api/profiles/doctors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            specialty: String(settings.specialty).trim(),
+            license_number: String(settings.license).trim(),
+          }),
+        })
+        const result = await res.json()
+        if (!result.ok) {
+          setSaveMessage(`Error al guardar perfil: ${result.error}`)
+          return
+        }
+        setSaveMessage('Perfil y preferencias guardados.')
+      } else {
+        setSaveMessage('Preferencias guardadas.')
+      }
+    } catch {
+      setSaveMessage('Error al guardar. Intente nuevamente.')
+    } finally {
+      setIsSaving(false)
     }
-    setSaveMessage('Configuración guardada en este navegador.')
-  }
+  }, [settings, resolvedSpecialty, resolvedLicense])
 
   const renderSettingControl = (setting: SettingItem) => {
     switch (setting.type) {
@@ -313,12 +352,12 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           <button
             type="button"
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings[setting.id] ? 'bg-emerald-500' : 'bg-slate-600'
+              settings[setting.id] ? 'bg-blue-600' : 'bg-gray-300'
             }`}
             onClick={() => handleSettingChange(setting.id, !settings[setting.id])}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${
                 settings[setting.id] ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -329,7 +368,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           <select
             value={String(settings[setting.id])}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             {setting.options?.map((option) => (
               <option key={option} value={option}>
@@ -344,7 +383,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
             type={typeof setting.value === 'number' ? 'number' : 'text'}
             value={settings[setting.id] as string | number}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         )
     }
@@ -353,11 +392,11 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
   const currentSettings = settingsByCategory[activeCategory] || []
 
   return (
-    <div className="flex h-full rounded-xl border border-slate-800/60 bg-[#101d32] shadow-xl">
-      <div className="w-64 border-r border-slate-800/60 bg-[#0a1526] p-4">
+    <div className="flex h-full rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="w-64 border-r border-gray-200 bg-neutral-50 p-4">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-100">Configuración</h2>
-          <p className="text-sm text-slate-400">Personaliza tu experiencia médica</p>
+          <h2 className="text-lg font-semibold text-gray-900">Configuración</h2>
+          <p className="text-sm text-gray-500">Personaliza tu experiencia médica</p>
         </div>
 
         <div className="space-y-2">
@@ -372,14 +411,14 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
                 onClick={() => setActiveCategory(category.id)}
                 className={`flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
                   isActive
-                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-                    : 'text-slate-300 hover:bg-slate-800/40 hover:text-slate-200'
+                    ? 'border border-blue-200 bg-blue-50 text-blue-600'
+                    : 'border border-transparent text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                <Icon className={`mt-0.5 h-5 w-5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                <Icon className={`mt-0.5 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
                 <div>
                   <p className="text-sm font-medium">{category.title}</p>
-                  <p className="text-xs text-slate-500">{category.description}</p>
+                  <p className="text-xs text-gray-400">{category.description}</p>
                 </div>
               </button>
             )
@@ -389,21 +428,21 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
 
       <div className="flex-1 p-6">
         <div className="mb-6">
-          <h3 className="text-xl font-semibold text-slate-100">
+          <h3 className="text-xl font-semibold text-gray-900">
             {categories.find(c => c.id === activeCategory)?.title}
           </h3>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-gray-500">
             {categories.find(c => c.id === activeCategory)?.description}
           </p>
-          {saveMessage && <p className="mt-2 text-xs text-emerald-400">{saveMessage}</p>}
+          {saveMessage && <p className="mt-2 text-xs text-blue-600">{saveMessage}</p>}
         </div>
 
         <div className="space-y-6">
           {currentSettings.map((setting) => (
             <div key={setting.id} className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-slate-200">{setting.label}</h4>
-                <p className="text-xs text-slate-400">{setting.description}</p>
+                <h4 className="text-sm font-medium text-gray-800">{setting.label}</h4>
+                <p className="text-xs text-gray-500">{setting.description}</p>
               </div>
               <div className="flex-shrink-0">
                 {renderSettingControl(setting)}
@@ -415,17 +454,18 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         <div className="mt-8 flex justify-end gap-3">
           <button
             type="button"
-            className="rounded-lg border border-slate-600 bg-transparent px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800/40"
+            className="rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100"
             onClick={() => setSaveMessage('Cambios descartados visualmente. Nada fue persistido.')}
           >
             Cancelar
           </button>
           <button
             type="button"
-            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-600"
-            onClick={persistSettingsToLocalStorage}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+            onClick={() => void persistSettings()}
+            disabled={isSaving}
           >
-            Guardar cambios
+            {isSaving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </div>

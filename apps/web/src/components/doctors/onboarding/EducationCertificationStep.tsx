@@ -184,7 +184,7 @@ export function EducationCertificationStep({
           <h4 className="text-md font-medium text-gray-900">Certificaciones Profesionales</h4>
           <button
             onClick={addCertification}
-            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             + Agregar
           </button>
@@ -271,7 +271,7 @@ export function EducationCertificationStep({
             <p className="text-gray-500">No has agregado certificaciones</p>
             <button
               onClick={addCertification}
-              className="mt-2 text-green-600 hover:text-green-800"
+              className="mt-2 text-blue-600 hover:text-blue-800"
             >
               Agregar tu primera certificación
             </button>

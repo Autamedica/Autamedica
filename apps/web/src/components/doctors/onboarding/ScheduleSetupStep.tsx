@@ -237,12 +237,12 @@ export function ScheduleSetupStep({
             {insurance.map(insuranceName => (
               <span
                 key={insuranceName}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-50 text-blue-700"
               >
                 {insuranceName}
                 <button
                   onClick={() => toggleInsurance(insuranceName)}
-                  className="ml-2 text-green-600 hover:text-green-800"
+                  className="ml-2 text-blue-600 hover:text-blue-800"
                 >
                   ×
                 </button>

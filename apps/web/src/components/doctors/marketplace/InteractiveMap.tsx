@@ -58,7 +58,7 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
       const doctor = marker.data as MarketplaceDoctor
       if (doctor.isUrgentAvailable) return 'bg-emerald-500'
       if (doctor.isOnline) return 'bg-green-500'
-      return 'bg-slate-500'
+      return 'bg-gray-400'
     }
   }
 
@@ -113,16 +113,16 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
   }
 
   return (
-    <div className="relative w-full h-[600px] bg-slate-900 rounded-lg overflow-hidden border border-slate-700">
+    <div className="relative w-full h-[600px] bg-neutral-50 rounded-lg overflow-hidden border border-gray-200">
       {/* Mapa de fondo simulado */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900">
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-neutral-50">
         {/* Grid de fondo */}
         <div className="absolute inset-0 opacity-10">
           {Array.from({ length: 20 }).map((_, i) => (
-            <div key={`h-${i}`} className="absolute w-full h-px bg-slate-600" style={{ top: `${i * 5}%` }} />
+            <div key={`h-${i}`} className="absolute w-full h-px bg-gray-300" style={{ top: `${i * 5}%` }} />
           ))}
           {Array.from({ length: 20 }).map((_, i) => (
-            <div key={`v-${i}`} className="absolute h-full w-px bg-slate-600" style={{ left: `${i * 5}%` }} />
+            <div key={`v-${i}`} className="absolute h-full w-px bg-gray-300" style={{ left: `${i * 5}%` }} />
           ))}
         </div>
 
@@ -130,8 +130,8 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 800 600">
           <path
             d="M400,100 L450,120 L480,150 L500,200 L520,250 L510,300 L480,350 L450,400 L420,450 L400,500 L380,450 L350,400 L320,350 L300,300 L310,250 L330,200 L350,150 L380,120 Z"
-            fill="rgba(51, 65, 85, 0.3)"
-            stroke="rgba(100, 116, 139, 0.5)"
+            fill="rgba(209, 213, 219, 0.4)"
+            stroke="rgba(156, 163, 175, 0.6)"
             strokeWidth="2"
           />
         </svg>
@@ -148,8 +148,8 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
               className="absolute transform -translate-x-1/2 -translate-y-1/2 group"
               style={{ left: `${pixels.x}px`, top: `${pixels.y}px` }}
             >
-              <div className={`${isCapital ? 'w-3 h-3' : 'w-2 h-2'} ${isCapital ? 'bg-amber-400' : 'bg-slate-400'} rounded-full border-2 border-white shadow-lg transition-transform group-hover:scale-150`} />
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-slate-800 text-slate-100 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <div className={`${isCapital ? 'w-3 h-3' : 'w-2 h-2'} ${isCapital ? 'bg-amber-500' : 'bg-gray-500'} rounded-full border-2 border-white shadow-lg transition-transform group-hover:scale-150`} />
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 bg-white text-gray-900 text-xs px-2 py-1 rounded shadow-lg border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                 {cityName}
               </div>
             </button>
@@ -175,7 +175,7 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
                 ${getMarkerSize(marker)}
                 ${getMarkerColor(marker)}
                 rounded-full border-2 border-white shadow-lg transition-all duration-200
-                ${isSelected ? 'scale-150 ring-2 ring-amber-400' : ''}
+                ${isSelected ? 'scale-150 ring-2 ring-blue-500' : ''}
                 ${isHovered ? 'scale-125' : ''}
                 hover:scale-125
               `}>
@@ -188,11 +188,11 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
 
               {/* Tooltip */}
               {isHovered && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-800 border border-slate-600 text-slate-100 p-3 rounded-lg shadow-xl z-20 w-64">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white border border-gray-200 text-gray-900 p-3 rounded-lg shadow-lg z-20 w-64">
                   {marker.type === 'job' ? (
                     <div className="space-y-2">
                       <h4 className="font-semibold text-sm">{(marker.data as MarketplaceJobOffer).title}</h4>
-                      <p className="text-xs text-slate-400">{(marker.data as MarketplaceJobOffer).company}</p>
+                      <p className="text-xs text-gray-500">{(marker.data as MarketplaceJobOffer).company}</p>
                       <div className="flex items-center gap-1 text-xs">
                         <MapPin className="w-3 h-3" />
                         {(marker.data as MarketplaceJobOffer).location.city}
@@ -210,13 +210,13 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
                   ) : (
                     <div className="space-y-2">
                       <h4 className="font-semibold text-sm">{(marker.data as MarketplaceDoctor).name}</h4>
-                      <p className="text-xs text-slate-400">{(marker.data as MarketplaceDoctor).specialties.join(', ')}</p>
+                      <p className="text-xs text-gray-500">{(marker.data as MarketplaceDoctor).specialties.join(', ')}</p>
                       <div className="flex items-center gap-1 text-xs">
                         <MapPin className="w-3 h-3" />
                         {(marker.data as MarketplaceDoctor).location.city}
                       </div>
                       <div className="flex items-center gap-1 text-xs">
-                        <Star className="w-3 h-3 text-amber-400" />
+                        <Star className="w-3 h-3 text-amber-500" />
                         {(marker.data as MarketplaceDoctor).rating}
                       </div>
                       <div className="flex items-center gap-1 text-xs">
@@ -245,63 +245,63 @@ export function InteractiveMap({ jobs, doctors, selectedItem, onItemSelect, filt
       <div className="absolute top-4 right-4 space-y-2">
         <button
           onClick={() => setZoomLevel(Math.min(10, zoomLevel + 1))}
-          className="block w-8 h-8 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-slate-100 font-bold"
+          className="block w-8 h-8 bg-white hover:bg-gray-100 border border-gray-200 rounded text-gray-900 font-bold"
         >
           +
         </button>
         <button
           onClick={() => setZoomLevel(Math.max(4, zoomLevel - 1))}
-          className="block w-8 h-8 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-slate-100 font-bold"
+          className="block w-8 h-8 bg-white hover:bg-gray-100 border border-gray-200 rounded text-gray-900 font-bold"
         >
           -
         </button>
       </div>
 
       {/* Leyenda */}
-      <div className="absolute bottom-4 left-4 bg-slate-800 border border-slate-600 rounded-lg p-3">
-        <h4 className="text-slate-100 font-medium text-sm mb-2">Leyenda</h4>
+      <div className="absolute bottom-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+        <h4 className="text-gray-900 font-medium text-sm mb-2">Leyenda</h4>
         <div className="space-y-1 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            <span className="text-slate-300">Trabajos urgentes</span>
+            <span className="text-gray-700">Trabajos urgentes</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-slate-300">Trabajos disponibles</span>
+            <span className="text-gray-700">Trabajos disponibles</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-            <span className="text-slate-300">Médicos disponibles urgente</span>
+            <span className="text-gray-700">Médicos disponibles urgente</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-slate-300">Médicos en línea</span>
+            <span className="text-gray-700">Médicos en línea</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
-            <span className="text-slate-300">Ciudades principales</span>
+            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+            <span className="text-gray-700">Ciudades principales</span>
           </div>
         </div>
       </div>
 
       {/* Estadísticas del mapa */}
-      <div className="absolute top-4 left-4 bg-slate-800 border border-slate-600 rounded-lg p-3">
+      <div className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
         <div className="grid grid-cols-2 gap-4 text-xs">
           <div>
-            <span className="text-slate-400">Trabajos:</span>
-            <p className="text-slate-100 font-semibold">{jobs.length}</p>
+            <span className="text-gray-500">Trabajos:</span>
+            <p className="text-gray-900 font-semibold">{jobs.length}</p>
           </div>
           <div>
-            <span className="text-slate-400">Urgentes:</span>
-            <p className="text-red-400 font-semibold">{jobs.filter(j => j.urgent).length}</p>
+            <span className="text-gray-500">Urgentes:</span>
+            <p className="text-red-600 font-semibold">{jobs.filter(j => j.urgent).length}</p>
           </div>
           <div>
-            <span className="text-slate-400">Médicos:</span>
-            <p className="text-slate-100 font-semibold">{doctors.length}</p>
+            <span className="text-gray-500">Médicos:</span>
+            <p className="text-gray-900 font-semibold">{doctors.length}</p>
           </div>
           <div>
-            <span className="text-slate-400">En línea:</span>
-            <p className="text-green-400 font-semibold">{doctors.filter(d => d.isOnline).length}</p>
+            <span className="text-gray-500">En línea:</span>
+            <p className="text-green-600 font-semibold">{doctors.filter(d => d.isOnline).length}</p>
           </div>
         </div>
       </div>

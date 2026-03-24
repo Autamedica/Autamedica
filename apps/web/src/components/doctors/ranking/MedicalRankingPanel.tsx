@@ -99,15 +99,15 @@ export function MedicalRankingPanel() {
 
   if (loading) {
     return (
-      <div className="h-full bg-[#101d32] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+      <div className="h-full bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="h-full bg-[#101d32] flex items-center justify-center text-slate-400">
+      <div className="h-full bg-white flex items-center justify-center text-gray-500">
         <p>{error ?? 'Sin datos'}</p>
       </div>
     )
@@ -154,15 +154,15 @@ export function MedicalRankingPanel() {
       case 'gold': return 'from-yellow-400 to-yellow-600 text-yellow-900'
       case 'silver': return 'from-slate-300 to-slate-500 text-slate-800'
       case 'bronze': return 'from-amber-600 to-amber-800 text-amber-100'
-      default: return 'from-slate-600 to-slate-800 text-slate-100'
+      default: return 'from-gray-200 to-gray-400 text-gray-700'
     }
   }
 
   const getRankIcon = (rank: number | null) => {
     if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />
-    if (rank === 2) return <Trophy className="w-5 h-5 text-slate-400" />
+    if (rank === 2) return <Trophy className="w-5 h-5 text-gray-400" />
     if (rank === 3) return <Medal className="w-5 h-5 text-amber-600" />
-    return <span className="text-lg font-bold text-slate-400">#{rank ?? '-'}</span>
+    return <span className="text-lg font-bold text-gray-500">#{rank ?? '-'}</span>
   }
 
   const getDoctorName = (doc: RankedDoctor) => {
@@ -173,29 +173,29 @@ export function MedicalRankingPanel() {
   }
 
   return (
-    <div className="h-full bg-[#101d32] text-slate-100">
-      <div className="p-6 border-b border-slate-800/60">
+    <div className="h-full bg-neutral-50 text-gray-900">
+      <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/20 rounded-lg">
-              <Award className="w-6 h-6 text-amber-400" />
+            <div className="p-2 bg-amber-50 rounded-lg">
+              <Award className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-slate-100">Sistema de Ranking</h1>
-              <p className="text-sm text-slate-400">Evaluación y reconocimiento del desempeño médico</p>
+              <h1 className="text-xl font-semibold text-gray-900">Sistema de Ranking</h1>
+              <p className="text-sm text-gray-500">Evaluación y reconocimiento del desempeño médico</p>
             </div>
           </div>
           {metrics && (
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-2xl font-bold text-amber-400">
+                <p className="text-2xl font-bold text-amber-600">
                   {metrics.rank_position ? `#${metrics.rank_position}` : '-'}
                 </p>
-                <p className="text-sm text-slate-400">Tu posición</p>
+                <p className="text-sm text-gray-500">Tu posición</p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-slate-100">{metrics.overall_score}</p>
-                <p className="text-sm text-slate-400">Puntuación</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.overall_score}</p>
+                <p className="text-sm text-gray-500">Puntuación</p>
               </div>
             </div>
           )}
@@ -203,29 +203,29 @@ export function MedicalRankingPanel() {
       </div>
 
       <div className="flex h-[calc(100%-100px)]">
-        {/* Panel de métricas personales */}
-        <div className="w-1/2 border-r border-slate-800/60 p-6 overflow-y-auto">
-          <h2 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-amber-400" />
+        {/* Panel de metricas personales */}
+        <div className="w-1/2 border-r border-gray-200 p-6 overflow-y-auto">
+          <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-amber-500" />
             Tu Desempeño
           </h2>
 
           {!hasMetrics ? (
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-6 text-center">
-              <TrendingUp className="w-8 h-8 text-slate-500 mx-auto mb-3" />
-              <p className="text-slate-300 mb-1">Sin evaluaciones aún</p>
-              <p className="text-sm text-slate-500">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 text-center">
+              <TrendingUp className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-700 mb-1">Sin evaluaciones aún</p>
+              <p className="text-sm text-gray-400">
                 Las métricas se calcularán automáticamente cuando tus pacientes dejen evaluaciones después de sus consultas.
               </p>
               {metrics && (
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="bg-slate-700/40 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-slate-200">{metrics.total_consultations}</p>
-                    <p className="text-xs text-slate-400">Consultas totales</p>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-2xl font-bold text-gray-800">{metrics.total_consultations}</p>
+                    <p className="text-xs text-gray-500">Consultas totales</p>
                   </div>
-                  <div className="bg-slate-700/40 rounded-lg p-3">
-                    <p className="text-2xl font-bold text-slate-200">{metrics.completed_consultations}</p>
-                    <p className="text-xs text-slate-400">Completadas</p>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-2xl font-bold text-gray-800">{metrics.completed_consultations}</p>
+                    <p className="text-xs text-gray-500">Completadas</p>
                   </div>
                 </div>
               )}
@@ -233,30 +233,30 @@ export function MedicalRankingPanel() {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
-                  <p className="text-2xl font-bold text-slate-200">{metrics.total_consultations}</p>
-                  <p className="text-xs text-slate-400">Consultas</p>
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+                  <p className="text-2xl font-bold text-gray-800">{metrics.total_consultations}</p>
+                  <p className="text-xs text-gray-500">Consultas</p>
                 </div>
-                <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
-                  <p className="text-2xl font-bold text-slate-200">{metrics.completion_rate}%</p>
-                  <p className="text-xs text-slate-400">Tasa de completitud</p>
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-3">
+                  <p className="text-2xl font-bold text-gray-800">{metrics.completion_rate}%</p>
+                  <p className="text-xs text-gray-500">Tasa de completitud</p>
                 </div>
               </div>
 
               <div className="space-y-3 mb-6">
                 {categoryMetrics.map((metric) => (
-                  <div key={metric.id} className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-4">
+                  <div key={metric.id} className="bg-white border border-gray-200 rounded-xl shadow-sm p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         {metric.icon}
-                        <span className="font-medium text-slate-100">{metric.name}</span>
+                        <span className="font-medium text-gray-900">{metric.name}</span>
                       </div>
-                      <span className="text-lg font-bold text-slate-100">
+                      <span className="text-lg font-bold text-gray-900">
                         {metric.value.toFixed(1)}
-                        <span className="text-sm text-slate-400 font-normal">/{metric.maxValue}</span>
+                        <span className="text-sm text-gray-500 font-normal">/{metric.maxValue}</span>
                       </span>
                     </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="h-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-400"
                         style={{ width: `${(metric.value / metric.maxValue) * 100}%` }}
@@ -271,20 +271,20 @@ export function MedicalRankingPanel() {
           {/* Badges */}
           {current_doctor.badges.length > 0 && (
             <div>
-              <h3 className="text-md font-medium text-slate-100 mb-3 flex items-center gap-2">
-                <Medal className="w-4 h-4 text-amber-400" />
+              <h3 className="text-md font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <Medal className="w-4 h-4 text-amber-500" />
                 Logros
               </h3>
               <div className="space-y-2">
                 {current_doctor.badges.map((badge) => (
-                  <div key={badge.id} className="flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700/60 rounded-lg">
+                  <div key={badge.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                     <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getBadgeColor(badge.level)} flex items-center justify-center text-lg`}>
                       {BADGE_ICONS[badge.badge] ?? '🏅'}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-slate-100">{BADGE_LABELS[badge.badge] ?? badge.badge}</p>
-                      <p className="text-xs text-slate-400">{badge.description}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-medium text-gray-900">{BADGE_LABELS[badge.badge] ?? badge.badge}</p>
+                      <p className="text-xs text-gray-500">{badge.description}</p>
+                      <p className="text-xs text-gray-400">
                         {new Date(badge.earned_at).toLocaleDateString('es-ES')}
                       </p>
                     </div>
@@ -300,16 +300,16 @@ export function MedicalRankingPanel() {
 
         {/* Panel de rankings */}
         <div className="w-1/2 p-6 overflow-y-auto">
-          <h2 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-amber-400" />
+          <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-500" />
             Ranking General
           </h2>
 
           {ranked_doctors.length === 0 ? (
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-6 text-center">
-              <Trophy className="w-8 h-8 text-slate-500 mx-auto mb-3" />
-              <p className="text-slate-300">Sin datos de ranking aún</p>
-              <p className="text-sm text-slate-500 mt-1">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 text-center">
+              <Trophy className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-700">Sin datos de ranking aún</p>
+              <p className="text-sm text-gray-400 mt-1">
                 El ranking se calculará cuando haya consultas completadas y evaluaciones de pacientes.
               </p>
             </div>
@@ -318,32 +318,32 @@ export function MedicalRankingPanel() {
               {ranked_doctors.map((doctor) => (
                 <div
                   key={doctor.doctor_id}
-                  className={`p-4 border rounded-lg transition-colors ${
+                  className={`p-4 border rounded-xl shadow-sm transition-colors ${
                     doctor.is_current_user
-                      ? 'bg-amber-900/20 border-amber-700/40 ring-1 ring-amber-500/30'
-                      : 'bg-slate-800/40 border-slate-700/60'
+                      ? 'bg-amber-50 border-amber-200 ring-1 ring-amber-300'
+                      : 'bg-white border-gray-200'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       {getRankIcon(doctor.rank_position)}
                       <div>
-                        <h3 className="font-medium text-slate-100 flex items-center gap-2">
+                        <h3 className="font-medium text-gray-900 flex items-center gap-2">
                           {getDoctorName(doctor)}
                           {doctor.is_current_user && (
-                            <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">TÚ</span>
+                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">TÚ</span>
                           )}
                         </h3>
-                        <p className="text-sm text-slate-400">{doctor.specialty ?? 'Sin especialidad'}</p>
+                        <p className="text-sm text-gray-500">{doctor.specialty ?? 'Sin especialidad'}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-slate-100">{doctor.overall_score}</p>
-                      <p className="text-xs text-slate-400">puntos</p>
+                      <p className="text-lg font-bold text-gray-900">{doctor.overall_score}</p>
+                      <p className="text-xs text-gray-500">puntos</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm text-slate-400">
+                  <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1">
                         <Star className="w-3 h-3" />
