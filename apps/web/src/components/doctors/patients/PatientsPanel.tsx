@@ -73,7 +73,11 @@ function PatientSkeleton(): JSX.Element {
   )
 }
 
-export function PatientsPanel(): JSX.Element {
+interface PatientsPanelProps {
+  onSelectPatient?: (patientId: string) => void
+}
+
+export function PatientsPanel({ onSelectPatient }: PatientsPanelProps): JSX.Element {
   const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createBrowserClient> | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
@@ -181,7 +185,7 @@ export function PatientsPanel(): JSX.Element {
             </div>
             <div className="divide-y divide-am-surface-100">
               {filtered.map((patient) => (
-                <PatientRow key={patient.id} patient={patient} />
+                <PatientRow key={patient.id} patient={patient} onSelect={onSelectPatient} />
               ))}
             </div>
           </div>
@@ -261,7 +265,7 @@ function SearchBar({
   )
 }
 
-function PatientRow({ patient }: { patient: Patient }): JSX.Element {
+function PatientRow({ patient, onSelect }: { patient: Patient; onSelect?: (id: string) => void }): JSX.Element {
   const initials = getInitials(patient.firstName, patient.lastName)
   const colorIdx = patient.id.charCodeAt(0) % AVATAR_GRADIENTS.length
   const gradient = AVATAR_GRADIENTS[colorIdx]
@@ -270,6 +274,7 @@ function PatientRow({ patient }: { patient: Patient }): JSX.Element {
   return (
     <button
       type="button"
+      onClick={() => onSelect?.(patient.id)}
       className="group flex w-full items-center gap-4 px-5 py-3.5 text-left transition-all duration-am-fast ease-am-ease hover:bg-am-surface-50 active:bg-am-surface-100"
     >
       <div className="relative">

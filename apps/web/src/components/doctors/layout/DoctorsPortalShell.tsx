@@ -14,6 +14,7 @@ const RecordsPanel = lazy(() => import('@/components/doctors/records/RecordsPane
 const SettingsPanel = lazy(() => import('@/components/doctors/settings/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
 const VitalSignsPanel = lazy(() => import('@/components/doctors/vitals/VitalSignsPanel').then(m => ({ default: m.VitalSignsPanel })))
 const MarketplacePanel = lazy(() => import('@/components/doctors/marketplace/MarketplacePanel').then(m => ({ default: m.MarketplacePanel })))
+import type { UUID } from '@/types/medical'
 import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorStats } from '@/hooks/doctors/useDoctorStats'
@@ -157,7 +158,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   }, [])
 
   // Hook para obtener la sesión activa con el paciente
-  const { session } = useActiveSession()
+  const { session, startSession } = useActiveSession()
 
   // Real userName from authenticated user or doctor profile
   const userName = resolveDoctorDisplayName(doctor?.profile, user?.profile)
@@ -179,6 +180,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
       setSigningOut(false)
     }
   }, [])
+
+  const handleSelectPatient = useCallback(async (patientId: string) => {
+    await startSession(patientId as UUID, 'general')
+    setActiveSection(null)
+  }, [startSession])
 
   // Efecto para plegar el sidebar automáticamente cuando inicia una videollamada
   useEffect(() => {
@@ -565,7 +571,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     <MarketplacePanel />
                   </Suspense>
                 )}
-                {activeSection === 'patients' && <PatientsPanel />}
+                {activeSection === 'patients' && <PatientsPanel onSelectPatient={handleSelectPatient} />}
                 {activeSection === 'appointments' && (
                   <Suspense fallback={<PanelLoader />}>
                     <AppointmentsPanel doctorId={doctor?.id} />
