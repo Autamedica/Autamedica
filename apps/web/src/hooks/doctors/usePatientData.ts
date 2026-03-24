@@ -2,7 +2,8 @@
  * Hook para manejar datos de pacientes con integración Supabase
  */
 
-import { logger, selectById } from '@autamedica/shared';
+import { logger } from '@autamedica/shared';
+import { createBrowserClient } from '@autamedica/auth/client';
 import type { PatientProfile, UUID } from '@autamedica/types';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -17,9 +18,12 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
   const [patient, setPatient] = useState<PatientProfile | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => { setIsClient(true) }, [])
 
   const fetchPatient = useCallback(async () => {
-    if (!patientId) {
+    if (!patientId || !isClient) {
       setPatient(null)
       return
     }
@@ -28,38 +32,50 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
     setError(null)
 
     try {
-      // Sistema híbrido: fetch from 'patients' joining 'profiles'
-      const data = await selectById<'patients', unknown>('patients', patientId, {
-        // Query string includes the relationship
-        // In the database.types.ts we have foreign keys defined
-      });
+      const supabase = createBrowserClient()
+      const { data, error: fetchError } = await supabase
+        .from('patients')
+        .select(`
+          id,
+          user_id,
+          dni,
+          birth_date,
+          gender,
+          blood_type,
+          active,
+          created_at,
+          updated_at,
+          profile:profiles!inner(
+            first_name,
+            last_name,
+            email,
+            phone,
+            avatar_url
+          )
+        `)
+        .eq('id', patientId)
+        .maybeSingle()
 
-      if (data) {
-        // Transformar para el formato que espera PatientProfile if needed
-        // but here we align with the schema
-        setPatient(data as unknown as PatientProfile)
-      }
+      if (fetchError) throw fetchError
+
+      setPatient(data as unknown as PatientProfile)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(`Error al cargar datos del paciente: ${errorMessage}`)
-      logger.error('[usePatientData] Error:', err)
+      logger.error('[usePatientData] Error:', err instanceof Error ? err.message : err)
     } finally {
       setLoading(false)
     }
-  }, [patientId])
-
-  const refresh = async () => {
-    await fetchPatient()
-  }
+  }, [patientId, isClient])
 
   useEffect(() => {
     fetchPatient()
-  }, [patientId])
+  }, [fetchPatient])
 
   return {
     patient,
     loading,
     error,
-    refresh
+    refresh: fetchPatient
   }
 }
