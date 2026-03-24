@@ -5,11 +5,8 @@
 import { MarketplaceDoctor, MarketplaceJobOffer } from '@/types/marketplace'
 import { logger } from '@autamedica/shared'
 import { Clock, DollarSign, Loader, MapPin, Star, Users } from 'lucide-react'
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useEffect, useState, type ComponentType } from 'react'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
-
-// Dynamic import para evitar problemas de SSR con Leaflet
-const MarkerClusterGroup = lazy(() => import('react-leaflet-cluster'))
 
 interface LeafletMapProps {
   jobs: MarketplaceJobOffer[]
@@ -28,16 +25,15 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
   const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
   const [isClient, setIsClient] = useState(false)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
+  const [ClusterGroup, setClusterGroup] = useState<ComponentType<any> | null>(null)
 
   useEffect(() => {
     setIsClient(true)
 
-    // Cargar Leaflet dinámicamente para evitar problemas SSR
-    const loadLeaflet = async () => {
+    const loadDeps = async () => {
       try {
         const L = await import('leaflet')
 
-        // Fix para iconos de Leaflet en Next.js
         delete (L.Icon.Default.prototype as any)._getIconUrl
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: '/leaflet/marker-icon-2x.png',
@@ -45,13 +41,24 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
           shadowUrl: '/leaflet/marker-shadow.png',
         })
 
+        // Cargar cluster group dinámicamente — extraer el default export correctamente
+        try {
+          const clusterMod = await import('react-leaflet-cluster')
+          const Comp = clusterMod.default ?? clusterMod
+          if (typeof Comp === 'function' || (typeof Comp === 'object' && Comp !== null)) {
+            setClusterGroup(() => Comp)
+          }
+        } catch {
+          // Clustering no disponible — los markers se renderizan sin agrupar
+        }
+
         setLeafletLoaded(true)
       } catch (error) {
         logger.error('Error loading Leaflet:', error)
       }
     }
 
-    loadLeaflet()
+    loadDeps()
   }, [])
 
   const createCustomIcon = (type: 'job' | 'doctor', urgent: boolean = false) => {
@@ -132,8 +139,8 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
           className="leaflet-tile-layer"
         />
 
-        <Suspense fallback={null}>
-          <MarkerClusterGroup
+        {ClusterGroup ? (
+          <ClusterGroup
             chunkedLoading
             maxClusterRadius={60}
             spiderfyOnMaxZoom={true}
@@ -248,8 +255,27 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
               </Popup>
             </Marker>
           ))}
-          </MarkerClusterGroup>
-        </Suspense>
+          </ClusterGroup>
+        ) : (
+          <>
+          {jobs.map((job) => (
+            <Marker
+              key={`job-${job.id}`}
+              position={[job.location.coordinates.lat, job.location.coordinates.lng]}
+              icon={createCustomIcon('job', job.urgent)}
+              eventHandlers={{ click: () => onItemSelect(job) }}
+            />
+          ))}
+          {doctors.map((doctor) => (
+            <Marker
+              key={`doctor-${doctor.id}`}
+              position={[doctor.location.coordinates.lat, doctor.location.coordinates.lng]}
+              icon={createCustomIcon('doctor', doctor.isUrgentAvailable)}
+              eventHandlers={{ click: () => onItemSelect(doctor) }}
+            />
+          ))}
+          </>
+        )}
       </MapContainer>
 
       {/* Leyenda del mapa */}
