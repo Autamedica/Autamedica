@@ -64,6 +64,7 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
 
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const activeRef = useRef(0);
@@ -140,6 +141,17 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
       stRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    videoRefs.current.forEach((video, i) => {
+      if (!video) return;
+      if (i === activeIndex) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    });
+  }, [activeIndex]);
 
   const goToSlide = (target: number) => {
     const track = trackRef.current;
@@ -239,11 +251,12 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
                 {/* Background Video */}
                 <div className="absolute inset-0 z-0">
                   <video
+                    ref={(el) => { videoRefs.current[index] = el; }}
                     src={portal.video}
-                    autoPlay
                     muted
                     loop
                     playsInline
+                    preload="none"
                     className="w-full h-full object-cover"
                     style={{ opacity: 0.4 }}
                   />

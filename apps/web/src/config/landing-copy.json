@@ -3,14 +3,14 @@
   "variants": {
     "a": {
       "seo": {
-        "title": "Consulta médica online hoy | AutaMédica",
-        "description": "Conectate con un médico verificado en menos de 15 minutos. Receta digital, seguimiento clínico y sin salas de espera. Disponible en Argentina, Colombia, Perú y más."
+        "title": "Consulta médica online hoy | AutaMedica",
+        "description": "Conecta con un médico verificado en menos de 15 minutos. Receta digital, seguimiento clínico y sin salas de espera. Disponible en Argentina, Colombia, Perú y más."
       },
       "hero": {
         "badge": "Telemedicina hecha para LATAM",
         "title": "Tu médico,",
         "titleAccent": "sin salas de guardia.",
-        "subtitle": "En Argentina, Colombia y Perú, una guardia puede demorar 4 horas. En AutaMédica, la consulta empieza cuando vos querés.",
+        "subtitle": "En Argentina, Colombia y Perú, una guardia puede demorar 4 horas. En AutaMedica, la consulta empieza cuando tú quieres.",
         "primaryCtaLabel": "Buscar un médico ahora",
         "primaryCtaHref": "#portales",
         "secondaryCtaLabel": "Ya tengo cuenta",
@@ -42,7 +42,7 @@
         ]
       },
       "cta": {
-        "title": "los médicos\nestán acá.",
+        "title": "los médicos\nestán aquí.",
         "subtitle": "Más de 150 profesionales matriculados disponibles hoy. Sin traslados, sin salas de espera.",
         "buttonLabel": "Reservar mi consulta",
         "buttonHref": "/auth/select-role"
@@ -50,14 +50,14 @@
     },
     "b": {
       "seo": {
-        "title": "Hablá con un médico hoy | AutaMédica",
+        "title": "Habla con un médico hoy | AutaMedica",
         "description": "Consulta médica online en minutos, con receta digital y seguimiento. Médicos verificados en Argentina, Colombia y Perú. Sin turno, sin traslado."
       },
       "hero": {
         "badge": "Disponible en Argentina, Colombia y Perú",
         "title": "Consulta médica hoy,",
         "titleAccent": "no la semana que viene.",
-        "subtitle": "Encontrá turno en minutos con un médico certificado. Receta digital al celular. Sin salir de casa.",
+        "subtitle": "Encuentra turno en minutos con un médico certificado. Receta digital al celular. Sin salir de casa.",
         "primaryCtaLabel": "Quiero mi consulta",
         "primaryCtaHref": "/auth/select-role",
         "secondaryCtaLabel": "Ver cómo funciona",
@@ -90,7 +90,7 @@
       },
       "cta": {
         "title": "tu consulta\nempieza hoy.",
-        "subtitle": "Agendá ahora y recibí la receta digital en tu celular. Sin esperar en una guardia.",
+        "subtitle": "Agenda ahora y recibe la receta digital en tu celular. Sin esperar en una guardia.",
         "buttonLabel": "Empezar ahora",
         "buttonHref": "/auth/select-role"
       }

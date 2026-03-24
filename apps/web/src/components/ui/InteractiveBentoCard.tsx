@@ -26,15 +26,20 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    // Force play on mobile where autoplay may be blocked
-    const tryPlay = () => {
-      video.play().catch(() => {
-        // Silently ignore — browser policy blocks autoplay in this context
-      });
-    };
-    tryPlay();
-    video.addEventListener('pause', tryPlay);
-    return () => video.removeEventListener('pause', tryPlay);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
   }, [videoSrc]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -67,12 +72,11 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
               <video
                 ref={videoRef}
                 src={videoSrc}
-                autoPlay
                 muted
                 loop
                 playsInline
                 disablePictureInPicture
-                preload="auto"
+                preload="none"
                 className="h-full w-full object-cover opacity-[0.35] transition-opacity duration-700 group-hover:opacity-[0.55]"
               />
             ) : (

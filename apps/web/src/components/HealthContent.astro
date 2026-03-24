@@ -28,7 +28,7 @@ const articles = dict.landing.healthContent.articles.map((a, i) => ({
       {articles.map((a) => (
         <article class="content-card animate-on-scroll">
           <div class="content-image-wrapper">
-             <img src={a.image} alt={a.title} class="content-card-image" loading="lazy" />
+             <img src={a.image} alt={a.title} class="content-card-image" loading="lazy" width="373" height="200" />
              <span class="content-tag">
                <span class="content-tag-icon" set:html={a.tagIcon} />
                {a.tag}
@@ -38,7 +38,7 @@ const articles = dict.landing.healthContent.articles.map((a, i) => ({
             <h3 class="content-card-title">{a.title}</h3>
             <p class="content-excerpt">{a.excerpt}</p>
             <div class="content-author">
-              <img src={a.authorAvatar} alt="" class="content-author-avatar" loading="lazy" />
+              <img src={a.authorAvatar} alt={a.author} class="content-author-avatar" loading="lazy" width="24" height="24" />
               <span class="content-author-name">{a.author}</span>
               <span class="content-author-dot" aria-hidden="true" />
               <span class="content-date">{a.date}</span>

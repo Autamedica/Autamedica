@@ -124,17 +124,18 @@ export const es = {
   },
 
   landing: {
-    symptomTitle: '¿Qué necesitás hoy?',
-    symptomSubtitle: 'Seleccioná un síntoma y te recomendamos la especialidad adecuada',
+    symptomTitle: '¿Qué necesitas hoy?',
+    symptomSubtitle: 'Selecciona un síntoma y te recomendamos la especialidad adecuada',
     premiumNarrative: {
       kicker: 'No es solo una videollamada',
       title: 'La sala de espera era el problema, no el médico',
       copy: 'En LATAM, millones de consultas se posponen por distancia, tiempo o costo del traslado. AutaMedica conecta pacientes con médicos verificados — en Buenos Aires, Bogotá, Lima o donde estés.',
+
       sideTitle: 'Lo que sí podemos prometerte',
       pillars: [
         {
           title: 'Sin traslado, sin espera',
-          detail: 'Consultás desde tu barrio, desde el trabajo, desde Mendoza si estás de viaje. El médico es el que conecta.',
+          detail: 'Consultas desde tu barrio, desde el trabajo, desde Mendoza si estás de viaje. El médico es el que conecta.',
         },
         {
           title: 'Médicos con matrícula verificada',
@@ -207,16 +208,16 @@ export const es = {
       subtitle: 'De buscar el médico a tener la receta. Sin llamar a nadie.',
       steps: [
         {
-          title: 'Buscá tu especialidad',
-          description: 'Escribís lo que te pasa. Ves los médicos disponibles ahora mismo, con especialidad, años de experiencia y reseñas de otros pacientes.',
+          title: 'Busca tu especialidad',
+          description: 'Escribes lo que te pasa. Ves los médicos disponibles ahora mismo, con especialidad, años de experiencia y reseñas de otros pacientes.',
         },
         {
-          title: 'Elegís el horario que te cierra',
-          description: 'Hoy, mañana, en 20 minutos — vos elegís. No hay lista de espera ni secretaria que te dé turno para el mes que viene.',
+          title: 'Elige el horario que te conviene',
+          description: 'Hoy, mañana, en 20 minutos — tú eliges. No hay lista de espera ni secretaria que te dé turno para el mes que viene.',
         },
         {
           title: 'Consulta por videollamada',
-          description: 'Te conectás desde el celular o la computadora. Si ya consultaste antes, el médico ve tu historial y el contexto completo.',
+          description: 'Te conectas desde el celular o la computadora. Si ya consultaste antes, el médico ve tu historial y el contexto completo.',
         },
         {
           title: 'La receta llega al celular',
@@ -266,7 +267,7 @@ export const es = {
         {
           tag: 'Salud Mental',
           title: 'Ansiedad crónica: herramientas que funcionan sin medicación',
-          excerpt: 'Estrategias basadas en evidencia para gestionar la ansiedad del día a día. Técnicas que podés aplicar ahora mismo, respaldadas por la ciencia.',
+          excerpt: 'Estrategias basadas en evidencia para gestionar la ansiedad del día a día. Técnicas que puedes aplicar ahora mismo, respaldadas por la ciencia.',
           author: 'Equipo AutaMedica',
           authorRole: 'Psiquiatría',
           date: 'Ene 2026',
@@ -308,12 +309,12 @@ export const es = {
       ],
     },
     intentLinks: {
-      title: '¿Qué necesitás hacer hoy?',
-      subtitle: 'Elegí tu caso y empezá sin formularios largos ni llamadas telefónicas.',
+      title: '¿Qué necesitas hacer hoy?',
+      subtitle: 'Elige tu caso y empieza sin formularios largos ni llamadas telefónicas.',
       items: [
         {
           title: 'Me siento mal y quiero hablar con un médico hoy',
-          copy: 'Encontrá turno con un médico ahora mismo, sin guardia y sin traslado. La receta digital llega al celular.',
+          copy: 'Encuentra turno con un médico ahora mismo, sin guardia y sin traslado. La receta digital llega al celular.',
           cta: 'Buscar médico disponible',
         },
         {
@@ -334,12 +335,12 @@ export const es = {
       ],
     },
     productShowcase: {
-      title: 'Mirá cómo funciona AutaMedica',
+      title: 'Mira cómo funciona AutaMedica',
       subtitle: 'Cada paso del proceso, en tu celular o computadora',
       features: [
         {
           title: 'Agendamiento inmediato',
-          description: 'Elegís la especialidad, ves los horarios disponibles y confirmás en menos de un minuto. Sin llamadas, sin esperas.',
+          description: 'Eliges la especialidad, ves los horarios disponibles y confirmas en menos de un minuto. Sin llamadas, sin esperas.',
         },
         {
           title: 'Consulta virtual en HD',
@@ -347,7 +348,7 @@ export const es = {
         },
         {
           title: 'Historia clínica digital',
-          description: 'Tu historial completo accesible en todo momento. Tus médicos ven el contexto, vos ves tus resultados.',
+          description: 'Tu historial completo accesible en todo momento. Tus médicos ven el contexto, tú ves tus resultados.',
         },
         {
           title: 'Seguimiento post-consulta',
