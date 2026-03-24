@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { logger } from '@autamedica/shared';
+import { fetchApi, ApiError } from '@/lib/api-client';
 
 export interface PatientProfile {
   name: string;
@@ -79,24 +80,17 @@ export function useConsultationContext(roomId: string | null): UseConsultationCo
     setError(null);
 
     try {
-      const res = await fetch(`/api/doctors/consultations/${roomId}/context`);
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        if (res.status === 401) {
-          setError('No autorizado');
-        } else if (res.status === 403) {
-          setError('Sin acceso al paciente');
-        } else {
-          setError(json.error ?? 'Error al cargar contexto');
-        }
-        return;
-      }
-
-      setContext(json.data as ConsultationContext);
+      const data = await fetchApi<ConsultationContext>(`/api/doctors/consultations/${roomId}/context`);
+      setContext(data);
     } catch (err) {
-      logger.error('[useConsultationContext] fetch error', err);
-      setError('Error de conexión');
+      if (err instanceof ApiError) {
+        if (err.status === 401) setError('No autorizado');
+        else if (err.status === 403) setError('Sin acceso al paciente');
+        else setError(err.message);
+      } else {
+        logger.error('[useConsultationContext] fetch error', err);
+        setError('Error de conexión');
+      }
     } finally {
       setLoading(false);
     }

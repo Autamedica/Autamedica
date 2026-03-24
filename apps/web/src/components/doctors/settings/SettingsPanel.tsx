@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import type { JSX } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { fetchApi, ApiError } from '@/lib/api-client'
 
 type SettingsCategory = {
   id: string
@@ -321,20 +322,18 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         String(settings.license) !== resolvedLicense
 
       if (profileChanged) {
-        const res = await fetch('/api/profiles/doctors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            specialty: String(settings.specialty).trim(),
-            license_number: String(settings.license).trim(),
-          }),
-        })
-        const result = await res.json()
-        if (!result.success) {
-          setSaveMessage(`Error al guardar perfil: ${result.error}`)
+        try {
+          await fetchApi('/api/profiles/doctors', {
+            body: {
+              specialty: String(settings.specialty).trim(),
+              license_number: String(settings.license).trim(),
+            },
+          })
+          setSaveMessage('Perfil y preferencias guardados.')
+        } catch (err) {
+          setSaveMessage(`Error al guardar perfil: ${err instanceof ApiError ? err.message : 'desconocido'}`)
           return
         }
-        setSaveMessage('Perfil y preferencias guardados.')
       } else {
         setSaveMessage('Preferencias guardadas.')
       }

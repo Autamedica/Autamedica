@@ -8,6 +8,7 @@
 
 import { useState } from 'react'
 import type { JSX } from 'react'
+import { formatDateTime } from '@/lib/date-utils'
 import {
   Activity,
   Heart,
@@ -45,16 +46,6 @@ const VITAL_SIGNS_RANGES = {
 export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
   const [showForm, setShowForm] = useState(false)
   const { vitalSigns, loading, error, addVitalSigns: _addVitalSigns, latest } = useVitalSigns(patientId)
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   const getVitalSignStatus = (value: number | null, key: keyof typeof VITAL_SIGNS_RANGES): 'normal' | 'low' | 'high' | 'unknown' => {
     if (value === null) return 'unknown'
@@ -138,7 +129,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
             <h1 className="text-xl font-bold text-am-surface-900">Signos Vitales</h1>
             <p className="text-sm text-am-surface-500">
               {vitalSigns.length} registro{vitalSigns.length !== 1 ? 's' : ''} •
-              {latest && ` Ultimo: ${formatDate(latest.recorded_at)}`}
+              {latest && ` Ultimo: ${formatDateTime(latest.recorded_at)}`}
             </p>
           </div>
 
@@ -315,7 +306,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-am-surface-500" />
                         <span className="text-sm font-medium text-am-surface-700">
-                          {formatDate(vitals.recorded_at)}
+                          {formatDateTime(vitals.recorded_at)}
                         </span>
                       </div>
                       <button className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-700 hover:bg-am-surface-100 transition shadow-am-sm">

@@ -1,51 +1,12 @@
 import type { APIRoute } from 'astro';
-import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server';
+import { createAdminClient } from '@autamedica/auth/server';
 import { buildAnamnesisExportHtml, buildAnamnesisSummary, logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { jsonOk, unauthorized, forbidden, notFound, badRequest, internalError } from '@/lib/api-helpers';
+import { jsonOk, forbidden, notFound, badRequest, internalError } from '@/lib/api-helpers';
+import { withSession, isAuthed } from '@/lib/api-auth';
+import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room';
 
 type AdminClient = SupabaseClient;
-
-async function resolveDoctorId(admin: AdminClient, userId: string): Promise<string | null> {
-  const { data, error } = await admin
-    .from('doctors')
-    .select('id')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as { id: string } | null)?.id ?? null;
-}
-
-async function doctorHasPatientAccess(
-  admin: AdminClient,
-  doctorId: string,
-  patientId: string,
-): Promise<boolean> {
-  const [{ data: careTeam, error: careTeamError }, { data: appointment, error: appointmentError }] =
-    await Promise.all([
-      admin
-        .from('patient_care_team')
-        .select('id')
-        .eq('doctor_id', doctorId)
-        .eq('patient_id', patientId)
-        .eq('active', true)
-        .limit(1)
-        .maybeSingle(),
-      admin
-        .from('appointments')
-        .select('id')
-        .eq('doctor_id', doctorId)
-        .eq('patient_id', patientId)
-        .limit(1)
-        .maybeSingle(),
-    ]);
-
-  if (careTeamError) throw careTeamError;
-  if (appointmentError) throw appointmentError;
-
-  return Boolean((careTeam as { id: string } | null)?.id || (appointment as { id: string } | null)?.id);
-}
 
 async function resolvePatientLabel(
   admin: AdminClient,
@@ -99,12 +60,9 @@ export const GET: APIRoute = async ({ request, params }) => {
       return badRequest('missing_patient_id');
     }
 
-    const supabase = createServerClientFromRequest(request);
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      return unauthorized();
-    }
+    const auth = await withSession(request);
+    if (!isAuthed(auth)) return auth;
+    const { session } = auth;
 
     const admin = createAdminClient() as unknown as AdminClient;
     const doctorId = await resolveDoctorId(admin, session.user.id);

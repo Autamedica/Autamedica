@@ -4,6 +4,7 @@
 
 'use client'
 
+import { formatDateTime } from '@/lib/date-utils'
 import { useMedicalHistory } from '@/hooks/doctors/useMedicalHistory'
 import type { ConsultationType, UUID } from '@/types/medical'
 import {
@@ -51,16 +52,6 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
 
   const getConsultationTypeInfo = (type: ConsultationType) => {
     return CONSULTATION_TYPES.find(t => t.value === type) ?? DEFAULT_CONSULTATION_TYPE
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
   }
 
   if (loading && records.length === 0) {
@@ -191,7 +182,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
                           </span>
                           <div className="flex items-center gap-1 text-xs text-am-surface-500">
                             <Calendar className="h-3 w-3" />
-                            {formatDate(record.consultation_date)}
+                            {formatDateTime(record.consultation_date, { month: 'long' })}
                           </div>
                         </div>
 

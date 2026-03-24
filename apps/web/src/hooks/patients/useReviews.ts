@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { logger } from '@autamedica/shared'
+import { fetchApi } from '@/lib/api-client'
 
 interface ReviewInput {
   appointment_id: string
@@ -31,11 +32,8 @@ export function useReviews(): UseReviewsResult {
 
   const refreshReviewed = useCallback(async () => {
     try {
-      const res = await fetch('/api/patients/reviews', { credentials: 'include' })
-      const result = await res.json()
-      if (result.success) {
-        setReviewedAppointmentIds(new Set(result.data ?? []))
-      }
+      const data = await fetchApi<string[]>('/api/patients/reviews')
+      setReviewedAppointmentIds(new Set(data ?? []))
     } catch (err) {
       logger.error('[useReviews] Error fetching reviewed appointments:', err)
     } finally {
@@ -48,22 +46,9 @@ export function useReviews(): UseReviewsResult {
     setError(null)
 
     try {
-      const res = await fetch('/api/patients/reviews', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-
-      const result = await res.json()
-
-      if (result.success) {
-        setReviewedAppointmentIds(prev => new Set([...prev, data.appointment_id]))
-        return true
-      }
-
-      setError(result.error ?? 'Error al enviar la evaluacion')
-      return false
+      await fetchApi('/api/patients/reviews', { body: data })
+      setReviewedAppointmentIds(prev => new Set([...prev, data.appointment_id]))
+      return true
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al enviar la evaluacion'
       setError(message)

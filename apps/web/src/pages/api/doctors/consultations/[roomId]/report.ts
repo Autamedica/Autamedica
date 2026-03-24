@@ -1,43 +1,15 @@
 import type { APIRoute } from 'astro';
-import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server';
+import { createAdminClient } from '@autamedica/auth/server';
 import { buildAnamnesisSummary, logger } from '@autamedica/shared';
 import { generateConsultationReport } from '@/lib/doctors/services/consultation-report-service';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Json } from '@autamedica/types';
 import type { GenerateReportRequest } from '@autamedica/types';
-import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
-import { jsonOk, badRequest, unauthorized, forbidden, notFound, internalError } from '@/lib/api-helpers';
+import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile } from '@/lib/doctors/lib/resolve-room';
+import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
+import { withSession, isAuthed } from '@/lib/api-auth';
 
 type AdminClient = SupabaseClient;
-
-async function resolvePatientProfile(
-  admin: AdminClient,
-  patientId: string,
-): Promise<{ name: string; dateOfBirth: string | null; gender: string | null }> {
-  const { data: patientRow } = await admin
-    .from('patients')
-    .select('user_id')
-    .eq('id', patientId)
-    .maybeSingle();
-
-  const userId = (patientRow as { user_id: string | null } | null)?.user_id;
-  if (!userId) return { name: 'Paciente', dateOfBirth: null, gender: null };
-
-  const { data: profileRow } = await admin
-    .from('profiles')
-    .select('first_name, last_name, date_of_birth, gender')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  const profile = profileRow as { first_name: string | null; last_name: string | null; date_of_birth: string | null; gender: string | null } | null;
-  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
-
-  return {
-    name: fullName || 'Paciente',
-    dateOfBirth: profile?.date_of_birth ?? null,
-    gender: profile?.gender ?? null,
-  };
-}
 
 function calculateAge(dateOfBirth: string): number {
   const birth = new Date(dateOfBirth);
@@ -62,12 +34,9 @@ export const PATCH: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const supabase = createServerClientFromRequest(request);
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      return unauthorized();
-    }
+    const auth = await withSession(request);
+    if (!isAuthed(auth)) return auth;
+    const { session } = auth;
 
     const admin = createAdminClient() as unknown as AdminClient;
     const doctorId = await resolveDoctorId(admin, session.user.id);
@@ -129,12 +98,9 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const supabase = createServerClientFromRequest(request);
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      return unauthorized();
-    }
+    const auth = await withSession(request);
+    if (!isAuthed(auth)) return auth;
+    const { session } = auth;
 
     const admin = createAdminClient() as unknown as AdminClient;
     const doctorId = await resolveDoctorId(admin, session.user.id);

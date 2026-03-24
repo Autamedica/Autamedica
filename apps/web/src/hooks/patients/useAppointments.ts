@@ -1,11 +1,8 @@
-/**
- * Hook para gestión de citas médicas del paciente
- */
-
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
 import { logger } from '@autamedica/shared';
+import { fetchApi } from '@/lib/api-client';
 import type {
   AppointmentWithDoctor,
   CreateAppointmentInput,
@@ -27,72 +24,31 @@ export function useAppointments(): UseAppointmentsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Obtener todas las citas del paciente
-   */
   const refreshAppointments = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch('/api/patients/appointments', { credentials: 'include' });
-
-      if (!response.ok) {
-        throw new Error('Error al cargar las citas');
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        setAppointments(result.data || []);
-      } else {
-        throw new Error(result.error || 'Error desconocido');
-      }
+      const data = await fetchApi<AppointmentWithDoctor[]>('/api/patients/appointments');
+      setAppointments(data || []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al cargar las citas';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Error al cargar las citas');
       logger.error('[useAppointments] Error:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Crear una nueva cita
-   */
   const createAppointment = useCallback(async (
     data: CreateAppointmentInput
   ): Promise<AppointmentWithDoctor | null> => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch('/api/patients/appointments', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al crear la cita');
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        // Agregar la nueva cita al estado
-        setAppointments(prev => [result.data, ...prev]);
-        return result.data;
-      }
-
-      throw new Error('Error al crear la cita');
+      const created = await fetchApi<AppointmentWithDoctor>('/api/patients/appointments', { body: data });
+      setAppointments(prev => [created, ...prev]);
+      return created;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al crear la cita';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Error al crear la cita');
       logger.error('[useAppointments] Create error:', err);
       return null;
     } finally {
@@ -100,45 +56,21 @@ export function useAppointments(): UseAppointmentsResult {
     }
   }, []);
 
-  /**
-   * Actualizar una cita existente
-   */
   const updateAppointment = useCallback(async (
     id: string,
     data: UpdateAppointmentInput
   ): Promise<AppointmentWithDoctor | null> => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(`/api/patients/appointments/${id}`, {
+      const updated = await fetchApi<AppointmentWithDoctor>(`/api/patients/appointments/${id}`, {
         method: 'PATCH',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        body: data,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar la cita');
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        // Actualizar la cita en el estado
-        setAppointments(prev =>
-          prev.map(apt => (apt.id === id ? result.data : apt))
-        );
-        return result.data;
-      }
-
-      throw new Error('Error al actualizar la cita');
+      setAppointments(prev => prev.map(apt => (apt.id === id ? updated : apt)));
+      return updated;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al actualizar la cita';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Error al actualizar la cita');
       logger.error('[useAppointments] Update error:', err);
       return null;
     } finally {
@@ -146,40 +78,17 @@ export function useAppointments(): UseAppointmentsResult {
     }
   }, []);
 
-  /**
-   * Cancelar una cita
-   */
   const cancelAppointment = useCallback(async (id: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(`/api/patients/appointments/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al cancelar la cita');
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Actualizar estado local
-        setAppointments(prev =>
-          prev.map(apt =>
-            apt.id === id ? { ...apt, status: 'cancelled' as const } : apt
-          )
-        );
-        return true;
-      }
-
-      throw new Error('Error al cancelar la cita');
+      await fetchApi(`/api/patients/appointments/${id}`, { method: 'DELETE' });
+      setAppointments(prev =>
+        prev.map(apt => apt.id === id ? { ...apt, status: 'cancelled' as const } : apt)
+      );
+      return true;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al cancelar la cita';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Error al cancelar la cita');
       logger.error('[useAppointments] Cancel error:', err);
       return false;
     } finally {
@@ -187,7 +96,6 @@ export function useAppointments(): UseAppointmentsResult {
     }
   }, []);
 
-  // Cargar citas al montar el componente
   useEffect(() => {
     refreshAppointments();
   }, [refreshAppointments]);

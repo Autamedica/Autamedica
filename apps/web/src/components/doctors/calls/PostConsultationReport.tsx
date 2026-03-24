@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { AuthProvider, useAuth } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
+import { fetchApi, ApiError } from '@/lib/api-client';
 import type { SOAPReport } from '@autamedica/types';
 
 interface PostConsultationReportProps {
@@ -42,24 +43,18 @@ function ReportContent({ roomId }: { roomId: string }) {
     setError(null);
 
     try {
-      const res = await fetch(`/api/doctors/consultations/${roomId}/report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doctorNotes: doctorNotes || null }),
+      const data = await fetchApi<ReportData>(`/api/doctors/consultations/${roomId}/report`, {
+        body: { doctorNotes: doctorNotes || null },
       });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        setError(json.error === 'unauthorized' ? 'Sesión expirada' : 'Error al generar reporte');
-        return;
-      }
-
-      setReportData(json.data as ReportData);
-      setEditedReport((json.data as ReportData).report);
+      setReportData(data);
+      setEditedReport(data.report);
     } catch (err) {
-      logger.error('[PostConsultationReport] Generate error', err);
-      setError('Error de conexión');
+      if (err instanceof ApiError && err.status === 401) {
+        setError('Sesión expirada');
+      } else {
+        logger.error('[PostConsultationReport] Generate error', err);
+        setError('Error al generar reporte');
+      }
     } finally {
       setGenerating(false);
     }
@@ -70,20 +65,14 @@ function ReportContent({ roomId }: { roomId: string }) {
     setSaving(true);
 
     try {
-      const res = await fetch(`/api/doctors/consultations/${roomId}/report`, {
+      await fetchApi(`/api/doctors/consultations/${roomId}/report`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           recordId: reportData.recordId,
           report: editedReport,
           doctorNotes,
-        }),
+        },
       });
-
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        logger.warn('[PostConsultationReport] Save returned non-OK', json);
-      }
 
       setSaved(true);
       setTimeout(() => {

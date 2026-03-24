@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro'
-import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server'
+import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
-import type { Session, SupabaseClient } from '@supabase/supabase-js'
-import { jsonOk, unauthorized, forbidden, internalError } from '@/lib/api-helpers'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { jsonOk, forbidden, internalError } from '@/lib/api-helpers'
+import { withSession, isAuthed } from '@/lib/api-auth'
 
 type AdminClient = SupabaseClient
 
@@ -17,17 +18,9 @@ async function verifyAdmin(admin: AdminClient, userId: string): Promise<boolean>
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    let session: Session
-    try {
-      const supabase = createServerClientFromRequest(request)
-      const { data, error: sessionError } = await supabase.auth.getSession()
-      if (sessionError || !data.session) {
-        return unauthorized()
-      }
-      session = data.session
-    } catch {
-      return unauthorized()
-    }
+    const auth = await withSession(request)
+    if (!isAuthed(auth)) return auth
+    const { session } = auth
 
     const admin = createAdminClient() as unknown as AdminClient
 

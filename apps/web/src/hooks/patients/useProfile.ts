@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { logger } from '@autamedica/shared';
+import { fetchApi } from '@/lib/api-client';
 import type { ProfileUpdateInput, Profile } from '@/lib/patients/lib/zod/profiles';
 import type { PatientProfileUpdateInput, Patient } from '@/lib/patients/lib/zod/patients';
 
@@ -43,22 +44,12 @@ export function usePatientProfile(userId: string | null): UsePatientProfileRetur
           return null;
         }
 
-        // Usar API server-side para respetar RLS y lógica de negocio
-        const res = await fetch('/api/patients/profile', {
+        const data = await fetchApi<PatientProfileUpdateResult>('/api/patients/profile', {
           method: 'PATCH',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profile, patient }),
+          body: { profile, patient },
         });
-
-        if (!res.ok) {
-          const details = await res.json().catch(() => ({}));
-          throw new Error(details?.error || 'No pudimos guardar los cambios');
-        }
-
-        const json = await res.json();
         setSuccess(true);
-        return { profile: json?.data?.profile ?? null, patient: json?.data?.patient ?? null };
+        return { profile: data?.profile ?? null, patient: data?.patient ?? null };
       } catch (updateError) {
         logger.error('[usePatientProfile] update failed', updateError);
         setError('No pudimos guardar los cambios. Intentá nuevamente.');

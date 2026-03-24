@@ -4,6 +4,7 @@
 
 'use client'
 
+import { formatDateTime } from '@/lib/date-utils'
 import { useAIAnalysis } from '@/hooks/doctors/useAIAnalysis'
 import type { DiagnosticConfidence, UUID } from '@/types/medical'
 import {
@@ -54,16 +55,6 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
   const [showNewAnalysisForm, setShowNewAnalysisForm] = useState(false)
 
   const { analyses, loading, error } = useAIAnalysis(patientId)
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   const getConfidenceScore = (score: number): string => {
     return `${Math.round(score * 100)}%`
@@ -204,7 +195,7 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                           </span>
                           <div className="flex items-center gap-1 text-xs text-am-surface-500">
                             <Calendar className="h-3 w-3" />
-                            {formatDate(analysis.created_at)}
+                            {formatDateTime(analysis.created_at)}
                           </div>
                           <div className="flex items-center gap-1 text-xs text-am-surface-500">
                             <Zap className="h-3 w-3" />

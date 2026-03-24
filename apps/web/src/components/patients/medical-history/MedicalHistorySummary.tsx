@@ -1,5 +1,7 @@
 'use client';
 
+import { formatDate } from '@/lib/date-utils';
+
 /** Local UI type for medical history summary (not exported from @autamedica/types) */
 interface MedicalHistorySummaryData {
   active_conditions_count: number;
@@ -17,15 +19,6 @@ interface MedicalHistorySummaryProps {
 }
 
 export function MedicalHistorySummary({ summary, className = '' }: MedicalHistorySummaryProps) {
-  const formatDate = (date?: string): string => {
-    if (!date) return 'Sin datos';
-    return new Date(date).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
   const getSummaryCards = () => [
     {
       title: 'Condiciones Activas',
@@ -50,7 +43,7 @@ export function MedicalHistorySummary({ summary, className = '' }: MedicalHistor
     },
     {
       title: 'Última Consulta',
-      value: formatDate(summary.last_encounter_date),
+      value: formatDate(summary.last_encounter_date) || 'Sin datos',
       icon: '📅',
       color: 'border-purple-500 bg-purple-500/10',
       description: summary.last_encounter_date ? 'Fecha de última atención' : 'Sin consultas registradas'

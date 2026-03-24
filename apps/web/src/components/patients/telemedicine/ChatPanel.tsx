@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Send, X, User } from 'lucide-react'
+import { formatTime } from '@/lib/date-utils'
 
 export interface ChatMessage {
   id: string
@@ -82,13 +83,6 @@ export function ChatPanel({
     } finally {
       setIsSending(false)
     }
-  }
-
-  const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat('es-AR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date)
   }
 
   if (!isOpen) return null

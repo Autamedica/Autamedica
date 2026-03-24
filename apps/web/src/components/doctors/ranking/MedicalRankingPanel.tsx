@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, ShieldAlert } from 'lucide-react'
+import { fetchApi, ApiError } from '@/lib/api-client'
 
 interface RankingMetrics {
   doctor_id: string
@@ -86,19 +87,15 @@ export function MedicalRankingPanel() {
   const fetchRanking = useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true)
     try {
-      const res = await fetch('/api/doctors/ranking', { credentials: 'include' })
-      const json = await res.json()
-      if (json.success) {
-        setData(json.data)
-        setError(null)
-      } else if (isInitial) {
-        const errMsg = res.status === 401
+      const result = await fetchApi<RankingData>('/api/doctors/ranking')
+      setData(result)
+      setError(null)
+    } catch (err) {
+      if (isInitial) {
+        setError(err instanceof ApiError && err.status === 401
           ? 'unauthorized'
-          : (json.error?.message ?? 'Error al cargar ranking')
-        setError(errMsg)
+          : (err instanceof Error ? err.message : 'Error de conexion'))
       }
-    } catch {
-      if (isInitial) setError('Error de conexion')
     } finally {
       if (isInitial) setLoading(false)
     }

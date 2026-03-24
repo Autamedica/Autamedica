@@ -1,9 +1,7 @@
 import type { APIRoute } from 'astro';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@autamedica/types';
-import { createServerClientFromRequest } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
-import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers';
+import { jsonOk, internalError } from '@/lib/api-helpers';
+import { withAuth, isAuthed } from '@/lib/api-auth';
 
 interface RankingMetricsRow {
   doctor_id: string
@@ -49,18 +47,9 @@ interface RankedDoctor extends RankingMetricsRow {
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    let supabase: SupabaseClient<Database>;
-    try {
-      supabase = createServerClientFromRequest(request);
-    } catch {
-      return unauthorized();
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return unauthorized();
-    }
+    const auth = await withAuth(request);
+    if (!isAuthed(auth)) return auth;
+    const { user, supabase } = auth;
 
     const { data: currentDoctor } = await supabase
       .from('doctors')

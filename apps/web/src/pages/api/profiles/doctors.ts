@@ -1,20 +1,15 @@
 import type { APIRoute } from 'astro'
 import type { Database, Json } from '@autamedica/types'
-import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server'
+import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
-import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
+import { jsonOk, badRequest, internalError } from '@/lib/api-helpers'
+import { withAuth, isAuthed } from '@/lib/api-auth'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const supabase = createServerClientFromRequest(request)
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return unauthorized()
-    }
+    const auth = await withAuth(request)
+    if (!isAuthed(auth)) return auth
+    const { user } = auth
 
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
     if (!body) {

@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro';
-import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server';
+import { createAdminClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
-import { jsonOk, badRequest, unauthorized, forbidden, notFound, internalError } from '@/lib/api-helpers';
+import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
+import { withSession, isAuthed } from '@/lib/api-auth';
 
 type AdminClient = SupabaseClient;
 
@@ -30,12 +31,9 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const supabase = createServerClientFromRequest(request);
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      return unauthorized();
-    }
+    const auth = await withSession(request);
+    if (!isAuthed(auth)) return auth;
+    const { session } = auth;
 
     const admin = createAdminClient() as unknown as AdminClient;
 

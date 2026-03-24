@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server';
+import { createAdminClient } from '@autamedica/auth/server';
 import { buildAnamnesisSummary, logger } from '@autamedica/shared';
 import {
   buildAnamnesisExtractionRequest,
@@ -10,38 +10,17 @@ import {
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Json } from '@autamedica/types';
 import { createHash } from 'node:crypto';
-import { jsonOk, badRequest, unauthorized, forbidden, internalError } from '@/lib/api-helpers';
+import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
+import { withSession, isAuthed } from '@/lib/api-auth';
+import { resolveDoctorId, resolveRoomParticipants, resolvePatientProfile } from '@/lib/doctors/lib/resolve-room';
 
 type AdminClient = SupabaseClient;
-
-interface CallRecord {
-  patient_id: string;
-  doctor_id: string;
-}
-
-interface TelemedicineSessionRecord {
-  patient_id: string;
-  doctor_id: string;
-  appointment_id: string | null;
-}
 
 interface AnamnesisRecord {
   id: string;
   status: string;
   privacy_accepted: boolean | null;
   completion_percentage: number | null;
-}
-
-interface PatientRecord {
-  id: string;
-  user_id: string | null;
-}
-
-interface ProfileRecord {
-  first_name: string | null;
-  last_name: string | null;
-  date_of_birth: string | null;
-  gender: string | null;
 }
 
 interface SectionRecord {
@@ -56,76 +35,6 @@ interface ExtractionCacheRecord {
   provider_name: string;
   model_name: string;
   prompt_version: string;
-}
-
-/** Resolve roomId to patient_id and doctor_id */
-async function resolveRoomParticipants(
-  admin: AdminClient,
-  roomId: string,
-): Promise<{ patientId: string; doctorId: string; appointmentId: string | null } | null> {
-  // Try calls table first (primary path for P2P calls)
-  const { data: callRow, error: callError } = await admin
-    .from('calls')
-    .select('patient_id, doctor_id')
-    .eq('room_id', roomId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!callError && callRow) {
-    const call = callRow as CallRecord;
-    return { patientId: call.patient_id, doctorId: call.doctor_id, appointmentId: null };
-  }
-
-  // Fallback to telemedicine_sessions
-  const { data: sessionRow, error: sessionError } = await admin
-    .from('telemedicine_sessions')
-    .select('patient_id, doctor_id, appointment_id')
-    .eq('room_id', roomId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (sessionError || !sessionRow) return null;
-
-  const session = sessionRow as TelemedicineSessionRecord;
-  return {
-    patientId: session.patient_id,
-    doctorId: session.doctor_id,
-    appointmentId: session.appointment_id,
-  };
-}
-
-/** Resolve patient profile (name, age, gender) */
-async function resolvePatientProfile(
-  admin: AdminClient,
-  patientId: string,
-): Promise<{ name: string; dateOfBirth: string | null; gender: string | null }> {
-  const { data: patientRow } = await admin
-    .from('patients')
-    .select('user_id')
-    .eq('id', patientId)
-    .maybeSingle();
-
-  const userId = (patientRow as PatientRecord | null)?.user_id;
-  if (!userId) {
-    return { name: `Paciente`, dateOfBirth: null, gender: null };
-  }
-
-  const { data: profileRow } = await admin
-    .from('profiles')
-    .select('first_name, last_name, date_of_birth, gender')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  const profile = profileRow as ProfileRecord | null;
-  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim();
-
-  return {
-    name: fullName || 'Paciente',
-    dateOfBirth: profile?.date_of_birth ?? null,
-    gender: profile?.gender ?? null,
-  };
 }
 
 /** Compute SHA256 hash of anamnesis sections data for cache key */
@@ -200,18 +109,6 @@ async function getOrCreateExtraction(
   }
 }
 
-/** Resolve doctorId from userId */
-async function resolveDoctorId(admin: AdminClient, userId: string): Promise<string | null> {
-  const { data, error } = await admin
-    .from('doctors')
-    .select('id')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as { id: string } | null)?.id ?? null;
-}
-
 export const GET: APIRoute = async ({ request, params }) => {
   const roomId = params.roomId;
   if (!roomId) {
@@ -219,13 +116,9 @@ export const GET: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    // Auth
-    const supabase = createServerClientFromRequest(request);
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-    if (sessionError || !session) {
-      return unauthorized();
-    }
+    const auth = await withSession(request);
+    if (!isAuthed(auth)) return auth;
+    const { session } = auth;
 
     const admin = createAdminClient() as unknown as AdminClient;
 

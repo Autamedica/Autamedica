@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { formatDuration, timeAgo } from '@/lib/date-utils'
+import { fetchApi } from '@/lib/api-client'
 
 interface CallRecord {
   id: string
@@ -41,24 +43,6 @@ const STATUS_COLORS: Record<string, string> = {
   declined: 'bg-red-100 text-red-800',
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins}m ${secs}s`
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'ahora'
-  if (mins < 60) return `${mins}m`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h`
-  const days = Math.floor(hours / 24)
-  return `${days}d`
-}
-
 export default function TelemedicineDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -66,14 +50,8 @@ export default function TelemedicineDashboard() {
 
   const loadTelemedicineStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/telemedicine-stats')
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
-      }
-      const json = await res.json() as { success: boolean; data: { stats: TelemedicineStats; recentCalls: CallRecord[]; eventsByType: Record<string, number> } }
-      if (!json.success) throw new Error('Failed to load stats')
-      setData({ stats: json.data.stats, recentCalls: json.data.recentCalls, eventsByType: json.data.eventsByType })
+      const result = await fetchApi<DashboardData>('/api/admin/telemedicine-stats')
+      setData(result)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')

@@ -4,6 +4,7 @@
 
 'use client'
 
+import { formatDate } from '@/lib/date-utils'
 import { usePrescriptions } from '@/hooks/doctors/usePrescriptions'
 import type { PrescriptionStatus, UUID } from '@/types/medical'
 import {
@@ -65,14 +66,6 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
       active_only: showActiveOnly
     }
   })
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
 
   const getDaysRemaining = (endDate: string | null): number | null => {
     if (!endDate) return null

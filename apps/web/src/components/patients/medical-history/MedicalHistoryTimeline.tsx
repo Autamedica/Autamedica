@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { formatDate } from '@/lib/date-utils';
 
 /** Local types for medical history timeline (not exported from @autamedica/types) */
 interface MedicalHistoryConditionLocal {
@@ -200,14 +201,6 @@ export function MedicalHistoryTimeline({ timeline, className = '' }: MedicalHist
       case 'low': return 'border-green-500 bg-green-500/10';
       default: return 'border-gray-500 bg-gray-500/10';
     }
-  };
-
-  const formatDate = (date: string): string => {
-    return new Date(date).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
   };
 
   const filters: { key: FilterType; label: string; count: number }[] = [

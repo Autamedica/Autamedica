@@ -1,6 +1,7 @@
 'use client';
 
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis';
+import { fetchApi, ApiError } from '@/lib/api-client';
 import { logger } from '@autamedica/shared';
 import type { AnamnesisSection } from '@autamedica/types';
 import { useCallback, useEffect, useState } from 'react';
@@ -60,18 +61,6 @@ interface UseAnamnesisReturn {
   refreshAnamnesis: () => Promise<void>;
 }
 
-/**
- * Hook para gestionar la anamnesis del paciente
- *
- * @example
- * ```tsx
- * const { anamnesis, sections, progress, updateSection } = useAnamnesis();
- *
- * const handleSaveSection = async (sectionName, data) => {
- *   await updateSection(sectionName, data);
- * };
- * ```
- */
 export function useAnamnesis(): UseAnamnesisReturn {
   const [anamnesis, setAnamnesis] = useState<ApiAnamnesis | null>(null);
   const [sections, setSections] = useState<ApiSection[]>([]);
@@ -83,39 +72,25 @@ export function useAnamnesis(): UseAnamnesisReturn {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/patients/anamnesis', { credentials: 'include' });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'No se pudo cargar la anamnesis');
-      }
-
-      const json = (await res.json()) as { success: boolean; data: ApiResponse };
-      if (!json?.success) throw new Error('Respuesta inválida');
-
-      setAnamnesis(json.data.anamnesis);
-      setSections(json.data.sections);
-      setProgress(json.data.progress);
-      return json.data;
+      const data = await fetchApi<ApiResponse>('/api/patients/anamnesis');
+      setAnamnesis(data.anamnesis);
+      setSections(data.sections);
+      setProgress(data.progress);
+      return data;
     } catch (err) {
       logger.error('Error fetching anamnesis:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setError(err instanceof ApiError ? err.message : 'Error desconocido');
       return null;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Create new anamnesis
   const createAnamnesis = useCallback(async (initial?: Partial<ApiAnamnesis>): Promise<ApiAnamnesis | null> => {
     try {
       const current = await fetchAnamnesis();
       if (initial && Object.keys(initial).length > 0) {
-        await fetch('/api/patients/anamnesis', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(initial),
-          credentials: 'include',
-        });
+        await fetchApi('/api/patients/anamnesis', { method: 'PATCH', body: initial });
         const updated = await fetchAnamnesis();
         return updated?.anamnesis ?? current?.anamnesis ?? null;
       }
@@ -127,19 +102,9 @@ export function useAnamnesis(): UseAnamnesisReturn {
     }
   }, [fetchAnamnesis]);
 
-  // Update anamnesis
   const updateAnamnesis = useCallback(async (update: Partial<ApiAnamnesis>): Promise<boolean> => {
     try {
-      const res = await fetch('/api/patients/anamnesis', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(update),
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'Error al actualizar anamnesis');
-      }
+      await fetchApi('/api/patients/anamnesis', { method: 'PATCH', body: update });
       await fetchAnamnesis();
       return true;
     } catch (err) {
@@ -149,25 +114,17 @@ export function useAnamnesis(): UseAnamnesisReturn {
     }
   }, [fetchAnamnesis]);
 
-  // Update section
   const updateSection = useCallback(async (
     section: AnamnesisSection,
     data: Record<string, AnamnesisFieldValue>
   ): Promise<boolean> => {
     try {
-      const res = await fetch('/api/patients/anamnesis', {
+      const result = await fetchApi<{ progress?: ApiProgress }>('/api/patients/anamnesis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stepId: section, data, completed: true }),
-        credentials: 'include',
+        body: { stepId: section, data, completed: true },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'Error al actualizar sección');
-      }
-      const json = await res.json().catch(() => null);
-      if (json?.data?.progress) {
-        setProgress(json.data.progress);
+      if (result?.progress) {
+        setProgress(result.progress);
       }
       await fetchAnamnesis();
       return true;
@@ -178,12 +135,10 @@ export function useAnamnesis(): UseAnamnesisReturn {
     }
   }, [fetchAnamnesis]);
 
-  // Refresh data
   const refreshAnamnesis = useCallback(async () => {
     await fetchAnamnesis();
   }, [fetchAnamnesis]);
 
-  // Initial fetch
   useEffect(() => {
     fetchAnamnesis();
   }, [fetchAnamnesis]);

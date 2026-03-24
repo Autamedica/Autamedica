@@ -1,6 +1,7 @@
 'use client';
 
 import type { AppointmentWithDoctor } from '@/lib/patients/types/appointment';
+import { formatDate, formatTime } from '@/lib/date-utils';
 import { Calendar, Clock, Video, MapPin, ExternalLink, Star } from 'lucide-react';
 
 interface AppointmentsTableProps {
@@ -31,23 +32,11 @@ const typeConfig = {
 export function AppointmentsTable({ appointments, locale, reviewedAppointmentIds, onReviewClick }: AppointmentsTableProps) {
   const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(intlLocale, {
-      weekday: 'short',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const fmtDate = (dateString: string) =>
+    formatDate(dateString, { weekday: 'short', day: '2-digit', locale: intlLocale });
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString(intlLocale, {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const fmtTime = (dateString: string) =>
+    formatTime(dateString, { locale: intlLocale });
 
   return (
     <div className="space-y-4">
@@ -84,12 +73,12 @@ export function AppointmentsTable({ appointments, locale, reviewedAppointmentIds
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               <div className="flex items-center gap-2 text-sm text-stone-700">
                 <Calendar className="h-4 w-4 text-stone-500" />
-                <span>{formatDate(appointment.start_time)}</span>
+                <span>{fmtDate(appointment.start_time)}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-stone-700">
                 <Clock className="h-4 w-4 text-stone-500" />
                 <span>
-                  {formatTime(appointment.start_time)}{appointment.end_time ? ` - ${formatTime(appointment.end_time)}` : ''}
+                  {fmtTime(appointment.start_time)}{appointment.end_time ? ` - ${fmtTime(appointment.end_time)}` : ''}
                 </span>
               </div>
               {appointment.location && (
