@@ -11,6 +11,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { detectLocale, LOCALE_COOKIE } from './i18n/index';
+import { isProduction } from './lib/auth-utils';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
@@ -107,10 +108,23 @@ function extractRole(metadata: Record<string, unknown> | undefined): string | un
   return typeof raw === 'string' ? raw : undefined;
 }
 
+/** Detect portal from hostname (prod) or ?portal= query param (dev) */
+function detectPortal(url: URL): string | null {
+  // Dev override: ?portal=doctor|patient|company
+  if (!import.meta.env.PROD && url.searchParams.has('portal')) {
+    return url.searchParams.get('portal');
+  }
+  if (url.hostname === 'doctor.autamedica.com') return 'doctor';
+  if (url.hostname === 'paciente.autamedica.com') return 'patient';
+  if (url.hostname === 'empresa.autamedica.com') return 'company';
+  return null;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
-  const isDoctorHost = requestUrl.hostname === 'doctor.autamedica.com';
+  const portal = detectPortal(requestUrl);
+  const isDoctorHost = portal === 'doctor';
   const isDoctorHostRoot = isDoctorHost && pathname === '/';
 
   if (isDoctorHost && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
@@ -207,8 +221,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
             });
           },
           setAll(cookiesToSet) {
+            const domainOverride = isProduction() ? '.autamedica.com' : undefined;
             for (const { name, value, options } of cookiesToSet) {
-              context.cookies.set(name, value, options as AstroCookieSetOptions);
+              context.cookies.set(name, value, {
+                ...options,
+                domain: domainOverride,
+                path: '/',
+              } as AstroCookieSetOptions);
             }
           }
         }
@@ -254,8 +273,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     // Protected routes: redirect unauthenticated users to login
     const isProtectedRoute = isProtectedPath(pathname) || isDoctorHostRoot;
+    const isDevMode = !import.meta.env.PROD;
 
     if (!isAuthenticated && isProtectedRoute) {
+      if (isDevMode) {
+        logger.warn(`[MODODEV] Bypass activado para: ${pathname}`);
+        return next();
+      }
+
       let portal = 'patients';
       if (isDoctorHostRoot || pathname.startsWith('/doctors')) portal = 'doctors';
       else if (pathname.startsWith('/companies')) portal = 'companies';
@@ -271,6 +296,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Role-based access control for protected routes
     if (isAuthenticated && isProtectedRoute) {
       const userRole = extractRole(user.user_metadata as Record<string, unknown>);
+
+      // Permite acceso sin rol en modo dev (evita redirect loops)
+      if (isDevMode && !userRole) {
+        return next();
+      }
 
       if (!userRole) {
         return context.redirect('/auth/select-role');
