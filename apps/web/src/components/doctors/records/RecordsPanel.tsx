@@ -1,9 +1,13 @@
 "use client"
 
 import type { JSX } from 'react'
-import { FileText, Search, Plus } from 'lucide-react'
+import { FileText, Search, Plus, Users } from 'lucide-react'
 
-export function RecordsPanel(): JSX.Element {
+interface RecordsPanelProps {
+  onNavigateToPatients?: () => void
+}
+
+export function RecordsPanel({ onNavigateToPatients }: RecordsPanelProps): JSX.Element {
   return (
     <div className="flex h-full flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -46,8 +50,18 @@ export function RecordsPanel(): JSX.Element {
           </div>
           <h3 className="text-lg font-semibold text-am-surface-900">Sin registros médicos</h3>
           <p className="mt-2 text-sm text-am-surface-500">
-            Selecciona un paciente desde el panel lateral para ver y gestionar sus registros médicos.
+            Selecciona un paciente para ver y gestionar sus registros médicos.
           </p>
+          {onNavigateToPatients && (
+            <button
+              type="button"
+              onClick={onNavigateToPatients}
+              className="mt-5 flex items-center gap-2 rounded-xl bg-gradient-to-r from-am-doctor-600 to-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-am-doctor-500/20 transition-all duration-am-fast hover:-translate-y-0.5 active:scale-95"
+            >
+              <Users className="h-4 w-4" />
+              Ir a Pacientes
+            </button>
+          )}
         </div>
       </div>
     </div>

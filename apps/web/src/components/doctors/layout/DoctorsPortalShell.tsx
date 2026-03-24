@@ -11,7 +11,6 @@ import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
 import { MedicalRankingPanel } from '@/components/doctors/ranking/MedicalRankingPanel'
 import { RecordsPanel } from '@/components/doctors/records/RecordsPanel'
 import { SettingsPanel } from '@/components/doctors/settings/SettingsPanel'
-import { SubscriptionPanel } from '@/components/doctors/subscription/SubscriptionPanel'
 import { VitalSignsPanel } from '@/components/doctors/vitals/VitalSignsPanel'
 import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
@@ -26,14 +25,11 @@ import {
     ChevronLeft,
     ChevronRight,
     ClipboardList,
-    CreditCard,
     FileText,
-    History,
     Home,
     LogOut,
     MapPin,
     Menu,
-    MessageSquare,
     Pill,
     Settings,
     Star,
@@ -191,48 +187,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
 
   const handleSidebarItemClick = (itemId: string) => {
     setIsSidebarOpen(false)
-
-    if (isFocusMode) {
-      setIsFocusMode(false)
-    }
-
-    switch (itemId) {
-      case 'settings':
-        setActiveSection('settings')
-        break
-      case 'subscription':
-        setActiveSection('subscription')
-        break
-      case 'marketplace':
-        setActiveSection('marketplace')
-        break
-      case 'ranking':
-        setActiveSection('ranking')
-        break
-      case 'patients':
-        setActiveSection('patients')
-        break
-      case 'appointments':
-        setActiveSection('appointments')
-        break
-      case 'records':
-        setActiveSection('records')
-        break
-      case 'vitals':
-        setActiveSection('vitals')
-        break
-      case 'chat':
-        setActiveSection('chat')
-        break
-      case 'diagnosis':
-        setActiveSection('diagnosis')
-        break
-      case 'history':
-        setActiveSection('history')
-        break
-      default:
-        setActiveSection(null)
-    }
+    if (isFocusMode) setIsFocusMode(false)
+    setActiveSection(itemId)
   }
 
   const sidebarItems = useMemo<SidebarItem[]>(
@@ -241,11 +197,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
       { id: 'appointments', icon: Calendar, label: 'Citas', count: appointmentsCount },
       { id: 'records', icon: FileText, label: 'Historiales', count: historyCount },
       { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
-      { id: 'chat', icon: MessageSquare, label: 'Chat', count: 0 },
       { id: 'diagnosis', icon: Brain, label: 'Asistente Clínico' },
-      { id: 'history', icon: History, label: 'Historial IA', count: 0 },
       { id: 'ranking', icon: Star, label: 'Ranking' },
-      { id: 'subscription', icon: CreditCard, label: 'Suscripción' },
       { id: 'marketplace', icon: MapPin, label: 'Trabajo Médico' },
       { id: 'settings', icon: Settings, label: 'Configuración' },
     ],
@@ -280,7 +233,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
 
   // Group indices for sidebar visual separators
   const clinicalEnd = 3  // After: Pacientes, Citas, Historiales, Signos Vitales
-  const toolsEnd = 6     // After: Chat, Asistente Clínico, Historial IA
+  const toolsEnd = 4     // After: Asistente Clínico
 
   const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }, index) => {
     const isActive = activeSection === id
@@ -325,7 +278,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     { id: 'patients', icon: Users, label: 'Pacientes' },
     { id: 'appointments', icon: Calendar, label: 'Citas' },
     { id: 'diagnosis', icon: Brain, label: 'IA' },
-    { id: 'chat', icon: MessageSquare, label: 'Chat' },
+    { id: 'settings', icon: Settings, label: 'Ajustes' },
   ]
 
   return (
@@ -359,38 +312,40 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
           </div>
         </header>
 
-        <div className="tabs border-b border-am-surface-200 bg-white">
-          <div className="flex h-full w-full items-center overflow-x-auto px-2 sm:px-4">
-            <div className="flex min-w-full snap-x snap-mandatory gap-0.5 md:min-w-0">
-              {tabs.map((tab) => {
-                const isActive = tab.id === activeTab
-                const TabIcon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex min-w-[140px] snap-start items-center gap-2 px-4 py-2.5 text-xs font-medium transition-all duration-am-fast md:min-w-0 ${
-                      isActive
-                        ? 'text-am-doctor-600'
-                        : 'text-am-surface-500 hover:text-am-surface-700'
-                    }`}
-                  >
-                    <TabIcon className={`h-3.5 w-3.5 transition-colors ${isActive ? 'text-am-doctor-600' : ''}`} />
-                    <span className="whitespace-nowrap">{tab.label}</span>
-                    {isActive && (
-                      <motion.span
-                        layoutId="tab-indicator"
-                        className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-am-doctor-500"
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                      />
-                    )}
-                  </button>
-                )
-              })}
+        {!activeSection && session?.status === 'en_progreso' && (
+          <div className="tabs border-b border-am-surface-200 bg-white">
+            <div className="flex h-full w-full items-center overflow-x-auto px-2 sm:px-4">
+              <div className="flex min-w-full snap-x snap-mandatory gap-0.5 md:min-w-0">
+                {tabs.map((tab) => {
+                  const isActive = tab.id === activeTab
+                  const TabIcon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`relative flex min-w-[140px] snap-start items-center gap-2 px-4 py-2.5 text-xs font-medium transition-all duration-am-fast md:min-w-0 ${
+                        isActive
+                          ? 'text-am-doctor-600'
+                          : 'text-am-surface-500 hover:text-am-surface-700'
+                      }`}
+                    >
+                      <TabIcon className={`h-3.5 w-3.5 transition-colors ${isActive ? 'text-am-doctor-600' : ''}`} />
+                      <span className="whitespace-nowrap">{tab.label}</span>
+                      {isActive && (
+                        <motion.span
+                          layoutId="tab-indicator"
+                          className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-am-doctor-500"
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {isSidebarOpen && (
           <div
@@ -595,7 +550,6 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     licenseNumber={String(doctorLicense)}
                   />
                 )}
-                {activeSection === 'subscription' && <SubscriptionPanel />}
                 {activeSection === 'marketplace' && (
                   <Suspense
                     fallback={
@@ -612,41 +566,9 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 )}
                 {activeSection === 'patients' && <PatientsPanel />}
                 {activeSection === 'appointments' && <AppointmentsPanel doctorId={doctor?.id} />}
-                {activeSection === 'records' && <RecordsPanel />}
-                {activeSection === 'vitals' && <VitalSignsPanel />}
-                {activeSection === 'chat' && (
-                  <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-12 text-center shadow-am-sm">
-                    <div className="relative mb-6">
-                      <div className="absolute -inset-6 rounded-full bg-am-doctor-50/60" />
-                      <div className="absolute -inset-3 rounded-full bg-am-doctor-50" />
-                      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-lg shadow-am-doctor-500/20">
-                        <MessageSquare className="h-7 w-7 text-white" />
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-semibold text-am-surface-900">Chat Médico</h3>
-                    <p className="mt-2 max-w-sm text-sm text-am-surface-500">Comunicación segura con pacientes y colegas en tiempo real</p>
-                    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-am-surface-100 px-3 py-1 text-[11px] font-medium text-am-surface-500 ring-1 ring-am-surface-200">
-                      Próximamente
-                    </span>
-                  </div>
-                )}
+                {activeSection === 'records' && <RecordsPanel onNavigateToPatients={() => setActiveSection('patients')} />}
+                {activeSection === 'vitals' && <VitalSignsPanel onNavigateToPatients={() => setActiveSection('patients')} />}
                 {activeSection === 'diagnosis' && <DiagnosisPanel />}
-                {activeSection === 'history' && (
-                  <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-12 text-center shadow-am-sm">
-                    <div className="relative mb-6">
-                      <div className="absolute -inset-6 rounded-full bg-am-doctor-50/60" />
-                      <div className="absolute -inset-3 rounded-full bg-am-doctor-50" />
-                      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-lg shadow-am-doctor-500/20">
-                        <Brain className="h-7 w-7 text-white" />
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-semibold text-am-surface-900">Historial IA</h3>
-                    <p className="mt-2 max-w-sm text-sm text-am-surface-500">Historial de análisis y recomendaciones generadas por inteligencia artificial</p>
-                    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-am-surface-100 px-3 py-1 text-[11px] font-medium text-am-surface-500 ring-1 ring-am-surface-200">
-                      Próximamente
-                    </span>
-                  </div>
-                )}
                 {activeSection === 'ranking' && <MedicalRankingPanel />}
 
                 {!activeSection && (

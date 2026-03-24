@@ -187,6 +187,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   const [showControls, setShowControls] = useState(true)
   const [mouseTimer, setMouseTimer] = useState<NodeJS.Timeout | null>(null)
 
+  const hasSession = Boolean(session?.patientId)
   const signalingRoomId = useMemo(() => session?.sessionId ?? '', [session?.sessionId])
   const signalingUserId = useMemo(() => {
     if (typeof window === 'undefined' || typeof crypto === 'undefined') {
@@ -721,21 +722,25 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   label="Notas"
                   icon={<FileText className="h-4 w-4" />}
                   onClick={handleTakeNotes}
+                  disabled={!hasSession}
                 />
                 <CompactAction
                   label="Prescribir"
                   icon={<Pill className="h-4 w-4" />}
                   onClick={handlePrescribe}
+                  disabled={!hasSession}
                 />
                 <CompactAction
                   label="Signos vitales"
                   icon={<Activity className="h-4 w-4" />}
+                  disabled
                 />
                 <CompactAction
-                  label={showTelemedicinePanel ? 'Ocultar telemedicina' : 'Telemedicina'}
+                  label={hasSession && showTelemedicinePanel ? 'Ocultar telemedicina' : 'Telemedicina'}
                   icon={<MonitorUp className="h-4 w-4" />}
-                  intent={showTelemedicinePanel ? 'primary' : 'default'}
+                  intent={hasSession && showTelemedicinePanel ? 'primary' : 'default'}
                   onClick={() => setShowTelemedicinePanel(!showTelemedicinePanel)}
+                  disabled={!hasSession}
                 />
                 <CompactAction
                   label={aiProcessing ? 'Procesando...' : 'Análisis IA'}
@@ -938,9 +943,10 @@ interface CompactActionProps {
   icon: JSX.Element
   intent?: 'default' | 'primary' | 'success'
   onClick?: () => void
+  disabled?: boolean
 }
 
-function CompactAction({ label, icon, intent = 'default', onClick }: CompactActionProps): JSX.Element {
+function CompactAction({ label, icon, intent = 'default', onClick, disabled }: CompactActionProps): JSX.Element {
   const intentStyles = {
     default: 'border-am-surface-200 bg-white text-am-surface-700 hover:bg-am-surface-50 hover:border-am-surface-300',
     primary: 'border-am-doctor-200 bg-am-doctor-50 text-am-doctor-700 hover:bg-am-doctor-100',
@@ -951,7 +957,8 @@ function CompactAction({ label, icon, intent = 'default', onClick }: CompactActi
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-am-fast active:scale-[0.98] ${intentStyles[intent]}`}
+      disabled={disabled}
+      className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-am-fast active:enabled:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${intentStyles[intent]}`}
     >
       <span className={intent === 'success' ? 'text-emerald-600' : intent === 'primary' ? 'text-am-doctor-600' : 'text-am-surface-500'}>
         {icon}
