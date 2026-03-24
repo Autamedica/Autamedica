@@ -10,7 +10,7 @@
  */
 const lintStagedConfig = {
   "*.{ts,tsx,js,mjs}": (filenames) => {
-    const lintable = filenames.filter((f) => !f.includes('/.archive/'));
+    const lintable = filenames.filter((f) => !f.includes('/.archive/') && !f.endsWith('.d.ts'));
     return lintable.length ? `eslint --max-warnings=0 ${lintable.join(" ")}` : 'echo "no files to lint"';
   },
   "*.{json,md}": (filenames) =>

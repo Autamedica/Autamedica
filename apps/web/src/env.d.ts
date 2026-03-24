@@ -11,6 +11,7 @@ interface ImportMetaEnv {
   readonly PUBLIC_COMPANIES_URL: string;
   readonly PUBLIC_ADMIN_URL: string;
   readonly PUBLIC_LANDING_COPY_VARIANT?: string;
+  readonly PUBLIC_GOOGLE_MAPS_API_KEY?: string;
 }
 
 interface ImportMeta {
