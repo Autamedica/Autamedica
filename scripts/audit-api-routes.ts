@@ -13,7 +13,7 @@
  * Uso: bun scripts/audit-api-routes.ts
  */
 
-import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dir, '..');
@@ -174,9 +174,6 @@ interface FetchCall {
   line: number;
 }
 
-const FETCH_PATTERN = /fetch\(\s*[`'"]([^`'"]+)[`'"]/g;
-const FETCH_TEMPLATE = /fetch\(\s*`([^`]+)`/g;
-
 function extractFetchCalls(files: string[]): FetchCall[] {
   const results: FetchCall[] = [];
 
@@ -190,8 +187,6 @@ function extractFetchCalls(files: string[]): FetchCall[] {
     } catch {
       continue;
     }
-
-    const lines = content.split('\n');
 
     // Match both string and template literal fetch calls
     const patterns = [
@@ -229,8 +224,6 @@ function extractFetchCalls(files: string[]): FetchCall[] {
 
 const allSourceFiles = SCAN_DIRS.flatMap(dir => collectFiles(dir));
 const allApiFiles = collectApiFiles(PAGES_API);
-const allApiUrls = new Set(allApiFiles.map(fileToUrl));
-
 const fetchCalls = extractFetchCalls(allSourceFiles);
 
 // ── Part 1: Broken calls ──────────────────────────────────────────────────────
