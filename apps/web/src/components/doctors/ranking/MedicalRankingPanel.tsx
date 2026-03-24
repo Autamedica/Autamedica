@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy } from 'lucide-react'
+import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, ShieldAlert } from 'lucide-react'
 
 interface RankingMetrics {
   doctor_id: string
@@ -125,9 +125,24 @@ export function MedicalRankingPanel() {
   }
 
   if (error || !data) {
+    const isAuthError = error === 'unauthorized' || error === 'not_a_doctor'
     return (
-      <div className="h-full bg-white flex items-center justify-center text-am-surface-500">
-        <p>{error ?? 'Sin datos'}</p>
+      <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-12 text-center shadow-am-sm">
+        <div className="relative mb-6">
+          <div className="absolute -inset-6 rounded-full bg-amber-50/60" />
+          <div className="absolute -inset-3 rounded-full bg-amber-50" />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/20">
+            <ShieldAlert className="h-7 w-7 text-white" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-am-surface-900">
+          {isAuthError ? 'Perfil médico requerido' : 'Error al cargar ranking'}
+        </h3>
+        <p className="mt-2 max-w-sm text-sm text-am-surface-500">
+          {isAuthError
+            ? 'Completa la configuración de tu perfil médico para acceder al sistema de ranking y ver tu posición.'
+            : (error ?? 'No se pudieron cargar los datos del ranking. Intenta recargar la página.')}
+        </p>
       </div>
     )
   }

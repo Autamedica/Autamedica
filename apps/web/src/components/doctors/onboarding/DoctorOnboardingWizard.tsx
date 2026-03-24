@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 import { DoctorInsert, DoctorEducation, MedicalCertification, WeeklySchedule, UUID } from '@autamedica/types';
 import { LicenseValidationStep } from './LicenseValidationStep';
 import { SpecialtySelectionStep } from './SpecialtySelectionStep';
@@ -276,22 +277,34 @@ export function DoctorOnboardingWizard({ userId, onComplete, onCancel }: DoctorO
   };
 
   return (
-    <div className="portal-doctor min-h-screen bg-am-surface-50 py-8 px-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="portal-doctor flex min-h-0 flex-1 flex-col overflow-y-auto bg-am-surface-50 py-6 px-4">
+      <div className="max-w-2xl mx-auto w-full">
         {currentStep !== 'complete' && (
-          <div className="bg-white rounded-2xl shadow-am-md overflow-hidden mb-6">
-            <div className="h-1.5 bg-gradient-to-r from-am-doctor-500 via-am-doctor-400 to-am-primary-500" />
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h1 className="text-2xl font-bold text-am-surface-900 tracking-tight">
+          <div className="bg-white rounded-2xl shadow-am-md overflow-hidden mb-4">
+            <div className="h-1 bg-gradient-to-r from-am-doctor-500 via-am-doctor-400 to-am-primary-500" />
+            <div className="p-5 sm:p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="min-w-0">
+                  <h1 className="text-lg font-bold text-am-surface-900 tracking-tight">
                     Configuración de Perfil Médico
                   </h1>
-                  <p className="text-am-surface-500 text-sm mt-1">{getStepTitle(currentStep)}</p>
+                  <p className="text-am-surface-500 text-xs mt-0.5">{getStepTitle(currentStep)}</p>
                 </div>
-                <span className="text-sm font-medium text-am-doctor-600 bg-am-doctor-50 px-3 py-1.5 rounded-full whitespace-nowrap">
-                  {currentStepIndex + 1} / {STEPS.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-am-doctor-600 bg-am-doctor-50 px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {currentStepIndex + 1} / {STEPS.length}
+                  </span>
+                  {onCancel && (
+                    <button
+                      type="button"
+                      onClick={onCancel}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-am-surface-400 transition-colors hover:bg-am-surface-100 hover:text-am-surface-700"
+                      aria-label="Cerrar configuración"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center">
@@ -338,7 +351,7 @@ export function DoctorOnboardingWizard({ userId, onComplete, onCancel }: DoctorO
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-am-md p-6 sm:p-8 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-am-md p-5 sm:p-6 overflow-hidden">
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}

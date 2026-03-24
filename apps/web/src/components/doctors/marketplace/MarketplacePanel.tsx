@@ -130,8 +130,8 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
   }
 
   return (
-    <div className="h-full bg-am-surface-50 text-am-surface-900">
-      <div className="p-6 border-b border-am-surface-200">
+    <div className="flex min-h-0 flex-1 flex-col bg-am-surface-50 text-am-surface-900">
+      <div className="shrink-0 p-6 border-b border-am-surface-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-am-primary-50 rounded-lg">
@@ -168,7 +168,7 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
       </div>
 
       {viewMode === 'map' ? (
-        <div className="flex h-[calc(100%-100px)]">
+        <div className="flex min-h-0 flex-1">
           {/* Panel lateral de filtros en vista mapa */}
           <div className="w-80 border-r border-am-surface-200 p-4 overflow-y-auto">
             <div className="space-y-4">
@@ -291,7 +291,7 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row h-[calc(100%-100px)]">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           {/* Lista de trabajos */}
           <div className="w-full lg:w-1/2 border-r border-am-surface-200 p-4">
             {/* Controles de lista */}

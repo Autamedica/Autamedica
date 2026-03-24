@@ -442,6 +442,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
       <DoctorOnboardingWizard
         userId={user.id}
         onComplete={() => setOnboardingRequired(false)}
+        onCancel={() => setOnboardingRequired(false)}
       />
     )
   }

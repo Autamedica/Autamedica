@@ -106,10 +106,10 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
 
   if (!isClient || !leafletLoaded) {
     return (
-      <div className="flex items-center justify-center h-[600px] bg-neutral-50 rounded-lg">
+      <div className="flex min-h-[400px] flex-1 items-center justify-center bg-am-surface-50 rounded-lg">
         <div className="text-center">
-          <Loader className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-700">Cargando mapa...</p>
+          <Loader className="w-8 h-8 animate-spin text-am-doctor-500 mx-auto mb-4" />
+          <p className="text-am-surface-600">Cargando mapa...</p>
         </div>
       </div>
     )
@@ -119,7 +119,7 @@ export function LeafletMap({ jobs, doctors, selectedItem, onItemSelect, filters,
   const center: [number, number] = [-34.6037, -58.3816]
 
   return (
-    <div className="relative w-full h-[600px] rounded-lg overflow-hidden border border-gray-200">
+    <div className="relative w-full min-h-[400px] flex-1 rounded-lg overflow-hidden border border-am-surface-200">
       <MapContainer
         center={center}
         zoom={6}
