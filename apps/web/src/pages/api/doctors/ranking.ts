@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { jsonOk, internalError } from '@/lib/api-helpers';
 import { withAuth, isAuthed } from '@/lib/api-auth';
+import { createAdminClient } from '@autamedica/auth/server';
 
 interface RankingMetricsRow {
   doctor_id: string
@@ -49,9 +50,11 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const auth = await withAuth(request);
     if (!isAuthed(auth)) return auth;
-    const { user, supabase } = auth;
+    const { user } = auth;
 
-    const { data: currentDoctor } = await supabase
+    const admin = createAdminClient();
+
+    const { data: currentDoctor } = await admin
       .from('doctors')
       .select('id, specialty, years_experience')
       .eq('user_id', user.id)
@@ -62,21 +65,21 @@ export const GET: APIRoute = async ({ request }) => {
     let myReviews: Array<Record<string, unknown>> = [];
 
     if (currentDoctor) {
-      const { data: metrics } = await supabase
+      const { data: metrics } = await admin
         .from('doctor_ranking_metrics')
         .select('*')
         .eq('doctor_id', currentDoctor.id)
         .single();
       myMetrics = metrics;
 
-      const { data: badges } = await supabase
+      const { data: badges } = await admin
         .from('doctor_badges')
         .select('*')
         .eq('doctor_id', currentDoctor.id)
         .order('earned_at', { ascending: false });
       myBadges = badges ?? [];
 
-      const { data: reviews } = await supabase
+      const { data: reviews } = await admin
         .from('doctor_reviews')
         .select('overall_rating, punctuality_rating, communication_rating, professionalism_rating, clinical_quality_rating')
         .eq('doctor_id', currentDoctor.id)
@@ -84,7 +87,7 @@ export const GET: APIRoute = async ({ request }) => {
       myReviews = reviews ?? [];
     }
 
-    const { data: topRanked } = await supabase
+    const { data: topRanked } = await admin
       .from('doctor_ranking_metrics')
       .select(`
         doctor_id,
@@ -103,13 +106,13 @@ export const GET: APIRoute = async ({ request }) => {
     if (topRanked && topRanked.length > 0) {
       const doctorIds = topRanked.map((r: RankingMetricsRow) => r.doctor_id);
 
-      const { data: doctors } = await supabase
+      const { data: doctors } = await admin
         .from('doctors')
         .select('id, specialty, years_experience, user_id')
         .in('id', doctorIds);
 
       const userIds = (doctors ?? []).map((d: DoctorRow) => d.user_id).filter((id): id is string => id !== null);
-      const { data: profiles } = await supabase
+      const { data: profiles } = await admin
         .from('profiles')
         .select('user_id, first_name, last_name')
         .in('user_id', userIds);
@@ -134,7 +137,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     const topDoctorIds = rankedDoctors.map(d => d.doctor_id);
     const { data: allBadges } = topDoctorIds.length > 0
-      ? await supabase
+      ? await admin
           .from('doctor_badges')
           .select('*')
           .in('doctor_id', topDoctorIds)
