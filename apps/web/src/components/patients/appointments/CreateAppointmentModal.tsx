@@ -294,6 +294,7 @@ export function CreateAppointmentModal({
                 onChange={(e) => setSelectedDoctorId(e.target.value)}
                 className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-800 focus:border-transparent"
                 required
+                aria-required="true"
               >
                 <option value="">Seleccionar profesional...</option>
                 {doctors.map((doc) => (
@@ -306,7 +307,7 @@ export function CreateAppointmentModal({
             )}
             {selectedDoctor?.specialty && (
               <p className="mt-1 text-xs text-stone-500 flex items-center gap-1">
-                <Stethoscope className="h-3 w-3" />
+                <Stethoscope className="h-3 w-3" aria-hidden="true" />
                 {selectedDoctor.specialty}
               </p>
             )}
@@ -467,7 +468,7 @@ export function CreateAppointmentModal({
               {/* Selected slot summary */}
               {selectedSlot && (
                 <div className="mt-3 flex items-center gap-2 p-3 bg-stone-50 border border-stone-200 rounded-lg text-sm">
-                  <Clock className="h-4 w-4 text-stone-500" />
+                  <Clock className="h-4 w-4 text-stone-500" aria-hidden="true" />
                   <span className="text-stone-700">
                     {new Date(selectedSlot.start_time).toLocaleDateString('es-AR', {
                       weekday: 'long',
@@ -488,10 +489,11 @@ export function CreateAppointmentModal({
           {selectedSlot && (
             <>
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
+                <label htmlFor="appointment-type" className="block text-sm font-medium text-stone-700 mb-2">
                   Tipo de Cita
                 </label>
                 <select
+                  id="appointment-type"
                   value={appointmentType}
                   onChange={(e) => setAppointmentType(e.target.value as AppointmentType)}
                   className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-800 focus:border-transparent"
@@ -504,10 +506,11 @@ export function CreateAppointmentModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
+                <label htmlFor="appointment-reason" className="block text-sm font-medium text-stone-700 mb-2">
                   Motivo de la Consulta
                 </label>
                 <input
+                  id="appointment-reason"
                   type="text"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -517,10 +520,11 @@ export function CreateAppointmentModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">
+                <label htmlFor="appointment-notes" className="block text-sm font-medium text-stone-700 mb-2">
                   Notas Adicionales (opcional)
                 </label>
                 <textarea
+                  id="appointment-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}

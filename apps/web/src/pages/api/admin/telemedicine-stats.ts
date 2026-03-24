@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import { jsonOk, unauthorized, forbidden, internalError } from '@/lib/api-helpers'
 
 type AdminClient = SupabaseClient
 
@@ -21,27 +22,18 @@ export const GET: APIRoute = async ({ request }) => {
       const supabase = createServerClientFromRequest(request)
       const { data, error: sessionError } = await supabase.auth.getSession()
       if (sessionError || !data.session) {
-        return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        return unauthorized()
       }
       session = data.session
     } catch {
-      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return unauthorized()
     }
 
     const admin = createAdminClient() as unknown as AdminClient
 
     const isAdmin = await verifyAdmin(admin, session.user.id)
     if (!isAdmin) {
-      return new Response(JSON.stringify({ ok: false, error: 'forbidden' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return forbidden()
     }
 
     // Parallel queries for dashboard data
@@ -111,19 +103,13 @@ export const GET: APIRoute = async ({ request }) => {
       return acc
     }, {})
 
-    return new Response(JSON.stringify({
-      ok: true,
+    return jsonOk({
       stats,
       recentCalls: recentCallsResult.data ?? [],
       eventsByType,
-    }), {
-      headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
     logger.error('[telemedicine-stats] GET error', error)
-    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return internalError()
   }
 }

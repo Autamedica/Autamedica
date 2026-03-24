@@ -174,14 +174,14 @@ const features = dict.landing.productShowcase.features.map((f, i) => ({
 <script>
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
-      const video = entry.target as HTMLVideoElement;
+      if (!(entry.target instanceof HTMLVideoElement)) continue;
       if (entry.isIntersecting) {
-        video.play().catch(() => {});
+        entry.target.play().catch(() => {});
       } else {
-        video.pause();
+        entry.target.pause();
       }
     }
   }, { rootMargin: '200px' });
 
-  document.querySelectorAll<HTMLVideoElement>('[data-lazy-video]').forEach((v) => observer.observe(v));
+  document.querySelectorAll('[data-lazy-video]').forEach((v) => observer.observe(v));
 </script>

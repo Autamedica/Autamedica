@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -8,10 +9,7 @@ export const POST: APIRoute = async ({ request }) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return unauthorized();
     }
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
@@ -42,14 +40,9 @@ export const POST: APIRoute = async ({ request }) => {
       logger.error('[API] doctor onboarding-complete user_metadata update failed', metaError);
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonOk(null);
   } catch (err) {
     logger.error('[API] doctor onboarding-complete error', err as Error);
-    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return internalError();
   }
 };

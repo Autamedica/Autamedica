@@ -6,23 +6,17 @@ import { buildProfileUpdatePayload } from '@/lib/patients/lib/zod/profiles'
 import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import type { Database } from '@autamedica/types'
+import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 type PatientUpdate = Database['public']['Tables']['patients']['Update']
 type PatientInsert = Database['public']['Tables']['patients']['Insert']
 
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
 export const PATCH: APIRoute = async ({ request }) => {
   try {
     const userId = await getUserIdFromRequest(request)
-    if (!userId) return json({ ok: false, error: 'unauthorized' }, 401)
+    if (!userId) return unauthorized()
 
     const body = await request.json().catch(() => ({}))
     const { profile, patient } = body ?? {}
@@ -70,7 +64,7 @@ export const PATCH: APIRoute = async ({ request }) => {
       } catch (profileError: unknown) {
         const msg = profileError instanceof Error ? profileError.message : 'profile_update_failed'
         logger.error('[API] profile update failed', profileError as Error)
-        return json({ ok: false, error: msg }, 400)
+        return badRequest(msg)
       }
     }
 
@@ -117,10 +111,10 @@ export const PATCH: APIRoute = async ({ request }) => {
       logger.warn('[API] context resync after profile update failed:', msg)
     }
 
-    return json({ ok: true, data: { profile: updatedProfile, patient: updatedPatient } })
+    return jsonOk({ profile: updatedProfile, patient: updatedPatient })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'internal_error'
     logger.error('[API] profile PATCH error', e as Error)
-    return json({ ok: false, error: msg }, 500)
+    return internalError(msg)
   }
 }

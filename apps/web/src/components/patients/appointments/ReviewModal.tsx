@@ -51,10 +51,10 @@ function StarSelector({
   const [hover, setHover] = useState(0)
 
   return (
-    <div className="flex items-center justify-between py-2">
+    <div className="flex items-center justify-between py-2" role="group" aria-label={label}>
       <span className="text-sm text-stone-700">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
       </span>
       <div className="flex gap-1" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((star) => (
@@ -199,8 +199,9 @@ export function ReviewModal({
               <p className="text-xs text-stone-400 text-right">{comment.length}/1000</p>
             </div>
 
-            <label className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
+            <label htmlFor="review-anonymous" className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
               <input
+                id="review-anonymous"
                 type="checkbox"
                 checked={isAnonymous}
                 onChange={(e) => setIsAnonymous(e.target.checked)}
@@ -210,7 +211,7 @@ export function ReviewModal({
             </label>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+              <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
                 {error}
               </p>
             )}
@@ -236,7 +237,7 @@ export function ReviewModal({
                   </>
                 ) : (
                   <>
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4" aria-hidden="true" />
                     Enviar evaluacion
                   </>
                 )}

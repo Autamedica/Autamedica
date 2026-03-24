@@ -2,13 +2,7 @@ import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
 const TOTAL_SECTIONS = 13
 const KNOWN_SECTIONS = [
@@ -84,7 +78,7 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ ok: false, error: 'unauthorized' }, 401)
+      return unauthorized()
     }
 
     const admin = createAdminClient()
@@ -109,17 +103,14 @@ export const GET: APIRoute = async ({ request }) => {
         .eq('id', anamnesisRecord.id)
     }
 
-    return json({
-      ok: true,
-      data: {
-        anamnesis: { ...anamnesis, completion_percentage: progress.completion_percentage },
-        sections,
-        progress,
-      },
+    return jsonOk({
+      anamnesis: { ...anamnesis, completion_percentage: progress.completion_percentage },
+      sections,
+      progress,
     })
   } catch (e) {
     logger.error('[Anamnesis] GET error', e)
-    return json({ ok: false, error: 'internal_error' }, 500)
+    return internalError()
   }
 }
 
@@ -127,7 +118,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ ok: false, error: 'unauthorized' }, 401)
+      return unauthorized()
     }
 
     const body = await request.json().catch(() => ({}))
@@ -136,7 +127,7 @@ export const POST: APIRoute = async ({ request }) => {
     const markCompleted = toBoolean(body?.completed, false)
 
     if (!section) {
-      return json({ ok: false, error: 'missing_step' }, 400)
+      return badRequest('missing_step')
     }
 
     const admin = createAdminClient()
@@ -176,10 +167,10 @@ export const POST: APIRoute = async ({ request }) => {
       .update({ completion_percentage: progress.completion_percentage, sections_status: { completed: progress.completed_sections } } as never)
       .eq('id', anamnesisId)
 
-    return json({ ok: true, data: { section: upsert.data, progress } })
+    return jsonOk({ section: upsert.data, progress })
   } catch (e) {
     logger.error('[Anamnesis] POST error', e)
-    return json({ ok: false, error: 'internal_error' }, 500)
+    return internalError()
   }
 }
 
@@ -187,7 +178,7 @@ export const PATCH: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ ok: false, error: 'unauthorized' }, 401)
+      return unauthorized()
     }
 
     const body = await request.json().catch(() => ({}))
@@ -209,7 +200,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     }
 
     if (Object.keys(updates).length === 0) {
-      return json({ ok: false, error: 'no_updates' }, 400)
+      return badRequest('no_updates')
     }
 
     const admin = createAdminClient()
@@ -225,9 +216,9 @@ export const PATCH: APIRoute = async ({ request }) => {
 
     if (updateRes.error) throw updateRes.error
 
-    return json({ ok: true, data: updateRes.data })
+    return jsonOk(updateRes.data)
   } catch (e) {
     logger.error('[Anamnesis] PATCH error', e)
-    return json({ ok: false, error: 'internal_error' }, 500)
+    return internalError()
   }
 }

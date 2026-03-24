@@ -3,6 +3,7 @@ import { createServerClientFromRequest, createAdminClient } from '@autamedica/au
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
+import { jsonOk, badRequest, unauthorized, forbidden, notFound, internalError } from '@/lib/api-helpers';
 
 type AdminClient = SupabaseClient;
 
@@ -25,10 +26,7 @@ interface TranscriptionBody {
 export const POST: APIRoute = async ({ request, params }) => {
   const roomId = params.roomId;
   if (!roomId) {
-    return new Response(JSON.stringify({ ok: false, error: 'missing_room_id' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return badRequest('missing_room_id');
   }
 
   try {
@@ -36,37 +34,25 @@ export const POST: APIRoute = async ({ request, params }) => {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return unauthorized();
     }
 
     const admin = createAdminClient() as unknown as AdminClient;
 
     const doctorId = await resolveDoctorId(admin, session.user.id);
     if (!doctorId) {
-      return new Response(JSON.stringify({ ok: false, error: 'doctor_not_found' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return forbidden('doctor_not_found');
     }
 
     const participants = await resolveRoomParticipants(admin, roomId);
     if (!participants) {
-      return new Response(JSON.stringify({ ok: false, error: 'room_not_found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return notFound('room_not_found');
     }
 
     const body = (await request.json()) as TranscriptionBody;
 
     if (!body.segments || !Array.isArray(body.segments)) {
-      return new Response(JSON.stringify({ ok: false, error: 'invalid_segments' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return badRequest('invalid_segments');
     }
 
     const finalSegments = body.segments.filter(s => s.isFinal && s.text.trim());
@@ -93,14 +79,9 @@ export const POST: APIRoute = async ({ request, params }) => {
 
     logger.info('[transcription] Saved', { roomId, segmentCount: finalSegments.length, wordCount });
 
-    return new Response(JSON.stringify({ ok: true, data: { wordCount, segmentCount: finalSegments.length } }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return jsonOk({ wordCount, segmentCount: finalSegments.length });
   } catch (error) {
     logger.error('[transcription] POST error', error);
-    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return internalError();
   }
 };

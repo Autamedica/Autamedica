@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@autamedica/types';
 import { createServerClientFromRequest } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
+import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
@@ -10,19 +11,13 @@ export const GET: APIRoute = async ({ request }) => {
     try {
       supabase = createServerClientFromRequest(request);
     } catch {
-      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return unauthorized();
     }
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return unauthorized();
     }
 
     const { data: currentDoctor } = await supabase
@@ -125,28 +120,19 @@ export const GET: APIRoute = async ({ request }) => {
       badges: badgesByDoctor.get(d.doctor_id as string) ?? [],
     }));
 
-    return new Response(JSON.stringify({
-      ok: true,
-      data: {
-        current_doctor: currentDoctor ? {
-          doctor_id: currentDoctor.id,
-          specialty: currentDoctor.specialty,
-          years_experience: currentDoctor.years_experience,
-          metrics: myMetrics ?? null,
-          badges: myBadges,
-          review_count: myReviews.length,
-        } : null,
-        ranked_doctors: rankedDoctors,
-      },
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+    return jsonOk({
+      current_doctor: currentDoctor ? {
+        doctor_id: currentDoctor.id,
+        specialty: currentDoctor.specialty,
+        years_experience: currentDoctor.years_experience,
+        metrics: myMetrics ?? null,
+        badges: myBadges,
+        review_count: myReviews.length,
+      } : null,
+      ranked_doctors: rankedDoctors,
     });
   } catch (err) {
     logger.error('Ranking API error:', err);
-    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return internalError();
   }
 };

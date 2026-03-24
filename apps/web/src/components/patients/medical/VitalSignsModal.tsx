@@ -203,24 +203,30 @@ export function VitalSignsModal({ isOpen, onClose, patientId = 'current-patient'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-3xl bg-black/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-2xl max-h-[90vh] overflow-hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="vitals-modal-title"
+        className="w-full max-w-3xl bg-black/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-2xl max-h-[90vh] overflow-hidden"
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/20">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/20 text-green-200">
-              <Activity className="h-5 w-5" />
+              <Activity className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Registrar Signos Vitales</h2>
+              <h2 id="vitals-modal-title" className="text-lg font-semibold text-white">Registrar Signos Vitales</h2>
               <p className="text-xs text-white/70">Registra tus mediciones para seguimiento médico</p>
             </div>
           </div>
           <button
             onClick={handleClose}
+            aria-label="Cerrar modal"
             className="rounded-full p-2 text-white/60 hover:bg-white/10 hover:text-white transition"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -247,7 +253,7 @@ export function VitalSignsModal({ isOpen, onClose, patientId = 'current-patient'
                   overallStatus.status === 'warning' ? 'border-yellow-500/30 bg-yellow-500/10' :
                   'border-green-500/30 bg-green-500/10'
                 }`}>
-                  <Activity className={`h-5 w-5 ${overallStatus.color}`} />
+                  <Activity className={`h-5 w-5 ${overallStatus.color}`} aria-hidden="true" />
                   <div>
                     <p className={`text-sm font-medium ${overallStatus.color}`}>
                       Estado General: {overallStatus.status === 'critical' ? 'Requiere Atención' :
@@ -268,14 +274,15 @@ export function VitalSignsModal({ isOpen, onClose, patientId = 'current-patient'
                     <div key={field.key} className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-white/70">{field.icon}</span>
-                          <label className="text-sm font-medium text-white">{field.label}</label>
+                          <span className="text-white/70" aria-hidden="true">{field.icon}</span>
+                          <label htmlFor={`vital-${field.key}`} className="text-sm font-medium text-white">{field.label}</label>
                         </div>
                         <span className="text-xs text-white/60">{field.normalRange}</span>
                       </div>
 
                       <div className="relative">
                         <input
+                          id={`vital-${field.key}`}
                           type={field.type}
                           value={value || ''}
                           onChange={(e) => handleInputChange(field.key, e.target.value)}
@@ -301,8 +308,9 @@ export function VitalSignsModal({ isOpen, onClose, patientId = 'current-patient'
 
               {/* Additional Notes */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-white">Notas adicionales</label>
+                <label htmlFor="vital-notes" className="text-sm font-medium text-white">Notas adicionales</label>
                 <textarea
+                  id="vital-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Añade cualquier información relevante sobre las mediciones..."

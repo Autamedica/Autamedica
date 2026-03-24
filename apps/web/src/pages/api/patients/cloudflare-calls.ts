@@ -1,14 +1,12 @@
 import type { APIRoute } from 'astro'
 import { handleCloudflareCallsProxy } from '@autamedica/telemedicine/server'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
+import { unauthorized } from '@/lib/api-helpers'
 
 export const POST: APIRoute = async ({ request }) => {
   const context = await resolvePatientContext(request)
   if (!context) {
-    return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return unauthorized()
   }
 
   const result = await handleCloudflareCallsProxy(request, {

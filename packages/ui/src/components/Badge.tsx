@@ -9,6 +9,7 @@ export interface BadgeProps {
   dot?: boolean
   pulse?: boolean
   className?: string
+  'aria-label'?: string
 }
 
 const variantStyles: Record<NonNullable<BadgeProps['variant']>, string> = {
@@ -29,6 +30,12 @@ const dotColors: Record<NonNullable<BadgeProps['variant']>, string> = {
   danger:  'bg-red-500',
 }
 
+const variantA11yLabels: Partial<Record<NonNullable<BadgeProps['variant']>, string>> = {
+  success: 'Estado: correcto',
+  warning: 'Estado: advertencia',
+  danger: 'Estado: alerta',
+}
+
 const sizeStyles: Record<NonNullable<BadgeProps['size']>, string> = {
   xs: 'px-1.5 py-0.5 text-[10px]',
   sm: 'px-2 py-0.5 text-xs',
@@ -42,16 +49,22 @@ export const Badge: React.FC<BadgeProps> = ({
   dot = false,
   pulse = false,
   className = '',
+  'aria-label': ariaLabel,
 }) => {
+  const resolvedLabel = ariaLabel ?? variantA11yLabels[variant]
+
   return (
-    <span className={`
-      inline-flex items-center gap-1.5 rounded-full font-medium ring-1 ring-inset
-      ${variantStyles[variant]}
-      ${sizeStyles[size]}
-      ${className}
-    `}>
+    <span
+      className={`
+        inline-flex items-center gap-1.5 rounded-full font-medium ring-1 ring-inset
+        ${variantStyles[variant]}
+        ${sizeStyles[size]}
+        ${className}
+      `}
+      {...(resolvedLabel ? { 'aria-label': resolvedLabel } : {})}
+    >
       {dot && (
-        <span className="relative flex h-1.5 w-1.5">
+        <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
           {pulse && (
             <span className={`absolute inset-0 rounded-full animate-ping opacity-50 ${dotColors[variant]}`} />
           )}

@@ -9,7 +9,7 @@ export interface SkeletonLoaderProps {
 }
 
 const SkeletonBar: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`rounded-lg am-skeleton ${className}`} />
+  <div className={`rounded-lg am-skeleton ${className}`} aria-hidden="true" />
 )
 
 function CardSkeleton() {
@@ -80,7 +80,8 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   const Component = skeletonMap[variant]
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div role="status" aria-live="polite" className={`space-y-3 ${className}`}>
+      <span className="sr-only">Cargando contenido</span>
       {Array.from({ length: count }, (_, i) => (
         <Component key={i} />
       ))}

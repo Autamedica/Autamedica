@@ -73,9 +73,9 @@ const PortalLayoutContext = createContext<PortalContextValue | null>(null)
 
 function PanelLoader() {
   return (
-    <div className="flex h-full items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-8 text-am-surface-500 shadow-am-sm">
+    <div role="status" aria-live="polite" className="flex h-full items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-8 text-am-surface-500 shadow-am-sm">
       <div className="flex items-center gap-3">
-        <svg className="animate-spin h-5 w-5 text-am-doctor-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+        <svg className="animate-spin h-5 w-5 text-am-doctor-500" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
         Cargando...
       </div>
     </div>

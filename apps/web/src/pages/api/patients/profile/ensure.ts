@@ -2,16 +2,10 @@ import type { APIRoute } from 'astro'
 import { createAdminClient, createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import type { Database } from '@autamedica/types'
+import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
 type PatientInsert = Database['public']['Tables']['patients']['Insert']
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -40,7 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (!userId) {
-      return json({ ok: false, error: 'unauthorized' }, 401)
+      return unauthorized()
     }
 
     const body = await request.json().catch(() => ({}))
@@ -68,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
     } catch (e) {
       logger.error('[API] ensure profile failed (profiles)', e as Error)
-      return json({ ok: false, error: 'profiles_failed' }, 400)
+      return badRequest('profiles_failed')
     }
 
     // Ensure patients row exists
@@ -92,9 +86,9 @@ export const POST: APIRoute = async ({ request }) => {
       // ignore if table or constraint is different in this instance
     }
 
-    return json({ ok: true })
+    return jsonOk(null)
   } catch (err) {
     logger.error('[API] profile ensure error', err as Error)
-    return json({ ok: false, error: 'internal_error' }, 500)
+    return internalError()
   }
 }

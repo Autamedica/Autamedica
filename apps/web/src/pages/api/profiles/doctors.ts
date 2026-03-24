@@ -2,13 +2,7 @@ import type { APIRoute } from 'astro'
 import type { Database, Json } from '@autamedica/types'
 import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -19,12 +13,12 @@ export const POST: APIRoute = async ({ request }) => {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return json({ ok: false, error: 'unauthorized' }, 401)
+      return unauthorized()
     }
 
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
     if (!body) {
-      return json({ ok: false, error: 'invalid_body' }, 400)
+      return badRequest('invalid_body')
     }
 
     const {
@@ -43,10 +37,10 @@ export const POST: APIRoute = async ({ request }) => {
     } = body
 
     if (typeof license_number !== 'string' || !license_number.trim()) {
-      return json({ ok: false, error: 'license_number is required' }, 400)
+      return badRequest('license_number is required')
     }
     if (typeof specialty !== 'string' || !specialty.trim()) {
-      return json({ ok: false, error: 'specialty is required' }, 400)
+      return badRequest('specialty is required')
     }
 
     const admin = createAdminClient()
@@ -75,7 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (error) {
       logger.error('[API] doctor profile upsert failed', error)
-      return json({ ok: false, error: error.message }, 400)
+      return badRequest(error.message)
     }
 
     const doctorId = (data as { id: string }).id
@@ -117,9 +111,9 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    return json({ ok: true, data })
+    return jsonOk(data)
   } catch (err) {
     logger.error('[API] doctor profile creation error', err as Error)
-    return json({ ok: false, error: 'internal_error' }, 500)
+    return internalError()
   }
 }

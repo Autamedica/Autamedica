@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server';
 import { buildAnamnesisExportHtml, buildAnamnesisSummary, logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { jsonOk, unauthorized, forbidden, notFound, badRequest, internalError } from '@/lib/api-helpers';
 
 type AdminClient = SupabaseClient;
 
@@ -95,38 +96,26 @@ export const GET: APIRoute = async ({ request, params }) => {
   try {
     const patientId = params.patientId;
     if (!patientId) {
-      return new Response(JSON.stringify({ ok: false, error: 'missing_patient_id' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return badRequest('missing_patient_id');
     }
 
     const supabase = createServerClientFromRequest(request);
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return unauthorized();
     }
 
     const admin = createAdminClient() as unknown as AdminClient;
     const doctorId = await resolveDoctorId(admin, session.user.id);
 
     if (!doctorId) {
-      return new Response(JSON.stringify({ ok: false, error: 'doctor_not_found' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return forbidden('doctor_not_found');
     }
 
     const hasAccess = await doctorHasPatientAccess(admin, doctorId, patientId);
     if (!hasAccess) {
-      return new Response(JSON.stringify({ ok: false, error: 'forbidden' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return forbidden();
     }
 
     const { data: anamnesisRow, error: anamnesisError } = await admin
@@ -145,17 +134,11 @@ export const GET: APIRoute = async ({ request, params }) => {
     } | null;
 
     if (!anamnesis) {
-      return new Response(JSON.stringify({ ok: false, error: 'anamnesis_not_found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return notFound('anamnesis_not_found');
     }
 
     if (anamnesis.privacy_accepted !== true) {
-      return new Response(JSON.stringify({ ok: false, error: 'patient_has_not_shared' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return forbidden('patient_has_not_shared');
     }
 
     const { data: sections, error: sectionsError } = await admin
@@ -186,21 +169,13 @@ export const GET: APIRoute = async ({ request, params }) => {
       });
     }
 
-    return new Response(JSON.stringify({
-      ok: true,
-      data: {
-        anamnesis,
-        summary,
-        sections: sections ?? [],
-      },
-    }), {
-      headers: { 'Content-Type': 'application/json' },
+    return jsonOk({
+      anamnesis,
+      summary,
+      sections: sections ?? [],
     });
   } catch (error) {
     logger.error('[Doctor patient anamnesis] GET error', error);
-    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return internalError();
   }
 };

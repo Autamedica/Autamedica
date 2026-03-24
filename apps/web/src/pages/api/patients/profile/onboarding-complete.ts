@@ -2,19 +2,13 @@ import type { APIRoute } from 'astro'
 import { getUserIdFromRequest } from '@/lib/patients/api/auth'
 import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
-      return json({ ok: false, error: 'unauthorized' }, 401)
+      return unauthorized()
     }
 
     const admin = createAdminClient()
@@ -40,9 +34,9 @@ export const POST: APIRoute = async ({ request }) => {
       logger.error('[API] onboarding-complete user_metadata update failed', authError)
     }
 
-    return json({ ok: true })
+    return jsonOk(null)
   } catch (err) {
     logger.error('[API] onboarding-complete error', err as Error)
-    return json({ ok: false, error: 'internal_error' }, 500)
+    return internalError()
   }
 }

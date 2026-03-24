@@ -10,6 +10,7 @@ import {
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Json } from '@autamedica/types';
 import { createHash } from 'node:crypto';
+import { jsonOk, badRequest, unauthorized, forbidden, internalError } from '@/lib/api-helpers';
 
 type AdminClient = SupabaseClient;
 
@@ -214,10 +215,7 @@ async function resolveDoctorId(admin: AdminClient, userId: string): Promise<stri
 export const GET: APIRoute = async ({ request, params }) => {
   const roomId = params.roomId;
   if (!roomId) {
-    return new Response(JSON.stringify({ ok: false, error: 'missing_room_id' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return badRequest('missing_room_id');
   }
 
   try {
@@ -226,10 +224,7 @@ export const GET: APIRoute = async ({ request, params }) => {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return unauthorized();
     }
 
     const admin = createAdminClient() as unknown as AdminClient;
@@ -237,28 +232,20 @@ export const GET: APIRoute = async ({ request, params }) => {
     // Verify caller is a doctor
     const doctorId = await resolveDoctorId(admin, session.user.id);
     if (!doctorId) {
-      return new Response(JSON.stringify({ ok: false, error: 'doctor_not_found' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return forbidden('doctor_not_found');
     }
 
     // Resolve room → patient
     const participants = await resolveRoomParticipants(admin, roomId);
     if (!participants) {
       // No call/session found for this room - return empty context (non-blocking)
-      return new Response(JSON.stringify({
-        ok: true,
-        data: {
-          hasAnamnesis: false,
-          patient: null,
-          summary: null,
-          extraction: null,
-          redFlags: [],
-          suggestedQuestions: [],
-        },
-      }), {
-        headers: { 'Content-Type': 'application/json' },
+      return jsonOk({
+        hasAnamnesis: false,
+        patient: null,
+        summary: null,
+        extraction: null,
+        redFlags: [],
+        suggestedQuestions: [],
       });
     }
 
@@ -280,19 +267,14 @@ export const GET: APIRoute = async ({ request, params }) => {
     const anamnesis = anamnesisRow as AnamnesisRecord | null;
 
     if (!anamnesis?.privacy_accepted) {
-      return new Response(JSON.stringify({
-        ok: true,
-        data: {
-          hasAnamnesis: false,
-          patient: patientProfile,
-          summary: null,
-          extraction: null,
-          redFlags: [],
-          suggestedQuestions: [],
-          reason: !anamnesis ? 'not_started' : 'not_shared',
-        },
-      }), {
-        headers: { 'Content-Type': 'application/json' },
+      return jsonOk({
+        hasAnamnesis: false,
+        patient: patientProfile,
+        summary: null,
+        extraction: null,
+        redFlags: [],
+        suggestedQuestions: [],
+        reason: !anamnesis ? 'not_started' : 'not_shared',
       });
     }
 
@@ -333,27 +315,19 @@ export const GET: APIRoute = async ({ request, params }) => {
       return (order[a.priority as keyof typeof order] ?? 3) - (order[b.priority as keyof typeof order] ?? 3);
     });
 
-    return new Response(JSON.stringify({
-      ok: true,
-      data: {
-        hasAnamnesis: true,
-        patient: patientProfile,
-        anamnesisStatus: anamnesis.status,
-        completionPercentage: anamnesis.completion_percentage,
-        summary,
-        extraction,
-        extractionFromCache: extractionResult?.fromCache ?? false,
-        redFlags,
-        suggestedQuestions,
-      },
-    }), {
-      headers: { 'Content-Type': 'application/json' },
+    return jsonOk({
+      hasAnamnesis: true,
+      patient: patientProfile,
+      anamnesisStatus: anamnesis.status,
+      completionPercentage: anamnesis.completion_percentage,
+      summary,
+      extraction,
+      extractionFromCache: extractionResult?.fromCache ?? false,
+      redFlags,
+      suggestedQuestions,
     });
   } catch (error) {
     logger.error('[consultation-context] GET error', error);
-    return new Response(JSON.stringify({ ok: false, error: 'internal_error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return internalError();
   }
 };

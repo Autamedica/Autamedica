@@ -151,24 +151,30 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-black/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="symptom-modal-title"
+        className="w-full max-w-2xl bg-black/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-2xl"
+      >
 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/20">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-800">
-              <Heart className="h-5 w-5" />
+              <Heart className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Reportar Síntoma</h2>
+              <h2 id="symptom-modal-title" className="text-lg font-semibold text-white">Reportar Síntoma</h2>
               <p className="text-xs text-white/70">Registra tus síntomas para tu equipo médico</p>
             </div>
           </div>
           <button
             onClick={handleClose}
+            aria-label="Cerrar modal"
             className="rounded-full p-2 text-white/60 hover:bg-white/10 hover:text-white transition"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -219,6 +225,7 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
                         setSelectedTemplate(template);
                         setSeverity(template.defaultSeverity);
                       }}
+                      aria-pressed={selectedTemplate?.id === template.id}
                       className={`p-3 rounded-lg border text-left transition ${
                         selectedTemplate?.id === template.id
                           ? 'border-white/40 bg-white/10'
@@ -226,7 +233,7 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-white/70">{template.icon}</span>
+                        <span className="text-white/70" aria-hidden="true">{template.icon}</span>
                         <span className="text-sm font-medium text-white">{template.name}</span>
                       </div>
                       <p className="text-xs text-white/60">{template.description}</p>
@@ -237,13 +244,16 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
             </div>
 
             {/* Severity Selection */}
-            <div className="space-y-3">
+            <div className="space-y-3" role="radiogroup" aria-label="Severidad del síntoma">
               <h3 className="text-sm font-semibold text-white">Severidad</h3>
               <div className="grid grid-cols-3 gap-3">
                 {(['leve', 'moderado', 'severo'] as SymptomSeverity[]).map((sev) => (
                   <button
                     key={sev}
                     type="button"
+                    role="radio"
+                    aria-checked={severity === sev}
+                    aria-label={`Severidad ${sev}`}
                     onClick={() => setSeverity(sev)}
                     className={`p-3 rounded-lg border text-center transition ${
                       severity === sev
@@ -251,7 +261,7 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
                         : 'border-white/20 bg-white/5 text-white/70 hover:bg-white/10'
                     }`}
                   >
-                    <div className="text-lg mb-1">{getSeverityIcon(sev)}</div>
+                    <div className="text-lg mb-1" aria-hidden="true">{getSeverityIcon(sev)}</div>
                     <div className="text-xs font-medium capitalize">{sev}</div>
                   </button>
                 ))}
@@ -261,8 +271,9 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
             {/* Additional Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-white">Duración</label>
+                <label htmlFor="symptom-duration" className="text-sm font-medium text-white">Duración</label>
                 <input
+                  id="symptom-duration"
                   type="text"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
@@ -271,8 +282,9 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-white">Desencadenantes</label>
+                <label htmlFor="symptom-triggers" className="text-sm font-medium text-white">Desencadenantes</label>
                 <input
+                  id="symptom-triggers"
                   type="text"
                   value={triggers}
                   onChange={(e) => setTriggers(e.target.value)}
@@ -284,8 +296,9 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
 
             {/* Additional Notes */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white">Notas adicionales</label>
+              <label htmlFor="symptom-notes" className="text-sm font-medium text-white">Notas adicionales</label>
               <textarea
+                id="symptom-notes"
                 value={additionalNotes}
                 onChange={(e) => setAdditionalNotes(e.target.value)}
                 placeholder="Describe cualquier detalle adicional relevante..."
@@ -297,7 +310,7 @@ export function SymptomReportModal({ isOpen, onClose, patientId = 'current-patie
             {/* Priority Alert */}
             {severity === 'severo' && (
               <div className="flex items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-                <AlertTriangle className="h-5 w-5 text-red-400" />
+                <AlertTriangle className="h-5 w-5 text-red-400" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-medium text-red-800">Síntoma de alta prioridad</p>
                   <p className="text-xs text-red-700">Se notificará inmediatamente a tu equipo médico</p>
