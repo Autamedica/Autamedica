@@ -330,7 +330,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           }),
         })
         const result = await res.json()
-        if (!result.ok) {
+        if (!result.success) {
           setSaveMessage(`Error al guardar perfil: ${result.error}`)
           return
         }

@@ -2,13 +2,7 @@ import type { APIRoute } from 'astro'
 import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers'
 
 interface DoctorRow {
   id: string
@@ -23,7 +17,7 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized()
     }
 
     const admin = createAdminClient()
@@ -35,7 +29,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     if (error) {
       logger.error('[doctors/GET] Query failed', error)
-      return json({ success: false, error: 'Failed to fetch doctors' }, 500)
+      return internalError('Failed to fetch doctors')
     }
 
     const doctors = ((data ?? []) as unknown as DoctorRow[]).map((row) => {
@@ -54,9 +48,9 @@ export const GET: APIRoute = async ({ request }) => {
 
     doctors.sort((a, b) => a.label.localeCompare(b.label, 'es'))
 
-    return json({ success: true, data: doctors })
+    return jsonOk(doctors)
   } catch (err) {
     logger.error('[doctors/GET] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }

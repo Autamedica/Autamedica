@@ -47,6 +47,9 @@ export function useMedicalHistory(
 ): UseMedicalHistoryResult {
   const { pageSize = 10, filters = {} } = options
 
+  // Serialize filters to a stable string to avoid infinite re-renders from object identity changes
+  const filtersKey = JSON.stringify(filters)
+
   const [records, setRecords] = useState<MedicalRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +68,8 @@ export function useMedicalHistory(
     setLoading(true)
     setError(null)
 
+    const stableFilters: MedicalRecordFilters = JSON.parse(filtersKey)
+
     try {
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
       // DB column: date_recorded (not consultation_date)
@@ -77,23 +82,23 @@ export function useMedicalHistory(
 
       // Aplicar filtros adicionales
       // DB column: type (not consultation_type)
-      if (filters.consultation_type) {
-        filtered = filtered.filter(r => r.type === filters.consultation_type);
+      if (stableFilters.consultation_type) {
+        filtered = filtered.filter(r => r.type === stableFilters.consultation_type);
       }
 
-      if (filters.date_from) {
-        filtered = filtered.filter(r => (r.dateRecorded ?? '') >= (filters.date_from ?? ''));
+      if (stableFilters.date_from) {
+        filtered = filtered.filter(r => (r.dateRecorded ?? '') >= (stableFilters.date_from ?? ''));
       }
 
-      if (filters.date_to) {
-        filtered = filtered.filter(r => (r.dateRecorded ?? '') <= (filters.date_to ?? ''));
+      if (stableFilters.date_to) {
+        filtered = filtered.filter(r => (r.dateRecorded ?? '') <= (stableFilters.date_to ?? ''));
       }
 
       // content is a JSON field that may contain diagnosis info
-      if (filters.diagnosis_contains) {
+      if (stableFilters.diagnosis_contains) {
         filtered = filtered.filter(r => {
           const contentStr = typeof r.content === 'string' ? r.content : JSON.stringify(r.content);
-          return contentStr.toLowerCase().includes((filters.diagnosis_contains ?? '').toLowerCase());
+          return contentStr.toLowerCase().includes((stableFilters.diagnosis_contains ?? '').toLowerCase());
         });
       }
 
@@ -119,7 +124,7 @@ export function useMedicalHistory(
     } finally {
       setLoading(false)
     }
-  }, [patientId, pageSize, filters])
+  }, [patientId, pageSize, filtersKey])
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) return

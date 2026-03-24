@@ -2,19 +2,13 @@ import type { APIRoute } from 'astro'
 import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized('Unauthorized')
     }
 
     const body = await request.json()
@@ -26,7 +20,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return json({ success: false, error: 'name is required' }, 400)
+      return badRequest('name is required')
     }
 
     const supabase = createServerClientFromRequest(request)
@@ -44,12 +38,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (error) {
       logger.error('[medical-history/allergies/POST] Insert failed', error)
-      return json({ success: false, error: 'Failed to add allergy' }, 500)
+      return internalError('Failed to add allergy')
     }
 
-    return json({ success: true, data: inserted }, 201)
+    return jsonOk(inserted, 201)
   } catch (err) {
     logger.error('[medical-history/allergies/POST] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError('Internal server error')
   }
 }

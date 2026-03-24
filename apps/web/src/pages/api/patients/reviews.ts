@@ -2,13 +2,7 @@ import type { APIRoute } from 'astro'
 import { createAdminClient, createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, jsonFail, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
 
 function isValidRating(v: unknown): v is number {
   return typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 5
@@ -19,7 +13,7 @@ const REVIEW_WINDOW_DAYS = { min: 1, max: 30 }
 export const GET: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
-    if (!context) return json({ success: false, error: 'Unauthorized' }, 401)
+    if (!context) return unauthorized()
 
     const admin = createAdminClient()
     const { data, error } = await admin
@@ -29,23 +23,20 @@ export const GET: APIRoute = async ({ request }) => {
 
     if (error) {
       logger.error('[reviews/GET] Query failed', error)
-      return json({ success: false, error: 'Failed to fetch reviews' }, 500)
+      return internalError('Failed to fetch reviews')
     }
 
-    return json({
-      success: true,
-      data: (data ?? []).map((r: { appointment_id: string }) => r.appointment_id),
-    })
+    return jsonOk((data ?? []).map((r: { appointment_id: string }) => r.appointment_id))
   } catch (err) {
     logger.error('[reviews/GET] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
-    if (!context) return json({ success: false, error: 'Unauthorized' }, 401)
+    if (!context) return unauthorized()
 
     const body = await request.json()
     const {
@@ -69,11 +60,11 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (!appointment_id || typeof appointment_id !== 'string') {
-      return json({ success: false, error: 'appointment_id is required' }, 400)
+      return badRequest('appointment_id is required')
     }
 
     if (!isValidRating(overall_rating)) {
-      return json({ success: false, error: 'overall_rating (1-5) is required' }, 400)
+      return badRequest('overall_rating (1-5) is required')
     }
 
     for (const [name, val] of Object.entries({
@@ -83,12 +74,12 @@ export const POST: APIRoute = async ({ request }) => {
       clinical_quality_rating,
     })) {
       if (val !== undefined && val !== null && !isValidRating(val)) {
-        return json({ success: false, error: `${name} must be 1-5` }, 400)
+        return badRequest(`${name} must be 1-5`)
       }
     }
 
     if (comment && typeof comment === 'string' && comment.length > 1000) {
-      return json({ success: false, error: 'Comment must be 1000 characters or less' }, 400)
+      return badRequest('Comment must be 1000 characters or less')
     }
 
     const admin = createAdminClient()
@@ -101,25 +92,24 @@ export const POST: APIRoute = async ({ request }) => {
       .single()
 
     if (aptError || !appointment) {
-      return json({ success: false, error: 'Appointment not found' }, 404)
+      return notFound('Appointment not found')
     }
 
     if (appointment.status !== 'completed') {
-      return json({ success: false, error: 'Only completed appointments can be reviewed' }, 400)
+      return badRequest('Only completed appointments can be reviewed')
     }
 
     if (!appointment.doctor_id) {
-      return json({ success: false, error: 'Appointment has no assigned doctor' }, 400)
+      return badRequest('Appointment has no assigned doctor')
     }
 
     const daysSince = Math.floor(
       (Date.now() - new Date(appointment.start_time).getTime()) / (1000 * 60 * 60 * 24),
     )
     if (daysSince < REVIEW_WINDOW_DAYS.min || daysSince > REVIEW_WINDOW_DAYS.max) {
-      return json({
-        success: false,
-        error: `Reviews can only be submitted between ${REVIEW_WINDOW_DAYS.min} and ${REVIEW_WINDOW_DAYS.max} days after the appointment`,
-      }, 400)
+      return badRequest(
+        `Reviews can only be submitted between ${REVIEW_WINDOW_DAYS.min} and ${REVIEW_WINDOW_DAYS.max} days after the appointment`,
+      )
     }
 
     // Use user-scoped client so RLS enforces ownership
@@ -144,15 +134,15 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (insertError) {
       if (insertError.code === '23505') {
-        return json({ success: false, error: 'Already reviewed this appointment' }, 409)
+        return jsonFail('CONFLICT', 'Already reviewed this appointment', 409)
       }
       logger.error('[reviews/POST] Insert failed', insertError)
-      return json({ success: false, error: 'Failed to submit review' }, 500)
+      return internalError('Failed to submit review')
     }
 
-    return json({ success: true, data: { id: review.id } }, 201)
+    return jsonOk({ id: review.id }, 201)
   } catch (err) {
     logger.error('[reviews/POST] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }

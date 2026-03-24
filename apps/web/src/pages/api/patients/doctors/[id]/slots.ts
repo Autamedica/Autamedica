@@ -3,13 +3,7 @@ import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { getOpenSlots } from '@autamedica/scheduling'
 import type { UUID } from '@autamedica/types'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
@@ -24,12 +18,12 @@ export const GET: APIRoute = async ({ request, params }) => {
     } = await supabase.auth.getSession()
 
     if (sessionError || !session) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized()
     }
 
     const doctorId = params.id
     if (!doctorId) {
-      return json({ success: false, error: 'Missing doctor id' }, 400)
+      return badRequest('Missing doctor id')
     }
 
     const url = new URL(request.url)
@@ -37,17 +31,11 @@ export const GET: APIRoute = async ({ request, params }) => {
     const dateTo = url.searchParams.get('to')
 
     if (!dateFrom || !dateTo) {
-      return json(
-        { success: false, error: 'Both "from" and "to" query parameters are required' },
-        400,
-      )
+      return badRequest('Both "from" and "to" query parameters are required')
     }
 
     if (!DATE_REGEX.test(dateFrom) || !DATE_REGEX.test(dateTo)) {
-      return json(
-        { success: false, error: 'Dates must be in YYYY-MM-DD format' },
-        400,
-      )
+      return badRequest('Dates must be in YYYY-MM-DD format')
     }
 
     // Validate max 30 day range
@@ -58,14 +46,11 @@ export const GET: APIRoute = async ({ request, params }) => {
     )
 
     if (daysDiff < 0) {
-      return json({ success: false, error: '"from" must be before "to"' }, 400)
+      return badRequest('"from" must be before "to"')
     }
 
     if (daysDiff > 30) {
-      return json(
-        { success: false, error: 'Date range must not exceed 30 days' },
-        400,
-      )
+      return badRequest('Date range must not exceed 30 days')
     }
 
     // Verify doctor exists
@@ -76,7 +61,7 @@ export const GET: APIRoute = async ({ request, params }) => {
       .maybeSingle()
 
     if (doctorError || !doctor) {
-      return json({ success: false, error: 'Doctor not found' }, 404)
+      return notFound('Doctor not found')
     }
 
     const slots = await getOpenSlots(supabase, {
@@ -85,18 +70,15 @@ export const GET: APIRoute = async ({ request, params }) => {
       date_to: dateTo,
     })
 
-    return json({
-      success: true,
-      data: {
-        doctor_id: doctorId,
-        date_from: dateFrom,
-        date_to: dateTo,
-        slots,
-        total: slots.length,
-      },
+    return jsonOk({
+      doctor_id: doctorId,
+      date_from: dateFrom,
+      date_to: dateTo,
+      slots,
+      total: slots.length,
     })
   } catch (err) {
     logger.error('[doctors/[id]/slots/GET] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }

@@ -1,17 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-// Duck-typed interface to avoid SupabaseClient<Database, ...> assignment incompatibility
-// caused by 'protected' members in class-based structural typing checks
-interface SupabaseLike {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  from(table: string): any;
-  auth: {
-    getSession(): Promise<{ data: { session: { user: { id: string } } | null }; error: unknown }>;
-  };
-}
-type AnySupabaseClient = SupabaseLike;
-import type { Patient, Appointment, AppointmentWithDetails } from "@autamedica/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Patient, Appointment, AppointmentWithDetails } from "@autamedica/types";
+
+// Pick extracts only the public API, avoiding structural typing issues with protected class members
+type AnySupabaseClient = Pick<SupabaseClient<Database>, 'from' | 'auth'>;
 import { logger } from '@autamedica/shared';
 
 /**
@@ -77,22 +71,24 @@ export function usePatients(supabaseClient?: AnySupabaseClient | null) {
       }
 
       // Mapear datos joinados a la interfaz Patient (camelCase, flat)
-      const mapped: Patient[] = (data || []).map((row: Record<string, unknown>) => {
-        const profile = row.profile as Record<string, unknown> | null;
+      // Cast needed: DB Row → domain Patient (branded PatientId, camelCase fields)
+      const rows = data ?? [];
+      const mapped = rows.map((row) => {
+        const profile = (row as Record<string, unknown>).profile as Record<string, unknown> | null;
         return {
-          id: row.id as string,
-          userId: row.user_id as string,
+          id: row.id,
+          userId: row.user_id,
           firstName: (profile?.first_name as string) || '',
           lastName: (profile?.last_name as string) || '',
           email: (profile?.email as string) || '',
           phone: (profile?.phone as string) || undefined,
-          dateOfBirth: (row.birth_date as string) || undefined,
+          dateOfBirth: row.birth_date || undefined,
           gender: row.gender as Patient['gender'],
           status: row.active ? 'active' : 'inactive',
-          createdAt: row.created_at as string,
-          updatedAt: row.updated_at as string,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
         };
-      });
+      }) as unknown as Patient[];
 
       setPatients(mapped);
     } catch (err) {
@@ -148,7 +144,8 @@ export function useAppointments(supabaseClient?: AnySupabaseClient | null, docto
 
       if (fetchError) throw fetchError;
 
-      setAppointments(data || []);
+      // DB Row → domain Appointment (may differ in optional fields like deleted_at)
+      setAppointments((data ?? []) as unknown as Appointment[]);
     } catch (err) {
       logger.error('Error fetching appointments:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar citas');
@@ -206,7 +203,8 @@ export function useAppointmentsWithDetails(supabaseClient?: AnySupabaseClient | 
 
       if (fetchError) throw fetchError;
 
-      setAppointments(data || []);
+      // DB Row with joins → domain AppointmentWithDetails
+      setAppointments((data ?? []) as unknown as AppointmentWithDetails[]);
     } catch (err) {
       logger.error('Error fetching appointments with details:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar citas');

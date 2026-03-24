@@ -586,13 +586,33 @@ Creo una historia clinica electronica para consultorios llamada **Epicrisis** (~
 3. **Seguir deslumbrados (wonderers)** — no subestimar lo que viene de afuera de la salud, traerlo adentro
 4. **Lo digital como vehiculo de escala** — no para ser Bill Gates, sino para que lo que hagas llegue a mas gente
 
+### Lectura critica: ¿fue realmente time to market?
+
+Pedernera atribuye el fracaso comercial de Epicrisis al timing ("llegue demasiado temprano"). Pero la entrevista revela multiples fallas simultaneas que el agrupa bajo esa etiqueta:
+
+| Lo que dijo | Lo que realmente revela |
+|---|---|
+| "No pude transformar lo que concibo en algo vendible" | Falla de ejecucion comercial, no de timing |
+| "Me junte con otro medico + un programador" | Equipo 100% tecnico, cero perfil comercial |
+| "No tenemos herramientas de finanzas ni comerciales" | Sabia que le faltaba y no lo resolvio |
+| "Los que usaban Facebook no tenian consultorio" | Hablo con el segmento equivocado — jovenes sin practica propia |
+| "No patente nada, tengo esa cosa de altruismo" | Sin proteccion de IP ni ventaja competitiva |
+| "Fue financiada, presentada en concursos" | Validacion de jurados ≠ validacion de mercado |
+| "Genero un espacio, un nombre, una carrera" | El producto sirvio para su marca personal, no para el cliente |
+
+**Contexto que desmiente el "timing":** el Hospital Italiano estaba implementando HCE en esa misma epoca. El mercado institucional (hospitales, sanatorios, prepagas) SI existia y SI pagaba. Pedernera apunto al consultorio individual — segmento sin plata, sin necesidad percibida, sin infraestructura digital.
+
+**Diagnostico real:** segmentacion equivocada + equipo sin musculo comercial + confusion entre ganar premios y ganar clientes + no validar demanda antes de construir.
+
+**Leccion para AutaMedica:** la familia, amigos y el entorno cercano no son el mercado. Que no "apoyen" es irrelevante — no son los clientes. El unico feedback que importa es el del segmento target (medicos, clinicas, prepagas) con el problema Y el presupuesto para resolverlo. Pedernera hablo con las personas equivocadas y concluyo que "el mercado no estaba listo" cuando en realidad el mercado existia — en otro segmento.
+
 ### Observaciones relevantes para AutaMedica
 
-- El caso Epicrisis es un **antecedente directo** de lo que AutaMedica construye: HCE digital con vision de acceso y equidad. La diferencia es que AutaMedica llega en el momento correcto (post-pandemia, mercado maduro, facturacion de teleconsulta resuelta)
-- La distincion **creatividad vs innovacion** es clave para la postulacion I+D+i: hay que demostrar no solo que es creativo sino que tiene **demanda real y potencial de adopcion masiva**
-- Los **agentes de IA** como proxima revolucion en 3 anos valida directamente el Clinical AI Pipeline de AutaMedica — exactamente lo que se propone desarrollar
-- El concepto de **equipos suplementarios** (efecto exponencial) es un argumento para la narrativa del equipo en la postulacion: perfil medico + perfil tech = suplementario, no solo complementario
-- Su experiencia de time to market fallido en 2007 → refuerza el argumento de que **2026 es el momento correcto** para AutaMedica: pandemia resolvio adopcion de telemedicina, marcos legales avanzaron, IA generativa madura
+- Los **agentes de IA** como proxima revolucion en 3 anos valida directamente el Clinical AI Pipeline — exactamente lo que se propone desarrollar
+- La distincion **creatividad vs innovacion** es clave para la postulacion I+D+i: demostrar **demanda real y potencial de adopcion masiva**, no solo que es creativo
+- El concepto de **equipos suplementarios** (efecto exponencial) es argumento para la narrativa del equipo: perfil medico + perfil tech = suplementario
+- **2026 es el momento correcto** a diferencia de 2007: pandemia resolvio adopcion de telemedicina, marcos legales avanzaron, IA generativa madura, codigos de facturacion de teleconsulta existen
+- **Error a no repetir:** no construir sin validar demanda real con el segmento que paga. Concursos, premios y opinion del entorno cercano no son validacion de mercado
 
 ---
 
@@ -652,3 +672,43 @@ Creo una historia clinica electronica para consultorios llamada **Epicrisis** (~
 | Sesgo de automatizacion | Medicos confian demasiado en IA sin cuestionar. La IA puede equivocarse |
 | Explicabilidad (caja negra) | A veces no se puede saber como el modelo llego a su resultado |
 | VEF1 | Volumen espiratorio forzado en 1 segundo. Indicador clave de funcion pulmonar (EPOC) |
+
+---
+
+## Sintesis global del Modulo V — Lo que importa
+
+### Del curso academico
+
+El modulo cubre tres capas de conocimiento con distinta utilidad:
+
+**Capa 1 — Conceptos fundacionales (libro + clase 1):** ciencia de datos, Big Data (3 V), tipos de datos, tipos de analisis, sesgos, alfabetizacion en datos. Es vocabulario basico. Util para hablar el idioma, aprobar el parcial, y no quedar en ridiculo en una conversacion tecnica. Nivel: introductorio.
+
+**Capa 2 — Machine Learning (clase 2):** supervisado/no supervisado, regresion/clasificacion, flujo de entrenamiento 70/30, metricas, limitaciones. Mas sustancioso que la capa 1 pero todavia superficial — suficiente para entender que hace un modelo, no para construir uno. Nivel: funcional.
+
+**Capa 3 — Perspectivas reales (entrevistas):** aca esta el valor diferencial del modulo. Cuatro profesionales con trayectorias verificables que muestran como se aplica (o no) la teoria:
+
+| Entrevistado | Aporte unico |
+|---|---|
+| **Najun Dubos** | Clasificacion de IA en salud por riesgo: admin (commodity) → paciente (en desarrollo) → clinico (casi nada). El workflow clinico es el espacio vacio |
+| **Baum** | 30-40% desperdicio por fragmentacion. Transformacion digital de un pais toma 10-15 anos. Falta agencia nacional de salud digital |
+| **Giussi** | IA sin rediseno de proceso = inutil (mamografias: 1 mes → 2 dias solo con cambio de proceso completo). La tecnologia es "buena excusa" para cambiar lo que nadie cuestionaba |
+| **Pedernera** | Emprendimiento en salud digital: creatividad ≠ innovacion, time to market, wicked problems, agentes de IA como proxima revolucion |
+
+### Patron transversal de las 4 entrevistas
+
+Todos se formaron en el **Hospital Italiano** (residencia en informatica medica/sistemas de informacion). Todos "colgaron el estetoscopio". Todos enfatizan que **la tecnologia sola no sirve** — el valor esta en la implementacion con conocimiento clinico, el rediseno de procesos, y el cambio organizacional.
+
+### Lo que el curso NO ensena (y habria que saber)
+
+- Como **validar demanda** antes de construir (Pedernera construyo primero, busco mercado despues)
+- Como **vender** en salud (ningun entrevistado tiene perfil comercial fuerte)
+- **Regulatorio concreto** — se menciona superficialmente pero no se profundiza en marcos legales de IA clinica, proteccion de datos en Argentina, ni certificacion de dispositivos medicos digitales
+- **Costos reales** de implementacion — Giussi menciona que lo dificil es la implementacion in situ, pero no se cuantifica
+
+### Leccion central para AutaMedica
+
+La oportunidad no esta en la tecnologia (ya existe) ni en la idea (muchos la tuvieron). Esta en:
+1. **Llegar al mercado correcto** — no amigos, no familia, no jurados de concursos. Medicos, clinicas y prepagas con problema real y presupuesto
+2. **Integrar IA en procesos completos** — no IA suelta, sino IA insertada en un workflow clinico rediseñado (leccion Giussi)
+3. **Equipo con musculo comercial** — el error comun de todos los entrevistados es ser 100% tecnico/medico. AutaMedica necesita alguien que sepa vender
+4. **Ejecutar ahora** — el timing es correcto (post-pandemia + IA madura + marcos legales). Pedernera llego 15 anos antes. No repetir ese error en la direccion opuesta: no llegar 5 anos tarde por sobre-planificar

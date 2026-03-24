@@ -2,19 +2,13 @@ import type { APIRoute } from 'astro'
 import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers'
 
 export const GET: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized('Unauthorized')
     }
 
     const supabase = createServerClientFromRequest(request)
@@ -85,16 +79,9 @@ export const GET: APIRoute = async ({ request }) => {
       allergies,
     }
 
-    return json({
-      success: true,
-      data: {
-        summary,
-        timeline,
-        anamnesis,
-      },
-    })
+    return jsonOk({ summary, timeline, anamnesis })
   } catch (err) {
     logger.error('[medical-history/GET] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError('Internal server error')
   }
 }

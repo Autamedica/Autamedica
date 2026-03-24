@@ -50,7 +50,7 @@ function ReportContent({ roomId }: { roomId: string }) {
 
       const json = await res.json();
 
-      if (!res.ok || !json.ok) {
+      if (!res.ok || !json.success) {
         setError(json.error === 'unauthorized' ? 'Sesión expirada' : 'Error al generar reporte');
         return;
       }

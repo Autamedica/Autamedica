@@ -71,9 +71,9 @@ export default function TelemedicineDashboard() {
         const body = await res.json().catch(() => ({}))
         throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
       }
-      const json = await res.json() as { ok: boolean; stats: TelemedicineStats; recentCalls: CallRecord[]; eventsByType: Record<string, number> }
-      if (!json.ok) throw new Error('Failed to load stats')
-      setData({ stats: json.stats, recentCalls: json.recentCalls, eventsByType: json.eventsByType })
+      const json = await res.json() as { success: boolean; data: { stats: TelemedicineStats; recentCalls: CallRecord[]; eventsByType: Record<string, number> } }
+      if (!json.success) throw new Error('Failed to load stats')
+      setData({ stats: json.data.stats, recentCalls: json.data.recentCalls, eventsByType: json.data.eventsByType })
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')

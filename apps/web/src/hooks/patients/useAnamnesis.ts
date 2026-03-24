@@ -89,8 +89,8 @@ export function useAnamnesis(): UseAnamnesisReturn {
         throw new Error(err?.error || 'No se pudo cargar la anamnesis');
       }
 
-      const json = (await res.json()) as { ok: boolean; data: ApiResponse };
-      if (!json?.ok) throw new Error('Respuesta inválida');
+      const json = (await res.json()) as { success: boolean; data: ApiResponse };
+      if (!json?.success) throw new Error('Respuesta inválida');
 
       setAnamnesis(json.data.anamnesis);
       setSections(json.data.sections);

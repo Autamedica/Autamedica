@@ -5,6 +5,48 @@ import { createServerClientFromRequest } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
 import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers';
 
+interface RankingMetricsRow {
+  doctor_id: string
+  avg_rating: number | null
+  total_reviews: number | null
+  total_consultations: number | null
+  completed_consultations: number | null
+  completion_rate: number | null
+  overall_score: number | null
+  rank_position: number | null
+}
+
+interface DoctorRow {
+  id: string
+  specialty: string | null
+  years_experience: number | null
+  user_id: string | null
+}
+
+interface ProfileRow {
+  user_id: string
+  first_name: string | null
+  last_name: string | null
+}
+
+interface BadgeRow {
+  id: string
+  doctor_id: string
+  badge: string
+  level: string
+  description: string | null
+  earned_at: string
+}
+
+interface RankedDoctor extends RankingMetricsRow {
+  specialty: string | null
+  years_experience: number | null
+  first_name: string | null
+  last_name: string | null
+  is_current_user: boolean
+  badges: BadgeRow[]
+}
+
 export const GET: APIRoute = async ({ request }) => {
   try {
     let supabase: SupabaseClient<Database>;
@@ -27,7 +69,7 @@ export const GET: APIRoute = async ({ request }) => {
       .maybeSingle();
 
     let myMetrics = null;
-    let myBadges: Array<Record<string, unknown>> = [];
+    let myBadges: BadgeRow[] = [];
     let myReviews: Array<Record<string, unknown>> = [];
 
     if (currentDoctor) {
@@ -68,26 +110,26 @@ export const GET: APIRoute = async ({ request }) => {
       .order('rank_position', { ascending: true })
       .limit(20);
 
-    let rankedDoctors: Array<Record<string, unknown>> = [];
+    let rankedDoctors: RankedDoctor[] = [];
     if (topRanked && topRanked.length > 0) {
-      const doctorIds = topRanked.map((r: Record<string, unknown>) => r.doctor_id as string);
+      const doctorIds = topRanked.map((r: RankingMetricsRow) => r.doctor_id);
 
       const { data: doctors } = await supabase
         .from('doctors')
         .select('id, specialty, years_experience, user_id')
         .in('id', doctorIds);
 
-      const userIds = (doctors ?? []).map((d: { user_id: string | null }) => d.user_id).filter(Boolean) as string[];
+      const userIds = (doctors ?? []).map((d: DoctorRow) => d.user_id).filter((id): id is string => id !== null);
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, first_name, last_name')
         .in('user_id', userIds);
 
-      const profileMap = new Map((profiles ?? []).map(p => [p.user_id, p]));
-      const doctorMap = new Map((doctors ?? []).map((d: { id: string; user_id: string | null; specialty: string; years_experience: number | null }) => [d.id, d]));
+      const profileMap = new Map((profiles ?? []).map((p: ProfileRow) => [p.user_id, p]));
+      const doctorMap = new Map((doctors ?? []).map((d: DoctorRow) => [d.id, d]));
 
-      rankedDoctors = topRanked.map((metrics: Record<string, unknown>) => {
-        const doctor = doctorMap.get(metrics.doctor_id as string);
+      rankedDoctors = topRanked.map((metrics: RankingMetricsRow) => {
+        const doctor = doctorMap.get(metrics.doctor_id);
         const profile = doctor?.user_id ? profileMap.get(doctor.user_id) : null;
         return {
           ...metrics,
@@ -96,11 +138,12 @@ export const GET: APIRoute = async ({ request }) => {
           first_name: profile?.first_name ?? null,
           last_name: profile?.last_name ?? null,
           is_current_user: currentDoctor ? metrics.doctor_id === currentDoctor.id : false,
+          badges: [] as BadgeRow[],
         };
       });
     }
 
-    const topDoctorIds = rankedDoctors.map(d => d.doctor_id as string);
+    const topDoctorIds = rankedDoctors.map(d => d.doctor_id);
     const { data: allBadges } = topDoctorIds.length > 0
       ? await supabase
           .from('doctor_badges')
@@ -117,7 +160,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     rankedDoctors = rankedDoctors.map(d => ({
       ...d,
-      badges: badgesByDoctor.get(d.doctor_id as string) ?? [],
+      badges: (badgesByDoctor.get(d.doctor_id) ?? []) as BadgeRow[],
     }));
 
     return jsonOk({

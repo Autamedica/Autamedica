@@ -113,8 +113,7 @@ export const PATCH: APIRoute = async ({ request }) => {
 
     return jsonOk({ profile: updatedProfile, patient: updatedPatient })
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'internal_error'
     logger.error('[API] profile PATCH error', e as Error)
-    return internalError(msg)
+    return internalError()
   }
 }

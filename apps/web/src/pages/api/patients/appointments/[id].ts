@@ -9,13 +9,7 @@ import {
   type DbAppointmentRow,
 } from '@/lib/patients/api/appointment-utils'
 import type { AppointmentStatus, AppointmentType } from '@/lib/patients/types/appointment'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
 
 const DOCTOR_SELECT =
   '*, doctor:doctors(id, specialty, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name))' as const
@@ -24,12 +18,12 @@ export const GET: APIRoute = async ({ request, params }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized()
     }
 
     const appointmentId = params.id
     if (!appointmentId) {
-      return json({ success: false, error: 'Missing appointment id' }, 400)
+      return badRequest('Missing appointment id')
     }
 
     const supabase = createServerClientFromRequest(request)
@@ -42,17 +36,17 @@ export const GET: APIRoute = async ({ request, params }) => {
 
     if (error) {
       logger.error('[appointments/[id]/GET] Query failed', error)
-      return json({ success: false, error: 'Failed to fetch appointment' }, 500)
+      return internalError('Failed to fetch appointment')
     }
 
     if (!data) {
-      return json({ success: false, error: 'Appointment not found' }, 404)
+      return notFound('Appointment not found')
     }
 
-    return json({ success: true, data: mapAppointment(data as unknown as DbAppointmentRow) })
+    return jsonOk(mapAppointment(data as unknown as DbAppointmentRow))
   } catch (err) {
     logger.error('[appointments/[id]/GET] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }
 
@@ -60,12 +54,12 @@ export const PATCH: APIRoute = async ({ request, params }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized()
     }
 
     const appointmentId = params.id
     if (!appointmentId) {
-      return json({ success: false, error: 'Missing appointment id' }, 400)
+      return badRequest('Missing appointment id')
     }
 
     const supabase = createServerClientFromRequest(request)
@@ -79,7 +73,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
       .maybeSingle()
 
     if (existingError || !existing) {
-      return json({ success: false, error: 'Appointment not found' }, 404)
+      return notFound('Appointment not found')
     }
 
     const body = await request.json()
@@ -156,13 +150,13 @@ export const PATCH: APIRoute = async ({ request, params }) => {
 
     if (updateError) {
       logger.error('[appointments/[id]/PATCH] Update failed', updateError)
-      return json({ success: false, error: 'Failed to update appointment' }, 500)
+      return internalError('Failed to update appointment')
     }
 
-    return json({ success: true, data: mapAppointment(updated as unknown as DbAppointmentRow) })
+    return jsonOk(mapAppointment(updated as unknown as DbAppointmentRow))
   } catch (err) {
     logger.error('[appointments/[id]/PATCH] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }
 
@@ -170,12 +164,12 @@ export const DELETE: APIRoute = async ({ request, params }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized()
     }
 
     const appointmentId = params.id
     if (!appointmentId) {
-      return json({ success: false, error: 'Missing appointment id' }, 400)
+      return badRequest('Missing appointment id')
     }
 
     const supabase = createServerClientFromRequest(request)
@@ -191,16 +185,16 @@ export const DELETE: APIRoute = async ({ request, params }) => {
 
     if (cancelError) {
       logger.error('[appointments/[id]/DELETE] Cancel failed', cancelError)
-      return json({ success: false, error: 'Failed to cancel appointment' }, 500)
+      return internalError('Failed to cancel appointment')
     }
 
     if (!cancelled) {
-      return json({ success: false, error: 'Appointment not found' }, 404)
+      return notFound('Appointment not found')
     }
 
-    return json({ success: true, data: mapAppointment(cancelled as unknown as DbAppointmentRow) })
+    return jsonOk(mapAppointment(cancelled as unknown as DbAppointmentRow))
   } catch (err) {
     logger.error('[appointments/[id]/DELETE] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }

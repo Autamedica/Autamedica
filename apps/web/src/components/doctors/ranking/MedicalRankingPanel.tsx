@@ -88,11 +88,14 @@ export function MedicalRankingPanel() {
     try {
       const res = await fetch('/api/doctors/ranking', { credentials: 'include' })
       const json = await res.json()
-      if (json.ok) {
+      if (json.success) {
         setData(json.data)
         setError(null)
       } else if (isInitial) {
-        setError(json.error ?? 'Error al cargar ranking')
+        const errMsg = res.status === 401
+          ? 'unauthorized'
+          : (json.error?.message ?? 'Error al cargar ranking')
+        setError(errMsg)
       }
     } catch {
       if (isInitial) setError('Error de conexion')

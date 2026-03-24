@@ -69,7 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (error) {
       logger.error('[API] doctor profile upsert failed', error)
-      return badRequest(error.message)
+      return badRequest('doctor_profile_upsert_failed')
     }
 
     const doctorId = (data as { id: string }).id

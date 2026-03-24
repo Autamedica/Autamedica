@@ -82,7 +82,7 @@ export function useConsultationContext(roomId: string | null): UseConsultationCo
       const res = await fetch(`/api/doctors/consultations/${roomId}/context`);
       const json = await res.json();
 
-      if (!res.ok || !json.ok) {
+      if (!res.ok || !json.success) {
         if (res.status === 401) {
           setError('No autorizado');
         } else if (res.status === 403) {

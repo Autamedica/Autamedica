@@ -9,13 +9,7 @@ import {
   type DbAppointmentRow,
 } from '@/lib/patients/api/appointment-utils'
 import type { AppointmentType } from '@/lib/patients/types/appointment'
-
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
+import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
 
 const DOCTOR_SELECT =
   '*, doctor:doctors(id, specialty, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name))' as const
@@ -24,7 +18,7 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized()
     }
 
     const admin = createAdminClient()
@@ -36,14 +30,14 @@ export const GET: APIRoute = async ({ request }) => {
 
     if (error) {
       logger.error('[appointments/GET] Query failed', error)
-      return json({ success: false, error: 'Failed to fetch appointments' }, 500)
+      return internalError('Failed to fetch appointments')
     }
 
     const mapped = (data as unknown as DbAppointmentRow[]).map(mapAppointment)
-    return json({ success: true, data: mapped })
+    return jsonOk(mapped)
   } catch (err) {
     logger.error('[appointments/GET] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }
 
@@ -51,7 +45,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const context = await resolvePatientContext(request)
     if (!context) {
-      return json({ success: false, error: 'Unauthorized' }, 401)
+      return unauthorized()
     }
 
     const body = await request.json()
@@ -76,11 +70,11 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (!scheduled_at || typeof scheduled_at !== 'string' || !scheduled_at.trim()) {
-      return json({ success: false, error: 'scheduled_at is required' }, 400)
+      return badRequest('scheduled_at is required')
     }
 
     if (!doctor_id || typeof doctor_id !== 'string' || !doctor_id.trim()) {
-      return json({ success: false, error: 'doctor_id is required' }, 400)
+      return badRequest('doctor_id is required')
     }
 
     const admin = createAdminClient()
@@ -94,7 +88,7 @@ export const POST: APIRoute = async ({ request }) => {
       .maybeSingle()
 
     if (doctorError || !doctor) {
-      return json({ success: false, error: 'Doctor not found or inactive' }, 404)
+      return notFound('Doctor not found or inactive')
     }
 
     const end_time = computeEndTime(scheduled_at, duration_minutes)
@@ -119,15 +113,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (insertError) {
       logger.error('[appointments/POST] Insert failed', insertError)
-      return json({ success: false, error: 'Failed to create appointment' }, 500)
+      return internalError('Failed to create appointment')
     }
 
-    return json(
-      { success: true, data: mapAppointment(inserted as unknown as DbAppointmentRow) },
-      201,
-    )
+    return jsonOk(mapAppointment(inserted as unknown as DbAppointmentRow), 201)
   } catch (err) {
     logger.error('[appointments/POST] Unexpected error', err)
-    return json({ success: false, error: 'Internal server error' }, 500)
+    return internalError()
   }
 }
