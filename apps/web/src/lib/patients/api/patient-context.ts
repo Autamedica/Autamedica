@@ -15,21 +15,33 @@ export async function resolvePatientContext(
   request: Request,
 ): Promise<PatientContext | null> {
   const supabase = createServerClientFromRequest(request)
+  
+  // 1. Get user from session (more robust for SSR than getUser() in some scenarios)
   const {
-    data: { user: cookieUser },
-    error: cookieUserError,
-  } = await supabase.auth.getUser()
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession()
 
-  let userId = cookieUser?.id ?? null
+  let userId = session?.user?.id ?? null
 
-  if (cookieUserError || !userId) {
+  // 2. Fallback to getUser() if session fails or is missing
+  if (!userId) {
+    const { data: { user: cookieUser }, error: cookieUserError } = await supabase.auth.getUser()
+    userId = cookieUser?.id ?? null
+    
+    if (cookieUserError) {
+      logger.warn('[resolvePatientContext] cookie getUser() failed', cookieUserError)
+    }
+  }
+
+  // 3. Last fallback: Bearer token in Authorization header
+  if (!userId) {
     const authHeader = request.headers.get('authorization')
-
     if (authHeader?.toLowerCase().startsWith('bearer ')) {
       const token = authHeader.slice(7)
       try {
-        const admin = createAdminClient()
-        const { data: userRes, error: tokenUserError } = await admin.auth.getUser(token)
+        const adminClient = createAdminClient()
+        const { data: userRes, error: tokenUserError } = await adminClient.auth.getUser(token)
         if (!tokenUserError && userRes.user) {
           userId = userRes.user.id
         }
@@ -39,52 +51,41 @@ export async function resolvePatientContext(
     }
   }
 
-  if (!userId) return null
-
-  const { data: scopedPatient, error: scopedPatientError } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  const scopedPatientId = (scopedPatient as { id: string } | null)?.id ?? null
-  if (scopedPatientId) {
-    return { userId, patientId: scopedPatientId }
-  }
-
-  if (scopedPatientError) {
-    logger.warn('[resolvePatientContext] User-scoped patient lookup failed', scopedPatientError)
-  }
-
-  let admin: ReturnType<typeof createAdminClient>
-  try {
-    admin = createAdminClient()
-  } catch (error) {
-    logger.warn('[resolvePatientContext] Admin client unavailable', error)
+  if (!userId) {
+    logger.warn('[resolvePatientContext] No user ID resolved from request')
     return null
   }
 
+  // 4. Resolve Patient ID (Admin bypass to ensure existence and prevent RLS edge cases during initial profile creation)
+  const admin = createAdminClient()
+  
+  // Try to find existing patient
   let { data: patient, error: patientError } = await admin
     .from('patients')
     .select('id')
     .eq('user_id', userId)
     .maybeSingle()
 
+  // 5. If not found, ensure it's created (Self-healing logic)
   if (!patient && !patientError) {
+    logger.info('[resolvePatientContext] Patient row not found, creating one for userId:', userId)
     const { data: insertedPatient, error: insertPatientError } = await admin
       .from('patients')
-      .upsert({ user_id: userId, active: true } as never, { onConflict: 'user_id' })
+      .upsert({ user_id: userId, active: true }, { onConflict: 'user_id' })
       .select('id')
       .maybeSingle()
 
+    if (insertPatientError) {
+      logger.error('[resolvePatientContext] Failed to auto-create patient row', insertPatientError)
+      return null
+    }
     patient = insertedPatient
-    patientError = insertPatientError
   }
 
   const patientId = (patient as { id: string } | null)?.id ?? null
 
   if (patientError || !patientId) {
-    logger.warn('[resolvePatientContext] Failed to resolve patient row', patientError)
+    logger.error('[resolvePatientContext] Critical failure resolving patientId', { userId, patientError })
     return null
   }
 
