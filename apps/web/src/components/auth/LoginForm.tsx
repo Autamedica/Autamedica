@@ -263,7 +263,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
           </div>
         </div>
         <div className="space-y-3">
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--au-text-primary)]">{t('auth.preparing')}</h1>
+          <p className="text-2xl font-bold tracking-tight text-[var(--au-text-primary)]">{t('auth.preparing')}</p>
           <p className="max-w-[280px] text-sm leading-relaxed text-[var(--au-text-secondary)]">
             {t('auth.preparingSubtitle')}
           </p>

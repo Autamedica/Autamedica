@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+.skip-nav {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--au-accent);
+  color: var(--au-bg);
+  border-radius: 0 0 8px 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-nav:focus {
+  top: 0;
+}
+
 /* ═══════════════════════════════════════════
    Geist Variable Font
    ═══════════════════════════════════════════ */

@@ -43,11 +43,11 @@ const features = dict.landing.productShowcase.features.map((f, i) => ({
         <div class="showcase-video-wrap">
           <video
             class="showcase-video"
-            autoplay
             muted
             loop
             playsinline
-            preload="metadata"
+            preload="none"
+            data-lazy-video
           >
             <source src={f.video} type="video/mp4" />
           </video>
@@ -170,3 +170,18 @@ const features = dict.landing.productShowcase.features.map((f, i) => ({
     }
   }
 </style>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const video = entry.target as HTMLVideoElement;
+      if (entry.isIntersecting) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+      }
+    }
+  }, { rootMargin: '200px' });
+
+  document.querySelectorAll<HTMLVideoElement>('[data-lazy-video]').forEach((v) => observer.observe(v));
+</script>

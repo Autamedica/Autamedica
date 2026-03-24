@@ -246,7 +246,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         if (!userRole) {
           return context.redirect('/auth/select-role');
         }
-        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/');
+        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
       }
       // Not authenticated — show login/register form
       return next();
@@ -277,15 +277,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
 
       if (pathname.startsWith('/admin') && !['organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect('/');
+        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
       }
 
       if ((isDoctorHostRoot || pathname.startsWith('/doctors')) && !['doctor', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/');
+        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
       }
 
       if (pathname.startsWith('/companies') && !['company', 'company_admin', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect('/');
+        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
       }
     }
 

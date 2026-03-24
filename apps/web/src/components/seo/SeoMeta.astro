@@ -33,10 +33,12 @@ const {
   includeHreflang = true,
 } = Astro.props;
 
+const requestOrigin = new URL(Astro.url.origin);
 const siteUrl = Astro.site ?? new URL('https://www.autamedica.com');
+const canonicalBase = requestOrigin.hostname !== 'localhost' ? requestOrigin : siteUrl;
 const canonicalUrl = canonical
-  ? new URL(canonical, siteUrl).toString()
-  : new URL(Astro.url.pathname, siteUrl).toString();
+  ? new URL(canonical, canonicalBase).toString()
+  : new URL(Astro.url.pathname, canonicalBase).toString();
 const socialImageUrl = ogImage
   ? (ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteUrl).toString())
   : undefined;

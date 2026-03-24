@@ -43,11 +43,10 @@ const {
   <Layout
     title={seoCopy.title}
     description={seoCopy.description}
-    canonical="https://www.autamedica.com"
     ogImage="/images/seo/og-main.webp"
   >
     <Navbar />
-    <main data-copy-variant={copyVariant}>
+    <main id="main-content" data-copy-variant={copyVariant}>
       <Hero {...heroCopy} />
       <PremiumNarrative />
       <ValueProps />
