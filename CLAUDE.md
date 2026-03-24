@@ -514,6 +514,10 @@ pnpm lint && pnpm typecheck && pnpm build:packages:core
 
 - **`fetch()` interno sin `credentials: 'include'`:** Llamadas a endpoints Astro como `/api/doctors/ranking` desde islands React requieren `credentials: 'include'` explícito para enviar cookies de sesión. Aunque son mismo-origen, Cloudflare puede servir el API desde un worker separado. Sin credentials → `getUser()` en el servidor recibe request sin cookie → 401.
 
+- **Rutas API en Astro tienen prefijo de rol (`/api/patients/`, `/api/doctors/`):** Los endpoints NO están en `/api/<recurso>` plano. El filesystem `pages/api/patients/appointments/index.ts` mapea a `/api/patients/appointments`. Hooks escritos asumiendo paths planos (e.g. `/api/appointments`) dan 404 silencioso. Herramienta de detección: `bun run audit:api` (`scripts/audit-api-routes.ts`).
+
+- **Drift de tipos entre hook y componente (type contract mismatch):** Cuando un hook devuelve `AppointmentWithDoctor[]` (tipo enriquecido) pero el componente receptor declara `Appointment[]` (tipo base), TypeScript falla con `ts(2322)` en el sitio de uso, NO en el hook. El drift ocurre cuando se modifica un archivo pero no se commitea el componente acoplado. Detección: `pnpm typecheck` o `pnpm --filter @autamedica/web check` antes de push. Regla: si cambias el tipo de retorno de un hook, buscar todos los `useHookName()` en el codebase y verificar que los consumidores acepten el nuevo tipo.
+
 ---
 
 ## 8b) Reglas Importadas (AutoRenta, Framework-Agnostic)
