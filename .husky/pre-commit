@@ -4,22 +4,18 @@
 
 echo "🔎 Pre-commit: Validaciones de código..."
 
-# 1. Validar convenciones de nomenclatura (SSK_FAE/Router)
-echo "📋 Validando convenciones (SSK_FAE, Router)..."
+# 1. Convenciones de nomenclatura (PascalCase, snake_case, kebab-case)
+echo "📋 Validando convenciones..."
 node scripts/validate-conventions.mjs || {
   echo "❌ Convenciones violadas. Ver errores arriba."
   exit 1
 }
 
-# 2. Verificar que los componentes Astro y React estén donde corresponde (Optional sanity)
-echo "🗂️  Verificando convenciones de Astro..."
-# En Astro, pages/ es correcto (src/pages), a diferencia de Next App Router.
-
-# 3. Bloquear etiquetas de deuda técnica sin referencia en líneas staged
+# 2. Debt tags — bloquear deuda técnica sin referencia de ticket
 echo "🧾 Validando debt tags en staged..."
 node scripts/ci/check-staged-debt.mjs || exit 1
 
-# 4. Check if database-related files are being committed
+# 3. DB validation (solo si hay archivos de base de datos staged)
 DB_FILES=$(
   git diff --cached --name-only --diff-filter=ACMRTUXB -- \
     'supabase/**' \
@@ -40,10 +36,10 @@ else
   echo "✅ No hay cambios en base de datos, omitiendo validación DB"
 fi
 
-# 5. Guard de drift tipos DB (migraciones + cambios apps/packages sin types)
+# 4. DB type drift guard
 node scripts/ci/check-db-type-drift.mjs || exit 1
 
-# 6. Lint staged files
+# 5. Lint staged files (ESLint + Prettier)
 echo "🧹 Ejecutando lint en archivos staged..."
 pnpm lint-staged || exit 1
 

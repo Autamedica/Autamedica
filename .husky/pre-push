@@ -2,79 +2,30 @@
 [ "$HUSKY" = "0" ] && exit 0
 . "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
 
-echo "🚀 Pre-push: Validaciones completas..."
+echo "🚀 Pre-push: Validaciones rápidas..."
 
-# Contar archivos cambiados
+# Si hay más de 100 archivos, skip (correrá en CI)
 CHANGED_FILES=$(git diff --name-only origin/main...HEAD 2>/dev/null | wc -l)
-
-echo "📊 Archivos cambiados: $CHANGED_FILES"
-
-# Si hay más de 100 archivos, skip local validation (correrá en CI)
 if [ "$CHANGED_FILES" -gt 100 ]; then
-  echo "⚠️  Demasiados archivos modificados ($CHANGED_FILES > 100)"
-  echo "⏭️  Saltando validación local (correrá en CI/CD)"
+  echo "⏭️  $CHANGED_FILES archivos cambiados — delegando a CI"
   exit 0
 fi
 
-# Aumentar memoria de Node para ESLint
-export NODE_OPTIONS="--max-old-space-size=8192"
+# 1. SEO parity — verifica que sitemap y pages estén sincronizados
+echo "🔎 Validando paridad SEO..."
+pnpm seo:validate:parity || exit 1
+pnpm seo:validate:assets || exit 1
 
-# Guardrail: validar permisos de directorios .turbo para evitar fallos opacos en hooks
-echo "🧰 Verificando permisos de Turbo..."
-TURBO_DIRS=$(find . -maxdepth 3 -type d -name ".turbo" \
+# 2. Turbo directory permissions (previene fallos opacos en CI local)
+for TURBO_DIR in $(find . -maxdepth 3 -type d -name ".turbo" \
   -not -path "./node_modules/*" \
   -not -path "./apps/*/node_modules/*" \
-  -not -path "./packages/*/node_modules/*")
-
-for TURBO_DIR in $TURBO_DIRS; do
+  -not -path "./packages/*/node_modules/*" 2>/dev/null); do
   if [ ! -w "$TURBO_DIR" ]; then
-    echo "❌ Turbo no tiene permisos de escritura en: $TURBO_DIR"
+    echo "❌ Sin permisos de escritura: $TURBO_DIR"
     echo "💡 Fix: sudo chown -R $(id -un):$(id -gn) $TURBO_DIR"
     exit 1
   fi
 done
 
-# 1. Validar convenciones
-echo "📋 Validando convenciones..."
-node scripts/validate-conventions.mjs || exit 1
-
-# 1.1 Validar paridad SEO (sitemap/indexación + assets sociales)
-echo "🔎 Validando paridad SEO..."
-pnpm seo:validate:parity || exit 1
-pnpm seo:validate:assets || exit 1
-
-# 2. Verificar Router
-echo "🗂️  Verificando App Router..."
-if ls -d apps/**/pages 2>/dev/null | grep -v node_modules | grep .; then
-  echo "❌ Se detectó directorio pages/ - usar App Router"
-  exit 1
-fi
-
-# 3. Lint solo archivos TypeScript/JavaScript cambiados
-LINT_FILES=$(git diff --name-only --diff-filter=ACM origin/main...HEAD | grep -E '\.(ts|tsx|js|jsx)$' | tr '\n' ' ')
-
-if [ -n "$LINT_FILES" ]; then
-  echo "🔍 Linting archivos modificados..."
-  NODE_OPTIONS="--max-old-space-size=8192" npx eslint $LINT_FILES --cache --max-warnings 0 --no-warn-ignored || {
-    echo "❌ ESLint falló (0 warnings permitidos)"
-    exit 1
-  }
-else
-  echo "✅ No hay archivos TS/JS para validar"
-fi
-
-# 4. TypeCheck rápido — solo paquetes con cambios respecto a origin/main
-echo "🔍 TypeCheck..."
-pnpm turbo run typecheck --filter=...[origin/main] || {
-  echo "❌ TypeCheck falló"
-  exit 1
-}
-
-# 5. Build packages
-echo "🏗️  Building packages..."
-pnpm build:packages || {
-  echo "❌ Build falló"
-  exit 1
-}
-
-echo "✅ Pre-push validation completa - ready to push!"
+echo "✅ Pre-push OK — typecheck y build corren en CI"

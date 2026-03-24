@@ -2,24 +2,6 @@
 [ "$HUSKY" = "0" ] && exit 0
 . "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
 
-echo "🧪 Post-commit QA rápido..."
-
-# Correr en background con timeout de 30 segundos
-(
-  # Timeout después de 30 segundos
-  timeout 30s bash << 'INNEREOF'
-    export NODE_OPTIONS="--max-old-space-size=4096"
-
-    # Solo lint el último commit (mucho más rápido)
-    LAST_COMMIT_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E '\.(ts|tsx|js|jsx)$' | head -20)
-
-    if [ -n "$LAST_COMMIT_FILES" ]; then
-      echo "$LAST_COMMIT_FILES" | xargs npx eslint --cache --quiet 2>&1 | head -50 || true
-    fi
-
-    echo "✅ Post-commit QA completado"
-INNEREOF
-) &
-
-# No esperar al background job
-echo "⚡ QA corriendo en background (max 30s)"
+# Post-commit: no-op
+# ESLint ya se ejecutó en pre-commit via lint-staged.
+# TypeCheck completo corre en CI (deploy-production.yml).

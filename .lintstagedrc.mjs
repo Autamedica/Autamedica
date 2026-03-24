@@ -11,7 +11,7 @@
 const lintStagedConfig = {
   "*.{ts,tsx,js,mjs}": (filenames) => {
     const lintable = filenames.filter((f) => !f.includes('/.archive/'));
-    return lintable.length ? `eslint --max-warnings=2000 ${lintable.join(" ")}` : 'echo "no files to lint"';
+    return lintable.length ? `eslint --max-warnings=0 ${lintable.join(" ")}` : 'echo "no files to lint"';
   },
   "*.{json,md}": (filenames) =>
     `prettier --write ${filenames.join(" ")}`,
