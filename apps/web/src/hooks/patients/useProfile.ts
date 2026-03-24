@@ -44,8 +44,9 @@ export function usePatientProfile(userId: string | null): UsePatientProfileRetur
         }
 
         // Usar API server-side para respetar RLS y lógica de negocio
-        const res = await fetch('/api/profile', {
+        const res = await fetch('/api/patients/profile', {
           method: 'PATCH',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ profile, patient }),
         });

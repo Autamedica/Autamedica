@@ -44,6 +44,7 @@
     "typecheck": "turbo run typecheck",
     "type-check": "node scripts/type-check.mjs",
     "check-types": "turbo run check-types",
+    "audit:api": "bun scripts/audit-api-routes.ts",
     "check:policy": "node scripts/check-policy.mjs",
     "check:prod": "node scripts/ensure-env.mjs && pnpm lint && pnpm -w type-check && pnpm build:packages && pnpm check:policy",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
