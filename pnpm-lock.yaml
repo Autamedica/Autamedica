@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@supabase/supabase-js': ^2.98.0
   vite: ^8.0.1
   '@vitejs/plugin-react': ^6.0.1
   esbuild: ^0.25.4
@@ -279,8 +280,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/types
       '@supabase/supabase-js':
-        specifier: ^2.57.4
-        version: 2.57.4
+        specifier: ^2.98.0
+        version: 2.98.0
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -380,10 +381,10 @@ importers:
         version: 0.24.1
       '@supabase/ssr':
         specifier: ^0.5.2
-        version: 0.5.2(@supabase/supabase-js@2.57.4)
+        version: 0.5.2(@supabase/supabase-js@2.98.0)
       '@supabase/supabase-js':
-        specifier: ^2.57.4
-        version: 2.57.4
+        specifier: ^2.98.0
+        version: 2.98.0
       '@vis.gl/react-google-maps':
         specifier: ^1.7.1
         version: 1.7.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -465,10 +466,10 @@ importers:
         version: link:../types
       '@supabase/ssr':
         specifier: ^0.5.2
-        version: 0.5.2(@supabase/supabase-js@2.57.4)
+        version: 0.5.2(@supabase/supabase-js@2.98.0)
       '@supabase/supabase-js':
-        specifier: ^2.57.4
-        version: 2.57.4
+        specifier: ^2.98.0
+        version: 2.98.0
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
@@ -484,7 +485,7 @@ importers:
         version: 19.1.0
       '@vitest/coverage-v8':
         specifier: ^3.2.4
-        version: 3.2.4(@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))
+        version: 3.2.4(@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))
       react:
         specifier: 19.0.0
         version: 19.0.0
@@ -496,7 +497,7 @@ importers:
         version: 5.9.2
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/hooks:
     dependencies:
@@ -510,7 +511,7 @@ importers:
         specifier: workspace:*
         version: link:../types
       '@supabase/supabase-js':
-        specifier: ^2.57.4
+        specifier: ^2.98.0
         version: 2.98.0
       react:
         specifier: 19.0.0
@@ -538,7 +539,7 @@ importers:
         specifier: workspace:*
         version: link:../types
       '@supabase/supabase-js':
-        specifier: ^2.57.4
+        specifier: ^2.98.0
         version: 2.98.0
     devDependencies:
       '@autamedica/typescript-config':
@@ -602,7 +603,7 @@ importers:
         version: 5.9.2
       vitest:
         specifier: ^4.1.0
-        version: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
+        version: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/supabase-client:
     dependencies:
@@ -613,8 +614,8 @@ importers:
         specifier: workspace:*
         version: link:../types
       '@supabase/supabase-js':
-        specifier: ^2.57.4
-        version: 2.57.4
+        specifier: ^2.98.0
+        version: 2.98.0
     devDependencies:
       '@autamedica/typescript-config':
         specifier: workspace:*
@@ -644,8 +645,8 @@ importers:
         specifier: workspace:*
         version: link:../types
       '@supabase/supabase-js':
-        specifier: ^2.57.4
-        version: 2.57.4
+        specifier: ^2.98.0
+        version: 2.98.0
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.0.0)
@@ -2753,33 +2754,17 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@supabase/auth-js@2.71.1':
-    resolution: {integrity: sha512-mMIQHBRc+SKpZFRB2qtupuzulaUhFYupNyxqDj5Jp/LyPvcWvjaJzZzObv6URtL/O6lPxkanASnotGtNpS3H2Q==}
-
   '@supabase/auth-js@2.98.0':
     resolution: {integrity: sha512-GBH361T0peHU91AQNzOlIrjUZw9TZbB9YDRiyFgk/3Kvr3/Z1NWUZ2athWTfHhwNNi8IrW00foyFxQD9IO/Trg==}
     engines: {node: '>=20.0.0'}
-
-  '@supabase/functions-js@2.4.6':
-    resolution: {integrity: sha512-bhjZ7rmxAibjgmzTmQBxJU6ZIBCCJTc3Uwgvdi4FewueUTAGO5hxZT1Sj6tiD+0dSXf9XI87BDdJrg12z8Uaew==}
 
   '@supabase/functions-js@2.98.0':
     resolution: {integrity: sha512-N/xEyiNU5Org+d+PNCpv+TWniAXRzxIURxDYsS/m2I/sfAB/HcM9aM2Dmf5edj5oWb9GxID1OBaZ8NMmPXL+Lg==}
     engines: {node: '>=20.0.0'}
 
-  '@supabase/node-fetch@2.6.15':
-    resolution: {integrity: sha512-1ibVeYUacxWYi9i0cf5efil6adJ9WRyZBLivgjs+AUpewx1F3xPi7gLgaASI2SmIQxPoCEjAsLAzKPgMJVgOUQ==}
-    engines: {node: 4.x || >=6.0.0}
-
-  '@supabase/postgrest-js@1.21.4':
-    resolution: {integrity: sha512-TxZCIjxk6/dP9abAi89VQbWWMBbybpGWyvmIzTd79OeravM13OjR/YEYeyUOPcM1C3QyvXkvPZhUfItvmhY1IQ==}
-
   '@supabase/postgrest-js@2.98.0':
     resolution: {integrity: sha512-v6e9WeZuJijzUut8HyXu6gMqWFepIbaeaMIm1uKzei4yLg9bC9OtEW9O14LE/9ezqNbSAnSLO5GtOLFdm7Bpkg==}
     engines: {node: '>=20.0.0'}
-
-  '@supabase/realtime-js@2.15.5':
-    resolution: {integrity: sha512-/Rs5Vqu9jejRD8ZeuaWXebdkH+J7V6VySbCZ/zQM93Ta5y3mAmocjioa/nzlB6qvFmyylUgKVS1KpE212t30OA==}
 
   '@supabase/realtime-js@2.98.0':
     resolution: {integrity: sha512-rOWt28uGyFipWOSd+n0WVMr9kUXiWaa7J4hvyLCIHjRFqWm1z9CaaKAoYyfYMC1Exn3WT8WePCgiVhlAtWC2yw==}
@@ -2788,17 +2773,11 @@ packages:
   '@supabase/ssr@0.5.2':
     resolution: {integrity: sha512-n3plRhr2Bs8Xun1o4S3k1CDv17iH5QY9YcoEvXX3bxV1/5XSasA0mNXYycFmADIdtdE6BG9MRjP5CGIs8qxC8A==}
     peerDependencies:
-      '@supabase/supabase-js': ^2.43.4
-
-  '@supabase/storage-js@2.12.1':
-    resolution: {integrity: sha512-QWg3HV6Db2J81VQx0PqLq0JDBn4Q8B1FYn1kYcbla8+d5WDmTdwwMr+EJAxNOSs9W4mhKMv+EYCpCrTFlTj4VQ==}
+      '@supabase/supabase-js': ^2.98.0
 
   '@supabase/storage-js@2.98.0':
     resolution: {integrity: sha512-tzr2mG+v7ILSAZSfZMSL9OPyIH4z1ikgQ8EcQTKfMRz4EwmlFt3UnJaGzSOxyvF5b+fc9So7qdSUWTqGgeLokQ==}
     engines: {node: '>=20.0.0'}
-
-  '@supabase/supabase-js@2.57.4':
-    resolution: {integrity: sha512-LcbTzFhHYdwfQ7TRPfol0z04rLEyHabpGYANME6wkQ/kLtKNmI+Vy+WEM8HxeOZAtByUFxoUTTLwhXmrh+CcVw==}
 
   '@supabase/supabase-js@2.98.0':
     resolution: {integrity: sha512-Ohc97CtInLwZyiSASz7tT9/Abm/vqnIbO9REp+PivVUII8UZsuI3bngRQnYgJdFoOIwvaEII1fX1qy8x0CyNiw==}
@@ -2962,9 +2941,6 @@ packages:
 
   '@types/pg@8.18.0':
     resolution: {integrity: sha512-gT+oueVQkqnj6ajGJXblFR4iavIXWsGAFCk3dP4Kki5+a9R4NMt0JARdk6s8cUKcfUoqP5dAtDSLU8xYUTFV+Q==}
-
-  '@types/phoenix@1.6.6':
-    resolution: {integrity: sha512-PIzZZlEppgrpoT2QgbnDU+MMzuR6BbCjllj0bM70lWoejMeNJAxCchxnv7J3XFkI8MpygtRpzXrIlmWUBclP5A==}
 
   '@types/phoenix@1.6.7':
     resolution: {integrity: sha512-oN9ive//QSBkf19rfDv45M7eZPi0eEXylht2OLEXicu5b4KoQ1OzXIw+xDSGWxSxe1JmepRR/ZH283vsu518/Q==}
@@ -10653,43 +10629,17 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@supabase/auth-js@2.71.1':
-    dependencies:
-      '@supabase/node-fetch': 2.6.15
-
   '@supabase/auth-js@2.98.0':
     dependencies:
       tslib: 2.8.1
-
-  '@supabase/functions-js@2.4.6':
-    dependencies:
-      '@supabase/node-fetch': 2.6.15
 
   '@supabase/functions-js@2.98.0':
     dependencies:
       tslib: 2.8.1
 
-  '@supabase/node-fetch@2.6.15':
-    dependencies:
-      whatwg-url: 5.0.0
-
-  '@supabase/postgrest-js@1.21.4':
-    dependencies:
-      '@supabase/node-fetch': 2.6.15
-
   '@supabase/postgrest-js@2.98.0':
     dependencies:
       tslib: 2.8.1
-
-  '@supabase/realtime-js@2.15.5':
-    dependencies:
-      '@supabase/node-fetch': 2.6.15
-      '@types/phoenix': 1.6.6
-      '@types/ws': 8.18.1
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
 
   '@supabase/realtime-js@2.98.0':
     dependencies:
@@ -10701,32 +10651,16 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@supabase/ssr@0.5.2(@supabase/supabase-js@2.57.4)':
+  '@supabase/ssr@0.5.2(@supabase/supabase-js@2.98.0)':
     dependencies:
-      '@supabase/supabase-js': 2.57.4
+      '@supabase/supabase-js': 2.98.0
       '@types/cookie': 0.6.0
       cookie: 0.7.2
-
-  '@supabase/storage-js@2.12.1':
-    dependencies:
-      '@supabase/node-fetch': 2.6.15
 
   '@supabase/storage-js@2.98.0':
     dependencies:
       iceberg-js: 0.8.1
       tslib: 2.8.1
-
-  '@supabase/supabase-js@2.57.4':
-    dependencies:
-      '@supabase/auth-js': 2.71.1
-      '@supabase/functions-js': 2.4.6
-      '@supabase/node-fetch': 2.6.15
-      '@supabase/postgrest-js': 1.21.4
-      '@supabase/realtime-js': 2.15.5
-      '@supabase/storage-js': 2.12.1
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
 
   '@supabase/supabase-js@2.98.0':
     dependencies:
@@ -10925,8 +10859,6 @@ snapshots:
       '@types/node': 22.18.6
       pg-protocol: 1.12.0
       pg-types: 2.2.0
-
-  '@types/phoenix@1.6.6': {}
 
   '@types/phoenix@1.6.7': {}
 
@@ -11263,16 +11195,16 @@ snapshots:
     optionalDependencies:
       babel-plugin-react-compiler: 1.0.0
 
-  '@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2)))':
+  '@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/mocker': 3.2.4(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))
+      '@vitest/mocker': 3.2.4(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
       '@vitest/utils': 3.2.4
       magic-string: 0.30.21
       sirv: 3.0.2
       tinyrainbow: 2.0.0
-      vitest: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))
+      vitest: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
       ws: 8.19.0
     optionalDependencies:
       playwright: 1.58.2
@@ -11283,16 +11215,16 @@ snapshots:
       - vite
     optional: true
 
-  '@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))':
+  '@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2)))':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/mocker': 3.2.4(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitest/mocker': 3.2.4(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))
       '@vitest/utils': 3.2.4
       magic-string: 0.30.21
       sirv: 3.0.2
       tinyrainbow: 2.0.0
-      vitest: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
+      vitest: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))
       ws: 8.19.0
     optionalDependencies:
       playwright: 1.58.2
@@ -11320,6 +11252,27 @@ snapshots:
       - utf-8-validate
       - vite
 
+  '@vitest/coverage-v8@3.2.4(@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))':
+    dependencies:
+      '@ampproject/remapping': 2.3.0
+      '@bcoe/v8-coverage': 1.0.2
+      ast-v8-to-istanbul: 0.3.12
+      debug: 4.4.3(supports-color@5.5.0)
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-lib-source-maps: 5.0.6
+      istanbul-reports: 3.2.0
+      magic-string: 0.30.21
+      magicast: 0.3.5
+      std-env: 3.10.0
+      test-exclude: 7.0.2
+      tinyrainbow: 2.0.0
+      vitest: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
+    optionalDependencies:
+      '@vitest/browser': 3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))
+    transitivePeerDependencies:
+      - supports-color
+
   '@vitest/coverage-v8@3.2.4(@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2)))':
     dependencies:
       '@ampproject/remapping': 2.3.0
@@ -11338,27 +11291,6 @@ snapshots:
       vitest: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))
     optionalDependencies:
       '@vitest/browser': 3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2)))
-    transitivePeerDependencies:
-      - supports-color
-
-  '@vitest/coverage-v8@3.2.4(@vitest/browser@3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))':
-    dependencies:
-      '@ampproject/remapping': 2.3.0
-      '@bcoe/v8-coverage': 1.0.2
-      ast-v8-to-istanbul: 0.3.12
-      debug: 4.4.3(supports-color@5.5.0)
-      istanbul-lib-coverage: 3.2.2
-      istanbul-lib-report: 3.0.1
-      istanbul-lib-source-maps: 5.0.6
-      istanbul-reports: 3.2.0
-      magic-string: 0.30.21
-      magicast: 0.3.5
-      std-env: 3.10.0
-      test-exclude: 7.0.2
-      tinyrainbow: 2.0.0
-      vitest: 4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))
-    optionalDependencies:
-      '@vitest/browser': 3.2.4(playwright@1.58.2)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.0(@edge-runtime/vm@3.2.0)(@types/node@22.18.6)(happy-dom@20.8.4)(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)))
     transitivePeerDependencies:
       - supports-color
 
@@ -11387,6 +11319,15 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.0
 
+  '@vitest/mocker@3.2.4(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      '@vitest/spy': 3.2.4
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)
+    optional: true
+
   '@vitest/mocker@3.2.4(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2))':
     dependencies:
       '@vitest/spy': 3.2.4
@@ -11394,15 +11335,6 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.20.6)(yaml@2.8.2)
-    optional: true
-
-  '@vitest/mocker@3.2.4(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))':
-    dependencies:
-      '@vitest/spy': 3.2.4
-      estree-walker: 3.0.3
-      magic-string: 0.30.21
-    optionalDependencies:
-      vite: 8.0.1(@types/node@22.18.6)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2)
     optional: true
 
   '@vitest/mocker@4.1.0(vite@8.0.1(@types/node@22.18.6)(esbuild@0.25.10)(jiti@1.21.7)(terser@5.16.9)(tsx@4.21.0)(yaml@2.8.2))':

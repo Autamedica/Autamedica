@@ -59,7 +59,7 @@ export function createServerClientWithCookies(
     {
       cookies: {
         getAll: () => cookies.getAll(),
-        setAll: (cookiesToSet) => cookies.setAll(cookiesToSet),
+        setAll: (cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) => cookies.setAll(cookiesToSet),
       },
     }
   ) as unknown as SupabaseClient<Database>;

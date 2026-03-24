@@ -46,8 +46,6 @@ export function createBrowserClient(): SupabaseClient<Database> {
       // locking provides no benefit. Without this, competing lock requests
       // between tabs throw "AbortError: Lock broken by another request with
       // the 'steal' option" as unhandled promise rejections.
-      // @ts-expect-error -- lock is available in @supabase/auth-js but not
-      // typed in the @supabase/ssr createBrowserClient options yet
       lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<unknown>) => fn(),
     }
   }) as unknown as SupabaseClient

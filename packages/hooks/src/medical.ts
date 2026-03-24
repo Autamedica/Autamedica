@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Patient, Appointment, AppointmentWithDetails } from "@autamedica/types";
+import type { Patient, Appointment, AppointmentWithDetails } from "@autamedica/types";
 
-// Pick extracts only the public API, avoiding structural typing issues with protected class members
-type AnySupabaseClient = Pick<SupabaseClient<Database>, 'from' | 'auth'>;
+// Structural interface for Supabase client — avoids referencing @supabase/supabase-js types
+// directly, which causes version-drift incompatibilities across the monorepo.
+type AnySupabaseClient = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase's from() returns deeply generic PostgrestQueryBuilder that drifts between @supabase/supabase-js versions; structural typing causes TS2589
+  from(relation: string): any;
+  auth: {
+    getSession(): Promise<{ data: { session: { user: { id: string } } | null }; error: unknown }>;
+  };
+};
 import { logger } from '@autamedica/shared';
 
 /**
@@ -72,9 +78,9 @@ export function usePatients(supabaseClient?: AnySupabaseClient | null) {
 
       // Mapear datos joinados a la interfaz Patient (camelCase, flat)
       // Cast needed: DB Row → domain Patient (branded PatientId, camelCase fields)
-      const rows = data ?? [];
-      const mapped = rows.map((row) => {
-        const profile = (row as Record<string, unknown>).profile as Record<string, unknown> | null;
+      const rows = (data ?? []) as Record<string, unknown>[];
+      const mapped = rows.map((row: Record<string, unknown>) => {
+        const profile = row.profile as Record<string, unknown> | null;
         return {
           id: row.id,
           userId: row.user_id,
