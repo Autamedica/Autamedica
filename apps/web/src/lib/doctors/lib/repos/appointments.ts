@@ -34,7 +34,8 @@ export interface UiAppointment {
 
 export async function listAppointments(): Promise<UiAppointment[]> {
   const data = await selectActive<'appointments', UiAppointment>('appointments', '*', {
-    orderBy: { column: 'start_time', ascending: true }
+    orderBy: { column: 'start_time', ascending: true },
+    includeDeleted: true,
   });
   return data;
 }

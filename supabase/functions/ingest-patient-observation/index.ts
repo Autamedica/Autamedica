@@ -168,7 +168,7 @@ async function resolvePatientId(
     .from('patients')
     .select('id')
     .eq('user_id', userId)
-    .is('deleted_at', null)
+    .eq('active', true)
     .maybeSingle();
 
   if (error) {

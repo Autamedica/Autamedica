@@ -25,7 +25,7 @@ async function resolveAuthenticatedPatientContext(
     .from('patients')
     .select('id')
     .eq('user_id', user.id)
-    .is('deleted_at', null)
+    .eq('active', true)
     .maybeSingle();
 
   if (patientError) {

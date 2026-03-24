@@ -62,7 +62,8 @@ export function useRealPatients(): UsePatientsResult {
         *,
         profile:profiles!inner(*)
       `, {
-        orderBy: { column: 'created_at', ascending: false }
+        orderBy: { column: 'created_at', ascending: false },
+        includeDeleted: true,
       });
 
       // Filtrar solo activos
@@ -114,7 +115,9 @@ export function useCurrentPatient(userId?: string): UseCurrentPatientResult {
       const data = await selectActive<'patients', UiPatient>('patients', `
         *,
         profile:profiles!inner(*)
-      `);
+      `, {
+        includeDeleted: true,
+      });
 
       // Filtrar por user_id y active
       const currentPatient = data.find(p => p.userId === userId && p.active);
@@ -168,7 +171,7 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       setError(null);
 
       // First get the doctor ID
-      const doctors = await selectActive<'doctors', { id: string; userId: string }>('doctors', 'id, user_id');
+      const doctors = await selectActive<'doctors', { id: string; userId: string }>('doctors', 'id, user_id', { includeDeleted: true });
       const doctor = doctors.find(d => d.userId === doctorUserId);
 
       if (!doctor) {
@@ -184,7 +187,7 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
         doctor_id,
         patient_id,
         active
-      `);
+      `, { includeDeleted: true });
 
       // Filter by doctor and active
       const activeAssignments = careTeam.filter(
@@ -203,7 +206,7 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       const allPatients = await selectActive<'patients', UiPatient>('patients', `
         *,
         profile:profiles!inner(*)
-      `);
+      `, { includeDeleted: true });
 
       const doctorPatients = allPatients.filter(p =>
         patientIds.includes(p.id) && p.active
@@ -256,7 +259,8 @@ export function usePatientsByCompany(companyId?: string): UsePatientsByCompanyRe
         *,
         profile:profiles!inner(*)
       `, {
-        orderBy: { column: 'created_at', ascending: false }
+        orderBy: { column: 'created_at', ascending: false },
+        includeDeleted: true,
       });
 
       // Filtrar por company_id y active

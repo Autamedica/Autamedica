@@ -137,7 +137,6 @@ export function useAppointments(supabaseClient?: AnySupabaseClient | null, docto
       let query = supabaseClient
         .from('appointments')
         .select('*')
-        .is('deleted_at', null)
         .order('start_time', { ascending: true });
 
       // Filtrar por doctor si se proporciona ID
@@ -196,7 +195,6 @@ export function useAppointmentsWithDetails(supabaseClient?: AnySupabaseClient | 
           patient:patients(id, user_id, dni),
           doctor:doctors(id, specialty, license_number)
         `)
-        .is('deleted_at', null)
         .order('start_time', { ascending: true });
 
       // Filtrar por doctor si se proporciona ID

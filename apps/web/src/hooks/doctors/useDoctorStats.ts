@@ -60,7 +60,6 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
           .from('appointments')
           .select('patient_id')
           .eq('doctor_id', doctorId)
-          .is('deleted_at', null)
           .not('patient_id', 'is', null),
         supabase
           .from('medical_records')
