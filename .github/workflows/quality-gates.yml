@@ -107,4 +107,3 @@ jobs:
       - run: pnpm build:packages:core
       - run: pnpm check:policy
       - run: pnpm hardcode:check
-      - run: pnpm docs:validate

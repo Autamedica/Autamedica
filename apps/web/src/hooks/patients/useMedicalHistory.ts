@@ -164,8 +164,9 @@ export function useMedicalHistory(patientId?: PatientId) {
 
   const addCondition = async (condition: { condition: string; icd10_code?: string; notes?: string }) => {
     try {
-      const res = await fetch('/api/medical-history/conditions', {
+      const res = await fetch('/api/patients/medical-history/conditions', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           condition: condition.condition,
@@ -183,8 +184,9 @@ export function useMedicalHistory(patientId?: PatientId) {
 
   const addMedication = async (medication: { medication_name: string; dosage?: string; frequency?: string; route?: string; reason?: string; end_date?: string | null }) => {
     try {
-      const res = await fetch('/api/medical-history/medications', {
+      const res = await fetch('/api/patients/medical-history/medications', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medication_name: medication.medication_name,
@@ -205,8 +207,9 @@ export function useMedicalHistory(patientId?: PatientId) {
 
   const addAllergy = async (allergy: { allergen: string; type?: string; severity?: string; reaction?: string; notes?: string }) => {
     try {
-      const res = await fetch('/api/medical-history/allergies', {
+      const res = await fetch('/api/patients/medical-history/allergies', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           allergen: allergy.allergen,

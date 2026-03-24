@@ -35,7 +35,7 @@ export function useAppointments(): UseAppointmentsResult {
     setError(null);
 
     try {
-      const response = await fetch('/api/appointments');
+      const response = await fetch('/api/patients/appointments', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Error al cargar las citas');
@@ -67,8 +67,9 @@ export function useAppointments(): UseAppointmentsResult {
     setError(null);
 
     try {
-      const response = await fetch('/api/appointments', {
+      const response = await fetch('/api/patients/appointments', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -110,8 +111,9 @@ export function useAppointments(): UseAppointmentsResult {
     setError(null);
 
     try {
-      const response = await fetch(`/api/appointments/${id}`, {
+      const response = await fetch(`/api/patients/appointments/${id}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -152,8 +154,9 @@ export function useAppointments(): UseAppointmentsResult {
     setError(null);
 
     try {
-      const response = await fetch(`/api/appointments/${id}`, {
+      const response = await fetch(`/api/patients/appointments/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) {

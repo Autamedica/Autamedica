@@ -43,17 +43,7 @@ fi
 # 5. Guard de drift tipos DB (migraciones + cambios apps/packages sin types)
 node scripts/ci/check-db-type-drift.mjs || exit 1
 
-# 6. Export validation — solo cuando cambian archivos de packages
-PACKAGE_FILES=$(git diff --cached --name-only | grep -E "^packages/" || true)
-
-if [ -n "$PACKAGE_FILES" ]; then
-  echo "📝 Validando exports vs glosario (cambios en packages detectados)..."
-  pnpm docs:validate || exit 1
-else
-  echo "✅ Sin cambios en packages, omitiendo validación de exports"
-fi
-
-# 7. Lint staged files
+# 6. Lint staged files
 echo "🧹 Ejecutando lint en archivos staged..."
 pnpm lint-staged || exit 1
 

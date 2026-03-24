@@ -83,7 +83,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/anamnesis', { credentials: 'include' });
+      const res = await fetch('/api/patients/anamnesis', { credentials: 'include' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err?.error || 'No se pudo cargar la anamnesis');
@@ -110,7 +110,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
     try {
       const current = await fetchAnamnesis();
       if (initial && Object.keys(initial).length > 0) {
-        await fetch('/api/anamnesis', {
+        await fetch('/api/patients/anamnesis', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(initial),
@@ -130,7 +130,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
   // Update anamnesis
   const updateAnamnesis = useCallback(async (update: Partial<ApiAnamnesis>): Promise<boolean> => {
     try {
-      const res = await fetch('/api/anamnesis', {
+      const res = await fetch('/api/patients/anamnesis', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(update),
@@ -155,7 +155,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
     data: Record<string, AnamnesisFieldValue>
   ): Promise<boolean> => {
     try {
-      const res = await fetch('/api/anamnesis', {
+      const res = await fetch('/api/patients/anamnesis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stepId: section, data, completed: true }),
