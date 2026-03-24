@@ -422,8 +422,17 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
 
   if (authLoading || (user && onboardingRequired === null)) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600">
+            <Activity className="h-6 w-6 text-white" />
+            <span className="absolute -bottom-1 -right-1 h-4 w-4 animate-spin rounded-full border-2 border-am-doctor-200 border-t-am-doctor-500" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-am-surface-800">Cargando portal</p>
+            <p className="mt-0.5 text-xs text-am-surface-500">Verificando credenciales...</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -438,7 +447,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col text-gray-900">
+    <div className="flex min-h-0 flex-1 flex-col text-am-surface-900">
       <div className={`call-area ${isFocusMode ? 'gap-3' : 'gap-4'} flex min-h-0 flex-1 flex-col lg:flex-row`}>
         <section className="call-area__videoCard relative flex min-h-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-lg">
@@ -638,7 +647,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                 patientId: session?.patientId ?? '',
                 patientName: getPatientDisplayName(patient),
               }}
-              className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
+              className="mt-3 rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm sm:p-6"
             />
           )}
         </section>
@@ -647,8 +656,8 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
           <button
             type="button"
             onClick={toggleQuickActionsVisibility}
-            className={`call-area__quickActionsHandle hidden flex-col items-center gap-1 rounded-2xl border border-gray-200 bg-white px-3 py-3 text-xs font-medium text-gray-700 shadow-sm transition hover:border-blue-400 hover:text-gray-900 lg:flex ${
-              isQuickActionsVisible ? 'ring-1 ring-blue-400/60' : ''
+            className={`call-area__quickActionsHandle hidden flex-col items-center gap-1 rounded-2xl border border-am-surface-200 bg-white px-3 py-3 text-xs font-medium text-am-surface-700 shadow-am-sm transition-all duration-am-fast hover:border-am-doctor-400 hover:text-am-surface-900 hover:shadow-am-md lg:flex ${
+              isQuickActionsVisible ? 'ring-1 ring-am-doctor-400/60' : ''
             }`}
             aria-expanded={isQuickActionsVisible}
             aria-label="Herramientas rápidas de la consulta"
@@ -660,7 +669,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
               </>
             ) : (
               <>
-                <span className="flex items-center gap-1 text-blue-600">
+                <span className="flex items-center gap-1 text-am-doctor-600">
                   <FileText className="h-3 w-3" />
                   <Pill className="h-3 w-3" />
                   <Activity className="h-3 w-3" />
@@ -668,25 +677,25 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   <Brain className="h-3 w-3" />
                 </span>
                 <span className="text-[11px] font-semibold uppercase tracking-wide">Herramientas</span>
-                <span className="text-[10px] font-normal text-gray-500">Notas · Rx · Signos · IA</span>
+                <span className="text-[10px] font-normal text-am-surface-500">Notas · Rx · Signos · IA</span>
               </>
             )}
           </button>
         )}
 
         <aside
-          className={`right-drawer hidden h-full flex-col space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:flex ${
+          className={`right-drawer hidden h-full flex-col space-y-4 rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm lg:flex ${
             isFocusMode && isQuickActionsVisible ? 'right-drawer--open' : ''
           }`}
         >
           <div className="flex items-center justify-between px-1 pb-0">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">Acciones rápidas</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-am-surface-500">Acciones rápidas</h3>
             <div className="flex items-center gap-1">
               {isFocusMode && (
                 <button
                   type="button"
                   onClick={closeQuickActions}
-                  className="rounded-lg p-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+                  className="rounded-lg p-1 text-am-surface-500 transition-all duration-am-fast hover:bg-am-surface-100 hover:text-am-surface-800"
                   aria-label="Cerrar acciones rápidas"
                 >
                   <X className="h-4 w-4" />
@@ -695,7 +704,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
               <button
                 type="button"
                 onClick={() => setIsQuickActionsCollapsed(!isQuickActionsCollapsed)}
-                className="rounded-lg p-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+                className="rounded-lg p-1 text-am-surface-500 transition-all duration-am-fast hover:bg-am-surface-100 hover:text-am-surface-800"
                 aria-expanded={!isQuickActionsCollapsed}
                 aria-controls="quick-actions-panel"
               >
@@ -736,8 +745,8 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
               </div>
 
               {!session?.patientId && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
-                  <p className="text-xs text-gray-400">Selecciona un paciente para habilitar acciones médicas</p>
+                <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-3">
+                  <p className="text-xs text-am-surface-500">Selecciona un paciente para habilitar acciones médicas</p>
                 </div>
               )}
             </div>
@@ -745,12 +754,12 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
 
           {isQuickActionsCollapsed && (
             <div className="px-1 pb-2">
-              <div className="flex items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 py-2">
-                <FileText className="h-3 w-3 text-gray-500" />
-                <Pill className="h-3 w-3 text-gray-500" />
-                <Activity className="h-3 w-3 text-gray-500" />
-                <Brain className="h-3 w-3 text-gray-500" />
-                <span className="text-xs text-gray-500">5 acciones disponibles</span>
+              <div className="flex items-center justify-center gap-3 rounded-xl border border-am-surface-200 bg-am-surface-50 py-2.5">
+                <FileText className="h-3 w-3 text-am-surface-500" />
+                <Pill className="h-3 w-3 text-am-surface-500" />
+                <Activity className="h-3 w-3 text-am-surface-500" />
+                <Brain className="h-3 w-3 text-am-surface-500" />
+                <span className="text-xs text-am-surface-500">5 acciones disponibles</span>
               </div>
             </div>
           )}
@@ -762,7 +771,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
           <button
             type="button"
             onClick={() => setIsQuickActionsCollapsed(false)}
-            className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-xs text-gray-700 shadow-sm transition hover:border-gray-300 hover:text-gray-900"
+            className="flex items-center gap-2 rounded-full border border-am-surface-200 bg-white px-4 py-2.5 text-xs font-medium text-am-surface-700 shadow-am-sm transition-all duration-am-fast hover:border-am-surface-300 hover:text-am-surface-900 hover:shadow-am-md active:scale-95"
           >
             <MonitorUp className="h-4 w-4" />
             Acciones rápidas
@@ -775,7 +784,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
           <button
             type="button"
             onClick={() => setShowControls(!showControls)}
-            className="rounded-full border border-gray-200 bg-white p-3 text-gray-700 shadow-sm transition hover:border-gray-300 hover:text-gray-900"
+            className="rounded-full border border-am-surface-200 bg-white p-3 text-am-surface-700 shadow-am-sm transition-all duration-am-fast hover:border-am-surface-300 hover:text-am-surface-900 active:scale-95"
             aria-label="Alternar controles"
           >
             {showControls ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
@@ -783,7 +792,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
           <button
             type="button"
             onClick={() => setIsQuickActionsCollapsed(false)}
-            className="flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-lg transition hover:bg-blue-500"
+            className="flex items-center gap-2 rounded-full bg-am-doctor-600 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-am-doctor-500/20 transition-all duration-am-fast hover:bg-am-doctor-500 active:scale-95"
           >
             <Sparkles className="h-4 w-4" />
             Acciones
@@ -802,59 +811,59 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
 
       {showDiagnosisPanel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="w-full max-w-3xl rounded-2xl border border-am-surface-200 bg-white p-5 shadow-am-xl sm:p-8">
             <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3 text-gray-900">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                  <Brain className="h-5 w-5" />
+              <div className="flex items-center gap-3 text-am-surface-900">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-50 to-am-primary-50 ring-1 ring-am-doctor-200">
+                  <Brain className="h-5 w-5 text-am-doctor-600" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold">Análisis IA · {getPatientDisplayName(patient)}</h2>
-                  <p className="text-xs text-gray-500">Carga un resumen de síntomas para generar diagnósticos asistidos.</p>
+                  <p className="text-xs text-am-surface-500">Carga un resumen de síntomas para generar diagnósticos asistidos.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowDiagnosisPanel(false)}
-                className="self-start rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 transition hover:border-gray-300 hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:self-auto"
+                className="self-start rounded-xl border border-am-surface-200 px-4 py-1.5 text-xs font-medium text-am-surface-700 transition-all duration-am-fast hover:border-am-surface-300 hover:bg-am-surface-50 hover:text-am-surface-900 active:scale-95 sm:self-auto"
               >
                 Cerrar
               </button>
             </header>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-gray-800">
-                <span>Síntomas principales</span>
+              <label className="space-y-2 text-sm text-am-surface-800">
+                <span className="font-medium">Síntomas principales</span>
                 <textarea
                   placeholder="Describe los síntomas del paciente..."
-                  className="min-h-[120px] w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="min-h-[120px] w-full rounded-xl border border-am-surface-200 bg-am-surface-50 p-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 transition-all duration-am-fast focus:border-am-doctor-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-400/30"
                 />
               </label>
-              <label className="space-y-2 text-sm text-gray-800">
-                <span>Duración de síntomas</span>
+              <label className="space-y-2 text-sm text-am-surface-800">
+                <span className="font-medium">Duración de síntomas</span>
                 <input
                   placeholder="Ej: 3 días"
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full rounded-xl border border-am-surface-200 bg-am-surface-50 p-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 transition-all duration-am-fast focus:border-am-doctor-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-400/30"
                 />
               </label>
             </div>
 
             {aiProcessing && (
-              <div className="mt-6 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                <p className="text-sm text-blue-700">Analizando síntomas con IA...</p>
+              <div className="mt-6 flex items-center gap-3 rounded-xl border border-am-doctor-200 bg-am-doctor-50 p-4">
+                <Loader2 className="h-5 w-5 animate-spin text-am-doctor-600" />
+                <p className="text-sm font-medium text-am-doctor-700">Analizando síntomas con IA...</p>
               </div>
             )}
 
             <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <CheckCircle2 className="h-4 w-4 text-blue-600" />
+              <div className="flex items-center gap-2 text-xs text-am-surface-500">
+                <CheckCircle2 className="h-4 w-4 text-am-doctor-500" />
                 Datos encriptados y auditados.
               </div>
               <button
                 type="button"
                 disabled={aiProcessing}
-                className="flex items-center gap-2 self-stretch rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50 sm:self-auto"
+                className="flex items-center gap-2 self-stretch rounded-xl bg-gradient-to-r from-am-doctor-600 to-am-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-am-doctor-500/20 transition-all duration-am-fast hover:-translate-y-0.5 hover:shadow-am-doctor disabled:opacity-50 sm:self-auto"
               >
                 <Brain className="h-4 w-4" />
                 {aiProcessing ? 'Analizando...' : 'Analizar con IA'}
@@ -932,8 +941,8 @@ interface CompactActionProps {
 
 function CompactAction({ label, icon, intent = 'default', onClick }: CompactActionProps): JSX.Element {
   const intentStyles = {
-    default: 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100',
-    primary: 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
+    default: 'border-am-surface-200 bg-white text-am-surface-700 hover:bg-am-surface-50 hover:border-am-surface-300',
+    primary: 'border-am-doctor-200 bg-am-doctor-50 text-am-doctor-700 hover:bg-am-doctor-100',
     success: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
   }
 
@@ -941,9 +950,9 @@ function CompactAction({ label, icon, intent = 'default', onClick }: CompactActi
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition ${intentStyles[intent]}`}
+      className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-am-fast active:scale-[0.98] ${intentStyles[intent]}`}
     >
-      <span className={intent === 'success' ? 'text-emerald-600' : intent === 'primary' ? 'text-blue-600' : 'text-gray-500'}>
+      <span className={intent === 'success' ? 'text-emerald-600' : intent === 'primary' ? 'text-am-doctor-600' : 'text-am-surface-500'}>
         {icon}
       </span>
       {label}

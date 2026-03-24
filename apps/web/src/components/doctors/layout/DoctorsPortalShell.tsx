@@ -333,7 +333,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
               <Menu className="h-5 w-5" />
             </button>
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-lg shadow-am-doctor-500/20">
-              <Activity className="h-4.5 w-4.5 text-white" />
+              <Activity className="h-5 w-5 text-white" />
             </div>
             <div>
               <p className="text-sm font-bold tracking-tight text-am-surface-900">AutaMedica</p>
@@ -588,26 +588,36 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {activeSection === 'records' && <RecordsPanel />}
                 {activeSection === 'vitals' && <VitalSignsPanel />}
                 {activeSection === 'chat' && (
-                  <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-am-surface-200 bg-white p-8 text-center shadow-am-sm">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-am-doctor-50 ring-1 ring-am-doctor-200">
-                      <MessageSquare className="h-7 w-7 text-am-doctor-500" />
+                  <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-12 text-center shadow-am-sm">
+                    <div className="relative mb-6">
+                      <div className="absolute -inset-6 rounded-full bg-am-doctor-50/60" />
+                      <div className="absolute -inset-3 rounded-full bg-am-doctor-50" />
+                      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-lg shadow-am-doctor-500/20">
+                        <MessageSquare className="h-7 w-7 text-white" />
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-am-surface-900">Chat Médico</h3>
-                      <p className="mt-1 text-xs text-am-surface-500">Comunicación segura con pacientes y colegas</p>
-                    </div>
+                    <h3 className="text-lg font-semibold text-am-surface-900">Chat Médico</h3>
+                    <p className="mt-2 max-w-sm text-sm text-am-surface-500">Comunicación segura con pacientes y colegas en tiempo real</p>
+                    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-am-surface-100 px-3 py-1 text-[11px] font-medium text-am-surface-500 ring-1 ring-am-surface-200">
+                      Próximamente
+                    </span>
                   </div>
                 )}
                 {activeSection === 'diagnosis' && <DiagnosisPanel />}
                 {activeSection === 'history' && (
-                  <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-am-surface-200 bg-white p-8 text-center shadow-am-sm">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-am-doctor-50 ring-1 ring-am-doctor-200">
-                      <Brain className="h-7 w-7 text-am-doctor-500" />
+                  <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-12 text-center shadow-am-sm">
+                    <div className="relative mb-6">
+                      <div className="absolute -inset-6 rounded-full bg-am-doctor-50/60" />
+                      <div className="absolute -inset-3 rounded-full bg-am-doctor-50" />
+                      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-lg shadow-am-doctor-500/20">
+                        <Brain className="h-7 w-7 text-white" />
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-am-surface-900">Historial IA</h3>
-                      <p className="mt-1 text-xs text-am-surface-500">Historial de análisis y recomendaciones</p>
-                    </div>
+                    <h3 className="text-lg font-semibold text-am-surface-900">Historial IA</h3>
+                    <p className="mt-2 max-w-sm text-sm text-am-surface-500">Historial de análisis y recomendaciones generadas por inteligencia artificial</p>
+                    <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-am-surface-100 px-3 py-1 text-[11px] font-medium text-am-surface-500 ring-1 ring-am-surface-200">
+                      Próximamente
+                    </span>
                   </div>
                 )}
                 {activeSection === 'ranking' && <MedicalRankingPanel />}
