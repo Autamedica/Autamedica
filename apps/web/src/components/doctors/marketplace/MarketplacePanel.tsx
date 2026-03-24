@@ -130,16 +130,16 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
   }
 
   return (
-    <div className="h-full bg-white text-gray-900">
-      <div className="p-6 border-b border-gray-200">
+    <div className="h-full bg-am-surface-50 text-am-surface-900">
+      <div className="p-6 border-b border-am-surface-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <MapPin className="w-6 h-6 text-blue-600" />
+            <div className="p-2 bg-am-primary-50 rounded-lg">
+              <MapPin className="w-6 h-6 text-am-primary-600" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">Marketplace Médico</h1>
-              <p className="text-sm text-gray-500">Encuentra trabajo médico en Argentina</p>
+              <h1 className="text-xl font-semibold text-am-surface-900">Marketplace Médico</h1>
+              <p className="text-sm text-am-surface-500">Encuentra trabajo médico en Argentina</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -147,8 +147,8 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'list'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                  ? 'bg-am-primary-600 text-white'
+                  : 'bg-white text-am-surface-700 border border-am-surface-200 hover:bg-am-surface-100'
               }`}
             >
               <List className="w-4 h-4" />
@@ -157,8 +157,8 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
               onClick={() => setViewMode('map')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'map'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                  ? 'bg-am-primary-600 text-white'
+                  : 'bg-white text-am-surface-700 border border-am-surface-200 hover:bg-am-surface-100'
               }`}
             >
               <Map className="w-4 h-4" />
@@ -170,28 +170,28 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
       {viewMode === 'map' ? (
         <div className="flex h-[calc(100%-100px)]">
           {/* Panel lateral de filtros en vista mapa */}
-          <div className="w-80 border-r border-gray-200 p-4 overflow-y-auto">
+          <div className="w-80 border-r border-am-surface-200 p-4 overflow-y-auto">
             <div className="space-y-4">
               {/* Búsqueda */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-am-surface-500" />
                 <input
                   type="text"
                   placeholder="Buscar trabajos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-am-surface-200 rounded-lg text-am-surface-900 placeholder:text-am-surface-400 focus:outline-none focus:ring-2 focus:ring-am-primary-500"
                 />
               </div>
 
               {/* Filtros */}
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Especialidad</label>
+                  <label className="block text-sm font-medium text-am-surface-700 mb-2">Especialidad</label>
                   <select
                     value={selectedSpecialty}
                     onChange={(e) => setSelectedSpecialty(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg text-gray-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-white border border-am-surface-200 rounded-lg text-am-surface-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-am-primary-500"
                   >
                     <option value="all">Todas las especialidades</option>
                     {Object.values(MEDICAL_SPECIALTIES).map(specialty => (
@@ -201,11 +201,11 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Provincia</label>
+                  <label className="block text-sm font-medium text-am-surface-700 mb-2">Provincia</label>
                   <select
                     value={selectedLocation}
                     onChange={(e) => setSelectedLocation(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg text-gray-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-white border border-am-surface-200 rounded-lg text-am-surface-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-am-primary-500"
                   >
                     <option value="all">Todas las provincias</option>
                     {ARGENTINE_PROVINCES.map(province => (
@@ -215,11 +215,11 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de trabajo</label>
+                  <label className="block text-sm font-medium text-am-surface-700 mb-2">Tipo de trabajo</label>
                   <select
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-lg text-gray-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-white border border-am-surface-200 rounded-lg text-am-surface-900 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-am-primary-500"
                   >
                     <option value="all">Todos los tipos</option>
                     <option value="full-time">Tiempo completo</option>
@@ -236,32 +236,32 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                     id="urgent-only"
                     checked={showUrgentOnly}
                     onChange={(e) => setShowUrgentOnly(e.target.checked)}
-                    className="rounded border-gray-300 bg-white text-blue-600 focus:ring-blue-500"
+                    className="rounded border-am-surface-300 bg-white text-am-primary-600 focus:ring-am-primary-500"
                   />
-                  <label htmlFor="urgent-only" className="text-sm text-gray-700">
+                  <label htmlFor="urgent-only" className="text-sm text-am-surface-700">
                     Solo urgentes
                   </label>
                 </div>
               </div>
 
               {/* Estadísticas */}
-              <div className="bg-neutral-50 border border-gray-200 rounded-xl p-3 shadow-sm">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Estadísticas</h3>
+              <div className="bg-am-surface-50 border border-am-surface-200 rounded-2xl p-3 shadow-am-sm">
+                <h3 className="text-sm font-medium text-am-surface-900 mb-2">Estadísticas</h3>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-gray-500">Total trabajos:</span>
-                    <p className="text-gray-900 font-semibold">{filteredJobs.length}</p>
+                    <span className="text-am-surface-500">Total trabajos:</span>
+                    <p className="text-am-surface-900 font-semibold">{filteredJobs.length}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Urgentes:</span>
+                    <span className="text-am-surface-500">Urgentes:</span>
                     <p className="text-red-700 font-semibold">{filteredJobs.filter(j => j.urgent).length}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Remotos:</span>
-                    <p className="text-blue-700 font-semibold">{filteredJobs.filter(j => j.remote).length}</p>
+                    <span className="text-am-surface-500">Remotos:</span>
+                    <p className="text-am-primary-700 font-semibold">{filteredJobs.filter(j => j.remote).length}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Nuevos hoy:</span>
+                    <span className="text-am-surface-500">Nuevos hoy:</span>
                     <p className="text-emerald-700 font-semibold">
                       {filteredJobs.filter(j => {
                         const today = new Date()
@@ -291,20 +291,20 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
           </div>
         </div>
       ) : (
-        <div className="flex h-[calc(100%-100px)]">
+        <div className="flex flex-col lg:flex-row h-[calc(100%-100px)]">
           {/* Lista de trabajos */}
-          <div className="w-1/2 border-r border-gray-200 p-4">
+          <div className="w-full lg:w-1/2 border-r border-am-surface-200 p-4">
             {/* Controles de lista */}
             <div className="mb-4 space-y-3">
               {/* Búsqueda */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-am-surface-500" />
                 <input
                   type="text"
                   placeholder="Buscar trabajos médicos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-am-surface-200 rounded-lg text-am-surface-900 placeholder:text-am-surface-400 focus:outline-none focus:ring-2 focus:ring-am-primary-500"
                 />
               </div>
 
@@ -313,7 +313,7 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                 <select
                   value={selectedSpecialty}
                   onChange={(e) => setSelectedSpecialty(e.target.value)}
-                  className="bg-white border border-gray-200 rounded-lg text-gray-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="bg-white border border-am-surface-200 rounded-lg text-am-surface-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-am-primary-500"
                 >
                   <option value="all">Todas</option>
                   {Object.values(MEDICAL_SPECIALTIES).slice(0, 5).map(specialty => (
@@ -326,7 +326,7 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                   className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                     showUrgentOnly
                       ? 'bg-red-500 text-white'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                      : 'bg-white text-am-surface-700 border border-am-surface-200 hover:bg-am-surface-100'
                   }`}
                 >
                   Urgentes
@@ -335,7 +335,7 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'date' | 'salary' | 'applications')}
-                  className="bg-white border border-gray-200 rounded-lg text-gray-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="bg-white border border-am-surface-200 rounded-lg text-am-surface-900 px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-am-primary-500"
                 >
                   <option value="date">Más recientes</option>
                   <option value="salary">Mejor pagados</option>
@@ -350,16 +350,16 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                 <div
                   key={job.id}
                   onClick={() => handleItemSelect(job)}
-                  className={`p-4 border rounded-xl cursor-pointer transition-colors shadow-sm ${
+                  className={`p-4 border rounded-2xl cursor-pointer transition-all duration-am-fast ease-am-ease shadow-am-sm hover:-translate-y-0.5 hover:shadow-am-card-hover ${
                     selectedItem?.id === job.id
-                      ? 'border-blue-300 bg-blue-50'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                      ? 'border-am-primary-300 bg-am-primary-50'
+                      : 'border-am-surface-200 bg-white hover:bg-am-surface-50'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="font-medium text-gray-900">{job.title}</h3>
-                      <p className="text-sm text-gray-500">{job.company}</p>
+                      <h3 className="font-medium text-am-surface-900">{job.title}</h3>
+                      <p className="text-sm text-am-surface-500">{job.company}</p>
                     </div>
                     {job.urgent && (
                       <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
@@ -368,7 +368,7 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                  <div className="flex items-center gap-4 text-sm text-am-surface-500 mb-2">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
                       {job.location.city}, {job.location.province}
@@ -381,7 +381,7 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                        job.type === 'locum' ? 'Locum tenens' : 'Remoto'}
                     </span>
                     {job.remote && (
-                      <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded">
+                      <span className="bg-am-primary-50 text-am-primary-700 text-xs px-2 py-1 rounded">
                         Remoto
                       </span>
                     )}
@@ -389,11 +389,11 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
 
                   <div className="flex items-center justify-between">
                     <div className="text-sm">
-                      <span className="font-bold text-blue-600">
+                      <span className="font-bold text-am-primary-600">
                         {formatSalary(job)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-am-surface-500">
                       <span className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
                         {job.applicationsCount}
@@ -414,17 +414,17 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
           </div>
 
           {/* Detalles del trabajo */}
-          <div className="w-1/2 p-6 overflow-y-auto">
+          <div className="w-full lg:w-1/2 p-6 overflow-y-auto">
             {selectedItem && 'title' in selectedItem ? (
               <div className="space-y-6">
                 <div>
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">{selectedItem.title}</h2>
-                      <p className="text-gray-500">{selectedItem.company}</p>
+                      <h2 className="text-2xl font-bold text-am-surface-900">{selectedItem.title}</h2>
+                      <p className="text-am-surface-500">{selectedItem.company}</p>
                       <div className="flex items-center gap-2 mt-2">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                        <span className="text-gray-700">{selectedItem.location.city}, {selectedItem.location.province}</span>
+                        <MapPin className="w-4 h-4 text-am-surface-500" />
+                        <span className="text-am-surface-700">{selectedItem.location.city}, {selectedItem.location.province}</span>
                       </div>
                     </div>
                     {selectedItem.urgent && (
@@ -435,63 +435,63 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-neutral-50 border border-gray-200 rounded-xl p-4 shadow-sm">
-                      <DollarSign className="w-5 h-5 text-blue-600 mb-2" />
-                      <p className="text-sm text-gray-500">Salario</p>
-                      <p className="text-gray-900 font-medium">{formatSalary(selectedItem)}</p>
+                    <div className="bg-am-surface-50 border border-am-surface-200 rounded-2xl p-4 shadow-am-sm">
+                      <DollarSign className="w-5 h-5 text-am-primary-600 mb-2" />
+                      <p className="text-sm text-am-surface-500">Salario</p>
+                      <p className="text-am-surface-900 font-medium">{formatSalary(selectedItem)}</p>
                     </div>
-                    <div className="bg-neutral-50 border border-gray-200 rounded-xl p-4 shadow-sm">
-                      <Briefcase className="w-5 h-5 text-blue-700 mb-2" />
-                      <p className="text-sm text-gray-500">Tipo</p>
-                      <p className="text-gray-900 font-medium">{selectedItem.type}</p>
+                    <div className="bg-am-surface-50 border border-am-surface-200 rounded-2xl p-4 shadow-am-sm">
+                      <Briefcase className="w-5 h-5 text-am-primary-700 mb-2" />
+                      <p className="text-sm text-am-surface-500">Tipo</p>
+                      <p className="text-am-surface-900 font-medium">{selectedItem.type}</p>
                     </div>
-                    <div className="bg-neutral-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="bg-am-surface-50 border border-am-surface-200 rounded-2xl p-4 shadow-am-sm">
                       <Users className="w-5 h-5 text-purple-700 mb-2" />
-                      <p className="text-sm text-gray-500">Aplicaciones</p>
-                      <p className="text-gray-900 font-medium">{selectedItem.applicationsCount}</p>
+                      <p className="text-sm text-am-surface-500">Aplicaciones</p>
+                      <p className="text-am-surface-900 font-medium">{selectedItem.applicationsCount}</p>
                     </div>
-                    <div className="bg-neutral-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <div className="bg-am-surface-50 border border-am-surface-200 rounded-2xl p-4 shadow-am-sm">
                       <Clock className="w-5 h-5 text-amber-700 mb-2" />
-                      <p className="text-sm text-gray-500">Publicado</p>
-                      <p className="text-gray-900 font-medium">{getTimeAgo(selectedItem.publishedDate)}</p>
+                      <p className="text-sm text-am-surface-500">Publicado</p>
+                      <p className="text-am-surface-900 font-medium">{getTimeAgo(selectedItem.publishedDate)}</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Descripción</h3>
-                  <p className="text-gray-700 leading-relaxed">{selectedItem.description}</p>
+                  <h3 className="text-lg font-semibold text-am-surface-900 mb-3">Descripción</h3>
+                  <p className="text-am-surface-700 leading-relaxed">{selectedItem.description}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Requisitos</h3>
+                  <h3 className="text-lg font-semibold text-am-surface-900 mb-3">Requisitos</h3>
                   <ul className="space-y-2">
                     {selectedItem.requirements.map((req, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
-                        <span className="text-gray-700">{req}</span>
+                        <div className="w-2 h-2 rounded-full bg-am-primary-600 mt-2 flex-shrink-0" />
+                        <span className="text-am-surface-700">{req}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Beneficios</h3>
+                  <h3 className="text-lg font-semibold text-am-surface-900 mb-3">Beneficios</h3>
                   <ul className="space-y-2">
                     {selectedItem.benefits.map((benefit, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
-                        <span className="text-gray-700">{benefit}</span>
+                        <div className="w-2 h-2 rounded-full bg-am-primary-600 mt-2 flex-shrink-0" />
+                        <span className="text-am-surface-700">{benefit}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                  <button className="flex-1 bg-am-primary-600 hover:bg-am-primary-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
                     Aplicar ahora
                   </button>
-                  <button className="border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors">
+                  <button className="border border-am-surface-200 hover:bg-am-surface-50 text-am-surface-700 font-medium py-3 px-4 rounded-lg transition-colors">
                     Guardar
                   </button>
                 </div>
@@ -499,9 +499,9 @@ export function MarketplacePanel({ locale }: MarketplacePanelProps = {}) {
             ) : (
               <div className="flex h-full items-center justify-center text-center">
                 <div>
-                  <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-700 mb-2">Selecciona un trabajo</h3>
-                  <p className="text-gray-500">
+                  <MapPin className="w-12 h-12 text-am-surface-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-am-surface-700 mb-2">Selecciona un trabajo</h3>
+                  <p className="text-am-surface-500">
                     Elige una oferta de trabajo de la lista para ver los detalles completos
                   </p>
                 </div>

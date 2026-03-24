@@ -352,7 +352,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           <button
             type="button"
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings[setting.id] ? 'bg-blue-600' : 'bg-gray-300'
+              settings[setting.id] ? 'bg-am-doctor-600' : 'bg-am-surface-300'
             }`}
             onClick={() => handleSettingChange(setting.id, !settings[setting.id])}
           >
@@ -368,7 +368,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           <select
             value={String(settings[setting.id])}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-lg border border-am-surface-300 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
           >
             {setting.options?.map((option) => (
               <option key={option} value={option}>
@@ -383,7 +383,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
             type={typeof setting.value === 'number' ? 'number' : 'text'}
             value={settings[setting.id] as string | number}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-lg border border-am-surface-300 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
           />
         )
     }
@@ -392,11 +392,11 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
   const currentSettings = settingsByCategory[activeCategory] || []
 
   return (
-    <div className="flex h-full rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="w-64 border-r border-gray-200 bg-neutral-50 p-4">
+    <div className="flex h-full rounded-2xl border border-am-surface-200 bg-white shadow-am-sm">
+      <div className="w-64 border-r border-am-surface-200 bg-am-surface-50 p-4">
         <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Configuración</h2>
-          <p className="text-sm text-gray-500">Personaliza tu experiencia médica</p>
+          <h2 className="text-lg font-semibold text-am-surface-900">Configuración</h2>
+          <p className="text-sm text-am-surface-500">Personaliza tu experiencia médica</p>
         </div>
 
         <div className="space-y-2">
@@ -409,16 +409,16 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
                 key={category.id}
                 type="button"
                 onClick={() => setActiveCategory(category.id)}
-                className={`flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+                className={`flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-am-fast ease-am-ease ${
                   isActive
-                    ? 'border border-blue-200 bg-blue-50 text-blue-600'
-                    : 'border border-transparent text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'border border-am-doctor-200 bg-am-doctor-50 text-am-doctor-600'
+                    : 'border border-transparent text-am-surface-700 hover:bg-am-surface-100 hover:text-am-surface-900'
                 }`}
               >
-                <Icon className={`mt-0.5 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
+                <Icon className={`mt-0.5 h-5 w-5 ${isActive ? 'text-am-doctor-600' : 'text-am-surface-500'}`} />
                 <div>
                   <p className="text-sm font-medium">{category.title}</p>
-                  <p className="text-xs text-gray-400">{category.description}</p>
+                  <p className="text-xs text-am-surface-400">{category.description}</p>
                 </div>
               </button>
             )
@@ -428,21 +428,21 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
 
       <div className="flex-1 p-6">
         <div className="mb-6">
-          <h3 className="text-xl font-semibold text-gray-900">
+          <h3 className="text-xl font-semibold text-am-surface-900">
             {categories.find(c => c.id === activeCategory)?.title}
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-am-surface-500">
             {categories.find(c => c.id === activeCategory)?.description}
           </p>
-          {saveMessage && <p className="mt-2 text-xs text-blue-600">{saveMessage}</p>}
+          {saveMessage && <p className="mt-2 text-xs text-am-doctor-600">{saveMessage}</p>}
         </div>
 
         <div className="space-y-6">
           {currentSettings.map((setting) => (
             <div key={setting.id} className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-gray-800">{setting.label}</h4>
-                <p className="text-xs text-gray-500">{setting.description}</p>
+                <h4 className="text-sm font-medium text-am-surface-800">{setting.label}</h4>
+                <p className="text-xs text-am-surface-500">{setting.description}</p>
               </div>
               <div className="flex-shrink-0">
                 {renderSettingControl(setting)}
@@ -454,14 +454,14 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         <div className="mt-8 flex justify-end gap-3">
           <button
             type="button"
-            className="rounded-lg border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100"
+            className="rounded-lg border border-am-surface-300 bg-transparent px-4 py-2 text-sm text-am-surface-700 transition hover:bg-am-surface-100"
             onClick={() => setSaveMessage('Cambios descartados visualmente. Nada fue persistido.')}
           >
             Cancelar
           </button>
           <button
             type="button"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-am-doctor-700 disabled:opacity-50"
             onClick={() => void persistSettings()}
             disabled={isSaving}
           >

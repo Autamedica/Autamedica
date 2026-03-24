@@ -12,8 +12,8 @@ export function VitalSignsPanel(): JSX.Element {
             <Activity className="h-6 w-6 text-red-700" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Signos Vitales</h1>
-            <p className="text-gray-500">Monitoreo de signos vitales</p>
+            <h1 className="text-2xl font-semibold text-am-surface-900">Signos Vitales</h1>
+            <p className="text-am-surface-500">Monitoreo de signos vitales</p>
           </div>
         </div>
 
@@ -28,9 +28,9 @@ export function VitalSignsPanel(): JSX.Element {
 
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
-          <Activity className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-700 mb-2">Sin registros de signos vitales</h3>
-          <p className="text-gray-400">
+          <Activity className="mx-auto h-12 w-12 text-am-surface-400 mb-4" />
+          <h3 className="text-lg font-medium text-am-surface-700 mb-2">Sin registros de signos vitales</h3>
+          <p className="text-am-surface-400">
             Selecciona un paciente desde el panel lateral para ver y registrar sus signos vitales.
           </p>
         </div>

@@ -81,8 +81,8 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto"></div>
-          <p className="text-gray-500">Cargando análisis de IA...</p>
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-am-doctor-600 border-t-transparent mx-auto"></div>
+          <p className="text-am-surface-500">Cargando análisis de IA...</p>
         </div>
       </div>
     )
@@ -93,8 +93,8 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Error al cargar análisis</h3>
-          <p className="text-gray-500">{error}</p>
+          <h3 className="text-lg font-semibold text-am-surface-800 mb-2">Error al cargar análisis</h3>
+          <p className="text-am-surface-500">{error}</p>
         </div>
       </div>
     )
@@ -104,29 +104,29 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Sin paciente seleccionado</h3>
-          <p className="text-gray-500">Selecciona un paciente para ver su historial de IA</p>
+          <Brain className="h-16 w-16 text-am-surface-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-am-surface-800 mb-2">Sin paciente seleccionado</h3>
+          <p className="text-am-surface-500">Selecciona un paciente para ver su historial de IA</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col bg-neutral-50">
+    <div className="h-full flex flex-col bg-am-surface-50">
 
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white p-6">
+      <div className="border-b border-am-surface-200 bg-white p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="text-xl font-bold text-am-surface-900 flex items-center gap-2">
               <Brain className="h-6 w-6 text-purple-500" />
               Historial de Análisis IA
               <span className="rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 border border-purple-200">
                 BETA
               </span>
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-am-surface-500">
               {filteredAnalyses.length} análisis encontrado{filteredAnalyses.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -143,13 +143,13 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
         {/* Búsqueda */}
         <div className="mt-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400" />
             <input
               type="text"
               placeholder="Buscar por diagnóstico o síntomas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              className="w-full rounded-lg border border-am-surface-200 bg-white pl-10 pr-4 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
             />
           </div>
         </div>
@@ -160,11 +160,11 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
         {filteredAnalyses.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
-              <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              <Brain className="h-16 w-16 text-am-surface-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-am-surface-800 mb-2">
                 {analyses.length === 0 ? 'Sin análisis de IA' : 'No se encontraron resultados'}
               </h3>
-              <p className="text-gray-500 mb-4">
+              <p className="text-am-surface-500 mb-4">
                 {analyses.length === 0
                   ? 'Este paciente aún no tiene análisis realizados por IA'
                   : 'No se encontraron análisis que coincidan con la búsqueda'
@@ -191,7 +191,7 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
               return (
                 <div
                   key={analysis.id}
-                  className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden"
+                  className="rounded-2xl border border-am-surface-200 bg-white shadow-am-sm overflow-hidden"
                 >
                   {/* Header del análisis */}
                   <div className="p-4">
@@ -202,21 +202,21 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                             <ConfidenceIcon className="inline h-3 w-3 mr-1" />
                             {confidenceConfig.label}
                           </span>
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <div className="flex items-center gap-1 text-xs text-am-surface-500">
                             <Calendar className="h-3 w-3" />
                             {formatDate(analysis.created_at)}
                           </div>
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <div className="flex items-center gap-1 text-xs text-am-surface-500">
                             <Zap className="h-3 w-3" />
                             {analysis.processing_time_ms}ms
                           </div>
                         </div>
 
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        <h3 className="text-lg font-semibold text-am-surface-900 mb-2">
                           {analysis.primary_diagnosis.condition}
                         </h3>
 
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                        <div className="flex items-center gap-4 text-sm text-am-surface-500 mb-3">
                           <div className="flex items-center gap-1">
                             <Target className="h-4 w-4" />
                             <span>Confianza: {getConfidenceScore(analysis.confidence_score)}</span>
@@ -232,7 +232,7 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                           {analysis.input_symptoms.map((symptom, index) => (
                             <span
                               key={index}
-                              className="rounded-lg bg-gray-50 px-2 py-1 text-xs text-gray-700 border border-gray-200"
+                              className="rounded-lg bg-am-surface-50 px-2 py-1 text-xs text-am-surface-700 border border-am-surface-200"
                             >
                               {symptom}
                             </span>
@@ -242,7 +242,7 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
 
                       <button
                         onClick={() => setExpandedAnalysis(isExpanded ? null : analysis.id)}
-                        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                        className="flex items-center gap-2 rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-sm text-am-surface-700 hover:bg-am-surface-100 transition"
                       >
                         Ver detalles
                         {isExpanded ? (
@@ -254,10 +254,10 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                     </div>
 
                     {/* Descripción del diagnóstico principal */}
-                    <div className="rounded-lg bg-neutral-50 p-3">
-                      <p className="text-sm text-gray-700">{analysis.primary_diagnosis.description}</p>
+                    <div className="rounded-lg bg-am-surface-50 p-3">
+                      <p className="text-sm text-am-surface-700">{analysis.primary_diagnosis.description}</p>
                       {analysis.primary_diagnosis.icd_code && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-am-surface-500 mt-1">
                           Código ICD: {analysis.primary_diagnosis.icd_code}
                         </p>
                       )}
@@ -266,16 +266,16 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
 
                   {/* Contenido expandido */}
                   {isExpanded && (
-                    <div className="border-t border-gray-200 bg-neutral-50 p-4">
+                    <div className="border-t border-am-surface-200 bg-am-surface-50 p-4">
                       <div className="space-y-6">
 
                         {/* Razonamiento del diagnóstico principal */}
                         <div>
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                          <h4 className="text-sm font-semibold text-am-surface-700 mb-2 flex items-center gap-2">
                             <Stethoscope className="h-4 w-4" />
                             Razonamiento del Diagnóstico
                           </h4>
-                          <p className="text-sm text-gray-500 bg-white rounded-lg p-3 border border-gray-200">
+                          <p className="text-sm text-am-surface-500 bg-white rounded-lg p-3 border border-am-surface-200">
                             {analysis.primary_diagnosis.reasoning}
                           </p>
                         </div>
@@ -283,7 +283,7 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                         {/* Diagnósticos diferenciales */}
                         {analysis.differential_diagnoses.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                            <h4 className="text-sm font-semibold text-am-surface-700 mb-3">
                               Diagnósticos Diferenciales
                             </h4>
                             <div className="space-y-2">
@@ -292,9 +292,9 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                                 const DiffIcon = diffConfig.icon
 
                                 return (
-                                  <div key={index} className="rounded-xl border border-gray-200 bg-white shadow-sm p-3">
+                                  <div key={index} className="rounded-xl border border-am-surface-200 bg-white shadow-am-sm p-3">
                                     <div className="flex items-start justify-between mb-2">
-                                      <h5 className="font-medium text-gray-800">{diagnosis.condition}</h5>
+                                      <h5 className="font-medium text-am-surface-800">{diagnosis.condition}</h5>
                                       <div className="flex items-center gap-2">
                                         <span className={`rounded-full px-2 py-1 text-xs font-medium border ${diffConfig.color}`}>
                                           <DiffIcon className="inline h-3 w-3 mr-1" />
@@ -302,9 +302,9 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                                         </span>
                                       </div>
                                     </div>
-                                    <p className="text-sm text-gray-500">{diagnosis.description}</p>
+                                    <p className="text-sm text-am-surface-500">{diagnosis.description}</p>
                                     {diagnosis.icd_code && (
-                                      <p className="text-xs text-gray-400 mt-1">ICD: {diagnosis.icd_code}</p>
+                                      <p className="text-xs text-am-surface-400 mt-1">ICD: {diagnosis.icd_code}</p>
                                     )}
                                   </div>
                                 )
@@ -316,14 +316,14 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                         {/* Sugerencias de tratamiento */}
                         {analysis.treatment_suggestions.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                            <h4 className="text-sm font-semibold text-am-surface-700 mb-3">
                               Sugerencias de Tratamiento
                             </h4>
                             <div className="space-y-2">
                               {analysis.treatment_suggestions.map((suggestion, index) => (
-                                <div key={index} className="rounded-xl border border-gray-200 bg-white shadow-sm p-3">
+                                <div key={index} className="rounded-xl border border-am-surface-200 bg-white shadow-am-sm p-3">
                                   <div className="flex items-start justify-between mb-2">
-                                    <h5 className="font-medium text-gray-800">{suggestion.treatment}</h5>
+                                    <h5 className="font-medium text-am-surface-800">{suggestion.treatment}</h5>
                                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                                       suggestion.priority === 'alta' ? 'bg-red-50 text-red-700 border border-red-200' :
                                       suggestion.priority === 'media' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
@@ -333,8 +333,8 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                                        suggestion.priority === 'media' ? 'Prioridad media' : 'Baja prioridad'}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-gray-500 mb-2">{suggestion.details}</p>
-                                  <p className="text-xs text-gray-400">Tipo: {suggestion.type.replace('_', ' ')}</p>
+                                  <p className="text-sm text-am-surface-500 mb-2">{suggestion.details}</p>
+                                  <p className="text-xs text-am-surface-400">Tipo: {suggestion.type.replace('_', ' ')}</p>
                                   {suggestion.contraindications.length > 0 && (
                                     <div className="mt-2 rounded-lg bg-red-50 border border-red-200 p-2">
                                       <p className="text-xs text-red-700">
@@ -352,7 +352,7 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                         {/* Factores de riesgo */}
                         {analysis.risk_factors.length > 0 && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                            <h4 className="text-sm font-semibold text-am-surface-700 mb-3">
                               Factores de Riesgo Identificados
                             </h4>
                             <div className="flex flex-wrap gap-2">
@@ -372,10 +372,10 @@ export function AIHistoryTab({ patientId }: AIHistoryTabProps): JSX.Element {
                         {/* Contexto adicional */}
                         {analysis.additional_context && (
                           <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                            <h4 className="text-sm font-semibold text-am-surface-700 mb-2">
                               Contexto Adicional
                             </h4>
-                            <p className="text-sm text-gray-500 bg-white rounded-lg p-3 border border-gray-200">
+                            <p className="text-sm text-am-surface-500 bg-white rounded-lg p-3 border border-am-surface-200">
                               {analysis.additional_context}
                             </p>
                           </div>

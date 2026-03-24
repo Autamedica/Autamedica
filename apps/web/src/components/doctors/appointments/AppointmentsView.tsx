@@ -47,19 +47,19 @@ export default function AppointmentsView({ doctorId }: AppointmentsViewProps) {
                 <td className="border p-2">
                   <span className={`px-2 py-1 rounded text-xs ${
                     r.type === 'telemedicine' ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'
+                    'bg-am-surface-100 text-am-surface-800'
                   }`}>
                     {r.type}
                   </span>
                 </td>
                 <td className="border p-2">
                   <span className={`px-2 py-1 rounded text-xs ${
-                    r.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                    r.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                    r.status === 'scheduled' ? 'bg-am-doctor-100 text-am-doctor-800' :
+                    r.status === 'confirmed' ? 'bg-am-doctor-100 text-am-doctor-800' :
                     r.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
                     r.status === 'completed' ? 'bg-green-100 text-green-800' :
                     r.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
+                    'bg-am-surface-100 text-am-surface-800'
                   }`}>
                     {r.status}
                   </span>
@@ -81,7 +81,7 @@ export default function AppointmentsView({ doctorId }: AppointmentsViewProps) {
       </table>
 
       {rows.length === 0 && status === 'success' && (
-        <p className="text-gray-500 text-center py-4">No hay citas programadas</p>
+        <p className="text-am-surface-500 text-center py-4">No hay citas programadas</p>
       )}
     </div>
   );

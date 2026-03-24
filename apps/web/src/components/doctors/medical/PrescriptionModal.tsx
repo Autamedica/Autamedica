@@ -152,22 +152,22 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-2xl">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-am-surface-200 bg-white shadow-2xl">
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white p-4">
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-am-surface-200 bg-white p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-              <Pill className="h-5 w-5 text-blue-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-am-doctor-50">
+              <Pill className="h-5 w-5 text-am-doctor-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Prescripción Médica</h2>
-              <p className="text-xs text-gray-500">Paciente: {patientName}</p>
+              <h2 className="text-lg font-semibold text-am-surface-900">Prescripción Médica</h2>
+              <p className="text-xs text-am-surface-500">Paciente: {patientName}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
+            className="rounded-lg p-2 text-am-surface-500 transition hover:bg-am-surface-100 hover:text-am-surface-800"
           >
             <X className="h-5 w-5" />
           </button>
@@ -183,18 +183,18 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
 
           {/* Diagnóstico */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Diagnóstico</label>
+            <label className="text-xs font-medium text-am-surface-500">Diagnóstico</label>
             <div className="flex gap-2">
               <input
                 value={diagnosis}
                 onChange={(e) => setDiagnosis(e.target.value)}
                 placeholder="Ingrese el diagnóstico del paciente"
-                className="flex-1 rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="flex-1 rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
               />
               <button
                 type="button"
                 onClick={handleGetSuggestions}
-                className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                className="rounded-lg bg-am-doctor-50 px-3 py-2 text-xs font-medium text-am-doctor-700 transition hover:bg-am-doctor-100"
               >
                 Sugerir con IA
               </button>
@@ -203,11 +203,11 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
 
           {/* Sugerencias IA */}
           {showSuggestions && aiSuggestions.length > 0 && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-              <p className="text-xs font-medium text-blue-700 mb-2">Sugerencias de IA:</p>
+            <div className="rounded-lg border border-am-doctor-200 bg-am-doctor-50 p-3">
+              <p className="text-xs font-medium text-am-doctor-700 mb-2">Sugerencias de IA:</p>
               <div className="space-y-1">
                 {aiSuggestions.map((suggestion, idx) => (
-                  <p key={idx} className="text-xs text-blue-600">• {suggestion}</p>
+                  <p key={idx} className="text-xs text-am-doctor-600">• {suggestion}</p>
                 ))}
               </div>
             </div>
@@ -216,11 +216,11 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
           {/* Medicamentos */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-gray-500">Medicamentos</label>
+              <label className="text-xs font-medium text-am-surface-500">Medicamentos</label>
               <button
                 type="button"
                 onClick={addMedication}
-                className="flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                className="flex items-center gap-1 rounded-lg bg-am-doctor-50 px-2 py-1 text-xs font-medium text-am-doctor-700 transition hover:bg-am-doctor-100"
               >
                 <Plus className="h-3 w-3" />
                 Agregar
@@ -228,10 +228,10 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
             </div>
 
             {medications.map((med, index) => (
-              <div key={med.id} className="rounded-lg border border-gray-200 bg-white p-3 space-y-3">
+              <div key={med.id} className="rounded-lg border border-am-surface-200 bg-white p-3 space-y-3">
                 {/* Header del medicamento */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-700">Medicamento {index + 1}</span>
+                  <span className="text-xs font-medium text-am-surface-700">Medicamento {index + 1}</span>
                   {medications.length > 1 && (
                     <button
                       type="button"
@@ -249,13 +249,13 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                     value={med.name}
                     onChange={(e) => updateMedication(med.id, 'name', e.target.value)}
                     placeholder="Nombre del medicamento"
-                    className="rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   />
                   <input
                     value={med.dosage}
                     onChange={(e) => updateMedication(med.id, 'dosage', e.target.value)}
                     placeholder="Dosis (ej: 500mg)"
-                    className="rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   />
                 </div>
 
@@ -266,7 +266,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                       key={commonMed.name}
                       type="button"
                       onClick={() => handleQuickMedication(commonMed, med.id)}
-                      className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700"
+                      className="rounded-md border border-am-surface-200 bg-am-surface-50 px-2 py-1 text-xs text-am-surface-700 transition hover:border-blue-400 hover:bg-am-doctor-50 hover:text-am-doctor-700"
                     >
                       {commonMed.name}
                     </button>
@@ -278,7 +278,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                   <select
                     value={med.frequency}
                     onChange={(e) => updateMedication(med.id, 'frequency', e.target.value)}
-                    className="rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   >
                     {FREQUENCY_OPTIONS.map(freq => (
                       <option key={freq} value={freq}>{freq}</option>
@@ -287,7 +287,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                   <select
                     value={med.duration}
                     onChange={(e) => updateMedication(med.id, 'duration', e.target.value)}
-                    className="rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   >
                     {DURATION_OPTIONS.map(dur => (
                       <option key={dur} value={dur}>{dur}</option>
@@ -300,7 +300,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                   value={med.instructions}
                   onChange={(e) => updateMedication(med.id, 'instructions', e.target.value)}
                   placeholder="Instrucciones específicas (opcional)"
-                  className="min-h-[60px] w-full resize-none rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="min-h-[60px] w-full resize-none rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                 />
               </div>
             ))}
@@ -308,24 +308,24 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
 
           {/* Instrucciones generales */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Instrucciones generales</label>
+            <label className="text-xs font-medium text-am-surface-500">Instrucciones generales</label>
             <textarea
               value={generalInstructions}
               onChange={(e) => setGeneralInstructions(e.target.value)}
               placeholder="Reposo, hidratación, dieta, contraindicaciones..."
-              className="min-h-[80px] w-full resize-none rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="min-h-[80px] w-full resize-none rounded-lg border border-am-surface-300 bg-white p-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
             />
           </div>
 
           {/* Timestamp */}
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-am-surface-400">
             <Clock className="h-3 w-3" />
             <span>{new Date().toLocaleString('es-ES')}</span>
           </div>
         </div>
 
         {/* Footer */}
-        <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-gray-200 bg-white p-4">
+        <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-am-surface-200 bg-white p-4">
           <div className="flex items-center gap-2 text-xs text-amber-600">
             <AlertCircle className="h-3 w-3" />
             <span>Verifique alergias y contraindicaciones</span>
@@ -334,7 +334,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-200 bg-transparent px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100"
+              className="rounded-lg border border-am-surface-200 bg-transparent px-4 py-2 text-sm text-am-surface-700 transition hover:bg-am-surface-100"
             >
               Cancelar
             </button>
@@ -342,7 +342,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
               type="button"
               onClick={savePrescription}
               disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex items-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-am-doctor-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
               {saving ? 'Guardando...' : 'Guardar prescripción'}

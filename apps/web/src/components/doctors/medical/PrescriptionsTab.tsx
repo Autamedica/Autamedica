@@ -39,7 +39,7 @@ const STATUS_CONFIG: Record<PrescriptionStatus, {
   completada: {
     label: 'Completada',
     icon: CheckCircle,
-    color: 'bg-blue-50 text-blue-700 border-blue-200'
+    color: 'bg-am-doctor-50 text-am-doctor-700 border-am-doctor-200'
   },
   cancelada: {
     label: 'Cancelada',
@@ -94,8 +94,8 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent mx-auto"></div>
-          <p className="text-gray-500">Cargando prescripciones...</p>
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-am-doctor-600 border-t-transparent mx-auto"></div>
+          <p className="text-am-surface-500">Cargando prescripciones...</p>
         </div>
       </div>
     )
@@ -106,8 +106,8 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
           <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Error al cargar prescripciones</h3>
-          <p className="text-gray-500">{error}</p>
+          <h3 className="text-lg font-semibold text-am-surface-800 mb-2">Error al cargar prescripciones</h3>
+          <p className="text-am-surface-500">{error}</p>
         </div>
       </div>
     )
@@ -117,28 +117,28 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <Pill className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Sin paciente seleccionado</h3>
-          <p className="text-gray-500">Selecciona un paciente para ver sus prescripciones</p>
+          <Pill className="h-16 w-16 text-am-surface-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-am-surface-800 mb-2">Sin paciente seleccionado</h3>
+          <p className="text-am-surface-500">Selecciona un paciente para ver sus prescripciones</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col bg-neutral-50">
+    <div className="h-full flex flex-col bg-am-surface-50">
 
       {/* Header con controles */}
-      <div className="border-b border-gray-200 bg-white p-6">
+      <div className="border-b border-am-surface-200 bg-white p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Prescripciones</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-xl font-bold text-am-surface-900">Prescripciones</h1>
+            <p className="text-sm text-am-surface-500">
               {prescriptions.length} prescripción{prescriptions.length !== 1 ? 'es' : ''} encontrada{prescriptions.length !== 1 ? 's' : ''}
             </p>
           </div>
 
-          <button className="flex items-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition">
+          <button className="flex items-center gap-2 rounded-lg border border-am-doctor-600 bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white hover:bg-am-doctor-700 transition">
             <Plus className="h-4 w-4" />
             Nueva Prescripción
           </button>
@@ -147,20 +147,20 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
         {/* Filtros */}
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400" />
             <input
               type="text"
               placeholder="Buscar medicamento..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-am-surface-200 bg-white pl-10 pr-4 py-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
             />
           </div>
 
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value as PrescriptionStatus | '')}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
           >
             <option value="">Todos los estados</option>
             {Object.entries(STATUS_CONFIG).map(([status, config]) => (
@@ -170,12 +170,12 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
             ))}
           </select>
 
-          <label className="flex items-center gap-2 text-sm text-gray-700">
+          <label className="flex items-center gap-2 text-sm text-am-surface-700">
             <input
               type="checkbox"
               checked={showActiveOnly}
               onChange={(e) => setShowActiveOnly(e.target.checked)}
-              className="rounded border-gray-300 bg-white text-blue-600 focus:ring-blue-500"
+              className="rounded border-am-surface-300 bg-white text-am-doctor-600 focus:ring-am-doctor-500"
             />
             Solo activas
           </label>
@@ -187,15 +187,15 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
         {prescriptions.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
-              <Pill className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Sin prescripciones</h3>
-              <p className="text-gray-500 mb-4">
+              <Pill className="h-16 w-16 text-am-surface-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-am-surface-800 mb-2">Sin prescripciones</h3>
+              <p className="text-am-surface-500 mb-4">
                 {searchTerm || selectedStatus || showActiveOnly
                   ? 'No se encontraron prescripciones con los filtros aplicados'
                   : 'Este paciente aún no tiene prescripciones'
                 }
               </p>
-              <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition mx-auto">
+              <button className="flex items-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white hover:bg-am-doctor-700 transition mx-auto">
                 <Plus className="h-4 w-4" />
                 Crear Primera Prescripción
               </button>
@@ -212,14 +212,14 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
               return (
                 <div
                   key={prescription.id}
-                  className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm ${
+                  className={`rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm ${
                     expiringSoon ? 'ring-2 ring-orange-400/50' : ''
                   }`}
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Pill className="h-5 w-5 text-blue-600" />
+                      <Pill className="h-5 w-5 text-am-doctor-600" />
                       <span className={`rounded-full px-2 py-1 text-xs font-medium border ${statusConfig.color}`}>
                         <StatusIcon className="inline h-3 w-3 mr-1" />
                         {statusConfig.label}
@@ -227,10 +227,10 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <button className="rounded-lg border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-100 transition">
+                      <button className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition">
                         <Edit3 className="h-3 w-3" />
                       </button>
-                      <button className="rounded-lg border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-100 transition">
+                      <button className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition">
                         <Eye className="h-3 w-3" />
                       </button>
                     </div>
@@ -238,34 +238,34 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
 
                   {/* Medicamento */}
                   <div className="mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    <h3 className="text-lg font-semibold text-am-surface-900 mb-1">
                       {prescription.medication_name}
                     </h3>
-                    <p className="text-sm text-gray-500">{prescription.dosage}</p>
+                    <p className="text-sm text-am-surface-500">{prescription.dosage}</p>
                   </div>
 
                   {/* Frecuencia y duración */}
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-700">{prescription.frequency}</span>
+                      <Clock className="h-4 w-4 text-am-surface-400" />
+                      <span className="text-am-surface-700">{prescription.frequency}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-700">{prescription.duration}</span>
+                      <Calendar className="h-4 w-4 text-am-surface-400" />
+                      <span className="text-am-surface-700">{prescription.duration}</span>
                     </div>
                   </div>
 
                   {/* Fechas */}
-                  <div className="border-t border-gray-200 pt-3">
+                  <div className="border-t border-am-surface-200 pt-3">
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <p className="text-gray-500">Inicio</p>
-                        <p className="text-gray-700">{formatDate(prescription.start_date)}</p>
+                        <p className="text-am-surface-500">Inicio</p>
+                        <p className="text-am-surface-700">{formatDate(prescription.start_date)}</p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Fin</p>
-                        <p className="text-gray-700">
+                        <p className="text-am-surface-500">Fin</p>
+                        <p className="text-am-surface-700">
                           {prescription.end_date ? formatDate(prescription.end_date) : 'Indefinido'}
                         </p>
                       </div>
@@ -274,7 +274,7 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                     {daysRemaining !== null && (
                       <div className="mt-2">
                         {daysRemaining > 0 ? (
-                          <p className={`text-xs ${expiringSoon ? 'text-orange-600' : 'text-gray-500'}`}>
+                          <p className={`text-xs ${expiringSoon ? 'text-orange-600' : 'text-am-surface-500'}`}>
                             {expiringSoon && <AlertTriangle className="inline h-3 w-3 mr-1" />}
                             {daysRemaining} día{daysRemaining !== 1 ? 's' : ''} restante{daysRemaining !== 1 ? 's' : ''}
                           </p>
@@ -294,9 +294,9 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
 
                   {/* Instrucciones */}
                   {prescription.instructions && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">Instrucciones:</p>
-                      <p className="text-xs text-gray-700 mt-1 leading-relaxed">
+                    <div className="mt-3 pt-3 border-t border-am-surface-200">
+                      <p className="text-xs text-am-surface-500">Instrucciones:</p>
+                      <p className="text-xs text-am-surface-700 mt-1 leading-relaxed">
                         {prescription.instructions}
                       </p>
                     </div>

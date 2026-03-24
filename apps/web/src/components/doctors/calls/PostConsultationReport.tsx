@@ -103,24 +103,24 @@ function ReportContent({ roomId }: { roomId: string }) {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="h-8 w-8 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+      <div className="min-h-screen bg-am-surface-50 flex items-center justify-center">
+        <div className="h-8 w-8 border-2 border-am-surface-300 border-t-am-doctor-600 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-gray-800">
+    <div className="min-h-screen bg-am-surface-50 text-am-surface-800">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-10">
+      <header className="border-b border-am-surface-200 bg-white shadow-am-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Reporte de consulta</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Sala {roomId}</p>
+            <h1 className="text-lg font-semibold text-am-surface-900">Reporte de consulta</h1>
+            <p className="text-xs text-am-surface-400 mt-0.5">Sala {roomId}</p>
           </div>
           <div className="flex items-center gap-3">
             {saved ? (
-              <span className="flex items-center gap-2 text-sm text-blue-600">
+              <span className="flex items-center gap-2 text-sm text-am-doctor-600">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
@@ -129,7 +129,7 @@ function ReportContent({ roomId }: { roomId: string }) {
             ) : (
               <a
                 href="/doctors/schedule"
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-sm text-am-surface-500 hover:text-am-surface-700 transition-colors"
               >
                 Omitir
               </a>
@@ -142,16 +142,16 @@ function ReportContent({ roomId }: { roomId: string }) {
         {/* Doctor Notes */}
         {!reportData && (
           <section>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-am-surface-700 mb-2">
               Notas del doctor (opcional)
             </label>
             <textarea
               value={doctorNotes}
               onChange={(e) => setDoctorNotes(e.target.value)}
               placeholder="Impresiones diagnósticas, indicaciones adicionales, observaciones..."
-              className="w-full h-32 bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              className="w-full h-32 bg-white border border-am-surface-200 rounded-xl shadow-am-sm px-4 py-3 text-sm text-am-surface-800 placeholder:text-am-surface-400 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 focus:border-am-doctor-500 resize-none"
             />
-            <p className="text-xs text-gray-400 mt-1.5">
+            <p className="text-xs text-am-surface-400 mt-1.5">
               Estas notas se integrarán con la transcripción y anamnesis para generar el reporte SOAP.
             </p>
           </section>
@@ -162,7 +162,7 @@ function ReportContent({ roomId }: { roomId: string }) {
           <button
             onClick={generateReport}
             disabled={generating}
-            className="w-full py-3 rounded-xl shadow-sm text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-xl shadow-am-sm text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-am-primary-600 hover:bg-am-primary-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? (
               <>
@@ -182,7 +182,7 @@ function ReportContent({ roomId }: { roomId: string }) {
 
         {/* Error */}
         {error && (
-          <div className="rounded-xl shadow-sm bg-red-50 border border-red-200 p-4">
+          <div className="rounded-xl shadow-am-sm bg-red-50 border border-red-200 p-4">
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
@@ -192,11 +192,11 @@ function ReportContent({ roomId }: { roomId: string }) {
           <>
             {/* Chief Complaint */}
             {reportData.chiefComplaint && (
-              <div className="rounded-xl shadow-sm bg-white border border-gray-200 p-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+              <div className="rounded-xl shadow-am-sm bg-white border border-am-surface-200 p-4">
+                <h3 className="text-xs font-semibold text-am-surface-500 uppercase tracking-wider mb-1">
                   Motivo de consulta
                 </h3>
-                <p className="text-sm text-gray-900">{reportData.chiefComplaint}</p>
+                <p className="text-sm text-am-surface-900">{reportData.chiefComplaint}</p>
               </div>
             )}
 
@@ -230,14 +230,14 @@ function ReportContent({ roomId }: { roomId: string }) {
 
             {/* Differential Diagnosis */}
             {reportData.differentialDiagnosis.length > 0 && (
-              <div className="rounded-xl shadow-sm bg-white border border-gray-200 p-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <div className="rounded-xl shadow-am-sm bg-white border border-am-surface-200 p-4">
+                <h3 className="text-xs font-semibold text-am-surface-500 uppercase tracking-wider mb-2">
                   Diagnósticos diferenciales
                 </h3>
                 <ul className="space-y-1">
                   {reportData.differentialDiagnosis.map((dx, i) => (
-                    <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-gray-400 shrink-0" />
+                    <li key={i} className="text-sm text-am-surface-700 flex items-start gap-2">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-am-surface-400 shrink-0" />
                       {dx}
                     </li>
                   ))}
@@ -247,14 +247,14 @@ function ReportContent({ roomId }: { roomId: string }) {
 
             {/* Follow-up */}
             {reportData.followUpRecommendations.length > 0 && (
-              <div className="rounded-xl shadow-sm bg-white border border-gray-200 p-4">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <div className="rounded-xl shadow-am-sm bg-white border border-am-surface-200 p-4">
+                <h3 className="text-xs font-semibold text-am-surface-500 uppercase tracking-wider mb-2">
                   Seguimiento
                 </h3>
                 <ul className="space-y-1">
                   {reportData.followUpRecommendations.map((rec, i) => (
-                    <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-600 shrink-0" />
+                    <li key={i} className="text-sm text-am-surface-700 flex items-start gap-2">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-am-doctor-600 shrink-0" />
                       {rec}
                     </li>
                   ))}
@@ -263,7 +263,7 @@ function ReportContent({ roomId }: { roomId: string }) {
             )}
 
             {/* Metadata */}
-            <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-200">
+            <div className="flex items-center justify-between text-xs text-am-surface-400 pt-2 border-t border-am-surface-200">
               <span>
                 Generado por IA ({reportData.provider}) · Confianza: {reportData.confidence}%
               </span>
@@ -274,14 +274,14 @@ function ReportContent({ roomId }: { roomId: string }) {
             <div className="flex gap-3 pt-4">
               <a
                 href="/doctors/schedule"
-                className="flex-1 py-3 rounded-xl shadow-sm text-sm font-medium text-center text-gray-500 bg-white border border-gray-200 hover:bg-gray-100 transition-colors"
+                className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-center text-am-surface-500 bg-white border border-am-surface-200 hover:bg-am-surface-100 transition-colors"
               >
                 Descartar
               </a>
               <button
                 onClick={saveReportAndRedirect}
                 disabled={saving || saved}
-                className="flex-1 py-3 rounded-xl shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-white bg-am-primary-600 hover:bg-am-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {saving ? (
                   <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -318,14 +318,14 @@ function SOAPSection({
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1.5">
-        <h3 className="text-sm font-semibold text-gray-900">{label}</h3>
-        <span className="text-[10px] text-gray-400">{description}</span>
+        <h3 className="text-sm font-semibold text-am-surface-900">{label}</h3>
+        <span className="text-[10px] text-am-surface-400">{description}</span>
       </div>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={4}
-        className="w-full bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y leading-relaxed"
+        className="w-full bg-white border border-am-surface-200 rounded-xl shadow-am-sm px-4 py-3 text-sm text-am-surface-800 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 focus:border-am-doctor-500 resize-y leading-relaxed"
       />
     </div>
   );

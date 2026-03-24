@@ -1,0 +1,6 @@
+export { EmptyPatients } from './EmptyPatients'
+export { EmptyAppointments } from './EmptyAppointments'
+export { EmptyChat } from './EmptyChat'
+export { EmptyRanking } from './EmptyRanking'
+export { EmptyMarketplace } from './EmptyMarketplace'
+export { GenericEmpty } from './GenericEmpty'

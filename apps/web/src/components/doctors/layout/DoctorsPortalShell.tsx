@@ -263,35 +263,46 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     setFocusMode: setIsFocusMode,
   }
 
-  const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }) => {
+  // Group indices for sidebar visual separators
+  const clinicalEnd = 3  // After: Pacientes, Citas, Historiales, Signos Vitales
+  const toolsEnd = 6     // After: Chat, Asistente Clínico, Historial IA
+
+  const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }, index) => {
     const isActive = activeSection === id
+    const groupLabel = index === 0 ? 'Clínica' : index === clinicalEnd + 1 ? 'Herramientas' : index === toolsEnd + 1 ? 'Plataforma' : null
     return (
-      <button
-        key={id}
-        type="button"
-        className={`relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
-          isActive
-            ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        }`}
-        onClick={() => handleSidebarItemClick(id)}
-      >
-        {isActive && (
-          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+      <div key={id}>
+        {groupLabel && (
+          <p className={`px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-400 ${index > 0 ? 'mt-5 mb-2' : 'mb-2'}`}>
+            {groupLabel}
+          </p>
         )}
-        <span className="flex items-center gap-3">
-          <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-          <span className="font-medium">{label}</span>
-        </span>
-        <span className="flex items-center gap-2">
-          {typeof count === 'number' && count > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-600">{count}</span>
+        <button
+          type="button"
+          className={`relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-am-fast ease-am-ease ${
+            isActive
+              ? 'bg-am-doctor-50 text-am-doctor-600 ring-1 ring-am-doctor-200'
+              : 'text-am-surface-600 hover:bg-am-surface-100 hover:text-am-surface-900'
+          }`}
+          onClick={() => handleSidebarItemClick(id)}
+        >
+          {isActive && (
+            <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-am-doctor-500" />
           )}
-          {badge && (
-            <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">{badge}</span>
-          )}
-        </span>
-      </button>
+          <span className="flex items-center gap-3">
+            <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-am-doctor-600' : 'text-am-surface-400'}`} />
+            <span className="font-medium">{label}</span>
+          </span>
+          <span className="flex items-center gap-2">
+            {typeof count === 'number' && count > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-am-doctor-100 px-1.5 text-[10px] font-semibold text-am-doctor-600">{count}</span>
+            )}
+            {badge && (
+              <span className="rounded-full bg-am-doctor-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{badge}</span>
+            )}
+          </span>
+        </button>
+      </div>
     )
   })
 
@@ -305,14 +316,14 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   return (
     <PortalLayoutContext.Provider value={portalContext}>
       <div
-        className={`app flex flex-col ${isFocusMode ? 'app--focus' : ''} bg-neutral-50 text-gray-900`}
+        className={`app portal-doctor flex flex-col ${isFocusMode ? 'app--focus' : ''} bg-am-surface-50 text-am-surface-900`}
         suppressHydrationWarning
       >
-        <header className="header z-10 flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 shadow-sm sm:px-6">
+        <header className="header z-10 flex items-center justify-between gap-3 border-b border-am-surface-200 bg-white px-4 shadow-am-xs sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className={`inline-flex items-center justify-center rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-900 active:scale-95 ${
+              className={`inline-flex items-center justify-center rounded-xl p-2 text-am-surface-500 transition-all duration-am-fast hover:bg-am-surface-100 hover:text-am-surface-900 active:scale-95 ${
                 isFocusMode ? '' : 'hidden md:hidden'
               }`}
               onClick={() => setIsSidebarOpen(true)}
@@ -320,12 +331,12 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-500/20">
+            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-lg shadow-am-doctor-500/20">
               <Activity className="h-4.5 w-4.5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold tracking-tight text-gray-900">AutaMedica</p>
-              <p className="text-[11px] font-medium text-gray-500">{userName}</p>
+              <p className="text-sm font-bold tracking-tight text-am-surface-900">AutaMedica</p>
+              <p className="text-[11px] font-medium text-am-surface-500">{userName}</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5">
@@ -336,11 +347,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
               </span>
               En línea
             </span>
-            <span className="rounded-lg bg-gray-100 px-2.5 py-1 font-mono text-[11px] text-gray-500 ring-1 ring-gray-200">{currentTime}</span>
+            <span className="rounded-lg bg-am-surface-100 px-2.5 py-1 font-mono text-[11px] text-am-surface-500 ring-1 ring-am-surface-200">{currentTime}</span>
           </div>
         </header>
 
-        <div className="tabs border-b border-gray-200 bg-white">
+        <div className="tabs border-b border-am-surface-200 bg-white">
           <div className="flex h-full w-full items-center overflow-x-auto px-2 sm:px-4">
             <div className="flex min-w-full snap-x snap-mandatory gap-0.5 md:min-w-0">
               {tabs.map((tab) => {
@@ -351,16 +362,16 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex min-w-[140px] snap-start items-center gap-2 px-4 py-2.5 text-xs font-medium transition-all md:min-w-0 ${
+                    className={`relative flex min-w-[140px] snap-start items-center gap-2 px-4 py-2.5 text-xs font-medium transition-all duration-am-fast md:min-w-0 ${
                       isActive
-                        ? 'text-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'text-am-doctor-600'
+                        : 'text-am-surface-500 hover:text-am-surface-700'
                     }`}
                   >
-                    <TabIcon className={`h-3.5 w-3.5 ${isActive ? 'text-blue-600' : ''}`} />
+                    <TabIcon className={`h-3.5 w-3.5 transition-colors ${isActive ? 'text-am-doctor-600' : ''}`} />
                     <span className="whitespace-nowrap">{tab.label}</span>
                     {isActive && (
-                      <span className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-blue-600" />
+                      <span className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-am-doctor-500" />
                     )}
                   </button>
                 )
@@ -377,7 +388,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
             onClick={() => setIsSidebarOpen(false)}
           >
             <div
-              className="relative h-full w-72 max-w-[85vw] border-r border-gray-200 bg-white px-5 py-6 shadow-2xl"
+              className="relative h-full w-72 max-w-[85vw] border-r border-am-surface-200 bg-white px-5 py-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-6 flex items-center justify-between">
@@ -389,28 +400,28 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     setIsSidebarOpen(false)
                     resumeFocusIfLive()
                   }}
-                  className="text-sm font-bold text-gray-900 transition-colors hover:text-blue-600"
+                  className="text-sm font-bold text-am-surface-900 transition-colors hover:text-am-doctor-600"
                 >
                   Portal Médico
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsSidebarOpen(false)}
-                  className="rounded-xl p-2 text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-900 active:scale-95"
+                  className="rounded-xl p-2 text-am-surface-400 transition-all duration-am-fast hover:bg-am-surface-100 hover:text-am-surface-900 active:scale-95"
                   aria-label="Cerrar menú"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
-              <nav className="space-y-1 overflow-y-auto pb-16">{navItems}</nav>
-              <div className="absolute inset-x-5 bottom-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <nav className="space-y-0.5 overflow-y-auto pb-16">{navItems}</nav>
+              <div className="absolute inset-x-5 bottom-6 rounded-xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-am-primary-50 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-xs font-bold text-white shadow-lg shadow-blue-500/15">
+                  <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 text-xs font-bold text-white shadow-lg shadow-am-doctor-500/15">
                     {getInitials(userName)}
                     <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{userName}</p>
+                    <p className="text-sm font-semibold text-am-surface-900">{userName}</p>
                     <p className="text-[10px] font-medium text-emerald-600">Disponible</p>
                   </div>
                 </div>
@@ -421,7 +432,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
 
         <div className="app__layout flex min-h-0 flex-1 overflow-hidden">
           <aside
-            className={`left-rail relative hidden flex-col border-r border-gray-200 bg-white px-2 py-4 transition-all duration-300 md:flex ${
+            className={`left-rail relative hidden flex-col border-r border-am-surface-200 bg-white px-2 py-4 transition-all duration-am-slow ease-am-ease md:flex ${
               !isSidebarCollapsed ? 'left-rail--expanded w-[220px]' : 'w-12'
             }`}
           >
@@ -434,7 +445,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     setActiveTab('video-call')
                     resumeFocusIfLive()
                   }}
-                  className="text-[10px] font-semibold uppercase tracking-[0.15em] text-gray-400 transition-colors hover:text-blue-600"
+                  className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-400 transition-colors hover:text-am-doctor-600"
                 >
                   Menú
                 </button>
@@ -447,7 +458,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     setActiveTab('video-call')
                     resumeFocusIfLive()
                   }}
-                  className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-blue-600"
+                  className="rounded-lg p-2 text-am-surface-400 transition-colors hover:bg-am-surface-100 hover:text-am-doctor-600"
                   title="Portal Médico"
                 >
                   <Home className="h-4 w-4" />
@@ -456,60 +467,70 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                className="rounded-lg p-1.5 text-am-surface-400 transition-colors hover:bg-am-surface-100 hover:text-am-surface-700"
                 aria-label={isSidebarCollapsed ? 'Expandir sidebar' : 'Contraer sidebar'}
               >
                 {isSidebarCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
             </div>
-            <nav className="space-y-0.5">
-              {sidebarItems.map(({ id, icon: Icon, label, count, badge }) => {
+            <nav className="space-y-0.5 overflow-y-auto flex-1">
+              {sidebarItems.map(({ id, icon: Icon, label, count, badge }, index) => {
                 const isActive = activeSection === id
+                const groupLabel = !isSidebarCollapsed && (index === 0 ? 'Clínica' : index === clinicalEnd + 1 ? 'Herramientas' : index === toolsEnd + 1 ? 'Plataforma' : null)
                 return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`sidebar-button relative flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-all ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    } ${isSidebarCollapsed ? 'flex-col gap-1 text-center' : 'gap-2'}`}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      handleSidebarItemClick(id)
-                    }}
-                    title={isSidebarCollapsed ? label : undefined}
-                  >
-                    {isActive && !isSidebarCollapsed && (
-                      <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-blue-600" />
+                  <div key={id}>
+                    {groupLabel && (
+                      <p className={`px-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-400 ${index > 0 ? 'mt-4 mb-1.5' : 'mb-1.5'}`}>
+                        {groupLabel}
+                      </p>
                     )}
-                    <span className={`flex items-center gap-2.5 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-                      <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                      {!isSidebarCollapsed && <span className="font-medium">{label}</span>}
-                    </span>
-                    {!isSidebarCollapsed && (
-                      <span className="flex items-center gap-2">
-                        {typeof count === 'number' && count > 0 && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-100 px-1.5 text-[10px] font-semibold text-blue-600">{count}</span>
-                        )}
-                        {badge && (
-                          <span className="rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">{badge}</span>
-                        )}
+                    {!isSidebarCollapsed && index > 0 && (index === clinicalEnd + 1 || index === toolsEnd + 1) && (
+                      <div className="mx-2.5 mb-2 h-px bg-am-surface-200" />
+                    )}
+                    <button
+                      type="button"
+                      className={`sidebar-button relative flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-all duration-am-fast ease-am-ease ${
+                        isActive
+                          ? 'bg-am-doctor-50 text-am-doctor-600 ring-1 ring-am-doctor-200'
+                          : 'text-am-surface-600 hover:bg-am-surface-100 hover:text-am-surface-900'
+                      } ${isSidebarCollapsed ? 'flex-col gap-1 text-center' : 'gap-2'}`}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        handleSidebarItemClick(id)
+                      }}
+                      title={isSidebarCollapsed ? label : undefined}
+                    >
+                      {isActive && !isSidebarCollapsed && (
+                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-am-doctor-500" />
+                      )}
+                      <span className={`flex items-center gap-2.5 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                        <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-am-doctor-600' : 'text-am-surface-400'}`} />
+                        {!isSidebarCollapsed && <span className="font-medium">{label}</span>}
                       </span>
-                    )}
-                  </button>
+                      {!isSidebarCollapsed && (
+                        <span className="flex items-center gap-2">
+                          {typeof count === 'number' && count > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-am-doctor-100 px-1.5 text-[10px] font-semibold text-am-doctor-600">{count}</span>
+                          )}
+                          {badge && (
+                            <span className="rounded-full bg-am-doctor-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{badge}</span>
+                          )}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 )
               })}
             </nav>
-            <div className={`mt-auto rounded-xl border border-gray-200 bg-gray-50 p-3 ${isSidebarCollapsed ? 'px-2' : ''}`}>
+            <div className={`mt-auto rounded-xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-am-primary-50 p-3 ${isSidebarCollapsed ? 'px-2' : ''}`}>
               <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'flex-col text-center' : ''}`}>
-                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xs font-bold text-white shadow-lg shadow-blue-500/15">
+                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 text-xs font-bold text-white shadow-lg shadow-am-doctor-500/15">
                   {getInitials(userName)}
                   <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
                 </div>
                 {!isSidebarCollapsed && (
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-gray-900">{userName}</p>
+                    <p className="truncate text-xs font-semibold text-am-surface-900">{userName}</p>
                     <p className="text-[10px] font-medium text-emerald-600">Disponible</p>
                   </div>
                 )}
@@ -517,7 +538,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
             </div>
           </aside>
 
-          <main className="flex min-h-0 flex-1 flex-col bg-neutral-50">
+          <main className="flex min-h-0 flex-1 flex-col bg-am-surface-50">
             <section
               className={`flex min-h-0 flex-1 overflow-hidden p-0`}
             >
@@ -537,8 +558,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {activeSection === 'marketplace' && (
                   <Suspense
                     fallback={
-                      <div className="flex h-full items-center justify-center rounded-xl border border-gray-200 bg-white p-8 text-gray-500 shadow-sm">
-                        Cargando marketplace...
+                      <div className="flex h-full items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-8 text-am-surface-500 shadow-am-sm">
+                        <div className="flex items-center gap-3">
+                          <svg className="animate-spin h-5 w-5 text-am-doctor-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                          Cargando marketplace...
+                        </div>
                       </div>
                     }
                   >
@@ -550,25 +574,25 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {activeSection === 'records' && <RecordsPanel />}
                 {activeSection === 'vitals' && <VitalSignsPanel />}
                 {activeSection === 'chat' && (
-                  <div className="flex h-full flex-col items-center justify-center gap-5 rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 ring-1 ring-blue-200">
-                      <MessageSquare className="h-7 w-7 text-blue-500" />
+                  <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-am-surface-200 bg-white p-8 text-center shadow-am-sm">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-am-doctor-50 ring-1 ring-am-doctor-200">
+                      <MessageSquare className="h-7 w-7 text-am-doctor-500" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Chat Médico</h3>
-                      <p className="mt-1 text-xs text-gray-500">Comunicación segura con pacientes y colegas</p>
+                      <h3 className="text-sm font-semibold text-am-surface-900">Chat Médico</h3>
+                      <p className="mt-1 text-xs text-am-surface-500">Comunicación segura con pacientes y colegas</p>
                     </div>
                   </div>
                 )}
                 {activeSection === 'diagnosis' && <DiagnosisPanel />}
                 {activeSection === 'history' && (
-                  <div className="flex h-full flex-col items-center justify-center gap-5 rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 ring-1 ring-violet-200">
-                      <Brain className="h-7 w-7 text-violet-500" />
+                  <div className="flex h-full flex-col items-center justify-center gap-5 rounded-2xl border border-am-surface-200 bg-white p-8 text-center shadow-am-sm">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-am-doctor-50 ring-1 ring-am-doctor-200">
+                      <Brain className="h-7 w-7 text-am-doctor-500" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-medium text-gray-900">Historial IA</h3>
-                      <p className="mt-1 text-xs text-gray-500">Historial de análisis y recomendaciones</p>
+                      <h3 className="text-sm font-semibold text-am-surface-900">Historial IA</h3>
+                      <p className="mt-1 text-xs text-am-surface-500">Historial de análisis y recomendaciones</p>
                     </div>
                   </div>
                 )}
@@ -581,7 +605,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                         {children}
                       </div>
                     ) : (
-                      <div className="flex min-h-0 w-full flex-1 overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                      <div className="flex min-h-0 w-full flex-1 overflow-y-auto rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
                         {activeTab === 'patient-info' && <PatientInfoTab patientId={session?.patientId || null} />}
                         {activeTab === 'medical-history' && <MedicalHistoryTab patientId={session?.patientId || null} />}
                         {activeTab === 'prescriptions' && <PrescriptionsTab patientId={session?.patientId || null} />}
@@ -593,12 +617,12 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 )}
               </div>
             </section>
-            <footer className="hidden items-center justify-between border-t border-gray-200 bg-white px-4 py-2 text-[11px] sm:px-6 md:flex">
-              <div className="flex items-center gap-3 text-gray-400">
-                <span className="font-semibold text-gray-600">AutaMedica</span>
+            <footer className="hidden items-center justify-between border-t border-am-surface-200 bg-white px-4 py-2 text-[11px] sm:px-6 md:flex">
+              <div className="flex items-center gap-3 text-am-surface-400">
+                <span className="font-semibold text-am-surface-600">AutaMedica</span>
                 {!statsLoading && stats?.activeCount ? (
                   <>
-                    <span className="h-3 w-px bg-gray-300" />
+                    <span className="h-3 w-px bg-am-surface-300" />
                     <span className="flex items-center gap-1.5 text-emerald-600">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       {stats.activeCount} consulta{stats.activeCount !== 1 ? 's' : ''} activa{stats.activeCount !== 1 ? 's' : ''}
@@ -607,14 +631,14 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 ) : null}
                 {stats?.nextAppointment && (
                   <>
-                    <span className="hidden h-3 w-px bg-gray-300 sm:block" />
+                    <span className="hidden h-3 w-px bg-am-surface-300 sm:block" />
                     <span className="hidden sm:inline">
                       Próxima: {stats.nextAppointment.time}
                     </span>
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-gray-400">
+              <div className="flex items-center gap-1.5 text-am-surface-400">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-30" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -626,7 +650,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
         </div>
 
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-gray-200 bg-white shadow-[0_-1px_3px_rgba(0,0,0,0.05)] md:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-am-surface-200 bg-white shadow-[0_-1px_3px_rgba(0,0,0,0.05)] md:hidden"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           aria-label="Navegación principal"
         >
@@ -638,10 +662,10 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 type="button"
                 onClick={() => handleSidebarItemClick(id)}
                 className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors active:scale-95 ${
-                  isActive ? 'text-blue-600' : 'text-gray-400'
+                  isActive ? 'text-am-doctor-600' : 'text-am-surface-400'
                 }`}
               >
-                {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-blue-600" />}
+                {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-am-doctor-500" />}
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
               </button>
@@ -650,7 +674,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-gray-400 transition-colors active:scale-95"
+            className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-am-surface-400 transition-colors active:scale-95"
           >
             <Menu className="h-5 w-5" />
             <span>Más</span>

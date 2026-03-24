@@ -1,25 +1,19 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Configuración compartida de Tailwind CSS para AutaMedica
+ * AutaMedica Design System — Tailwind Preset
  *
- * Design system inspirado en Doctolib:
- * - Azul primario (confianza, profesionalismo)
- * - Acentos por rol (violeta doctor, sky paciente)
- * - Superficies slate neutras
- * - Grid de 8px
- *
- * @see https://turborepo.com/docs/guides/tools/tailwind
+ * Paleta calida (stone), sombras con profundidad,
+ * acentos por rol (violeta doctor, sky paciente),
+ * sistema de elevacion y transiciones premium.
  */
 const autamedicaPreset: Partial<Config> = {
   theme: {
     extend: {
       colors: {
-        // CSS variable fallbacks (legacy compat)
         background: "var(--background)",
         foreground: "var(--foreground)",
 
-        // AutaMedica unified palette
         "am-primary": {
           50: '#EFF6FF',
           100: '#DBEAFE',
@@ -36,6 +30,7 @@ const autamedicaPreset: Partial<Config> = {
           50: '#F5F3FF',
           100: '#EDE9FE',
           200: '#DDD6FE',
+          300: '#C4B5FD',
           400: '#A78BFA',
           500: '#8B5CF6',
           600: '#7C3AED',
@@ -50,18 +45,19 @@ const autamedicaPreset: Partial<Config> = {
           600: '#0284C7',
           700: '#0369A1',
         },
+        // Warm neutrals (stone-based, not cold slate)
         "am-surface": {
           white: '#FFFFFF',
-          50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          300: '#CBD5E1',
-          400: '#94A3B8',
-          500: '#64748B',
-          600: '#475569',
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
+          50: '#FAFAF9',
+          100: '#F5F5F4',
+          200: '#E7E5E4',
+          300: '#D6D3D1',
+          400: '#A8A29E',
+          500: '#78716C',
+          600: '#57534E',
+          700: '#44403C',
+          800: '#292524',
+          900: '#1C1917',
         },
         "am-success": { light: '#D1FAE5', DEFAULT: '#10B981', dark: '#065F46' },
         "am-warning": { light: '#FEF3C7', DEFAULT: '#F59E0B', dark: '#92400E' },
@@ -84,14 +80,12 @@ const autamedicaPreset: Partial<Config> = {
 
       fontFamily: {
         sans: [
+          "'Geist'",
           'Inter',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',
-          'Roboto',
-          '"Helvetica Neue"',
-          'Arial',
           'sans-serif',
         ],
         mono: [
@@ -101,6 +95,30 @@ const autamedicaPreset: Partial<Config> = {
           'Menlo',
           'monospace',
         ],
+      },
+
+      boxShadow: {
+        'am-xs': '0 1px 2px 0 rgb(0 0 0 / 0.03)',
+        'am-sm': '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)',
+        'am-md': '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05)',
+        'am-lg': '0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04)',
+        'am-xl': '0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04)',
+        'am-primary': '0 4px 14px -3px rgb(59 130 246 / 0.3)',
+        'am-doctor': '0 4px 14px -3px rgb(139 92 246 / 0.25)',
+        'am-success': '0 4px 14px -3px rgb(16 185 129 / 0.25)',
+        'am-card-hover': '0 12px 28px -8px rgb(0 0 0 / 0.12), 0 4px 10px -4px rgb(0 0 0 / 0.06)',
+      },
+
+      transitionDuration: {
+        'am-fast': '150ms',
+        'am-base': '200ms',
+        'am-slow': '300ms',
+        'am-spring': '500ms',
+      },
+
+      transitionTimingFunction: {
+        'am-ease': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'am-bounce': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
       },
 
       animation: {
@@ -115,6 +133,8 @@ const autamedicaPreset: Partial<Config> = {
         'float': 'float 3s ease-in-out infinite',
         'pulse-ring': 'pulseRing 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'scale-in': 'scaleIn 0.3s ease-out',
+        'am-shimmer': 'amShimmer 1.5s linear infinite',
+        'am-press': 'amPress 0.15s ease-out',
       },
 
       keyframes: {
@@ -150,6 +170,15 @@ const autamedicaPreset: Partial<Config> = {
         scaleIn: {
           '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        amShimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        amPress: {
+          '0%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(0.97)' },
+          '100%': { transform: 'scale(1)' },
         },
       },
     },
