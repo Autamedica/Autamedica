@@ -236,13 +236,21 @@ const CLIENT_ENV_MAP: Record<string, string | undefined> = Array.from(ALLOWED_CL
   {} as Record<string, string | undefined>
 );
 
+// window.__ENV is injected at runtime by Astro layouts (Layout.astro, AuthLayout.astro).
+// It carries PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY for browser environments
+// where process.env is unavailable (Cloudflare Workers, Astro islands).
+const windowEnv: Record<string, string> | undefined =
+  typeof window !== 'undefined'
+    ? (window as unknown as { __ENV?: Record<string, string> }).__ENV
+    : undefined;
+
 // Helper to read known client env keys via direct property access (Vite/Astro inlining).
 function readKnownClientEnv(name: string): string | undefined {
   switch (name) {
     case 'PUBLIC_SUPABASE_URL':
-      return process.env.PUBLIC_SUPABASE_URL;
+      return process.env.PUBLIC_SUPABASE_URL ?? windowEnv?.['PUBLIC_SUPABASE_URL'];
     case 'PUBLIC_SUPABASE_ANON_KEY':
-      return process.env.PUBLIC_SUPABASE_ANON_KEY;
+      return process.env.PUBLIC_SUPABASE_ANON_KEY ?? windowEnv?.['PUBLIC_SUPABASE_ANON_KEY'];
     case 'PUBLIC_AUTH_HUB_URL':
       return process.env.PUBLIC_AUTH_HUB_URL;
     case 'PUBLIC_AUTH_HUB_DEV_URL':
