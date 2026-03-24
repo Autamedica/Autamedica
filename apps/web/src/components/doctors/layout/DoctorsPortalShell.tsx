@@ -1,17 +1,19 @@
 "use client"
 
-import { AppointmentsPanel } from '@/components/doctors/appointments/AppointmentsPanel'
-import { DiagnosisPanel } from '@/components/doctors/diagnosis/DiagnosisPanel'
-import { AIHistoryTab } from '@/components/doctors/medical/AIHistoryTab'
-import { MedicalHistoryTab } from '@/components/doctors/medical/MedicalHistoryTab'
-import { PrescriptionsTab } from '@/components/doctors/medical/PrescriptionsTab'
-import { VitalSignsTab } from '@/components/doctors/medical/VitalSignsTab'
-import { PatientInfoTab } from '@/components/doctors/patient/PatientInfoTab'
 import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
-import { MedicalRankingPanel } from '@/components/doctors/ranking/MedicalRankingPanel'
-import { RecordsPanel } from '@/components/doctors/records/RecordsPanel'
-import { SettingsPanel } from '@/components/doctors/settings/SettingsPanel'
-import { VitalSignsPanel } from '@/components/doctors/vitals/VitalSignsPanel'
+
+const AppointmentsPanel = lazy(() => import('@/components/doctors/appointments/AppointmentsPanel').then(m => ({ default: m.AppointmentsPanel })))
+const DiagnosisPanel = lazy(() => import('@/components/doctors/diagnosis/DiagnosisPanel').then(m => ({ default: m.DiagnosisPanel })))
+const AIHistoryTab = lazy(() => import('@/components/doctors/medical/AIHistoryTab').then(m => ({ default: m.AIHistoryTab })))
+const MedicalHistoryTab = lazy(() => import('@/components/doctors/medical/MedicalHistoryTab').then(m => ({ default: m.MedicalHistoryTab })))
+const PrescriptionsTab = lazy(() => import('@/components/doctors/medical/PrescriptionsTab').then(m => ({ default: m.PrescriptionsTab })))
+const VitalSignsTab = lazy(() => import('@/components/doctors/medical/VitalSignsTab').then(m => ({ default: m.VitalSignsTab })))
+const PatientInfoTab = lazy(() => import('@/components/doctors/patient/PatientInfoTab').then(m => ({ default: m.PatientInfoTab })))
+const MedicalRankingPanel = lazy(() => import('@/components/doctors/ranking/MedicalRankingPanel').then(m => ({ default: m.MedicalRankingPanel })))
+const RecordsPanel = lazy(() => import('@/components/doctors/records/RecordsPanel').then(m => ({ default: m.RecordsPanel })))
+const SettingsPanel = lazy(() => import('@/components/doctors/settings/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
+const VitalSignsPanel = lazy(() => import('@/components/doctors/vitals/VitalSignsPanel').then(m => ({ default: m.VitalSignsPanel })))
+const MarketplacePanel = lazy(() => import('@/components/doctors/marketplace/MarketplacePanel').then(m => ({ default: m.MarketplacePanel })))
 import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorStats } from '@/hooks/doctors/useDoctorStats'
@@ -69,10 +71,16 @@ type PortalContextValue = {
 
 const PortalLayoutContext = createContext<PortalContextValue | null>(null)
 
-const MarketplacePanel = lazy(async () => {
-  const module = await import('@/components/doctors/marketplace/MarketplacePanel')
-  return { default: module.MarketplacePanel }
-})
+function PanelLoader() {
+  return (
+    <div className="flex h-full items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-8 text-am-surface-500 shadow-am-sm">
+      <div className="flex items-center gap-3">
+        <svg className="animate-spin h-5 w-5 text-am-doctor-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+        Cargando...
+      </div>
+    </div>
+  )
+}
 
 type NameCandidate = {
   full_name?: string | null
@@ -544,32 +552,45 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   className="flex min-h-0 flex-1 flex-col"
                 >
                 {activeSection === 'settings' && (
-                  <SettingsPanel
-                    doctorName={userName}
-                    specialty={doctorSpecialty}
-                    licenseNumber={String(doctorLicense)}
-                  />
+                  <Suspense fallback={<PanelLoader />}>
+                    <SettingsPanel
+                      doctorName={userName}
+                      specialty={doctorSpecialty}
+                      licenseNumber={String(doctorLicense)}
+                    />
+                  </Suspense>
                 )}
                 {activeSection === 'marketplace' && (
-                  <Suspense
-                    fallback={
-                      <div className="flex h-full items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-8 text-am-surface-500 shadow-am-sm">
-                        <div className="flex items-center gap-3">
-                          <svg className="animate-spin h-5 w-5 text-am-doctor-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                          Cargando marketplace...
-                        </div>
-                      </div>
-                    }
-                  >
+                  <Suspense fallback={<PanelLoader />}>
                     <MarketplacePanel />
                   </Suspense>
                 )}
                 {activeSection === 'patients' && <PatientsPanel />}
-                {activeSection === 'appointments' && <AppointmentsPanel doctorId={doctor?.id} />}
-                {activeSection === 'records' && <RecordsPanel onNavigateToPatients={() => setActiveSection('patients')} />}
-                {activeSection === 'vitals' && <VitalSignsPanel onNavigateToPatients={() => setActiveSection('patients')} />}
-                {activeSection === 'diagnosis' && <DiagnosisPanel />}
-                {activeSection === 'ranking' && <MedicalRankingPanel />}
+                {activeSection === 'appointments' && (
+                  <Suspense fallback={<PanelLoader />}>
+                    <AppointmentsPanel doctorId={doctor?.id} />
+                  </Suspense>
+                )}
+                {activeSection === 'records' && (
+                  <Suspense fallback={<PanelLoader />}>
+                    <RecordsPanel onNavigateToPatients={() => setActiveSection('patients')} />
+                  </Suspense>
+                )}
+                {activeSection === 'vitals' && (
+                  <Suspense fallback={<PanelLoader />}>
+                    <VitalSignsPanel onNavigateToPatients={() => setActiveSection('patients')} />
+                  </Suspense>
+                )}
+                {activeSection === 'diagnosis' && (
+                  <Suspense fallback={<PanelLoader />}>
+                    <DiagnosisPanel />
+                  </Suspense>
+                )}
+                {activeSection === 'ranking' && (
+                  <Suspense fallback={<PanelLoader />}>
+                    <MedicalRankingPanel />
+                  </Suspense>
+                )}
 
                 {!activeSection && (
                   <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -578,13 +599,15 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                         {children}
                       </div>
                     ) : (
-                      <div className="flex min-h-0 w-full flex-1 overflow-y-auto rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
-                        {activeTab === 'patient-info' && <PatientInfoTab patientId={session?.patientId || null} />}
-                        {activeTab === 'medical-history' && <MedicalHistoryTab patientId={session?.patientId || null} />}
-                        {activeTab === 'prescriptions' && <PrescriptionsTab patientId={session?.patientId || null} />}
-                        {activeTab === 'vital-signs' && <VitalSignsTab patientId={session?.patientId || null} />}
-                        {activeTab === 'ai-history' && <AIHistoryTab patientId={session?.patientId || null} />}
-                      </div>
+                      <Suspense fallback={<PanelLoader />}>
+                        <div className="flex min-h-0 w-full flex-1 overflow-y-auto rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
+                          {activeTab === 'patient-info' && <PatientInfoTab patientId={session?.patientId || null} />}
+                          {activeTab === 'medical-history' && <MedicalHistoryTab patientId={session?.patientId || null} />}
+                          {activeTab === 'prescriptions' && <PrescriptionsTab patientId={session?.patientId || null} />}
+                          {activeTab === 'vital-signs' && <VitalSignsTab patientId={session?.patientId || null} />}
+                          {activeTab === 'ai-history' && <AIHistoryTab patientId={session?.patientId || null} />}
+                        </div>
+                      </Suspense>
                     )}
                   </div>
                 )}
