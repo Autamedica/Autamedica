@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { ProfileFormPage } from '@/components/doctors/ProfileFormPage';
+
+const title = 'Completar Perfil | AutaMedica';
+const description = 'Completa tu perfil profesional médico';
+---
+
+<Layout title={title} description={description}>
+  <ProfileFormPage client:load />
+</Layout>

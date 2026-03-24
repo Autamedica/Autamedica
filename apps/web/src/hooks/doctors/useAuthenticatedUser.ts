@@ -8,6 +8,8 @@ interface AuthenticatedUser {
   id: string
   email: string
   role?: 'doctor' | 'patient' | 'company_admin' | 'platform_admin'
+  created_at?: string
+  onboarding_completed_at?: string | null
   profile?: {
     full_name?: string
     first_name?: string
@@ -85,6 +87,8 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
         id: userId,
         email: userEmail,
         role: typeof role === 'string' ? role as AuthenticatedUser['role'] : undefined,
+        created_at: profile?.created_at ?? undefined,
+        onboarding_completed_at: profile?.onboarding_completed_at ?? null,
         profile: profileData
       }
 

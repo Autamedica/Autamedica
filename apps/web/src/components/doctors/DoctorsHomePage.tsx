@@ -1,6 +1,7 @@
 "use client"
 
-import { DoctorOnboardingWizard } from '@/components/doctors/onboarding/DoctorOnboardingWizard'
+import { GracePeriodBanner } from '@/components/doctors/GracePeriodBanner'
+import { OnboardingReminder } from '@/components/doctors/OnboardingReminder'
 import { StartCallButton } from '@/components/doctors/calls/StartCallButton'
 import { useDoctorsPortal } from '@/components/doctors/layout/DoctorsPortalShell'
 import { PrescriptionModal } from '@/components/doctors/medical/PrescriptionModal'
@@ -10,6 +11,7 @@ import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { usePatientData } from '@/hooks/doctors/usePatientData'
 import type { Locale } from '@/i18n/index'
+import { getOnboardingStatus } from '@/lib/onboarding-grace'
 import { createBrowserClient } from '@autamedica/auth/client'
 import { getClientEnvOrDefault, isProduction, logger } from '@autamedica/shared'
 import {
@@ -114,6 +116,12 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   // Hooks para obtener datos de autenticación y paciente
   const { user, loading: authLoading } = useAuthenticatedUser()
   const [onboardingRequired, setOnboardingRequired] = useState<boolean | null>(null)
+
+  const onboardingStatus = useMemo(
+    () => getOnboardingStatus(user?.onboarding_completed_at, user?.created_at),
+    [user?.onboarding_completed_at, user?.created_at],
+  )
+  const isBlocked = onboardingStatus.state === 'expired'
 
   useEffect(() => {
     if (authLoading) {
@@ -438,18 +446,9 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
     )
   }
 
-  if (onboardingRequired && user) {
-    return (
-      <DoctorOnboardingWizard
-        userId={user.id}
-        onComplete={() => setOnboardingRequired(false)}
-        onCancel={() => setOnboardingRequired(false)}
-      />
-    )
-  }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col text-am-surface-900">
+      {onboardingStatus.state === 'expired' && <GracePeriodBanner />}
       <div className={`call-area ${isFocusMode ? 'gap-3' : 'gap-4'} flex min-h-0 flex-1 flex-col lg:flex-row`}>
         <section className="call-area__videoCard relative flex min-h-0 flex-1 flex-col">
           <div className="relative flex min-h-0 flex-1 overflow-hidden rounded-lg">
@@ -528,7 +527,8 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   <button
                     type="button"
                     onClick={handleActivateCamera}
-                    className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 transition-all hover:bg-slate-700 hover:text-white active:scale-95"
+                    disabled={isBlocked}
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 transition-all hover:bg-slate-700 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
                   >
                     Probar cámara sin transmitir
                   </button>
@@ -722,13 +722,13 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   label="Notas"
                   icon={<FileText className="h-4 w-4" />}
                   onClick={handleTakeNotes}
-                  disabled={!hasSession}
+                  disabled={!hasSession || isBlocked}
                 />
                 <CompactAction
                   label="Prescribir"
                   icon={<Pill className="h-4 w-4" />}
                   onClick={handlePrescribe}
-                  disabled={!hasSession}
+                  disabled={!hasSession || isBlocked}
                 />
                 <CompactAction
                   label="Signos vitales"
@@ -740,13 +740,14 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   icon={<MonitorUp className="h-4 w-4" />}
                   intent={hasSession && showTelemedicinePanel ? 'primary' : 'default'}
                   onClick={() => setShowTelemedicinePanel(!showTelemedicinePanel)}
-                  disabled={!hasSession}
+                  disabled={!hasSession || isBlocked}
                 />
                 <CompactAction
                   label={aiProcessing ? 'Procesando...' : 'Análisis IA'}
                   icon={<Brain className="h-4 w-4" />}
                   intent="success"
                   onClick={handleAnalyzeWithAI}
+                  disabled={isBlocked}
                 />
               </div>
 
@@ -905,6 +906,9 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
         />
       )}
 
+      {onboardingStatus.state === 'grace_period' && (
+        <OnboardingReminder daysRemaining={onboardingStatus.daysRemaining} />
+      )}
     </div>
   )
 }
