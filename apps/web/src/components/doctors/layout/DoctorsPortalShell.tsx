@@ -30,6 +30,7 @@ import {
     FileText,
     History,
     Home,
+    LogOut,
     MapPin,
     Menu,
     MessageSquare,
@@ -43,7 +44,8 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { JSX, ReactNode } from 'react'
-import { Suspense, createContext, lazy, useContext, useEffect, useMemo, useState } from 'react'
+import { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createBrowserClient } from '@autamedica/auth/client'
 
 type TabId = 'video-call' | 'patient-info' | 'medical-history' | 'prescriptions' | 'vital-signs' | 'ai-history'
 
@@ -161,6 +163,18 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const patientsCount = stats?.patientsCount ?? undefined
   const appointmentsCount = stats?.todayCount || 0
   const historyCount = stats?.historyCount ?? undefined
+
+  const [signingOut, setSigningOut] = useState(false)
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true)
+    try {
+      const supabase = createBrowserClient()
+      await supabase.auth.signOut()
+      window.location.href = '/auth/login?portal=doctors'
+    } catch {
+      setSigningOut(false)
+    }
+  }, [])
 
   // Efecto para plegar el sidebar automáticamente cuando inicia una videollamada
   useEffect(() => {
@@ -341,13 +355,6 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            <span className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200 sm:flex">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              En línea
-            </span>
             <span className="rounded-lg bg-am-surface-100 px-2.5 py-1 font-mono text-[11px] text-am-surface-500 ring-1 ring-am-surface-200">{currentTime}</span>
           </div>
         </header>
@@ -419,17 +426,25 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 </button>
               </div>
               <nav className="space-y-0.5 overflow-y-auto pb-16">{navItems}</nav>
-              <div className="absolute inset-x-5 bottom-6 rounded-xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-am-primary-50 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 text-xs font-bold text-white shadow-lg shadow-am-doctor-500/15">
+              <div className="absolute inset-x-5 bottom-6 space-y-3">
+                <div className="flex items-center gap-3 rounded-xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-am-primary-50 p-3">
+                  <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 text-xs font-bold text-white shadow-lg shadow-am-doctor-500/15">
                     {getInitials(userName)}
-                    <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-am-surface-900">{userName}</p>
-                    <p className="text-[10px] font-medium text-emerald-600">Disponible</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-am-surface-900">{userName}</p>
+                    <p className="text-[10px] font-medium text-am-surface-500">Portal Médico</p>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-am-surface-200 bg-white px-3 py-2 text-sm font-medium text-am-surface-700 transition-all duration-am-fast hover:bg-am-surface-50 hover:text-am-surface-900 active:scale-95 disabled:opacity-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
+                </button>
               </div>
             </div>
           </div>
@@ -527,19 +542,31 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 )
               })}
             </nav>
-            <div className={`mt-auto rounded-xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-am-primary-50 p-3 ${isSidebarCollapsed ? 'px-2' : ''}`}>
-              <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'flex-col text-center' : ''}`}>
-                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 text-xs font-bold text-white shadow-lg shadow-am-doctor-500/15">
-                  {getInitials(userName)}
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
-                </div>
-                {!isSidebarCollapsed && (
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-am-surface-900">{userName}</p>
-                    <p className="text-[10px] font-medium text-emerald-600">Disponible</p>
+            <div className={`mt-auto space-y-2 ${isSidebarCollapsed ? '' : ''}`}>
+              <div className={`rounded-xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-am-primary-50 p-2.5 ${isSidebarCollapsed ? 'px-2' : ''}`}>
+                <div className={`flex items-center gap-2.5 ${isSidebarCollapsed ? 'flex-col text-center' : ''}`}>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-am-doctor-500 to-am-primary-600 text-[10px] font-bold text-white shadow-md shadow-am-doctor-500/15">
+                    {getInitials(userName)}
                   </div>
-                )}
+                  {!isSidebarCollapsed && (
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-am-surface-900">{userName}</p>
+                    </div>
+                  )}
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl border border-am-surface-200 bg-white text-xs font-medium text-am-surface-600 transition-all duration-am-fast hover:bg-am-surface-50 hover:text-am-surface-900 active:scale-95 disabled:opacity-50 ${
+                  isSidebarCollapsed ? 'p-2' : 'px-2.5 py-2'
+                }`}
+                title="Cerrar sesión"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                {!isSidebarCollapsed && (signingOut ? 'Cerrando...' : 'Cerrar sesión')}
+              </button>
             </div>
           </aside>
 
@@ -664,13 +691,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-am-surface-400">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-30" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                <span className="font-medium">Conectado</span>
-              </div>
+              <span className="text-am-surface-400">v1.0</span>
             </footer>
           </main>
         </div>
