@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { createServerClientFromRequest, createAdminClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
 
 type AdminClient = SupabaseClient;
 
@@ -17,48 +18,8 @@ interface TranscriptionBody {
   fullText: string;
   durationSeconds?: number;
   consentDoctor: boolean;
+  consentPatient?: boolean;
   lang?: string;
-}
-
-async function resolveDoctorId(admin: AdminClient, userId: string): Promise<string | null> {
-  const { data, error } = await admin
-    .from('doctors')
-    .select('id')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) throw error;
-  return (data as { id: string } | null)?.id ?? null;
-}
-
-async function resolveRoomParticipants(
-  admin: AdminClient,
-  roomId: string,
-): Promise<{ patientId: string; appointmentId: string | null } | null> {
-  const { data: callRow } = await admin
-    .from('calls')
-    .select('patient_id')
-    .eq('room_id', roomId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (callRow) {
-    return { patientId: (callRow as { patient_id: string }).patient_id, appointmentId: null };
-  }
-
-  const { data: sessionRow } = await admin
-    .from('telemedicine_sessions')
-    .select('patient_id, appointment_id')
-    .eq('room_id', roomId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!sessionRow) return null;
-
-  const session = sessionRow as { patient_id: string; appointment_id: string | null };
-  return { patientId: session.patient_id, appointmentId: session.appointment_id };
 }
 
 export const POST: APIRoute = async ({ request, params }) => {
@@ -124,7 +85,7 @@ export const POST: APIRoute = async ({ request, params }) => {
         duration_seconds: body.durationSeconds ?? null,
         word_count: wordCount,
         consent_doctor: body.consentDoctor,
-        consent_patient: false,
+        consent_patient: body.consentPatient ?? false,
         lang: body.lang ?? 'es-AR',
       });
 

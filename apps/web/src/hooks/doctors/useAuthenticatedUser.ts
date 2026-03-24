@@ -1,5 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -115,7 +113,7 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
         return
       }
 
-      const userProfile = await fetchUserProfile(authUser.id, authUser.email!)
+      const userProfile = await fetchUserProfile(authUser.id, authUser.email ?? '')
       setUser(userProfile)
 
     } catch (err) {
@@ -135,12 +133,10 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // logger.info('Auth state changed:', event, session?.user?.id)
-
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
             try {
-              const userProfile = await fetchUserProfile(session.user.id, session.user.email!)
+              const userProfile = await fetchUserProfile(session.user.id, session.user.email ?? '')
               setUser(userProfile)
             } catch (err) {
               const errorMessage = err instanceof Error ? err.message : 'Error loading user'

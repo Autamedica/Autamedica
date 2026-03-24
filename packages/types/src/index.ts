@@ -235,6 +235,7 @@ export {
 
 // Doctor profile types (alternate definitions - solo tipos NO duplicados)
 export type {
+  DoctorIdealProfile,
   TimeHHmm,
   ARS,
   LicenseProvinceCode,

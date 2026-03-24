@@ -110,10 +110,11 @@ export type { EmergencyContact } from '../entities/profiles';
 // ==========================================
 
 /**
- * Perfil completo del médico con toda la información
- * Contiene datos sensibles - usar con cuidado
+ * Perfil ideal/aspiracional del médico con toda la información de compliance.
+ * NO refleja el schema actual de la DB (para eso usar DoctorProfile de entities/profiles).
+ * Contiene datos sensibles - usar con cuidado.
  */
-export interface DoctorProfile {
+export interface DoctorIdealProfile {
   /** ID único del médico */
   id: DoctorId;
 
@@ -257,13 +258,13 @@ export interface DoctorPublicProfile {
  */
 export interface DoctorPrivateData {
   /** Información personal completa */
-  personalInfo: DoctorProfile['personalInfo'];
+  personalInfo: DoctorIdealProfile['personalInfo'];
   /** Información de contacto */
-  contactInfo: DoctorProfile['contactInfo'];
+  contactInfo: DoctorIdealProfile['contactInfo'];
   /** Credenciales médicas */
-  medicalCredentials: DoctorProfile['medicalCredentials'];
+  medicalCredentials: DoctorIdealProfile['medicalCredentials'];
   /** Datos de compliance */
-  compliance: DoctorProfile['compliance'];
+  compliance: DoctorIdealProfile['compliance'];
 }
 
 // ==========================================
@@ -282,7 +283,7 @@ export function isDoctorLicenseActive(license: MedicalLicense): boolean {
 /**
  * Verifica si un perfil de médico está completo
  */
-export function isDoctorProfileComplete(profile: DoctorProfile): boolean {
+export function isDoctorProfileComplete(profile: DoctorIdealProfile): boolean {
   return Boolean(
     profile.personalInfo.firstName &&
     profile.medicalCredentials.primaryLicense &&
@@ -295,7 +296,7 @@ export function isDoctorProfileComplete(profile: DoctorProfile): boolean {
 /**
  * Verifica si un médico puede ejercer en Argentina
  */
-export function canPracticeInArgentina(profile: DoctorProfile): boolean {
+export function canPracticeInArgentina(profile: DoctorIdealProfile): boolean {
   return (
     profile.compliance.anmatRegistered &&
     !!profile.medicalCredentials.primaryLicense.province &&
@@ -315,14 +316,14 @@ export function calculateYearsOfExperience(graduationDate: ISODateString): numbe
 /**
  * Genera nombre para mostrar desde el perfil
  */
-export function generateDisplayName(profile: DoctorProfile): string {
+export function generateDisplayName(profile: DoctorIdealProfile): string {
   return `Dr. ${profile.personalInfo.firstName} ${profile.personalInfo.lastName}`;
 }
 
 /**
  * Verifica si un médico acepta una obra social específica
  */
-export function acceptsInsurancePlan(profile: DoctorProfile, planName: string): boolean {
+export function acceptsInsurancePlan(profile: DoctorIdealProfile, planName: string): boolean {
   if (!profile.professionalInfo.acceptsInsurance) return false;
   if (!profile.professionalInfo.acceptedInsurancePlans) return false;
 
@@ -333,7 +334,7 @@ export function acceptsInsurancePlan(profile: DoctorProfile, planName: string): 
  * Verifica si un médico está disponible en un día específico
  */
 export function isAvailableOnDay(
-  profile: DoctorProfile,
+  profile: DoctorIdealProfile,
   dayOfWeek: keyof WeeklySchedule
 ): boolean {
   const daySchedule = profile.availability.weeklySchedule[dayOfWeek];
@@ -389,13 +390,13 @@ export const isValidURL = (url: string): url is URLString => {
  * Resultado de búsqueda de médico (dominio puro)
  */
 export type DoctorLookupResult =
-  | { ok: true; data: DoctorProfile }
+  | { ok: true; data: DoctorIdealProfile }
   | { ok: false; error: 'NOT_FOUND' | 'FORBIDDEN' };
 
 /**
  * Respuesta de API para médico (borde HTTP)
  */
-export type DoctorAPIResponse = ApiResponse<DoctorProfile>;
+export type DoctorAPIResponse = ApiResponse<DoctorIdealProfile>;
 
 /**
  * Respuesta de API para perfil público
@@ -414,7 +415,7 @@ export type DoctorListAPIResponse = ApiResponse<DoctorPublicProfile[]>;
 /**
  * Crea un perfil público desde un perfil completo
  */
-export function createPublicProfile(profile: DoctorProfile): DoctorPublicProfile {
+export function createPublicProfile(profile: DoctorIdealProfile): DoctorPublicProfile {
   return {
     id: profile.id,
     displayName: generateDisplayName(profile),
@@ -431,7 +432,7 @@ export function createPublicProfile(profile: DoctorProfile): DoctorPublicProfile
 /**
  * Extrae datos privados desde un perfil completo
  */
-export function extractPrivateData(profile: DoctorProfile): DoctorPrivateData {
+export function extractPrivateData(profile: DoctorIdealProfile): DoctorPrivateData {
   return {
     personalInfo: profile.personalInfo,
     contactInfo: profile.contactInfo,

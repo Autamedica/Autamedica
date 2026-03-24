@@ -81,7 +81,7 @@ const ALLOWED_INTERNAL_EXPORTS = [
   'TimeHHmm', 'TimeSlot', 'ProfessionalInsurance', 'ARS',
 
   // Doctor internal types
-  'DoctorPublicProfile', 'DoctorPrivateData', 'DoctorLookupResult',
+  'DoctorIdealProfile', 'DoctorPublicProfile', 'DoctorPrivateData', 'DoctorLookupResult',
   'DoctorAPIResponse', 'DoctorPublicAPIResponse', 'DoctorListAPIResponse',
   'isValidEmail', 'isValidURL',
 

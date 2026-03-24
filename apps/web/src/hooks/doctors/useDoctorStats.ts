@@ -1,14 +1,14 @@
- 
-// @ts-nocheck
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createBrowserClient } from '@autamedica/auth/client'
 import { logger } from '@autamedica/shared'
 
-interface AppointmentStats {
+interface DoctorStats {
   activeCount: number
   todayCount: number
+  patientsCount: number
+  historyCount: number
   nextAppointment: {
     time: string
     patientName: string
@@ -16,32 +16,24 @@ interface AppointmentStats {
 }
 
 interface UseDoctorStatsReturn {
-  stats: AppointmentStats | null
+  stats: DoctorStats | null
   loading: boolean
   error: string | null
   refresh: () => Promise<void>
 }
 
-/**
- * Hook para obtener estadísticas de consultas del doctor autenticado
- *
- * - Consultas activas
- * - Consultas del día
- * - Próxima consulta
- */
 export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
-  const [stats, setStats] = useState<AppointmentStats | null>(null)
+  const [stats, setStats] = useState<DoctorStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isClient, setIsClient] = useState(false)
+  const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
 
   useEffect(() => {
-    setIsClient(true)
+    supabaseRef.current = createBrowserClient()
   }, [])
 
-  const supabase = isClient ? createBrowserClient() : null
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
+    const supabase = supabaseRef.current
     if (!supabase || !doctorId) {
       setLoading(false)
       return
@@ -51,42 +43,53 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
       setLoading(true)
       setError(null)
 
-      // Get today's date range
-      const today = new Date()
-      const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString()
-      const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString()
-      const now = new Date().toISOString()
+      const now = new Date()
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
+      const nowIso = now.toISOString()
 
-      // Query appointments for this doctor
-      // DB schema: appointments has start_time (not scheduled_at),
-      // patient_id FK -> patients.id, patients.user_id FK -> profiles.user_id
-      const { data: appointments, error: apptError } = await supabase
-        .from('appointments')
-        .select('id, start_time, status, patient_id')
-        .eq('doctor_id', doctorId)
-        .gte('start_time', startOfDay)
-        .order('start_time', { ascending: true })
+      // Parallel queries: appointments, patient count, medical records count
+      const [apptResult, patientsResult, recordsResult] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('id, start_time, status, patient_id')
+          .eq('doctor_id', doctorId)
+          .gte('start_time', startOfDay)
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('appointments')
+          .select('patient_id')
+          .eq('doctor_id', doctorId)
+          .is('deleted_at', null)
+          .not('patient_id', 'is', null),
+        supabase
+          .from('medical_records')
+          .select('id', { count: 'exact', head: true })
+          .eq('doctor_id', doctorId),
+      ])
 
-      if (apptError) {
-        throw apptError
-      }
+      if (apptResult.error) throw apptResult.error
 
-      // Calculate stats
-      const activeAppointments = appointments?.filter(apt =>
+      const appointments = apptResult.data || []
+
+      // Unique patients from all appointments
+      const uniquePatientIds = new Set(
+        (patientsResult.data || []).map(r => r.patient_id).filter(Boolean)
+      )
+
+      const activeAppointments = appointments.filter(apt =>
         apt.status === 'scheduled' || apt.status === 'in_progress'
-      ) || []
+      )
 
-      const todayAppointments = appointments?.filter(apt =>
+      const todayAppointments = appointments.filter(apt =>
         apt.start_time >= startOfDay && apt.start_time <= endOfDay
-      ) || []
+      )
 
-      // Find next appointment
-      const nextAppt = appointments?.find(apt =>
-        apt.start_time >= now &&
+      const nextAppt = appointments.find(apt =>
+        apt.start_time >= nowIso &&
         (apt.status === 'scheduled' || apt.status === 'confirmed')
       )
 
-      // For the next appointment, fetch the patient profile name separately
       let patientName = 'Paciente'
       if (nextAppt?.patient_id) {
         const { data: patient } = await supabase
@@ -108,20 +111,19 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
         }
       }
 
-      const nextAppointment = nextAppt ? {
-        time: new Date(nextAppt.start_time).toLocaleTimeString('es-AR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        patientName
-      } : null
-
       setStats({
         activeCount: activeAppointments.length,
         todayCount: todayAppointments.length,
-        nextAppointment
+        patientsCount: uniquePatientIds.size,
+        historyCount: recordsResult.count ?? 0,
+        nextAppointment: nextAppt ? {
+          time: new Date(nextAppt.start_time).toLocaleTimeString('es-AR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          patientName
+        } : null
       })
-
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error loading stats'
       setError(errorMessage)
@@ -129,18 +131,16 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
     } finally {
       setLoading(false)
     }
-  }
+  }, [doctorId])
 
   useEffect(() => {
-    if (!supabase || !doctorId) return
+    if (!doctorId) return
 
-    fetchStats()
+    void fetchStats()
 
-    // Refresh stats every 60 seconds
-    const interval = setInterval(fetchStats, 60000)
-
+    const interval = setInterval(() => void fetchStats(), 60000)
     return () => clearInterval(interval)
-  }, [supabase, doctorId])
+  }, [doctorId, fetchStats])
 
   return {
     stats,
