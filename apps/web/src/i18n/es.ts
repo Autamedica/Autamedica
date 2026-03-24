@@ -58,6 +58,7 @@ export const es = {
     preparingAccess: 'Preparando acceso...',
     directAccess: 'Ingreso directo',
     alreadyHaveAccountQ: '¿Ya tienes cuenta?',
+    registerAs: 'Registro como',
     recoverAccess: 'Recuperar Acceso',
     recoverSubtitle: 'Introduce tu email para recibir un enlace de recuperación',
     registeredEmail: 'Correo electrónico registrado',
@@ -128,7 +129,7 @@ export const es = {
     premiumNarrative: {
       kicker: 'No es solo una videollamada',
       title: 'La sala de espera era el problema, no el médico',
-      copy: 'En LATAM, millones de consultas se posponen por distancia, tiempo o costo del traslado. AutaMédica conecta pacientes con médicos verificados — en Buenos Aires, Bogotá, Lima o donde estés.',
+      copy: 'En LATAM, millones de consultas se posponen por distancia, tiempo o costo del traslado. AutaMedica conecta pacientes con médicos verificados — en Buenos Aires, Bogotá, Lima o donde estés.',
       sideTitle: 'Lo que sí podemos prometerte',
       pillars: [
         {
@@ -147,7 +148,7 @@ export const es = {
     },
     testimonials: {
       title: 'Casos reales, no marketing',
-      subtitle: 'Lo que escribieron pacientes y médicos de Argentina, Colombia y Perú que usan AutaMédica',
+      subtitle: 'Lo que escribieron pacientes y médicos de Argentina, Colombia y Perú que usan AutaMedica',
       items: [
         {
           name: 'Carlos Ruiz',
@@ -170,7 +171,7 @@ export const es = {
           role: 'Directora de RRHH · Lima, Perú — 200 empleados',
           avatar: '/images/testi_ana.webp',
           context: 'Empleados perdían medio día por consultas presenciales en Lima',
-          quote: 'En Lima, ir al médico puede ser medio día perdido entre tráfico y espera. Implementamos AutaMédica y los empleados agendan en el almuerzo, desde su escritorio. En el primer trimestre, el ausentismo bajó 40%.',
+          quote: 'En Lima, ir al médico puede ser medio día perdido entre tráfico y espera. Implementamos AutaMedica y los empleados agendan en el almuerzo, desde su escritorio. En el primer trimestre, el ausentismo bajó 40%.',
           result: '-40% ausentismo en 3 meses',
         },
         {
@@ -230,7 +231,7 @@ export const es = {
       yearsExp: 'años exp.',
       today: 'hoy',
       tomorrow: 'mañana',
-      ctaText: 'Médicos matriculados disponibles en AutaMédica',
+      ctaText: 'Médicos matriculados disponibles en AutaMedica',
       ctaLink: 'Ver todas las especialidades',
       doctors: [
         { name: 'Médico/a General', specialty: 'Medicina General', languages: ['Español'] },
@@ -243,14 +244,14 @@ export const es = {
     },
     healthContent: {
       title: 'Para entender lo que te pasa',
-      subtitle: 'Artículos escritos por los médicos que atienden en AutaMédica, no por redactores de contenido',
-      comingSoon: 'Más artículos cada semana, escritos por los médicos que también atienden en AutaMédica.',
+      subtitle: 'Artículos escritos por los médicos que atienden en AutaMedica, no por redactores de contenido',
+      comingSoon: 'Más artículos cada semana, escritos por los médicos que también atienden en AutaMedica.',
       articles: [
         {
           tag: 'Prevención',
           title: '5 señales de alerta cardíaca que no hay que ignorar',
           excerpt: 'El dolor de pecho no es la única señal. Hay síntomas sutiles que pueden indicar un problema cardiovascular y que muchas veces se confunden con estrés o cansancio.',
-          author: 'Equipo AutaMédica',
+          author: 'Equipo AutaMedica',
           authorRole: 'Cardiología',
           date: 'Feb 2026',
         },
@@ -258,7 +259,7 @@ export const es = {
           tag: 'Telemedicina',
           title: 'Consulta virtual o presencial: cuándo conviene cada una',
           excerpt: 'No toda consulta requiere ir al consultorio. Esta guía explica cuándo una videoconsulta es igual de efectiva, y cuándo es mejor ir en persona.',
-          author: 'Equipo AutaMédica',
+          author: 'Equipo AutaMedica',
           authorRole: 'Medicina General',
           date: 'Feb 2026',
         },
@@ -266,7 +267,7 @@ export const es = {
           tag: 'Salud Mental',
           title: 'Ansiedad crónica: herramientas que funcionan sin medicación',
           excerpt: 'Estrategias basadas en evidencia para gestionar la ansiedad del día a día. Técnicas que podés aplicar ahora mismo, respaldadas por la ciencia.',
-          author: 'Equipo AutaMédica',
+          author: 'Equipo AutaMedica',
           authorRole: 'Psiquiatría',
           date: 'Ene 2026',
         },
@@ -333,7 +334,7 @@ export const es = {
       ],
     },
     productShowcase: {
-      title: 'Mirá cómo funciona AutaMédica',
+      title: 'Mirá cómo funciona AutaMedica',
       subtitle: 'Cada paso del proceso, en tu celular o computadora',
       features: [
         {

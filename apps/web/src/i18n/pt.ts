@@ -78,6 +78,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
     preparingAccess: 'Preparando acesso...',
     directAccess: 'Acesso direto',
     alreadyHaveAccountQ: 'Já tem conta?',
+    registerAs: 'Registro como',
     recoverAccess: 'Recuperar Acesso',
     recoverSubtitle: 'Insira seu e-mail para receber um link de recuperação',
     registeredEmail: 'E-mail cadastrado',

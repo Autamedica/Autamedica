@@ -193,6 +193,7 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
   return (
     <section
       ref={containerRef}
+      id="portales"
       aria-label="Portales de acceso"
       style={containerStyle}
     >

@@ -349,8 +349,8 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
         <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isSubmitting}>
           <div className="space-y-2">
-            <label htmlFor="email" className="ml-1 text-[11px] font-bold uppercase tracking-wider text-[var(--au-text-tertiary)]">
-              {t('auth.emailLabel')}
+            <label htmlFor="email" className="block text-sm font-medium text-[var(--au-text-secondary)] mb-1">
+              {t('auth.email')}
             </label>
             <input
               id="email"
@@ -368,8 +368,8 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <label htmlFor="password" className="text-[11px] font-bold uppercase tracking-wider text-[var(--au-text-tertiary)]">
-                {t('auth.passwordLabel')}
+              <label htmlFor="password" className="text-sm font-medium text-[var(--au-text-secondary)]">
+                {t('auth.password')}
               </label>
               <a href={forgotPasswordHref} className="text-[11px] font-bold text-[var(--au-accent)] hover:underline">
                 {t('auth.recover')}
@@ -425,7 +425,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
         <div className="flex items-center justify-center gap-2 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--au-text-tertiary)]">
           <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--au-success)] shadow-[0_0_8px_var(--au-accent-glow)]"></div>
-          {t('common.bioSecureInfra')}
+          {t('common.secureConnection')}
         </div>
       </div>
     </div>
