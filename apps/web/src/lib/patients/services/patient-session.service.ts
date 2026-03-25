@@ -12,6 +12,31 @@ import { safeParseProfile } from '@/lib/patients/lib/zod/profiles'
 import type { Patient } from '@/lib/patients/lib/zod/patients'
 import { parsePatient } from '@/lib/patients/lib/zod/patients'
 
+type DbRow = Record<string, unknown>
+
+interface DbError extends Error {
+  code?: string
+}
+
+interface DbResult<T> {
+  data: T | null
+  error: DbError | null
+}
+
+interface DbQueryBuilder
+  extends PromiseLike<{ data: DbRow | DbRow[] | null; error: DbError | null }> {
+  select(columns: string): DbQueryBuilder
+  eq(column: string, value: string): DbQueryBuilder
+  insert(values: DbRow): DbQueryBuilder
+  update(values: DbRow): DbQueryBuilder
+  single(): Promise<DbResult<DbRow>>
+  maybeSingle(): Promise<DbResult<DbRow>>
+}
+
+interface LooseDb {
+  from(relation: string): DbQueryBuilder
+}
+
 type Db = SupabaseClient<Database>
 
 function ensureEmail(user: User): string {
@@ -25,10 +50,11 @@ function ensureEmail(user: User): string {
 
 export const patientSessionService = {
   async fetchOrCreateProfile(supabase: Db, user: User): Promise<Profile> {
+    const db = supabase as unknown as LooseDb
     const email = ensureEmail(user)
 
     // Attempt 1: new schema (user_id)
-    let { data, error } = await supabase
+    let { data, error } = await db
       .from('profiles')
       .select('*')
       .eq('user_id', user.id)
@@ -36,7 +62,7 @@ export const patientSessionService = {
 
     // If column doesn't exist or no row, try legacy schema (id)
     if ((error && error.code !== 'PGRST116') || (!data && !error)) {
-      const tryLegacy = await supabase
+      const tryLegacy = await db
         .from('profiles')
         .select('*')
         .eq('id', user.id)
@@ -51,7 +77,7 @@ export const patientSessionService = {
       throw error
     }
 
-    let profileRow: Record<string, unknown> | null = (data as Record<string, unknown> | null) ?? null
+    let profileRow: DbRow | null = (data as DbRow | null) ?? null
 
     // Normalize id -> user_id if legacy
     if (profileRow && !profileRow['user_id'] && profileRow['id']) {
@@ -60,10 +86,10 @@ export const patientSessionService = {
 
     if (!profileRow) {
       // Try inserting with user_id; fallback to id schema
-      let inserted: Record<string, unknown> | null = null
+      let inserted: DbRow | null = null
       let insertError: Error | null = null
 
-      const insert = await (supabase
+      const insert = await (db
         .from('profiles')
         .insert({
           user_id: user.id,
@@ -75,13 +101,13 @@ export const patientSessionService = {
         .select('*')
         .single())
 
-      inserted = insert.data as Record<string, unknown> | null
+      inserted = insert.data as DbRow | null
       insertError = insert.error
 
       if (insertError) {
         logger.warn('[patientSessionService] insert with user_id failed, retrying legacy schema', insertError)
         // Retry legacy schema
-        const legacy = await (supabase
+        const legacy = await (db
           .from('profiles')
           .insert({
             id: user.id,
@@ -93,7 +119,7 @@ export const patientSessionService = {
           .select('*')
           .single())
 
-        inserted = legacy.data as Record<string, unknown> | null
+        inserted = legacy.data as DbRow | null
         insertError = legacy.error
       }
 
@@ -103,14 +129,14 @@ export const patientSessionService = {
 
       profileRow = inserted
     } else {
-      const updates: Record<string, unknown> = {}
+      const updates: DbRow = {}
 
       if (!profileRow.email) {
         updates.email = email
       }
 
       if (Object.keys(updates).length > 0) {
-        const updateTry = await (supabase
+        const updateTry = await (db
           .from('profiles')
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .update(updates as any)
@@ -118,7 +144,7 @@ export const patientSessionService = {
           .select('*')
           .single())
 
-        const updated = updateTry.data as Record<string, unknown> | null
+        const updated = updateTry.data as DbRow | null
         const updateError = updateTry.error
 
         if (updateError) {
@@ -158,7 +184,8 @@ export const patientSessionService = {
   },
 
   async fetchOrCreatePatient(supabase: Db, userId: string): Promise<Patient | null> {
-    const { data, error } = await supabase
+    const db = supabase as unknown as LooseDb
+    const { data, error } = await db
       .from('patients')
       .select('*')
       .eq('user_id', userId)
@@ -171,7 +198,7 @@ export const patientSessionService = {
     let patientRow = data ?? null
 
     if (!patientRow) {
-      const { data: inserted, error: insertError } = await (supabase
+      const { data: inserted, error: insertError } = await (db
         .from('patients')
         .insert({
           user_id: userId,
@@ -187,8 +214,7 @@ export const patientSessionService = {
       if (Array.isArray(inserted) && inserted.length > 0) {
         patientRow = inserted[0]
       } else if (inserted && !Array.isArray(inserted)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        patientRow = inserted as any
+        patientRow = inserted
       }
     }
 

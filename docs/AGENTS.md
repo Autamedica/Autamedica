@@ -1,6 +1,6 @@
 # AGENTS.md - AI Agent Guidelines for AutaMedica
 
-> Guía operativa senior para agentes de IA. Fuente de verdad primaria.
+> Guia operativa extendida para agentes de IA. Sincronizada con `CLAUDE.md`.
 
 ## Quick Reference
 
@@ -24,9 +24,22 @@
 
 ---
 
+## 0. Startup Order & Current Phase
+
+- Leer `CLAUDE.md` primero para reglas compactas de operacion.
+- Consultar `docs/ARQUITECTURA.md` antes de tocar flujos cross-layer o agregar integraciones.
+- Rol operativo: **Integration Senior Engineer**. Antes de crear codigo nuevo, verificar si la pieza ya existe en otro package/app/edge function y conectarla.
+- Fase actual: **integracion y testing E2E**. No agregar features nuevas salvo pedido explicito del usuario.
+- Cada cambio debe cerrar un circuito completo: `trigger -> DB/RPC/API/hook/UI -> resultado visible`.
+- Si un flujo falla en navegador: `test -> fix -> retest`, con evidencia de pass/fail.
+
+---
+
 ## 1. Engineering Principles (Senior Default)
 
 - **NO Future Optimization (Zero Laziness):** Código listo para producción inmediatamente. Sin "lo arreglo después". Si ves un bug en el archivo que estás tocando, arreglalo AHORA. Prohibido dejar `TODO` en lógica crítica.
+- **Integration First:** si una capacidad ya existe en el repo, conectarla. No crear implementaciones paralelas.
+- **Cero código huérfano:** si al borrar el código nuevo nada se rompe, no debería existir.
 - Preferir cambios pequeños y atómicos, fáciles de verificar.
 - Cuando un cambio afecta datos, agregar validación y manejo explícito de errores.
 - Tratar migraciones y Edge Functions como sistemas de producción.
@@ -130,28 +143,33 @@ export type DoctorId = string & { readonly _brand: "DoctorId" };
 
 ```
 apps/
-  web/           # Astro 5 + React 19 islands (MIGRACIÓN ACTIVA)
-  web-app/       # Next.js 15 (legacy — mantener hasta migración)
-  auth/          # Next.js — portal auth central
-  doctors/       # Next.js — portal médicos
-  patients/      # Next.js — portal pacientes
-  companies/     # Next.js — portal empresas
-  admin/         # Next.js — panel admin
+  web/                    # Astro 5 + React 19 islands - main app
+  signaling-server/       # WebRTC signaling
+  clinical-ai-orchestrator/
+  reminder-worker/
+  mobile/
+  android/
 packages/
-  types/         # @autamedica/types — 190+ tipos TypeScript
-  shared/        # @autamedica/shared — utils, logger, env validation
-  auth/          # @autamedica/auth — Supabase SSR client + hooks
-  hooks/         # @autamedica/hooks — React hooks médicos
-  ui/            # @autamedica/ui — componentes compartidos
-  tailwind-config/ # @autamedica/tailwind-config — preset Tailwind
-  telemedicine/  # @autamedica/telemedicine — WebRTC engine
+  @autamedica/
+  auth/                   # @autamedica/auth — Supabase SSR client + hooks
+  hooks/                  # @autamedica/hooks — React hooks medicos
+  scheduling/
+  session/
+  shared/                 # @autamedica/shared — utils, logger, env validation
+  supabase-client/
+  tailwind-config/
+  telemedicine/           # WebRTC engine
+  types/                  # @autamedica/types — source of shared contracts
+  typescript-config/
+  ui/
 supabase/
-  functions/     # Edge Functions (Deno)
-  migrations/    # SQL (YYYYMMDDHHMMSS_name.sql)
+  functions/              # Edge Functions (Deno)
+  migrations/             # SQL (YYYYMMDDHHMMSS_name.sql)
 ```
 
 ### Reglas de Ownership
 
+- **Packages orquestan, islands ejecutan**: `packages/*` contienen contratos y lógica compartida; `apps/web` renderiza y consume.
 - **`packages/*`**: lógica compartida, tipos, auth, hooks — sin lógica de presentación.
 - **`apps/*/src/components`**: islands React o componentes Astro — sin lógica de negocio inline.
 - **Prohibido** que apps importen directamente de otras apps. Solo via `packages/*`.
@@ -205,15 +223,12 @@ export const POST: APIRoute = async ({ request }) => {
   ```
 - `AstroCookies.set()` requiere castear `options as any` si Supabase SSR pasa `Partial<CookieSerializeOptions>`.
 
-### Migración Next.js → Astro (Checklist)
+### Integración y referencias legacy
 
-- [ ] `next/dynamic` → imports estáticos + directivas `client:*`.
-- [ ] `useRouter` de `next/navigation` → `window.location` o `<a href>`.
-- [ ] `styled-jsx` (`<style jsx>`) → `<style>` regular o Tailwind.
-- [ ] Import paths con extensión `.tsx` en `.astro`: omitir extensión.
-- [ ] `NEXT_PUBLIC_*` → `PUBLIC_*`.
-- [ ] `process.env` → `import.meta.env`.
-- [ ] `@autamedica/shared` requiere `pnpm build:packages:core` antes de `astro check`.
+- `apps/web` es la app principal. Verificar el filesystem real antes de actuar sobre docs viejas que mencionen apps Next.js separadas.
+- Si se toca código compartido (`packages/*`), correr `pnpm build:packages:core` antes de `astro check` o `astro build`.
+- En `apps/web`: `PUBLIC_*` + `import.meta.env` siempre. No usar `NEXT_PUBLIC_*` ni `process.env`.
+- Si aparece una ruta o redirect legacy, conectarlo al flujo actual; no crear un segundo flujo paralelo.
 
 ---
 
@@ -313,8 +328,8 @@ Nunca pegar credenciales en chat o commitearlas a git.
 
 ## 8. Frozen Code (NO MODIFICAR)
 
-- **`apps/web-app/`**: Legacy en proceso de reemplazo. No invertir esfuerzo significativo. Solo mantener si lo pide el usuario.
-- **Signaling Server WebRTC**: Solo modificar si el usuario lo pide explícitamente con justificación.
+- **Signaling Server / WebRTC (`apps/signaling-server/`, `packages/telemedicine/`)**: tocar solo si el usuario lo pide explícitamente o si el bug lo exige de forma directa.
+- **Auth y session bootstrap**: cambios mínimos, con verificación de login real y redirects cross-app.
 
 ---
 
@@ -374,6 +389,7 @@ Nunca pegar credenciales en chat o commitearlas a git.
 - Default: headed (NO headless). Headless solo si el usuario lo pide explícitamente.
 - Mantener sesión del browser persistente: no resetear/cerrar salvo pedido explícito.
 - Validar flujos críticos (login, selección de rol, consulta médica) como usuario real.
+- Evidencia obligatoria por flujo: resultado `pass/fail`, pasos cubiertos y, si hubo bug, fix aplicado + retest.
 
 ---
 

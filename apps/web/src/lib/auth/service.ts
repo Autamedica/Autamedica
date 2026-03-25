@@ -24,6 +24,85 @@ export interface SessionCheckResult {
   refreshToken: string | null
 }
 
+function getAuthErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message
+  }
+
+  return ''
+}
+
+function getAuthErrorStatus(error: unknown): number | null {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    typeof error.status === 'number'
+  ) {
+    return error.status
+  }
+
+  return null
+}
+
+function isRecoverableSessionError(error: unknown): boolean {
+  const message = getAuthErrorMessage(error).toLowerCase()
+  const status = getAuthErrorStatus(error)
+
+  return (
+    status === 429 ||
+    message.includes('request rate limit reached') ||
+    message.includes('refresh token') ||
+    message.includes('jwt expired') ||
+    message.includes('session from session_id claim in jwt does not exist') ||
+    message.includes('invalid session')
+  )
+}
+
+async function clearLocalSession(
+  supabase: ReturnType<typeof createBrowserClient>,
+  reason: string,
+  error?: unknown,
+): Promise<void> {
+  const message = getAuthErrorMessage(error)
+  const status = getAuthErrorStatus(error)
+
+  if (error) {
+    logger.warn('[AuthService] Clearing local auth state', {
+      reason,
+      errorMessage: message || undefined,
+      errorStatus: status ?? undefined,
+    })
+  }
+
+  try {
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
+
+    if (signOutError) {
+      logger.warn('[AuthService] Local sign-out cleanup returned an error', {
+        reason,
+        errorMessage: signOutError.message,
+        errorStatus: getAuthErrorStatus(signOutError) ?? undefined,
+      })
+    }
+  } catch (cleanupError) {
+    logger.warn('[AuthService] Local sign-out cleanup threw unexpectedly', {
+      reason,
+      errorMessage: getAuthErrorMessage(cleanupError) || String(cleanupError),
+      errorStatus: getAuthErrorStatus(cleanupError) ?? undefined,
+    })
+  }
+}
+
 /**
  * Intenta autenticar al usuario con email y contraseña.
  * No hace redirect — el caller decide qué hacer después.
@@ -34,7 +113,14 @@ export async function signInWithPassword(
 ): Promise<SignInResult> {
   const supabase = createBrowserClient()
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  let { error } = await supabase.auth.signInWithPassword({ email, password })
+
+  if (error && isRecoverableSessionError(error)) {
+    await clearLocalSession(supabase, 'sign_in_with_password_recovery', error)
+
+    const retryResult = await supabase.auth.signInWithPassword({ email, password })
+    error = retryResult.error
+  }
 
   if (error) {
     return { ok: false, errorMessage: error.message }
@@ -55,7 +141,7 @@ export async function signInWithOAuth(
   const supabase = createBrowserClient()
 
   // Limpiar estado previo para evitar conflictos con el nuevo PKCE code_verifier.
-  await supabase.auth.signOut({ scope: 'local' })
+  await clearLocalSession(supabase, 'oauth_preflight_cleanup')
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
@@ -79,11 +165,7 @@ export async function signInWithOAuth(
  */
 export async function signOutLocal(): Promise<void> {
   const supabase = createBrowserClient()
-  const { error } = await supabase.auth.signOut({ scope: 'local' })
-
-  if (error) {
-    logger.error('[AuthService] signOutLocal failed', { error: error.message })
-  }
+  await clearLocalSession(supabase, 'explicit_local_sign_out')
 }
 
 /**
@@ -95,8 +177,42 @@ export async function signOutLocal(): Promise<void> {
  */
 export async function checkExistingSession(): Promise<SessionCheckResult> {
   const supabase = createBrowserClient()
+  let localSession: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] = null
 
-  const { data: { session: localSession } } = await supabase.auth.getSession()
+  try {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      if (isRecoverableSessionError(sessionError)) {
+        await clearLocalSession(supabase, 'check_existing_session_refresh_error', sessionError)
+        return {
+          hasLocalSession: true,
+          isServerValid: false,
+          accessToken: null,
+          refreshToken: null,
+        }
+      }
+
+      throw sessionError
+    }
+
+    localSession = session
+  } catch (error) {
+    if (isRecoverableSessionError(error)) {
+      await clearLocalSession(supabase, 'check_existing_session_exception', error)
+      return {
+        hasLocalSession: true,
+        isServerValid: false,
+        accessToken: null,
+        refreshToken: null,
+      }
+    }
+
+    throw error
+  }
 
   if (!localSession) {
     return { hasLocalSession: false, isServerValid: false, accessToken: null, refreshToken: null }
@@ -106,7 +222,7 @@ export async function checkExistingSession(): Promise<SessionCheckResult> {
 
   if (userError || !user) {
     // Sesión local inválida — limpiar
-    await supabase.auth.signOut({ scope: 'local' })
+    await clearLocalSession(supabase, 'check_existing_session_invalid_user', userError)
     return { hasLocalSession: true, isServerValid: false, accessToken: null, refreshToken: null }
   }
 

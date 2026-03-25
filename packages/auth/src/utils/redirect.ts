@@ -52,7 +52,7 @@ export function getDefaultRedirectUrl(role: UserRole): string {
     'web-app': '/',
     'auth': '/auth/login',
     'patients': '/',  // Patients app uses (dashboard) route group, so root is the dashboard
-    'doctors': '/',
+    'doctors': '/dashboard',
     'companies': '/dashboard',
     'admin': '/dashboard'
   }

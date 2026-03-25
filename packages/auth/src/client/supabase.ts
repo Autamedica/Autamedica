@@ -8,6 +8,45 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getDomainConfig, getSupabaseConfig } from '../utils/config'
 
 let supabaseClient: SupabaseClient<Database> | null = null
+const authLockQueue = new Map<string, Promise<void>>()
+
+/**
+ * Serialize auth operations without relying on the browser Web Locks API.
+ *
+ * We previously used a no-op lock to avoid `AbortError` issues from `navigator.locks`,
+ * but that also let Supabase run concurrent refresh flows against the same session.
+ * The result was repeated `refresh_token` calls and eventual 429 rate limits.
+ *
+ * An in-memory queue keeps auth init/refresh serialized per browser context while
+ * still avoiding the Web Locks API entirely.
+ */
+export async function runWithSerializedAuthLock<T>(
+  name: string,
+  _acquireTimeout: number,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const previous = authLockQueue.get(name) ?? Promise.resolve()
+  let releaseCurrent!: () => void
+
+  const current = new Promise<void>((resolve) => {
+    releaseCurrent = () => resolve()
+  })
+
+  const currentQueue = previous.catch(() => undefined).then(() => current)
+  authLockQueue.set(name, currentQueue)
+
+  await previous.catch(() => undefined)
+
+  try {
+    return await fn()
+  } finally {
+    releaseCurrent()
+
+    if (authLockQueue.get(name) === currentQueue) {
+      authLockQueue.delete(name)
+    }
+  }
+}
 
 /**
  * Create or get the Supabase browser client
@@ -42,11 +81,10 @@ export function createBrowserClient(): SupabaseClient<Database> {
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      // Disable Web Locks: each portal runs on a separate origin so cross-tab
-      // locking provides no benefit. Without this, competing lock requests
-      // between tabs throw "AbortError: Lock broken by another request with
-      // the 'steal' option" as unhandled promise rejections.
-      lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<unknown>) => fn(),
+      // Keep refresh/auth init serialized without depending on navigator.locks.
+      // This avoids the browser AbortError we saw with Web Locks while still
+      // preventing concurrent refresh-token requests from the same app instance.
+      lock: runWithSerializedAuthLock,
     }
   }) as unknown as SupabaseClient
 

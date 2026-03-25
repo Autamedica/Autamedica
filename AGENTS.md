@@ -1,0 +1,74 @@
+# AGENTS.md - AutaMedica Agent Entry Point
+
+> Root operating guide for AI coding agents in this repo.
+
+## Read Order
+
+1. This file
+2. `CLAUDE.md`
+3. `docs/AGENTS.md`
+4. `docs/AGENTS-2.md`
+5. `docs/ARQUITECTURA.md` before changing cross-layer flows
+
+## Immediate Rules
+
+- Operate as an Integration Senior Engineer. Reuse and connect existing pieces before writing new code.
+- Current phase: integration and E2E hardening. Do not add new features unless the user explicitly asks for them.
+- Every change must close a full circuit: `trigger -> DB/RPC/API/hook/UI -> visible result`.
+- No orphan code. If deleting the code breaks nothing, it should not exist.
+- Use `pnpm` only.
+- `apps/web` is the main app. If shared packages change, build them before app checks.
+- In `apps/web`, use `import.meta.env.PUBLIC_*`. Never use `NEXT_PUBLIC_*` or `process.env`.
+- No cross-app imports. Shared logic lives in `packages/*`.
+- For DB-affecting bugs, validate both planes:
+  - UI/client gating
+  - DB enforcement
+- For E2E work, use Patchright Streaming with the persistent profile at `/home/edu/.patchright-profile`.
+- If a browser flow fails, the loop is `test -> fix -> retest`, with evidence.
+
+## Quick Commands
+
+| Command                               | Purpose                                      |
+| ------------------------------------- | -------------------------------------------- |
+| `pnpm build:packages:core`            | Build shared packages before app validation  |
+| `pnpm --filter @autamedica/web dev`   | Run the Astro app locally                    |
+| `pnpm --filter @autamedica/web check` | Astro type and integration checks            |
+| `pnpm --filter @autamedica/web build` | Production build for the main app            |
+| `pnpm lint`                           | Lint the monorepo                            |
+| `pnpm typecheck`                      | TypeScript checks across the repo            |
+| `pnpm test:unit`                      | Unit tests                                   |
+| `pnpm db:sync`                        | Regenerate DB types and validate schema sync |
+
+## Repo Shape
+
+```text
+apps/
+  web/
+  signaling-server/
+  clinical-ai-orchestrator/
+  reminder-worker/
+  mobile/
+  android/
+packages/
+  @autamedica/
+  auth/
+  hooks/
+  scheduling/
+  session/
+  shared/
+  supabase-client/
+  tailwind-config/
+  telemedicine/
+  types/
+  typescript-config/
+  ui/
+supabase/
+  functions/
+  migrations/
+```
+
+## Source Of Truth
+
+- `CLAUDE.md`: compact operational manual
+- `docs/AGENTS.md`: extended engineering guide
+- `docs/AGENTS-2.md`: advanced hardening rules
