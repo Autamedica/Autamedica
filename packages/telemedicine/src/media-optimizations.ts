@@ -6,6 +6,56 @@
  * - Tab visibility video pause
  */
 
+/* ── Browser & device detection ── */
+
+export interface BrowserCapabilities {
+  isSafari: boolean
+  isFirefox: boolean
+  isChrome: boolean
+  supportsVP9: boolean
+  supportsSimulcast: boolean
+}
+
+export function detectBrowser(): BrowserCapabilities {
+  if (typeof window === 'undefined' || typeof RTCRtpSender === 'undefined') {
+    return { isSafari: false, isFirefox: false, isChrome: false, supportsVP9: false, supportsSimulcast: false }
+  }
+
+  const codecs = RTCRtpSender.getCapabilities?.('video')?.codecs ?? []
+  const supportsVP9 = codecs.some(c => c.mimeType === 'video/VP9')
+
+  const ua = navigator.userAgent
+  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua)
+  const isFirefox = /Firefox/i.test(ua)
+  const isChrome = /Chrome|Chromium/i.test(ua) && !/Edg/i.test(ua)
+
+  return {
+    isSafari,
+    isFirefox,
+    isChrome,
+    supportsVP9,
+    supportsSimulcast: !isSafari,
+  }
+}
+
+export function getPreferredCodecs(): string[] {
+  const { isSafari, supportsVP9 } = detectBrowser()
+  if (isSafari || !supportsVP9) return ['video/H264', 'video/VP8']
+  return ['video/VP9', 'video/VP8', 'video/H264']
+}
+
+/**
+ * Safari sometimes throws AbortError on rapid srcObject reassignment.
+ * This safely calls .play() with error suppression.
+ */
+export function patchVideoPlayback(el: HTMLVideoElement): void {
+  if (!el.srcObject) return
+  const playPromise = el.play()
+  if (playPromise) {
+    playPromise.catch(() => { /* AbortError or NotAllowedError — safe to ignore */ })
+  }
+}
+
 /* ── Adaptive getUserMedia constraints ── */
 
 interface NetworkInfo {

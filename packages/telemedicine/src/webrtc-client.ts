@@ -5,7 +5,7 @@
 
 import { createTelemedicineLogger } from './debug'
 import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
-import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
+import { getAdaptiveConstraints, applyContentHints, getPreferredCodecs, detectBrowser } from './media-optimizations'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -111,10 +111,10 @@ const QUALITY_SCORE_TO_LEVEL: StreamQualityLevel[] = ['poor', 'fair', 'good', 'e
 
 // Pre-warm & adaptive media constants
 const INITIAL_VIDEO_BITRATE = 500_000  // Start conservative: 500kbps
-const TARGET_VIDEO_BITRATE = 1_500_000 // Ramp to 1.5Mbps
+const TARGET_VIDEO_BITRATE = 2_500_000 // Ramp to 2.5Mbps for 720p quality
 const BITRATE_RAMP_DURATION_MS = 10_000 // Over 10 seconds
 const BITRATE_RAMP_INTERVAL_MS = 2_000  // Step every 2s
-const PREFERRED_VIDEO_CODECS = ['video/VP9', 'video/VP8', 'video/H264']
+// Codec preference resolved at runtime via getPreferredCodecs() from media-optimizations
 
 // Media constraints replaced by getAdaptiveConstraints() from media-optimizations.ts
 
@@ -150,6 +150,7 @@ export class WebRTCClient {
   private bitrateRampInterval: ReturnType<typeof setInterval> | null = null
   private bitrateRampStartMs: number | null = null
   private cachedDevices: DeviceInfo[] = []
+  private networkChangeCleanup: (() => void) | null = null
 
   constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
     // Use environment-configured ICE servers or fallback to STUN-only defaults
@@ -190,6 +191,41 @@ export class WebRTCClient {
       sessionId: this.sessionId,
       ...context,
     })
+  }
+
+  /** Monitor network changes (WiFi→cellular etc) and adjust bitrate */
+  private startNetworkMonitoring(): void {
+    const conn = (navigator as Navigator & { connection?: EventTarget & { effectiveType?: string; downlink?: number } }).connection
+    if (!conn) return
+
+    const handler = () => {
+      const info = conn as { effectiveType?: string; downlink?: number }
+      this.logInfo('Network change detected', { effectiveType: info.effectiveType, downlink: info.downlink })
+
+      // On degraded network, reset bitrate ramp to start conservative again
+      if (info.effectiveType === '2g' || info.effectiveType === '3g' || info.effectiveType === 'slow-2g') {
+        this.stopBitrateRamp()
+        for (const [, peerState] of this.peerConnections) {
+          for (const sender of peerState.pc.getSenders()) {
+            if (sender.track?.kind !== 'video') continue
+            const params = sender.getParameters()
+            if (params.encodings?.[0]) {
+              params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
+              params.encodings[0].maxFramerate = 15
+              sender.setParameters(params).catch(() => { /* ignore */ })
+            }
+          }
+        }
+      }
+    }
+
+    conn.addEventListener('change', handler)
+    this.networkChangeCleanup = () => conn.removeEventListener('change', handler)
+  }
+
+  private stopNetworkMonitoring(): void {
+    this.networkChangeCleanup?.()
+    this.networkChangeCleanup = null
   }
 
   // Event listener methods
@@ -854,6 +890,9 @@ export class WebRTCClient {
         })
       }
 
+      // Monitor network changes for adaptive bitrate
+      this.startNetworkMonitoring()
+
       // Send join — this is the only thing the user "waits" for
       this.sendSignalingMessage({
         type: 'join',
@@ -924,6 +963,7 @@ export class WebRTCClient {
   private cleanup(): void {
     this.stopQualityMonitor()
     this.stopBitrateRamp()
+    this.stopNetworkMonitoring()
     this.peerStatsSamples.clear()
     this.latestQualityByPeer.clear()
     this.qualityLogState.clear()
@@ -1176,11 +1216,12 @@ export class WebRTCClient {
     this.preferCodec(pc)
   }
 
-  /** Prefer VP9 over VP8 for better compression at same quality */
+  /** Set codec preference: H264 on Safari, VP9 on Chrome/Firefox */
   private preferCodec(pc: RTCPeerConnection): void {
     if (!('getTransceivers' in pc)) return
 
     try {
+      const preferred = getPreferredCodecs()
       const transceivers = pc.getTransceivers()
       for (const transceiver of transceivers) {
         if (transceiver.sender.track?.kind !== 'video') continue
@@ -1188,19 +1229,17 @@ export class WebRTCClient {
         const codecs = RTCRtpSender.getCapabilities?.('video')?.codecs
         if (!codecs) continue
 
-        // Sort codecs: VP9 first, then VP8, then H264
         const sorted = [...codecs].sort((a, b) => {
-          const aIdx = PREFERRED_VIDEO_CODECS.indexOf(a.mimeType)
-          const bIdx = PREFERRED_VIDEO_CODECS.indexOf(b.mimeType)
-          const aRank = aIdx >= 0 ? aIdx : 999
-          const bRank = bIdx >= 0 ? bIdx : 999
-          return aRank - bRank
+          const aIdx = preferred.indexOf(a.mimeType)
+          const bIdx = preferred.indexOf(b.mimeType)
+          return (aIdx >= 0 ? aIdx : 999) - (bIdx >= 0 ? bIdx : 999)
         })
 
         if ('setCodecPreferences' in transceiver) {
           transceiver.setCodecPreferences(sorted)
           this.logInfo('Codec preference set', {
             preferred: sorted[0]?.mimeType ?? 'unknown',
+            browser: detectBrowser(),
           })
         }
       }

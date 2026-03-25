@@ -9,6 +9,7 @@ import {
   setupWakeLockVisibilityHandler,
   setupVisibilityVideoPause,
   applyScreenShareHint,
+  patchVideoPlayback,
 } from './media-optimizations'
 import { createCallService } from './calls/service'
 import type { CallStatus } from './calls/types'
@@ -25,31 +26,14 @@ import {
 import { CloudflareCallsClient } from './cloudflare-calls'
 import { useCallRecording } from './hooks/useCallRecording'
 import {
-  Video,
-  VideoOff,
-  Mic,
-  MicOff,
-  PhoneOff,
-  Phone,
-  Users,
-  ScreenShare,
-  ScreenShareOff,
-  Loader2,
-  MessageSquare,
-  Send,
-  X,
-  Wifi,
-  WifiOff,
-  Clock,
-  UserCircle,
-  CheckCircle2,
-  AlertTriangle,
-  ChevronDown,
-  Volume2,
-  PictureInPicture2,
-  Circle,
-  Square,
-} from 'lucide-react'
+  GreenRoom,
+  ConnectingOverlay,
+  ActiveCallLayout,
+  CallTopBar,
+  CallControlsBar,
+  ChatPanel,
+  QualityOverlays,
+} from './components'
 
 /* ── Props ── */
 
@@ -116,21 +100,6 @@ function formatDuration(totalSeconds: number): string {
   return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`
 }
 
-const qualityColor: Record<StreamQualityLevel, string> = {
-  excellent: 'text-emerald-400',
-  good: 'text-emerald-400',
-  fair: 'text-amber-400',
-  poor: 'text-red-400',
-  unknown: 'text-slate-400',
-}
-
-const qualityLabel: Record<StreamQualityLevel, string> = {
-  excellent: 'Excelente',
-  good: 'Buena',
-  fair: 'Regular',
-  poor: 'Mala',
-  unknown: '',
-}
 
 const QUALITY_WARMUP_MS = 15000
 const POOR_QUALITY_THRESHOLD_MS = 30_000 // Suggest audio-only after 30s of poor quality
@@ -237,7 +206,6 @@ export function UnifiedVideoCall({
   const totalParticipants = remoteUsers.size + 1
   const isActive = connectionState === 'connected'
   const isIdle = connectionState === 'disconnected' || connectionState === 'failed'
-  const firstRemote = remoteUsers.size > 0 ? Array.from(remoteUsers.entries())[0] : null
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
   const debugLogger = useMemo(
     () => createTelemedicineLogger({ source: 'UnifiedVideoCall', callId, roomId, userId, userType }),
@@ -408,7 +376,10 @@ export function UnifiedVideoCall({
 
     unsubs.push(
       webrtcClient.on('local-stream', (stream) => {
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream
+          patchVideoPlayback(localVideoRef.current)
+        }
       })
     )
 
@@ -426,7 +397,10 @@ export function UnifiedVideoCall({
         })
         setTimeout(() => {
           const el = remoteVideosRef.current.get(remoteUserId)
-          if (el && el.srcObject !== stream) el.srcObject = stream
+          if (el && el.srcObject !== stream) {
+            el.srcObject = stream
+            patchVideoPlayback(el)
+          }
         }, 100)
       })
     )
@@ -900,619 +874,123 @@ export function UnifiedVideoCall({
       className={`relative h-full w-full overflow-hidden bg-neutral-900 text-white ${className}`}
       onMouseMove={isActive ? resetControlsTimer : undefined}
     >
-      {/* ── Main video area ── */}
+      {/* Main video area */}
       <div className="absolute inset-0">
-        {/* Green Room — pre-call experience */}
+        {/* Green Room */}
         {isIdle && (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 px-4">
-            {/* Camera preview — live from pre-warm */}
-            <div className="relative mb-6 w-full max-w-md overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/40 ring-1 ring-white/10 aspect-video">
-              <video
-                ref={(el) => {
-                  localVideoRef.current = el
-                  if (el && client) {
-                    const s = client.getLocalStream()
-                    if (s && el.srcObject !== s) el.srcObject = s
-                  }
-                }}
-                autoPlay
-                muted
-                playsInline
-                className="h-full w-full object-cover -scale-x-100"
-              />
-              {!warmUpResult && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-800/80">
-                  {isWarmingUp ? (
-                    <div className="text-center">
-                      <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400 mb-2" />
-                      <p className="text-sm text-slate-400">Preparando cámara...</p>
-                    </div>
-                  ) : (
-                    <UserCircle className="h-16 w-16 text-slate-600" />
-                  )}
-                </div>
-              )}
-
-              {/* Audio VU meter — overlaid on video preview */}
-              {warmUpResult && (
-                <div className="absolute bottom-3 left-3 right-3">
-                  <div className="flex items-end gap-0.5 h-5 rounded-lg bg-black/30 px-2 py-1 backdrop-blur-sm">
-                    {Array.from({ length: 16 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 rounded-full transition-all duration-100 ${
-                          audioLevel * 16 > i
-                            ? i < 10 ? 'bg-emerald-400' : i < 13 ? 'bg-amber-400' : 'bg-red-400'
-                            : 'bg-white/10'
-                        }`}
-                        style={{ height: `${Math.max(20, (i / 16) * 100)}%` }}
-                      />
-                    ))}
-                    <Volume2 className="h-3.5 w-3.5 text-white/50 ml-1.5 shrink-0" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Readiness checks */}
-            {warmUpResult && (
-              <div className="mb-4 flex items-center gap-4 text-xs">
-                <div className={`flex items-center gap-1.5 ${greenRoomChecks.hasVideo ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {greenRoomChecks.hasVideo ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
-                  Cámara
-                </div>
-                <div className={`flex items-center gap-1.5 ${greenRoomChecks.hasAudio ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {greenRoomChecks.hasAudio ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
-                  Micrófono
-                </div>
-                <div className={`flex items-center gap-1.5 ${greenRoomChecks.hasSignaling ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {greenRoomChecks.hasSignaling ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  Red
-                </div>
-                {warmUpResult.latencyMs !== null && (
-                  <span className="text-slate-500">{warmUpResult.latencyMs}ms</span>
-                )}
-              </div>
-            )}
-
-            {/* Device selectors */}
-            {availableDevices.length > 0 && (
-              <div className="mb-5 flex flex-wrap gap-2 justify-center">
-                {availableDevices.filter(d => d.kind === 'videoinput').length > 1 && (
-                  <div className="relative">
-                    <Video className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                    <select
-                      value={selectedVideoDevice}
-                      onChange={(e) => handleDeviceChange('video', e.target.value)}
-                      className="appearance-none rounded-lg border border-white/10 bg-white/5 pl-8 pr-8 py-2 text-xs text-white backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-white/20 transition-colors hover:bg-white/10"
-                    >
-                      {availableDevices.filter(d => d.kind === 'videoinput').map(d => (
-                        <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
-                  </div>
-                )}
-                {availableDevices.filter(d => d.kind === 'audioinput').length > 1 && (
-                  <div className="relative">
-                    <Mic className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                    <select
-                      value={selectedAudioDevice}
-                      onChange={(e) => handleDeviceChange('audio', e.target.value)}
-                      className="appearance-none rounded-lg border border-white/10 bg-white/5 pl-8 pr-8 py-2 text-xs text-white backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-white/20 transition-colors hover:bg-white/10"
-                    >
-                      {availableDevices.filter(d => d.kind === 'audioinput').map(d => (
-                        <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
-                  </div>
-                )}
-              </div>
-            )}
-
-            <h2 className="mb-1 text-xl font-semibold text-white sm:text-2xl">Consulta médica</h2>
-            <p className="mb-5 text-sm text-slate-400">
-              {userName && `${userName} • `}Sala {roomId}
-            </p>
-
-            {callError && (
-              <div className="mb-4 rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-300">{callError}</div>
-            )}
-
-            <button
-              onClick={startCall}
-              disabled={isWarmingUp}
-              className={`inline-flex items-center gap-3 rounded-full px-10 py-4 text-lg font-semibold text-white shadow-xl transition-all hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed ${
-                accentColor === 'violet'
-                  ? 'bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 shadow-violet-600/25'
-                  : 'bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 shadow-sky-600/25'
-              }`}
-              title={greenRoomChecks.allReady ? 'Todo listo — conectará al instante' : 'Iniciar videollamada'}
-            >
-              <Phone className="h-6 w-6" />
-              {userType === 'doctor' ? 'Iniciar consulta' : 'Unirse a consulta'}
-            </button>
-
-            {greenRoomChecks.allReady && (
-              <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-400/80">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Todo listo — conexión instantánea
-              </p>
-            )}
-
-            {connectionState === 'failed' && !callError && (
-              <p className="mt-3 text-sm text-red-400">Error de conexión. Intenta nuevamente.</p>
-            )}
-          </div>
+          <GreenRoom
+            localVideoRef={localVideoRef}
+            client={client}
+            warmUpResult={warmUpResult}
+            isWarmingUp={isWarmingUp}
+            audioLevel={audioLevel}
+            greenRoomChecks={greenRoomChecks}
+            availableDevices={availableDevices}
+            selectedVideoDevice={selectedVideoDevice}
+            selectedAudioDevice={selectedAudioDevice}
+            onDeviceChange={handleDeviceChange}
+            onStartCall={startCall}
+            callError={callError}
+            connectionState={connectionState}
+            userName={userName}
+            roomId={roomId}
+            userType={userType}
+            accentColor={accentColor}
+          />
         )}
 
-        {/* Connecting state / Retrying state */}
+        {/* Connecting / Retrying */}
         {(connectionState === 'connecting' || isRetrying) && (
-          <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950">
-            <div className="relative mb-6">
-              <div className={`absolute inset-0 animate-pulse-ring rounded-full ${accentColor === 'violet' ? 'bg-violet-500/20' : 'bg-sky-500/20'}`} />
-              <div className={`absolute inset-[-8px] animate-pulse-ring rounded-full ${accentColor === 'violet' ? 'bg-violet-500/10' : 'bg-sky-500/10'}`} style={{ animationDelay: '0.5s' }} />
-              <div className={`flex h-20 w-20 items-center justify-center rounded-full ${accentColor === 'violet' ? 'bg-violet-600/20' : 'bg-sky-600/20'}`}>
-                <Loader2 className={`h-10 w-10 animate-spin ${accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'}`} />
-              </div>
-            </div>
-            {isRetrying ? (
-              <>
-                <p className="text-lg font-semibold text-white">Reconectando...</p>
-                <p className="mt-1.5 text-sm text-amber-400">Intento {retryCountRef.current} de 3</p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-semibold text-white">Conectando...</p>
-                <p className="mt-1.5 text-sm text-slate-400">Sala: {roomId}</p>
-              </>
-            )}
-          </div>
+          <ConnectingOverlay
+            isRetrying={isRetrying}
+            retryAttempt={retryCountRef.current}
+            maxRetries={3}
+            accentColor={accentColor}
+            roomId={roomId}
+          />
         )}
 
-        {/* Connected — PiP layout */}
+        {/* Active call layout */}
         {isActive && (
-          <>
-            {/* Remote video (full area) or waiting */}
-            {firstRemote ? (
-              <div className="h-full w-full">
-                {Array.from(remoteUsers.entries()).map(([remoteUserId, remoteUser]) => {
-                  const hasActiveVideo = !!(
-                    remoteUser.stream?.getVideoTracks().some((t) => t.readyState === 'live' && t.enabled)
-                  )
-                  const displayName =
-                    remoteUser.userName && remoteUser.userName !== remoteUserId
-                      ? remoteUser.userName
-                      : remoteUserId
-                  const initials = displayName.split(/[\s-]/)[0]?.charAt(0)?.toUpperCase() ?? '?'
-                  const roleLabel =
-                    remoteUser.userType === 'doctor'
-                      ? 'Doctor'
-                      : remoteUser.userType === 'patient'
-                        ? 'Paciente'
-                        : 'Participante'
-                  return (
-                    <div key={remoteUserId} className="relative h-full w-full bg-neutral-900">
-                      {/* Video element — siempre renderizado para sync de stream */}
-                      <video
-                        ref={(el) => {
-                          if (el) {
-                            remoteVideosRef.current.set(remoteUserId, el)
-                            if (remoteUser.stream) el.srcObject = remoteUser.stream
-                          } else {
-                            remoteVideosRef.current.delete(remoteUserId)
-                          }
-                        }}
-                        autoPlay
-                        playsInline
-                        className={`h-full w-full object-cover transition-opacity duration-700 ${hasActiveVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                      />
-
-                      {/* Avatar fallback cuando el video no está activo */}
-                      {!hasActiveVideo && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-neutral-800 via-neutral-900 to-neutral-950">
-                          <div
-                            className={`flex h-28 w-28 items-center justify-center rounded-full text-4xl font-bold text-white shadow-2xl ring-4 ring-white/10 ${
-                              accentColor === 'violet' ? 'bg-violet-700' : 'bg-sky-700'
-                            }`}
-                          >
-                            {initials}
-                          </div>
-                          <p className="mt-5 text-xl font-semibold text-white">{displayName}</p>
-                          <p
-                            className={`mt-1 text-sm font-medium ${accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'}`}
-                          >
-                            {roleLabel}
-                          </p>
-                          {remoteUser.stream ? (
-                            <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs text-slate-300 backdrop-blur-sm">
-                              <VideoOff className="h-3.5 w-3.5" />
-                              <span>Cámara desactivada</span>
-                            </div>
-                          ) : (
-                            <div className="mt-4 flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs text-slate-400 backdrop-blur-sm">
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              <span>Conectando video...</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Etiqueta del usuario remoto (solo cuando el video está activo) */}
-                      {hasActiveVideo && (
-                        <div className="absolute left-4 top-16 flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1 text-xs backdrop-blur-xl">
-                          <UserCircle className="h-3.5 w-3.5 text-slate-300" />
-                          <span className="font-medium">{displayName}</span>
-                          <span className="text-slate-500">{roleLabel}</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950">
-                <div className="relative mb-6">
-                  <div className="absolute inset-[-6px] animate-pulse-ring rounded-full bg-white/5" />
-                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-neutral-700 to-neutral-800 ring-2 ring-white/10">
-                    <Users className="h-10 w-10 text-slate-400" />
-                  </div>
-                </div>
-                <p className="text-lg font-medium text-white">Esperando al participante...</p>
-                <p className="mt-1.5 text-sm text-slate-500">La consulta comenzará cuando se conecte el otro participante</p>
-                {!callError && (
-                  <div className="mt-4 flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-xs text-slate-500">Tu conexión está activa</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Local video PiP (bottom-right) */}
-            <div className="absolute bottom-28 right-4 z-10 h-36 w-52 overflow-hidden rounded-2xl bg-slate-800 shadow-2xl shadow-black/50 ring-1 ring-white/15 transition-all hover:scale-[1.03] hover:ring-white/30 sm:h-44 sm:w-64 md:right-6">
-              <video
-                ref={(el) => {
-                  localVideoRef.current = el
-                  if (el && client) {
-                    const s = client.getLocalStream()
-                    if (s && el.srcObject !== s) el.srcObject = s
-                  }
-                }}
-                autoPlay
-                muted
-                playsInline
-                className={`h-full w-full object-cover -scale-x-100 transition-opacity duration-300 ${isVideoEnabled ? 'opacity-100' : 'opacity-0'}`}
-              />
-              {!isVideoEnabled && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-                  <VideoOff className="h-8 w-8 text-slate-500" />
-                </div>
-              )}
-              {!isAudioEnabled && (
-                <div className="absolute bottom-0 inset-x-0 flex items-center justify-end bg-gradient-to-t from-black/70 to-transparent px-2 py-2">
-                  <MicOff className="h-3 w-3 text-red-400" />
-                </div>
-              )}
-            </div>
-
-            {/* Screen share overlay */}
-            {isScreenSharing && screenStream && (
-              <div className="absolute left-4 top-16 z-10 h-36 w-52 overflow-hidden rounded-xl border border-blue-500/40 bg-black shadow-lg">
-                <video ref={screenShareRef} autoPlay muted playsInline className="h-full w-full object-contain" />
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
-                  <span className="flex items-center gap-1 text-xs">
-                    <ScreenShare className="h-3 w-3" /> Compartiendo
-                  </span>
-                </div>
-              </div>
-            )}
-          </>
+          <ActiveCallLayout
+            remoteUsers={remoteUsers}
+            remoteVideosRef={remoteVideosRef}
+            localVideoRef={localVideoRef}
+            screenShareRef={screenShareRef}
+            client={client}
+            isVideoEnabled={isVideoEnabled}
+            isAudioEnabled={isAudioEnabled}
+            isScreenSharing={isScreenSharing}
+            screenStream={screenStream}
+            userName={userName}
+            accentColor={accentColor}
+            callError={callError}
+          />
         )}
       </div>
 
-      {/* ── Top bar (overlay, visible during active call) ── */}
+      {/* Top bar */}
       {isActive && (
-        <div
-          className={`absolute inset-x-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/40 via-black/20 to-transparent px-4 py-3 transition-opacity duration-500 ${
-            controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {/* Connection + quality merged */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] backdrop-blur-xl">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-medium">Conectado</span>
-              {qualityLevel !== 'unknown' && qualityLevel !== 'good' && qualityLevel !== 'excellent' && (
-                <>
-                  <span className="text-white/20">·</span>
-                  <Wifi className={`h-3 w-3 ${qualityColor[qualityLevel]}`} />
-                  <span className={qualityColor[qualityLevel]}>{qualityLabel[qualityLevel]}</span>
-                </>
-              )}
-            </div>
-            {/* Recording indicator */}
-            {recordingState.isRecording && (
-              <div className="flex items-center gap-1.5 rounded-full bg-red-500/30 px-3 py-1 text-[11px] backdrop-blur-xl">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="font-medium text-red-300">REC</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Duration */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] backdrop-blur-xl">
-              <Clock className="h-3 w-3 text-slate-400" />
-              <span className="font-mono">{formattedDuration}</span>
-            </div>
-
-            {/* Participants */}
-            <div className="flex items-center gap-1.5 rounded-full bg-black/30 px-2.5 py-1 text-[11px] backdrop-blur-xl">
-              <Users className="h-3 w-3 text-slate-400" />
-              <span>{totalParticipants}</span>
-            </div>
-          </div>
-        </div>
+        <CallTopBar
+          connectionState={connectionState}
+          qualityLevel={qualityLevel}
+          formattedDuration={formattedDuration}
+          participantCount={totalParticipants}
+          isRecording={recordingState.isRecording}
+          showControls={controlsVisible}
+        />
       )}
 
-      {/* ── Error toast ── */}
-      {callError && isActive && (
-        <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
-          <div className="rounded-xl bg-red-500/90 px-4 py-2 text-sm shadow-lg ring-1 ring-red-400/20 backdrop-blur-sm">
-            {callError}
-          </div>
-        </div>
-      )}
-
-      {isActive && isTestRoom && (
-        <div className="absolute left-4 top-14 z-30">
-          <div className="rounded-full border border-amber-400/20 bg-black/30 px-2.5 py-0.5 text-[10px] text-amber-400/60 backdrop-blur-xl">
-            Test
-          </div>
-        </div>
-      )}
-
-      {/* ── Floating controls (bottom) ── */}
+      {/* Quality overlays (error toast, test badge, audio-only suggestion, quality badge) */}
       {isActive && (
-        <div
-          className={`absolute inset-x-0 bottom-0 z-20 flex items-center justify-center pb-6 pt-12 bg-gradient-to-t from-black/40 via-black/15 to-transparent transition-opacity duration-500 ${
-            controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-2 shadow-xl shadow-black/20 backdrop-blur-2xl ring-1 ring-white/[0.08] sm:gap-3 sm:px-4">
-            {/* Mic */}
-            <button
-              onClick={toggleAudio}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
-                isAudioEnabled
-                  ? 'bg-white/10 text-white hover:bg-white/20'
-                  : 'bg-red-500/80 text-white hover:bg-red-500'
-              }`}
-              title={isAudioEnabled ? 'Silenciar' : 'Activar micrófono'}
-            >
-              {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-            </button>
-
-            {/* Camera */}
-            <button
-              onClick={toggleVideo}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
-                isVideoEnabled
-                  ? 'bg-white/10 text-white hover:bg-white/20'
-                  : 'bg-red-500/80 text-white hover:bg-red-500'
-              }`}
-              title={isVideoEnabled ? 'Desactivar cámara' : 'Activar cámara'}
-            >
-              {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-            </button>
-
-            {/* Screen share */}
-            {typeof window !== 'undefined' && typeof navigator?.mediaDevices?.getDisplayMedia === 'function' && (
-              <button
-                onClick={toggleScreenShare}
-                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
-                  isScreenSharing
-                    ? 'bg-blue-500 text-white hover:bg-blue-400'
-                    : 'bg-white/10 text-white hover:bg-white/20'
-                }`}
-                title={isScreenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}
-              >
-                {isScreenSharing ? <ScreenShare className="h-5 w-5" /> : <ScreenShareOff className="h-5 w-5" />}
-              </button>
-            )}
-
-            {/* Record */}
-            {userType === 'doctor' && (
-              <button
-                onClick={toggleRecording}
-                className={`flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
-                  recordingState.isRecording
-                    ? 'bg-red-500 text-white hover:bg-red-400'
-                    : 'bg-white/10 text-white hover:bg-white/20'
-                }`}
-                title={recordingState.isRecording ? 'Detener grabacion' : 'Grabar consulta'}
-              >
-                {recordingState.isRecording ? <Square className="h-4 w-4" /> : <Circle className="h-5 w-5" />}
-              </button>
-            )}
-
-            {/* Chat */}
-            <button
-              onClick={toggleChatPanel}
-              className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 sm:h-12 sm:w-12 ${
-                isChatPanelOpen
-                  ? accentColor === 'violet'
-                    ? 'bg-violet-600 text-white'
-                    : 'bg-sky-600 text-white'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
-              title={isChatPanelOpen ? 'Cerrar chat' : 'Abrir chat'}
-            >
-              <MessageSquare className="h-5 w-5" />
-              {!isChatPanelOpen && unreadMessages > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold">
-                  {unreadMessages > 99 ? '99+' : unreadMessages}
-                </span>
-              )}
-            </button>
-
-            {/* PiP */}
-            {typeof document !== 'undefined' && document.pictureInPictureEnabled && (
-              <button
-                onClick={togglePiP}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-white/20 active:scale-95 sm:h-12 sm:w-12"
-                title="Picture-in-Picture"
-              >
-                <PictureInPicture2 className="h-5 w-5" />
-              </button>
-            )}
-
-            {/* Divider */}
-            <div className="mx-1 h-8 w-px bg-white/10" />
-
-            {/* End call */}
-            <button
-              onClick={endCall}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-b from-red-500 to-red-600 text-white shadow-lg shadow-red-600/30 transition-all hover:from-red-400 hover:to-red-500 hover:scale-105 active:scale-95 sm:h-14 sm:w-14"
-              title="Terminar videollamada"
-            >
-              <PhoneOff className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
+        <QualityOverlays
+          showAudioOnlySuggestion={showAudioOnlySuggestion}
+          onSwitchAudioOnly={switchToAudioOnly}
+          onDismissSuggestion={() => setShowAudioOnlySuggestion(false)}
+          callError={callError}
+          isTestRoom={isTestRoom}
+          showControls={controlsVisible}
+          qualityLevel={qualityLevel}
+        />
       )}
 
-      {/* ── Chat panel (slide-in from right) ── */}
+      {/* Bottom controls */}
       {isActive && (
-        <aside
-          className={`absolute right-0 top-0 bottom-0 z-30 flex w-full flex-col border-l border-white/[0.06] bg-neutral-900/[0.97] backdrop-blur-2xl transition-transform duration-300 ease-out md:w-96 ${
-            isChatPanelOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          style={{
-            width: isDesktopViewport ? '24rem' : '100%',
-            maxWidth: isDesktopViewport ? '24rem' : '100%',
-          }}
-        >
-          {/* Chat header */}
-          <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
-            <div>
-              <h3 className="font-semibold text-white">Chat de consulta</h3>
-              <p className="text-xs text-slate-400">
-                {isChatReady ? (
-                  <span className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    Canal activo
-                  </span>
-                ) : (
-                  'Conectando canal...'
-                )}
-              </p>
-            </div>
-            <button
-              onClick={() => setIsChatPanelOpen(false)}
-              className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
-              title="Cerrar chat"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-            {chatMessages.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${
-                  accentColor === 'violet' ? 'bg-violet-500/10' : 'bg-sky-500/10'
-                }`}>
-                  <MessageSquare className={`h-7 w-7 ${
-                    accentColor === 'violet' ? 'text-violet-400' : 'text-sky-400'
-                  }`} />
-                </div>
-                <p className="text-sm font-medium text-slate-400">Sin mensajes aún</p>
-                <p className="mt-1.5 max-w-[200px] text-xs text-slate-600">
-                  Coordiná durante la consulta usando el chat
-                </p>
-              </div>
-            )}
-
-            {chatMessages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.mine ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                    msg.mine
-                      ? accentColor === 'violet'
-                        ? 'bg-violet-600 text-white'
-                        : 'bg-sky-600 text-white'
-                      : 'bg-white/[0.06] text-slate-100'
-                  }`}
-                >
-                  <p className="text-[11px] font-semibold opacity-80">{msg.senderLabel}</p>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
-                  <p className="mt-1 text-[10px] opacity-60">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Input */}
-          <form onSubmit={handleChatSubmit} className="border-t border-white/[0.06] p-3">
-            <div className="flex items-end gap-2">
-              <textarea
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={handleChatKeyDown}
-                rows={1}
-                placeholder="Escribe un mensaje..."
-                className="flex-1 resize-none rounded-xl border border-white/[0.06] bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:bg-white/[0.07] focus:border-white/15 focus:outline-none transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={!isChatReady || chatInput.trim().length === 0}
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                  accentColor === 'violet'
-                    ? 'bg-violet-600 hover:bg-violet-500 text-white'
-                    : 'bg-sky-600 hover:bg-sky-500 text-white'
-                }`}
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
-        </aside>
+        <CallControlsBar
+          isVideoEnabled={isVideoEnabled}
+          isAudioEnabled={isAudioEnabled}
+          isScreenSharing={isScreenSharing}
+          isRecording={recordingState.isRecording}
+          isChatPanelOpen={isChatPanelOpen}
+          unreadMessages={unreadMessages}
+          showControls={controlsVisible}
+          userType={userType}
+          accentColor={accentColor}
+          onToggleVideo={toggleVideo}
+          onToggleAudio={toggleAudio}
+          onToggleScreenShare={toggleScreenShare}
+          onToggleRecording={toggleRecording}
+          onToggleChat={toggleChatPanel}
+          onTogglePiP={togglePiP}
+          onEndCall={endCall}
+        />
       )}
 
-      {/* ── Audio-only suggestion ── */}
-      {isActive && showAudioOnlySuggestion && (
-        <div className="absolute left-4 bottom-28 z-30 flex max-w-sm items-center gap-3 rounded-2xl bg-amber-950/80 px-4 py-3 text-sm shadow-lg ring-1 ring-amber-500/10 backdrop-blur-xl">
-          <AlertTriangle className="h-5 w-5 text-amber-300 shrink-0" />
-          <div>
-            <p className="text-amber-100 font-medium">Conexión inestable</p>
-            <p className="text-amber-200/70 text-xs">Solo audio puede mejorar la experiencia</p>
-          </div>
-          <button
-            onClick={switchToAudioOnly}
-            className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition-colors"
-          >
-            Solo audio
-          </button>
-          <button
-            onClick={() => setShowAudioOnlySuggestion(false)}
-            className="shrink-0 rounded-full p-1 text-amber-300 hover:text-white transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {/* ── Quality badge (poor/fair) ── */}
-      {isActive && (qualityLevel === 'poor' || qualityLevel === 'fair') && !showAudioOnlySuggestion && (
-        <div className="absolute left-4 bottom-24 z-20 flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] backdrop-blur-xl">
-          <WifiOff className={`h-3 w-3 ${qualityColor[qualityLevel]}`} />
-          <span className={qualityColor[qualityLevel]}>Conexión {qualityLabel[qualityLevel].toLowerCase()}</span>
-        </div>
+      {/* Chat panel */}
+      {isActive && (
+        <ChatPanel
+          isOpen={isChatPanelOpen}
+          messages={chatMessages}
+          chatInput={chatInput}
+          onChatInputChange={setChatInput}
+          onSubmit={handleChatSubmit}
+          onKeyDown={handleChatKeyDown}
+          onClose={() => setIsChatPanelOpen(false)}
+          chatReady={isChatReady}
+          accentColor={accentColor}
+          isDesktopViewport={isDesktopViewport}
+          chatMessagesRef={chatMessagesRef}
+        />
       )}
     </div>
   )
