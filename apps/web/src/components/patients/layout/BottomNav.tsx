@@ -18,13 +18,7 @@ const TABS: Array<{ key: PatientTab; label: string; href: string; icon: typeof H
 
 export default function BottomNav({ activeTab = 'inicio' }: BottomNavProps) {
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t sm:hidden"
-      style={{
-        background: 'var(--au-surface)',
-        borderColor: 'var(--au-border)',
-      }}
-    >
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/90 backdrop-blur-xl sm:hidden">
       <div className="mx-auto flex max-w-lg items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
         {TABS.map(({ key, label, href, icon: Icon, center }) => {
           const isActive = activeTab === key
@@ -37,20 +31,16 @@ export default function BottomNav({ activeTab = 'inicio' }: BottomNavProps) {
                 className="group -mt-5 flex flex-col items-center gap-0.5"
               >
                 <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
+                  className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 shadow-lg transition-transform active:scale-95"
                   style={{
-                    background: 'var(--au-accent)',
                     boxShadow: isActive
-                      ? '0 0 20px var(--au-accent-glow), 0 4px 12px rgba(0,0,0,0.3)'
-                      : '0 4px 12px rgba(0,0,0,0.3)',
+                      ? '0 0 20px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.2)'
+                      : '0 4px 12px rgba(0,0,0,0.15)',
                   }}
                 >
-                  <Icon className="h-6 w-6" style={{ color: 'var(--au-bg)' }} />
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
-                <span
-                  className="text-[10px] font-medium"
-                  style={{ color: isActive ? 'var(--au-accent)' : 'var(--au-text-tertiary)' }}
-                >
+                <span className={`text-[10px] font-medium ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
                   {label}
                 </span>
               </a>
@@ -61,16 +51,10 @@ export default function BottomNav({ activeTab = 'inicio' }: BottomNavProps) {
             <a
               key={key}
               href={href}
-              className="flex flex-col items-center gap-0.5 py-2 px-3"
+              className="flex flex-col items-center gap-0.5 px-3 py-2"
             >
-              <Icon
-                className="h-5 w-5 transition-colors"
-                style={{ color: isActive ? 'var(--au-accent)' : 'var(--au-text-tertiary)' }}
-              />
-              <span
-                className="text-[10px] font-medium transition-colors"
-                style={{ color: isActive ? 'var(--au-accent)' : 'var(--au-text-tertiary)' }}
-              >
+              <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400'}`} />
+              <span className={`text-[10px] font-medium transition-colors ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
                 {label}
               </span>
             </a>

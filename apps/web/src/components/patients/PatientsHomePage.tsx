@@ -177,19 +177,21 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
         {/* Carousel: Consultas */}
         <section className="mb-6">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
-            Consultas
-          </h2>
+          <h2 className="mb-3 text-sm font-medium text-gray-500">Consultas</h2>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {CONSULTAS.map(({ key, label, sub, href, icon: Icon, color }) => (
+            {CONSULTAS.map(({ key, label, sub, href, icon: Icon, color }, i) => (
               <a
                 key={key}
                 href={href}
-                className="group flex w-[200px] shrink-0 items-start gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-gray-200 hover:shadow-sm active:scale-[0.97]"
+                className={`group flex shrink-0 items-start gap-3 rounded-2xl border p-4 transition-all hover:shadow-md active:scale-[0.97] ${
+                  i === 0
+                    ? 'w-[240px] border-gray-200 bg-gray-50'
+                    : 'w-[180px] border-gray-100 bg-white hover:border-gray-200'
+                }`}
               >
-                <Icon className="mt-0.5 h-5 w-5 shrink-0" style={{ color }} />
+                <Icon className={`mt-0.5 shrink-0 ${i === 0 ? 'h-6 w-6' : 'h-5 w-5'}`} style={{ color }} />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{label}</p>
+                  <p className={`font-semibold text-gray-900 ${i === 0 ? 'text-base' : 'text-sm'}`}>{label}</p>
                   <p className="mt-0.5 text-[11px] leading-snug text-gray-400">{sub}</p>
                 </div>
               </a>
@@ -199,15 +201,13 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
         {/* Carousel: Tu salud */}
         <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
-            Tu salud
-          </h2>
+          <h2 className="mb-3 text-sm font-medium text-gray-500">Tu salud</h2>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {SALUD.map(({ key, label, sub, href, icon: Icon, color }) => (
               <a
                 key={key}
                 href={href}
-                className="group flex w-[200px] shrink-0 items-start gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-gray-200 hover:shadow-sm active:scale-[0.97]"
+                className="group flex w-[180px] shrink-0 items-start gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-gray-200 hover:shadow-md active:scale-[0.97]"
               >
                 <Icon className="mt-0.5 h-5 w-5 shrink-0" style={{ color }} />
                 <div className="min-w-0">
