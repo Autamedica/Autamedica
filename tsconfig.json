@@ -6,12 +6,10 @@
     { "path": "./packages/auth" },
     { "path": "./packages/hooks" },
     { "path": "./packages/ui" },
-    { "path": "./packages/utils" },
     { "path": "./packages/telemedicine" },
     { "path": "./packages/tailwind-config" },
-    { "path": "./apps/doctors" },
-    { "path": "./apps/patients" },
-    { "path": "./apps/companies" },
-    { "path": "./apps/admin" }
+    { "path": "./packages/session" },
+    { "path": "./packages/scheduling" },
+    { "path": "./apps/web" }
   ]
 }

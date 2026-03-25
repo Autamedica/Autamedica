@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 [ "$HUSKY" = "0" ] && exit 0
-. "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
 
 # Auto-sync Claude Code agents after checkout
 # Useful when switching branches with different agent configs

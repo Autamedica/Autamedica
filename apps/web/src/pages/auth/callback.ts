@@ -120,7 +120,12 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (error) {
-        return redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
+        const isPkce = /pkce|code.verifier/i.test(error.message);
+        const loginParams = new URLSearchParams({ error: isPkce ? 'pkce_failed' : 'auth_failed' });
+        if (isPkce) loginParams.set('retry', 'google');
+        if (roleHint) loginParams.set('role', roleHint);
+        if (returnTo) loginParams.set('returnTo', returnTo);
+        return redirect(`/auth/login?${loginParams.toString()}`);
       }
 
       // Only allow self-assignable roles via URL param (prevent privilege escalation)

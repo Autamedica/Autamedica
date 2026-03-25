@@ -3,7 +3,7 @@ import { createAdminClient } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { jsonOk, forbidden, internalError } from '@/lib/api-helpers'
-import { withSession, isAuthed } from '@/lib/api-auth'
+import { withAuth, isAuthed } from '@/lib/api-auth'
 
 type AdminClient = SupabaseClient
 
@@ -18,13 +18,13 @@ async function verifyAdmin(admin: AdminClient, userId: string): Promise<boolean>
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    const auth = await withSession(request)
+    const auth = await withAuth(request)
     if (!isAuthed(auth)) return auth
-    const { session } = auth
+    const { user } = auth
 
     const admin = createAdminClient() as unknown as AdminClient
 
-    const isAdmin = await verifyAdmin(admin, session.user.id)
+    const isAdmin = await verifyAdmin(admin, user.id)
     if (!isAdmin) {
       return forbidden()
     }

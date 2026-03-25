@@ -112,6 +112,7 @@ export function DoctorOnboardingWizard({ userId, onComplete, onCancel }: DoctorO
 
       const response = await fetch('/api/profiles/doctors', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(doctorProfile),
       });
@@ -125,6 +126,7 @@ export function DoctorOnboardingWizard({ userId, onComplete, onCancel }: DoctorO
 
       await fetch('/api/doctors/onboarding-complete', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       }).catch(() => {});
 

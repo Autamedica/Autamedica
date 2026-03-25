@@ -2,13 +2,13 @@ import type { APIRoute } from 'astro';
 import { createAdminClient } from '@autamedica/auth/server';
 import { logger } from '@autamedica/shared';
 import { jsonOk, internalError } from '@/lib/api-helpers';
-import { withSession, isAuthed } from '@/lib/api-auth';
+import { withAuth, isAuthed } from '@/lib/api-auth';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const auth = await withSession(request);
+    const auth = await withAuth(request);
     if (!isAuthed(auth)) return auth;
-    const user = auth.session.user;
+    const { user } = auth;
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const firstName = typeof body?.first_name === 'string' ? body.first_name.trim() : null;

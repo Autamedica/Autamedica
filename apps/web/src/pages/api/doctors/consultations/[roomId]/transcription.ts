@@ -4,7 +4,7 @@ import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
 import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
-import { withSession, isAuthed } from '@/lib/api-auth';
+import { withAuth, isAuthed } from '@/lib/api-auth';
 
 type AdminClient = SupabaseClient;
 
@@ -31,13 +31,13 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const auth = await withSession(request);
+    const auth = await withAuth(request);
     if (!isAuthed(auth)) return auth;
-    const { session } = auth;
+    const { user } = auth;
 
     const admin = createAdminClient() as unknown as AdminClient;
 
-    const doctorId = await resolveDoctorId(admin, session.user.id);
+    const doctorId = await resolveDoctorId(admin, user.id);
     if (!doctorId) {
       return forbidden('doctor_not_found');
     }

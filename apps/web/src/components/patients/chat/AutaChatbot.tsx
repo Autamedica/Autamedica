@@ -75,7 +75,7 @@ export function AutaChatbot() {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch('/api/ai/context', { cache: 'no-store' });
+        const res = await fetch('/api/ai/context', { cache: 'no-store', credentials: 'include' });
         if (res.ok) {
           const json = await res.json();
           const s = json?.data?.summary;
@@ -91,7 +91,7 @@ export function AutaChatbot() {
           // Si faltan datos clave, intentar sincronizar una vez
           if ((!s?.name || !s?.email) && !cancelled) {
             try {
-              const sync = await fetch('/api/ai/context/sync', { method: 'POST' });
+              const sync = await fetch('/api/ai/context/sync', { method: 'POST', credentials: 'include' });
               if (sync.ok) {
                 const again = await fetch('/api/ai/context', { cache: 'no-store' });
                 if (again.ok) {
@@ -116,14 +116,14 @@ export function AutaChatbot() {
       }
       // Cargar patrones y FAQs del usuario
       try {
-        const res2 = await fetch('/api/ai/patterns', { cache: 'no-store' })
+        const res2 = await fetch('/api/ai/patterns', { cache: 'no-store', credentials: 'include' })
         if (res2.ok) {
           const json = await res2.json()
           if (!cancelled) {
             const ps = Array.isArray(json?.data?.patterns) ? json.data.patterns : []
             const fs = Array.isArray(json?.data?.faqs) ? json.data.faqs : []
-            setUserPatterns(ps.map((p: any) => ({ pattern: String(p.pattern || ''), intent: String(p.intent || ''), active: p.active !== false })))
-            setUserFaqs(fs.map((f: any) => ({ question: String(f.question || ''), answer: String(f.answer || ''), active: f.active !== false })))
+            setUserPatterns(ps.map((p: Record<string, unknown>) => ({ pattern: String(p.pattern || ''), intent: String(p.intent || ''), active: p.active !== false })))
+            setUserFaqs(fs.map((f: Record<string, unknown>) => ({ question: String(f.question || ''), answer: String(f.answer || ''), active: f.active !== false })))
           }
         }
       } catch (e) {
@@ -212,7 +212,7 @@ export function AutaChatbot() {
           timestamp: new Date(),
         }
         // Registrar telemetría
-        fetch('/api/ai/telemetry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: 'faq', confidence: 0.99, usedPattern: true, replyPreview: faq.answer.slice(0, 140) }) }).catch(() => {})
+        fetch('/api/ai/telemetry', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: 'faq', confidence: 0.99, usedPattern: true, replyPreview: faq.answer.slice(0, 140) }) }).catch(() => {})
         // Simular typing breve
         setTimeout(() => {
           setMessages(prev => [...prev, assistantMessage])
@@ -233,7 +233,7 @@ export function AutaChatbot() {
           timestamp: new Date(),
           confidence: classification.confidence,
         }
-        fetch('/api/ai/telemetry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: classification.intent, confidence: classification.confidence, usedPattern: true, replyPreview: response.text.slice(0, 140) }) }).catch(() => {})
+        fetch('/api/ai/telemetry', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: classification.intent, confidence: classification.confidence, usedPattern: true, replyPreview: response.text.slice(0, 140) }) }).catch(() => {})
         const typingDelay = Math.min(Math.max(response.text.length * 5, 400), 1200)
         setTimeout(() => {
           setMessages(prev => [...prev, assistantMessage])
@@ -257,7 +257,7 @@ export function AutaChatbot() {
       };
 
       // Telemetría
-      fetch('/api/ai/telemetry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: classification.intent, confidence: classification.confidence, usedPattern: false, replyPreview: response.text.slice(0, 140) }) }).catch(() => {})
+      fetch('/api/ai/telemetry', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: classification.intent, confidence: classification.confidence, usedPattern: false, replyPreview: response.text.slice(0, 140) }) }).catch(() => {})
 
       // Simular typing natural delay
       const typingDelay = Math.min(Math.max(response.text.length * 5, 500), 1500);

@@ -58,6 +58,8 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
     loginError: 'Não foi possível entrar. Tente novamente.',
     googleError: 'Erro ao conectar com o Google.',
     googleErrorUnexpected: 'Erro inesperado com o Google. Tente novamente.',
+    pkceError: 'A sessão de autenticação expirou. Tentando novamente automaticamente...',
+    pkceErrorManual: 'Não foi possível completar a autenticação com Google. Por favor, tente novamente.',
     joinTitle: 'Junte-se à AutaMedica',
     notYourRole: 'Não é o seu perfil?',
     changeHere: 'Mudar aqui',

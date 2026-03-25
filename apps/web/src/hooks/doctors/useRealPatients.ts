@@ -1,6 +1,7 @@
 'use client';
 
-import { logger, selectActive } from '@autamedica/shared';
+import { logger, toCamel } from '@autamedica/shared';
+import { createBrowserClient } from '@autamedica/auth/client';
 import { PatientWithProfile } from '@autamedica/types';
 import { useEffect, useState } from 'react';
 
@@ -52,19 +53,25 @@ export function useRealPatients(): UsePatientsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   const fetchPatients = async () => {
+    if (!isClient) return;
     try {
       setLoading(true);
       setError(null);
 
-      // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      const data = await selectActive<'patients', UiPatient>('patients', `
-        *,
-        profile:profiles!inner(*)
-      `, {
-        orderBy: { column: 'created_at', ascending: false },
-        includeDeleted: true,
-      });
+      const supabase = createBrowserClient();
+      const { data: rawData, error: dbError } = await supabase
+        .from('patients')
+        .select(`
+          *,
+          profile:profiles!inner(*)
+        `)
+        .order('created_at', { ascending: false });
+      if (dbError) throw dbError;
+      const data = toCamel<UiPatient[]>(rawData ?? []);
 
       // Filtrar solo activos
       const activePatients = data.filter(p => p.active);
@@ -102,8 +109,11 @@ export function useCurrentPatient(userId?: string): UseCurrentPatientResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   const fetchCurrentPatient = async () => {
-    if (!userId) {
+    if (!userId || !isClient) {
       setLoading(false);
       return;
     }
@@ -112,12 +122,15 @@ export function useCurrentPatient(userId?: string): UseCurrentPatientResult {
       setLoading(true);
       setError(null);
 
-      const data = await selectActive<'patients', UiPatient>('patients', `
-        *,
-        profile:profiles!inner(*)
-      `, {
-        includeDeleted: true,
-      });
+      const supabase = createBrowserClient();
+      const { data: rawData, error: dbError } = await supabase
+        .from('patients')
+        .select(`
+          *,
+          profile:profiles!inner(*)
+        `);
+      if (dbError) throw dbError;
+      const data = toCamel<UiPatient[]>(rawData ?? []);
 
       // Filtrar por user_id y active
       const currentPatient = data.find(p => p.userId === userId && p.active);
@@ -160,8 +173,11 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   const fetchDoctorPatients = async () => {
-    if (!doctorUserId) {
+    if (!doctorUserId || !isClient) {
       setLoading(false);
       return;
     }
@@ -171,7 +187,10 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       setError(null);
 
       // First get the doctor ID
-      const doctors = await selectActive<'doctors', { id: string; userId: string }>('doctors', 'id, user_id', { includeDeleted: true });
+      const supabase = createBrowserClient();
+      const { data: rawDoctors, error: err1 } = await supabase.from('doctors').select('id, user_id');
+      if(err1) throw err1;
+      const doctors = toCamel<{id: string, userId: string}[]>(rawDoctors ?? []);
       const doctor = doctors.find(d => d.userId === doctorUserId);
 
       if (!doctor) {
@@ -179,15 +198,9 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       }
 
       // Then get patients assigned to this doctor through patient_care_team
-      const careTeam = await selectActive<'patient_care_team', {
-        doctorId: string;
-        patientId: string;
-        active: boolean;
-      }>('patient_care_team', `
-        doctor_id,
-        patient_id,
-        active
-      `, { includeDeleted: true });
+      const { data: rawCare, error: err2 } = await supabase.from('patient_care_team').select('doctor_id, patient_id, active');
+      if(err2) throw err2;
+      const careTeam = toCamel<{doctorId: string, patientId: string, active: boolean}[]>(rawCare ?? []);
 
       // Filter by doctor and active
       const activeAssignments = careTeam.filter(
@@ -203,10 +216,14 @@ export function useDoctorPatients(doctorUserId?: string): UseDoctorPatientsResul
       }
 
       // Fetch all patients and filter by IDs
-      const allPatients = await selectActive<'patients', UiPatient>('patients', `
-        *,
-        profile:profiles!inner(*)
-      `, { includeDeleted: true });
+      const { data: rawPatients, error: err3 } = await supabase
+        .from('patients')
+        .select(`
+          *,
+          profile:profiles!inner(*)
+        `);
+      if(err3) throw err3;
+      const allPatients = toCamel<UiPatient[]>(rawPatients ?? []);
 
       const doctorPatients = allPatients.filter(p =>
         patientIds.includes(p.id) && p.active
@@ -245,8 +262,11 @@ export function usePatientsByCompany(companyId?: string): UsePatientsByCompanyRe
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   const fetchPatientsByCompany = async () => {
-    if (!companyId) {
+    if (!companyId || !isClient) {
       setLoading(false);
       return;
     }
@@ -255,13 +275,16 @@ export function usePatientsByCompany(companyId?: string): UsePatientsByCompanyRe
       setLoading(true);
       setError(null);
 
-      const data = await selectActive<'patients', UiPatient>('patients', `
-        *,
-        profile:profiles!inner(*)
-      `, {
-        orderBy: { column: 'created_at', ascending: false },
-        includeDeleted: true,
-      });
+      const supabase = createBrowserClient();
+      const { data: rawData, error: dbError } = await supabase
+        .from('patients')
+        .select(`
+          *,
+          profile:profiles!inner(*)
+        `)
+        .order('created_at', { ascending: false });
+      if (dbError) throw dbError;
+      const data = toCamel<UiPatient[]>(rawData ?? []);
 
       // Filtrar por company_id y active
       const companyPatients = data.filter(p =>

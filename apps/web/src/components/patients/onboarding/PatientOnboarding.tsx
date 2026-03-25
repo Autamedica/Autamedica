@@ -288,6 +288,7 @@ export function PatientOnboarding({ autoStart = false }: PatientOnboardingProps)
         // Sync a BD (fire-and-forget)
         fetch('/api/patients/profile/onboarding-complete', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
         }).catch(() => {});
       }

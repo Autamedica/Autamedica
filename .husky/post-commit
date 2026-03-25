@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 [ "$HUSKY" = "0" ] && exit 0
-. "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
 
 # Post-commit: no-op
 # ESLint ya se ejecutó en pre-commit via lint-staged.

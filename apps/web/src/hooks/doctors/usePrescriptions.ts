@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createBrowserClient } from '@autamedica/auth/client'
-import { insertRecord, logger, selectActive, updateRecord } from '@autamedica/shared'
+import { logger, toCamel, toSnake } from '@autamedica/shared'
 import type {
   Prescription,
   PrescriptionFilters,
@@ -8,7 +8,6 @@ import type {
   UsePrescriptionsResult,
   UUID
 } from '@/types/medical'
-
 interface UsePrescriptionsOptions {
   filters?: PrescriptionFilters
 }
@@ -158,9 +157,12 @@ export function usePrescriptions(
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => setIsClient(true), [])
 
   const fetchPrescriptions = useCallback(async (): Promise<void> => {
-    if (!patientId) {
+    if (!patientId || !isClient) {
       setPrescriptions([])
       setError(null)
       return
@@ -170,9 +172,14 @@ export function usePrescriptions(
     setError(null)
 
     try {
-      const records = await selectActive<'medical_records', UiMedicalRecord>('medical_records', '*', {
-        orderBy: { column: 'date_recorded', ascending: false }
-      })
+      const supabase = createBrowserClient()
+      const { data: rawData, error: dbError } = await supabase
+        .from('medical_records')
+        .select('*')
+        .is('deleted_at', null)
+        .order('date_recorded', { ascending: false });
+      if (dbError) throw dbError;
+      const records = toCamel<UiMedicalRecord[]>(rawData ?? [])
 
       const nextPrescriptions = applyFilters(
         records
@@ -204,7 +211,8 @@ export function usePrescriptions(
       const doctorId = prescription.doctor_id || await resolveCurrentDoctorId()
       const recordedAt = prescription.prescribed_date || prescription.start_date || new Date().toISOString()
 
-      await insertRecord<'medical_records', Record<string, unknown>, UiMedicalRecord>('medical_records', {
+      const supabase = createBrowserClient()
+      const insertPayload = {
         patient_id: patientId,
         doctor_id: doctorId,
         type: 'prescription',
@@ -226,7 +234,10 @@ export function usePrescriptions(
           notes: prescription.notes,
           side_effects_warning: prescription.side_effects_warning,
         },
-      })
+      }
+      const dbPayload = toSnake(insertPayload) as Record<string, unknown>
+      const { error: insertError } = await supabase.from('medical_records').insert(dbPayload)
+      if (insertError) throw insertError
 
       window.dispatchEvent(new Event(PRESCRIPTIONS_CHANGED_EVENT))
       await fetchPrescriptions()
@@ -253,7 +264,8 @@ export function usePrescriptions(
 
       const merged = { ...current, ...updates }
 
-      await updateRecord<'medical_records', Record<string, unknown>, UiMedicalRecord>('medical_records', id, {
+      const supabase = createBrowserClient()
+      const updatePayload = {
         doctor_id: merged.doctor_id || await resolveCurrentDoctorId(),
         title: merged.medication_name
           ? `Prescripción: ${merged.medication_name}`
@@ -272,7 +284,10 @@ export function usePrescriptions(
           notes: merged.notes,
           side_effects_warning: merged.side_effects_warning,
         },
-      })
+      }
+      const dbPayload = toSnake(updatePayload) as Record<string, unknown>
+      const { error: updateError } = await supabase.from('medical_records').update(dbPayload).eq('id', id)
+      if (updateError) throw updateError
 
       window.dispatchEvent(new Event(PRESCRIPTIONS_CHANGED_EVENT))
       await fetchPrescriptions()

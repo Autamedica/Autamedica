@@ -1,9 +1,10 @@
 /**
  * Store médico específico para pacientes - Vista desde perspectiva del paciente
+ * Implementado con Zustand para consistencia con el resto del proyecto.
  */
+import { create } from 'zustand'
 import { logger } from '@autamedica/shared'
 
-// Usando una implementación simple sin zustand por ahora
 interface PatientMedicalEntry {
   id: string
   type: 'symptom' | 'medication_taken' | 'vital_sign' | 'note' | 'appointment'
@@ -23,8 +24,20 @@ interface PatientMedicalEntry {
   }
   timestamp: string
   patientId: string
-  isPrivate?: boolean // Notas privadas del paciente
+  isPrivate?: boolean
 }
+
+interface SymptomTrends {
+  [severity: string]: number
+}
+
+interface MedicationAdherence {
+  totalTaken: number
+  adherenceScore: number
+  lastTaken: string | null
+}
+
+type OverallStatus = 'excelente' | 'bueno' | 'regular' | 'necesita_atencion'
 
 interface PatientMedicalState {
   entries: PatientMedicalEntry[]
@@ -36,36 +49,83 @@ interface PatientMedicalState {
   vitals: PatientMedicalEntry[]
 }
 
-class PatientMedicalStore {
-  private state: PatientMedicalState = {
-    entries: [],
-    isLoading: false,
-    lastSync: null,
-    personalNotes: [],
-    symptoms: [],
-    medications: [],
-    vitals: []
+interface PatientMedicalActions {
+  addPersonalNote: (content: string, patientId: string) => Promise<void>
+  recordSymptom: (symptom: string, severity: 'leve' | 'moderado' | 'severo', patientId: string) => Promise<void>
+  recordMedicationTaken: (medication: string, dosage: string, patientId: string) => Promise<void>
+  recordVitalSigns: (vitals: { weight?: number; bloodPressure?: string; heartRate?: number; temperature?: number; oxygenSaturation?: number; glucoseLevel?: number }, patientId: string) => Promise<void>
+  getSymptomTrends: () => SymptomTrends
+  getMedicationAdherence: () => MedicationAdherence
+  getHealthSummary: () => {
+    symptomsCount: number
+    lastSymptom: string
+    medicationAdherence: number
+    lastVitals: PatientMedicalEntry['metadata'] extends { vitals?: infer V } ? V : never
+    overallStatus: OverallStatus
   }
+  generateMedicalSummaryForDoctor: () => Promise<{
+    summary: ReturnType<PatientMedicalActions['getHealthSummary']>
+    recentEntries: PatientMedicalEntry[]
+    trends: SymptomTrends
+    medicationAdherence: MedicationAdherence
+    generatedAt: string
+  }>
+  clearPrivateData: () => Promise<void>
+}
 
-  private listeners: Array<(state: PatientMedicalState) => void> = []
+function calculateSymptomTrends(symptoms: PatientMedicalEntry[]): SymptomTrends {
+  return symptoms.slice(-7).reduce<SymptomTrends>((acc, symptom) => {
+    const severity = symptom.metadata?.symptomSeverity || 'leve'
+    acc[severity] = (acc[severity] || 0) + 1
+    return acc
+  }, {})
+}
 
-  // Subscribe to state changes
-  subscribe(listener: (state: PatientMedicalState) => void) {
-    this.listeners.push(listener)
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener)
-    }
+function calculateMedicationAdherence(medications: PatientMedicalEntry[]): MedicationAdherence {
+  const today = new Date()
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const recentMeds = medications.slice(-30).filter(med =>
+    new Date(med.timestamp) >= thirtyDaysAgo
+  )
+
+  return {
+    totalTaken: recentMeds.length,
+    adherenceScore: recentMeds.length > 0 ? Math.min(100, (recentMeds.length / 30) * 100) : 0,
+    lastTaken: recentMeds[recentMeds.length - 1]?.timestamp || null
   }
+}
 
-  private notify() {
-    this.listeners.forEach(listener => listener(this.state))
+function calculateOverallStatus(symptoms: PatientMedicalEntry[], medications: PatientMedicalEntry[]): OverallStatus {
+  const trends = calculateSymptomTrends(symptoms)
+  const severeSymptoms = trends['severo'] || 0
+  const adherence = calculateMedicationAdherence(medications)
+
+  if (severeSymptoms > 0) return 'necesita_atencion'
+  if (adherence.adherenceScore < 50) return 'regular'
+  if (adherence.adherenceScore > 80) return 'excelente'
+  return 'bueno'
+}
+
+async function syncWithBackend(set: (partial: Partial<PatientMedicalState>) => void) {
+  set({ isLoading: true })
+  try {
+    await new Promise(resolve => setTimeout(resolve, 300))
+    set({ lastSync: new Date().toISOString(), isLoading: false })
+  } catch (error) {
+    logger.error('[Patient Medical Store] Sync failed:', error)
+    set({ isLoading: false })
   }
+}
 
-  getState() {
-    return this.state
-  }
+export const usePatientMedicalStore = create<PatientMedicalState & PatientMedicalActions>()((set, get) => ({
+  entries: [],
+  isLoading: false,
+  lastSync: null,
+  personalNotes: [],
+  symptoms: [],
+  medications: [],
+  vitals: [],
 
-  // Actions específicas para pacientes
   async addPersonalNote(content: string, patientId: string) {
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
@@ -76,58 +136,54 @@ class PatientMedicalStore {
       isPrivate: true
     }
 
-    this.state.entries.push(newEntry)
-    this.state.personalNotes.push(content)
-    this.state.lastSync = new Date().toISOString()
-    this.notify()
+    set(state => ({
+      entries: [...state.entries, newEntry],
+      personalNotes: [...state.personalNotes, content],
+      lastSync: new Date().toISOString()
+    }))
 
-    // Simular sincronización
-    await this.syncWithBackend()
-  }
+    await syncWithBackend(set)
+  },
 
   async recordSymptom(symptom: string, severity: 'leve' | 'moderado' | 'severo', patientId: string) {
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'symptom',
       content: symptom,
-      metadata: {
-        symptomSeverity: severity
-      },
+      metadata: { symptomSeverity: severity },
       timestamp: new Date().toISOString(),
       patientId
     }
 
-    this.state.entries.push(newEntry)
-    this.state.symptoms.push(newEntry)
-    this.state.lastSync = new Date().toISOString()
-    this.notify()
+    set(state => ({
+      entries: [...state.entries, newEntry],
+      symptoms: [...state.symptoms, newEntry],
+      lastSync: new Date().toISOString()
+    }))
 
-    await this.syncWithBackend()
-  }
+    await syncWithBackend(set)
+  },
 
   async recordMedicationTaken(medication: string, dosage: string, patientId: string) {
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'medication_taken',
       content: `Tomé ${medication}`,
-      metadata: {
-        medication,
-        dosage,
-        takenAt: new Date().toISOString()
-      },
+      metadata: { medication, dosage, takenAt: new Date().toISOString() },
       timestamp: new Date().toISOString(),
       patientId
     }
 
-    this.state.entries.push(newEntry)
-    this.state.medications.push(newEntry)
-    this.state.lastSync = new Date().toISOString()
-    this.notify()
+    set(state => ({
+      entries: [...state.entries, newEntry],
+      medications: [...state.medications, newEntry],
+      lastSync: new Date().toISOString()
+    }))
 
-    await this.syncWithBackend()
-  }
+    await syncWithBackend(set)
+  },
 
-  async recordVitalSigns(vitals: { weight?: number; bloodPressure?: string; heartRate?: number; temperature?: number }, patientId: string) {
+  async recordVitalSigns(vitals, patientId: string) {
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'vital_sign',
@@ -137,128 +193,54 @@ class PatientMedicalStore {
       patientId
     }
 
-    this.state.entries.push(newEntry)
-    this.state.vitals.push(newEntry)
-    this.state.lastSync = new Date().toISOString()
-    this.notify()
+    set(state => ({
+      entries: [...state.entries, newEntry],
+      vitals: [...state.vitals, newEntry],
+      lastSync: new Date().toISOString()
+    }))
 
-    await this.syncWithBackend()
-  }
+    await syncWithBackend(set)
+  },
 
-  // Análisis desde perspectiva del paciente
   getSymptomTrends() {
-    const symptoms = this.state.symptoms.slice(-7) // Últimos 7 registros
-    const trends = symptoms.reduce((acc, symptom) => {
-      const severity = symptom.metadata?.symptomSeverity || 'leve'
-      acc[severity] = (acc[severity] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
-
-    return trends
-  }
+    return calculateSymptomTrends(get().symptoms)
+  },
 
   getMedicationAdherence() {
-    const medications = this.state.medications.slice(-30) // Último mes
-    const today = new Date()
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-
-    const recentMeds = medications.filter(med =>
-      new Date(med.timestamp) >= thirtyDaysAgo
-    )
-
-    return {
-      totalTaken: recentMeds.length,
-      adherenceScore: recentMeds.length > 0 ? Math.min(100, (recentMeds.length / 30) * 100) : 0,
-      lastTaken: recentMeds[recentMeds.length - 1]?.timestamp || null
-    }
-  }
+    return calculateMedicationAdherence(get().medications)
+  },
 
   getHealthSummary() {
-    const medication = this.getMedicationAdherence()
-    const vitals = this.state.vitals.slice(-1)[0] // Últimos signos vitales
+    const state = get()
+    const adherence = calculateMedicationAdherence(state.medications)
+    const lastVital = state.vitals[state.vitals.length - 1]
 
     return {
-      symptomsCount: this.state.symptoms.length,
-      lastSymptom: this.state.symptoms[this.state.symptoms.length - 1]?.content || 'Ninguno',
-      medicationAdherence: medication.adherenceScore,
-      lastVitals: vitals?.metadata?.vitals || null,
-      overallStatus: this.calculateOverallStatus()
+      symptomsCount: state.symptoms.length,
+      lastSymptom: state.symptoms[state.symptoms.length - 1]?.content || 'Ninguno',
+      medicationAdherence: adherence.adherenceScore,
+      lastVitals: lastVital?.metadata?.vitals || null,
+      overallStatus: calculateOverallStatus(state.symptoms, state.medications)
     }
-  }
+  },
 
-  private calculateOverallStatus(): 'excelente' | 'bueno' | 'regular' | 'necesita_atencion' {
-    const symptoms = this.getSymptomTrends()
-    const severeSymptoms = symptoms['severo'] || 0
-    const medication = this.getMedicationAdherence()
-
-    if (severeSymptoms > 0) return 'necesita_atencion'
-    if (medication.adherenceScore < 50) return 'regular'
-    if (medication.adherenceScore > 80) return 'excelente'
-    return 'bueno'
-  }
-
-  private async syncWithBackend() {
-    this.state.isLoading = true
-    this.notify()
-
-    try {
-      // Simular sincronización con backend
-      await new Promise(resolve => setTimeout(resolve, 300))
-
-      // logger.info('[Patient Medical Store] Synced with backend')
-      this.state.lastSync = new Date().toISOString()
-    } catch (error) {
-      logger.error('[Patient Medical Store] Sync failed:', error)
-    } finally {
-      this.state.isLoading = false
-      this.notify()
-    }
-  }
-
-  // Métodos para compartir con médicos
   async generateMedicalSummaryForDoctor() {
-    const summary = this.getHealthSummary()
-    const recentEntries = this.state.entries.slice(-10)
+    const state = get()
+    const summary = get().getHealthSummary()
 
     return {
       summary,
-      recentEntries: recentEntries.filter(entry => !entry.isPrivate), // Excluir notas privadas
-      trends: this.getSymptomTrends(),
-      medicationAdherence: this.getMedicationAdherence(),
+      recentEntries: state.entries.slice(-10).filter(entry => !entry.isPrivate),
+      trends: calculateSymptomTrends(state.symptoms),
+      medicationAdherence: calculateMedicationAdherence(state.medications),
       generatedAt: new Date().toISOString()
     }
-  }
+  },
 
-  // Limpiar datos sensibles
   async clearPrivateData() {
-    this.state.personalNotes = []
-    this.state.entries = this.state.entries.filter(entry => !entry.isPrivate)
-    this.notify()
+    set(state => ({
+      personalNotes: [],
+      entries: state.entries.filter(entry => !entry.isPrivate)
+    }))
   }
-}
-
-// Singleton instance para toda la app
-export const patientMedicalStore = new PatientMedicalStore()
-
-// React hook para usar el store
-export function usePatientMedicalStore() {
-  const [state, setState] = useState(patientMedicalStore.getState())
-
-  useEffect(() => {
-    const unsubscribe = patientMedicalStore.subscribe(setState)
-    return unsubscribe
-  }, [])
-
-  return {
-    ...state,
-    addPersonalNote: patientMedicalStore.addPersonalNote.bind(patientMedicalStore),
-    recordSymptom: patientMedicalStore.recordSymptom.bind(patientMedicalStore),
-    recordMedicationTaken: patientMedicalStore.recordMedicationTaken.bind(patientMedicalStore),
-    recordVitalSigns: patientMedicalStore.recordVitalSigns.bind(patientMedicalStore),
-    getHealthSummary: patientMedicalStore.getHealthSummary.bind(patientMedicalStore),
-    generateMedicalSummaryForDoctor: patientMedicalStore.generateMedicalSummaryForDoctor.bind(patientMedicalStore)
-  }
-}
-
-// Necesario para useState
-import { useEffect, useState } from 'react'
+}))

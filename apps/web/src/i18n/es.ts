@@ -38,6 +38,8 @@ export const es = {
     loginError: 'No pudimos iniciar sesión. Intenta nuevamente.',
     googleError: 'Error al conectar con Google.',
     googleErrorUnexpected: 'Error inesperado con Google. Intenta nuevamente.',
+    pkceError: 'La sesión de autenticación expiró. Reintentando automáticamente...',
+    pkceErrorManual: 'No se pudo completar la autenticación con Google. Por favor, intenta de nuevo.',
     joinTitle: 'Únete a AutaMedica',
     notYourRole: '¿No es tu rol?',
     changeHere: 'Cambiar aquí',

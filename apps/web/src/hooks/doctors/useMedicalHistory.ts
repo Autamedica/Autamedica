@@ -9,7 +9,8 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { selectActive, logger } from '@autamedica/shared'
+import { logger, toCamel } from '@autamedica/shared'
+import { createBrowserClient } from '@autamedica/auth/client'
 import type {
   MedicalRecord,
   UseMedicalHistoryResult,
@@ -56,8 +57,11 @@ export function useMedicalHistory(
   const [hasMore, setHasMore] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
 
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => setIsClient(true), [])
+
   const fetchRecords = useCallback(async (page: number = 0, reset: boolean = true) => {
-    if (!patientId) {
+    if (!patientId || !isClient) {
       if (reset) {
         setRecords([])
         setHasMore(false)
@@ -73,9 +77,14 @@ export function useMedicalHistory(
     try {
       // Sistema híbrido: selectActive() retorna camelCase automáticamente
       // DB column: date_recorded (not consultation_date)
-      const allRecords = await selectActive<'medical_records', UiMedicalRecord>('medical_records', '*', {
-        orderBy: { column: 'date_recorded', ascending: false }
-      });
+      const supabase = createBrowserClient()
+      const { data: rawData, error: dbError } = await supabase
+        .from('medical_records')
+        .select('*')
+        .is('deleted_at', null)
+        .order('date_recorded', { ascending: false });
+      if (dbError) throw dbError;
+      const allRecords = toCamel<UiMedicalRecord[]>(rawData ?? []);
 
       // Filtrar por patient_id
       let filtered = allRecords.filter(r => r.patientId === patientId);

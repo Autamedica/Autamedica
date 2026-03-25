@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react';
 import type { EntryRole } from '../../lib/auth-flow';
 import {
   ROLE_ENTRIES,
@@ -36,6 +36,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [pendingRetry, setPendingRetry] = useState(false);
 
   const { t } = getClientI18n(locale);
 
@@ -60,13 +61,22 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
       try {
         const supabase = getBrowserSupabaseClient();
 
-        // If we arrived with an error param, the previous session was invalid.
-        // Clear local state to prevent a redirect loop.
+        // If we arrived with an error param, show a friendly message.
         const errorParam = params.get('error');
+        const retryParam = params.get('retry');
         if (errorParam) {
           await supabase.auth.signOut({ scope: 'local' });
           clearTimeout(timeoutId);
-          if (active) setIsCheckingSession(false);
+          if (active) {
+            const errorMsg = errorParam === 'pkce_failed'
+              ? t('auth.pkceError')
+              : t('auth.loginError');
+            setError(errorMsg);
+            setIsCheckingSession(false);
+            if (retryParam === 'google') {
+              setPendingRetry(true);
+            }
+          }
           return;
         }
 
@@ -179,9 +189,10 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = useCallback(async () => {
     setIsSubmitting(true);
     setError(null);
+    sessionStorage.removeItem('autamedica_pkce_retry');
 
     try {
       const supabase = getBrowserSupabaseClient();
@@ -210,7 +221,32 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
       setError(t('auth.googleErrorUnexpected'));
       setIsSubmitting(false);
     }
-  };
+  }, [role, returnTo, t]);
+
+  // Auto-retry Google OAuth once after PKCE failure
+  useEffect(() => {
+    if (!pendingRetry || isCheckingSession) return;
+
+    // Clean URL params to prevent retry loops on navigation
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete('error');
+    clean.searchParams.delete('retry');
+    window.history.replaceState({}, '', clean.toString());
+
+    // Only auto-retry once per session
+    if (sessionStorage.getItem('autamedica_pkce_retry')) {
+      setError(t('auth.pkceErrorManual'));
+      setPendingRetry(false);
+      return;
+    }
+    sessionStorage.setItem('autamedica_pkce_retry', '1');
+
+    const timer = setTimeout(() => {
+      setPendingRetry(false);
+      void handleGoogleSignIn();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [pendingRetry, isCheckingSession, handleGoogleSignIn, t]);
 
   const roleInfo: Record<string, { title: string; subtitle: string; icon: ReactNode; accent: string; buttonLabel: string }> = {
     patient: {
