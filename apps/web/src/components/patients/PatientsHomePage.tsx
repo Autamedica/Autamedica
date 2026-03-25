@@ -2,7 +2,6 @@
 
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
-import { useAnamnesis } from '@/hooks/patients/useAnamnesis'
 import type { Locale } from '@/i18n/index'
 import {
   Bell,
@@ -55,12 +54,11 @@ interface PatientsHomePageProps {
 }
 
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
-  const { user, profile } = usePatientSession()
+  const { user, profile, patient } = usePatientSession()
   const { appointments } = useAppointments()
-  const { progress: anamnesisProgress } = useAnamnesis()
   const firstName = getFirstName(profile, user)
   const completedConsults = appointments.filter(a => a.status === 'completed').length
-  const anamnesisPercent = anamnesisProgress?.completion_percentage ?? 0
+  const freeConsults = patient?.freeConsultationsRemaining ?? 0
 
   const upcomingAppointment = useMemo(() => {
     const now = new Date()
@@ -198,32 +196,52 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             </a>
           </section>
         ) : (
-          <a
-            href="/patients/anamnesis"
-            className="group mb-8 flex items-center gap-5 py-4 transition-opacity active:opacity-80"
-          >
-            <span
-              className="text-5xl font-bold leading-none tracking-tight"
-              style={{ color: 'var(--au-accent)' }}
+          <section className="mb-8 flex gap-6 py-4">
+            {/* Consultas gratis */}
+            <a
+              href="/patients/appointments"
+              className="flex items-center gap-4 transition-opacity active:opacity-80"
             >
-              {completedConsults || 0}
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm leading-snug" style={{ color: 'var(--au-text-secondary)' }}>
-                {completedConsults === 1 ? 'médico consultó' : 'médicos consultaron'}
-                {' '}<span style={{ color: 'var(--au-text-tertiary)' }}>tu historial</span>
-              </p>
-              <p className="mt-1 text-xs leading-snug" style={{ color: 'var(--au-text-tertiary)' }}>
-                {anamnesisPercent === 0
-                  ? 'Completá tu anamnesis y cada médico te conoce antes de atenderte.'
-                  : anamnesisPercent < 50
-                    ? `Tu historial está al ${anamnesisPercent}%. Cuanto más completo, mejor te atienden.`
-                    : anamnesisPercent < 100
-                      ? `Vas por el ${anamnesisPercent}%. Los médicos ya pueden anticipar mejor tu consulta.`
-                      : 'Historial completo. Cada profesional accede a tu contexto clínico antes de atenderte.'}
-              </p>
-            </div>
-          </a>
+              <span
+                className="text-5xl font-bold leading-none tracking-tight"
+                style={{ color: 'var(--au-accent)' }}
+              >
+                {freeConsults}
+              </span>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--au-text-secondary)' }}>
+                  {freeConsults === 1 ? 'consulta gratis' : 'consultas gratis'}
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--au-text-tertiary)' }}>
+                  {freeConsults > 0 ? 'Agendá cuando quieras' : 'Créditos agotados'}
+                </p>
+              </div>
+            </a>
+
+            {/* Separador */}
+            <div className="w-px self-stretch" style={{ background: 'var(--au-border)' }} />
+
+            {/* Médicos que vieron tu historial */}
+            <a
+              href="/patients/anamnesis"
+              className="flex items-center gap-4 transition-opacity active:opacity-80"
+            >
+              <span
+                className="text-5xl font-bold leading-none tracking-tight"
+                style={{ color: 'var(--au-text-tertiary)' }}
+              >
+                {completedConsults}
+              </span>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--au-text-secondary)' }}>
+                  {completedConsults === 1 ? 'médico vio' : 'médicos vieron'}
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--au-text-tertiary)' }}>
+                  tu historial clínico
+                </p>
+              </div>
+            </a>
+          </section>
         )}
 
         {/* Carousel: Consultas */}

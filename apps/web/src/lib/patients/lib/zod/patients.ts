@@ -31,6 +31,7 @@ export const PatientSnakeSchema = z.object({
   medications: z.unknown().nullable().optional(),
   insurance_info: z.unknown().nullable().optional(),
   company_id: z.string().uuid().nullable().optional(),
+  free_consultations_remaining: z.number().int().default(3),
   active: z.boolean().nullable().optional(),
   created_at: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),

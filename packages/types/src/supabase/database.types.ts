@@ -1905,6 +1905,7 @@ export type Database = {
           created_at: string | null
           dni: string | null
           emergency_contact: Json | null
+          free_consultations_remaining: number
           gender: string | null
           height_cm: number | null
           id: string
@@ -1924,6 +1925,7 @@ export type Database = {
           created_at?: string | null
           dni?: string | null
           emergency_contact?: Json | null
+          free_consultations_remaining?: number
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -1943,6 +1945,7 @@ export type Database = {
           created_at?: string | null
           dni?: string | null
           emergency_contact?: Json | null
+          free_consultations_remaining?: number
           gender?: string | null
           height_cm?: number | null
           id?: string
@@ -2837,6 +2840,14 @@ export type Database = {
           }
       auto_delete_expired_recordings: { Args: never; Returns: undefined }
       auto_revoke_expired_authorizations: { Args: never; Returns: undefined }
+      check_orphaned_profiles: {
+        Args: never
+        Returns: {
+          out_email: string
+          out_role: string
+          out_user_id: string
+        }[]
+      }
       create_call: {
         Args: { p_doctor_id: string; p_patient_id: string }
         Returns: {
