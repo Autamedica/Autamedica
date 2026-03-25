@@ -153,3 +153,4 @@ apps/android/gradle.properties
 *.mp4
 !apps/web/public/videos/*.mp4
 play-permission-videos/
+.pnpm-store/
