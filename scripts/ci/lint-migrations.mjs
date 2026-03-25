@@ -46,7 +46,10 @@ function lintFile(filePath) {
     },
     {
       id: 'UPDATE_WITHOUT_WHERE',
-      regex: /(?<!DO\s)(?<!AFTER\s)(?<!BEFORE\s)\bUPDATE\s+(?!OF\b)\w[\s\S]*?\bSET\b[\s\S]*?;/gi,
+      // Match DML UPDATE statements only: UPDATE [schema.]table SET ...
+      // Excludes: FOR UPDATE, AFTER/BEFORE UPDATE triggers, TG_OP = 'UPDATE' comparisons,
+      // policy "name_update" identifiers, and does not cross statement boundaries (no $$ blocks).
+      regex: /^\s*UPDATE\s+(?:public\.)?\w+\s+SET\b[^;]*;/gim,
       message: 'UPDATE sin WHERE.',
       validator: (statement) => !/\bWHERE\b/i.test(statement),
     },
