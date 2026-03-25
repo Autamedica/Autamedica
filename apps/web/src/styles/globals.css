@@ -154,6 +154,14 @@ body {
   overflow-x: hidden;
 }
 
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 ::selection {
   background: rgba(34, 211, 238, 0.20);
   color: var(--au-text-primary);
