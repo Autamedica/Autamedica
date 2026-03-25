@@ -27,15 +27,6 @@ export { useVideoCall } from './useVideoCall';
 export { usePatientSession } from './usePatientSession';
 export { usePatientProfile } from './useProfile';
 
-// Legacy hooks (deprecated - to be removed)
-export function useActiveSession() {
-  return { session: null };
-}
-
-export function usePatientData(_patientId: string | null) {
-  return { patient: null };
-}
-
 // Re-export types for convenience
 export type {
   // Anamnesis

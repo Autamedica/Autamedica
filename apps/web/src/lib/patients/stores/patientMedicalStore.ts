@@ -4,6 +4,7 @@
  */
 import { create } from 'zustand'
 import { logger } from '@autamedica/shared'
+import { createBrowserClient } from '@autamedica/auth/client'
 
 interface PatientMedicalEntry {
   id: string
@@ -106,14 +107,48 @@ function calculateOverallStatus(symptoms: PatientMedicalEntry[], medications: Pa
   return 'bueno'
 }
 
-async function syncWithBackend(set: (partial: Partial<PatientMedicalState>) => void) {
+type ObservationType = 'vital_sign' | 'medication' | 'symptom'
+
+async function submitObservation(
+  set: (partial: Partial<PatientMedicalState>) => void,
+  type: ObservationType,
+  payload: Record<string, unknown>,
+): Promise<{ source_record_id: string; alert_id: string | null } | null> {
   set({ isLoading: true })
   try {
-    await new Promise(resolve => setTimeout(resolve, 300))
+    const supabase = createBrowserClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token) {
+      logger.error('[Patient Medical Store] No active session for observation submit')
+      set({ isLoading: false })
+      return null
+    }
+
+    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+    const res = await fetch(`${supabaseUrl}/functions/v1/ingest-patient-observation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ type, payload }),
+    })
+
+    const json = await res.json().catch(() => null) as Record<string, unknown> | null
+    if (!res.ok || !json?.success) {
+      const errorMsg = (json?.error as string) ?? `HTTP ${res.status}`
+      logger.error(`[Patient Medical Store] Observation submit failed: ${errorMsg}`)
+      set({ isLoading: false })
+      return null
+    }
+
+    const data = json.data as { source_record_id: string; alert_id: string | null }
     set({ lastSync: new Date().toISOString(), isLoading: false })
+    return data
   } catch (error) {
-    logger.error('[Patient Medical Store] Sync failed:', error)
+    logger.error('[Patient Medical Store] Observation submit error:', error)
     set({ isLoading: false })
+    return null
   }
 }
 
@@ -136,16 +171,16 @@ export const usePatientMedicalStore = create<PatientMedicalState & PatientMedica
       isPrivate: true
     }
 
+    // Notes are private/local — no backend sync needed
     set(state => ({
       entries: [...state.entries, newEntry],
       personalNotes: [...state.personalNotes, content],
       lastSync: new Date().toISOString()
     }))
-
-    await syncWithBackend(set)
   },
 
   async recordSymptom(symptom: string, severity: 'leve' | 'moderado' | 'severo', patientId: string) {
+    const severityMap: Record<string, number> = { leve: 3, moderado: 6, severo: 9 }
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'symptom',
@@ -158,48 +193,101 @@ export const usePatientMedicalStore = create<PatientMedicalState & PatientMedica
     set(state => ({
       entries: [...state.entries, newEntry],
       symptoms: [...state.symptoms, newEntry],
-      lastSync: new Date().toISOString()
     }))
 
-    await syncWithBackend(set)
+    const result = await submitObservation(set, 'symptom', {
+      symptom_name: symptom,
+      severity: severityMap[severity] ?? 5,
+      is_urgent: severity === 'severo',
+      reported_at: newEntry.timestamp,
+    })
+
+    if (result) {
+      set(state => ({
+        entries: state.entries.map(e => e.id === newEntry.id ? { ...e, id: result.source_record_id } : e),
+        symptoms: state.symptoms.map(e => e.id === newEntry.id ? { ...e, id: result.source_record_id } : e),
+      }))
+    }
   },
 
   async recordMedicationTaken(medication: string, dosage: string, patientId: string) {
+    const nowIso = new Date().toISOString()
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'medication_taken',
       content: `Tomé ${medication}`,
-      metadata: { medication, dosage, takenAt: new Date().toISOString() },
-      timestamp: new Date().toISOString(),
+      metadata: { medication, dosage, takenAt: nowIso },
+      timestamp: nowIso,
       patientId
     }
 
     set(state => ({
       entries: [...state.entries, newEntry],
       medications: [...state.medications, newEntry],
-      lastSync: new Date().toISOString()
     }))
 
-    await syncWithBackend(set)
+    const result = await submitObservation(set, 'medication', {
+      medication_name: medication,
+      dosage,
+      status: 'taken',
+      taken_at: nowIso,
+      source: 'patient_portal',
+    })
+
+    if (result) {
+      set(state => ({
+        entries: state.entries.map(e => e.id === newEntry.id ? { ...e, id: result.source_record_id } : e),
+        medications: state.medications.map(e => e.id === newEntry.id ? { ...e, id: result.source_record_id } : e),
+      }))
+    }
   },
 
   async recordVitalSigns(vitals, patientId: string) {
+    const nowIso = new Date().toISOString()
     const newEntry: PatientMedicalEntry = {
       id: crypto.randomUUID(),
       type: 'vital_sign',
       content: 'Signos vitales registrados',
       metadata: { vitals },
-      timestamp: new Date().toISOString(),
+      timestamp: nowIso,
       patientId
     }
 
+    // Optimistic update
     set(state => ({
       entries: [...state.entries, newEntry],
       vitals: [...state.vitals, newEntry],
-      lastSync: new Date().toISOString()
     }))
 
-    await syncWithBackend(set)
+    // Parse bloodPressure "120/80" → systolic/diastolic
+    let systolic: number | undefined
+    let diastolic: number | undefined
+    if (vitals.bloodPressure) {
+      const parts = vitals.bloodPressure.split('/')
+      if (parts.length === 2) {
+        systolic = Number(parts[0]) || undefined
+        diastolic = Number(parts[1]) || undefined
+      }
+    }
+
+    const result = await submitObservation(set, 'vital_sign', {
+      type: systolic ? 'blood_pressure' : 'general',
+      blood_pressure_systolic: systolic,
+      blood_pressure_diastolic: diastolic,
+      heart_rate: vitals.heartRate,
+      temperature: vitals.temperature,
+      oxygen_saturation: vitals.oxygenSaturation,
+      weight: vitals.weight,
+      measured_at: nowIso,
+    })
+
+    if (result) {
+      // Replace optimistic ID with real DB ID
+      set(state => ({
+        entries: state.entries.map(e => e.id === newEntry.id ? { ...e, id: result.source_record_id } : e),
+        vitals: state.vitals.map(e => e.id === newEntry.id ? { ...e, id: result.source_record_id } : e),
+      }))
+    }
   },
 
   getSymptomTrends() {
