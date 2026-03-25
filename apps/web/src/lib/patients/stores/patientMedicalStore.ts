@@ -4,7 +4,7 @@
  */
 import { create } from 'zustand'
 import { logger } from '@autamedica/shared'
-import { createBrowserClient } from '@autamedica/auth/client'
+import { createBrowserClient } from '@autamedica/auth'
 
 interface PatientMedicalEntry {
   id: string

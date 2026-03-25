@@ -1,94 +1,23 @@
 import type { APIRoute } from 'astro'
-import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
+import { createAstroAdminClient } from '@/lib/supabase'
+import { getUserIdFromRequest } from '@/lib/patients/api/auth'
 import { logger } from '@autamedica/shared'
-import type { Database } from '@autamedica/types'
+import { profileService } from '@/lib/patients/services/profile.service'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
-type ProfileInsert = Database['public']['Tables']['profiles']['Insert']
-type PatientInsert = Database['public']['Tables']['patients']['Insert']
-
 export const POST: APIRoute = async ({ request }) => {
+  const userId = await getUserIdFromRequest(request)
+  if (!userId) return unauthorized()
+
+  const body = await request.json().catch(() => ({})) as { email?: unknown }
+  const email = typeof body.email === 'string' ? body.email : null
+
   try {
-    const supabase = createAstroServerClientFromRequest(request)
-
-    // Try auth via Authorization: Bearer <token> header first (works in dev across ports)
-    const authHeader = request.headers.get('authorization')
-    let userId: string | null = null
-
-    if (authHeader?.toLowerCase().startsWith('bearer ')) {
-      const token = authHeader.slice(7)
-      try {
-        const adminForToken = createAstroAdminClient()
-        const { data: userRes, error: userErr } = await adminForToken.auth.getUser(token)
-        if (!userErr && userRes?.user) userId = userRes.user.id
-      } catch {
-        void 0
-      }
-    }
-
-    if (!userId) {
-      const { data: userData, error: userErr } = await supabase.auth.getUser()
-      if (!userErr && userData.user) {
-        userId = userData.user.id
-      }
-    }
-
-    if (!userId) {
-      return unauthorized()
-    }
-
-    const body = await request.json().catch(() => ({}))
-    const email = (body as Record<string, unknown>)?.email
-    const admin = createAstroAdminClient()
-
-    // Ensure profiles row exists
-    try {
-      const { error: profileErr } = await admin
-        .from('profiles')
-        .upsert(
-          {
-            user_id: userId,
-            email: typeof email === 'string' && email.length > 0 ? email : null,
-            external_id: userId,
-            role: 'patient',
-          } as unknown as ProfileInsert,
-          { onConflict: 'user_id' },
-        )
-        .select()
-        .single()
-
-      if (profileErr) {
-        throw profileErr
-      }
-    } catch (e) {
-      logger.error('[API] ensure profile failed (profiles)', e as Error)
-      return badRequest('profiles_failed')
-    }
-
-    // Ensure patients row exists
-    try {
-      const { error: patientErr } = await admin
-        .from('patients')
-        .upsert(
-          {
-            user_id: userId,
-            active: true,
-          } as unknown as PatientInsert,
-          { onConflict: 'user_id' },
-        )
-        .select()
-        .single()
-
-      if (patientErr) {
-        throw patientErr
-      }
-    } catch {
-      // ignore if table or constraint is different in this instance
-    }
-
+    await profileService.ensure(createAstroAdminClient(), userId, email)
     return jsonOk(null)
-  } catch (err) {
-    logger.error('[API] profile ensure error', err as Error)
+  } catch (e) {
+    logger.error('[profile/ensure/POST]', e)
+    if (e instanceof Error && e.message.includes('profiles')) return badRequest('profiles_failed')
     return internalError()
   }
 }

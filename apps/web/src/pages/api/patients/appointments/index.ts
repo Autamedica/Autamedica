@@ -2,131 +2,62 @@ import type { APIRoute } from 'astro'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-import {
-  computeEndTime,
-  mapAppointment,
-  mapTypeToDb,
-  type DbAppointmentRow,
-} from '@/lib/patients/api/appointment-utils'
-import type { AppointmentType } from '@/lib/patients/types/appointment'
+import { appointmentsService } from '@/lib/patients/services/appointments.service'
 import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
-
-const DOCTOR_SELECT =
-  '*, doctor:doctors(id, specialty, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name))' as const
+import type { AppointmentType } from '@/lib/patients/types/appointment'
 
 export const GET: APIRoute = async ({ request }) => {
+  const context = await resolvePatientContext(request)
+  if (!context) return unauthorized()
+
   try {
-    const context = await resolvePatientContext(request)
-    if (!context) {
-      return unauthorized()
-    }
-
-    const admin = createAstroAdminClient()
-    const { data, error } = await admin
-      .from('appointments')
-      .select(DOCTOR_SELECT)
-      .eq('patient_id', context.patientId)
-      .order('start_time', { ascending: false })
-
-    if (error) {
-      logger.error('[appointments/GET] Query failed', error)
-      return internalError('Failed to fetch appointments')
-    }
-
-    const mapped = (data as unknown as DbAppointmentRow[]).map(mapAppointment)
-    return jsonOk(mapped)
+    const data = await appointmentsService.listByPatient(createAstroAdminClient(), context.patientId)
+    return jsonOk(data)
   } catch (err) {
-    logger.error('[appointments/GET] Unexpected error', err)
+    logger.error('[appointments/GET]', err)
     return internalError()
   }
 }
 
 export const POST: APIRoute = async ({ request }) => {
+  const context = await resolvePatientContext(request)
+  if (!context) return unauthorized()
+
+  const body = await request.json().catch(() => ({})) as {
+    scheduled_at?: string
+    doctor_id?: string
+    duration_minutes?: number
+    type?: AppointmentType
+    notes?: string
+    reason?: string
+    meeting_url?: string
+    location?: string
+  }
+
+  if (!body.scheduled_at?.trim()) return badRequest('scheduled_at is required')
+  if (!body.doctor_id?.trim()) return badRequest('doctor_id is required')
+
   try {
-    const context = await resolvePatientContext(request)
-    if (!context) {
-      return unauthorized()
-    }
-
-    const body = await request.json()
-    const {
-      scheduled_at,
-      doctor_id,
-      duration_minutes = 30,
-      type,
-      notes,
-      reason,
-      meeting_url,
-      location,
-    } = body as {
-      scheduled_at?: string
-      doctor_id?: string
-      duration_minutes?: number
-      type?: AppointmentType
-      notes?: string
-      reason?: string
-      meeting_url?: string
-      location?: string
-    }
-
-    if (!scheduled_at || typeof scheduled_at !== 'string' || !scheduled_at.trim()) {
-      return badRequest('scheduled_at is required')
-    }
-
-    if (!doctor_id || typeof doctor_id !== 'string' || !doctor_id.trim()) {
-      return badRequest('doctor_id is required')
-    }
-
-    const admin = createAstroAdminClient()
-
-    // Verify doctor exists and is active
-    const { data: doctor, error: doctorError } = await admin
-      .from('doctors')
-      .select('id')
-      .eq('id', doctor_id.trim())
-      .eq('active', true)
-      .maybeSingle()
-
-    if (doctorError || !doctor) {
+    const created = await appointmentsService.create(
+      createAstroAdminClient(),
+      context.patientId,
+      {
+        scheduled_at: body.scheduled_at,
+        doctor_id: body.doctor_id,
+        duration_minutes: body.duration_minutes,
+        type: body.type,
+        notes: body.notes,
+        reason: body.reason,
+        meeting_url: body.meeting_url,
+        location: body.location,
+      },
+    )
+    return jsonOk(created, 201)
+  } catch (err) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException & { code?: string }).code === 'DOCTOR_NOT_FOUND') {
       return notFound('Doctor not found or inactive')
     }
-
-    const end_time = computeEndTime(scheduled_at, duration_minutes)
-    const combinedNotes = [reason, notes].filter(Boolean).join(' — ') || null
-
-    // Auto-generate meeting URL for telemedicine appointments
-    const effectiveType = mapTypeToDb(type)
-    let effectiveMeetingUrl = meeting_url ?? null
-    if (!effectiveMeetingUrl && (effectiveType === 'telemedicine' || effectiveType === 'emergency')) {
-      const roomId = `room_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
-      effectiveMeetingUrl = `/patients/call/${roomId}`
-    }
-
-    const { data: inserted, error: insertError } = await admin
-      .from('appointments')
-      .insert({
-        patient_id: context.patientId,
-        doctor_id: doctor_id.trim(),
-        start_time: scheduled_at,
-        end_time,
-        duration_minutes,
-        type: effectiveType,
-        status: 'scheduled',
-        notes: combinedNotes,
-        meeting_url: effectiveMeetingUrl,
-        location: location ?? null,
-      } as never)
-      .select(DOCTOR_SELECT)
-      .single()
-
-    if (insertError) {
-      logger.error('[appointments/POST] Insert failed', insertError)
-      return internalError('Failed to create appointment')
-    }
-
-    return jsonOk(mapAppointment(inserted as unknown as DbAppointmentRow), 201)
-  } catch (err) {
-    logger.error('[appointments/POST] Unexpected error', err)
+    logger.error('[appointments/POST]', err)
     return internalError()
   }
 }
