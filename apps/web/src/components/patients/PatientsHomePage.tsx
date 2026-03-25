@@ -193,36 +193,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               </div>
             </a>
           </section>
-        ) : (
-          <section className="mb-8">
-            <div
-              className="rounded-2xl p-6 text-center"
-              style={{
-                background: 'var(--au-surface)',
-                border: '1px dashed var(--au-border)',
-              }}
-            >
-              <Calendar className="mx-auto mb-3 h-10 w-10" style={{ color: 'var(--au-text-tertiary)' }} />
-              <p className="text-sm font-semibold" style={{ color: 'var(--au-text-primary)' }}>
-                Sin consultas programadas
-              </p>
-              <p className="mt-1 text-xs" style={{ color: 'var(--au-text-tertiary)' }}>
-                Agendá tu primera videoconsulta
-              </p>
-              <a
-                href="/patients/appointments"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-transform active:scale-95"
-                style={{
-                  background: 'var(--au-accent)',
-                  color: 'var(--au-bg)',
-                }}
-              >
-                <Video className="h-4 w-4" />
-                Agendar consulta
-              </a>
-            </div>
-          </section>
-        )}
+        ) : null}
 
         {/* Carousel: Consultas */}
         <section className="mb-6">
