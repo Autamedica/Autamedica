@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
+import { resetPasswordForEmail } from '../../lib/auth/service';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
@@ -30,13 +30,14 @@ export function ForgotPasswordForm({ locale = 'es' }: { locale?: Locale }) {
     setMessage(null);
 
     try {
-      const supabase = getBrowserSupabaseClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      });
+      const result = await resetPasswordForEmail(
+        email,
+        `${window.location.origin}/auth/reset-password`
+      );
 
-      if (resetError) {
-        throw resetError;
+      if (!result.ok) {
+        setError(result.errorMessage ?? 'Error al enviar el enlace de recuperación');
+        return;
       }
 
       setMessage(t('auth.recoveryEmailSent'));

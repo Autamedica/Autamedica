@@ -7,7 +7,12 @@ import {
   buildAuthPath,
   resolveEntryRoleFromParams,
 } from '../../lib/auth-flow';
-import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
+import {
+  checkExistingSession,
+  signInWithOAuth,
+  signInWithPassword,
+  signOutLocal,
+} from '../../lib/auth/service';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
@@ -59,78 +64,50 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
     const bootstrap = async () => {
       try {
-        const supabase = getBrowserSupabaseClient();
-
-        // If we arrived with an error param, show a friendly message.
         const errorParam = params.get('error');
         const retryParam = params.get('retry');
+
+        // Si llegamos con un error param, mostrar mensaje amigable.
         if (errorParam) {
-          await supabase.auth.signOut({ scope: 'local' });
+          await signOutLocal();
           clearTimeout(timeoutId);
           if (active) {
-            const errorMsg = errorParam === 'pkce_failed'
-              ? t('auth.pkceError')
-              : t('auth.loginError');
-            setError(errorMsg);
+            setError(errorParam === 'pkce_failed' ? t('auth.pkceError') : t('auth.loginError'));
             setIsCheckingSession(false);
-            if (retryParam === 'google') {
-              setPendingRetry(true);
-            }
+            if (retryParam === 'google') setPendingRetry(true);
           }
           return;
         }
 
-        // Fast path: check local storage first (no network call).
-        // If there is no locally cached session, skip the server round-trip and
-        // show the form immediately — this also prevents the autoRefreshToken
-        // timer from firing because there is nothing to refresh.
-        const { data: { session: localSession } } = await supabase.auth.getSession();
-
-        if (!localSession) {
-          clearTimeout(timeoutId);
-          if (active) setIsCheckingSession(false);
-          return;
-        }
-
-        // Session exists locally — verify it is still valid server-side.
-        // getUser() makes one network call and does NOT start a retry loop.
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        // Verificar sesión existente (local + server-side).
+        const session = await checkExistingSession();
 
         if (!active) {
           clearTimeout(timeoutId);
           return;
         }
 
-        if (userError || !user) {
-          // Invalid session — stop the autoRefreshToken timer immediately and
-          // clear all local auth state (localStorage + accessible cookies).
-          await supabase.auth.signOut({ scope: 'local' });
+        if (!session.hasLocalSession || !session.isServerValid) {
           clearTimeout(timeoutId);
           if (active) setIsCheckingSession(false);
           return;
         }
 
-        // User is authenticated — redirect to callback for role routing.
-        if (localSession.access_token && localSession.refresh_token) {
+        // Usuario autenticado — redirigir a callback para routing por rol.
+        if (session.accessToken && session.refreshToken) {
           const callbackUrl = new URL('/auth/callback', window.location.origin);
-          if (resolvedRole) {
-            callbackUrl.searchParams.set('role', resolvedRole);
-          }
-          if (returnToParam) {
-            callbackUrl.searchParams.set('returnTo', returnToParam);
-          }
+          if (resolvedRole) callbackUrl.searchParams.set('role', resolvedRole);
+          if (returnToParam) callbackUrl.searchParams.set('returnTo', returnToParam);
           clearTimeout(timeoutId);
           window.location.replace(callbackUrl.toString());
           return;
         }
       } catch {
-        // Ignore bootstrap errors and show the login form.
+        // Ignorar errores de bootstrap y mostrar el formulario.
       }
 
       clearTimeout(timeoutId);
-      if (active) {
-        setIsCheckingSession(false);
-      }
+      if (active) setIsCheckingSession(false);
     };
 
     void bootstrap();
@@ -156,34 +133,23 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     setError(null);
 
     try {
-      const supabase = getBrowserSupabaseClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await signInWithPassword(email, password);
 
-      if (signInError) {
-        setError(
-          signInError.message === 'Invalid login credentials'
-            ? t('auth.wrongCredentials')
-            : signInError.message
-        );
-        if (signInError.message === 'Invalid login credentials') setPassword('');
+      if (!result.ok) {
+        const isInvalidCredentials = result.errorMessage === 'Invalid login credentials';
+        setError(isInvalidCredentials ? t('auth.wrongCredentials') : (result.errorMessage ?? t('auth.loginError')));
+        if (isInvalidCredentials) setPassword('');
         setIsSubmitting(false);
         return;
       }
 
       const callbackUrl = new URL('/auth/callback', window.location.origin);
-      if (role) {
-        callbackUrl.searchParams.set('role', role);
-      }
-      if (returnTo) {
-        callbackUrl.searchParams.set('returnTo', returnTo);
-      }
+      if (role) callbackUrl.searchParams.set('role', role);
+      if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
 
       window.location.href = callbackUrl.toString();
     } catch (err) {
-      logger.error('[LoginForm] signInWithPassword threw unexpectedly', { err: String(err) })
+      logger.error('[LoginForm] signInWithPassword threw unexpectedly', { err: String(err) });
       setError(t('auth.loginError'));
       setIsSubmitting(false);
     }
@@ -195,35 +161,19 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     sessionStorage.removeItem('autamedica_pkce_retry');
 
     try {
-      const supabase = getBrowserSupabaseClient();
-
-      // Clear any stale auth state before starting a fresh OAuth flow.
-      // This prevents leftover session cookies from conflicting with the
-      // new PKCE code_verifier that will be set during signInWithOAuth.
-      await supabase.auth.signOut({ scope: 'local' });
-
       const callbackUrl = new URL('/auth/callback', window.location.origin);
-      if (role) {
-        callbackUrl.searchParams.set('role', role);
-      }
-      if (returnTo) {
-        callbackUrl.searchParams.set('returnTo', returnTo);
-      }
+      if (role) callbackUrl.searchParams.set('role', role);
+      if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
 
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl.toString(),
-          queryParams: { access_type: 'offline', prompt: 'select_account' },
-        },
-      });
+      // signInWithOAuth limpia el estado previo internamente (ver AuthService).
+      const result = await signInWithOAuth('google', callbackUrl.toString());
 
-      if (oauthError) {
-        setError(oauthError.message || t('auth.googleError'));
+      if (!result.ok) {
+        setError(result.errorMessage || t('auth.googleError'));
         setIsSubmitting(false);
       }
     } catch (err) {
-      logger.error('[LoginForm] signInWithOAuth threw unexpectedly', { err: String(err), provider: 'google', role })
+      logger.error('[LoginForm] signInWithOAuth threw unexpectedly', { err: String(err), provider: 'google', role });
       setError(t('auth.googleErrorUnexpected'));
       setIsSubmitting(false);
     }

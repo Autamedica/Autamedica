@@ -8,7 +8,7 @@ import {
   getRoleEntry,
   resolveEntryRoleFromParams,
 } from '../../lib/auth-flow';
-import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
+import { signUp, signInWithOAuth } from '../../lib/auth/service';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
@@ -65,33 +65,29 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
     }
 
     try {
-      const supabase = getBrowserSupabaseClient();
       const callbackUrl = new URL('/auth/callback', window.location.origin);
       callbackUrl.searchParams.set('role', role);
-      if (returnTo) {
-        callbackUrl.searchParams.set('returnTo', returnTo);
-      }
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: callbackUrl.toString(),
-          data: { role },
-        },
+      if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
+
+      const result = await signUp(email, password, {
+        emailRedirectTo: callbackUrl.toString(),
+        metadata: { role },
       });
 
-      if (signUpError) {
-        throw signUpError;
+      if (!result.ok) {
+        const errorMsg = result.errorMessage ?? 'Error al crear la cuenta';
+        if (errorMsg.includes('User already registered')) {
+          setError(t('auth.emailAlreadyRegistered'));
+        } else {
+          setError(errorMsg);
+        }
+        return;
       }
 
       setMessage(t('auth.emailConfirmation'));
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error al crear la cuenta';
-      if (errorMsg.includes('User already registered')) {
-        setError(t('auth.emailAlreadyRegistered'));
-      } else {
-        setError(errorMsg);
-      }
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -102,25 +98,14 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
     setError(null);
 
     try {
-      const supabase = getBrowserSupabaseClient();
       const callbackUrl = new URL('/auth/callback', window.location.origin);
-      if (role) {
-        callbackUrl.searchParams.set('role', role);
-      }
-      if (returnTo) {
-        callbackUrl.searchParams.set('returnTo', returnTo);
-      }
+      if (role) callbackUrl.searchParams.set('role', role);
+      if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
 
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl.toString(),
-          queryParams: { access_type: 'offline', prompt: 'select_account' },
-        },
-      });
+      const result = await signInWithOAuth('google', callbackUrl.toString());
 
-      if (oauthError) {
-        setError(oauthError.message || t('auth.googleError'));
+      if (!result.ok) {
+        setError(result.errorMessage || t('auth.googleError'));
         setIsLoading(false);
       }
     } catch {

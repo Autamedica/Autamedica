@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
+import { updatePassword } from '../../lib/auth/service';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
@@ -55,13 +55,11 @@ export function ResetPasswordForm({ locale = 'es' }: { locale?: Locale }) {
     }
 
     try {
-      const supabase = getBrowserSupabaseClient();
-      const { error: updateError } = await supabase.auth.updateUser({
-        password,
-      });
+      const result = await updatePassword(password);
 
-      if (updateError) {
-        throw updateError;
+      if (!result.ok) {
+        setError(result.errorMessage ?? 'Error al actualizar la contraseña');
+        return;
       }
 
       setMessage(t('auth.passwordUpdated'));

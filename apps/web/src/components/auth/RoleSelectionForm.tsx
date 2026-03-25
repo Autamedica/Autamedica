@@ -8,7 +8,7 @@ import {
   buildRoleAuthPath,
   resolveEntryRoleFromParams,
 } from '../../lib/auth-flow';
-import { getBrowserSupabaseClient } from '../../lib/supabase-browser';
+import { getCurrentUser, updateUserRole } from '../../lib/auth/service';
 import { AuthCard } from './AuthCard';
 import { AuthButton } from './AuthButton';
 import { AuthLogo } from './AuthLogo';
@@ -68,13 +68,10 @@ export function RoleSelectionForm({ locale = 'es' }: { locale?: Locale }) {
   const PRIVILEGED_ROLES = new Set(['admin', 'platform_admin', 'organization_admin']);
 
   const handleContinue = async () => {
-    if (!selectedRole) {
-      return;
-    }
+    if (!selectedRole) return;
 
     setIsLoading(true);
-    const supabase = getBrowserSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
     if (user) {
       const currentRole = typeof user.user_metadata?.role === 'string' ? user.user_metadata.role : undefined;
@@ -88,7 +85,7 @@ export function RoleSelectionForm({ locale = 'es' }: { locale?: Locale }) {
       }
 
       if (currentRole !== selectedRole) {
-        await supabase.auth.updateUser({ data: { role: selectedRole } });
+        await updateUserRole(selectedRole);
       }
 
       const callbackParams = new URLSearchParams({ role: selectedRole });
