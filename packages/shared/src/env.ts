@@ -244,37 +244,42 @@ const windowEnv: Record<string, string> | undefined =
     ? (window as unknown as { __ENV?: Record<string, string> }).__ENV
     : undefined;
 
+// Safe accessor: process.env is unavailable in browser/Cloudflare Workers.
+// Using typeof guard avoids ReferenceError when process is not defined at all.
+const processEnv: Record<string, string | undefined> | undefined =
+  typeof process !== 'undefined' ? process.env as Record<string, string | undefined> : undefined;
+
 // Helper to read known client env keys via direct property access (Vite/Astro inlining).
 function readKnownClientEnv(name: string): string | undefined {
   switch (name) {
     case 'PUBLIC_SUPABASE_URL':
-      return process.env.PUBLIC_SUPABASE_URL ?? windowEnv?.['PUBLIC_SUPABASE_URL'];
+      return processEnv?.PUBLIC_SUPABASE_URL ?? windowEnv?.['PUBLIC_SUPABASE_URL'];
     case 'PUBLIC_SUPABASE_ANON_KEY':
-      return process.env.PUBLIC_SUPABASE_ANON_KEY ?? windowEnv?.['PUBLIC_SUPABASE_ANON_KEY'];
+      return processEnv?.PUBLIC_SUPABASE_ANON_KEY ?? windowEnv?.['PUBLIC_SUPABASE_ANON_KEY'];
     case 'PUBLIC_AUTH_HUB_URL':
-      return process.env.PUBLIC_AUTH_HUB_URL;
+      return processEnv?.PUBLIC_AUTH_HUB_URL;
     case 'PUBLIC_AUTH_HUB_DEV_URL':
-      return process.env.PUBLIC_AUTH_HUB_DEV_URL;
+      return processEnv?.PUBLIC_AUTH_HUB_DEV_URL;
     case 'PUBLIC_PATIENTS_DEV_URL':
-      return process.env.PUBLIC_PATIENTS_DEV_URL;
+      return processEnv?.PUBLIC_PATIENTS_DEV_URL;
     case 'PUBLIC_PATIENTS_URL':
-      return process.env.PUBLIC_PATIENTS_URL;
+      return processEnv?.PUBLIC_PATIENTS_URL;
     case 'PUBLIC_DOCTORS_DEV_URL':
-      return process.env.PUBLIC_DOCTORS_DEV_URL;
+      return processEnv?.PUBLIC_DOCTORS_DEV_URL;
     case 'PUBLIC_DOCTORS_URL':
-      return process.env.PUBLIC_DOCTORS_URL;
+      return processEnv?.PUBLIC_DOCTORS_URL;
     case 'PUBLIC_SIGNALING_URL':
-      return process.env.PUBLIC_SIGNALING_URL;
+      return processEnv?.PUBLIC_SIGNALING_URL;
     case 'PUBLIC_APP_URL':
-      return process.env.PUBLIC_APP_URL;
+      return processEnv?.PUBLIC_APP_URL;
     case 'PUBLIC_SITE_URL':
-      return process.env.PUBLIC_SITE_URL;
+      return processEnv?.PUBLIC_SITE_URL;
     case 'PUBLIC_API_URL':
-      return process.env.PUBLIC_API_URL;
+      return processEnv?.PUBLIC_API_URL;
     case 'PUBLIC_AUTA_ONNX':
-      return process.env.PUBLIC_AUTA_ONNX;
+      return processEnv?.PUBLIC_AUTA_ONNX;
     case 'PUBLIC_AUTA_ONNX_MODEL':
-      return process.env.PUBLIC_AUTA_ONNX_MODEL;
+      return processEnv?.PUBLIC_AUTA_ONNX_MODEL;
     default:
       return undefined;
   }

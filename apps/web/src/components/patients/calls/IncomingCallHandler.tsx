@@ -30,8 +30,9 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
     if (!callServiceRef.current) {
       try {
         callServiceRef.current = createCallService(createBrowserClient())
-      } catch {
-        callServiceRef.current = createCallService()
+      } catch (err) {
+        logger.warn('[IncomingCallHandler] Failed to create call service:', err)
+        return null
       }
     }
     return callServiceRef.current
@@ -51,6 +52,7 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
     }
 
     const callService = getCallService()
+    if (!callService) return
 
     const setupCallListener = async () => {
       try {
