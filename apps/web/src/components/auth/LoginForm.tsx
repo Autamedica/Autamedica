@@ -179,30 +179,17 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     }
   }, [role, returnTo, t]);
 
-  // Auto-retry Google OAuth once after PKCE failure
+  // Clean URL params after PKCE failure — no auto-retry to avoid redirect loops.
+  // The user sees the error and can click "Continuar con Google" manually.
   useEffect(() => {
-    if (!pendingRetry || isCheckingSession) return;
+    if (!pendingRetry) return;
 
-    // Clean URL params to prevent retry loops on navigation
     const clean = new URL(window.location.href);
     clean.searchParams.delete('error');
     clean.searchParams.delete('retry');
     window.history.replaceState({}, '', clean.toString());
-
-    // Only auto-retry once per session
-    if (sessionStorage.getItem('autamedica_pkce_retry')) {
-      setError(t('auth.pkceErrorManual'));
-      setPendingRetry(false);
-      return;
-    }
-    sessionStorage.setItem('autamedica_pkce_retry', '1');
-
-    const timer = setTimeout(() => {
-      setPendingRetry(false);
-      void handleGoogleSignIn();
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [pendingRetry, isCheckingSession, handleGoogleSignIn, t]);
+    setPendingRetry(false);
+  }, [pendingRetry]);
 
   const roleInfo: Record<string, { title: string; subtitle: string; icon: ReactNode; accent: string; buttonLabel: string }> = {
     patient: {
