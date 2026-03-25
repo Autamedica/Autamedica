@@ -123,7 +123,11 @@ export {
   isWakeLockActive,
   setupWakeLockVisibilityHandler,
   setupVisibilityVideoPause,
+  detectBrowser,
+  getPreferredCodecs,
+  patchVideoPlayback,
 } from './media-optimizations'
+export type { BrowserCapabilities } from './media-optimizations'
 
 // Re-export common types
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'failed' | 'closed'

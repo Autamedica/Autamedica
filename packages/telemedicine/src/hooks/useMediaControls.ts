@@ -145,21 +145,20 @@ export function useMediaControls(client: WebRTCClient | null): MediaControlsHook
         audio: false
       })
 
-      setState(prev => ({ ...prev, isSharing: true }))
-      logger.info('[useMediaControls] Screen sharing started')
-
-      // Handle when user stops screen sharing via browser UI
       const videoTrack = screenStream.getVideoTracks()[0]
-      if (videoTrack) {
-        videoTrack.onended = () => {
-          setState(prev => ({ ...prev, isSharing: false }))
-          logger.info('[useMediaControls] Screen sharing ended by user')
-        }
-      }
+      if (!videoTrack) throw new Error('No video track from getDisplayMedia')
 
-      // TODO: Integrate screen stream with WebRTC client
-      // This might require extending the WebRTCClient to handle screen sharing
-      // For now, we just track the state
+      // Replace camera track with screen track in all peer connections
+      await client.replaceVideoTrack(videoTrack)
+      setState(prev => ({ ...prev, isSharing: true }))
+      logger.info('[useMediaControls] Screen sharing started — track replaced in peer connections')
+
+      // Restore camera when user stops sharing via browser UI
+      videoTrack.onended = () => {
+        client.replaceVideoTrack(null).catch(() => { /* camera restore failed */ })
+        setState(prev => ({ ...prev, isSharing: false }))
+        logger.info('[useMediaControls] Screen sharing ended by user')
+      }
 
     } catch (error) {
       const mediaError = error instanceof Error ? error : new Error('Failed to start screen sharing')
@@ -169,14 +168,14 @@ export function useMediaControls(client: WebRTCClient | null): MediaControlsHook
     }
   }, [client])
 
-  // Stop screen sharing
+  // Stop screen sharing — restore camera track
   const stopShare = useCallback((): void => {
+    if (client) {
+      client.replaceVideoTrack(null).catch(() => { /* camera restore failed */ })
+    }
     setState(prev => ({ ...prev, isSharing: false, mediaError: null }))
-    logger.info('[useMediaControls] Screen sharing stopped')
-
-    // TODO: Stop screen stream in WebRTC client
-    // This would require client.stopScreenShare() or similar
-  }, [])
+    logger.info('[useMediaControls] Screen sharing stopped — camera restored')
+  }, [client])
 
   return {
     ...state,
