@@ -2,6 +2,7 @@
 
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
+import { useAnamnesis } from '@/hooks/patients/useAnamnesis'
 import type { Locale } from '@/i18n/index'
 import {
   Bell,
@@ -56,8 +57,10 @@ interface PatientsHomePageProps {
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const { user, profile } = usePatientSession()
   const { appointments } = useAppointments()
+  const { progress: anamnesisProgress } = useAnamnesis()
   const firstName = getFirstName(profile, user)
   const completedConsults = appointments.filter(a => a.status === 'completed').length
+  const anamnesisPercent = anamnesisProgress?.completion_percentage ?? 0
 
   const upcomingAppointment = useMemo(() => {
     const now = new Date()
@@ -205,11 +208,21 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             >
               {completedConsults || 0}
             </span>
-            <span className="text-sm leading-snug" style={{ color: 'var(--au-text-secondary)' }}>
-              {completedConsults === 1 ? 'médico consultó' : 'médicos consultaron'}
-              <br />
-              <span style={{ color: 'var(--au-text-tertiary)' }}>tu historial clínico</span>
-            </span>
+            <div className="min-w-0">
+              <p className="text-sm leading-snug" style={{ color: 'var(--au-text-secondary)' }}>
+                {completedConsults === 1 ? 'médico consultó' : 'médicos consultaron'}
+                {' '}<span style={{ color: 'var(--au-text-tertiary)' }}>tu historial</span>
+              </p>
+              <p className="mt-1 text-xs leading-snug" style={{ color: 'var(--au-text-tertiary)' }}>
+                {anamnesisPercent === 0
+                  ? 'Completá tu anamnesis y cada médico te conoce antes de atenderte.'
+                  : anamnesisPercent < 50
+                    ? `Tu historial está al ${anamnesisPercent}%. Cuanto más completo, mejor te atienden.`
+                    : anamnesisPercent < 100
+                      ? `Vas por el ${anamnesisPercent}%. Los médicos ya pueden anticipar mejor tu consulta.`
+                      : 'Historial completo. Cada profesional accede a tu contexto clínico antes de atenderte.'}
+              </p>
+            </div>
           </a>
         )}
 
