@@ -154,3 +154,20 @@ apps/android/gradle.properties
 !apps/web/public/videos/*.mp4
 play-permission-videos/
 .pnpm-store/
+
+# Ad-hoc output files (audits, reviews, diagnostics)
+*.docx
+!docs/**/*.docx
+*-review.html
+deploy-verify-workspace/
+security-audit-review.html
+
+# E2E test scripts with hardcoded credentials
+e2e-anamnesis-test.ts
+ecucondor-supervisor.sh
+
+# Claude Code session artifacts
+.skills/
+
+# ECUCONDORULTIMATE external tooling (tracked separately)
+ECUCONDORULTIMATE/
