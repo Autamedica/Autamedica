@@ -45,7 +45,7 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
     accessMode: 'Modo de Acesso',
     continueWithGoogle: 'Continuar com Google',
     emailLabel: 'E-mail Institucional',
-    emailPlaceholder: 'seu@email.com',
+    emailPlaceholder: 'usuario@autamedica.com',
     passwordLabel: 'Senha',
     passwordPlaceholder: '••••••••',
     showPassword: 'Mostrar senha',

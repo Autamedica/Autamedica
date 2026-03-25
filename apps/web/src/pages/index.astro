@@ -21,8 +21,9 @@ import { resolveLandingCopy } from '../lib/landing-copy';
 import { getI18n } from '../i18n';
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
-const isDoctorHost = Astro.url.hostname === 'doctor.autamedica.com';
-const isPatientHost = Astro.url.hostname === 'paciente.autamedica.com';
+const devPortal = import.meta.env.DEV ? Astro.url.searchParams.get('portal') : null;
+const isDoctorHost = Astro.url.hostname === 'doctor.autamedica.com' || devPortal === 'doctor';
+const isPatientHost = Astro.url.hostname === 'paciente.autamedica.com' || devPortal === 'patient';
 
 const {
   variant: copyVariant,

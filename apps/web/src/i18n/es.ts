@@ -25,7 +25,7 @@ export const es = {
     accessMode: 'Modo de Acceso',
     continueWithGoogle: 'Continuar con Google',
     emailLabel: 'Email Institucional',
-    emailPlaceholder: 'tu@email.com',
+    emailPlaceholder: 'usuario@autamedica.com',
     passwordLabel: 'Contraseña',
     passwordPlaceholder: '••••••••',
     showPassword: 'Mostrar contraseña',

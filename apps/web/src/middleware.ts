@@ -44,15 +44,28 @@ const PUBLIC_ROUTES = [
   '/api/health',
 ];
 
-const ROLE_REDIRECTS: Record<string, string> = {
-  patient: 'https://paciente.autamedica.com',
-  doctor: 'https://doctor.autamedica.com',
-  company: 'https://empresa.autamedica.com',
-  company_admin: 'https://empresa.autamedica.com',
-  organization_admin: 'https://admin.autamedica.com',
-  platform_admin: 'https://admin.autamedica.com',
-  admin: 'https://admin.autamedica.com',
-};
+/** Role → redirect URL. Prod uses subdomains, dev uses ?portal= query param. */
+function getRoleRedirect(role: string): string {
+  if (import.meta.env.PROD) {
+    const PROD: Record<string, string> = {
+      patient: 'https://paciente.autamedica.com',
+      doctor: 'https://doctor.autamedica.com',
+      company: 'https://empresa.autamedica.com',
+      company_admin: 'https://empresa.autamedica.com',
+      organization_admin: 'https://admin.autamedica.com',
+      platform_admin: 'https://admin.autamedica.com',
+      admin: 'https://admin.autamedica.com',
+    };
+    return PROD[role] ?? '/auth/select-role';
+  }
+  const DEV_PORTALS: Record<string, string> = {
+    patient: 'patient', doctor: 'doctor', company: 'company',
+    company_admin: 'company', admin: 'admin',
+    organization_admin: 'admin', platform_admin: 'admin',
+  };
+  const portal = DEV_PORTALS[role];
+  return portal ? `/?portal=${portal}` : '/auth/select-role';
+}
 
 // Unified legacy redirects: handles both exact match (/empresa → /companies)
 // and prefix+subpath (/empresa/foo → /companies/foo) in a single loop.
@@ -279,7 +292,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         if (!userRole) {
           return context.redirect('/auth/select-role');
         }
-        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
+        return context.redirect(getRoleRedirect(userRole));
       }
       // Not authenticated — show login/register form
       return next();
@@ -321,19 +334,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
 
       if (pathname.startsWith('/admin') && !['organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
+        return context.redirect(getRoleRedirect(userRole));
       }
 
       if ((isDoctorHostRoot || pathname.startsWith('/doctors')) && !['doctor', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
+        return context.redirect(getRoleRedirect(userRole));
       }
 
       if ((isPatientHostRoot || pathname.startsWith('/patients')) && !['patient', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
+        return context.redirect(getRoleRedirect(userRole));
       }
 
       if (pathname.startsWith('/companies') && !['company', 'company_admin', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
-        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
+        return context.redirect(getRoleRedirect(userRole));
       }
     }
 

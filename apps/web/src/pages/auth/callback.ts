@@ -95,16 +95,34 @@ function resolveRole(
   return fromHint ?? fromMeta ?? fromPortal;
 }
 
-/** Map role to same-origin redirect path */
-const ROLE_PATHS: Record<string, string> = {
-  patient: 'https://paciente.autamedica.com',
-  doctor: 'https://doctor.autamedica.com',
-  company: 'https://empresa.autamedica.com',
-  company_admin: 'https://empresa.autamedica.com',
-  organization_admin: 'https://admin.autamedica.com',
-  platform_admin: 'https://admin.autamedica.com',
-  admin: 'https://admin.autamedica.com',
-};
+/** Map role to redirect path — uses subdomain in prod, query param in dev */
+function getRolePath(role: string): string {
+  if (isProduction()) {
+    const PROD_PATHS: Record<string, string> = {
+      patient: 'https://paciente.autamedica.com',
+      doctor: 'https://doctor.autamedica.com',
+      company: 'https://empresa.autamedica.com',
+      company_admin: 'https://empresa.autamedica.com',
+      organization_admin: 'https://admin.autamedica.com',
+      platform_admin: 'https://admin.autamedica.com',
+      admin: 'https://admin.autamedica.com',
+    };
+    return PROD_PATHS[role] ?? '/auth/select-role';
+  }
+
+  // Dev: use ?portal= query param to simulate subdomain detection
+  const DEV_PORTALS: Record<string, string> = {
+    patient: 'patient',
+    doctor: 'doctor',
+    company: 'company',
+    company_admin: 'company',
+    admin: 'admin',
+    organization_admin: 'admin',
+    platform_admin: 'admin',
+  };
+  const portal = DEV_PORTALS[role];
+  return portal ? `/?portal=${portal}` : '/auth/select-role';
+}
 
 export const GET: APIRoute = async ({ request, cookies, redirect }) => {
   const requestUrl = new URL(request.url);
@@ -174,7 +192,7 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
       }
 
       // Default role-based redirect
-      return redirect(ROLE_PATHS[resolvedRole ?? ''] ?? '/auth/select-role');
+      return redirect(getRolePath(resolvedRole ?? ''));
     } catch {
       return redirect('/auth/login?error=callback_error');
     }
@@ -204,5 +222,5 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
     return redirect(parsedReturnTo.relativePath);
   }
 
-  return redirect(ROLE_PATHS[resolvedRole ?? ''] ?? '/auth/select-role');
+  return redirect(getRolePath(resolvedRole ?? ''));
 };
