@@ -37,61 +37,16 @@ function getTimeGreeting(): string {
   return 'Buenas noches'
 }
 
-const FEATURES = [
-  {
-    key: 'videoconsulta',
-    label: 'Videoconsulta',
-    description: 'Consultá online con tu médico',
-    href: '/patients/appointments?type=telemedicine',
-    icon: Video,
-    gradient: 'from-cyan-500 to-blue-600',
-    iconBg: 'rgba(34, 211, 238, 0.15)',
-  },
-  {
-    key: 'anamnesis',
-    label: 'Anamnesis',
-    description: 'Tu historia clínica completa',
-    href: '/patients/anamnesis',
-    icon: ClipboardList,
-    gradient: 'from-violet-500 to-purple-600',
-    iconBg: 'rgba(139, 92, 246, 0.15)',
-  },
-  {
-    key: 'agenda',
-    label: 'Agenda',
-    description: 'Turnos y citas médicas',
-    href: '/patients/appointments',
-    icon: Calendar,
-    gradient: 'from-emerald-500 to-teal-600',
-    iconBg: 'rgba(16, 185, 129, 0.15)',
-  },
-  {
-    key: 'recetas',
-    label: 'Recetas',
-    description: 'Prescripciones médicas',
-    href: '/patients/medical-history?tab=prescriptions',
-    icon: Pill,
-    gradient: 'from-orange-500 to-amber-600',
-    iconBg: 'rgba(249, 115, 22, 0.15)',
-  },
-  {
-    key: 'historial',
-    label: 'Historial',
-    description: 'Registros y transcripciones',
-    href: '/patients/medical-history',
-    icon: FileText,
-    gradient: 'from-pink-500 to-rose-600',
-    iconBg: 'rgba(236, 72, 153, 0.15)',
-  },
-  {
-    key: 'comunidad',
-    label: 'Comunidad',
-    description: 'Conectá con otros pacientes',
-    href: '/patients/community',
-    icon: MessageCircle,
-    gradient: 'from-indigo-500 to-blue-600',
-    iconBg: 'rgba(99, 102, 241, 0.15)',
-  },
+const CONSULTAS = [
+  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: Video, accent: '#22d3ee' },
+  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: Calendar, accent: '#10b981' },
+  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: ClipboardList, accent: '#8b5cf6' },
+] as const
+
+const SALUD = [
+  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: Pill, accent: '#f97316' },
+  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: FileText, accent: '#ec4899' },
+  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: MessageCircle, accent: '#6366f1' },
 ] as const
 
 interface PatientsHomePageProps {
@@ -269,39 +224,53 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           </section>
         )}
 
-        {/* Feature Grid */}
-        <section>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {FEATURES.map(({ key, label, description, href, icon: Icon, iconBg }) => (
+        {/* Carousel: Consultas */}
+        <section className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold tracking-wide uppercase" style={{ color: 'var(--au-text-tertiary)' }}>
+            Consultas
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {CONSULTAS.map(({ key, label, sub, href, icon: Icon, accent }) => (
               <a
                 key={key}
                 href={href}
-                className="group rounded-2xl p-4 transition-all hover:-translate-y-0.5 active:scale-[0.97]"
+                className="group flex w-[200px] shrink-0 items-start gap-3 rounded-2xl p-4 transition-all active:scale-[0.97]"
                 style={{
                   background: 'var(--au-surface)',
                   border: '1px solid var(--au-border)',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--au-border-hover)'
-                  e.currentTarget.style.boxShadow = 'var(--au-glass-shadow-hover)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--au-border)'
-                  e.currentTarget.style.boxShadow = 'none'
+              >
+                <Icon className="mt-0.5 h-5 w-5 shrink-0" style={{ color: accent }} />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--au-text-primary)' }}>{label}</p>
+                  <p className="mt-0.5 text-[11px] leading-snug" style={{ color: 'var(--au-text-tertiary)' }}>{sub}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* Carousel: Tu salud */}
+        <section>
+          <h2 className="mb-3 text-sm font-semibold tracking-wide uppercase" style={{ color: 'var(--au-text-tertiary)' }}>
+            Tu salud
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {SALUD.map(({ key, label, sub, href, icon: Icon, accent }) => (
+              <a
+                key={key}
+                href={href}
+                className="group flex w-[200px] shrink-0 items-start gap-3 rounded-2xl p-4 transition-all active:scale-[0.97]"
+                style={{
+                  background: 'var(--au-surface)',
+                  border: '1px solid var(--au-border)',
                 }}
               >
-                <div
-                  className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl"
-                  style={{ background: iconBg }}
-                >
-                  <Icon className="h-5 w-5" style={{ color: 'var(--au-text-primary)' }} />
+                <Icon className="mt-0.5 h-5 w-5 shrink-0" style={{ color: accent }} />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--au-text-primary)' }}>{label}</p>
+                  <p className="mt-0.5 text-[11px] leading-snug" style={{ color: 'var(--au-text-tertiary)' }}>{sub}</p>
                 </div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--au-text-primary)' }}>
-                  {label}
-                </p>
-                <p className="mt-0.5 text-xs leading-relaxed" style={{ color: 'var(--au-text-tertiary)' }}>
-                  {description}
-                </p>
               </a>
             ))}
           </div>
