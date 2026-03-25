@@ -288,11 +288,12 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     )
   })
 
-  const bottomNavItems: Array<{ id: string; icon: LucideIcon; label: string }> = [
+  const bottomNavItems: Array<{ id: string | null; icon: LucideIcon; label: string; primary?: boolean }> = [
+    { id: null, icon: Home, label: 'Inicio' },
     { id: 'patients', icon: Users, label: 'Pacientes' },
+    { id: 'teleconsulta', icon: Video, label: 'Consulta', primary: true },
     { id: 'appointments', icon: Calendar, label: 'Citas' },
-    { id: 'diagnosis', icon: Brain, label: 'IA' },
-    { id: 'settings', icon: Settings, label: 'Ajustes' },
+    { id: 'settings', icon: User, label: 'Perfil' },
   ]
 
   return (
@@ -648,35 +649,95 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
         </div>
 
         <nav
-          className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-am-surface-200 bg-white shadow-[0_-1px_3px_rgba(0,0,0,0.05)] md:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-am-surface-100/80 bg-white/95 backdrop-blur-xl md:hidden"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           aria-label="Navegación principal"
         >
-          {bottomNavItems.map(({ id, icon: Icon, label }) => {
-            const isActive = activeSection === id
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => handleSidebarItemClick(id)}
-                className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors active:scale-95 ${
-                  isActive ? 'text-am-doctor-600' : 'text-am-surface-400'
-                }`}
-              >
-                {isActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-am-doctor-500" />}
-                <Icon className="h-5 w-5" />
-                <span>{label}</span>
-              </button>
-            )
-          })}
-          <button
-            type="button"
-            onClick={() => setIsSidebarOpen(true)}
-            className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium text-am-surface-400 transition-colors active:scale-95"
-          >
-            <Menu className="h-5 w-5" />
-            <span>Más</span>
-          </button>
+          <div className="flex items-end justify-around px-2">
+            {bottomNavItems.map(({ id, icon: Icon, label, primary }) => {
+              const isHome = id === null
+              const isTeleconsulta = id === 'teleconsulta'
+              const isActive = isTeleconsulta
+                ? (!activeSection && activeTab === 'video-call')
+                : isHome
+                  ? !activeSection
+                  : activeSection === id
+              const hasLiveSession = session?.status === 'en_progreso'
+
+              if (primary) {
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      setActiveSection(null)
+                      setActiveTab('video-call')
+                      resumeFocusIfLive()
+                    }}
+                    className="relative flex flex-col items-center justify-center -mt-4"
+                    aria-label="Teleconsulta"
+                  >
+                    <motion.span
+                      whileTap={{ scale: 0.9 }}
+                      className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition-all duration-300 ${
+                        isActive
+                          ? 'bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-am-doctor-500/40'
+                          : 'bg-gradient-to-br from-am-doctor-400 to-am-primary-500 shadow-am-doctor-500/20'
+                      }`}
+                    >
+                      <Video className="h-6 w-6 text-white stroke-[2]" />
+                      {hasLiveSession && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center">
+                          <span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                        </span>
+                      )}
+                    </motion.span>
+                    <span className={`mt-1 text-[10px] leading-none font-bold transition-colors duration-200 ${
+                      isActive ? 'text-am-doctor-600' : 'text-am-doctor-500'
+                    }`}>
+                      {label}
+                    </span>
+                  </button>
+                )
+              }
+
+              return (
+                <button
+                  key={id ?? 'home'}
+                  type="button"
+                  onClick={() => {
+                    if (isHome) {
+                      setActiveSection(null)
+                      setActiveTab('video-call')
+                      resumeFocusIfLive()
+                    } else if (id !== null) {
+                      handleSidebarItemClick(id)
+                    }
+                  }}
+                  className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-all duration-200 active:scale-90"
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="bottomnav-indicator"
+                      className="absolute top-0 h-[3px] w-8 rounded-b-full bg-am-doctor-500"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                    />
+                  )}
+                  <Icon
+                    className={`h-5 w-5 transition-all duration-200 ${
+                      isActive ? 'text-am-doctor-600 stroke-[2.5]' : 'text-am-surface-400 stroke-[1.5]'
+                    }`}
+                  />
+                  <span className={`text-[10px] leading-none transition-colors duration-200 ${
+                    isActive ? 'text-am-doctor-600 font-semibold' : 'text-am-surface-400 font-medium'
+                  }`}>
+                    {label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </nav>
       </div>
     </PortalLayoutContext.Provider>

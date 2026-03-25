@@ -8,7 +8,7 @@
  */
 
 import type { APIRoute } from 'astro';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { logger } from '@autamedica/shared';
 import { isProduction } from '../../lib/auth-utils';
 
@@ -54,7 +54,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
               };
             });
           },
-          setAll(cookiesToSet) {
+          setAll(cookiesToSet: Parameters<NonNullable<CookieMethodsServer['setAll']>>[0]) {
             for (const { name, value, options } of cookiesToSet) {
               cookies.set(name, value, {
                 ...options,

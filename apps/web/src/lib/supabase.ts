@@ -3,7 +3,7 @@
  * Crea clientes para uso en páginas (.astro) y endpoints del servidor.
  */
 
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { AstroCookies } from 'astro';
 
 function parseCookieHeader(request: Request): Array<{ name: string; value: string }> {
@@ -27,7 +27,7 @@ export function createSupabaseServerClient(request: Request, cookies: AstroCooki
         getAll() {
           return parseCookieHeader(request);
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: Parameters<NonNullable<CookieMethodsServer['setAll']>>[0]) {
           for (const { name, value, options } of cookiesToSet) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             cookies.set(name, value, options as any);

@@ -19,7 +19,7 @@ export async function resolvePatientContext(
   // 1. Get user from session (more robust for SSR than getUser() in some scenarios)
   const {
     data: { session },
-    error: sessionError,
+    error: _sessionError,
   } = await supabase.auth.getSession()
 
   let userId = session?.user?.id ?? null

@@ -11,7 +11,7 @@
  */
 
 import type { APIRoute } from 'astro';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import {
   isValidRole,
   resolveRoleFromPortal,
@@ -39,7 +39,7 @@ function buildSupabaseClient(request: Request, cookies: Parameters<APIRoute>[0][
             };
           });
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: Parameters<NonNullable<CookieMethodsServer['setAll']>>[0]) {
           for (const { name, value, options } of cookiesToSet) {
             cookies.set(name, value, {
               ...options,

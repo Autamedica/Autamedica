@@ -7,7 +7,7 @@
  */
 
 import { logger } from '@autamedica/shared';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { detectLocale, LOCALE_COOKIE } from './i18n/index';
@@ -125,13 +125,27 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { pathname } = requestUrl;
   const portal = detectPortal(requestUrl);
   const isDoctorHost = portal === 'doctor';
+  const isPatientHost = portal === 'patient';
+  const isCompanyHost = portal === 'company';
   const isDoctorHostRoot = isDoctorHost && pathname === '/';
+  const isPatientHostRoot = isPatientHost && pathname === '/';
+  const isPortalHostRoot = isDoctorHostRoot || isPatientHostRoot;
 
+  // Doctor portal: normalize dashboard paths to /
   if (isDoctorHost && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
     if (pathname === '/dashboard' || pathname === '/doctors' || pathname === '/doctors/dashboard') {
       const doctorRootUrl = new URL('/', requestUrl);
       doctorRootUrl.search = requestUrl.search;
       return context.redirect(doctorRootUrl.toString(), 302);
+    }
+  }
+
+  // Patient portal: normalize dashboard paths to /
+  if (isPatientHost && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
+    if (pathname === '/dashboard' || pathname === '/patients' || pathname === '/patients/dashboard') {
+      const patientRootUrl = new URL('/', requestUrl);
+      patientRootUrl.search = requestUrl.search;
+      return context.redirect(patientRootUrl.toString(), 302);
     }
   }
 
@@ -198,7 +212,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isAuthRoute = AUTH_ROUTES.some(route => pathname === route);
 
   // Public routes that are NOT auth routes — skip auth entirely
-  if (!isAuthRoute && !isDoctorHostRoot && PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
+  if (!isAuthRoute && !isPortalHostRoot && PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
     return next();
   }
 
@@ -220,7 +234,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
               };
             });
           },
-          setAll(cookiesToSet) {
+          setAll(cookiesToSet: Parameters<NonNullable<CookieMethodsServer['setAll']>>[0]) {
             const domainOverride = isProduction() ? '.autamedica.com' : undefined;
             for (const { name, value, options } of cookiesToSet) {
               context.cookies.set(name, value, {
@@ -272,7 +286,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
 
     // Protected routes: redirect unauthenticated users to login
-    const isProtectedRoute = isProtectedPath(pathname) || isDoctorHostRoot;
+    const isProtectedRoute = isProtectedPath(pathname) || isPortalHostRoot;
     const isDevMode = !import.meta.env.PROD;
 
     if (!isAuthenticated && isProtectedRoute) {
@@ -281,14 +295,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return next();
       }
 
-      let portal = 'patients';
-      if (isDoctorHostRoot || pathname.startsWith('/doctors')) portal = 'doctors';
-      else if (pathname.startsWith('/companies')) portal = 'companies';
-      else if (pathname.startsWith('/admin')) portal = 'admin';
+      let loginPortal = 'patients';
+      if (isDoctorHostRoot || pathname.startsWith('/doctors')) loginPortal = 'doctors';
+      else if (isCompanyHost || pathname.startsWith('/companies')) loginPortal = 'companies';
+      else if (pathname.startsWith('/admin')) loginPortal = 'admin';
 
       const loginUrl = new URL('/auth/login', context.request.url);
-      loginUrl.searchParams.set('returnTo', isDoctorHostRoot ? '/' : pathname);
-      loginUrl.searchParams.set('portal', portal);
+      loginUrl.searchParams.set('returnTo', isPortalHostRoot ? '/' : pathname);
+      loginUrl.searchParams.set('portal', loginPortal);
 
       return context.redirect(loginUrl.toString());
     }
@@ -314,6 +328,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
       }
 
+      if ((isPatientHostRoot || pathname.startsWith('/patients')) && !['patient', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
+        return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
+      }
+
       if (pathname.startsWith('/companies') && !['company', 'company_admin', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
         return context.redirect(ROLE_REDIRECTS[userRole] ?? '/auth/select-role');
       }
@@ -324,9 +342,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   } catch (err) {
     logger.error('Middleware error:', err);
 
-    if (isProtectedPath(pathname) || isDoctorHostRoot) {
+    if (isProtectedPath(pathname) || isPortalHostRoot) {
       const loginUrl = new URL('/auth/login', context.request.url);
-      loginUrl.searchParams.set('returnTo', isDoctorHostRoot ? '/' : pathname);
+      loginUrl.searchParams.set('returnTo', isPortalHostRoot ? '/' : pathname);
       return context.redirect(loginUrl.toString());
     }
 

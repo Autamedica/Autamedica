@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { DoctorsDashboardPage } from '../components/doctors/DoctorsDashboardPage';
+import PatientsHomePage from '../components/patients/PatientsHomePage';
 import Navbar from '../components/Navbar.astro';
 import Hero from '../components/Hero.astro';
 import PremiumNarrative from '../components/PremiumNarrative.astro';
@@ -21,6 +22,7 @@ import { getI18n } from '../i18n';
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
 const isDoctorHost = Astro.url.hostname === 'doctor.autamedica.com';
+const isPatientHost = Astro.url.hostname === 'paciente.autamedica.com';
 
 const {
   variant: copyVariant,
@@ -38,6 +40,15 @@ const {
     ogImage="/images/seo/og-doctors.webp"
   >
     <DoctorsDashboardPage client:load locale={locale} />
+  </Layout>
+) : isPatientHost ? (
+  <Layout
+    title="Mi Portal de Salud | AutaMedica"
+    description="Tu espacio personal de salud: consultas, historial médico y seguimiento"
+    canonical="https://paciente.autamedica.com/"
+    ogImage="/images/seo/og-patients.webp"
+  >
+    <PatientsHomePage client:load locale={locale} />
   </Layout>
 ) : (
   <Layout

@@ -235,8 +235,8 @@ export function usePrescriptions(
           side_effects_warning: prescription.side_effects_warning,
         },
       }
-      const dbPayload = toSnake(insertPayload) as Record<string, unknown>
-      const { error: insertError } = await supabase.from('medical_records').insert(dbPayload)
+      const dbPayload = toSnake(insertPayload)
+      const { error: insertError } = await supabase.from('medical_records').insert(dbPayload as never)
       if (insertError) throw insertError
 
       window.dispatchEvent(new Event(PRESCRIPTIONS_CHANGED_EVENT))
