@@ -6,8 +6,34 @@ import { CreateAppointmentModal } from '@/components/patients/appointments/Creat
 import { ReviewModal } from '@/components/patients/appointments/ReviewModal'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useReviews } from '@/hooks/patients/useReviews'
-import { Calendar, Plus, CheckCircle, Clock } from 'lucide-react'
+import { Calendar, Plus, CheckCircle, XCircle, CalendarPlus } from 'lucide-react'
 import type { CreateAppointmentInput, AppointmentWithDoctor } from '@/lib/patients/types/appointment'
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: typeof Calendar
+  label: string
+  value: number
+  accent: string
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-stone-100 bg-white p-5 transition-all duration-200 hover:shadow-md hover:border-stone-200">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${accent}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-stone-500">{label}</p>
+          <p className="text-2xl font-bold tracking-tight text-stone-900">{value}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function AppointmentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -30,15 +56,8 @@ export default function AppointmentsPage() {
     const upcoming = appointments.filter(
       (apt) => apt.status === 'scheduled' || apt.status === 'confirmed'
     ).length
-
-    const completed = appointments.filter(
-      (apt) => apt.status === 'completed'
-    ).length
-
-    const cancelled = appointments.filter(
-      (apt) => apt.status === 'cancelled'
-    ).length
-
+    const completed = appointments.filter((apt) => apt.status === 'completed').length
+    const cancelled = appointments.filter((apt) => apt.status === 'cancelled').length
     return { upcoming, completed, cancelled }
   }, [appointments])
 
@@ -49,9 +68,7 @@ export default function AppointmentsPage() {
         ? new Date(data.scheduled_at).toISOString()
         : new Date().toISOString(),
     }
-
     const newAppointment = await createAppointment(appointmentData)
-
     if (newAppointment) {
       setIsModalOpen(false)
       await refreshAppointments()
@@ -59,89 +76,80 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-stone-900">Mis Citas</h1>
-          <p className="text-stone-600 mt-2">
-            Gestiona tus citas médicas programadas
-          </p>
-        </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          aria-label="Crear una nueva cita médica"
-          className="flex items-center gap-2 px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-900 transition-colors"
-        >
-          <Plus className="h-5 w-5" aria-hidden="true" />
-          Nueva Cita
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" role="region" aria-label="Estadísticas de citas">
-        <div className="bg-white rounded-lg border border-stone-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-50 rounded-lg" aria-hidden="true">
-              <Calendar className="h-6 w-6 text-blue-600" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm text-stone-600">Próximas Citas</p>
-              <p className="text-2xl font-bold text-stone-900">{stats.upcoming}</p>
-            </div>
+    <div className="min-h-screen bg-stone-50/50">
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+              Mis citas
+            </h1>
+            <p className="mt-1 text-sm text-stone-500">
+              Agenda, gestiona y da seguimiento a tus consultas
+            </p>
           </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            aria-label="Crear una nueva cita médica"
+            className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" />
+            Nueva cita
+          </button>
         </div>
 
-        <div className="bg-white rounded-lg border border-stone-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-50 rounded-lg" aria-hidden="true">
-              <CheckCircle className="h-6 w-6 text-green-600" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm text-stone-600">Completadas</p>
-              <p className="text-2xl font-bold text-stone-900">{stats.completed}</p>
-            </div>
+        {/* Stats */}
+        <div className="mb-8 grid grid-cols-3 gap-3 sm:gap-4" role="region" aria-label="Estadísticas de citas">
+          <StatCard
+            icon={Calendar}
+            label="Próximas"
+            value={stats.upcoming}
+            accent="bg-sky-50 text-sky-600"
+          />
+          <StatCard
+            icon={CheckCircle}
+            label="Completadas"
+            value={stats.completed}
+            accent="bg-emerald-50 text-emerald-600"
+          />
+          <StatCard
+            icon={XCircle}
+            label="Canceladas"
+            value={stats.cancelled}
+            accent="bg-stone-100 text-stone-500"
+          />
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-800">{error}</p>
           </div>
-        </div>
+        )}
 
-        <div className="bg-white rounded-lg border border-stone-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-stone-50 rounded-lg" aria-hidden="true">
-              <Clock className="h-6 w-6 text-stone-600" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm text-stone-600">Canceladas</p>
-              <p className="text-2xl font-bold text-stone-900">{stats.cancelled}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800 text-sm">{error}</p>
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg border border-stone-200">
+        {/* Content */}
         {loading && appointments.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-900 mx-auto"></div>
-            <p className="mt-4 text-stone-600">Cargando citas...</p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-stone-100 bg-white py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-200 border-t-stone-800" />
+            <p className="mt-4 text-sm text-stone-500">Cargando citas...</p>
           </div>
         ) : appointments.length === 0 ? (
-          <div className="p-12 text-center">
-            <Calendar className="h-16 w-16 text-stone-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-stone-900 mb-2">
-              No tienes citas programadas
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white py-20 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-50">
+              <CalendarPlus className="h-7 w-7 text-stone-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-stone-900">
+              Sin citas programadas
             </h3>
-            <p className="text-stone-600 mb-6">
-              Comienza agendando tu primera cita médica
+            <p className="mt-1 max-w-sm text-sm text-stone-500">
+              Agendá tu primera consulta con un profesional de salud verificado
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-stone-800 text-white rounded-lg hover:bg-stone-900 transition-colors"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.98]"
             >
-              <Plus className="h-5 w-5" />
-              Crear Primera Cita
+              <Plus className="h-4 w-4" />
+              Agendar cita
             </button>
           </div>
         ) : (
