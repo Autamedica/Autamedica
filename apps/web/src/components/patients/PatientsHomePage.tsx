@@ -199,6 +199,16 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           </div>
         </section>
 
+        {/* Visual separator */}
+        <div className="my-6 overflow-hidden rounded-2xl">
+          <img
+            src="/images/patients/hero-medical.webp"
+            alt=""
+            className="h-[120px] w-full object-cover"
+            loading="lazy"
+          />
+        </div>
+
         {/* Carousel: Tu salud */}
         <section>
           <h2 className="mb-3 text-sm font-medium text-gray-500">Tu salud</h2>
