@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createCallService, createSignalingClient } from '@autamedica/telemedicine'
+import { createBrowserClient } from '@autamedica/auth'
 import { logger } from '@autamedica/shared'
 
 interface StartCallButtonProps {
@@ -35,7 +36,7 @@ export function StartCallButton({
     setError(null)
 
     try {
-      const callService = createCallService()
+      const callService = createCallService(createBrowserClient())
       const call = await callService.createCall(doctorId, patientId, appointmentId)
 
       const signaling = createSignalingClient(doctorId, 'doctor')

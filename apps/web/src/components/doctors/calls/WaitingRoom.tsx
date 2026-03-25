@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createCallService } from '@autamedica/telemedicine'
 import type { Call } from '@autamedica/telemedicine'
+import { createBrowserClient } from '@autamedica/auth'
 import { logger } from '@autamedica/shared'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
 
@@ -21,7 +22,7 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
   const { context, loading: contextLoading } = useConsultationContext(roomId)
 
   useEffect(() => {
-    const callService = createCallService()
+    const callService = createCallService(createBrowserClient())
     let timeoutTimer: NodeJS.Timeout
 
     // Load call details and setup realtime subscription
@@ -98,7 +99,7 @@ export function WaitingRoom({ callId, doctorId, roomId }: WaitingRoomProps) {
 
   const handleCancel = async () => {
     try {
-      const callService = createCallService()
+      const callService = createCallService(createBrowserClient())
       await callService.updateCallStatus(callId, 'canceled', 'doctor_canceled')
 
       // The realtime subscription will handle UI updates
