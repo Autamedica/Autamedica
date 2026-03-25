@@ -1,22 +1,16 @@
-import { selectActive, selectById, insertRecord, updateRecord, softDelete } from '@autamedica/shared';
+/**
+ * Repository: appointments table access for doctor-facing browser hooks.
+ * Uses getBrowserSupabaseClient() — este repo se ejecuta SIEMPRE en browser.
+ * No delegar a @autamedica/shared (usa process.env → undefined en browser).
+ */
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
+import { toCamel, toSnake, logger } from '@autamedica/shared';
 import type { Tables, TablesInsert, TablesUpdate } from '@autamedica/types';
 
-/**
- * Hook migrado al sistema híbrido
- *
- * CAMBIOS:
- * - Usa selectActive() en lugar de supabase directo
- * - Datos retornados en camelCase automáticamente
- * - Auto-filtrado de soft-deleted (deleted_at IS NULL)
- * - Usa softDelete() en lugar de DELETE hard
- */
-
-// Row = lectura (snake_case), Insert = creación, Update = parches
 export type Appointment = Tables<'appointments'>;
 export type NewAppointment = TablesInsert<'appointments'>;
 export type PatchAppointment = TablesUpdate<'appointments'>;
 
-// Tipo UI (camelCase) para Appointment
 export interface UiAppointment {
   id: string;
   patientId: string;
@@ -33,49 +27,81 @@ export interface UiAppointment {
 }
 
 export async function listAppointments(): Promise<UiAppointment[]> {
-  const data = await selectActive<'appointments', UiAppointment>('appointments', '*', {
-    orderBy: { column: 'start_time', ascending: true },
-    includeDeleted: true,
-  });
-  return data;
+  const { data, error } = await getBrowserSupabaseClient()
+    .from('appointments')
+    .select('*')
+    .order('start_time', { ascending: true });
+
+  if (error) {
+    logger.error('[appointments repo] listAppointments failed', error);
+    throw error;
+  }
+
+  return toCamel<UiAppointment[]>(data ?? []);
 }
 
 export async function getAppointment(id: string): Promise<UiAppointment | null> {
-  try {
-    const data = await selectById<'appointments', UiAppointment>('appointments', id);
-    return data;
-  } catch {
+  const { data, error } = await getBrowserSupabaseClient()
+    .from('appointments')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    logger.error('[appointments repo] getAppointment failed', error);
     return null;
   }
+
+  return data ? toCamel<UiAppointment>(data) : null;
 }
 
 export async function createAppointment(input: NewAppointment): Promise<UiAppointment> {
-  // Validation: ensure duration_minutes is a number as expected
   if (typeof input.duration_minutes === 'string') {
     throw new Error('duration_minutes must be a number, not a string');
   }
 
-  const data = await insertRecord<'appointments', Record<string, unknown>, UiAppointment>(
-    'appointments',
-    input as unknown as Record<string, unknown>
-  );
-  return data;
+  const { data, error } = await getBrowserSupabaseClient()
+    .from('appointments')
+    .insert(toSnake(input as unknown as Record<string, unknown>) as never)
+    .select()
+    .single();
+
+  if (error) {
+    logger.error('[appointments repo] createAppointment failed', error);
+    throw error;
+  }
+
+  return toCamel<UiAppointment>(data);
 }
 
 export async function updateAppointment(id: string, patch: PatchAppointment): Promise<UiAppointment> {
-  // Validation: ensure duration_minutes is a number if provided
   if (patch.duration_minutes !== undefined && typeof patch.duration_minutes === 'string') {
     throw new Error('duration_minutes must be a number, not a string');
   }
 
-  const data = await updateRecord<'appointments', Record<string, unknown>, UiAppointment>(
-    'appointments',
-    id,
-    patch as unknown as Record<string, unknown>
-  );
-  return data;
+  const { data, error } = await getBrowserSupabaseClient()
+    .from('appointments')
+    .update(toSnake(patch as unknown as Record<string, unknown>) as never)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    logger.error('[appointments repo] updateAppointment failed', error);
+    throw error;
+  }
+
+  return toCamel<UiAppointment>(data);
 }
 
 export async function deleteAppointment(id: string): Promise<void> {
-  await softDelete('appointments', id);
+  const { error } = await getBrowserSupabaseClient()
+    .from('appointments')
+    .update({ deleted_at: new Date().toISOString() } as never)
+    .eq('id', id);
+
+  if (error) {
+    logger.error('[appointments repo] deleteAppointment failed', error);
+    throw error;
+  }
 }
