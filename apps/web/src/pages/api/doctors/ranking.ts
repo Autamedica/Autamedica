@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { jsonOk, internalError } from '@/lib/api-helpers';
-import { withAuth, isAuthed } from '@/lib/api-auth';
+import { withSession, isAuthed } from '@/lib/api-auth';
 import { createAdminClient } from '@autamedica/auth/server';
 
 interface RankingMetricsRow {
@@ -48,9 +48,10 @@ interface RankedDoctor extends RankingMetricsRow {
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    const auth = await withAuth(request);
+    const auth = await withSession(request);
     if (!isAuthed(auth)) return auth;
-    const { user } = auth;
+    const { session } = auth;
+    const user = session.user;
 
     const admin = createAdminClient();
 
