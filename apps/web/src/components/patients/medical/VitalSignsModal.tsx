@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { X, Activity, Heart, Thermometer, Scale, TrendingUp, CheckCircle2 } from 'lucide-react';
 import { usePatientMedicalStore } from '@/lib/patients/stores/patientMedicalStore';
@@ -23,7 +24,7 @@ interface VitalSignsData {
 interface VitalSignField {
   key: keyof VitalSignsData;
   label: string;
-  icon: JSX.Element;
+  icon: ReactNode;
   unit: string;
   placeholder: string;
   type: 'number' | 'text';
