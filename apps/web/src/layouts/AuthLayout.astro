@@ -29,9 +29,8 @@ const role = Astro.url.searchParams.get('role') || 'patient';
 const themeClass = `theme-${role}`;
 
 const authFlowLinks = [
-  { href: '/auth/select-role', label: 'Perfil' },
-  { href: '/auth/login', label: 'Login' },
-  { href: '/auth/register', label: 'Registro' },
+  { href: '/auth/login', label: 'Iniciar sesión' },
+  { href: '/auth/register', label: 'Crear cuenta' },
 ];
 ---
 
