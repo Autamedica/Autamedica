@@ -2,7 +2,6 @@
 
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
-import { useAnamnesis } from '@/hooks/patients/useAnamnesis'
 import type { Locale } from '@/i18n/index'
 import {
   Bell,
@@ -57,9 +56,7 @@ interface PatientsHomePageProps {
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const { user, profile } = usePatientSession()
   const { appointments } = useAppointments()
-  const { progress: anamnesisProgress } = useAnamnesis()
   const firstName = getFirstName(profile, user)
-  const anamnesisPercent = anamnesisProgress?.completion_percentage ?? 0
   const completedConsults = appointments.filter(a => a.status === 'completed').length
 
   const upcomingAppointment = useMemo(() => {
@@ -198,26 +195,21 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             </a>
           </section>
         ) : (
-          <a href="/patients/anamnesis" className="group mb-6 block">
-            <div className="flex items-center justify-between">
-              <p className="text-xs" style={{ color: 'var(--au-text-tertiary)' }}>
-                Historia clínica · {anamnesisPercent}%
-                {completedConsults > 0 && ` · ${completedConsults} ${completedConsults === 1 ? 'médico la vio' : 'médicos la vieron'}`}
-              </p>
-              <ChevronRight
-                className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
-                style={{ color: 'var(--au-text-tertiary)' }}
-              />
-            </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-full" style={{ background: 'var(--au-hover)' }}>
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${Math.max(anamnesisPercent, 2)}%`,
-                  background: anamnesisPercent >= 100 ? 'var(--au-success)' : 'var(--au-accent)',
-                }}
-              />
-            </div>
+          <a
+            href="/patients/anamnesis"
+            className="group mb-8 flex items-center gap-5 py-4 transition-opacity active:opacity-80"
+          >
+            <span
+              className="text-5xl font-bold leading-none tracking-tight"
+              style={{ color: 'var(--au-accent)' }}
+            >
+              {completedConsults || 0}
+            </span>
+            <span className="text-sm leading-snug" style={{ color: 'var(--au-text-secondary)' }}>
+              {completedConsults === 1 ? 'médico consultó' : 'médicos consultaron'}
+              <br />
+              <span style={{ color: 'var(--au-text-tertiary)' }}>tu historial clínico</span>
+            </span>
           </a>
         )}
 
