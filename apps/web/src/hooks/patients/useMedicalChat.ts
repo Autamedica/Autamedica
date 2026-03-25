@@ -1,16 +1,15 @@
  
-// @ts-nocheck
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
 import type {
   ChatStatusType,
   MedicalChatInsert,
-  MedicalChatWithLastMessage,
   MedicalMessage,
   MedicalMessageInsert
 } from '@autamedica/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { medicalChatService, type MedicalChatWithLastMessage } from '@/lib/patients/services/medical-chat.service';
 
 interface UseMedicalChatsOptions {
   patientId?: string;
@@ -44,73 +43,12 @@ export function useMedicalChats(
       setIsLoading(true);
       setError(null);
 
-      // Build query
-      let query = supabase
-        .from('medical_chats')
-        .select(`
-          *,
-          specialist:reproductive_health_specialists!inner (
-            doctor:doctors!inner (
-              first_name,
-              last_name
-            )
-          ),
-          messages:medical_messages (
-            content,
-            author_type,
-            created_at,
-            is_read
-          )
-        `);
-
-      // Apply filters
-      if (options.patientId) {
-        query = query.eq('patient_id', options.patientId);
-      }
-
-      if (options.activeOnly) {
-        query = query.in('status', ['active', 'waiting_response']);
-      }
-
-      // Order by last message
-      query = query.order('last_message_at', { ascending: false });
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) throw fetchError;
-
-      // Transform data
-      const transformedData: MedicalChatWithLastMessage[] = (data || []).map((dbItem) => {
-        const item = dbItem as unknown as Record<string, unknown> & {
-          id: string; patient_id: string; specialist_id: string; appointment_id?: string;
-          status: string; subject: string; is_urgent: boolean; last_message_at: string;
-          created_at: string; updated_at: string;
-          messages?: Array<{ content: string; author_type: string; is_read: boolean; created_at: string }>;
-          specialist?: { doctor?: { first_name?: string; last_name?: string } };
-        };
-        const messages = item.messages || [];
-        const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-        const unreadCount = messages.filter((m) => !m.is_read && m.author_type !== 'patient').length;
-
-        return {
-          id: item.id,
-          patient_id: item.patient_id,
-          specialist_id: item.specialist_id,
-          appointment_id: item.appointment_id || null,
-          status: item.status,
-          subject: item.subject,
-          is_urgent: item.is_urgent,
-          last_message_at: item.last_message_at,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          last_message_content: lastMessage?.content || '',
-          last_message_author: lastMessage?.author_type || 'system',
-          unread_count: unreadCount,
-          specialist_name: `Dr. ${item.specialist?.doctor?.first_name || ''} ${item.specialist?.doctor?.last_name || ''}`.trim()
-        } as unknown as MedicalChatWithLastMessage;
+      const data = await medicalChatService.fetchChats(supabase, {
+        patientId: options.patientId,
+        activeOnly: options.activeOnly,
       });
 
-      setChats(transformedData);
+      setChats(data);
     } catch (err) {
       logger.error('Error fetching medical chats:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -125,37 +63,17 @@ export function useMedicalChats(
     }
 
     try {
-      const insertData = {
-        patient_id: data.patient_id,
-        specialist_id: data.specialist_id,
-        subject: data.subject,
-        is_urgent: data.is_urgent || false,
-        status: 'active' as ChatStatusType,
-        last_message_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      const { data: result, error: insertError } = await supabase
-        .from('medical_chats')
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-
-      // Refetch to update list
+      const result = await medicalChatService.createChat(supabase, data);
       await fetchChats();
-
       return {
         success: true,
-        chatId: result?.id
+        chatId: result.id,
       };
     } catch (err) {
       logger.error('Error creating chat:', err);
       return {
         success: false,
-        error: err
+        error: err,
       };
     }
   }, [supabase, fetchChats]);
@@ -169,25 +87,14 @@ export function useMedicalChats(
     }
 
     try {
-      const { error: updateError } = await supabase
-        .from('medical_chats')
-        .update({
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', chatId);
-
-      if (updateError) throw updateError;
-
-      // Refetch to update list
+      await medicalChatService.updateChatStatus(supabase, chatId, status);
       await fetchChats();
-
       return { success: true };
     } catch (err) {
       logger.error('Error updating chat status:', err);
       return {
         success: false,
-        error: err
+        error: err,
       };
     }
   }, [supabase, fetchChats]);
@@ -236,14 +143,7 @@ export function useChatMessages(
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('medical_messages')
-        .select('*')
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: true });
-
-      if (fetchError) throw fetchError;
-
+      const data = await medicalChatService.fetchMessages(supabase, chatId);
       setMessages((data || []) as MedicalMessage[]);
     } catch (err) {
       logger.error('Error fetching messages:', err);
@@ -260,7 +160,7 @@ export function useChatMessages(
     if (!chatId || !userId || !supabase) {
       return {
         success: false,
-        error: 'Missing chatId, userId, or supabase client'
+        error: 'Missing chatId, userId, or supabase client',
       };
     }
 
@@ -271,35 +171,16 @@ export function useChatMessages(
         author_id: userId,
         content_type: contentType,
         content,
-        attachment_url: undefined
+        attachment_url: undefined,
       };
 
-      const { error: insertError } = await supabase
-        .from('medical_messages')
-        .insert({
-          ...messageData,
-          is_read: false,
-          created_at: new Date().toISOString()
-        });
-
-      if (insertError) throw insertError;
-
-      // Update chat's last_message_at
-      await supabase
-        .from('medical_chats')
-        .update({
-          last_message_at: new Date().toISOString(),
-          status: 'waiting_response',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', chatId);
-
+      await medicalChatService.sendMessage(supabase, chatId, userId, messageData);
       return { success: true };
     } catch (err) {
       logger.error('Error sending message:', err);
       return {
         success: false,
-        error: err
+        error: err,
       };
     }
   }, [supabase, chatId, userId]);
@@ -308,13 +189,7 @@ export function useChatMessages(
     if (!supabase) return;
 
     try {
-      await supabase
-        .from('medical_messages')
-        .update({
-          is_read: true,
-          read_at: new Date().toISOString()
-        })
-        .eq('id', messageId);
+      await medicalChatService.markMessageAsRead(supabase, messageId);
     } catch (err) {
       logger.error('Error marking message as read:', err);
     }

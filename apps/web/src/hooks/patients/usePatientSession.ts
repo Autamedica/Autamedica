@@ -1,7 +1,8 @@
 'use client';
 
-import { parsePatient, type Patient } from '@/lib/patients/lib/zod/patients';
-import { safeParseProfile, type Profile } from '@/lib/patients/lib/zod/profiles';
+import type { Patient } from '@/lib/patients/lib/zod/patients';
+import type { Profile } from '@/lib/patients/lib/zod/profiles';
+import { patientSessionService } from '@/lib/patients/services/patient-session.service';
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
 import type { User } from '@supabase/supabase-js';
@@ -22,14 +23,6 @@ const INITIAL_STATE: PatientSessionState = {
   loading: true,
   error: null,
 };
-
-function ensureEmail(user: User): string {
-  const candidate = user.email ?? (user.user_metadata as Record<string, unknown> | undefined)?.email;
-  if (typeof candidate === 'string' && candidate.length > 0) {
-    return candidate;
-  }
-  return `${user.id}@patients.autamedica.local`;
-}
 
 export interface UsePatientSessionResult extends PatientSessionState {
   refresh: () => Promise<void>;
@@ -55,123 +48,7 @@ export function usePatientSession(): UsePatientSessionResult {
       if (!supabase) {
         throw new Error('Supabase client not available');
       }
-
-      const email = ensureEmail(user);
-
-      // Intento 1: esquema nuevo (user_id)
-      let { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      // Si la columna no existe o no hay fila, intentar esquema legacy (id)
-      if ((error && error.code !== 'PGRST116') || (!data && !error)) {
-        const tryLegacy = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-        data = tryLegacy.data as Record<string, unknown> | null;
-        error = tryLegacy.error;
-      }
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      let profileRow: Record<string, unknown> | null = (data as Record<string, unknown> | null) ?? null;
-      // Normalizar id -> user_id si fuese legacy
-      if (profileRow && !profileRow['user_id'] && profileRow['id']) {
-        profileRow = { ...profileRow, user_id: profileRow['id'] };
-      }
-
-      if (!profileRow) {
-        // Intentar insertar con user_id; si falla por columna, probar con id
-        let inserted: Record<string, unknown> | null = null;
-        let insertError: Error | null = null;
-        const insert = await supabase
-          .from('profiles')
-          .insert({
-            user_id: user.id,
-            email,
-            role: 'patient',
-            external_id: user.id,
-          })
-          .select('*')
-          .single();
-        inserted = insert.data as Record<string, unknown> | null;
-        insertError = insert.error;
-
-        if (insertError) {
-          // Reintentar esquema legacy
-          const legacy = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              email,
-              role: 'patient',
-              external_id: user.id,
-            })
-            .select('*')
-            .single();
-          inserted = legacy.data as Record<string, unknown> | null;
-          insertError = legacy.error;
-        }
-
-        if (insertError) {
-          throw insertError;
-        }
-
-        profileRow = inserted;
-      } else {
-        const updates: Record<string, unknown> = {};
-
-        if (!profileRow.email) {
-          updates.email = email;
-        }
-
-        // Evitar escribir columnas que podrían no existir en ciertos esquemas (role/external_id)
-
-        if (Object.keys(updates).length > 0) {
-          // Update por user_id o por id según exista
-          const updateTry = await supabase
-            .from('profiles')
-            .update(updates)
-            .eq(profileRow['user_id'] ? 'user_id' : 'id', user.id)
-            .select('*')
-            .single();
-          const updated = updateTry.data as Record<string, unknown> | null;
-          const updateError = updateTry.error;
-
-          if (updateError) {
-            throw updateError;
-          }
-
-          profileRow = updated;
-        }
-      }
-
-      if (!profileRow) {
-        throw new Error('Could not retrieve or create profile');
-      }
-
-      // Parse robusto: intentar zod; si falla, normalizar mínimamente
-      const parsed = safeParseProfile(profileRow);
-      if (parsed) return parsed;
-      return {
-        userId: (profileRow['user_id'] ?? profileRow['id']) as string,
-        email: (profileRow['email'] ?? email) as string,
-        role: (typeof profileRow['role'] === 'string' ? profileRow['role'] : 'patient') as 'patient' | 'admin',
-        firstName: typeof profileRow['first_name'] === 'string' ? profileRow['first_name'] : null,
-        lastName: typeof profileRow['last_name'] === 'string' ? profileRow['last_name'] : null,
-        phone: typeof profileRow['phone'] === 'string' ? profileRow['phone'] : null,
-        avatarUrl: typeof profileRow['avatar_url'] === 'string' ? profileRow['avatar_url'] : null,
-        active: typeof profileRow['active'] === 'boolean' ? profileRow['active'] : null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        deletedAt: null,
-      } as unknown as Profile;
+      return patientSessionService.fetchOrCreateProfile(supabase, user);
     },
     [supabase],
   );
@@ -181,40 +58,7 @@ export function usePatientSession(): UsePatientSessionResult {
       if (!supabase) {
         throw new Error('Supabase client not available');
       }
-
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      let patientRow = data ?? null;
-
-      if (!patientRow) {
-        const { data: inserted, error: insertError } = await supabase
-          .from('patients')
-          .insert({
-            user_id: userId,
-            active: true,
-          })
-          .select('*');
-
-        if (insertError) {
-          throw insertError;
-        }
-
-        if (Array.isArray(inserted) && inserted.length > 0) {
-          patientRow = inserted[0];
-        } else if (inserted && !Array.isArray(inserted)) {
-          patientRow = inserted as Record<string, unknown>;
-        }
-      }
-
-      return patientRow ? parsePatient(patientRow) : null;
+      return patientSessionService.fetchOrCreatePatient(supabase, userId);
     },
     [supabase],
   );

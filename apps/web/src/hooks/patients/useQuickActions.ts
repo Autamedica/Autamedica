@@ -2,45 +2,8 @@
 
 import { useState } from 'react';
 import { useSupabase } from '@autamedica/auth/react';
-
-interface AuthenticatedPatientContext {
-  userId: string;
-  patientId: string;
-}
-
-async function resolveAuthenticatedPatientContext(
-  supabase: ReturnType<typeof useSupabase>,
-): Promise<AuthenticatedPatientContext> {
-  if (!supabase) throw new Error('Supabase client not available');
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('No autenticado');
-  }
-
-  const { data: patient, error: patientError } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('active', true)
-    .maybeSingle();
-
-  if (patientError) {
-    throw patientError;
-  }
-
-  if (!patient?.id) {
-    throw new Error('Perfil de paciente no encontrado');
-  }
-
-  return {
-    userId: user.id,
-    patientId: patient.id,
-  };
-}
+import { quickActionsService } from '@/lib/patients/services/quick-actions.service';
+import { logger } from '@autamedica/shared';
 
 export function useVitalSigns() {
   const supabase = useSupabase();
@@ -53,27 +16,15 @@ export function useVitalSigns() {
       setLoading(true);
       setError(null);
 
-      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
-
-      const { error: insertError } = await supabase
-        .from('vital_signs')
-        .insert({
-          patient_id: patientId,
-          recorded_by_id: userId,
-          type: 'blood_pressure',
-          blood_pressure_systolic: systolic,
-          blood_pressure_diastolic: diastolic,
-          unit: 'mmHg',
-          notes,
-          measurement_context: 'patient_self_report',
-          measured_at: new Date().toISOString(),
-          recorded_at: new Date().toISOString(),
-        });
-
-      if (insertError) throw insertError;
+      await quickActionsService.logVitalSign(supabase, {
+        systolic,
+        diastolic,
+        notes,
+      });
       return { success: true } as const;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al registrar presión arterial';
+      logger.error('[useVitalSigns]', err);
       setError(message);
       return { success: false, error: message } as const;
     } finally {
@@ -100,24 +51,16 @@ export function useMedicationLog() {
       setLoading(true);
       setError(null);
 
-      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
-
-      const { error: insertError } = await supabase
-        .from('medication_logs')
-        .insert({
-          patient_id: patientId,
-          logged_by_id: userId,
-          medication_name: medicationName,
-          dosage,
-          notes,
-          status,
-          taken_at: new Date().toISOString(),
-        });
-
-      if (insertError) throw insertError;
+      await quickActionsService.logMedication(supabase, {
+        medicationName,
+        dosage,
+        notes,
+        status,
+      });
       return { success: true } as const;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al confirmar medicamento';
+      logger.error('[useMedicationLog]', err);
       setError(message);
       return { success: false, error: message } as const;
     } finally {
@@ -148,28 +91,20 @@ export function useSymptomReport() {
       setLoading(true);
       setError(null);
 
-      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
-
-      const { error: insertError } = await supabase
-        .from('symptom_reports')
-        .insert({
-          patient_id: patientId,
-          reported_by_id: userId,
-          symptom_name: data.symptomName,
-          severity: data.severity,
-          description: data.description,
-          duration: data.duration,
-          frequency: data.frequency,
-          triggers: data.triggers,
-          is_urgent: data.isUrgent ?? false,
-          body_location: data.bodyLocation,
-          reported_at: new Date().toISOString(),
-        });
-
-      if (insertError) throw insertError;
+      await quickActionsService.reportSymptom(supabase, {
+        symptomName: data.symptomName,
+        severity: data.severity,
+        description: data.description,
+        duration: data.duration,
+        frequency: data.frequency,
+        triggers: data.triggers,
+        isUrgent: data.isUrgent,
+        bodyLocation: data.bodyLocation,
+      });
       return { success: true } as const;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al reportar síntoma';
+      logger.error('[useSymptomReport]', err);
       setError(message);
       return { success: false, error: message } as const;
     } finally {
@@ -198,26 +133,18 @@ export function useLabResults() {
       setLoading(true);
       setError(null);
 
-      const { userId, patientId } = await resolveAuthenticatedPatientContext(supabase);
-
-      const { error: insertError } = await supabase
-        .from('lab_results')
-        .insert({
-          patient_id: patientId,
-          uploaded_by_id: userId,
-          test_type: data.testType,
-          test_date: data.testDate,
-          laboratory_name: data.laboratoryName,
-          file_url: data.fileUrl,
-          file_type: data.fileType,
-          notes: data.notes,
-          status: 'pending',
-        });
-
-      if (insertError) throw insertError;
+      await quickActionsService.uploadLabResult(supabase, {
+        testType: data.testType,
+        testDate: data.testDate,
+        laboratoryName: data.laboratoryName,
+        fileUrl: data.fileUrl,
+        fileType: data.fileType,
+        notes: data.notes,
+      });
       return { success: true } as const;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al subir resultado';
+      logger.error('[useLabResults]', err);
       setError(message);
       return { success: false, error: message } as const;
     } finally {
@@ -245,44 +172,17 @@ export function useCommunityPost() {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No autenticado');
-
-      const { data: membership } = await supabase
-        .from('group_memberships')
-        .select('id')
-        .eq('group_id', data.groupId)
-        .eq('patient_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (!membership) {
-        await supabase
-          .from('group_memberships')
-          .insert({
-            group_id: data.groupId,
-            patient_id: user.id,
-            role: 'member',
-            status: 'active',
-          });
-      }
-
-      const { error: insertError } = await supabase
-        .from('community_posts')
-        .insert({
-          group_id: data.groupId,
-          author_id: user.id,
-          title: data.title,
-          content: data.content,
-          is_anonymous: data.isAnonymous ?? false,
-          tags: data.tags ?? [],
-          moderation_status: 'approved',
-        });
-
-      if (insertError) throw insertError;
+      await quickActionsService.createCommunityPost(supabase, {
+        groupId: data.groupId,
+        title: data.title,
+        content: data.content,
+        isAnonymous: data.isAnonymous,
+        tags: data.tags,
+      });
       return { success: true } as const;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear publicación';
+      logger.error('[useCommunityPost]', err);
       setError(message);
       return { success: false, error: message } as const;
     } finally {
