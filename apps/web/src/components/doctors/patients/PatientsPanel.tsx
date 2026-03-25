@@ -17,15 +17,16 @@ import { logger } from '@autamedica/shared'
 import { Search, UserCheck, UserPlus, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-interface PatientsPanelProps {
-  doctorUserId: string
+export interface PatientsPanelProps {
+  doctorUserId?: string
+  onSelectPatient?: (patientId: string) => void
 }
 
-export function PatientsPanel({ doctorUserId }: PatientsPanelProps) {
+export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
   // El hook ahora delega a Service -> Repo. El componente no sabe nada de Supabase.
-  const { patients, loading, error, refetch } = useDoctorPatients(doctorUserId)
+  const { patients, loading, error, refetch } = useDoctorPatients(doctorUserId ?? '')
 
   // Lógica de presentación (filtrado local) se queda en el componente (o hook si fuera compleja)
   const filteredPatients = useMemo(() => {
@@ -192,14 +193,14 @@ export function PatientsPanel({ doctorUserId }: PatientsPanelProps) {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {patient.birthDate 
-                          ? new Date(patient.birthDate).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) 
+                        {patient.date_of_birth 
+                          ? new Date(patient.date_of_birth).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) 
                           : '-- / -- / --'}
                       </TableCell>
                       <TableCell className="text-right">
                         <button 
                           className="px-4 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground font-medium text-xs transition-all active:scale-95"
-                          onClick={() => logger.info('Ver ficha paciente', patient.id)}
+                          onClick={() => onSelectPatient?.(patient.id) ?? logger.info('Ver ficha paciente', patient.id)}
                         >
                           Ver Ficha
                         </button>

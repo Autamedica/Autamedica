@@ -571,7 +571,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                     <MarketplacePanel />
                   </Suspense>
                 )}
-                {activeSection === 'patients' && <PatientsPanel onSelectPatient={handleSelectPatient} />}
+                {activeSection === 'patients' && user?.id && <PatientsPanel doctorUserId={user.id} onSelectPatient={handleSelectPatient} />}
                 {activeSection === 'appointments' && (
                   <Suspense fallback={<PanelLoader />}>
                     <AppointmentsPanel doctorId={doctor?.id} />

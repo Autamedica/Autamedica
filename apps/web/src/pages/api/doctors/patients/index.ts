@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     const patientId = url.searchParams.get('id')
     const doctorUserId = url.searchParams.get('doctorUserId')
 
-    let data
+    let data: unknown
 
     // Si pide uno en específico
     if (patientId) {
