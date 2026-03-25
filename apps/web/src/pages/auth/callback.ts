@@ -15,6 +15,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import {
   isValidRole,
   resolveRoleFromPortal,
+  logger,
   type UserRole
 } from '@autamedica/shared';
 import { validateRedirectUrl, isProduction } from '../../lib/auth-utils';
@@ -117,10 +118,27 @@ export const GET: APIRoute = async ({ request, cookies, redirect }) => {
   // ── Case 1: OAuth code exchange ──
   if (code) {
     try {
+      // Log cookie state for PKCE debugging — the code_verifier must be
+      // present in the request cookies for the server-side exchange to succeed.
+      const rawCookies = request.headers.get('cookie') ?? '';
+      const cookieNames = rawCookies
+        .split('; ')
+        .map(c => c.split('=')[0])
+        .filter(n => n.includes('sb-') || n.includes('code') || n.includes('pkce'));
+      logger.info('[Callback] exchangeCodeForSession starting', {
+        hasCookies: rawCookies.length > 0,
+        relevantCookies: cookieNames,
+      });
+
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (error) {
         const isPkce = /pkce|code.verifier/i.test(error.message);
+        logger.error('[Callback] exchangeCodeForSession failed', {
+          isPkce,
+          errorMessage: error.message,
+          cookieNames,
+        });
         const loginParams = new URLSearchParams({ error: isPkce ? 'pkce_failed' : 'auth_failed' });
         if (isPkce) loginParams.set('retry', 'google');
         if (roleHint) loginParams.set('role', roleHint);

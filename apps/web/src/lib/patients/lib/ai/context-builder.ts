@@ -1,6 +1,6 @@
  
 // @ts-nocheck
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import type { AppSupabaseClient } from '@autamedica/supabase-client'
 
 export type PatientContextSummary = {
@@ -31,7 +31,7 @@ function getNumber(obj: Record<string, unknown> | null | undefined, key: string)
 
 // getAdminClient is now a wrapper around the standardized factory
 export async function getAdminClient(): Promise<AppSupabaseClient> {
-  return createAdminClient() as unknown as AppSupabaseClient;
+  return createAstroAdminClient() as unknown as AppSupabaseClient;
 }
 
 export async function buildPatientContext(userId: string, admin?: AppSupabaseClient) {

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import type { Database, Json } from '@autamedica/types'
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { jsonOk, badRequest, internalError } from '@/lib/api-helpers'
 import { withAuth, isAuthed } from '@/lib/api-auth'
@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('specialty is required')
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
 
     const doctorData: Database['public']['Tables']['doctors']['Insert'] = {
       user_id: user.id,

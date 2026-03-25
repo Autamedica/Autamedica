@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers'
@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ request }) => {
       return unauthorized()
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
 
     const { data, error } = await admin
       .from('doctors')

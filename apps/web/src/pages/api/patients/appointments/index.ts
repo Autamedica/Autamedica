@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import {
@@ -21,7 +21,7 @@ export const GET: APIRoute = async ({ request }) => {
       return unauthorized()
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
     const { data, error } = await admin
       .from('appointments')
       .select(DOCTOR_SELECT)
@@ -77,7 +77,7 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('doctor_id is required')
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
 
     // Verify doctor exists and is active
     const { data: doctor, error: doctorError } = await admin

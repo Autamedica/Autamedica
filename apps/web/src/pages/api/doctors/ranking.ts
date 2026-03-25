@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { jsonOk, internalError, unauthorized } from '@/lib/api-helpers';
-import { createAdminClient } from '@autamedica/auth/server';
+import { createAstroAdminClient } from '@/lib/supabase';
 
 interface RankingMetricsRow {
   doctor_id: string
@@ -54,7 +54,7 @@ export const GET: APIRoute = async ({ locals }) => {
     if (!session) return unauthorized();
     const user = session.user;
 
-    const admin = createAdminClient();
+    const admin = createAstroAdminClient();
 
     const { data: currentDoctor } = await admin
       .from('doctors')

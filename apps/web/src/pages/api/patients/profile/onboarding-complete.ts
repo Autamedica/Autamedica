@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { getUserIdFromRequest } from '@/lib/patients/api/auth'
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers'
 
@@ -11,7 +11,7 @@ export const POST: APIRoute = async ({ request }) => {
       return unauthorized()
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
 
     const { error: profileError } = await admin
       .from('profiles')

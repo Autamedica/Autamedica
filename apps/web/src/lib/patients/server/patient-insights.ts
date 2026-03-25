@@ -15,7 +15,7 @@ import type {
   PatientSnapshot,
   PatientSnapshotVitals,
 } from '@/lib/patients/types/patient-snapshot'
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { Database, Json, TablesInsert } from '@autamedica/types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -628,7 +628,7 @@ export async function syncDeterministicAlerts(
 ): Promise<void> {
   let admin: DerivedAlertClient
   try {
-    admin = createAdminClient() as unknown as DerivedAlertClient
+    admin = createAstroAdminClient() as unknown as DerivedAlertClient
   } catch (error) {
     logger.warn('[syncDeterministicAlerts] Admin client unavailable', error)
     return
@@ -723,7 +723,7 @@ export async function listPersistedDerivedAlerts(
 ): Promise<DerivedAlertPublicRow[]> {
   let admin: DerivedAlertClient
   try {
-    admin = createAdminClient() as unknown as DerivedAlertClient
+    admin = createAstroAdminClient() as unknown as DerivedAlertClient
   } catch (error) {
     logger.warn('[listPersistedDerivedAlerts] Admin client unavailable', error)
     return []
@@ -884,7 +884,7 @@ export async function buildPatientInsights(
   }
 
   try {
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
     const recommendedScreeningsClient = admin as unknown as RecommendedScreeningsRpcClient
     recommendedScreeningsResult = await recommendedScreeningsClient.rpc(
       'get_recommended_screenings',

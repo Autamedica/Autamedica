@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createAdminClient } from '@autamedica/auth/server';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import { jsonOk, internalError } from '@/lib/api-helpers';
 import { withAuth, isAuthed } from '@/lib/api-auth';
@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request }) => {
     const firstName = typeof body?.first_name === 'string' ? body.first_name.trim() : null;
     const lastName = typeof body?.last_name === 'string' ? body.last_name.trim() : null;
 
-    const admin = createAdminClient();
+    const admin = createAstroAdminClient();
 
     const { error: profileError } = await admin
       .from('profiles')

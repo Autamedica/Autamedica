@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createAdminClient } from '@autamedica/auth/server';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { buildAnamnesisSummary, logger } from '@autamedica/shared';
 import { generateConsultationReport } from '@/lib/doctors/services/consultation-report-service';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -38,7 +38,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
-    const admin = createAdminClient() as unknown as AdminClient;
+    const admin = createAstroAdminClient() as unknown as AdminClient;
     const doctorId = await resolveDoctorId(admin, user.id);
     if (!doctorId) {
       return forbidden('doctor_not_found');
@@ -102,7 +102,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
-    const admin = createAdminClient() as unknown as AdminClient;
+    const admin = createAstroAdminClient() as unknown as AdminClient;
     const doctorId = await resolveDoctorId(admin, user.id);
     if (!doctorId) {
       return forbidden('doctor_not_found');

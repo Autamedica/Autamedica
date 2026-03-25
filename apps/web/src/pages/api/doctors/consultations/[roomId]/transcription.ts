@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createAdminClient } from '@autamedica/auth/server';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
-    const admin = createAdminClient() as unknown as AdminClient;
+    const admin = createAstroAdminClient() as unknown as AdminClient;
 
     const doctorId = await resolveDoctorId(admin, user.id);
     if (!doctorId) {

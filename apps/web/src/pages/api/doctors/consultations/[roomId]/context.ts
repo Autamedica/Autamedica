@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { createAdminClient } from '@autamedica/auth/server';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { buildAnamnesisSummary, logger } from '@autamedica/shared';
 import {
   buildAnamnesisExtractionRequest,
@@ -120,7 +120,7 @@ export const GET: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
-    const admin = createAdminClient() as unknown as AdminClient;
+    const admin = createAstroAdminClient() as unknown as AdminClient;
 
     // Verify caller is a doctor
     const doctorId = await resolveDoctorId(admin, user.id);

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { createAdminClient, createServerClientFromRequest } from '@autamedica/auth/server'
+import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { Database } from '@autamedica/types'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
@@ -9,7 +9,7 @@ type PatientInsert = Database['public']['Tables']['patients']['Insert']
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const supabase = createServerClientFromRequest(request)
+    const supabase = createAstroServerClientFromRequest(request)
 
     // Try auth via Authorization: Bearer <token> header first (works in dev across ports)
     const authHeader = request.headers.get('authorization')
@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (authHeader?.toLowerCase().startsWith('bearer ')) {
       const token = authHeader.slice(7)
       try {
-        const adminForToken = createAdminClient()
+        const adminForToken = createAstroAdminClient()
         const { data: userRes, error: userErr } = await adminForToken.auth.getUser(token)
         if (!userErr && userRes?.user) userId = userRes.user.id
       } catch {
@@ -39,7 +39,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const body = await request.json().catch(() => ({}))
     const email = (body as Record<string, unknown>)?.email
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
 
     // Ensure profiles row exists
     try {

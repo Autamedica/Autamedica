@@ -3,7 +3,7 @@ import { getUserIdFromRequest } from '@/lib/patients/api/auth'
 import { buildPatientContext, persistPatientContextFiles } from '@/lib/patients/lib/ai/context-builder'
 import { buildPatientUpdatePayload } from '@/lib/patients/lib/zod/patients'
 import { buildProfileUpdatePayload } from '@/lib/patients/lib/zod/profiles'
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { Database } from '@autamedica/types'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
@@ -21,7 +21,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     const body = await request.json().catch(() => ({}))
     const { profile, patient } = body ?? {}
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
 
     let updatedProfile: unknown = null
     let updatedPatient: unknown = null

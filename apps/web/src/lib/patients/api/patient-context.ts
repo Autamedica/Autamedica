@@ -3,7 +3,7 @@
  * Astro-compatible replacement for the Next.js version that used next/headers.
  */
 
-import { createAdminClient, createServerClientFromRequest } from '@autamedica/auth/server'
+import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 
 export interface PatientContext {
@@ -14,80 +14,90 @@ export interface PatientContext {
 export async function resolvePatientContext(
   request: Request,
 ): Promise<PatientContext | null> {
-  const supabase = createServerClientFromRequest(request)
-  
-  // 1. Get user from session (more robust for SSR than getUser() in some scenarios)
-  const {
-    data: { session },
-    error: _sessionError,
-  } = await supabase.auth.getSession()
+  try {
+    const supabase = createAstroServerClientFromRequest(request)
 
-  let userId = session?.user?.id ?? null
-
-  // 2. Fallback to getUser() if session fails or is missing
-  if (!userId) {
-    const { data: { user: cookieUser }, error: cookieUserError } = await supabase.auth.getUser()
-    userId = cookieUser?.id ?? null
-    
-    if (cookieUserError) {
-      logger.warn('[resolvePatientContext] cookie getUser() failed', cookieUserError)
+    // 1. Get user from session (more robust for SSR than getUser() in some scenarios)
+    let userId: string | null = null
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      userId = session?.user?.id ?? null
+    } catch {
+      logger.warn('[resolvePatientContext] getSession() threw')
     }
-  }
 
-  // 3. Last fallback: Bearer token in Authorization header
-  if (!userId) {
-    const authHeader = request.headers.get('authorization')
-    if (authHeader?.toLowerCase().startsWith('bearer ')) {
-      const token = authHeader.slice(7)
+    // 2. Fallback to getUser() if session fails or is missing
+    if (!userId) {
       try {
-        const adminClient = createAdminClient()
-        const { data: userRes, error: tokenUserError } = await adminClient.auth.getUser(token)
-        if (!tokenUserError && userRes.user) {
-          userId = userRes.user.id
+        const { data: { user: cookieUser }, error: cookieUserError } = await supabase.auth.getUser()
+        userId = cookieUser?.id ?? null
+        if (cookieUserError) {
+          logger.warn('[resolvePatientContext] cookie getUser() failed', cookieUserError)
         }
-      } catch (error) {
-        logger.warn('[resolvePatientContext] Bearer token lookup failed', error)
+      } catch {
+        logger.warn('[resolvePatientContext] getUser() threw')
       }
     }
-  }
 
-  if (!userId) {
-    logger.warn('[resolvePatientContext] No user ID resolved from request')
-    return null
-  }
+    // 3. Last fallback: Bearer token in Authorization header
+    if (!userId) {
+      const authHeader = request.headers.get('authorization')
+      if (authHeader?.toLowerCase().startsWith('bearer ')) {
+        const token = authHeader.slice(7)
+        try {
+          const adminClient = createAstroAdminClient()
+          const { data: userRes, error: tokenUserError } = await adminClient.auth.getUser(token)
+          if (!tokenUserError && userRes.user) {
+            userId = userRes.user.id
+          }
+        } catch (error) {
+          logger.warn('[resolvePatientContext] Bearer token lookup failed', error)
+        }
+      }
+    }
 
-  // 4. Resolve Patient ID (Admin bypass to ensure existence and prevent RLS edge cases during initial profile creation)
-  const admin = createAdminClient()
-  
-  // Try to find existing patient
-  let { data: patient, error: patientError } = await admin
-    .from('patients')
-    .select('id')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  // 5. If not found, ensure it's created (Self-healing logic)
-  if (!patient && !patientError) {
-    logger.info('[resolvePatientContext] Patient row not found, creating one for userId:', userId)
-    const { data: insertedPatient, error: insertPatientError } = await admin
-      .from('patients')
-      .upsert({ user_id: userId, active: true }, { onConflict: 'user_id' })
-      .select('id')
-      .maybeSingle()
-
-    if (insertPatientError) {
-      logger.error('[resolvePatientContext] Failed to auto-create patient row', insertPatientError)
+    if (!userId) {
       return null
     }
-    patient = insertedPatient
-  }
 
-  const patientId = (patient as { id: string } | null)?.id ?? null
+    // 4. Resolve Patient ID (Admin bypass to ensure existence and prevent RLS edge cases during initial profile creation)
+    const admin = createAstroAdminClient()
 
-  if (patientError || !patientId) {
-    logger.error('[resolvePatientContext] Critical failure resolving patientId', { userId, patientError })
+    // Try to find existing patient
+    let { data: patient, error: patientError } = await admin
+      .from('patients')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    // 5. If not found, ensure it's created (Self-healing logic)
+    if (!patient && !patientError) {
+      logger.info('[resolvePatientContext] Patient row not found, creating one for userId:', userId)
+      const { data: insertedPatient, error: insertPatientError } = await admin
+        .from('patients')
+        .upsert({ user_id: userId, active: true }, { onConflict: 'user_id' })
+        .select('id')
+        .maybeSingle()
+
+      if (insertPatientError) {
+        logger.error('[resolvePatientContext] Failed to auto-create patient row', insertPatientError)
+        return null
+      }
+      patient = insertedPatient
+    }
+
+    const patientId = (patient as { id: string } | null)?.id ?? null
+
+    if (patientError || !patientId) {
+      logger.error('[resolvePatientContext] Critical failure resolving patientId', { userId, patientError })
+      return null
+    }
+
+    return { userId, patientId }
+  } catch (error) {
+    logger.error('[resolvePatientContext] Unhandled error', error)
     return null
   }
-
-  return { userId, patientId }
 }

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { createAdminClient, createServerClientFromRequest } from '@autamedica/auth/server'
+import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { jsonOk, jsonFail, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ request }) => {
     const context = await resolvePatientContext(request)
     if (!context) return unauthorized()
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
     const { data, error } = await admin
       .from('doctor_reviews')
       .select('appointment_id')
@@ -82,7 +82,7 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('Comment must be 1000 characters or less')
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
 
     const { data: appointment, error: aptError } = await admin
       .from('appointments')
@@ -113,7 +113,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Use user-scoped client so RLS enforces ownership
-    const supabase = createServerClientFromRequest(request)
+    const supabase = createAstroServerClientFromRequest(request)
 
     const { data: review, error: insertError } = await supabase
       .from('doctor_reviews')

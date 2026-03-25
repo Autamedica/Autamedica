@@ -196,6 +196,12 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
     try {
       const supabase = getBrowserSupabaseClient();
+
+      // Clear any stale auth state before starting a fresh OAuth flow.
+      // This prevents leftover session cookies from conflicting with the
+      // new PKCE code_verifier that will be set during signInWithOAuth.
+      await supabase.auth.signOut({ scope: 'local' });
+
       const callbackUrl = new URL('/auth/callback', window.location.origin);
       if (role) {
         callbackUrl.searchParams.set('role', role);

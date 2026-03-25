@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-import { createAdminClient } from '@autamedica/auth/server'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
@@ -36,7 +36,7 @@ function toBoolean(value: unknown, fallback = false) {
   return fallback
 }
 
-async function ensureAnamnesisRecord(admin: ReturnType<typeof createAdminClient>, patientId: string) {
+async function ensureAnamnesisRecord(admin: ReturnType<typeof createAstroAdminClient>, patientId: string) {
   const existing = await admin
     .from('anamnesis')
     .select('*')
@@ -81,7 +81,7 @@ export const GET: APIRoute = async ({ request }) => {
       return unauthorized()
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, context.patientId)
 
     const sectionsRes = await admin
@@ -130,7 +130,7 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('missing_step')
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, context.patientId)
     const anamnesisId = (anamnesis as { id: string }).id
 
@@ -203,7 +203,7 @@ export const PATCH: APIRoute = async ({ request }) => {
       return badRequest('no_updates')
     }
 
-    const admin = createAdminClient()
+    const admin = createAstroAdminClient()
     const anamnesis = await ensureAnamnesisRecord(admin, context.patientId)
     const anamnesisId = (anamnesis as { id: string }).id
 
