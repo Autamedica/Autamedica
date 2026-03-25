@@ -200,14 +200,15 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             href="/patients/anamnesis"
             className="group mb-8 block py-4 transition-opacity active:opacity-80"
           >
-            <p className="text-base leading-relaxed" style={{ color: 'var(--au-text-secondary)' }}>
+            <p className="text-lg leading-relaxed" style={{ color: 'var(--au-text-secondary)' }}>
               <span className="font-semibold" style={{ color: 'var(--au-text-primary)' }}>{firstName}</span>
-              , <span style={{ color: 'var(--au-accent)' }}>{completedConsults}</span> {completedConsults === 1 ? 'médico vio' : 'médicos vieron'} tu
-              historial clínico. Al completarlo, más profesionales pueden acompañarte.
+              , <span className="font-semibold" style={{ color: 'var(--au-accent)' }}>{completedConsults}</span> {completedConsults === 1 ? 'profesional revisó' : 'profesionales revisaron'} tu
+              historial clínico. Cada dato que cargás permite que tu próximo médico te atienda{' '}
+              <span style={{ color: 'var(--au-text-primary)' }}>conociendo tu historia desde el primer minuto</span>.
             </p>
             {freeConsults > 0 && (
-              <p className="mt-2 text-sm font-medium" style={{ color: 'var(--au-accent)' }}>
-                Tenés {freeConsults} {freeConsults === 1 ? 'consulta gratis' : 'consultas gratis'}.
+              <p className="mt-3 text-sm" style={{ color: 'var(--au-text-tertiary)' }}>
+                Tenés <span className="font-semibold" style={{ color: 'var(--au-accent)' }}>{freeConsults} {freeConsults === 1 ? 'consulta gratuita' : 'consultas gratuitas'}</span> para empezar.
               </p>
             )}
           </a>
