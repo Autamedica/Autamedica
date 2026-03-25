@@ -12,7 +12,7 @@ import { createServerClientFromRequest } from "./server";
 import type { User, UserSession } from "@autamedica/types";
 import { toISODateString } from "@autamedica/types";
 import type { UserRole, Portal } from "./roles";
-import { canAccessPortal, isUserRole, ROLES } from "./roles";
+import { canAccessPortal, normalizeRole, ROLES } from "./roles";
 import { logger } from '@autamedica/shared';
 
 const DEFAULT_PORTAL_REDIRECT: Record<UserRole, string> = {
@@ -25,19 +25,6 @@ const DEFAULT_PORTAL_REDIRECT: Record<UserRole, string> = {
   platform_admin: "/admin",
 };
 
-function normalizeRole(role: unknown): UserRole {
-  if (typeof role === "string") {
-    if (role === ROLES.COMPANY_ADMIN) {
-      return ROLES.ORGANIZATION_ADMIN;
-    }
-
-    if (isUserRole(role)) {
-      return role;
-    }
-  }
-
-  return ROLES.PATIENT;
-}
 
 function getCentralAuthOrigin(): string {
   if (process.env.PUBLIC_APP_URL) {
@@ -96,7 +83,7 @@ export async function getSession(request: Request): Promise<UserSession | null> 
         id: session.user.id,
         email: session.user.email ?? "",
         emailVerified: !!session.user.email_confirmed_at,
-        role: normalizeRole(session.user.user_metadata?.role),
+        role: normalizeRole(session.user.user_metadata?.role) ?? ROLES.PATIENT,
         createdAt: toISODateString(new Date(session.user.created_at)),
         updatedAt: toISODateString(new Date(session.user.updated_at ?? session.user.created_at)),
       },

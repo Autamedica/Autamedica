@@ -19,7 +19,7 @@ import {
   UserRole,
   AuthError
 } from '../types'
-import { isUserRole, ROLES } from '../roles'
+import { normalizeRole, ROLES } from '../roles'
 import {
   getSupabaseClient,
   signOutGlobally
@@ -51,28 +51,11 @@ function getDefaultLastPath(role: UserRole): string {
   return role === ROLES.DOCTOR ? '/' : '/dashboard'
 }
 
-/**
- * Extract user profile from Supabase user
- */
-function normalizeRole(role: unknown): UserRole | null {
-  if (typeof role === 'string') {
-    if (role === ROLES.COMPANY_ADMIN) {
-      return ROLES.ORGANIZATION_ADMIN
-    }
-
-    if (isUserRole(role)) {
-      return role
-    }
-  }
-
-  logger.error('User does not have a role assigned')
-  return null
-}
-
 function extractUserProfile(user: User): UserProfile | null {
   const role = normalizeRole(user.user_metadata?.role)
 
   if (!role) {
+    logger.error('User does not have a role assigned', { userId: user.id })
     return null
   }
 

@@ -18,6 +18,28 @@ export {
 export { APP_NAMES } from './constants'
 export type { AppNameConstant } from './constants'
 
+// Export roles utilities (source of truth for role/portal logic)
+export {
+  ROLES,
+  PORTALS,
+  ALL_ROLES,
+  ROLE_TO_PORTAL,
+  PORTAL_TO_ROLE,
+  isUserRole,
+  isPortal,
+  getPortalForRole,
+  getRoleForPortal,
+  isAdminRole,
+  isMedicalRole,
+  canAccessPatientData,
+  canManagePlatform,
+  canAccessPortal,
+  getBasePermissions,
+  hasPermission,
+  normalizeRole,
+} from './roles'
+export type { Portal } from './roles'
+
 // Export client utilities
 export {
   createBrowserClient,

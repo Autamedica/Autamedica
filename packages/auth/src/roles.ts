@@ -282,6 +282,31 @@ export const hasPermission = (role: UserRole, permission: string): boolean => {
   return permissions.includes(permission);
 };
 
+// ==========================================
+// Normalización de roles
+// ==========================================
+
+/**
+ * Normaliza un valor desconocido al UserRole correcto.
+ *
+ * - Convierte el alias legado `company_admin` → `organization_admin`.
+ * - Retorna `null` si el valor no es un rol válido (el caller decide el fallback).
+ *
+ * Fuente de verdad centralizada: no duplicar esta lógica en session.ts ni en hooks.
+ *
+ * @param role - Valor a normalizar (puede venir de user_metadata, DB, cookies…)
+ * @returns UserRole normalizado, o null si no es reconocible.
+ */
+export function normalizeRole(role: unknown): UserRole | null {
+  if (typeof role !== 'string') return null;
+
+  if (role === ROLES.COMPANY_ADMIN) {
+    return ROLES.ORGANIZATION_ADMIN;
+  }
+
+  return isUserRole(role) ? role : null;
+}
+
 /**
  * Verifica si un rol puede acceder a un portal específico
  *
