@@ -2,6 +2,7 @@
 
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
+import { useAnamnesis } from '@/hooks/patients/useAnamnesis'
 import type { Locale } from '@/i18n/index'
 import {
   Bell,
@@ -9,6 +10,7 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
+  Eye,
   FileText,
   MessageCircle,
   Pill,
@@ -56,7 +58,10 @@ interface PatientsHomePageProps {
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const { user, profile } = usePatientSession()
   const { appointments } = useAppointments()
+  const { progress: anamnesisProgress } = useAnamnesis()
   const firstName = getFirstName(profile, user)
+  const anamnesisPercent = anamnesisProgress?.completion_percentage ?? 0
+  const completedConsults = appointments.filter(a => a.status === 'completed').length
 
   const upcomingAppointment = useMemo(() => {
     const now = new Date()
@@ -193,7 +198,69 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               </div>
             </a>
           </section>
-        ) : null}
+        ) : (
+          <a
+            href="/patients/anamnesis"
+            className="group mb-8 block rounded-2xl p-[1px] transition-transform active:scale-[0.98]"
+            style={{
+              background: anamnesisPercent >= 100
+                ? 'linear-gradient(135deg, var(--au-success), #10b981)'
+                : 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+            }}
+          >
+            <div className="rounded-2xl p-5" style={{ background: 'var(--au-surface)' }}>
+              <div className="mb-3 flex items-center justify-between">
+                <span
+                  className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide"
+                  style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#a78bfa' }}
+                >
+                  Tu historia clínica
+                </span>
+                <ChevronRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                  style={{ color: 'var(--au-text-tertiary)' }}
+                />
+              </div>
+
+              {/* Progress bar */}
+              <div className="mb-3">
+                <div className="mb-1.5 flex items-end justify-between">
+                  <span className="text-2xl font-bold" style={{ color: 'var(--au-text-primary)' }}>
+                    {anamnesisPercent}%
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--au-text-tertiary)' }}>
+                    {anamnesisPercent >= 100 ? 'Completa' : 'completado'}
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full" style={{ background: 'var(--au-hover)' }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${Math.min(anamnesisPercent, 100)}%`,
+                      background: anamnesisPercent >= 100 ? 'var(--au-success)' : '#8b5cf6',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--au-text-secondary)' }}>
+                {anamnesisPercent >= 100
+                  ? 'Tu anamnesis está completa y disponible para toda nuestra comunidad médica.'
+                  : 'Cada dato que completás es visible para todos los profesionales de la plataforma. Tu historia clínica viaja con vos.'}
+              </p>
+
+              {completedConsults > 0 && (
+                <div
+                  className="mt-3 flex items-center gap-1.5 text-[11px]"
+                  style={{ color: 'var(--au-text-tertiary)' }}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  {completedConsults} {completedConsults === 1 ? 'médico ya revisó' : 'médicos ya revisaron'} tu historial
+                </div>
+              )}
+            </div>
+          </a>
+        )}
 
         {/* Carousel: Consultas */}
         <section className="mb-6">
