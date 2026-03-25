@@ -1,9 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { createCallService, createSignalingClient } from '@autamedica/telemedicine'
-import { createBrowserClient } from '@autamedica/auth'
-import { logger } from '@autamedica/shared'
+import { useStartCall } from '@/hooks/doctors/useStartCall'
 
 interface StartCallButtonProps {
   doctorId: string
@@ -22,63 +19,13 @@ export function StartCallButton({
   appointmentId,
   className = "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
 }: StartCallButtonProps) {
-  const [isStarting, setIsStarting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { startCall, isStarting, error } = useStartCall({ doctorId, doctorName, patientId, appointmentId })
   const hasPatient = patientId.trim().length > 0
-
-  const handleStartCall = async () => {
-    if (!hasPatient) {
-      setError('Selecciona un paciente antes de iniciar la llamada')
-      return
-    }
-
-    setIsStarting(true)
-    setError(null)
-
-    try {
-      const callService = createCallService(createBrowserClient())
-      const call = await callService.createCall(doctorId, patientId, appointmentId)
-
-      const signaling = createSignalingClient(doctorId, 'doctor')
-      await signaling.connect()
-
-      await callService.updateCallStatus(call.id, 'ringing')
-      signaling.sendToUser(patientId, {
-        type: 'invite',
-        callId: call.id,
-        roomId: call.room_id,
-        from: { doctorId, name: doctorName || 'Médico' },
-        to: { patientId }
-      })
-
-
-      window.location.href = `/doctors/call/${call.room_id}?callId=${call.id}&waiting=true`
-
-    } catch (err) {
-      logger.error('Failed to start call - detailed error:', err)
-      logger.error('Error name:', err?.constructor?.name)
-      logger.error('Error message:', err?.message)
-      logger.error('Error stack:', err?.stack)
-
-      let errorMessage = 'Error al iniciar la llamada'
-      if (err instanceof Error) {
-        errorMessage = err.message
-      } else if (typeof err === 'string') {
-        errorMessage = err
-      } else if (err && typeof err === 'object') {
-        errorMessage = JSON.stringify(err)
-      }
-
-      setError(errorMessage)
-    } finally {
-      setIsStarting(false)
-    }
-  }
 
   return (
     <div className="space-y-2">
       <button
-        onClick={handleStartCall}
+        onClick={startCall}
         disabled={isStarting || !hasPatient}
         className={`${className} ${isStarting || !hasPatient ? 'opacity-50 cursor-not-allowed' : ''}`}
       >

@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
-import { useAppointments } from '@autamedica/hooks'
-import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
+import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
 import { StartCallButton } from '../calls/StartCallButton'
 
@@ -13,15 +12,9 @@ interface AppointmentsPanelProps {
 }
 
 export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
-  const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof getBrowserSupabaseClient> | null>(null)
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
-  const isClientInitializing = supabaseClient === null
 
-  useEffect(() => {
-    setSupabaseClient(getBrowserSupabaseClient())
-  }, [])
-
-  const { appointments, loading, error } = useAppointments(supabaseClient, doctorId)
+  const { appointments, loading, error, isClientReady } = useDoctorAppointments(doctorId)
 
   const resolveNames = useCallback(async () => {
     if (appointments.length === 0) return
@@ -37,7 +30,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
     void resolveNames()
   }, [resolveNames])
 
-  if (isClientInitializing || loading) {
+  if (!isClientReady || loading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
