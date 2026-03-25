@@ -225,6 +225,43 @@ packages/
   telemedicine/  # @autamedica/telemedicine — WebRTC engine
 ```
 
+### Arquitectura de Capas (OBLIGATORIA)
+
+Toda feature debe respetar la separación de capas. Código que mezcla capas = bug arquitectural.
+
+**FRONTEND (4 capas):**
+
+```
+UI / View  →  Hook / Controller  →  Service  →  API Client  →  [HTTP]
+```
+
+1. **UI / View** (`components/`): Islands React (`.tsx`) y componentes Astro (`.astro`). Solo renderiza. Recibe datos de hooks, emite eventos. Sin lógica de negocio, sin fetch, sin supabase directo.
+2. **Hook / Controller** (`hooks/`): Estado local (`useState`, `useEffect`). Consume services, transforma datos para la UI. Max ~50 líneas. Sin queries a DB, sin lógica de negocio.
+3. **Service (frontend)** (`lib/doctors/services/`, `lib/patients/services/`): Lógica de negocio (mapeo, transformación, derivación de estado, filtros). Funciones puras testeables. Sin estado React, sin fetch directo.
+4. **API Client** (`lib/api-client.ts` + `lib/supabase-browser.ts`): Única puerta de salida HTTP. `fetchApi()` para endpoints Astro, `getBrowserSupabaseClient()` para queries Supabase directas desde browser. Centraliza auth, credentials, error handling.
+
+**BACKEND (3 capas):**
+
+```
+Controller (APIRoute)  →  Service  →  Repository  →  [Supabase/DB]
+```
+
+5. **Controller** (`pages/api/`): Recibe request, valida input, delega a Service, retorna Response. Max ~30 líneas. Sin queries a DB, sin lógica de negocio.
+6. **Service (backend)** (`lib/doctors/services/`, `lib/patients/services/`): Reglas de negocio, orquestación de repositories. Reutilizable entre endpoints.
+7. **Repository** (`lib/doctors/lib/repos/`, `lib/patients/api/`): Única capa que habla con Supabase. CRUD tipado. Retorna datos en formato camelCase.
+
+**TRANSVERSALES:**
+
+- **Types / Models** → `@autamedica/types` + `lib/doctors/types/` + `lib/patients/types/`
+- **Helpers / Utils** → `@autamedica/shared` (logger, toCamel, toSnake, env)
+
+**Anti-patrones de capas:**
+
+- **God Object Hook**: Hook que hace estado + lógica de negocio + fetch = PROHIBIDO. Separar en hook + service + repo.
+- **Fat Controller**: APIRoute con queries SQL y lógica de negocio = PROHIBIDO. Delegar a service + repo.
+- **`createBrowserClient()` en hooks/componentes**: Usar `getBrowserSupabaseClient()` singleton o `fetchApi()`. No instanciar clientes ad-hoc.
+- **Lógica de negocio en componentes**: Si un componente tiene `if/else` de reglas de dominio, eso va en un Service.
+
 ### Estrategia de Ramas (Trunk-Based Development)
 
 1. **`main` es Producción.** Única rama eterna. Nunca commit directo. Siempre estable.
