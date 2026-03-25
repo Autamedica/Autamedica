@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
-import { jsonOk, internalError } from '@/lib/api-helpers';
-import { withSession, isAuthed } from '@/lib/api-auth';
+import { jsonOk, internalError, unauthorized } from '@/lib/api-helpers';
 import { createAdminClient } from '@autamedica/auth/server';
 
 interface RankingMetricsRow {
@@ -46,11 +45,13 @@ interface RankedDoctor extends RankingMetricsRow {
   badges: BadgeRow[]
 }
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ locals }) => {
   try {
-    const auth = await withSession(request);
-    if (!isAuthed(auth)) return auth;
-    const { session } = auth;
+    // Use session from middleware (already validated via getUser() + refreshed if needed)
+    // This avoids the stale-cookie bug where withSession() re-parses the original request
+    // cookies before the middleware has written the refreshed token to the response.
+    const session = locals.session;
+    if (!session) return unauthorized();
     const user = session.user;
 
     const admin = createAdminClient();

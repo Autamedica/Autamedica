@@ -52,7 +52,7 @@ export function StartCallButton({
       })
 
 
-      window.location.href = `/doctors/call/${call.room_id}/${call.id}?waiting=true`
+      window.location.href = `/doctors/call/${call.room_id}?callId=${call.id}&waiting=true`
 
     } catch (err) {
       logger.error('Failed to start call - detailed error:', err)

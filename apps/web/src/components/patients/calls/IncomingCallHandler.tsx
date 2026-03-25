@@ -98,7 +98,7 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
 
     try {
       await getCallService().updateCallStatus(incomingCall.callId, 'accepted')
-      window.location.href = `/call/${incomingCall.roomId}/${incomingCall.callId}`
+      window.location.href = `/patients/call/${incomingCall.roomId}?callId=${incomingCall.callId}`
     } catch (error) {
       logger.error('[IncomingCallHandler] Failed to accept call:', error)
       setIsConnecting(false)

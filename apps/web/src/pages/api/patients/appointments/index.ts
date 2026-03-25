@@ -94,6 +94,14 @@ export const POST: APIRoute = async ({ request }) => {
     const end_time = computeEndTime(scheduled_at, duration_minutes)
     const combinedNotes = [reason, notes].filter(Boolean).join(' — ') || null
 
+    // Auto-generate meeting URL for telemedicine appointments
+    const effectiveType = mapTypeToDb(type)
+    let effectiveMeetingUrl = meeting_url ?? null
+    if (!effectiveMeetingUrl && (effectiveType === 'telemedicine' || effectiveType === 'emergency')) {
+      const roomId = `room_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
+      effectiveMeetingUrl = `/patients/call/${roomId}`
+    }
+
     const { data: inserted, error: insertError } = await admin
       .from('appointments')
       .insert({
@@ -102,10 +110,10 @@ export const POST: APIRoute = async ({ request }) => {
         start_time: scheduled_at,
         end_time,
         duration_minutes,
-        type: mapTypeToDb(type),
+        type: effectiveType,
         status: 'scheduled',
         notes: combinedNotes,
-        meeting_url: meeting_url ?? null,
+        meeting_url: effectiveMeetingUrl,
         location: location ?? null,
       } as never)
       .select(DOCTOR_SELECT)

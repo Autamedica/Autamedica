@@ -2,16 +2,15 @@ import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { getOpenSlots } from '@autamedica/scheduling'
 import type { UUID } from '@autamedica/types'
-import { jsonOk, badRequest, notFound, internalError } from '@/lib/api-helpers'
-import { withSession, isAuthed } from '@/lib/api-auth'
+import { jsonOk, badRequest, notFound, internalError, unauthorized } from '@/lib/api-helpers'
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
-export const GET: APIRoute = async ({ request, params }) => {
+export const GET: APIRoute = async ({ request, params, locals }) => {
   try {
-    const auth = await withSession(request)
-    if (!isAuthed(auth)) return auth
-    const { supabase } = auth
+    // Use session from middleware (already validated via getUser() + refreshed if needed)
+    if (!locals.session) return unauthorized()
+    const supabase = locals.supabase
 
     const doctorId = params.id
     if (!doctorId) {

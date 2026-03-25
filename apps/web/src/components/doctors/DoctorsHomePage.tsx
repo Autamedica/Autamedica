@@ -640,7 +640,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
             </div>
           </div>
 
-          {showTelemedicinePanel && signalingRoomId && signalingUserId && (
+          {!isProduction() && showTelemedicinePanel && signalingRoomId && signalingUserId && (
             <TelemedicineSignalingPanel
               roomId={signalingRoomId}
               userId={signalingUserId}
@@ -686,7 +686,9 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
         )}
 
         <aside
-          className={`right-drawer hidden h-full flex-col space-y-4 rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm lg:flex ${
+          className={`right-drawer hidden h-full flex-col space-y-4 rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm ${
+            hasSession ? 'lg:flex' : 'lg:hidden'
+          } ${
             isFocusMode && isQuickActionsVisible ? 'right-drawer--open' : ''
           }`}
         >
@@ -735,13 +737,15 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   icon={<Activity className="h-4 w-4" />}
                   disabled
                 />
-                <CompactAction
-                  label={hasSession && showTelemedicinePanel ? 'Ocultar telemedicina' : 'Telemedicina'}
-                  icon={<MonitorUp className="h-4 w-4" />}
-                  intent={hasSession && showTelemedicinePanel ? 'primary' : 'default'}
-                  onClick={() => setShowTelemedicinePanel(!showTelemedicinePanel)}
-                  disabled={!hasSession || isBlocked}
-                />
+                {!isProduction() && (
+                  <CompactAction
+                    label={hasSession && showTelemedicinePanel ? 'Ocultar señalización' : 'Señalización (dev)'}
+                    icon={<MonitorUp className="h-4 w-4" />}
+                    intent={hasSession && showTelemedicinePanel ? 'primary' : 'default'}
+                    onClick={() => setShowTelemedicinePanel(!showTelemedicinePanel)}
+                    disabled={!hasSession || isBlocked}
+                  />
+                )}
                 <CompactAction
                   label={aiProcessing ? 'Procesando...' : 'Análisis IA'}
                   icon={<Brain className="h-4 w-4" />}
