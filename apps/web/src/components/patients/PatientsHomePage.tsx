@@ -7,14 +7,18 @@ import {
   Bell,
   Calendar,
   ChevronRight,
-  ClipboardList,
   Clock,
-  FileText,
-  MessageCircle,
-  Pill,
   User,
   Video,
 } from 'lucide-react'
+import {
+  IconVideoconsulta,
+  IconTurnos,
+  IconAnamnesis,
+  IconRecetas,
+  IconHistorial,
+  IconComunidad,
+} from '@/components/patients/icons/FeatureIcons'
 import { useMemo } from 'react'
 import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
 import BottomNav from '@/components/patients/layout/BottomNav'
@@ -38,15 +42,15 @@ function getTimeGreeting(): string {
 }
 
 const CONSULTAS = [
-  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: Video, color: '#0891b2' },
-  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: Calendar, color: '#059669' },
-  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: ClipboardList, color: '#7c3aed' },
+  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: IconVideoconsulta, color: '#0891b2' },
+  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: IconTurnos, color: '#059669' },
+  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: IconAnamnesis, color: '#7c3aed' },
 ] as const
 
 const SALUD = [
-  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: Pill, color: '#ea580c' },
-  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: FileText, color: '#db2777' },
-  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: MessageCircle, color: '#4f46e5' },
+  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: IconRecetas, color: '#ea580c' },
+  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: IconHistorial, color: '#db2777' },
+  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: IconComunidad, color: '#4f46e5' },
 ] as const
 
 interface PatientsHomePageProps {
