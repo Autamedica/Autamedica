@@ -1,51 +1,64 @@
 /**
- * Frontend Service: Appointment-related business logic.
- * Resolves patient names for appointment lists.
- * Layer 3 of the 7-layer architecture.
+ * Frontend Service: Appointment Business Logic
+ * Resolves patient names and other appointment-related derivations.
+ * Layer 3 of 7-layer architecture.
+ * Pure functions, no React imports.
  */
-import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import { logger } from '@autamedica/shared'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
+import { logger } from '@autamedica/shared';
+
+interface PatientRow {
+  user_id: string | null;
+}
+
+interface ProfileRow {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
 
 /**
- * Resolves a map of patientId → display name for a list of patient IDs.
- * Uses patients table → profiles join to get first/last name.
+ * Resolve a map of patientId → display name for a list of patient IDs.
+ * Queries patients → profiles join to get first/last name.
  */
 export async function resolvePatientNameMap(patientIds: string[]): Promise<Record<string, string>> {
-  if (patientIds.length === 0) return {}
+  if (patientIds.length === 0) return {};
 
   try {
-    const supabase = getBrowserSupabaseClient()
+    const supabase = getBrowserSupabaseClient();
 
     const { data: patients } = await supabase
       .from('patients')
       .select('id, user_id')
-      .in('id', patientIds)
+      .in('id', patientIds);
 
-    if (!patients?.length) return {}
+    if (!patients?.length) return {};
 
-    const userIds = patients.map(p => p.user_id).filter(Boolean)
+    const userIds = patients.map((p: { id: string; user_id: string | null }) => p.user_id).filter(Boolean);
     const { data: profiles } = await supabase
       .from('profiles')
       .select('user_id, first_name, last_name')
-      .in('user_id', userIds)
+      .in('user_id', userIds);
 
-    if (!profiles?.length) return {}
+    if (!profiles?.length) return {};
 
-    const userToName: Record<string, string> = {}
+    const userToName: Record<string, string> = {};
     for (const p of profiles) {
-      userToName[p.user_id] = `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Paciente'
+      const prof = p as ProfileRow;
+      userToName[prof.user_id] = `${prof.first_name || ''} ${prof.last_name || ''}`.trim() || 'Paciente';
     }
 
-    const nameMap: Record<string, string> = {}
+    const nameMap: Record<string, string> = {};
     for (const patient of patients) {
-      if (patient.user_id && userToName[patient.user_id]) {
-        nameMap[patient.id] = userToName[patient.user_id]
+      const pat = patient as PatientRow & { id: string };
+      if (pat.user_id && userToName[pat.user_id]) {
+        nameMap[pat.id] = userToName[pat.user_id];
       }
     }
 
-    return nameMap
+    return nameMap;
   } catch (err) {
-    logger.error('[resolvePatientNameMap] failed', err)
-    return {}
+    logger.error('[resolvePatientNameMap] failed', err);
+    return {};
   }
 }

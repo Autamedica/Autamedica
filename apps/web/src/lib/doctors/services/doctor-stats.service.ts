@@ -1,68 +1,73 @@
 /**
- * DoctorStatsService — lógica de negocio para estadísticas del médico.
- *
- * Responsabilidades:
- * - Queries a Supabase (citas, pacientes, registros médicos).
- * - Transformación y derivación de datos (conteos, filtros por status).
- *
- * NO tiene estado React. No hace fetch. Es puramente funcional y testeable.
- * El hook `useDoctorStats` actúa como controller: gestiona estado y ciclo de vida.
- *
- * Capas: Hook (controller) → DoctorStatsService → getBrowserSupabaseClient → Supabase
+ * Frontend Service: Doctor Dashboard Statistics
+ * Business logic for aggregating appointments and medical records stats.
+ * Layer 3 of 7-layer architecture.
+ * Pure functions, no React imports.
  */
-import { getBrowserSupabaseClient } from '../../supabase-browser'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
+import { logger } from '@autamedica/shared';
 
 export interface DoctorStats {
-  activeCount: number
-  todayCount: number
-  patientsCount: number
-  historyCount: number
+  activeCount: number;
+  todayCount: number;
+  patientsCount: number;
+  historyCount: number;
   nextAppointment: {
-    time: string
-    patientName: string
-  } | null
+    time: string;
+    patientName: string;
+  } | null;
+}
+
+interface AppointmentRow {
+  id: string;
+  start_time: string;
+  status: string;
+  patient_id: string;
+}
+
+interface ProfileRow {
+  first_name: string | null;
+  last_name: string | null;
 }
 
 /**
- * Resuelve el nombre del paciente a partir de su ID.
- * Hace join patients → profiles para obtener first_name + last_name.
+ * Resolve patient display name from patient ID.
+ * Queries patients → profiles join.
  */
 async function resolvePatientName(patientId: string): Promise<string> {
-  const supabase = getBrowserSupabaseClient()
+  const supabase = getBrowserSupabaseClient();
 
   const { data: patient } = await supabase
     .from('patients')
     .select('user_id')
     .eq('id', patientId)
-    .single()
+    .single();
 
-  if (!patient?.user_id) return 'Paciente'
+  if (!patient?.user_id) return 'Paciente';
 
   const { data: profile } = await supabase
     .from('profiles')
     .select('first_name, last_name')
     .eq('user_id', patient.user_id)
-    .single()
+    .single();
 
-  if (!profile) return 'Paciente'
+  const prof = profile as ProfileRow | null;
+  if (!prof) return 'Paciente';
 
-  return `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() || 'Paciente'
+  return `${prof.first_name ?? ''} ${prof.last_name ?? ''}`.trim() || 'Paciente';
 }
 
 /**
- * Obtiene las estadísticas del médico para el dashboard.
- * - Consultas activas y del día.
- * - Cantidad de pacientes únicos.
- * - Cantidad de registros médicos.
- * - Próxima cita con nombre de paciente resuelto.
+ * Get doctor stats: active appointments, today's appointments, unique patients, medical records count.
+ * Returns next upcoming appointment with patient name resolved.
  */
 export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
-  const supabase = getBrowserSupabaseClient()
+  const supabase = getBrowserSupabaseClient();
 
-  const now = new Date()
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString()
-  const nowIso = now.toISOString()
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
+  const nowIso = now.toISOString();
 
   const [apptResult, patientsResult, recordsResult] = await Promise.all([
     supabase
@@ -80,33 +85,28 @@ export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
       .from('medical_records')
       .select('id', { count: 'exact', head: true })
       .eq('doctor_id', doctorId),
-  ])
+  ]);
 
-  if (apptResult.error) throw apptResult.error
+  if (apptResult.error) {
+    logger.error('[doctor-stats] getDoctorStats failed', apptResult.error)
+    throw apptResult.error
+  }
 
-  const appointments = apptResult.data ?? []
+  const appointments = (apptResult.data ?? []) as AppointmentRow[];
 
   const uniquePatientIds = new Set(
-    (patientsResult.data ?? []).map(r => r.patient_id).filter(Boolean)
-  )
+    (patientsResult.data ?? [])
+      .map((r: { patient_id: string }) => r.patient_id)
+      .filter(Boolean),
+  );
 
-  const activeAppointments = appointments.filter(
-    apt => apt.status === 'scheduled' || apt.status === 'in_progress'
-  )
+  const activeAppointments = appointments.filter(apt => apt.status === 'scheduled' || apt.status === 'in_progress');
 
-  const todayAppointments = appointments.filter(
-    apt => apt.start_time >= startOfDay && apt.start_time <= endOfDay
-  )
+  const todayAppointments = appointments.filter(apt => apt.start_time >= startOfDay && apt.start_time <= endOfDay);
 
-  const nextAppt = appointments.find(
-    apt =>
-      apt.start_time >= nowIso &&
-      (apt.status === 'scheduled' || apt.status === 'confirmed')
-  )
+  const nextAppt = appointments.find(apt => apt.start_time >= nowIso && (apt.status === 'scheduled' || apt.status === 'confirmed')) as AppointmentRow | undefined;
 
-  const patientName = nextAppt?.patient_id
-    ? await resolvePatientName(nextAppt.patient_id)
-    : 'Paciente'
+  const patientName = nextAppt?.patient_id ? await resolvePatientName(nextAppt.patient_id) : 'Paciente';
 
   return {
     activeCount: activeAppointments.length,
@@ -122,5 +122,5 @@ export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
           patientName,
         }
       : null,
-  }
+  };
 }
