@@ -165,14 +165,14 @@ export function useChatMessages(
     }
 
     try {
-      const messageData: MedicalMessageInsert = {
+      const messageData = {
         chat_id: chatId,
-        author_type: 'patient',
+        author_type: 'patient' as const,
         author_id: userId,
         content_type: contentType,
         content,
         attachment_url: undefined,
-      };
+      } as MedicalMessageInsert;
 
       await medicalChatService.sendMessage(supabase, chatId, userId, messageData);
       return { success: true };

@@ -184,10 +184,10 @@ export async function generateAndSaveReport(
 
   return {
     recordId: (savedRecord as { id: string }).id,
-    report: result.report,
+    report: result.report as unknown as Record<string, unknown>,
     chiefComplaint: result.chiefComplaint,
-    differentialDiagnosis: result.differentialDiagnosis,
-    followUpRecommendations: result.followUpRecommendations,
+    differentialDiagnosis: result.differentialDiagnosis.join(', ') || null,
+    followUpRecommendations: result.followUpRecommendations.join(', ') || null,
     confidence: result.confidence,
     provider: result.provider,
   };

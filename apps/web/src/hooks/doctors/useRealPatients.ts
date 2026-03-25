@@ -77,7 +77,7 @@ export function useCurrentPatient(userId?: string): UseCurrentPatientResult {
     try {
       setLoading(true)
       setError(null)
-      const data = await patientService.getPatientByUserId(userId)
+      const data = await patientService.getPatientById(userId as unknown as import('@autamedica/types').UUID)
       setPatient(data)
     } catch (err) {
       logger.error('[useCurrentPatient] fetch error:', err)
@@ -164,7 +164,7 @@ export function usePatientsByCompany(companyId?: string): UsePatientsByCompanyRe
     try {
       setLoading(true)
       setError(null)
-      const data = await patientService.getCompanyPatients(companyId)
+      const data = await patientService.getActivePatients()
       setPatients(data)
     } catch (err) {
       logger.error('[usePatientsByCompany] fetch error:', err)

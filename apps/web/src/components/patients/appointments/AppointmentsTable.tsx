@@ -72,7 +72,7 @@ export function AppointmentsTable({
         const doctorName = appointment.doctor
           ? `Dr. ${appointment.doctor.first_name ?? ''} ${appointment.doctor.last_name ?? ''}`.trim()
           : null;
-        const isActive = statusKey === 'scheduled' || statusKey === 'confirmed' || statusKey === 'in-progress' || statusKey === 'in_progress';
+        const isActive = statusKey === 'scheduled' || statusKey === 'confirmed' || statusKey === 'in_progress';
 
         return (
           <div

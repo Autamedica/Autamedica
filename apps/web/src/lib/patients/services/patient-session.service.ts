@@ -41,7 +41,8 @@ export const patientSessionService = {
         .select('*')
         .eq('id', user.id)
         .maybeSingle()
-      data = tryLegacy.data as Record<string, unknown> | null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data = tryLegacy.data as any
       error = tryLegacy.error
     }
 
@@ -62,16 +63,17 @@ export const patientSessionService = {
       let inserted: Record<string, unknown> | null = null
       let insertError: Error | null = null
 
-      const insert = await supabase
+      const insert = await (supabase
         .from('profiles')
         .insert({
           user_id: user.id,
           email,
           role: 'patient',
           external_id: user.id,
-        })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any)
         .select('*')
-        .single()
+        .single())
 
       inserted = insert.data as Record<string, unknown> | null
       insertError = insert.error
@@ -79,16 +81,17 @@ export const patientSessionService = {
       if (insertError) {
         logger.warn('[patientSessionService] insert with user_id failed, retrying legacy schema', insertError)
         // Retry legacy schema
-        const legacy = await supabase
+        const legacy = await (supabase
           .from('profiles')
           .insert({
             id: user.id,
             email,
             role: 'patient',
             external_id: user.id,
-          })
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any)
           .select('*')
-          .single()
+          .single())
 
         inserted = legacy.data as Record<string, unknown> | null
         insertError = legacy.error
@@ -107,12 +110,13 @@ export const patientSessionService = {
       }
 
       if (Object.keys(updates).length > 0) {
-        const updateTry = await supabase
+        const updateTry = await (supabase
           .from('profiles')
-          .update(updates)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .update(updates as any)
           .eq(profileRow['user_id'] ? 'user_id' : 'id', user.id)
           .select('*')
-          .single()
+          .single())
 
         const updated = updateTry.data as Record<string, unknown> | null
         const updateError = updateTry.error
@@ -167,13 +171,14 @@ export const patientSessionService = {
     let patientRow = data ?? null
 
     if (!patientRow) {
-      const { data: inserted, error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await (supabase
         .from('patients')
         .insert({
           user_id: userId,
           active: true,
-        })
-        .select('*')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any)
+        .select('*'))
 
       if (insertError) {
         throw insertError
@@ -182,7 +187,8 @@ export const patientSessionService = {
       if (Array.isArray(inserted) && inserted.length > 0) {
         patientRow = inserted[0]
       } else if (inserted && !Array.isArray(inserted)) {
-        patientRow = inserted as Record<string, unknown>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        patientRow = inserted as any
       }
     }
 

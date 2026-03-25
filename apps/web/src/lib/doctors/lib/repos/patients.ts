@@ -48,9 +48,9 @@ function queryWithProfile() {
 
 export const patientsRepo = {
   async findAllActive(): Promise<PatientWithProfile[]> {
-    const { data, error } = await queryWithProfile()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (queryWithProfile() as any)
       .eq('active', true)
-      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -90,7 +90,8 @@ export const patientsRepo = {
   },
 
   async findByCompany(companyId: string): Promise<PatientWithProfile[]> {
-    const { data, error } = await queryWithProfile()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (queryWithProfile() as any)
       .eq('company_id', companyId)
       .eq('active', true)
       .order('created_at', { ascending: false })

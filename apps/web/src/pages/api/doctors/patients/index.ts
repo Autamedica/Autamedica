@@ -3,12 +3,12 @@
  * Path: /api/doctors/patients
  */
 import type { APIRoute } from 'astro'
-import { createServerClient } from '@autamedica/auth/server'
+import { createSupabaseServerClient } from '@/lib/supabase'
 import { patientBackendService } from '@/lib/doctors/services/patient.backend'
 import { logger } from '@autamedica/shared'
 
 export const GET: APIRoute = async ({ request, cookies }) => {
-  const supabase = createServerClient(cookies)
+  const supabase = createSupabaseServerClient(request, cookies)
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (authError || !user) {
@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
 
     // Si pide uno en específico
     if (patientId) {
-      data = await patientBackendService.getPatientById(patientId)
+      data = await patientBackendService.getPatientById(patientId as unknown as import('@autamedica/types').UUID)
     } 
     // Si pide los asignados a un doctor
     else if (doctorUserId) {

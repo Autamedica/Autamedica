@@ -188,7 +188,8 @@ export const quickActionsService = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('No autenticado')
 
-    const { data: membership } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: membership } = await (supabase as any)
       .from('group_memberships')
       .select('id')
       .eq('group_id', postData.groupId)
@@ -197,7 +198,8 @@ export const quickActionsService = {
       .maybeSingle()
 
     if (!membership) {
-      await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
         .from('group_memberships')
         .insert({
           group_id: postData.groupId,
@@ -207,7 +209,8 @@ export const quickActionsService = {
         })
     }
 
-    const { error: insertError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: insertError } = await (supabase as any)
       .from('community_posts')
       .insert({
         group_id: postData.groupId,
