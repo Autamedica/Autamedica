@@ -196,52 +196,21 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             </a>
           </section>
         ) : (
-          <section className="mb-8 flex gap-6 py-4">
-            {/* Consultas gratis */}
-            <a
-              href="/patients/appointments"
-              className="flex items-center gap-4 transition-opacity active:opacity-80"
-            >
-              <span
-                className="text-5xl font-bold leading-none tracking-tight"
-                style={{ color: 'var(--au-accent)' }}
-              >
-                {freeConsults}
-              </span>
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--au-text-secondary)' }}>
-                  {freeConsults === 1 ? 'consulta gratis' : 'consultas gratis'}
-                </p>
-                <p className="text-[11px]" style={{ color: 'var(--au-text-tertiary)' }}>
-                  {freeConsults > 0 ? 'Agendá cuando quieras' : 'Créditos agotados'}
-                </p>
-              </div>
-            </a>
-
-            {/* Separador */}
-            <div className="w-px self-stretch" style={{ background: 'var(--au-border)' }} />
-
-            {/* Médicos que vieron tu historial */}
-            <a
-              href="/patients/anamnesis"
-              className="flex items-center gap-4 transition-opacity active:opacity-80"
-            >
-              <span
-                className="text-5xl font-bold leading-none tracking-tight"
-                style={{ color: 'var(--au-text-tertiary)' }}
-              >
-                {completedConsults}
-              </span>
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--au-text-secondary)' }}>
-                  {completedConsults === 1 ? 'médico vio' : 'médicos vieron'}
-                </p>
-                <p className="text-[11px]" style={{ color: 'var(--au-text-tertiary)' }}>
-                  tu historial clínico
-                </p>
-              </div>
-            </a>
-          </section>
+          <a
+            href="/patients/anamnesis"
+            className="group mb-8 block py-4 transition-opacity active:opacity-80"
+          >
+            <p className="text-base leading-relaxed" style={{ color: 'var(--au-text-secondary)' }}>
+              <span className="font-semibold" style={{ color: 'var(--au-text-primary)' }}>{firstName}</span>
+              , <span style={{ color: 'var(--au-accent)' }}>{completedConsults}</span> {completedConsults === 1 ? 'médico vio' : 'médicos vieron'} tu
+              historial clínico. Al completarlo, más profesionales pueden acompañarte.
+            </p>
+            {freeConsults > 0 && (
+              <p className="mt-2 text-sm font-medium" style={{ color: 'var(--au-accent)' }}>
+                Tenés {freeConsults} {freeConsults === 1 ? 'consulta gratis' : 'consultas gratis'}.
+              </p>
+            )}
+          </a>
         )}
 
         {/* Carousel: Consultas */}
