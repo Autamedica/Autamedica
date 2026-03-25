@@ -12,6 +12,7 @@ export { useRealPatients } from './useRealPatients'
 // Doctor hooks
 export { useAuthenticatedUser } from './useAuthenticatedUser'
 export { useRealDoctors, useCurrentDoctor, useDoctorsBySpecialty } from './useRealDoctors'
+export { useCheckDoctorExists } from './useCheckDoctorExists'
 export { useDoctorStats } from './useDoctorStats'
 
 // AI & Analysis

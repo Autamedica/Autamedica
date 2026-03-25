@@ -1,6 +1,6 @@
 'use client';
 
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient } from '@autamedica/auth';
 import { useEffect } from 'react';
 
 /**
@@ -36,10 +36,7 @@ export function SessionSync() {
 
     // Only process tokens that match JWT format
     if (accessToken && refreshToken && JWT_PATTERN.test(accessToken) && JWT_PATTERN.test(refreshToken)) {
-      const supabase = createBrowserClient(
-        import.meta.env.PUBLIC_SUPABASE_URL,
-        import.meta.env.PUBLIC_SUPABASE_ANON_KEY
-      );
+      const supabase = createBrowserClient();
 
       supabase.auth.setSession({
         access_token: accessToken,

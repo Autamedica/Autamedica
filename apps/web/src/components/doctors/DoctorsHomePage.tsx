@@ -9,10 +9,10 @@ import { QuickNotesModal } from '@/components/doctors/medical/QuickNotesModal'
 import { TelemedicineSignalingPanel } from '@/components/doctors/telemedicine/TelemedicineSignalingPanel'
 import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useCheckDoctorExists } from '@/hooks/doctors/useCheckDoctorExists'
 import { usePatientData } from '@/hooks/doctors/usePatientData'
 import type { Locale } from '@/i18n/index'
 import { getOnboardingStatus } from '@/lib/onboarding-grace'
-import { createBrowserClient } from '@autamedica/auth'
 import { getClientEnvOrDefault, isProduction, logger } from '@autamedica/shared'
 import {
     Activity,
@@ -123,6 +123,8 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   )
   const isBlocked = onboardingStatus.state === 'expired'
 
+  const { exists: doctorExists } = useCheckDoctorExists(user?.id)
+
   useEffect(() => {
     if (authLoading) {
       return
@@ -133,32 +135,8 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
       return
     }
 
-    let cancelled = false
-    const checkOnboarding = async () => {
-      try {
-        const supabase = createBrowserClient()
-        const { data } = await supabase
-          .from('doctors')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        if (!cancelled) {
-          setOnboardingRequired(!data)
-        }
-      } catch {
-        if (!cancelled) {
-          setOnboardingRequired(false)
-        }
-      }
-    }
-
-    void checkOnboarding()
-
-    return () => {
-      cancelled = true
-    }
-  }, [authLoading, user])
+    setOnboardingRequired(doctorExists === false)
+  }, [authLoading, user, doctorExists])
 
   const { session } = useActiveSession()
   const { patient } = usePatientData(session?.patientId ?? null)
