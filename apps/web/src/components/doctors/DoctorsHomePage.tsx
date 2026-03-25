@@ -12,7 +12,7 @@ import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { usePatientData } from '@/hooks/doctors/usePatientData'
 import type { Locale } from '@/i18n/index'
 import { getOnboardingStatus } from '@/lib/onboarding-grace'
-import { createBrowserClient } from '@autamedica/auth/client'
+import { createBrowserClient } from '@autamedica/auth'
 import { getClientEnvOrDefault, isProduction, logger } from '@autamedica/shared'
 import {
     Activity,
@@ -118,8 +118,8 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   const [onboardingRequired, setOnboardingRequired] = useState<boolean | null>(null)
 
   const onboardingStatus = useMemo(
-    () => getOnboardingStatus(user?.onboarding_completed_at, user?.created_at),
-    [user?.onboarding_completed_at, user?.created_at],
+    () => getOnboardingStatus(user?.onboardingCompletedAt, user?.createdAt),
+    [user?.onboardingCompletedAt, user?.createdAt],
   )
   const isBlocked = onboardingStatus.state === 'expired'
 

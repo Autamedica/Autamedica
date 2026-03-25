@@ -1,6 +1,6 @@
 'use client';
 
-import { createBrowserClient } from '@autamedica/auth/client';
+import { createBrowserClient } from '@autamedica/auth';
 import { useEffect } from 'react';
 
 /**

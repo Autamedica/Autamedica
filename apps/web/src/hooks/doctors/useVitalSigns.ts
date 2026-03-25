@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { createBrowserClient } from '@autamedica/auth/client'
+import { createBrowserClient } from '@autamedica/auth'
 import { logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {

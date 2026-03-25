@@ -1,226 +1,140 @@
-'use client';
+/**
+ * Hooks: Doctor UI State.
+ * Consumes doctorService for all business logic and DB access.
+ * Only manages React state (loading, error, data) + event coordination.
+ */
+'use client'
 
-import { createBrowserClient } from '@autamedica/auth/client';
-import { logger } from '@autamedica/shared';
-import type { DoctorWithProfile } from '@autamedica/types';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react'
+import { logger } from '@autamedica/shared'
+import { doctorService } from '@/lib/doctors/services/doctor.service'
+import type { DoctorWithProfile } from '@autamedica/types'
 
 // ─── useCurrentDoctor ────────────────────────────────────────────────────────
-// Usa createBrowserClient directamente — selectActive() usa process.env que no
-// existe en browser/Cloudflare Workers context.
 
 interface UseCurrentDoctorResult {
-  doctor: DoctorWithProfile | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
+  doctor: DoctorWithProfile | null
+  loading: boolean
+  error: string | null
+  refetch: () => void
 }
 
 export function useCurrentDoctor(userId?: string): UseCurrentDoctorResult {
-  const [doctor, setDoctor] = useState<DoctorWithProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
+  const [doctor, setDoctor] = useState<DoctorWithProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
 
-  useEffect(() => { setIsClient(true); }, []);
+  useEffect(() => { setIsClient(true) }, [])
 
   const fetchCurrentDoctor = useCallback(async () => {
     if (!userId || !isClient) {
-      setLoading(false);
-      return;
+      setLoading(false)
+      return
     }
-
-    const supabase = createBrowserClient();
 
     try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('doctors')
-        .select(`
-          id,
-          user_id,
-          specialty,
-          subspecialty,
-          years_experience,
-          consultation_fee,
-          bio,
-          languages,
-          active,
-          created_at,
-          updated_at,
-          profile:profiles!inner(
-            user_id,
-            email,
-            first_name,
-            last_name,
-            role
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('active', true)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      setDoctor(data as unknown as DoctorWithProfile);
+      setLoading(true)
+      setError(null)
+      const data = await doctorService.getDoctorByUserId(userId)
+      setDoctor(data)
     } catch (err) {
-      logger.error('Error fetching current doctor:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar doctor');
+      logger.error('[useCurrentDoctor] fetch error:', err)
+      setError(err instanceof Error ? err.message : 'Error al cargar doctor')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [userId, isClient]);
+  }, [userId, isClient])
 
   useEffect(() => {
-    fetchCurrentDoctor();
-  }, [fetchCurrentDoctor]);
+    void fetchCurrentDoctor()
+  }, [fetchCurrentDoctor])
 
-  return { doctor, loading, error, refetch: fetchCurrentDoctor };
+  return { doctor, loading, error, refetch: fetchCurrentDoctor }
 }
 
 // ─── useRealDoctors ──────────────────────────────────────────────────────────
 
 interface UseDoctorsResult {
-  doctors: DoctorWithProfile[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
+  doctors: DoctorWithProfile[]
+  loading: boolean
+  error: string | null
+  refetch: () => void
 }
 
 export function useRealDoctors(): UseDoctorsResult {
-  const [doctors, setDoctors] = useState<DoctorWithProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
+  const [doctors, setDoctors] = useState<DoctorWithProfile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
 
-  useEffect(() => { setIsClient(true); }, []);
+  useEffect(() => { setIsClient(true) }, [])
 
   const fetchDoctors = useCallback(async () => {
     if (!isClient) {
-      setLoading(false);
-      return;
+      setLoading(false)
+      return
     }
-
-    const supabase = createBrowserClient();
 
     try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('doctors')
-        .select(`
-          id,
-          user_id,
-          specialty,
-          subspecialty,
-          years_experience,
-          consultation_fee,
-          bio,
-          languages,
-          active,
-          created_at,
-          updated_at,
-          profile:profiles!inner(
-            user_id,
-            email,
-            first_name,
-            last_name,
-            role
-          )
-        `)
-        .eq('active', true)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      setDoctors((data ?? []) as unknown as DoctorWithProfile[]);
+      setLoading(true)
+      setError(null)
+      const data = await doctorService.getDoctors()
+      setDoctors(data)
     } catch (err) {
-      logger.error('Error fetching doctors:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar doctores');
+      logger.error('[useRealDoctors] fetch error:', err)
+      setError(err instanceof Error ? err.message : 'Error al cargar doctores')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [isClient]);
+  }, [isClient])
 
   useEffect(() => {
-    fetchDoctors();
-  }, [fetchDoctors]);
+    void fetchDoctors()
+  }, [fetchDoctors])
 
-  return { doctors, loading, error, refetch: fetchDoctors };
+  return { doctors, loading, error, refetch: fetchDoctors }
 }
 
 // ─── useDoctorsBySpecialty ────────────────────────────────────────────────────
 
 interface UseDoctorsBySpecialtyResult {
-  doctors: DoctorWithProfile[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
+  doctors: DoctorWithProfile[]
+  loading: boolean
+  error: string | null
+  refetch: () => void
 }
 
 export function useDoctorsBySpecialty(specialty: string): UseDoctorsBySpecialtyResult {
-  const [doctors, setDoctors] = useState<DoctorWithProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
+  const [doctors, setDoctors] = useState<DoctorWithProfile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
 
-  useEffect(() => { setIsClient(true); }, []);
+  useEffect(() => { setIsClient(true) }, [])
 
   const fetchDoctorsBySpecialty = useCallback(async () => {
     if (!specialty || !isClient) {
-      setLoading(false);
-      return;
+      setLoading(false)
+      return
     }
-
-    const supabase = createBrowserClient();
 
     try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('doctors')
-        .select(`
-          id,
-          user_id,
-          specialty,
-          subspecialty,
-          years_experience,
-          consultation_fee,
-          bio,
-          languages,
-          active,
-          created_at,
-          updated_at,
-          profile:profiles!inner(
-            user_id,
-            email,
-            first_name,
-            last_name,
-            role
-          )
-        `)
-        .eq('specialty', specialty)
-        .eq('active', true)
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      setDoctors((data ?? []) as unknown as DoctorWithProfile[]);
+      setLoading(true)
+      setError(null)
+      const data = await doctorService.getDoctorsBySpecialty(specialty)
+      setDoctors(data)
     } catch (err) {
-      logger.error('Error fetching doctors by specialty:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar doctores');
+      logger.error('[useDoctorsBySpecialty] fetch error:', err)
+      setError(err instanceof Error ? err.message : 'Error al cargar doctores')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [specialty, isClient]);
+  }, [specialty, isClient])
 
   useEffect(() => {
-    fetchDoctorsBySpecialty();
-  }, [fetchDoctorsBySpecialty]);
+    void fetchDoctorsBySpecialty()
+  }, [fetchDoctorsBySpecialty])
 
-  return { doctors, loading, error, refetch: fetchDoctorsBySpecialty };
+  return { doctors, loading, error, refetch: fetchDoctorsBySpecialty }
 }

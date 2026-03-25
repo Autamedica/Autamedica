@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
-import { createBrowserClient } from '@autamedica/auth/client'
 import { useAppointments } from '@autamedica/hooks'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
+import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
 import { StartCallButton } from '../calls/StartCallButton'
 
 interface AppointmentsPanelProps {
@@ -12,55 +13,29 @@ interface AppointmentsPanelProps {
 }
 
 export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
-  const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createBrowserClient> | null>(null)
+  const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof getBrowserSupabaseClient> | null>(null)
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
   const isClientInitializing = supabaseClient === null
 
   useEffect(() => {
-    setSupabaseClient(createBrowserClient())
+    setSupabaseClient(getBrowserSupabaseClient())
   }, [])
 
   const { appointments, loading, error } = useAppointments(supabaseClient, doctorId)
 
-  const resolvePatientNames = useCallback(async () => {
-    if (!supabaseClient || appointments.length === 0) return
+  const resolveNames = useCallback(async () => {
+    if (appointments.length === 0) return
 
     const patientIds = Array.from(new Set(appointments.map(a => a.patient_id).filter(Boolean)))
     if (patientIds.length === 0) return
 
-    const { data: patients } = await supabaseClient
-      .from('patients')
-      .select('id, user_id')
-      .in('id', patientIds)
-
-    if (!patients?.length) return
-
-    const userIds = patients.map(p => p.user_id).filter(Boolean)
-    const { data: profiles } = await supabaseClient
-      .from('profiles')
-      .select('user_id, first_name, last_name')
-      .in('user_id', userIds)
-
-    if (!profiles?.length) return
-
-    const userToName: Record<string, string> = {}
-    for (const p of profiles) {
-      userToName[p.user_id] = `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Paciente'
-    }
-
-    const nameMap: Record<string, string> = {}
-    for (const patient of patients) {
-      if (patient.user_id && userToName[patient.user_id]) {
-        nameMap[patient.id] = userToName[patient.user_id]
-      }
-    }
-
+    const nameMap = await resolvePatientNameMap(patientIds)
     setPatientNames(nameMap)
-  }, [supabaseClient, appointments])
+  }, [appointments])
 
   useEffect(() => {
-    void resolvePatientNames()
-  }, [resolvePatientNames])
+    void resolveNames()
+  }, [resolveNames])
 
   if (isClientInitializing || loading) {
     return (

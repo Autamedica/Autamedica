@@ -44,7 +44,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import type { JSX, ReactNode } from 'react'
 import { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { createBrowserClient } from '@autamedica/auth/client'
+import { signOutLocal } from '@/lib/auth/service'
 
 type TabId = 'video-call' | 'patient-info' | 'medical-history' | 'prescriptions' | 'vital-signs' | 'ai-history'
 
@@ -173,8 +173,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const handleSignOut = useCallback(async () => {
     setSigningOut(true)
     try {
-      const supabase = createBrowserClient()
-      await supabase.auth.signOut()
+      await signOutLocal()
       window.location.href = '/auth/login?portal=doctors'
     } catch {
       setSigningOut(false)

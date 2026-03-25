@@ -1,16 +1,12 @@
 /**
- * Hook migrado al sistema híbrido
- *
- * CAMBIOS:
- * - Usa selectActive() en lugar de supabase directo
- * - Datos retornados en camelCase automáticamente
- * - Auto-filtrado de soft-deleted (deleted_at IS NULL)
- * - Implementa paginación con fetch manual
+ * Hook: Medical History UI State.
+ * Consumes medicalRecordsService for all business logic and DB access.
+ * Only manages React state (loading, error, data) + pagination.
  */
-
 import { useEffect, useState, useCallback } from 'react'
-import { logger, toCamel } from '@autamedica/shared'
-import { createBrowserClient } from '@autamedica/auth/client'
+import { logger } from '@autamedica/shared'
+import { medicalRecordsService } from '@/lib/doctors/services/medical-records.service'
+import type { MedicalRecordsFilter } from '@/lib/doctors/services/medical-records.service'
 import type {
   MedicalRecord,
   UseMedicalHistoryResult,
@@ -23,32 +19,11 @@ interface UseMedicalHistoryOptions {
   filters?: MedicalRecordFilters
 }
 
-// Tipo UI (camelCase) for medical_records - matches DB schema after camelCase transform
-// DB columns: id, patient_id, doctor_id, appointment_id, title, type, content,
-//             date_recorded, attachments, visibility, deleted_at, created_at, updated_at
-interface UiMedicalRecord {
-  id: string;
-  patientId: string | null;
-  doctorId: string | null;
-  appointmentId: string | null;
-  title: string;
-  type: string;
-  content: unknown;
-  dateRecorded: string | null;
-  attachments: unknown | null;
-  visibility: string | null;
-  deletedAt: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-}
-
 export function useMedicalHistory(
   patientId: UUID | null,
   options: UseMedicalHistoryOptions = {}
 ): UseMedicalHistoryResult {
   const { pageSize = 10, filters = {} } = options
-
-  // Serialize filters to a stable string to avoid infinite re-renders from object identity changes
   const filtersKey = JSON.stringify(filters)
 
   const [records, setRecords] = useState<MedicalRecord[]>([])
@@ -75,57 +50,25 @@ export function useMedicalHistory(
     const stableFilters: MedicalRecordFilters = JSON.parse(filtersKey)
 
     try {
-      // Sistema híbrido: selectActive() retorna camelCase automáticamente
-      // DB column: date_recorded (not consultation_date)
-      const supabase = createBrowserClient()
-      const { data: rawData, error: dbError } = await supabase
-        .from('medical_records')
-        .select('*')
-        .is('deleted_at', null)
-        .order('date_recorded', { ascending: false });
-      if (dbError) throw dbError;
-      const allRecords = toCamel<UiMedicalRecord[]>(rawData ?? []);
-
-      // Filtrar por patient_id
-      let filtered = allRecords.filter(r => r.patientId === patientId);
-
-      // Aplicar filtros adicionales
-      // DB column: type (not consultation_type)
-      if (stableFilters.consultation_type) {
-        filtered = filtered.filter(r => r.type === stableFilters.consultation_type);
+      const serviceFilters: MedicalRecordsFilter = {
+        type: stableFilters.consultation_type,
+        dateFrom: stableFilters.date_from,
+        dateTo: stableFilters.date_to,
+        diagnosisContains: stableFilters.diagnosis_contains,
       }
 
-      if (stableFilters.date_from) {
-        filtered = filtered.filter(r => (r.dateRecorded ?? '') >= (stableFilters.date_from ?? ''));
-      }
+      const result = await medicalRecordsService.getByPatient(patientId, serviceFilters, page, pageSize)
 
-      if (stableFilters.date_to) {
-        filtered = filtered.filter(r => (r.dateRecorded ?? '') <= (stableFilters.date_to ?? ''));
-      }
-
-      // content is a JSON field that may contain diagnosis info
-      if (stableFilters.diagnosis_contains) {
-        filtered = filtered.filter(r => {
-          const contentStr = typeof r.content === 'string' ? r.content : JSON.stringify(r.content);
-          return contentStr.toLowerCase().includes((stableFilters.diagnosis_contains ?? '').toLowerCase());
-        });
-      }
-
-      // Paginación manual
-      const startIdx = page * pageSize;
-      const endIdx = (page + 1) * pageSize;
-      const newRecords = filtered.slice(startIdx, endIdx);
+      const newRecords = result.records as unknown as MedicalRecord[]
 
       if (reset) {
-        setRecords(newRecords as unknown as MedicalRecord[]);
+        setRecords(newRecords)
       } else {
-        setRecords(prev => [...prev, ...(newRecords as unknown as MedicalRecord[])]);
+        setRecords(prev => [...prev, ...newRecords])
       }
 
-      // Verificar si hay más páginas
-      setHasMore(endIdx < filtered.length);
-      setCurrentPage(page);
-
+      setHasMore(result.hasMore)
+      setCurrentPage(page)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
       setError(`Error al cargar historial médico: ${errorMessage}`)
@@ -133,7 +76,7 @@ export function useMedicalHistory(
     } finally {
       setLoading(false)
     }
-  }, [patientId, pageSize, filtersKey])
+  }, [patientId, pageSize, filtersKey, isClient])
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) return
@@ -141,7 +84,7 @@ export function useMedicalHistory(
   }, [fetchRecords, currentPage, hasMore, loading])
 
   useEffect(() => {
-    fetchRecords(0, true)
+    void fetchRecords(0, true)
   }, [fetchRecords])
 
   return {

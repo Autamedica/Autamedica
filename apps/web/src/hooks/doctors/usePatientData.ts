@@ -1,17 +1,20 @@
 /**
- * Hook para manejar datos de pacientes con integración Supabase
+ * Hook: Specific patient detail state.
+ * Consumes patientService to centralize DB access.
+ * Only manages React state for a single patient profile.
  */
+'use client'
 
-import { logger } from '@autamedica/shared';
-import { createBrowserClient } from '@autamedica/auth/client';
-import type { PatientProfile, UUID } from '@autamedica/types';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react'
+import { logger } from '@autamedica/shared'
+import { patientService } from '@/lib/doctors/services/patient.service'
+import type { PatientProfile, UUID } from '@autamedica/types'
 
 interface UsePatientDataResult {
-  patient: PatientProfile | null;
-  loading: boolean;
-  error: string | null;
-  refresh?: () => void;
+  patient: PatientProfile | null
+  loading: boolean
+  error: string | null
+  refresh?: () => Promise<void>
 }
 
 export function usePatientData(patientId: UUID | null): UsePatientDataResult {
@@ -20,9 +23,9 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
   const [error, setError] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
 
-  useEffect(() => { setIsClient(true) }, [])
+  useEffect(() => setIsClient(true), [])
 
-  const fetchPatient = useCallback(async () => {
+  const fetchPatient = useCallback(async (): Promise<void> => {
     if (!patientId || !isClient) {
       setPatient(null)
       return
@@ -32,50 +35,25 @@ export function usePatientData(patientId: UUID | null): UsePatientDataResult {
     setError(null)
 
     try {
-      const supabase = createBrowserClient()
-      const { data, error: fetchError } = await supabase
-        .from('patients')
-        .select(`
-          id,
-          user_id,
-          dni,
-          birth_date,
-          gender,
-          blood_type,
-          active,
-          created_at,
-          updated_at,
-          profile:profiles!inner(
-            first_name,
-            last_name,
-            email,
-            phone,
-            avatar_url
-          )
-        `)
-        .eq('id', patientId)
-        .maybeSingle()
-
-      if (fetchError) throw fetchError
-
+      const data = await patientService.getPatientById(patientId)
       setPatient(data as unknown as PatientProfile)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
-      setError(`Error al cargar datos del paciente: ${errorMessage}`)
-      logger.error('[usePatientData] Error:', err instanceof Error ? err.message : err)
+      const message = err instanceof Error ? err.message : 'Error desconocido'
+      setError(`Error al cargar datos del paciente: ${message}`)
+      logger.error('[usePatientData] fetch error:', err)
     } finally {
       setLoading(false)
     }
   }, [patientId, isClient])
 
   useEffect(() => {
-    fetchPatient()
+    void fetchPatient()
   }, [fetchPatient])
 
   return {
     patient,
     loading,
     error,
-    refresh: fetchPatient
+    refresh: fetchPatient,
   }
 }
