@@ -3,7 +3,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { appointmentsService } from '@/lib/patients/services/appointments.service'
-import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
+import { jsonOk, unauthorized, badRequest, notFound, conflict, internalError } from '@/lib/api-helpers'
 import type { AppointmentType } from '@/lib/patients/types/appointment'
 
 export const GET: APIRoute = async ({ request }) => {
@@ -54,8 +54,12 @@ export const POST: APIRoute = async ({ request }) => {
     )
     return jsonOk(created, 201)
   } catch (err) {
-    if (err instanceof Error && (err as NodeJS.ErrnoException & { code?: string }).code === 'DOCTOR_NOT_FOUND') {
+    const errCode = (err as { code?: string }).code
+    if (errCode === 'DOCTOR_NOT_FOUND') {
       return notFound('Doctor not found or inactive')
+    }
+    if (errCode === 'P0001' && String((err as { message?: string }).message ?? '').includes('SCHEDULING_CONFLICT')) {
+      return conflict('El doctor ya tiene una cita en ese horario')
     }
     logger.error('[appointments/POST]', err)
     return internalError()

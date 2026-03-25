@@ -49,5 +49,8 @@ export const notFound = (msg = 'not_found') =>
 export const badRequest = (msg: string) =>
   jsonFail('VALIDATION', msg, 400)
 
+export const conflict = (msg: string) =>
+  jsonFail('CONFLICT', msg, 409)
+
 export const internalError = (msg = 'internal_error') =>
   jsonFail('INTERNAL', msg, 500)
