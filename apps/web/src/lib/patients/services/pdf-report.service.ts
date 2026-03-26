@@ -220,7 +220,7 @@ export function generateConsultationPdf(input: PdfReportInput): PdfResult {
     doc.setFont('helvetica', 'normal')
     for (const dx of content.differentialDiagnosis) {
       checkPageBreak(LINE_HEIGHT)
-      doc.text(`• ${dx}`, MARGIN_LEFT + 4, y)
+      doc.text(`- ${dx}`, MARGIN_LEFT + 4, y)
       y += LINE_HEIGHT
     }
     y += 4
@@ -239,7 +239,7 @@ export function generateConsultationPdf(input: PdfReportInput): PdfResult {
     doc.setFont('helvetica', 'normal')
     for (const rec of content.followUpRecommendations) {
       checkPageBreak(LINE_HEIGHT)
-      doc.text(`• ${rec}`, MARGIN_LEFT + 4, y)
+      doc.text(`- ${rec}`, MARGIN_LEFT + 4, y)
       y += LINE_HEIGHT
     }
     y += 4
@@ -430,7 +430,7 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
 
   const writeBullets = (title: string, items: string[]) => {
     if (items.length === 0) return
-    writeSection(title, items.map(i => `• ${i}`))
+    writeSection(title, items.map(i => `- ${i}`))
   }
 
   // --- Header ---
@@ -483,44 +483,54 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
     const weak = extraction.argenteCoverage.weakOrMissing ?? []
 
     doc.setTextColor(80, 80, 80)
-    doc.text(`Áreas cubiertas: ${adequate.length} de ${adequate.length + weak.length}`, MARGIN_LEFT + 2, y)
-    y += LINE_HEIGHT + 2
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.text(`Areas cubiertas: ${adequate.length} de ${adequate.length + weak.length}`, MARGIN_LEFT + 2, y)
+    y += LINE_HEIGHT
 
     for (const area of adequate) {
-      checkPageBreak(LINE_HEIGHT)
+      checkPageBreak(5)
       doc.setTextColor(34, 139, 34)
-      doc.text(`✓ ${SECTION_NAMES[area] ?? area}`, MARGIN_LEFT + 4, y)
-      y += LINE_HEIGHT
-    }
-    for (const area of weak) {
-      checkPageBreak(LINE_HEIGHT)
-      doc.setTextColor(200, 120, 0)
-      doc.text(`⚠ ${SECTION_NAMES[area] ?? area} — información insuficiente`, MARGIN_LEFT + 4, y)
-      y += LINE_HEIGHT
-    }
-
-    // Show gaps as actionable items for the patient
-    if (weak.length > 0) {
-      y += 4
-      checkPageBreak(20)
-      doc.setFillColor(255, 248, 230)
-      const gapBoxHeight = 8 + weak.length * LINE_HEIGHT
-      doc.rect(MARGIN_LEFT, y - 4, CONTENT_WIDTH, gapBoxHeight, 'F')
-      doc.setTextColor(160, 100, 0)
-      doc.setFont('helvetica', 'bold')
-      doc.text('Para completar tu historia clínica, tu médico necesita:', MARGIN_LEFT + 4, y + 1)
-      y += LINE_HEIGHT + 2
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
-      for (const area of weak) {
-        checkPageBreak(LINE_HEIGHT)
-        const gapLabel = SECTION_NAMES[area] ?? area
-        doc.text(`→ Más detalles sobre: ${gapLabel}`, MARGIN_LEFT + 6, y)
-        y += LINE_HEIGHT
-      }
-      doc.setFontSize(9)
+      const label = SECTION_NAMES[area] ?? area
+      doc.text(`[OK] ${label}`, MARGIN_LEFT + 4, y)
+      y += 5
     }
-    y += 6
+    for (const area of weak) {
+      checkPageBreak(5)
+      doc.setTextColor(200, 120, 0)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      const label = SECTION_NAMES[area] ?? area
+      const truncated = label.length > 60 ? label.slice(0, 57) + '...' : label
+      doc.text(`[!] ${truncated}`, MARGIN_LEFT + 4, y)
+      y += 5
+    }
+
+    // Gaps box — compact
+    if (weak.length > 0) {
+      y += 3
+      checkPageBreak(12 + weak.length * 5)
+      doc.setFillColor(255, 248, 230)
+      doc.rect(MARGIN_LEFT, y - 3, CONTENT_WIDTH, 7 + weak.length * 5, 'F')
+      doc.setTextColor(140, 90, 0)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.text('Para completar tu historia clinica, tu medico necesita:', MARGIN_LEFT + 3, y + 1)
+      y += 6
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      for (const area of weak) {
+        checkPageBreak(5)
+        const gapLabel = SECTION_NAMES[area] ?? area
+        const truncated = gapLabel.length > 70 ? gapLabel.slice(0, 67) + '...' : gapLabel
+        doc.text(`- ${truncated}`, MARGIN_LEFT + 5, y)
+        y += 5
+      }
+    }
+    y += 5
+    doc.setFontSize(9)
   }
 
   // --- Chief complaint ---
@@ -572,13 +582,13 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
     doc.setTextColor(180, 0, 0)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    doc.text('⚠ BANDERAS DE SEGURIDAD', MARGIN_LEFT, y)
+    doc.text('BANDERAS DE SEGURIDAD', MARGIN_LEFT, y)
     y += LINE_HEIGHT + 2
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     for (const flag of extraction.safetyFlags) {
       checkPageBreak(LINE_HEIGHT)
-      doc.text(`• ${flag}`, MARGIN_LEFT + 4, y)
+      doc.text(`- ${flag}`, MARGIN_LEFT + 4, y)
       y += LINE_HEIGHT
     }
     y += 4
