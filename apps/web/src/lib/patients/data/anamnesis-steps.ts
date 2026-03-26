@@ -46,7 +46,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Cada profesión tiene sus propios riesgos de salud',
     category: 'filiacion',
     completed: false,
-    mediaUrl: '/videos/anamnesis/Tu_Trabajo_Tu_Salud_1.4x_h264.mp4',
+    mediaUrl: '/videos/patient_seguimiento.mp4',
     fields: [
       {
         id: 'ocupacion_actual',
@@ -88,7 +88,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Cuéntanos qué te trae por aquí',
     category: 'motivo_consulta',
     completed: false,
-    mediaUrl: '/videos/anamnesis/Comunicar_tus_Síntomas_1.4x_h264.mp4',
+    mediaUrl: '/videos/patient_consulta_virtual.mp4',
     fields: [
       {
         id: 'sintoma_principal',
@@ -129,7 +129,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'El pasado médico explica el presente',
     category: 'antecedentes_personales',
     completed: false,
-    mediaUrl: '/videos/anamnesis/El_mapa_genético_de_tu_salud_1.4x_h264.mp4',
+    mediaUrl: '/videos/patient_historia_clinica.mp4',
     fields: [
       {
         id: 'enfermedades_cronicas',
