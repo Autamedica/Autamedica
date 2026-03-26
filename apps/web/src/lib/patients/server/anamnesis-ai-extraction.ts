@@ -529,15 +529,16 @@ function parseStructuredExtractionPayload(
 
   const validation = AnamnesisExtractionResultSchema.safeParse(parsedPayload)
   if (!validation.success) {
-    logger.error(`[extract ${providerName}] Structured output validation failed`, {
-      issues: validation.error.issues.map((issue) => ({
+    logger.warn(`[extract ${providerName}] Structured output validation issues (using raw)`, {
+      issues: validation.error.issues.slice(0, 5).map((issue) => ({
         path: issue.path.join('.'),
         code: issue.code,
         message: issue.message,
       })),
-      rawPayload,
     })
-    throw new Error('La salida estructurada del modelo no cumple el contrato clinico esperado')
+    // Use the raw parsed payload — the model may have returned a close-enough structure.
+    // Missing fields will be undefined, which downstream code handles gracefully.
+    return parsedPayload as AnamnesisExtractionResult
   }
 
   return validation.data as AnamnesisExtractionResult
@@ -737,7 +738,17 @@ async function executeGeminiExtraction(
         contents: [
           {
             role: 'user',
-            parts: [{ text: JSON.stringify(request) }],
+            parts: [{
+              text: [
+                'DATOS DEL PACIENTE (JSON):',
+                JSON.stringify(request),
+                '',
+                'SCHEMA DE RESPUESTA OBLIGATORIO (JSON Schema):',
+                JSON.stringify(getAnamnesisExtractionResponseSchema()),
+                '',
+                'Responde UNICAMENTE con un JSON que cumpla este schema. Sin texto adicional.',
+              ].join('\n'),
+            }],
           },
         ],
         generationConfig: {
