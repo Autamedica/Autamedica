@@ -6,35 +6,27 @@
 import type { AnamnesisStep } from '../types/anamnesis';
 
 export const anamnesisSteps: AnamnesisStep[] = [
-  // PASO 1: Edad
+  // PASO 1: Fecha de nacimiento (edad se calcula automáticamente)
   {
     id: 'edad',
-    title: '📅 Tu Edad: El Primer Detective',
-    subtitle: 'La edad es la primera pista que guía al médico',
+    title: '📅 Tu Fecha de Nacimiento',
+    subtitle: 'Tu edad se calcula automáticamente a partir de tu fecha de nacimiento',
     category: 'filiacion',
     completed: false,
     story: {
-      intro: 'La edad es el principal factor de contexto. Antes de evaluar un síntoma, tu edad establece la probabilidad estadística de cualquier diagnóstico.',
+      intro: 'La edad es el principal factor de contexto clínico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automáticamente los parámetros de riesgo.',
       why: 'Las enfermedades tienen ventanas de incidencia claras. Un mismo síntoma sugiere causas benignas en la juventud, pero exige descartar riesgos severos en la madurez.',
       example: 'Un dolor de pecho a los 20 años suele ser muscular; a los 60, los protocolos exigen descartar primero un evento cardiovascular.',
       didYouKnow: 'Tu riesgo base cambia cada década. Los protocolos médicos ajustan el uso de pruebas y medicamentos estrictamente según tu edad biológica.',
     },
     fields: [
       {
-        id: 'edad',
-        type: 'number',
-        label: '¿Cuántos años tienes?',
-        placeholder: 'Ejemplo: 45',
-        required: true,
-        validation: { min: 0, max: 120 },
-        educationalNote: 'Tu edad define tu perfil de riesgo clínico base y ajusta los parámetros de diagnóstico médico.',
-      },
-      {
         id: 'fecha_nacimiento',
         type: 'date',
         label: 'Fecha de nacimiento',
         required: true,
-        tooltip: 'Requerida estadísticamente para calibrar farmacocinética y protocolos de vacunación.',
+        tooltip: 'Tu edad se calcula automáticamente. Es necesaria para calibrar farmacocinética y protocolos de vacunación.',
+        educationalNote: 'A partir de tu fecha de nacimiento se define tu perfil de riesgo clínico base y se ajustan los parámetros de diagnóstico médico.',
       },
     ],
   },

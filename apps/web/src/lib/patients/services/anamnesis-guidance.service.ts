@@ -22,6 +22,8 @@ export interface ExtractionGuidance {
   questions: GuidanceQuestion[]
   alerts: string[]
   coverageSummary: string
+  coverage: string[]
+  gaps: string[]
   hasCritical: boolean
 }
 
@@ -106,10 +108,15 @@ export function transformGuidance(
     guidance.coverage.weak,
   )
 
+  const adequateLabels = guidance.coverage.adequate.map(s => SECTION_LABELS[s] ?? s)
+  const weakLabels = guidance.coverage.weak.map(s => SECTION_LABELS[s] ?? s)
+
   return {
     questions,
     alerts,
     coverageSummary,
+    coverage: adequateLabels,
+    gaps: weakLabels,
     hasCritical: result.hasCriticalQuestions,
   }
 }
@@ -118,5 +125,5 @@ export function transformGuidance(
  * Determines if guidance has actionable questions worth showing.
  */
 export function hasActionableGuidance(guidance: ExtractionGuidance): boolean {
-  return guidance.questions.length > 0
+  return guidance.questions.length > 0 || guidance.coverage.length > 0 || guidance.gaps.length > 0
 }

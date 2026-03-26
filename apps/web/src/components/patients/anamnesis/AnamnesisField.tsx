@@ -2,15 +2,164 @@
 // @ts-nocheck
 'use client';
 
-import { CheckCircle, HelpCircle } from 'lucide-react';
-import { useState } from 'react';
+import { CheckCircle, HelpCircle, Mic, MicOff } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnamnesisFieldValue, AnamnesisField as FieldType } from '../../types/anamnesis';
+
+// --- Voice Input Hook ---
+function useVoiceInput(onResult: (text: string) => void) {
+  const [listening, setListening] = useState(false);
+  const [supported, setSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setSupported(!!SR);
+    if (!SR) return;
+
+    const recognition = new SR();
+    recognition.lang = 'es-AR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      onResult(transcript);
+    };
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    return () => { recognition.abort(); };
+  }, [onResult]);
+
+  const toggle = useCallback(() => {
+    if (!recognitionRef.current) return;
+    if (listening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+      setListening(true);
+    }
+  }, [listening]);
+
+  return { listening, supported, toggle };
+}
+
+function VoiceMicButton({ onResult, currentValue }: { onResult: (text: string) => void; currentValue: string }) {
+  const handleResult = useCallback((transcript: string) => {
+    // Append to current value if exists, otherwise replace
+    const newValue = currentValue ? `${currentValue} ${transcript}` : transcript;
+    onResult(newValue);
+  }, [onResult, currentValue]);
+
+  const { listening, supported, toggle } = useVoiceInput(handleResult);
+
+  if (!supported) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all ${
+        listening
+          ? 'bg-red-100 text-red-600 animate-pulse'
+          : 'bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-600'
+      }`}
+      title={listening ? 'Detener grabación' : 'Hablar para completar'}
+    >
+      {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+    </button>
+  );
+}
 
 /** Convert AnamnesisFieldValue to a value safe for HTML input/select/textarea elements */
 function toInputValue(v: AnamnesisFieldValue): string | number | readonly string[] | undefined {
   if (v === null || v === undefined || typeof v === 'boolean') return '';
   if (Array.isArray(v)) return v;
   return v;
+}
+
+const MONTHS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+function BirthDatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  // Local state for partial selections — only call onChange when all 3 are filled
+  const [parts, setParts] = useState(() => {
+    if (!value) return { day: '', month: '', year: '' };
+    const [y, m, d] = value.split('-');
+    return { day: String(parseInt(d || '0') || ''), month: String(parseInt(m || '0') || ''), year: y || '' };
+  });
+
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(() => {
+    const arr: number[] = [];
+    for (let y = currentYear; y >= currentYear - 120; y--) arr.push(y);
+    return arr;
+  }, [currentYear]);
+
+  const daysInMonth = useMemo(() => {
+    const m = parseInt(parts.month);
+    const y = parseInt(parts.year);
+    if (!m) return 31;
+    return new Date(y || currentYear, m, 0).getDate();
+  }, [parts.month, parts.year, currentYear]);
+
+  const handleChange = useCallback((part: 'day' | 'month' | 'year', val: string) => {
+    setParts(prev => {
+      const next = { ...prev, [part]: val };
+      // Emit full date when all 3 parts are selected
+      if (next.day && next.month && next.year) {
+        const d = next.day.padStart(2, '0');
+        const m = next.month.padStart(2, '0');
+        onChange(`${next.year}-${m}-${d}`);
+      }
+      return next;
+    });
+  }, [onChange]);
+
+  const selectClass = 'flex-1 px-3 py-2.5 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900 bg-white cursor-pointer';
+
+  return (
+    <div className="flex gap-2">
+      <select
+        value={parts.day}
+        onChange={(e) => handleChange('day', e.target.value)}
+        className={selectClass}
+        aria-label="Día"
+      >
+        <option value="">Día</option>
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
+          <option key={d} value={String(d)}>{d}</option>
+        ))}
+      </select>
+      <select
+        value={parts.month}
+        onChange={(e) => handleChange('month', e.target.value)}
+        className={selectClass}
+        aria-label="Mes"
+      >
+        <option value="">Mes</option>
+        {MONTHS.map((name, i) => (
+          <option key={i} value={String(i + 1)}>{name}</option>
+        ))}
+      </select>
+      <select
+        value={parts.year}
+        onChange={(e) => handleChange('year', e.target.value)}
+        className={selectClass}
+        aria-label="Año"
+      >
+        <option value="">Año</option>
+        {years.map((y) => (
+          <option key={y} value={String(y)}>{y}</option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 interface AnamnesisFieldProps {
@@ -35,12 +184,29 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
   const renderField = () => {
     switch (field.type) {
       case 'text':
+        return (
+          <div className="relative">
+            <input
+              type="text"
+              value={toInputValue(value) || ''}
+              onChange={(e) => updateFieldValue(e.target.value)}
+              placeholder={field.placeholder}
+              required={field.required}
+              className="w-full px-3 pr-10 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
+            />
+            <VoiceMicButton
+              currentValue={String(toInputValue(value) || '')}
+              onResult={(text) => updateFieldValue(text)}
+            />
+          </div>
+        );
+
       case 'number':
         return (
           <input
-            type={field.type}
+            type="number"
             value={toInputValue(value) || ''}
-            onChange={(e) => updateFieldValue(field.type === 'number' ? Number(e.target.value) : e.target.value)}
+            onChange={(e) => updateFieldValue(Number(e.target.value))}
             placeholder={field.placeholder}
             required={field.required}
             min={field.validation?.min}
@@ -51,14 +217,35 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
 
       case 'textarea':
         return (
+          <div className="relative">
           <textarea
             value={toInputValue(value) || ''}
             onChange={(e) => updateFieldValue(e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
             rows={4}
-            className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900 resize-none"
+            className="w-full px-3 pb-2 pt-2 pr-10 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900 resize-none"
           />
+          <button
+            type="button"
+            className="absolute right-2 top-2 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-600 transition-all"
+            title="Hablar para completar"
+            onClick={() => {
+              const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+              if (!SR) return;
+              const r = new SR();
+              r.lang = 'es-AR';
+              r.onresult = (e) => {
+                const t = e.results[0][0].transcript;
+                const cur = String(toInputValue(value) || '');
+                updateFieldValue(cur ? `${cur} ${t}` : t);
+              };
+              r.start();
+            }}
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+          </div>
         );
 
       case 'select':
@@ -164,15 +351,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
         );
 
       case 'date':
-        return (
-          <input
-            type="date"
-            value={toInputValue(value) || ''}
-            onChange={(e) => updateFieldValue(e.target.value)}
-            required={field.required}
-            className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
-          />
-        );
+        return <BirthDatePicker value={typeof value === 'string' ? value : ''} onChange={updateFieldValue} />;
 
       default:
         return null;

@@ -38,6 +38,7 @@ export default function AnamnesisPage() {
     anamnesis,
     sections,
     progress,
+    patientBirthDate,
     loading: anamnesisLoading,
     error: anamnesisError,
     updateAnamnesis,
@@ -60,6 +61,8 @@ export default function AnamnesisPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [showAnalyzing, setShowAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: { question: string; priority: string }[] } | null>(null);
   const initializedRef = useRef(false);
 
   // Determine page view
@@ -74,24 +77,45 @@ export default function AnamnesisPage() {
 
   // Initialize form data from saved sections and resume position
   useEffect(() => {
-    if (initializedRef.current || sections.length === 0) return;
+    if (initializedRef.current) return;
+    // Wait for data to load (sections may be empty for new anamnesis, but patientBirthDate should be resolved)
+    if (anamnesisLoading) return;
     initializedRef.current = true;
 
     const saved: FormDataMap = {};
     for (const section of sections) {
       saved[section.section] = section.data as Record<string, AnamnesisFieldValue>;
     }
+
+    // Pre-populate birth date from patient record if not already saved
+    if (patientBirthDate && !saved.edad?.fecha_nacimiento) {
+      saved.edad = { ...saved.edad, fecha_nacimiento: patientBirthDate };
+    }
+
     setFormData(saved);
 
+    // Determine starting step
+    let startIndex = 0;
+
+    // Skip step 1 (edad) if birth date already exists in DB — it never changes
+    if (patientBirthDate && anamnesisSteps[0]?.id === 'edad') {
+      startIndex = 1;
+    }
+
+    // Resume from first incomplete step (if further than startIndex)
     if (progress?.completed_sections) {
       const firstIncomplete = anamnesisSteps.findIndex(
         (s) => !progress.completed_sections.includes(s.id),
       );
-      if (firstIncomplete > 0) {
-        setCurrentStepIndex(firstIncomplete);
+      if (firstIncomplete > startIndex) {
+        startIndex = firstIncomplete;
       }
     }
-  }, [sections, progress]);
+
+    if (startIndex > 0) {
+      setCurrentStepIndex(startIndex);
+    }
+  }, [sections, progress, patientBirthDate, anamnesisLoading]);
 
   const currentStep = anamnesisSteps[currentStepIndex];
   const isLastStep = currentStepIndex === anamnesisSteps.length - 1;
@@ -162,15 +186,34 @@ export default function AnamnesisPage() {
 
     const nextIndex = currentStepIndex + 1;
 
-    // Checkpoint 1 (partial): after step 6 — non-blocking
+    // Checkpoint 1 (partial): after step 6 — BLOCKING with visible analysis
     if (currentStepIndex + 1 === PARTIAL_CHECKPOINT_AFTER_STEP) {
       setPendingCheckpoint('partial');
-      // Fire and don't wait — if questions come back, show before advancing
-      triggerExtraction('partial').then(result => {
-        if (result && result.questions.length > 0) {
-          setShowClarification(true);
-        }
+      setShowAnalyzing(true);
+      setAnalysisResult(null);
+
+      // Race: extraction vs 20s timeout
+      const extractionPromise = triggerExtraction('partial');
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 20_000));
+      const result = await Promise.race([extractionPromise, timeoutPromise]);
+
+      if (result) {
+        // Show AI results — user must click "Continuar" to proceed
+        setAnalysisResult({
+          coverage: result.coverage ?? [],
+          gaps: result.gaps ?? [],
+          questions: result.questions ?? [],
+        });
+        return; // Wait for user to dismiss the analysis screen
+      }
+
+      // Extraction failed or timed out — show fallback and let user continue
+      setAnalysisResult({
+        coverage: [],
+        gaps: [],
+        questions: [],
       });
+      return; // Still show the results screen (with "no data" message), user clicks to continue
     }
 
     if ((nextIndex) % PAUSE_EVERY_N_STEPS === 0 && nextIndex < anamnesisSteps.length) {
@@ -180,6 +223,22 @@ export default function AnamnesisPage() {
 
     setCurrentStepIndex(nextIndex);
   }, [saveCurrentStep, isLastStep, currentStepIndex, updateAnamnesis, triggerExtraction]);
+
+  const handleAnalysisContinue = useCallback(() => {
+    const hasQuestions = analysisResult?.questions && analysisResult.questions.length > 0;
+    setShowAnalyzing(false);
+    setAnalysisResult(null);
+
+    if (hasQuestions) {
+      setShowClarification(true);
+      return;
+    }
+
+    setPendingCheckpoint(null);
+    dismissGuidance();
+    // Advance to next step
+    setCurrentStepIndex((prev) => prev + 1);
+  }, [analysisResult, dismissGuidance]);
 
   const handlePrev = useCallback(() => {
     if (!isFirstStep) {
@@ -294,85 +353,116 @@ export default function AnamnesisPage() {
       }
     };
 
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 to-sky-50 p-6">
-        <div className="mx-auto max-w-lg">
-          {/* Header */}
-          <div className="text-center">
-            <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-500" />
-            <h1 className="mt-4 text-2xl font-bold text-stone-900">Tu historia clínica</h1>
-            <p className="mt-2 text-sm text-stone-500">
-              Registrada y disponible para tu equipo médico.
-            </p>
-          </div>
+    const pct = Math.round((completedCount / totalSteps) * 100);
+    const completedDate = anamnesis?.completed_at
+      ? new Date(anamnesis.completed_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+      : null;
 
-          {/* Coverage */}
-          <div className="mt-8 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-stone-800">
-              Cobertura: {completedCount} de {totalSteps} secciones
-            </h2>
-            <div className="mt-1 h-2 overflow-hidden rounded-full bg-stone-100">
+    return (
+      <div className="min-h-screen bg-stone-50">
+        {/* Hero card */}
+        <div className="bg-emerald-600 px-6 pb-16 pt-10 text-white">
+          <div className="mx-auto max-w-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+                <CheckCircle2 className="h-7 w-7" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold">Historia clínica completa</h1>
+                <p className="text-sm text-emerald-100">
+                  {completedDate ? `Completada el ${completedDate}` : 'Lista para tu equipo médico'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4 pb-8">
+          {/* Main action card */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-900/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-stone-400">Documento</p>
+                <p className="mt-0.5 font-semibold text-stone-900">Historia Clínica Digital</p>
+              </div>
+              <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                {pct}% completa
+              </div>
+            </div>
+
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-stone-100">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-all"
-                style={{ width: `${(completedCount / totalSteps) * 100}%` }}
+                style={{ width: `${pct}%` }}
               />
             </div>
 
-            <div className="mt-4 space-y-1.5">
-              {anamnesisSteps.map((step) => {
-                const isComplete = completedSections.includes(step.id);
-                return (
-                  <div key={step.id} className="flex items-center gap-2 text-sm">
-                    {isComplete ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                    ) : (
-                      <div className="h-4 w-4 shrink-0 rounded-full border-2 border-amber-300" />
-                    )}
-                    <span className={isComplete ? 'text-stone-700' : 'text-amber-600'}>
-                      {step.title.replace(/^[^\s]+\s/, '')}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 space-y-3">
             <button
               onClick={handleDownloadPdf}
               disabled={saving}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Download className="h-4 w-4" />
               )}
-              Descargar historia clínica (PDF)
+              Descargar PDF
             </button>
+          </div>
 
+          {/* Quick actions */}
+          <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => {
                 setEditMode(true);
                 setCurrentStepIndex(0);
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-stone-200 bg-white px-5 py-3 text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+              className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-900/5 transition-all hover:shadow-md active:scale-[0.98]"
             >
-              <Plus className="h-4 w-4" />
-              Agregar nueva información
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                <Plus className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-medium text-stone-700">Actualizar datos</span>
             </button>
-
             <a
               href="/"
-              className="block text-center text-sm text-stone-400 transition-colors hover:text-stone-600"
+              className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-900/5 transition-all hover:shadow-md active:scale-[0.98]"
             >
-              Volver al panel
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <ArrowLeft className="h-5 w-5" />
+              </div>
+              <span className="text-xs font-medium text-stone-700">Ir al inicio</span>
             </a>
           </div>
 
+          {/* Sections summary — collapsible style */}
+          <details className="group rounded-2xl bg-white shadow-sm ring-1 ring-stone-900/5">
+            <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-semibold text-stone-800">
+              <span>Secciones completadas</span>
+              <span className="text-xs font-normal text-stone-400 group-open:hidden">{completedCount}/{totalSteps}</span>
+            </summary>
+            <div className="space-y-0.5 px-5 pb-4">
+              {anamnesisSteps.map((step, i) => {
+                const isComplete = completedSections.includes(step.id);
+                return (
+                  <div key={step.id} className="flex items-center gap-3 rounded-lg py-1.5">
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                      isComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {isComplete ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    </div>
+                    <span className="text-sm text-stone-600">
+                      {step.title.replace(/^[^\s]+\s/, '')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+
           {saveError && (
-            <p className="mt-4 text-center text-xs text-red-600">{saveError}</p>
+            <div className="rounded-xl bg-red-50 p-3 text-center text-xs text-red-600">{saveError}</div>
           )}
         </div>
       </div>
@@ -583,6 +673,87 @@ export default function AnamnesisPage() {
           </button>
         </div>
       </footer>
+
+      {/* AI Analysis checkpoint overlay */}
+      {showAnalyzing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-sky-50">
+          <div className="mx-auto max-w-lg px-6 text-center">
+            {!analysisResult ? (
+              // Loading state
+              <div className="space-y-6">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+                  <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-stone-900">AutaMedica está analizando tus respuestas</h2>
+                  <p className="mt-2 text-sm text-stone-600">
+                    Estamos revisando tu historia clínica para asegurarnos de que no falte información importante para tu médico.
+                  </p>
+                </div>
+                <div className="flex justify-center gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce"
+                      style={{ animationDelay: `${i * 0.15}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              // Results state
+              <div className="space-y-6 text-left">
+                <div className="text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <h2 className="mt-3 text-xl font-bold text-stone-900">Análisis completado</h2>
+                  <p className="mt-1 text-sm text-stone-600">Llevás la mitad de tu historia clínica</p>
+                </div>
+
+                {analysisResult.coverage.length > 0 && (
+                  <div className="rounded-xl border border-emerald-200 bg-white p-4">
+                    <h3 className="text-sm font-semibold text-emerald-700 mb-2">Áreas cubiertas</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.coverage.map((area) => (
+                        <span key={area} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                          <Check className="h-3 w-3" /> {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {analysisResult.gaps.length > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <h3 className="text-sm font-semibold text-amber-700 mb-2">Tu médico necesitará más detalle en</h3>
+                    <ul className="space-y-1">
+                      {analysisResult.gaps.map((gap) => (
+                        <li key={gap} className="text-sm text-amber-800 flex items-start gap-2">
+                          <span className="text-amber-500 mt-0.5">●</span> {gap}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {analysisResult.coverage.length === 0 && analysisResult.gaps.length === 0 && (
+                  <div className="rounded-xl border border-stone-200 bg-white p-4 text-center">
+                    <p className="text-sm text-stone-600">Tus respuestas se registraron correctamente. Continuá con los pasos restantes.</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleAnalysisContinue}
+                  className="w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                >
+                  Continuar con mi historia clínica →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* AI Clarification overlay */}
       {showClarification && guidance && (

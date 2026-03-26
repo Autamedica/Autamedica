@@ -41,6 +41,7 @@ interface ApiResponse {
   anamnesis: ApiAnamnesis;
   sections: ApiSection[];
   progress: ApiProgress;
+  patientBirthDate?: string | null;
 }
 
 export interface AnamnesisState {
@@ -53,6 +54,7 @@ interface UseAnamnesisReturn {
   anamnesis: ApiAnamnesis | null;
   sections: ApiSection[];
   progress: ApiProgress | null;
+  patientBirthDate: string | null;
   loading: boolean;
   error: string | null;
   createAnamnesis: (initial?: Partial<ApiAnamnesis>) => Promise<ApiAnamnesis | null>;
@@ -65,6 +67,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
   const [anamnesis, setAnamnesis] = useState<ApiAnamnesis | null>(null);
   const [sections, setSections] = useState<ApiSection[]>([]);
   const [progress, setProgress] = useState<ApiProgress | null>(null);
+  const [patientBirthDate, setPatientBirthDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +79,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
       setAnamnesis(data.anamnesis);
       setSections(data.sections);
       setProgress(data.progress);
+      if (data.patientBirthDate) setPatientBirthDate(data.patientBirthDate);
       return data;
     } catch (err) {
       logger.error('Error fetching anamnesis:', err);
@@ -147,6 +151,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
     anamnesis,
     sections,
     progress,
+    patientBirthDate,
     loading,
     error,
     createAnamnesis,
