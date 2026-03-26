@@ -11,7 +11,6 @@ import {
   Clock,
   Video,
   MapPin,
-  ExternalLink,
   Star,
   Stethoscope,
   UserRound,
@@ -86,9 +85,6 @@ export function AppointmentsTable({
           statusKey === 'confirmed' ||
           statusKey === 'in_progress';
         const isTelemedicine = isTelemedicineAppointment(appointment);
-        const hasExternalMeetingUrl = Boolean(
-          appointment.meeting_url && /^https?:\/\//i.test(appointment.meeting_url),
-        );
         const entryUrl = buildPatientTelemedicineEntryUrl(appointment.id);
         const isJoining = joiningAppointmentId === appointment.id;
 
@@ -170,14 +166,11 @@ export function AppointmentsTable({
                 )}
                 {isTelemedicine && isActive && !onJoinTelemedicine && (
                   <a
-                    href={hasExternalMeetingUrl ? appointment.meeting_url ?? entryUrl : entryUrl}
-                    target={hasExternalMeetingUrl ? '_blank' : undefined}
-                    rel={hasExternalMeetingUrl ? 'noopener noreferrer' : undefined}
+                    href={entryUrl}
                     className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-stone-800 active:scale-[0.98]"
                   >
                     <Video className="h-4 w-4" />
                     Entrar a la videollamada
-                    {hasExternalMeetingUrl && <ExternalLink className="h-3 w-3 opacity-60" />}
                   </a>
                 )}
                 {appointment.status === 'scheduled' && (
