@@ -314,3 +314,273 @@ export function generateConsultationPdf(input: PdfReportInput): PdfResult {
     filename,
   }
 }
+
+// ============================================================
+// Anamnesis PDF — Historia clínica del paciente
+// ============================================================
+
+export interface AnamnesisPdfInput {
+  patient: {
+    name: string
+    age: number | null
+    gender: string | null
+  }
+  anamnesis: {
+    id: string
+    completedAt: string | null
+    completionPercentage: number
+  }
+  extraction: {
+    chiefComplaint?: { rawText?: string | null; normalizedMedicalText?: string | null } | null
+    presentIllness?: { clinicalNarrative?: string; chronology?: string | null; severity?: string | null; associatedSymptoms?: string[]; aggravatingFactors?: string[]; relievingFactors?: string[]; treatmentsTried?: string[] } | null
+    personalHistory?: { physiological?: string[]; pathological?: string[]; lifestyleAndContext?: string[] } | null
+    familyHistory?: string[] | null
+    reviewOfSystems?: Record<string, string[]> | null
+    argenteCoverage?: { adequatelyCovered?: string[]; weakOrMissing?: string[] } | null
+    nextQuestions?: { question: string; rationale: string; priority: string }[] | null
+    safetyFlags?: string[] | null
+    normalizedOpenFields?: Record<string, unknown> | null
+  } | null
+  sections: { section: string; data: Record<string, unknown>; completed: boolean }[]
+}
+
+const SECTION_NAMES: Record<string, string> = {
+  motivo_consulta: 'Motivo de consulta',
+  enfermedad_actual: 'Enfermedad actual',
+  antecedentes_personales: 'Antecedentes personales',
+  antecedentes_familiares: 'Antecedentes familiares',
+  revision_sistemas: 'Revisión por sistemas',
+  habitos: 'Hábitos',
+  medicamentos: 'Medicamentos',
+  alergias: 'Alergias',
+  cardiovascular: 'Sistema cardiovascular',
+  respiratorio: 'Sistema respiratorio',
+  digestivo: 'Sistema digestivo',
+  genitourinario: 'Sistema genitourinario',
+  musculoesqueletico: 'Sistema musculoesquelético',
+}
+
+export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
+  const { patient, anamnesis, extraction, sections } = input
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  let y = 20
+
+  const addPage = () => { doc.addPage(); y = 20 }
+  const checkPageBreak = (needed: number) => { if (y + needed > 270) addPage() }
+
+  const writeSection = (title: string, lines: string[]) => {
+    if (lines.length === 0) return
+    checkPageBreak(20)
+    doc.setFillColor(245, 245, 245)
+    doc.rect(MARGIN_LEFT, y - 4, CONTENT_WIDTH, 8, 'F')
+    doc.setTextColor(16, 95, 67)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text(title, MARGIN_LEFT + 2, y + 1)
+    y += 10
+    doc.setTextColor(40, 40, 40)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    for (const line of lines) {
+      const wrapped = doc.splitTextToSize(line, CONTENT_WIDTH - 4)
+      for (const w of wrapped) {
+        checkPageBreak(LINE_HEIGHT)
+        doc.text(w, MARGIN_LEFT + 2, y)
+        y += LINE_HEIGHT
+      }
+    }
+    y += 4
+  }
+
+  const writeBullets = (title: string, items: string[]) => {
+    if (items.length === 0) return
+    writeSection(title, items.map(i => `• ${i}`))
+  }
+
+  // --- Header ---
+  doc.setFillColor(16, 95, 67)
+  doc.rect(0, 0, PAGE_WIDTH, 35, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(18)
+  doc.setFont('helvetica', 'bold')
+  doc.text('AutaMedica', MARGIN_LEFT, 15)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.text('Historia Clínica del Paciente', MARGIN_LEFT, 23)
+  doc.setFontSize(8)
+  doc.text(`Generado: ${formatDate(new Date().toISOString())}`, MARGIN_LEFT, 30)
+  doc.text(`ID: ${anamnesis.id.slice(0, 8)}`, PAGE_WIDTH - MARGIN_RIGHT, 30, { align: 'right' })
+  y = 45
+
+  // --- Patient info ---
+  doc.setTextColor(60, 60, 60)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.text('PACIENTE', MARGIN_LEFT, y)
+  doc.setFont('helvetica', 'normal')
+  y += LINE_HEIGHT
+  doc.text(`Nombre: ${patient.name}`, MARGIN_LEFT, y)
+  if (patient.age) doc.text(`Edad: ${patient.age} años`, MARGIN_LEFT + 90, y)
+  y += LINE_HEIGHT
+  if (patient.gender) doc.text(`Género: ${patient.gender}`, MARGIN_LEFT, y)
+  doc.text(`Completada: ${formatDate(anamnesis.completedAt)}`, MARGIN_LEFT + 90, y)
+  y += LINE_HEIGHT
+  doc.text(`Progreso: ${anamnesis.completionPercentage}%`, MARGIN_LEFT, y)
+  y += LINE_HEIGHT + 4
+
+  doc.setDrawColor(200, 200, 200)
+  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y)
+  y += 8
+
+  // --- Coverage summary ---
+  if (extraction?.argenteCoverage) {
+    checkPageBreak(30)
+    doc.setTextColor(16, 95, 67)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('COBERTURA SEMIOLÓGICA (Argente-Álvarez)', MARGIN_LEFT, y)
+    y += LINE_HEIGHT + 2
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+
+    const adequate = extraction.argenteCoverage.adequatelyCovered ?? []
+    const weak = extraction.argenteCoverage.weakOrMissing ?? []
+
+    for (const area of adequate) {
+      checkPageBreak(LINE_HEIGHT)
+      doc.setTextColor(34, 139, 34)
+      doc.text(`✓ ${SECTION_NAMES[area] ?? area}`, MARGIN_LEFT + 4, y)
+      y += LINE_HEIGHT
+    }
+    for (const area of weak) {
+      checkPageBreak(LINE_HEIGHT)
+      doc.setTextColor(200, 120, 0)
+      doc.text(`⚠ ${SECTION_NAMES[area] ?? area} — información insuficiente`, MARGIN_LEFT + 4, y)
+      y += LINE_HEIGHT
+    }
+    y += 6
+  }
+
+  // --- Chief complaint ---
+  if (extraction?.chiefComplaint?.normalizedMedicalText) {
+    writeSection('MOTIVO DE CONSULTA', [extraction.chiefComplaint.normalizedMedicalText])
+  }
+
+  // --- Present illness ---
+  if (extraction?.presentIllness?.clinicalNarrative) {
+    const pi = extraction.presentIllness
+    const lines: string[] = [pi.clinicalNarrative]
+    if (pi.chronology) lines.push(`Cronología: ${pi.chronology}`)
+    if (pi.severity) lines.push(`Severidad: ${pi.severity}`)
+    if (pi.associatedSymptoms?.length) lines.push(`Síntomas asociados: ${pi.associatedSymptoms.join(', ')}`)
+    if (pi.aggravatingFactors?.length) lines.push(`Agravantes: ${pi.aggravatingFactors.join(', ')}`)
+    if (pi.relievingFactors?.length) lines.push(`Aliviantes: ${pi.relievingFactors.join(', ')}`)
+    if (pi.treatmentsTried?.length) lines.push(`Tratamientos previos: ${pi.treatmentsTried.join(', ')}`)
+    writeSection('ENFERMEDAD ACTUAL', lines)
+  }
+
+  // --- Personal history ---
+  if (extraction?.personalHistory) {
+    const ph = extraction.personalHistory
+    const lines: string[] = []
+    if (ph.physiological?.length) lines.push(`Fisiológicos: ${ph.physiological.join(', ')}`)
+    if (ph.pathological?.length) lines.push(`Patológicos: ${ph.pathological.join(', ')}`)
+    if (ph.lifestyleAndContext?.length) lines.push(`Estilo de vida: ${ph.lifestyleAndContext.join(', ')}`)
+    writeSection('ANTECEDENTES PERSONALES', lines)
+  }
+
+  // --- Family history ---
+  writeBullets('ANTECEDENTES FAMILIARES', extraction?.familyHistory ?? [])
+
+  // --- Review of systems ---
+  if (extraction?.reviewOfSystems) {
+    const ros = extraction.reviewOfSystems
+    const lines: string[] = []
+    for (const [system, findings] of Object.entries(ros)) {
+      if (Array.isArray(findings) && findings.length > 0) {
+        lines.push(`${SECTION_NAMES[system] ?? system}: ${findings.join(', ')}`)
+      }
+    }
+    writeSection('REVISIÓN POR SISTEMAS', lines)
+  }
+
+  // --- Safety flags ---
+  if (extraction?.safetyFlags?.length) {
+    checkPageBreak(20)
+    doc.setTextColor(180, 0, 0)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.text('⚠ BANDERAS DE SEGURIDAD', MARGIN_LEFT, y)
+    y += LINE_HEIGHT + 2
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    for (const flag of extraction.safetyFlags) {
+      checkPageBreak(LINE_HEIGHT)
+      doc.text(`• ${flag}`, MARGIN_LEFT + 4, y)
+      y += LINE_HEIGHT
+    }
+    y += 4
+  }
+
+  // --- Raw sections (what patient actually entered) ---
+  checkPageBreak(15)
+  doc.setTextColor(16, 95, 67)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('DATOS INGRESADOS POR EL PACIENTE', MARGIN_LEFT, y)
+  y += LINE_HEIGHT + 4
+
+  for (const section of sections) {
+    const label = SECTION_NAMES[section.section] ?? section.section
+    const entries = Object.entries(section.data).filter(([, v]) => v !== null && v !== '' && v !== undefined)
+    if (entries.length === 0) continue
+
+    checkPageBreak(15)
+    doc.setTextColor(80, 80, 80)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`${label} ${section.completed ? '✓' : '○'}`, MARGIN_LEFT + 2, y)
+    y += LINE_HEIGHT
+
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(60, 60, 60)
+    for (const [key, value] of entries) {
+      const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value)
+      const text = `${key}: ${displayValue}`
+      const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH - 8)
+      for (const w of wrapped) {
+        checkPageBreak(LINE_HEIGHT)
+        doc.text(w, MARGIN_LEFT + 6, y)
+        y += LINE_HEIGHT
+      }
+    }
+    y += 3
+  }
+
+  // --- Footer ---
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setDrawColor(200, 200, 200)
+    doc.line(MARGIN_LEFT, 280, PAGE_WIDTH - MARGIN_RIGHT, 280)
+    doc.setTextColor(150, 150, 150)
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Documento confidencial — Ley 26.529 de Derechos del Paciente', MARGIN_LEFT, 285)
+    doc.text(`Página ${i} de ${pageCount}`, PAGE_WIDTH - MARGIN_RIGHT, 285, { align: 'right' })
+    doc.text('Historia clínica generada con asistencia de IA — Sujeta a validación médica', MARGIN_LEFT, 289)
+  }
+
+  const buffer = doc.output('arraybuffer')
+  const dateSlug = (anamnesis.completedAt ?? '').slice(0, 10).replace(/-/g, '')
+  const filename = `historia-clinica-${dateSlug}-${anamnesis.id.slice(0, 8)}.pdf`
+
+  logger.info('[PdfReportService] Generated anamnesis PDF', {
+    anamnesisId: anamnesis.id,
+    pages: pageCount,
+    bytes: buffer.byteLength,
+    hasExtraction: !!extraction,
+  })
+
+  return { buffer: new Uint8Array(buffer), filename }
+}

@@ -213,8 +213,8 @@ apps/
   signaling-server/       # WebRTC signaling
   clinical-ai-orchestrator/
   reminder-worker/
-  mobile/
-  android/
+  mobile/                 # espacio reservado para convergencia móvil Android+iOS
+  android/                # implementación móvil actual para validar el canal mobile
 packages/
   types/         # @autamedica/types — 190+ tipos TypeScript
   shared/        # @autamedica/shared — utils, env validation, logger
@@ -224,6 +224,14 @@ packages/
   tailwind-config/ # @autamedica/tailwind-config — preset Tailwind
   telemedicine/  # @autamedica/telemedicine — WebRTC engine
 ```
+
+### Lectura vigente del sistema
+
+- La videollamada se está desarrollando como una capacidad **web + mobile**.
+- `apps/web` y el contrato compartido de `packages/telemedicine` son la referencia funcional principal.
+- `apps/android` hoy representa el runtime móvil real para validar cámara, micrófono, audio y signaling en contexto móvil.
+- No dividir decisiones de producto o arquitectura entre Android e iOS salvo cuando una restricción de plataforma lo obligue.
+- `apps/mobile` no debe interpretarse como otro frente activo separado; es una reserva para futura convergencia del canal móvil.
 
 ### Arquitectura de Capas (OBLIGATORIA)
 
