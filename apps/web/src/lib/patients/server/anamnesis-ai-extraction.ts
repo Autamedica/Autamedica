@@ -711,6 +711,23 @@ async function executeOpenAiExtraction(
   }
 }
 
+/**
+ * Gemini API rejects `additionalProperties` in response_schema.
+ * Strip it recursively so the schema is compatible.
+ */
+function stripAdditionalProperties(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(stripAdditionalProperties)
+  if (obj && typeof obj === 'object') {
+    const result: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(obj)) {
+      if (key === 'additionalProperties') continue
+      result[key] = stripAdditionalProperties(value)
+    }
+    return result
+  }
+  return obj
+}
+
 async function executeGeminiExtraction(
   target: ExtractionTarget,
   request: AnamnesisExtractionRequest,
@@ -744,7 +761,7 @@ async function executeGeminiExtraction(
           temperature: 0,
           seed: 1,
           responseMimeType: 'application/json',
-          responseSchema: getAnamnesisExtractionResponseSchema(),
+          responseSchema: stripAdditionalProperties(getAnamnesisExtractionResponseSchema()),
         },
       }),
     },
