@@ -63,12 +63,12 @@ function VersionTimeline({ onDownload }: { onDownload: (version?: number) => voi
   if (!loaded || versions.length === 0) return null;
 
   return (
-    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-stone-900/5">
-      <div className="p-5 pb-3">
-        <h3 className="text-sm font-semibold text-stone-800">Historial de tu historia clínica</h3>
-        <p className="mt-0.5 text-xs text-stone-400">{versions.length} {versions.length === 1 ? 'versión' : 'versiones'}</p>
-      </div>
-      <div className="space-y-0 px-5 pb-4">
+    <details className="group">
+      <summary className="flex cursor-pointer items-center justify-between rounded-xl px-1 py-2 text-xs font-semibold text-stone-400 hover:text-stone-600">
+        <span>Historial de versiones</span>
+        <span className="text-[10px] group-open:hidden">{versions.length}</span>
+      </summary>
+      <div className="space-y-0 pt-2">
         {versions.map((v, i) => {
           const rel = RELEVANCE_CONFIG[v.relevance ?? 'routine'] ?? RELEVANCE_CONFIG.routine;
           const date = new Date(v.created_at).toLocaleDateString('es-AR', {
@@ -120,7 +120,7 @@ function VersionTimeline({ onDownload }: { onDownload: (version?: number) => voi
           );
         })}
       </div>
-    </div>
+    </details>
   );
 }
 
@@ -452,115 +452,126 @@ export default function AnamnesisPage() {
       }
     };
 
-    const pct = Math.round((completedCount / totalSteps) * 100);
     const completedDate = anamnesis?.completed_at
       ? new Date(anamnesis.completed_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
       : null;
 
+    const SECTION_SHORT_LABELS: Record<string, string> = {
+      edad: 'Edad',
+      ocupacion: 'Trabajo',
+      motivo_consulta: 'Motivo',
+      enfermedades_previas: 'Enfermedades',
+      medicamentos: 'Medicamentos',
+      alergias: 'Alergias',
+      antecedentes_familiares: 'Familia',
+      habitos: 'Hábitos',
+      cardiovascular: 'Corazón',
+      respiratorio: 'Pulmones',
+      digestivo: 'Digestivo',
+      genitourinario: 'Urinario',
+      resumen_final: 'Resumen',
+    };
+
     return (
-      <div className="min-h-screen bg-stone-50">
-        {/* Hero card */}
-        <div className="bg-emerald-600 px-6 pb-16 pt-10 text-white">
-          <div className="mx-auto max-w-lg">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
-                <CheckCircle2 className="h-7 w-7" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">Historia clínica completa</h1>
-                <p className="text-sm text-emerald-100">
-                  {completedDate ? `Completada el ${completedDate}` : 'Lista para tu equipo médico'}
-                </p>
-              </div>
+      <div className="min-h-screen bg-white">
+        {/* Hero — video background, white text, immersive */}
+        <div className="relative overflow-hidden bg-black">
+          <video
+            className="absolute inset-0 h-full w-full object-cover opacity-40"
+            autoPlay
+            muted
+            loop
+            playsInline
+          >
+            <source src="/videos/hero_background.mp4" type="video/mp4" />
+          </video>
+          <div className="relative px-6 pb-10 pt-12">
+            <div className="mx-auto max-w-lg">
+              <p className="text-sm font-medium text-white/60">
+                {completedDate ?? 'Completada'}
+              </p>
+              <h1 className="mt-1 text-3xl font-black text-white">
+                Tu historia <span className="text-cyan-400">clínica</span>
+              </h1>
             </div>
           </div>
         </div>
 
-        <div className="mx-auto -mt-10 max-w-lg space-y-4 px-4 pb-8">
-          {/* Main action card */}
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-900/5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-stone-400">Documento</p>
-                <p className="mt-0.5 font-semibold text-stone-900">Historia Clínica Digital</p>
-              </div>
-              <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                {pct}% completa
-              </div>
+        <div className="mx-auto max-w-lg space-y-4 px-4 pb-8 pt-6">
+          {/* Primary CTA — cyan accent on white */}
+          <button
+            onClick={() => handleDownloadPdf()}
+            disabled={saving}
+            className="flex w-full items-center gap-4 rounded-2xl bg-cyan-500 p-5 text-left text-white shadow-lg shadow-cyan-500/20 transition-all hover:bg-cyan-600 active:scale-[0.97] disabled:opacity-50"
+          >
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20">
+              {saving ? <Loader2 className="h-7 w-7 animate-spin" /> : <Download className="h-7 w-7" />}
             </div>
-
-            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-stone-100">
-              <div
-                className="h-full rounded-full bg-emerald-500 transition-all"
-                style={{ width: `${pct}%` }}
-              />
+            <div className="min-w-0">
+              <p className="text-lg font-bold leading-tight">Descargar PDF</p>
+              <p className="text-sm text-white/70">Historia clínica completa</p>
             </div>
+          </button>
 
+          {/* Actions — clean black/white with cyan accent */}
+          <div className="grid grid-cols-3 gap-3">
             <button
-              onClick={handleDownloadPdf}
-              disabled={saving}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50"
+              onClick={() => { setEditMode(true); setCurrentStepIndex(0); }}
+              className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
             >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              Descargar PDF
-            </button>
-          </div>
-
-          {/* Quick actions */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => {
-                setEditMode(true);
-                setCurrentStepIndex(0);
-              }}
-              className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-900/5 transition-all hover:shadow-md active:scale-[0.98]"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-                <Plus className="h-5 w-5" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white">
+                <Plus className="h-6 w-6" />
               </div>
-              <span className="text-xs font-medium text-stone-700">Actualizar datos</span>
+              <span className="text-xs font-bold text-stone-900">Actualizar</span>
             </button>
             <a
-              href="/"
-              className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-900/5 transition-all hover:shadow-md active:scale-[0.98]"
+              href="/patients/dashboard"
+              className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <ArrowLeft className="h-5 w-5" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white">
+                <ArrowLeft className="h-6 w-6" />
               </div>
-              <span className="text-xs font-medium text-stone-700">Ir al inicio</span>
+              <span className="text-xs font-bold text-stone-900">Mi panel</span>
+            </a>
+            <a
+              href="/patients/appointments?type=telemedicine"
+              className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500 text-white">
+                <PlayCircle className="h-6 w-6" />
+              </div>
+              <span className="text-xs font-bold text-stone-900">Consultar</span>
             </a>
           </div>
 
-          {/* Sections summary — collapsible style */}
-          <details className="group rounded-2xl bg-white shadow-sm ring-1 ring-stone-900/5">
-            <summary className="flex cursor-pointer items-center justify-between p-5 text-sm font-semibold text-stone-800">
-              <span>Secciones completadas</span>
-              <span className="text-xs font-normal text-stone-400 group-open:hidden">{completedCount}/{totalSteps}</span>
+          {/* Secondary: collapsed by default */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between rounded-xl px-1 py-2 text-xs font-semibold text-stone-400 hover:text-stone-600">
+              <span>Ver detalle de secciones</span>
+              <span className="text-[10px] group-open:hidden">{completedCount}/{totalSteps}</span>
             </summary>
-            <div className="space-y-0.5 px-5 pb-4">
-              {anamnesisSteps.map((step, i) => {
+            <div className="flex flex-wrap gap-2 pt-2">
+              {anamnesisSteps.map((step) => {
                 const isComplete = completedSections.includes(step.id);
+                const label = SECTION_SHORT_LABELS[step.id] ?? step.id;
                 return (
-                  <div key={step.id} className="flex items-center gap-3 rounded-lg py-1.5">
-                    <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                      isComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {isComplete ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                    </div>
-                    <span className="text-sm text-stone-600">
-                      {step.title.replace(/^[^\s]+\s/, '')}
-                    </span>
-                  </div>
+                  <span
+                    key={step.id}
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ${
+                      isComplete
+                        ? 'bg-black text-white'
+                        : 'bg-stone-100 text-stone-400'
+                    }`}
+                  >
+                    {isComplete && <Check className="h-3 w-3" />}
+                    {label}
+                  </span>
                 );
               })}
             </div>
           </details>
 
-          {/* Version timeline */}
+          {/* Version history: collapsed */}
           <VersionTimeline onDownload={handleDownloadPdf} />
 
           {saveError && (

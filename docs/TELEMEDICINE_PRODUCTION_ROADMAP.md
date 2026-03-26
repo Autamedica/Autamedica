@@ -16,6 +16,12 @@ productivo 1:1, confiable, trazable y apto para uso clínico real:
 
 ## Estado Actual
 
+### Referencia operativa actual
+
+Para leer el estado real del flujo web segun las 7 capas del repo, usar:
+
+- [`TELEMEDICINE_WEB_7_LAYER_MAP.md`](/home/edu/Autamedica/docs/TELEMEDICINE_WEB_7_LAYER_MAP.md)
+
 ### Lo que ya funciona
 
 - Hay videollamada WebRTC simultanea entre medico y paciente en rutas de prueba usando

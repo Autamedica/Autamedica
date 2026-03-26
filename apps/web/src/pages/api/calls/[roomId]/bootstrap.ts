@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
-import { badRequest, forbidden, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
+import { badRequest, conflict, forbidden, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 import { callSessionBackendService } from '@/lib/calls/services/call-session.backend'
 
 export const GET: APIRoute = async ({ request, params }) => {

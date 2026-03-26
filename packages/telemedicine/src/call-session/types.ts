@@ -32,5 +32,6 @@ export interface CallSessionBootstrap {
   waitingRoom: {
     enabled: boolean
     message?: string
+    deadlineAt?: string
   }
 }

@@ -2,6 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { callResponseRepo } from '@/lib/calls/repos/call-response.repo'
+import {
+  resolvePersistCallStatus,
+  type PersistableCallStatus,
+} from '@/lib/calls/services/call-status-rules'
 
 type Db = SupabaseClient<Database>
 
@@ -13,7 +17,7 @@ interface CallStatusViewer {
 
 export interface PersistCallStatusRequest {
   callId: string
-  status: 'connecting' | 'connected' | 'ended'
+  status: PersistableCallStatus
   reason?: string
   viewer: CallStatusViewer
 }
@@ -31,73 +35,12 @@ type PersistCallStatusOutcome =
   | { kind: 'forbidden'; message: string }
   | { kind: 'conflict'; message: string }
 
-const TERMINAL_STATUSES = new Set<CallStatus>(['declined', 'canceled', 'ended'])
-
 function matchesParticipant(
   participantId: string | null,
   callParticipantId: string,
   userId: string,
 ): boolean {
   return callParticipantId === userId || (participantId !== null && callParticipantId === participantId)
-}
-
-function resolveCurrentStatus(
-  requestedStatus: PersistCallStatusRequest['status'],
-  currentStatus: CallStatus,
-): PersistCallStatusOutcome | null {
-  if (requestedStatus === 'connecting') {
-    if (TERMINAL_STATUSES.has(currentStatus)) {
-      return { kind: 'conflict', message: 'call_not_joinable' }
-    }
-
-    if (currentStatus === 'connecting' || currentStatus === 'connected') {
-      return {
-        kind: 'ok',
-        data: {
-          callId: '',
-          roomId: '',
-          status: currentStatus,
-          changed: false,
-        },
-      }
-    }
-
-    return null
-  }
-
-  if (requestedStatus === 'connected') {
-    if (TERMINAL_STATUSES.has(currentStatus)) {
-      return { kind: 'conflict', message: 'call_not_connectable' }
-    }
-
-    if (currentStatus === 'connected') {
-      return {
-        kind: 'ok',
-        data: {
-          callId: '',
-          roomId: '',
-          status: 'connected',
-          changed: false,
-        },
-      }
-    }
-
-    return null
-  }
-
-  if (TERMINAL_STATUSES.has(currentStatus)) {
-    return {
-      kind: 'ok',
-      data: {
-        callId: '',
-        roomId: '',
-        status: currentStatus,
-        changed: false,
-      },
-    }
-  }
-
-  return null
 }
 
 export const persistCallStatusService = {
@@ -118,13 +61,21 @@ export const persistCallStatusService = {
       return { kind: 'forbidden', message: 'call_access_denied' }
     }
 
-    const currentStatusOutcome = resolveCurrentStatus(input.status, call.status)
-    if (currentStatusOutcome) {
-      if (currentStatusOutcome.kind === 'ok') {
-        currentStatusOutcome.data.callId = call.id
-        currentStatusOutcome.data.roomId = call.room_id
+    const transition = resolvePersistCallStatus(input.status, call.status)
+    if (transition.kind === 'conflict') {
+      return transition
+    }
+
+    if (!transition.changed) {
+      return {
+        kind: 'ok',
+        data: {
+          callId: call.id,
+          roomId: call.room_id,
+          status: transition.effectiveStatus,
+          changed: false,
+        },
       }
-      return currentStatusOutcome
     }
 
     const updated = await callResponseRepo.updateCallStatus(
@@ -143,7 +94,7 @@ export const persistCallStatusService = {
       data: {
         callId: call.id,
         roomId: call.room_id,
-        status: input.status,
+        status: transition.effectiveStatus,
         changed: true,
       },
     }

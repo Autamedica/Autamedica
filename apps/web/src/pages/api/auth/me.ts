@@ -45,6 +45,7 @@ export const GET: APIRoute = async ({ request }) => {
         }
 
     let doctorProfileId: string | undefined
+    let patientProfileId: string | undefined
     if (role === 'doctor') {
       const { data: doctorProfile, error: doctorProfileError } = await supabase
         .from('doctors')
@@ -59,9 +60,24 @@ export const GET: APIRoute = async ({ request }) => {
       doctorProfileId = doctorProfile?.id ?? undefined
     }
 
+    if (role === 'patient') {
+      const { data: patientProfile, error: patientProfileError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (patientProfileError && patientProfileError.code !== 'PGRST116') {
+        logger.warn('[api/auth/me] Patient profile fetch error:', patientProfileError.message)
+      }
+
+      patientProfileId = patientProfile?.id ?? undefined
+    }
+
     return jsonOk({
       id: user.id,
       doctorProfileId,
+      patientProfileId,
       email: user.email ?? '',
       role: typeof role === 'string' ? role : undefined,
       createdAt: profile?.created_at ?? undefined,

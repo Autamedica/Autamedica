@@ -31,7 +31,7 @@ export function StartCallButton({
         {isStarting ? (
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            <span>Conectando...</span>
+            <span>Llamando...</span>
           </div>
         ) : !hasDoctor ? (
           <div className="flex items-center space-x-2">
@@ -61,6 +61,12 @@ export function StartCallButton({
         <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
           {error}
         </div>
+      )}
+
+      {!error && hasDoctor && hasPatient && (
+        <p className="text-xs text-stone-500">
+          El paciente recibirá una llamada entrante para atender y entrar a la videoconsulta.
+        </p>
       )}
     </div>
   )

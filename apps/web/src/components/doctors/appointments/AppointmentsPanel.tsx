@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
+import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
 import { StartCallButton } from '../calls/StartCallButton'
@@ -13,8 +14,10 @@ interface AppointmentsPanelProps {
 
 export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
+  const { user, loading: userLoading } = useAuthenticatedUser()
+  const resolvedDoctorId = doctorId ?? user?.doctorProfileId
 
-  const { appointments, loading, error, isClientReady } = useDoctorAppointments(doctorId)
+  const { appointments, loading, error, isClientReady } = useDoctorAppointments(resolvedDoctorId)
 
   const resolveNames = useCallback(async () => {
     if (appointments.length === 0) return
@@ -30,7 +33,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
     void resolveNames()
   }, [resolveNames])
 
-  if (!isClientReady || loading) {
+  if ((!doctorId && userLoading) || !isClientReady || loading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
@@ -228,11 +231,12 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                     </div>
 
                     <div className="flex items-center gap-2 self-start shrink-0 sm:self-auto">
-                      {appointment.type === 'telemedicine' && doctorId && appointment.patient_id && (
+                      {appointment.type === 'telemedicine' && resolvedDoctorId && appointment.patient_id && (
                         <StartCallButton
-                          doctorId={doctorId}
+                          doctorId={resolvedDoctorId}
                           patientId={appointment.patient_id}
                           patientName={patientNames[appointment.patient_id] || 'Paciente'}
+                          appointmentId={appointment.id}
                           className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-green-700"
                         />
                       )}

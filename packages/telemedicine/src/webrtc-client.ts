@@ -133,6 +133,7 @@ export interface WarmUpResult {
 
 export class WebRTCClient {
   private ws: WebSocket | null = null
+  private signalingSocketPromise: Promise<void> | null = null
   private peerConnections = new Map<string, PeerState>()
   private localStream: MediaStream | null = null
   private config: WebRTCConfig
@@ -811,16 +812,41 @@ export class WebRTCClient {
       return Promise.resolve()
     }
 
-    return new Promise<void>((resolve, reject) => {
+    if (this.ws?.readyState === WebSocket.CONNECTING && this.signalingSocketPromise) {
+      return this.signalingSocketPromise
+    }
+
+    const socket = new WebSocket(wsUrl)
+    this.ws = socket
+
+    const openPromise = new Promise<void>((resolve, reject) => {
       const wsOpenedAt = performance.now()
-      this.ws = new WebSocket(wsUrl)
       this.logInfo('Opening signaling socket', { signalingUrl: this.config.signalingUrl, wsUrl })
 
       const timeout = setTimeout(() => {
+        try {
+          socket.close()
+        } catch {
+          // Ignore close failures on half-open sockets.
+        }
+        if (this.ws === socket) {
+          this.ws = null
+        }
         reject(new Error('Signaling connection timeout'))
       }, 8000)
 
-      this.ws.onopen = () => {
+      socket.onopen = () => {
+        if (this.ws !== socket) {
+          clearTimeout(timeout)
+          try {
+            socket.close(1000, 'stale_socket')
+          } catch {
+            // Ignore close failures on stale sockets.
+          }
+          resolve()
+          return
+        }
+
         clearTimeout(timeout)
         const latencyMs = Math.round(performance.now() - wsOpenedAt)
         this.logInfo('WebSocket connected (pre-warm)', { latencyMs })
@@ -828,7 +854,11 @@ export class WebRTCClient {
         resolve()
       }
 
-      this.ws.onmessage = (event) => {
+      socket.onmessage = (event) => {
+        if (this.ws !== socket) {
+          return
+        }
+
         try {
           this.handleSignalingMessage(JSON.parse(event.data) as ServerSignalingMessage)
         } catch (error) {
@@ -838,20 +868,41 @@ export class WebRTCClient {
         }
       }
 
-      this.ws.onerror = (error) => {
+      socket.onerror = (error) => {
+        if (this.ws !== socket) {
+          clearTimeout(timeout)
+          reject(new Error('Stale WebSocket connection failed'))
+          return
+        }
+
         clearTimeout(timeout)
         this.logError('WebSocket error', error)
         this.setConnectionState('failed')
         this.emit('error', new Error('WebSocket connection failed'))
+        this.ws = null
         reject(new Error('WebSocket connection failed'))
       }
 
-      this.ws.onclose = () => {
+      socket.onclose = () => {
+        if (this.ws !== socket) {
+          return
+        }
+
         this.logInfo('WebSocket disconnected')
+        this.ws = null
         this.setConnectionState('disconnected')
         this.cleanup()
       }
     })
+
+    const managedPromise = openPromise.finally(() => {
+      if (this.signalingSocketPromise === managedPromise) {
+        this.signalingSocketPromise = null
+      }
+    })
+
+    this.signalingSocketPromise = managedPromise
+    return managedPromise
   }
 
   async connect(roomId?: string): Promise<void> {

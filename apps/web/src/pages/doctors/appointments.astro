@@ -1,6 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro';
-import AppointmentsView from '@/components/doctors/appointments/AppointmentsView';
+import { AppointmentsPanel } from '@/components/doctors/appointments/AppointmentsPanel';
 
 const title = 'Citas Médicas | AutaMedica';
 const description = 'Gestión de citas y agenda médica';
@@ -8,6 +8,6 @@ const description = 'Gestión de citas y agenda médica';
 
 <Layout title={title} description={description}>
   <div class="container mx-auto px-4 py-8">
-    <AppointmentsView client:load />
+    <AppointmentsPanel client:load />
   </div>
 </Layout>

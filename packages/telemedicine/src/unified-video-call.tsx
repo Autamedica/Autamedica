@@ -153,6 +153,7 @@ export function UnifiedVideoCall({
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [qualityLevel, setQualityLevel] = useState<StreamQualityLevel>('unknown')
   const [controlsVisible, setControlsVisible] = useState(true)
+  const [hasPeerConnection, setHasPeerConnection] = useState(false)
   // Iniciar siempre con `true` en SSR y en cliente para evitar mismatch de hidratación.
   // El efecto de resize lo corrige en el primer render del cliente.
   const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(true)
@@ -169,6 +170,8 @@ export function UnifiedVideoCall({
   const chatPanelOpenRef = useRef(false)
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
+  const joinSoundContextRef = useRef<AudioContext | null>(null)
+  const joinSoundPlayedRef = useRef(false)
   const lastPersistedCallStatusRef = useRef<CallStatus | null>(null)
   const hasStartedCallRef = useRef(false)
   const autoStartAttemptedRef = useRef(false)
@@ -177,6 +180,7 @@ export function UnifiedVideoCall({
   const poorQualityStartRef = useRef<number | null>(null)
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasAnnouncedCallStartRef = useRef(false)
 
   /* ── Callback refs (prevent useEffect re-runs when parent re-renders) ── */
   const onCallStartRef = useRef(onCallStart)
@@ -208,6 +212,7 @@ export function UnifiedVideoCall({
   const totalParticipants = remoteUsers.size + 1
   const isActive = connectionState === 'connected'
   const isIdle = connectionState === 'disconnected' || connectionState === 'failed'
+  const isCallEstablished = hasPeerConnection
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
   const debugLogger = useMemo(
     () => createTelemedicineLogger({ source: 'UnifiedVideoCall', callId, roomId, userId, userType }),
@@ -219,6 +224,64 @@ export function UnifiedVideoCall({
     setControlsVisible(true)
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
     controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 5000)
+  }, [])
+
+  const playParticipantJoinedSound = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const AudioContextCtor = window.AudioContext
+      ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+
+    if (!AudioContextCtor) {
+      return
+    }
+
+    try {
+      let ctx = joinSoundContextRef.current
+
+      if (!ctx || ctx.state === 'closed') {
+        ctx = new AudioContextCtor()
+        joinSoundContextRef.current = ctx
+      }
+
+      if (ctx.state === 'suspended') {
+        await ctx.resume()
+      }
+
+      const activeContext = ctx
+      const startAt = ctx.currentTime + 0.02
+      const master = activeContext.createGain()
+      master.gain.setValueAtTime(0.0001, startAt)
+      master.gain.exponentialRampToValueAtTime(0.08, startAt + 0.02)
+      master.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.42)
+      master.connect(activeContext.destination)
+
+      const notes = [
+        { frequency: 880, offset: 0 },
+        { frequency: 1174.66, offset: 0.16 },
+      ]
+
+      notes.forEach(({ frequency, offset }) => {
+        const noteStart = startAt + offset
+        const oscillator = activeContext.createOscillator()
+        const gain = activeContext.createGain()
+
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(frequency, noteStart)
+        gain.gain.setValueAtTime(0.0001, noteStart)
+        gain.gain.exponentialRampToValueAtTime(0.18, noteStart + 0.02)
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.16)
+
+        oscillator.connect(gain)
+        gain.connect(master)
+        oscillator.start(noteStart)
+        oscillator.stop(noteStart + 0.2)
+      })
+    } catch {
+      // Best-effort UX cue: audio restrictions must not break the call.
+    }
   }, [])
 
   useEffect(() => {
@@ -373,9 +436,9 @@ export function UnifiedVideoCall({
           retryCountRef.current = 0
           setIsRetrying(false)
           setCallError(null)
-          onCallStartRef.current?.()
         } else if (state === 'disconnected' || state === 'closed') {
           setIsChatReady(false)
+          setHasPeerConnection(false)
         }
       })
     )
@@ -391,6 +454,7 @@ export function UnifiedVideoCall({
 
     unsubs.push(
       webrtcClient.on('remote-stream', (stream, remoteUserId) => {
+        setHasPeerConnection(true)
         setRemoteUsers((prev) => {
           const updated = new Map(prev)
           const existing = updated.get(remoteUserId) || {
@@ -432,9 +496,13 @@ export function UnifiedVideoCall({
         setRemoteUsers((prev) => {
           const updated = new Map(prev)
           updated.delete(remoteUserId)
+          if (updated.size === 0) {
+            setHasPeerConnection(false)
+          }
           return updated
         })
         remoteVideosRef.current.delete(remoteUserId)
+        joinSoundPlayedRef.current = false
       })
     )
 
@@ -493,6 +561,11 @@ export function UnifiedVideoCall({
     unsubs.push(
       webrtcClient.on('peer-connected', (info) => {
         emitDebug('info', 'Peer conectado', info)
+        setHasPeerConnection(true)
+        if (!joinSoundPlayedRef.current) {
+          joinSoundPlayedRef.current = true
+          void playParticipantJoinedSound()
+        }
         void logCallEvent('peer_connected', info)
       })
     )
@@ -527,15 +600,18 @@ export function UnifiedVideoCall({
       // Clean up audio monitoring
       if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
       if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close()
+      if (joinSoundContextRef.current?.state !== 'closed') joinSoundContextRef.current?.close()
+      joinSoundContextRef.current = null
+      joinSoundPlayedRef.current = false
     }
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, retryKey, roomId, userId, userName, userType])
+  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
-    if (connectionState === 'connected') {
+    if (isCallEstablished) {
       setConnectedAt((prev) => prev ?? Date.now())
       connectedAtRef.current ??= Date.now()
     } else {
@@ -544,7 +620,7 @@ export function UnifiedVideoCall({
       connectedAtRef.current = null
       setQualityLevel('unknown')
     }
-  }, [connectionState])
+  }, [isCallEstablished])
 
   useEffect(() => {
     if (connectedAt === null) return
@@ -553,6 +629,18 @@ export function UnifiedVideoCall({
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [connectedAt])
+
+  useEffect(() => {
+    if (isCallEstablished && !hasAnnouncedCallStartRef.current) {
+      hasAnnouncedCallStartRef.current = true
+      onCallStartRef.current?.()
+      return
+    }
+
+    if (!isCallEstablished) {
+      hasAnnouncedCallStartRef.current = false
+    }
+  }, [isCallEstablished])
 
   /* ── Wake Lock: keep screen on during active call ── */
   useEffect(() => {
@@ -581,7 +669,7 @@ export function UnifiedVideoCall({
       return
     }
 
-    if (connectionState === 'connected') {
+    if (connectionState === 'connected' && isCallEstablished) {
       void persistCallStatus('connected')
       return
     }
@@ -589,7 +677,7 @@ export function UnifiedVideoCall({
     if ((connectionState === 'closed' || connectionState === 'failed') && !manualHangupRef.current) {
       void persistCallStatus('ended', 'connection_closed')
     }
-  }, [callId, connectionState, persistCallStatus])
+  }, [callId, connectionState, isCallEstablished, persistCallStatus])
 
   /* ── Stream sync effects ── */
   useEffect(() => {
@@ -939,6 +1027,7 @@ export function UnifiedVideoCall({
       {isActive && (
         <CallTopBar
           connectionState={connectionState}
+          isPeerReady={isCallEstablished}
           qualityLevel={qualityLevel}
           formattedDuration={formattedDuration}
           participantCount={totalParticipants}

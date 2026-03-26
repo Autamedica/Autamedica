@@ -12,7 +12,8 @@ type BootstrapResolution =
   | { kind: 'conflict'; message: string }
   | { kind: 'forbidden' }
 
-const TERMINAL_CALL_STATUSES = new Set(['declined', 'canceled', 'ended'] as const)
+const TERMINAL_CALL_STATUSES = new Set<Call['status']>(['declined', 'canceled', 'ended'])
+const DOCTOR_NO_ANSWER_TIMEOUT_MS = 60_000
 
 function matchesParticipant(participantId: string | null, callParticipantId: string, userId: string): boolean {
   return callParticipantId === userId || (participantId !== null && callParticipantId === participantId)
@@ -42,6 +43,10 @@ function buildWaitingRoom(call: Call, role: CallSessionRole): CallSessionBootstr
       role === 'doctor'
         ? 'Esperando que el paciente se una a la videollamada.'
         : 'El medico esta preparando la videollamada.',
+    deadlineAt:
+      role === 'doctor'
+        ? new Date(new Date(call.created_at).getTime() + DOCTOR_NO_ANSWER_TIMEOUT_MS).toISOString()
+        : undefined,
   }
 }
 

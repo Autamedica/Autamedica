@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutaMedica — Demo de Fuentes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Manrope:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&family=Space+Grotesk:wght@400;600;700&family=Lora:wght@400;600;700&family=Source+Serif+4:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; color: #0a0a0a; }
+
+  /* Nav */
+  .nav { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid #eee; padding: 12px 20px; display: flex; gap: 8px; overflow-x: auto; }
+  .nav a { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; background: #f5f5f5; color: #666; text-decoration: none; white-space: nowrap; font-family: system-ui; }
+  .nav a:hover, .nav a.active { background: #0a0a0a; color: #fff; }
+
+  /* Section header */
+  .section-header {
+    padding: 32px 24px 16px;
+    border-top: 3px solid #06b6d4;
+  }
+  .section-header .num { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #06b6d4; text-transform: uppercase; }
+  .section-header .name { font-size: 22px; font-weight: 800; color: #0a0a0a; margin-top: 2px; }
+  .section-header .type { font-size: 11px; color: #999; margin-top: 2px; font-family: monospace; }
+
+  /* Card */
+  .card { padding: 24px; border-bottom: 1px solid #f0f0f0; }
+
+  /* Simulated anamnesis completed screen */
+  .sim { padding: 24px; }
+  .sim-hero { background: #0a0a0a; color: #fff; padding: 32px 24px; border-radius: 16px; margin-bottom: 16px; }
+  .sim-hero .date { font-size: 13px; color: rgba(255,255,255,0.5); }
+  .sim-hero h2 { font-size: 28px; font-weight: 800; line-height: 1.15; margin-top: 4px; }
+  .sim-hero h2 span { color: #06b6d4; }
+  .sim-cta { display: flex; align-items: center; gap: 12px; background: #06b6d4; color: #fff; padding: 16px 20px; border-radius: 14px; border: none; width: 100%; text-align: left; cursor: pointer; margin-bottom: 12px; font-size: 15px; font-weight: 700; }
+  .sim-cta .sub { font-size: 12px; font-weight: 400; opacity: 0.7; }
+  .sim-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .sim-action { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; border: 1px solid #eee; border-radius: 14px; text-decoration: none; color: #0a0a0a; }
+  .sim-action .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .sim-action .label { font-size: 11px; font-weight: 700; }
+  .sim-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sim-chip { padding: 5px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; background: #0a0a0a; color: #fff; }
+
+  /* Storytelling card */
+  .story { padding: 24px; background: #fafafa; border-radius: 12px; margin: 16px 24px; }
+  .story h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .story p { font-size: 14px; line-height: 1.65; color: #444; }
+  .story .hint { font-size: 13px; color: #06b6d4; font-style: italic; margin-top: 8px; }
+
+  /* System header */
+  .approach-label {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .approach-label.single { background: #e0f7fa; color: #0097a7; }
+  .approach-label.dual { background: #fce4ec; color: #c62828; }
+  .approach-label.nyt { background: #fff3e0; color: #e65100; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 40px 24px; background: #0a0a0a; color: #fff; }
+  .footer h2 { font-size: 20px; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .footer p { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 8px; font-family: system-ui; }
+
+  /* Font families */
+  .f-inter { font-family: 'Inter', sans-serif; }
+  .f-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .f-manrope { font-family: 'Manrope', sans-serif; }
+  .f-outfit { font-family: 'Outfit', sans-serif; }
+  .f-grotesk { font-family: 'Space Grotesk', sans-serif; }
+  .f-lora { font-family: 'Lora', serif; }
+  .f-source { font-family: 'Source Serif 4', serif; }
+  .f-dm { font-family: 'DM Sans', sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- Sticky nav -->
+<nav class="nav">
+  <a href="#s1">1. Jakarta</a>
+  <a href="#s2">2. Inter</a>
+  <a href="#s3">3. Manrope</a>
+  <a href="#s4">4. Outfit</a>
+  <a href="#s5">5. Grotesk</a>
+  <a href="#s6" style="background:#fff3e0;color:#e65100;">6. NYT Dual</a>
+  <a href="#s7" style="background:#fce4ec;color:#c62828;">7. Serif+Sans</a>
+  <a href="#s8" style="background:#e0f7fa;color:#0097a7;">8. DM Sans</a>
+</nav>
+
+<!-- ============================================ -->
+<!-- OPTION 1: Plus Jakarta Sans (single font) -->
+<!-- ============================================ -->
+<div id="s1">
+  <div class="section-header">
+    <span class="approach-label single">Fuente unica</span>
+    <div class="num">Opcion 1</div>
+    <div class="name f-jakarta">Plus Jakarta Sans</div>
+    <div class="type">Geometric-humanist hybrid — Google Font — Usada por Linear, Vercel</div>
+  </div>
+  <div class="sim f-jakarta">
+    <div class="sim-hero">
+      <div class="date">26 de marzo de 2026</div>
+      <h2>Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story f-jakarta">
+    <h3>La edad es el primer detective</h3>
+    <p>La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OPTION 2: Inter -->
+<!-- ============================================ -->
+<div id="s2">
+  <div class="section-header">
+    <span class="approach-label single">Fuente unica</span>
+    <div class="num">Opcion 2</div>
+    <div class="name f-inter">Inter</div>
+    <div class="type">Humanist sans-serif — La mas usada en tech — GitHub, Figma, Linear</div>
+  </div>
+  <div class="sim f-inter">
+    <div class="sim-hero">
+      <div class="date">26 de marzo de 2026</div>
+      <h2>Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story f-inter">
+    <h3>La edad es el primer detective</h3>
+    <p>La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OPTION 3: Manrope -->
+<!-- ============================================ -->
+<div id="s3">
+  <div class="section-header">
+    <span class="approach-label single">Fuente unica</span>
+    <div class="num">Opcion 3</div>
+    <div class="name f-manrope">Manrope</div>
+    <div class="type">Geometric-humanist — Bold tech feel — Usada por Raycast</div>
+  </div>
+  <div class="sim f-manrope">
+    <div class="sim-hero">
+      <div class="date">26 de marzo de 2026</div>
+      <h2>Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story f-manrope">
+    <h3>La edad es el primer detective</h3>
+    <p>La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OPTION 4: Outfit -->
+<!-- ============================================ -->
+<div id="s4">
+  <div class="section-header">
+    <span class="approach-label single">Fuente unica</span>
+    <div class="num">Opcion 4</div>
+    <div class="name f-outfit">Outfit</div>
+    <div class="type">Geometric suave — Amigable, redondeada — Buen mobile feel</div>
+  </div>
+  <div class="sim f-outfit">
+    <div class="sim-hero">
+      <div class="date">26 de marzo de 2026</div>
+      <h2>Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story f-outfit">
+    <h3>La edad es el primer detective</h3>
+    <p>La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OPTION 5: Space Grotesk -->
+<!-- ============================================ -->
+<div id="s5">
+  <div class="section-header">
+    <span class="approach-label single">Fuente unica</span>
+    <div class="num">Opcion 5</div>
+    <div class="name f-grotesk">Space Grotesk</div>
+    <div class="type">Geometric pura — Techy, distintiva — Usada por Clerk, Railway</div>
+  </div>
+  <div class="sim f-grotesk">
+    <div class="sim-hero">
+      <div class="date">26 de marzo de 2026</div>
+      <h2>Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story f-grotesk">
+    <h3>La edad es el primer detective</h3>
+    <p>La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OPTION 6: NYT Dual System (Serif headlines + Sans body) -->
+<!-- ============================================ -->
+<div id="s6">
+  <div class="section-header">
+    <span class="approach-label nyt">Estilo NYT — Sistema dual</span>
+    <div class="num">Opcion 6</div>
+    <div class="name f-lora">Lora (headlines) + Inter (body)</div>
+    <div class="type">Serif para autoridad + Sans para claridad — Como el New York Times</div>
+  </div>
+  <div class="sim">
+    <div class="sim-hero">
+      <div class="date f-inter">26 de marzo de 2026</div>
+      <h2 class="f-lora">Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta f-inter">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions f-inter">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips f-inter">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story">
+    <h3 class="f-lora">La edad es el primer detective</h3>
+    <p class="f-inter">La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint f-inter">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OPTION 7: Source Serif + Jakarta (modern dual) -->
+<!-- ============================================ -->
+<div id="s7">
+  <div class="section-header">
+    <span class="approach-label dual">Sistema dual moderno</span>
+    <div class="num">Opcion 7</div>
+    <div class="name f-source">Source Serif 4 (headlines) + Jakarta (body)</div>
+    <div class="type">Serif moderna de Adobe + Sans geometrica — Premium feel</div>
+  </div>
+  <div class="sim">
+    <div class="sim-hero">
+      <div class="date f-jakarta">26 de marzo de 2026</div>
+      <h2 class="f-source">Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta f-jakarta">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions f-jakarta">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips f-jakarta">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story">
+    <h3 class="f-source">La edad es el primer detective</h3>
+    <p class="f-jakarta">La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint f-jakarta">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- OPTION 8: DM Sans (Rappi-like) -->
+<!-- ============================================ -->
+<div id="s8">
+  <div class="section-header">
+    <span class="approach-label single">Fuente unica</span>
+    <div class="num">Opcion 8</div>
+    <div class="name f-dm">DM Sans</div>
+    <div class="type">Geometric low-contrast — Limpia, amigable — Usada por Stripe, Framer</div>
+  </div>
+  <div class="sim f-dm">
+    <div class="sim-hero">
+      <div class="date">26 de marzo de 2026</div>
+      <h2>Tu historia <span>clinica</span></h2>
+    </div>
+    <button class="sim-cta">
+      <div>
+        <div>Descargar PDF</div>
+        <div class="sub">Historia clinica completa</div>
+      </div>
+    </button>
+    <div class="sim-actions">
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">+</div><div class="label">Actualizar</div></a>
+      <a class="sim-action"><div class="icon" style="background:#0a0a0a;color:#fff">&larr;</div><div class="label">Mi panel</div></a>
+      <a class="sim-action"><div class="icon" style="background:#06b6d4;color:#fff">&#9654;</div><div class="label">Consultar</div></a>
+    </div>
+    <div class="sim-chips">
+      <span class="sim-chip">Edad</span><span class="sim-chip">Trabajo</span><span class="sim-chip">Motivo</span><span class="sim-chip">Alergias</span><span class="sim-chip">Familia</span>
+    </div>
+  </div>
+  <div class="story f-dm">
+    <h3>La edad es el primer detective</h3>
+    <p>La edad es el principal factor de contexto clinico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automaticamente los parametros de riesgo.</p>
+    <p class="hint">Tu riesgo base cambia cada decada. Los protocolos medicos ajustan las pruebas segun tu edad biologica.</p>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <h2>Cual te convence?</h2>
+  <p>Decime el numero (1-8) y la aplico a todo el portal de pacientes</p>
+  <p style="margin-top:16px; font-size:11px; color:rgba(255,255,255,0.3);">
+    1. Jakarta &nbsp; 2. Inter &nbsp; 3. Manrope &nbsp; 4. Outfit &nbsp; 5. Space Grotesk &nbsp; 6. NYT Dual &nbsp; 7. Serif+Sans &nbsp; 8. DM Sans
+  </p>
+</div>
+
+</body>
+</html>
