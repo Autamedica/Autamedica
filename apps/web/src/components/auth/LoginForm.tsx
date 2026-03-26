@@ -13,6 +13,7 @@ import {
   signInWithPassword,
   signOutLocal,
 } from '../../lib/auth/service';
+import { getCanonicalAuthCallbackUrl } from '../../lib/auth-utils';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
 import { AuthAlert } from './AuthAlert';
@@ -95,7 +96,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
         // Usuario autenticado — redirigir a callback para routing por rol.
         if (session.accessToken && session.refreshToken) {
-          const callbackUrl = new URL('/auth/callback', window.location.origin);
+          const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
           if (resolvedRole) callbackUrl.searchParams.set('role', resolvedRole);
           if (returnToParam) callbackUrl.searchParams.set('returnTo', returnToParam);
           clearTimeout(timeoutId);
@@ -143,7 +144,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
         return;
       }
 
-      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
       if (role) callbackUrl.searchParams.set('role', role);
       if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
 
@@ -161,9 +162,14 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     sessionStorage.removeItem('autamedica_pkce_retry');
 
     try {
-      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      // OAuth callback MUST go through www.autamedica.com (the Supabase site_url)
+      // so the PKCE code_verifier cookie is readable by the server doing the exchange.
+      // After auth, the callback redirects to the correct subdomain based on role.
+      const isProd = window.location.hostname.endsWith('.autamedica.com');
+      const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
       if (role) callbackUrl.searchParams.set('role', role);
-      if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
+      const effectiveReturnTo = returnTo || (isProd ? window.location.origin + '/' : undefined);
+      if (effectiveReturnTo) callbackUrl.searchParams.set('returnTo', effectiveReturnTo);
 
       // signInWithOAuth limpia el estado previo internamente (ver AuthService).
       const result = await signInWithOAuth('google', callbackUrl.toString());

@@ -56,3 +56,11 @@ export function isProduction(): boolean {
     return false;
   }
 }
+
+export function getCanonicalAuthCallbackUrl(currentOrigin?: string): string {
+  const authOrigin = isProduction()
+    ? 'https://www.autamedica.com'
+    : (currentOrigin ?? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'));
+
+  return new URL('/auth/callback', authOrigin).toString();
+}

@@ -8,6 +8,7 @@ import {
   getRoleEntry,
   resolveEntryRoleFromParams,
 } from '../../lib/auth-flow';
+import { getCanonicalAuthCallbackUrl } from '../../lib/auth-utils';
 import { signUp, signInWithOAuth } from '../../lib/auth/service';
 import { AuthLogo } from './AuthLogo';
 import { AuthButton } from './AuthButton';
@@ -65,7 +66,7 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
     }
 
     try {
-      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
       callbackUrl.searchParams.set('role', role);
       if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
 
@@ -98,9 +99,11 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
     setError(null);
 
     try {
-      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      const isProd = window.location.hostname.endsWith('.autamedica.com');
+      const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
       if (role) callbackUrl.searchParams.set('role', role);
-      if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
+      const effectiveReturnTo = returnTo || (isProd ? window.location.origin + '/' : undefined);
+      if (effectiveReturnTo) callbackUrl.searchParams.set('returnTo', effectiveReturnTo);
 
       const result = await signInWithOAuth('google', callbackUrl.toString());
 
