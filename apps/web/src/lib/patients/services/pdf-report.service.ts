@@ -390,6 +390,10 @@ const FIELD_LABELS: Record<string, string> = {
   lista_medicamentos: 'Medicamentos actuales',
   exposicion_riesgos: 'Exposición a riesgos',
   confirma_informacion: 'Información confirmada',
+  resumen_final: 'Resumen final',
+  enfermedades_previas: 'Enfermedades previas',
+  edad: 'Edad',
+  ocupacion: 'Ocupación',
 }
 
 export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
