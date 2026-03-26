@@ -17,15 +17,27 @@ export async function resolvePatientContext(
   try {
     const supabase = createAstroServerClientFromRequest(request)
 
-    // 1. Get user from session (more robust for SSR than getUser() in some scenarios)
+    // Parse cookies for debugging
+    const rawCookies = request.headers.get('cookie') ?? ''
+    const sbCookies = rawCookies.split(';')
+      .map(c => c.trim().split('=')[0])
+      .filter(n => n.startsWith('sb-'))
+    logger.info('[resolvePatientContext] cookies received', { sbCookies, hasCookies: rawCookies.length > 0 })
+
+    // 1. Get user from session (reads cookie data without server validation)
     let userId: string | null = null
     try {
       const {
         data: { session },
+        error: sessionError,
       } = await supabase.auth.getSession()
       userId = session?.user?.id ?? null
-    } catch {
-      logger.warn('[resolvePatientContext] getSession() threw')
+      if (sessionError) {
+        logger.warn('[resolvePatientContext] getSession() error', { msg: sessionError.message })
+      }
+      logger.info('[resolvePatientContext] getSession result', { hasSession: !!session, userId })
+    } catch (e) {
+      logger.warn('[resolvePatientContext] getSession() threw', e)
     }
 
     // 2. Fallback to getUser() if session fails or is missing
@@ -34,10 +46,11 @@ export async function resolvePatientContext(
         const { data: { user: cookieUser }, error: cookieUserError } = await supabase.auth.getUser()
         userId = cookieUser?.id ?? null
         if (cookieUserError) {
-          logger.warn('[resolvePatientContext] cookie getUser() failed', cookieUserError)
+          logger.warn('[resolvePatientContext] getUser() failed', { msg: cookieUserError.message })
         }
-      } catch {
-        logger.warn('[resolvePatientContext] getUser() threw')
+        logger.info('[resolvePatientContext] getUser result', { userId })
+      } catch (e) {
+        logger.warn('[resolvePatientContext] getUser() threw', e)
       }
     }
 
