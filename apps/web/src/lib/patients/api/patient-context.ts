@@ -24,11 +24,30 @@ interface AstroLocals {
   supabase?: unknown
 }
 
+function getRequestAuthDebug(request: Request): {
+  hasAuthorizationHeader: boolean
+  hasAuthCookies: boolean
+  authCookieNames: string[]
+} {
+  const rawCookieHeader = request.headers.get('cookie') ?? ''
+  const authCookieNames = rawCookieHeader
+    .split('; ')
+    .map((entry) => entry.split('=')[0])
+    .filter((name) => name.startsWith('sb-'))
+
+  return {
+    hasAuthorizationHeader: Boolean(request.headers.get('authorization')),
+    hasAuthCookies: authCookieNames.length > 0,
+    authCookieNames,
+  }
+}
+
 export async function resolvePatientContext(
   request: Request,
   locals?: AstroLocals,
 ): Promise<PatientContext | null> {
   try {
+    const authDebug = getRequestAuthDebug(request)
     // 1. PREFERRED: Use middleware-validated session from locals
     let userId: string | null = null
 
@@ -44,16 +63,21 @@ export async function resolvePatientContext(
         const { data: { session } } = await supabase.auth.getSession()
         userId = session?.user?.id ?? null
       } catch {
-        logger.warn('[resolvePatientContext] getSession() threw')
+        logger.warn('[resolvePatientContext] getSession() threw', authDebug)
       }
 
       if (!userId) {
         try {
           const { data: { user }, error } = await supabase.auth.getUser()
           userId = user?.id ?? null
-          if (error) logger.warn('[resolvePatientContext] getUser() failed', { msg: error.message })
+          if (error) {
+            logger.warn('[resolvePatientContext] getUser() failed', {
+              msg: error.message,
+              ...authDebug,
+            })
+          }
         } catch {
-          logger.warn('[resolvePatientContext] getUser() threw')
+          logger.warn('[resolvePatientContext] getUser() threw', authDebug)
         }
       }
     }
@@ -76,6 +100,10 @@ export async function resolvePatientContext(
     }
 
     if (!userId) {
+      logger.info('[resolvePatientContext] Unable to resolve userId from request auth context', {
+        hasLocalsSession: Boolean(locals?.session?.user?.id),
+        ...authDebug,
+      })
       return null
     }
 

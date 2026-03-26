@@ -57,6 +57,7 @@ interface UseAnamnesisReturn {
   patientBirthDate: string | null;
   loading: boolean;
   error: string | null;
+  authRequired: boolean;
   createAnamnesis: (initial?: Partial<ApiAnamnesis>) => Promise<ApiAnamnesis | null>;
   updateAnamnesis: (update: Partial<ApiAnamnesis>) => Promise<boolean>;
   updateSection: (section: AnamnesisSection, data: Record<string, AnamnesisFieldValue>) => Promise<boolean>;
@@ -70,11 +71,25 @@ export function useAnamnesis(): UseAnamnesisReturn {
   const [patientBirthDate, setPatientBirthDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
+
+  const handleApiError = useCallback((err: unknown, fallbackMessage: string): string => {
+    if (err instanceof ApiError && err.status === 401) {
+      setAuthRequired(true);
+      setError('unauthorized');
+      return 'unauthorized';
+    }
+
+    const message = err instanceof ApiError ? err.message : fallbackMessage;
+    setError(message);
+    return message;
+  }, []);
 
   const fetchAnamnesis = useCallback(async (): Promise<ApiResponse | null> => {
     try {
       setLoading(true);
       setError(null);
+      setAuthRequired(false);
       const data = await fetchApi<ApiResponse>('/api/patients/anamnesis');
       setAnamnesis(data.anamnesis);
       setSections(data.sections);
@@ -83,12 +98,12 @@ export function useAnamnesis(): UseAnamnesisReturn {
       return data;
     } catch (err) {
       logger.error('Error fetching anamnesis:', err);
-      setError(err instanceof ApiError ? err.message : 'Error desconocido');
+      handleApiError(err, 'Error desconocido');
       return null;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleApiError]);
 
   const createAnamnesis = useCallback(async (initial?: Partial<ApiAnamnesis>): Promise<ApiAnamnesis | null> => {
     try {
@@ -101,10 +116,10 @@ export function useAnamnesis(): UseAnamnesisReturn {
       return current?.anamnesis ?? null;
     } catch (err) {
       logger.error('Error creating anamnesis:', err);
-      setError(err instanceof Error ? err.message : 'Error al crear anamnesis');
+      handleApiError(err, 'Error al crear anamnesis');
       return null;
     }
-  }, [fetchAnamnesis]);
+  }, [fetchAnamnesis, handleApiError]);
 
   const updateAnamnesis = useCallback(async (update: Partial<ApiAnamnesis>): Promise<boolean> => {
     try {
@@ -113,10 +128,10 @@ export function useAnamnesis(): UseAnamnesisReturn {
       return true;
     } catch (err) {
       logger.error('Error updating anamnesis:', err);
-      setError(err instanceof Error ? err.message : 'Error al actualizar anamnesis');
+      handleApiError(err, 'Error al actualizar anamnesis');
       return false;
     }
-  }, [fetchAnamnesis]);
+  }, [fetchAnamnesis, handleApiError]);
 
   const updateSection = useCallback(async (
     section: AnamnesisSection,
@@ -134,10 +149,10 @@ export function useAnamnesis(): UseAnamnesisReturn {
       return true;
     } catch (err) {
       logger.error('Error updating section:', err);
-      setError(err instanceof Error ? err.message : 'Error al actualizar sección');
+      handleApiError(err, 'Error al actualizar sección');
       return false;
     }
-  }, [fetchAnamnesis]);
+  }, [fetchAnamnesis, handleApiError]);
 
   const refreshAnamnesis = useCallback(async () => {
     await fetchAnamnesis();
@@ -154,6 +169,7 @@ export function useAnamnesis(): UseAnamnesisReturn {
     patientBirthDate,
     loading,
     error,
+    authRequired,
     createAnamnesis,
     updateAnamnesis,
     updateSection,

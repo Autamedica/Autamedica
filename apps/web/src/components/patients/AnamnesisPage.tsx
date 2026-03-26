@@ -14,10 +14,12 @@ import {
   Plus,
   Shield,
 } from 'lucide-react';
+import { getClientEnvOrDefault } from '@autamedica/shared';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import { useAnamnesis } from '@/hooks/patients/useAnamnesis';
 import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance';
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
+import type { GuidanceQuestion } from '@/lib/patients/services/anamnesis-guidance.service';
 import { AnamnesisField as AnamnesisFieldRenderer } from '@/components/patients/anamnesis/AnamnesisField';
 import { PausaCognitiva } from '@/components/patients/anamnesis/PausaCognitiva';
 import { ClarificationStep } from '@/components/patients/anamnesis/ClarificationStep';
@@ -137,6 +139,7 @@ export default function AnamnesisPage() {
     patientBirthDate,
     loading: anamnesisLoading,
     error: anamnesisError,
+    authRequired: anamnesisAuthRequired,
     updateAnamnesis,
     updateSection,
   } = useAnamnesis();
@@ -147,6 +150,7 @@ export default function AnamnesisPage() {
     triggerExtraction,
     addClarification,
     dismissGuidance,
+    authRequired: extractionAuthRequired,
   } = useAnamnesisGuidance();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -158,8 +162,34 @@ export default function AnamnesisPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: { question: string; priority: string }[] } | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null>(null);
   const initializedRef = useRef(false);
+  const authRedirectStartedRef = useRef(false);
+
+  const redirectToPatientLogin = useCallback(() => {
+    if (typeof window === 'undefined' || authRedirectStartedRef.current) {
+      return;
+    }
+
+    authRedirectStartedRef.current = true;
+
+    const authOrigin = getClientEnvOrDefault(
+      'PUBLIC_APP_URL',
+      import.meta.env.MODE === 'production'
+        ? 'https://www.autamedica.com'
+        : 'http://localhost:3000',
+    );
+    const loginUrl = new URL('/auth/login', authOrigin);
+    loginUrl.searchParams.set('portal', 'patients');
+    loginUrl.searchParams.set('returnTo', `${window.location.origin}/patients/anamnesis`);
+    window.location.replace(loginUrl.toString());
+  }, []);
+
+  useEffect(() => {
+    if (anamnesisAuthRequired || extractionAuthRequired) {
+      redirectToPatientLogin();
+    }
+  }, [anamnesisAuthRequired, extractionAuthRequired, redirectToPatientLogin]);
 
   // Determine page view
   const pageView: PageView = useMemo(() => {

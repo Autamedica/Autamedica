@@ -3,7 +3,7 @@
  * Capa 2 — Estado + API calls, sin lógica de negocio.
  */
 import { useState, useCallback, useRef } from 'react'
-import { fetchApi } from '@/lib/api-client'
+import { ApiError, fetchApi } from '@/lib/api-client'
 import {
   transformGuidance,
   hasActionableGuidance,
@@ -23,6 +23,7 @@ interface UseAnamnesisGuidanceReturn {
   clarificationTurns: ClarificationTurn[]
   isExtracting: boolean
   extractionError: string | null
+  authRequired: boolean
   triggerExtraction: (checkpoint: 'partial' | 'final') => Promise<ExtractionGuidance | null>
   addClarification: (question: string, answer: string) => void
   dismissGuidance: () => void
@@ -33,6 +34,7 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
   const [clarificationTurns, setClarificationTurns] = useState<ClarificationTurn[]>([])
   const [isExtracting, setIsExtracting] = useState(false)
   const [extractionError, setExtractionError] = useState<string | null>(null)
+  const [authRequired, setAuthRequired] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   const triggerExtraction = useCallback(async (
@@ -44,6 +46,7 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
 
     setIsExtracting(true)
     setExtractionError(null)
+    setAuthRequired(false)
 
     try {
       const result = await fetchApi<{ data: ExtractionServiceResult }>(
@@ -71,6 +74,13 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
       setGuidance(null)
       return null
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        setAuthRequired(true)
+        setExtractionError('unauthorized')
+        setGuidance(null)
+        return null
+      }
+
       // Non-blocking for partial checkpoint — patient can continue
       if (checkpoint === 'partial') {
         logger.warn('[useAnamnesisGuidance] Partial extraction failed, continuing', err)
@@ -104,6 +114,7 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
     clarificationTurns,
     isExtracting,
     extractionError,
+    authRequired,
     triggerExtraction,
     addClarification,
     dismissGuidance,
