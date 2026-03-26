@@ -21,11 +21,11 @@ function jsonError(message: string, status: number) {
   })
 }
 
-export const GET: APIRoute = async ({ params, request }) => {
+export const GET: APIRoute = async ({ params, request, locals }) => {
   const recordId = params.id
   if (!recordId) return jsonError('missing_id', 400)
 
-  const context = await resolvePatientContext(request)
+  const context = await resolvePatientContext(request, locals)
   if (!context) return jsonError('unauthorized', 401)
 
   try {

@@ -18,8 +18,8 @@ function jsonError(message: string, status: number) {
   })
 }
 
-export const GET: APIRoute = async ({ request }) => {
-  const context = await resolvePatientContext(request)
+export const GET: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return jsonError('unauthorized', 401)
 
   try {

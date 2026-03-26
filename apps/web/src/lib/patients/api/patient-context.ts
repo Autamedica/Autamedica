@@ -1,6 +1,13 @@
 /**
  * Resolves patient context from an incoming Astro API request.
- * Astro-compatible replacement for the Next.js version that used next/headers.
+ *
+ * IMPORTANT: Prefer passing `locals` from the Astro context.
+ * The middleware already validated the session and stored it in locals.session.
+ * Re-creating a Supabase client from cookies alone fails when the access token
+ * expires because the API endpoint can't write refreshed tokens back (setAll is no-op).
+ *
+ * With locals: uses the already-validated session → no re-auth, no refresh needed.
+ * Without locals: falls back to cookie-based auth (legacy, for backwards compat).
  */
 
 import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
@@ -11,46 +18,43 @@ export interface PatientContext {
   patientId: string
 }
 
+/** Astro locals shape (set by middleware) */
+interface AstroLocals {
+  session?: { user?: { id?: string } } | null
+  supabase?: unknown
+}
+
 export async function resolvePatientContext(
   request: Request,
+  locals?: AstroLocals,
 ): Promise<PatientContext | null> {
   try {
-    const supabase = createAstroServerClientFromRequest(request)
-
-    // Parse cookies for debugging
-    const rawCookies = request.headers.get('cookie') ?? ''
-    const sbCookies = rawCookies.split(';')
-      .map(c => c.trim().split('=')[0])
-      .filter(n => n.startsWith('sb-'))
-    logger.info('[resolvePatientContext] cookies received', { sbCookies, hasCookies: rawCookies.length > 0 })
-
-    // 1. Get user from session (reads cookie data without server validation)
+    // 1. PREFERRED: Use middleware-validated session from locals
     let userId: string | null = null
-    try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
-      userId = session?.user?.id ?? null
-      if (sessionError) {
-        logger.warn('[resolvePatientContext] getSession() error', { msg: sessionError.message })
-      }
-      logger.info('[resolvePatientContext] getSession result', { hasSession: !!session, userId })
-    } catch (e) {
-      logger.warn('[resolvePatientContext] getSession() threw', e)
+
+    if (locals?.session?.user?.id) {
+      userId = locals.session.user.id
     }
 
-    // 2. Fallback to getUser() if session fails or is missing
+    // 2. Fallback: Parse cookies and create a Supabase client
+    // This path has the refresh problem — it works only within the 1-hour access token window.
     if (!userId) {
+      const supabase = createAstroServerClientFromRequest(request)
       try {
-        const { data: { user: cookieUser }, error: cookieUserError } = await supabase.auth.getUser()
-        userId = cookieUser?.id ?? null
-        if (cookieUserError) {
-          logger.warn('[resolvePatientContext] getUser() failed', { msg: cookieUserError.message })
+        const { data: { session } } = await supabase.auth.getSession()
+        userId = session?.user?.id ?? null
+      } catch {
+        logger.warn('[resolvePatientContext] getSession() threw')
+      }
+
+      if (!userId) {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser()
+          userId = user?.id ?? null
+          if (error) logger.warn('[resolvePatientContext] getUser() failed', { msg: error.message })
+        } catch {
+          logger.warn('[resolvePatientContext] getUser() threw')
         }
-        logger.info('[resolvePatientContext] getUser result', { userId })
-      } catch (e) {
-        logger.warn('[resolvePatientContext] getUser() threw', e)
       }
     }
 

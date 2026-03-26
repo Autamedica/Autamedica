@@ -5,8 +5,8 @@ import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { doctorsService } from '@/lib/patients/services/doctors.service'
 import { jsonOk, unauthorized, internalError } from '@/lib/api-helpers'
 
-export const GET: APIRoute = async ({ request }) => {
-  const context = await resolvePatientContext(request)
+export const GET: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
   try {

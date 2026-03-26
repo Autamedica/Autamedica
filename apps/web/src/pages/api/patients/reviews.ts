@@ -10,9 +10,9 @@ function isValidRating(v: unknown): v is number {
 
 const REVIEW_WINDOW_DAYS = { min: 1, max: 30 }
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
-    const context = await resolvePatientContext(request)
+    const context = await resolvePatientContext(request, locals)
     if (!context) return unauthorized()
 
     const admin = createAstroAdminClient()
@@ -33,9 +33,9 @@ export const GET: APIRoute = async ({ request }) => {
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const context = await resolvePatientContext(request)
+    const context = await resolvePatientContext(request, locals)
     if (!context) return unauthorized()
 
     const body = await request.json()

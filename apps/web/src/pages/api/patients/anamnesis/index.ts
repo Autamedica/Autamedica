@@ -5,8 +5,8 @@ import { logger } from '@autamedica/shared'
 import { anamnesisService } from '@/lib/patients/services/anamnesis.service'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
-export const GET: APIRoute = async ({ request }) => {
-  const context = await resolvePatientContext(request)
+export const GET: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
   try {
@@ -18,8 +18,8 @@ export const GET: APIRoute = async ({ request }) => {
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
-  const context = await resolvePatientContext(request)
+export const POST: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
   const body = await request.json().catch(() => ({})) as {
@@ -48,8 +48,8 @@ export const POST: APIRoute = async ({ request }) => {
   }
 }
 
-export const PATCH: APIRoute = async ({ request }) => {
-  const context = await resolvePatientContext(request)
+export const PATCH: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
   const body = await request.json().catch(() => ({})) as Record<string, unknown>

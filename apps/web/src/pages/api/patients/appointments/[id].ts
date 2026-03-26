@@ -6,8 +6,8 @@ import { appointmentsService } from '@/lib/patients/services/appointments.servic
 import type { AppointmentStatus, AppointmentType } from '@/lib/patients/types/appointment'
 import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
 
-export const GET: APIRoute = async ({ request, params }) => {
-  const context = await resolvePatientContext(request)
+export const GET: APIRoute = async ({ request, params, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
   if (!params.id) return badRequest('Missing appointment id')
 
@@ -22,8 +22,8 @@ export const GET: APIRoute = async ({ request, params }) => {
   }
 }
 
-export const PATCH: APIRoute = async ({ request, params }) => {
-  const context = await resolvePatientContext(request)
+export const PATCH: APIRoute = async ({ request, params, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
   if (!params.id) return badRequest('Missing appointment id')
 
@@ -47,8 +47,8 @@ export const PATCH: APIRoute = async ({ request, params }) => {
   }
 }
 
-export const DELETE: APIRoute = async ({ request, params }) => {
-  const context = await resolvePatientContext(request)
+export const DELETE: APIRoute = async ({ request, params, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
   if (!params.id) return badRequest('Missing appointment id')
 

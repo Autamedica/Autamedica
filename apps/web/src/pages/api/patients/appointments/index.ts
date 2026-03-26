@@ -6,8 +6,8 @@ import { appointmentsService } from '@/lib/patients/services/appointments.servic
 import { jsonOk, unauthorized, badRequest, notFound, conflict, internalError } from '@/lib/api-helpers'
 import type { AppointmentType } from '@/lib/patients/types/appointment'
 
-export const GET: APIRoute = async ({ request }) => {
-  const context = await resolvePatientContext(request)
+export const GET: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
   try {
@@ -19,8 +19,8 @@ export const GET: APIRoute = async ({ request }) => {
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
-  const context = await resolvePatientContext(request)
+export const POST: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
   const body = await request.json().catch(() => ({})) as {
