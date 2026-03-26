@@ -69,7 +69,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-am-surface-800 mb-2">Error al cargar historial</h3>
           <p className="text-am-surface-500">{error}</p>
         </div>

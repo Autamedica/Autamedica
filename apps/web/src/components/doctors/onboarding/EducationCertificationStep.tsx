@@ -159,7 +159,7 @@ export function EducationCertificationStep({
 
             <button
               onClick={() => removeEducation(index)}
-              className="mt-3 text-red-500 text-sm hover:text-red-700 font-medium transition-colors"
+              className="mt-3 text-red-600 text-sm hover:text-red-700 font-medium transition-colors"
             >
               Eliminar educación
             </button>
@@ -263,7 +263,7 @@ export function EducationCertificationStep({
 
             <button
               onClick={() => removeCertification(index)}
-              className="mt-3 text-red-500 text-sm hover:text-red-700 font-medium transition-colors"
+              className="mt-3 text-red-600 text-sm hover:text-red-700 font-medium transition-colors"
             >
               Eliminar certificación
             </button>

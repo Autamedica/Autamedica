@@ -30,7 +30,7 @@ function Modal({
       <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-stone-400 transition hover:text-stone-600"
+          className="absolute right-4 top-4 text-stone-500 transition hover:text-stone-600"
         >
           <X className="h-5 w-5" />
         </button>

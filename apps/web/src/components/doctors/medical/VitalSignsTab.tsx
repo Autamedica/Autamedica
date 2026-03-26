@@ -60,7 +60,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'normal': return 'text-green-600'
+      case 'normal': return 'text-green-700'
       case 'low': return 'text-am-doctor-600'
       case 'high': return 'text-red-600'
       default: return 'text-am-surface-500'
@@ -99,7 +99,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center max-w-md">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-am-surface-800 mb-2">Error al cargar signos vitales</h3>
           <p className="text-am-surface-500">{error}</p>
         </div>
@@ -177,7 +177,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
                   {/* Presion arterial */}
                   <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4 shadow-am-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <Heart className="h-5 w-5 text-red-500" />
+                      <Heart className="h-5 w-5 text-red-600" />
                       <div className="flex items-center gap-1">
                         {getStatusIcon(getVitalSignStatus(latest.blood_pressure_systolic, 'blood_pressure_systolic'))}
                         {getStatusIcon(getVitalSignStatus(latest.blood_pressure_diastolic, 'blood_pressure_diastolic'))}
@@ -208,7 +208,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
                   {/* Temperatura */}
                   <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4 shadow-am-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <Thermometer className="h-5 w-5 text-orange-500" />
+                      <Thermometer className="h-5 w-5 text-orange-700" />
                       <div className={getStatusColor(getVitalSignStatus(latest.temperature, 'temperature'))}>
                         {getStatusIcon(getVitalSignStatus(latest.temperature, 'temperature'))}
                       </div>
@@ -270,7 +270,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
                   {/* Frecuencia respiratoria */}
                   <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-4 shadow-am-sm">
                     <div className="flex items-center justify-between mb-2">
-                      <Wind className="h-5 w-5 text-cyan-500" />
+                      <Wind className="h-5 w-5 text-cyan-700" />
                       <div className={getStatusColor(getVitalSignStatus(latest.respiratory_rate, 'respiratory_rate'))}>
                         {getStatusIcon(getVitalSignStatus(latest.respiratory_rate, 'respiratory_rate'))}
                       </div>

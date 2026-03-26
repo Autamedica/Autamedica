@@ -159,6 +159,40 @@ export const callStartRepo = {
     throw primary.error
   },
 
+  async listPendingByParticipants(supabase: Db, doctorId: string, patientId: string): Promise<Call[]> {
+    const pendingFilter = 'status.eq.requested,status.eq.ringing,status.eq.accepted'
+    const primary = await selectCalls(supabase, CALL_SELECT)
+      .eq('doctor_id', doctorId)
+      .eq('patient_id', patientId)
+      .or(pendingFilter)
+      .order('created_at', { ascending: false })
+
+    const primaryResponse = await primary as unknown as { data: LegacyCallRow[] | null; error: unknown }
+
+    if (!primaryResponse.error) {
+      return (primaryResponse.data ?? []).map((row) => withNullAppointmentId(row)).filter(Boolean) as Call[]
+    }
+
+    if (isMissingAppointmentIdColumn(primaryResponse.error)) {
+      logger.warn('[callStartRepo] listPendingByParticipants falling back to legacy calls schema')
+      const legacy = await selectCalls(supabase, LEGACY_CALL_SELECT)
+        .eq('doctor_id', doctorId)
+        .eq('patient_id', patientId)
+        .or(pendingFilter)
+        .order('created_at', { ascending: false }) as unknown as { data: LegacyCallRow[] | null; error: unknown }
+
+      if (legacy.error) {
+        logger.error('[callStartRepo] listPendingByParticipants legacy fallback failed', legacy.error)
+        throw legacy.error
+      }
+
+      return (legacy.data ?? []).map((row) => withNullAppointmentId(row)).filter(Boolean) as Call[]
+    }
+
+    logger.error('[callStartRepo] listPendingByParticipants failed', primaryResponse.error)
+    throw primaryResponse.error
+  },
+
   async createCall(
     supabase: Db,
     doctorId: string,

@@ -107,7 +107,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
         <Card className="bg-gradient-to-br from-emerald-500/5 to-transparent border-emerald-500/10">
           <CardContent className="flex items-center gap-4 p-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-              <UserCheck className="h-6 w-6 text-emerald-500" />
+              <UserCheck className="h-6 w-6 text-emerald-700" />
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Historias Clínicas</p>

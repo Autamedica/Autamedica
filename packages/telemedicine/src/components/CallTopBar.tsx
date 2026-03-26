@@ -2,6 +2,7 @@
 
 import { Clock, Users, Wifi } from 'lucide-react'
 import type { StreamQualityLevel } from '../webrtc-client'
+import type { CallSessionPhase } from '../runtime/call-session-phase'
 
 const qualityColor: Record<StreamQualityLevel, string> = {
   excellent: 'text-emerald-400',
@@ -20,8 +21,7 @@ const qualityLabel: Record<StreamQualityLevel, string> = {
 }
 
 export interface CallTopBarProps {
-  connectionState: string
-  isPeerReady: boolean
+  phase: CallSessionPhase
   qualityLevel: StreamQualityLevel
   formattedDuration: string
   participantCount: number
@@ -30,8 +30,7 @@ export interface CallTopBarProps {
 }
 
 export function CallTopBar({
-  connectionState,
-  isPeerReady,
+  phase,
   qualityLevel,
   formattedDuration,
   participantCount,
@@ -39,20 +38,20 @@ export function CallTopBar({
   showControls,
 }: CallTopBarProps) {
   const connectionLabel =
-    isPeerReady
+    phase === 'peer-ready'
       ? 'Conectado'
-      : connectionState === 'connected'
+      : phase === 'room-ready'
         ? 'Esperando'
-        : connectionState === 'connecting'
+        : phase === 'joining'
         ? 'Conectando'
         : 'Inestable'
 
   const connectionDotClass =
-    isPeerReady
+    phase === 'peer-ready'
       ? 'bg-emerald-400'
-      : connectionState === 'connected'
+      : phase === 'room-ready'
         ? 'bg-sky-400'
-        : connectionState === 'connecting'
+        : phase === 'joining'
         ? 'bg-amber-400'
         : 'bg-red-400'
 
@@ -65,11 +64,11 @@ export function CallTopBar({
       <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
         <div className="rounded-[24px] border border-white/10 bg-black/45 px-4 py-3 text-white shadow-2xl backdrop-blur-2xl">
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-            {isPeerReady ? 'Consulta en vivo' : 'Sala preparada'}
+            {phase === 'peer-ready' ? 'Consulta en vivo' : 'Sala preparada'}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
             <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
-              <span className={`h-2 w-2 rounded-full ${connectionDotClass} ${isPeerReady ? 'animate-pulse' : ''}`} />
+              <span className={`h-2 w-2 rounded-full ${connectionDotClass} ${phase === 'peer-ready' ? 'animate-pulse' : ''}`} />
               <span className="font-medium">{connectionLabel}</span>
             </span>
             {qualityLevel !== 'unknown' && (
@@ -90,7 +89,7 @@ export function CallTopBar({
               Grabando
             </div>
           )}
-          {isPeerReady && (
+          {phase === 'peer-ready' && (
             <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-[11px] text-white shadow-lg backdrop-blur-xl">
               <Clock className="h-3.5 w-3.5 text-slate-400" />
               <span className="font-mono">{formattedDuration}</span>

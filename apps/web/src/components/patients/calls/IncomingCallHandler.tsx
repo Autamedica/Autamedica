@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createBrowserClient } from '@autamedica/auth'
 import { createCallService } from '@autamedica/telemedicine'
-import type { InviteMessage } from '@autamedica/telemedicine'
+import type { Call, InviteMessage } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
 import { respondCallBrowserService } from '@/lib/calls/services/respond-call.browser'
+import { selectCurrentIncomingCall } from '@/lib/calls/services/select-current-incoming-call'
 
 function tryShowBrowserNotification(title: string, body: string) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
@@ -19,17 +20,20 @@ function tryShowBrowserNotification(title: string, body: string) {
 interface IncomingCallHandlerProps {
   patientId: string
   patientName?: string
+  focusAppointmentId?: string | null
 }
 
 export function IncomingCallHandler({
   patientId,
   patientName: _patientName = 'Paciente',
+  focusAppointmentId = null,
 }: IncomingCallHandlerProps) {
   const [incomingCall, setIncomingCall] = useState<InviteMessage | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
   const ringtoneContextRef = useRef<AudioContext | null>(null)
   const ringtoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const trackedCallsRef = useRef<Map<string, Call>>(new Map())
 
   const stopIncomingRingtone = useCallback(() => {
     if (ringtoneIntervalRef.current) {
@@ -116,12 +120,7 @@ export function IncomingCallHandler({
     return callServiceRef.current
   }
 
-  const showIncomingCall = useCallback((call: {
-    id: string
-    room_id: string
-    doctor_id: string
-    patient_id: string
-  }) => {
+  const showIncomingCall = useCallback((call: Pick<Call, 'id' | 'room_id' | 'doctor_id' | 'patient_id'>) => {
     const inviteMessage: InviteMessage = {
       type: 'invite',
       callId: call.id,
@@ -136,6 +135,40 @@ export function IncomingCallHandler({
       `${inviteMessage.from.name || 'Tu doctor'} te está llamando`,
     )
   }, [])
+
+  const syncIncomingCall = useCallback(() => {
+    const nextCall = selectCurrentIncomingCall(
+      Array.from(trackedCallsRef.current.values()),
+      { focusAppointmentId },
+    )
+
+    if (!nextCall) {
+      setIncomingCall(null)
+      setIsConnecting(false)
+      return
+    }
+
+    setIncomingCall((currentInvite) => {
+      if (currentInvite?.callId === nextCall.id) {
+        return currentInvite
+      }
+
+      const inviteMessage: InviteMessage = {
+        type: 'invite',
+        callId: nextCall.id,
+        roomId: nextCall.room_id,
+        from: { doctorId: nextCall.doctor_id, name: 'Doctor' },
+        to: { patientId: nextCall.patient_id },
+      }
+
+      tryShowBrowserNotification(
+        'Videollamada entrante',
+        `${inviteMessage.from.name || 'Tu doctor'} te está llamando`,
+      )
+
+      return inviteMessage
+    })
+  }, [focusAppointmentId])
 
   useEffect(() => {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
@@ -190,17 +223,22 @@ export function IncomingCallHandler({
           logger.info('[IncomingCallHandler] New call received:', call)
 
           if (call.status === 'ringing') {
-            showIncomingCall(call)
+            trackedCallsRef.current.set(call.id, call)
+            syncIncomingCall()
           } else if (call.status === 'canceled' || call.status === 'declined' || call.status === 'ended') {
-            setIncomingCall(null)
-            setIsConnecting(false)
+            trackedCallsRef.current.delete(call.id)
+            syncIncomingCall()
+          } else {
+            trackedCallsRef.current.set(call.id, call)
+            syncIncomingCall()
           }
         })
 
         const activeCalls = await callService.getActiveCallsForPatient(patientId)
-        const ringingCall = activeCalls.find((call) => call.status === 'ringing')
+        trackedCallsRef.current = new Map(activeCalls.map((call) => [call.id, call]))
+        const ringingCall = selectCurrentIncomingCall(activeCalls, { focusAppointmentId })
         if (ringingCall) {
-          logger.info('[IncomingCallHandler] Found active ringing call on mount:', ringingCall)
+          logger.info('[IncomingCallHandler] Found current ringing call on mount:', ringingCall)
           showIncomingCall(ringingCall)
         }
 
@@ -219,7 +257,7 @@ export function IncomingCallHandler({
     return () => {
       if (subscription) subscription()
     }
-  }, [patientId, showIncomingCall])
+  }, [focusAppointmentId, patientId, showIncomingCall, syncIncomingCall])
 
   const handleAccept = async () => {
     if (!incomingCall) return

@@ -259,7 +259,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
       return { label: 'Sin señal', color: 'text-rose-400' }
     }
     if (callStatus === 'live') {
-      return { label: 'HD', color: 'text-emerald-400' }
+      return { label: 'HD', color: 'text-emerald-700' }
     }
     if (callStatus === 'connecting') {
       return { label: 'Inicializando', color: 'text-amber-400' }
@@ -513,7 +513,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
               <div className="video-badge z-10">
                 <div className="flex items-center gap-3 rounded-lg bg-slate-900/80 px-3 py-2 backdrop-blur-md">
                   <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-emerald-400" />
+                    <Activity className="h-4 w-4 text-emerald-700" />
                     <div>
                       <p className="text-xs font-semibold text-slate-100">{getPatientDisplayName(patient)}</p>
                       <p className="text-[10px] text-slate-400">{getPatientAge(patient)} años • {formattedDuration}</p>
@@ -534,7 +534,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
               }`}>
                 <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs backdrop-blur-sm">
                   <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-400"></div>
-                  <span className="font-medium text-emerald-200">
+                  <span className="font-medium text-emerald-700">
                     {callQuality.label} • Estable
                   </span>
                 </div>
@@ -548,7 +548,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                   onClick={toggleFocusMode}
                   className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${
                     isFocusMode
-                      ? 'border-emerald-400/50 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                      ? 'border-emerald-400/50 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
                       : 'border-slate-700 bg-slate-900/80 text-slate-200 hover:border-emerald-400/60 hover:text-white'
                   }`}
                 >
@@ -927,7 +927,7 @@ function CompactAction({ label, icon, intent = 'default', onClick, disabled }: C
       disabled={disabled}
       className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-am-fast active:enabled:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${intentStyles[intent]}`}
     >
-      <span className={intent === 'success' ? 'text-emerald-600' : intent === 'primary' ? 'text-am-doctor-600' : 'text-am-surface-500'}>
+      <span className={intent === 'success' ? 'text-emerald-700' : intent === 'primary' ? 'text-am-doctor-600' : 'text-am-surface-500'}>
         {icon}
       </span>
       {label}

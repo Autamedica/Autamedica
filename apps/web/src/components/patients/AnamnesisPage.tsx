@@ -64,7 +64,7 @@ function VersionTimeline({ onDownload }: { onDownload: (version?: number) => voi
 
   return (
     <details className="group">
-      <summary className="flex cursor-pointer items-center justify-between rounded-xl px-1 py-2 text-xs font-semibold text-stone-400 hover:text-stone-600">
+      <summary className="flex cursor-pointer items-center justify-between rounded-xl px-1 py-2 text-xs font-semibold text-stone-500 hover:text-stone-600">
         <span>Historial de versiones</span>
         <span className="text-[10px] group-open:hidden">{versions.length}</span>
       </summary>
@@ -106,12 +106,12 @@ function VersionTimeline({ onDownload }: { onDownload: (version?: number) => voi
                 )}
 
                 {v.notes && (
-                  <p className="mt-0.5 text-xs text-stone-400 italic">"{v.notes}"</p>
+                  <p className="mt-0.5 text-xs text-stone-500 italic">"{v.notes}"</p>
                 )}
 
                 <button
                   onClick={() => onDownload(v.version_number)}
-                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700"
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-700"
                 >
                   <Download className="h-3 w-3" /> Descargar PDF
                 </button>
@@ -393,7 +393,7 @@ export default function AnamnesisPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50">
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-emerald-600" />
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-emerald-700" />
           <p className="mt-3 text-sm text-stone-500">Cargando tu anamnesis...</p>
         </div>
       </div>
@@ -404,7 +404,7 @@ export default function AnamnesisPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50 p-6">
         <div className="max-w-md text-center">
-          <Lock className="mx-auto h-12 w-12 text-stone-400" />
+          <Lock className="mx-auto h-12 w-12 text-stone-500" />
           <h1 className="mt-4 text-xl font-bold text-stone-900">Anamnesis en revisión</h1>
           <p className="mt-2 text-sm text-stone-600">
             Tu anamnesis está siendo revisada por tu equipo médico. No se pueden hacer cambios en este momento.
@@ -491,7 +491,7 @@ export default function AnamnesisPage() {
                 {completedDate ?? 'Completada'}
               </p>
               <h1 className="mt-1 font-heading text-3xl font-bold text-white">
-                Tu historia <span className="text-cyan-400">clínica</span>
+                Tu historia <span className="text-cyan-700">clínica</span>
               </h1>
             </div>
           </div>
@@ -546,7 +546,7 @@ export default function AnamnesisPage() {
 
           {/* Secondary: collapsed by default */}
           <details className="group">
-            <summary className="flex cursor-pointer items-center justify-between rounded-xl px-1 py-2 text-xs font-semibold text-stone-400 hover:text-stone-600">
+            <summary className="flex cursor-pointer items-center justify-between rounded-xl px-1 py-2 text-xs font-semibold text-stone-500 hover:text-stone-600">
               <span>Ver detalle de secciones</span>
               <span className="text-[10px] group-open:hidden">{completedCount}/{totalSteps}</span>
             </summary>
@@ -560,7 +560,7 @@ export default function AnamnesisPage() {
                     className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ${
                       isComplete
                         ? 'bg-black text-white'
-                        : 'bg-stone-100 text-stone-400'
+                        : 'bg-stone-100 text-stone-500'
                     }`}
                   >
                     {isComplete && <Check className="h-3 w-3" />}
@@ -586,7 +586,7 @@ export default function AnamnesisPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50 p-6">
         <div className="max-w-lg rounded-2xl border-2 border-stone-200 bg-white p-8 shadow-sm">
-          <Shield className="mx-auto h-12 w-12 text-emerald-600" />
+          <Shield className="mx-auto h-12 w-12 text-emerald-700" />
           <h1 className="mt-4 text-center text-xl font-bold text-stone-900">
             Tu historia clínica digital
           </h1>
@@ -598,19 +598,19 @@ export default function AnamnesisPage() {
             <h2 className="text-sm font-semibold text-stone-800">Antes de comenzar:</h2>
             <ul className="space-y-2 text-sm text-stone-600">
               <li className="flex gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
                 <span>El formulario tiene 13 pasos con contenido educativo</span>
               </li>
               <li className="flex gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
                 <span>Puedes pausar y retomar cuando quieras</span>
               </li>
               <li className="flex gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
                 <span>Cada 4 pasos habrá una pausa para descansar</span>
               </li>
               <li className="flex gap-2">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
                 <span>Tus datos se guardan automáticamente</span>
               </li>
             </ul>
@@ -650,7 +650,7 @@ export default function AnamnesisPage() {
 
           <a
             href="/patients/dashboard"
-            className="mt-3 block text-center text-xs text-stone-400 transition-colors hover:text-stone-600"
+            className="mt-3 block text-center text-xs text-stone-500 transition-colors hover:text-stone-600"
           >
             Completar más tarde
           </a>
@@ -671,13 +671,13 @@ export default function AnamnesisPage() {
           <span className="text-sm font-semibold text-emerald-700">AutaMedica</span>
           <span className="flex items-center gap-1.5 text-xs text-stone-500">
             {isExtracting && (
-              <Loader2 className="h-3 w-3 animate-spin text-sky-500" />
+              <Loader2 className="h-3 w-3 animate-spin text-sky-700" />
             )}
             Paso {currentStepIndex + 1} de {anamnesisSteps.length}
           </span>
           <button
             onClick={() => { if (editMode) { setEditMode(false); } else { window.location.href = '/'; } }}
-            className="text-xs text-stone-400 transition-colors hover:text-stone-600"
+            className="text-xs text-stone-500 transition-colors hover:text-stone-600"
           >
             {editMode ? 'Volver al resumen' : 'Guardar y salir'}
           </button>
@@ -708,7 +708,7 @@ export default function AnamnesisPage() {
                 </div>
               )}
               {currentStep.story.didYouKnow && (
-                <p className="mt-3 text-xs italic text-sky-600">{currentStep.story.didYouKnow}</p>
+                <p className="mt-3 text-xs italic text-sky-700">{currentStep.story.didYouKnow}</p>
               )}
             </div>
           )}
@@ -795,7 +795,7 @@ export default function AnamnesisPage() {
               // Loading state
               <div className="space-y-6">
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
-                  <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
+                  <Loader2 className="h-10 w-10 animate-spin text-emerald-700" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-stone-900">AutaMedica está analizando tus respuestas</h2>
@@ -818,7 +818,7 @@ export default function AnamnesisPage() {
               <div className="space-y-6 text-left">
                 <div className="text-center">
                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                    <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                    <CheckCircle2 className="h-8 w-8 text-emerald-700" />
                   </div>
                   <h2 className="mt-3 text-xl font-bold text-stone-900">Análisis completado</h2>
                   <p className="mt-1 text-sm text-stone-600">Llevás la mitad de tu historia clínica</p>
@@ -843,7 +843,7 @@ export default function AnamnesisPage() {
                     <ul className="space-y-1">
                       {analysisResult.gaps.map((gap) => (
                         <li key={gap} className="text-sm text-amber-800 flex items-start gap-2">
-                          <span className="text-amber-500 mt-0.5">●</span> {gap}
+                          <span className="text-amber-700 mt-0.5">●</span> {gap}
                         </li>
                       ))}
                     </ul>

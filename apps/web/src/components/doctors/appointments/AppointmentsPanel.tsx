@@ -56,7 +56,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 mb-2">⚠️</div>
+          <div className="text-red-600 mb-2">⚠️</div>
           <p className="text-red-600">Error: {error}</p>
         </div>
       </div>
@@ -134,7 +134,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
         <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-green-50 p-2">
-              <Video className="h-5 w-5 text-green-600" />
+              <Video className="h-5 w-5 text-green-700" />
             </div>
             <div>
               <p className="text-sm text-am-surface-500">Telemedicina</p>
@@ -162,7 +162,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
         <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-emerald-50 p-2">
-              <User className="h-5 w-5 text-emerald-600" />
+              <User className="h-5 w-5 text-emerald-700" />
             </div>
             <div>
               <p className="text-sm text-am-surface-500">Confirmadas</p>

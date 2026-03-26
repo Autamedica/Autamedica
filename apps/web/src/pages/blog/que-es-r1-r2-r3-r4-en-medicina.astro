@@ -1,0 +1,187 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: '¿Qué es R1, R2, R3, R4 en medicina?',
+  author: 'Equipo AutaMedica',
+  role: 'Formación Médica',
+  date: '26 de marzo, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Formación Médica',
+};
+---
+
+<Layout
+  title="¿Qué es R1, R2, R3, R4 en medicina? Guía completa de residencias | AutaMedica"
+  description="R1, R2, R3 y R4 son los años de residencia médica post-título. Conocé qué hace un residente en cada etapa, cuánto duran las especialidades y cómo funciona el sistema en Argentina."
+  canonical="https://www.autamedica.com/blog/que-es-r1-r2-r3-r4-en-medicina"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-26T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+
+          <section>
+            <h2>La respuesta directa</h2>
+            <p>
+              <strong>R1, R2, R3 y R4 son los años de residencia médica</strong> que realiza un médico después
+              de recibirse. R1 es el primer año, R2 el segundo, R3 el tercero y R4 el cuarto. Cada año implica
+              mayor autonomía clínica y responsabilidad progresiva dentro del equipo de salud.
+            </p>
+            <div class="highlight-box">
+              La residencia es la formación práctica post-universitaria en una especialidad. R1 a R4 indican en
+              qué año de esa formación se encuentra el médico. La letra R viene de "Residente".
+            </div>
+          </section>
+
+          <section>
+            <h2>¿Qué hace el médico en cada año?</h2>
+
+            <div class="r-grid">
+              <div class="r-card">
+                <div class="r-label">R1</div>
+                <div class="r-title">Primer año</div>
+                <p>Ingreso a la residencia. Rotaciones básicas, aprendizaje supervisado. Alta carga horaria. Trabajo bajo tutela directa.</p>
+              </div>
+              <div class="r-card">
+                <div class="r-label">R2</div>
+                <div class="r-title">Segundo año</div>
+                <p>Mayor autonomía en guardias. Comienza a supervisar R1. Rotaciones en subespecialidades.</p>
+              </div>
+              <div class="r-card">
+                <div class="r-label">R3</div>
+                <div class="r-title">Tercer año</div>
+                <p>Práctica casi independiente. En muchas especialidades es el último año. Puede presentar examen de egreso.</p>
+              </div>
+              <div class="r-card">
+                <div class="r-label">R4</div>
+                <div class="r-title">Cuarto año</div>
+                <p>Presente en especialidades largas (cirugía, cardiología). Alta responsabilidad y liderazgo del equipo joven.</p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2>¿Cuántos años dura cada especialidad?</h2>
+            <p>La duración varía según la especialidad. En Argentina, el Ministerio de Salud establece los estándares mínimos para cada una:</p>
+
+            <div class="tabla-wrapper">
+              <table class="tabla">
+                <thead>
+                  <tr><th>Especialidad</th><th>Duración</th><th>Años</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Medicina General / Clínica Médica</td><td class="anos">3 años</td><td>R1 – R3</td></tr>
+                  <tr><td>Pediatría</td><td class="anos">3 años</td><td>R1 – R3</td></tr>
+                  <tr><td>Ginecología y Obstetricia</td><td class="anos">4 años</td><td>R1 – R4</td></tr>
+                  <tr><td>Cirugía General</td><td class="anos">4 años</td><td>R1 – R4</td></tr>
+                  <tr><td>Cardiología</td><td class="anos">4 años</td><td>R1 – R4</td></tr>
+                  <tr><td>Neurología</td><td class="anos">4 años</td><td>R1 – R4</td></tr>
+                  <tr><td>Psiquiatría</td><td class="anos">4 años</td><td>R1 – R4</td></tr>
+                  <tr><td>Anestesiología</td><td class="anos">3 años</td><td>R1 – R3</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h2>¿Cómo se accede a una residencia?</h2>
+            <p>
+              En Argentina, el ingreso a las residencias médicas se realiza mediante el
+              <strong>Examen Único de Residencias (EUR)</strong>, convocado anualmente a nivel nacional.
+              El puntaje determina la especialidad y la sede hospitalaria que puede elegir el postulante.
+            </p>
+            <p class="italic-note">
+              Solo los médicos con título habilitante pueden rendir el examen de residencias.
+              La matrícula profesional es requisito previo indispensable.
+            </p>
+            <h3>Condiciones laborales del residente</h3>
+            <p>
+              El médico residente trabaja en horarios rotativos con guardias de hasta 24 horas. Percibe un
+              <strong>estipendio mensual</strong> que varía según la provincia y el tipo de hospital. Las
+              residencias públicas dependen del Ministerio de Salud y las privadas de cada institución.
+            </p>
+          </section>
+
+          <section>
+            <h2>R1, R2, R3, R4 y la telemedicina</h2>
+            <p>
+              Cada vez más residentes en Argentina utilizan herramientas de telemedicina durante su formación.
+              El seguimiento de pacientes crónicos, las interconsultas remotas y la atención de baja complejidad
+              son áreas donde plataformas como AutaMédica están integrando a médicos en formación avanzada
+              bajo supervisión certificada.
+            </p>
+          </section>
+
+          <div class="cta-block">
+            <p class="cta-title">En AutaMédica, todos los médicos son especialistas certificados</p>
+            <p class="cta-desc">Verificamos matrícula, especialidad y habilitación de cada profesional. Tu salud en manos seguras.</p>
+            <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
+          </div>
+
+        </div>
+      </div>
+    </article>
+
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container { min-height: 100vh; background: var(--au-bg); }
+  .article-hero { padding: 4rem var(--section-px) 2rem; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2)); border-bottom: 1px solid var(--au-border); }
+  .container { max-width: 800px; margin: 0 auto; }
+  .back-link { color: #3b82f6; text-decoration: none; font-size: 0.95rem; display: inline-block; margin-bottom: 1.5rem; }
+  h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 300; letter-spacing: -0.02em; color: white; margin-bottom: 1.5rem; line-height: 1.2; }
+  .article-meta { display: flex; gap: 1rem; align-items: center; }
+  .category { background: rgba(59,130,246,0.2); color: #3b82f6; padding: 0.35rem 0.75rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .read-time { color: #a1a1a1; font-size: 0.9rem; }
+  .article-image-section { width: 100%; max-height: 500px; overflow: hidden; }
+  .article-image-section img { width: 100%; height: 100%; object-fit: cover; }
+  .article-content { padding: 4rem var(--section-px); }
+  .article-body { max-width: 800px; margin: 0 auto; }
+  section { margin-bottom: 3rem; }
+  h2 { font-size: 1.75rem; font-weight: 400; color: white; margin-bottom: 1rem; margin-top: 2rem; }
+  h3 { font-size: 1.25rem; font-weight: 400; color: #e0e0e0; margin: 1.5rem 0 0.75rem; }
+  p { color: #c1c1c1; line-height: 1.8; margin-bottom: 1rem; font-size: 1.05rem; }
+  .highlight-box { border-left: 3px solid #17C8D4; padding: 1rem 1.5rem; background: rgba(23,200,212,0.08); border-radius: 0 8px 8px 0; color: #a0f0f5; font-size: 0.95rem; line-height: 1.7; margin: 1.5rem 0; }
+  .italic-note { font-style: italic; color: #17C8D4; font-size: 0.95rem; }
+  .r-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  .r-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.25rem; }
+  .r-label { font-size: 2rem; font-weight: 700; color: #17C8D4; margin-bottom: 4px; }
+  .r-title { font-size: 0.85rem; font-weight: 600; color: white; margin-bottom: 8px; }
+  .r-card p { font-size: 0.88rem; color: #a1a1a1; margin: 0; line-height: 1.5; }
+  .tabla-wrapper { overflow-x: auto; margin: 1.5rem 0; }
+  .tabla { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .tabla th { background: rgba(255,255,255,0.08); color: white; padding: 10px 14px; text-align: left; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tabla td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #c1c1c1; }
+  .tabla .anos { color: #17C8D4; font-weight: 600; }
+  .cta-block { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; margin-top: 3rem; text-align: center; }
+  .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
+  .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+</style>

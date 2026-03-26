@@ -201,7 +201,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     patient: {
       title: t('roles.patient.title'),
       subtitle: t('roles.patient.subtitle'),
-      accent: 'text-emerald-400',
+      accent: 'text-emerald-700',
       buttonLabel: t('roles.patient.buttonLabel'),
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -213,7 +213,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     doctor: {
       title: t('roles.doctor.title'),
       subtitle: t('roles.doctor.subtitle'),
-      accent: 'text-cyan-400',
+      accent: 'text-cyan-700',
       buttonLabel: t('roles.doctor.buttonLabel'),
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

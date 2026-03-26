@@ -267,12 +267,12 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                     {daysRemaining !== null && (
                       <div className="mt-2">
                         {daysRemaining > 0 ? (
-                          <p className={`text-xs ${expiringSoon ? 'text-orange-600' : 'text-am-surface-500'}`}>
+                          <p className={`text-xs ${expiringSoon ? 'text-orange-700' : 'text-am-surface-500'}`}>
                             {expiringSoon && <AlertTriangle className="inline h-3 w-3 mr-1" />}
                             {daysRemaining} día{daysRemaining !== 1 ? 's' : ''} restante{daysRemaining !== 1 ? 's' : ''}
                           </p>
                         ) : daysRemaining === 0 ? (
-                          <p className="text-xs text-orange-600">
+                          <p className="text-xs text-orange-700">
                             <AlertTriangle className="inline h-3 w-3 mr-1" />
                             Expira hoy
                           </p>

@@ -137,7 +137,7 @@ export function AnamnesisFlowTour({ autoStart = false, currentStep: _currentStep
                   <li><strong>Siguiente →</strong>: Avanzar (se activa al responder)</li>
                   <li><strong>Guardar y salir</strong>: Continuar después</li>
                 </ul>
-                <p class="text-xs text-green-600 mt-2">✅ Auto-guardado activo cada 30s</p>
+                <p class="text-xs text-green-700 mt-2">✅ Auto-guardado activo cada 30s</p>
               </div>
             `,
             side: 'top',

@@ -47,7 +47,7 @@ export default function MedicalHistoryPage() {
       <div className="bg-white rounded-lg border border-stone-200">
         {medicalRecords.length === 0 ? (
           <div className="p-12 text-center">
-            <FileText className="h-16 w-16 text-stone-300 mx-auto mb-4" />
+            <FileText className="h-16 w-16 text-stone-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-stone-900 mb-2">
               No hay registros médicos
             </h3>

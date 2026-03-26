@@ -25,6 +25,7 @@ import {
 } from './webrtc-client'
 import { CloudflareCallsClient } from './cloudflare-calls'
 import { useCallRecording } from './hooks/useCallRecording'
+import { deriveCallSessionPhase } from './runtime/call-session-phase'
 import {
   GreenRoom,
   ConnectingOverlay,
@@ -210,9 +211,10 @@ export function UnifiedVideoCall({
   /* ── Derived ── */
   const accentColor = theme === 'doctor' ? 'violet' : 'sky'
   const totalParticipants = remoteUsers.size + 1
-  const isActive = connectionState === 'connected'
-  const isIdle = connectionState === 'disconnected' || connectionState === 'failed'
   const isCallEstablished = hasPeerConnection
+  const sessionPhase = deriveCallSessionPhase({ connectionState, hasPeerConnection })
+  const isInRoom = sessionPhase === 'room-ready' || sessionPhase === 'peer-ready'
+  const isIdle = sessionPhase === 'prejoin'
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
   const debugLogger = useMemo(
     () => createTelemedicineLogger({ source: 'UnifiedVideoCall', callId, roomId, userId, userType }),
@@ -297,7 +299,7 @@ export function UnifiedVideoCall({
   }, [])
 
   useEffect(() => {
-    if (!isActive) {
+    if (!isInRoom) {
       setControlsVisible(true)
       return
     }
@@ -305,7 +307,7 @@ export function UnifiedVideoCall({
     return () => {
       if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
     }
-  }, [isActive, resetControlsTimer])
+  }, [isInRoom, resetControlsTimer])
 
   const persistCallStatus = useCallback(
     async (status: CallStatus, reason?: string) => {
@@ -644,20 +646,20 @@ export function UnifiedVideoCall({
 
   /* ── Wake Lock: keep screen on during active call ── */
   useEffect(() => {
-    if (!isActive) return
+    if (!isInRoom) return
     void acquireWakeLock()
     const cleanup = setupWakeLockVisibilityHandler()
     return () => {
       cleanup()
       void releaseWakeLock()
     }
-  }, [isActive])
+  }, [isInRoom])
 
   /* ── Pause video when tab hidden (save CPU/battery) ── */
   useEffect(() => {
-    if (!isActive || !client) return
+    if (!isInRoom || !client) return
     return setupVisibilityVideoPause(() => client.getLocalStream())
-  }, [isActive, client])
+  }, [isInRoom, client])
 
   useEffect(() => {
     if (!callId || !hasStartedCallRef.current) {
@@ -883,7 +885,7 @@ export function UnifiedVideoCall({
 
   /* ── Audio VU Meter for Green Room ── */
   useEffect(() => {
-    if (!warmUpResult?.stream || isActive) return
+    if (!warmUpResult?.stream || isInRoom) return
 
     const audioTrack = warmUpResult.stream.getAudioTracks()[0]
     if (!audioTrack) return
@@ -918,7 +920,7 @@ export function UnifiedVideoCall({
       if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close()
       audioContextRef.current = null
     }
-  }, [warmUpResult, isActive])
+  }, [isInRoom, warmUpResult])
 
   /* ── Audio-only suggestion when quality is persistently poor ── */
   useEffect(() => {
@@ -966,7 +968,7 @@ export function UnifiedVideoCall({
   return (
     <div
       className={`relative h-full w-full overflow-hidden bg-neutral-900 text-white ${className}`}
-      onMouseMove={isActive ? resetControlsTimer : undefined}
+      onMouseMove={isInRoom ? resetControlsTimer : undefined}
     >
       {/* Main video area */}
       <div className="absolute inset-0">
@@ -1005,7 +1007,7 @@ export function UnifiedVideoCall({
         )}
 
         {/* Active call layout */}
-        {isActive && (
+        {isInRoom && (
           <ActiveCallLayout
             remoteUsers={remoteUsers}
             remoteVideosRef={remoteVideosRef}
@@ -1024,10 +1026,9 @@ export function UnifiedVideoCall({
       </div>
 
       {/* Top bar */}
-      {isActive && (
+      {isInRoom && (
         <CallTopBar
-          connectionState={connectionState}
-          isPeerReady={isCallEstablished}
+          phase={sessionPhase}
           qualityLevel={qualityLevel}
           formattedDuration={formattedDuration}
           participantCount={totalParticipants}
@@ -1037,7 +1038,7 @@ export function UnifiedVideoCall({
       )}
 
       {/* Quality overlays (error toast, test badge, audio-only suggestion, quality badge) */}
-      {isActive && (
+      {isInRoom && (
         <QualityOverlays
           showAudioOnlySuggestion={showAudioOnlySuggestion}
           onSwitchAudioOnly={switchToAudioOnly}
@@ -1050,7 +1051,7 @@ export function UnifiedVideoCall({
       )}
 
       {/* Bottom controls */}
-      {isActive && (
+      {isInRoom && (
         <CallControlsBar
           isVideoEnabled={isVideoEnabled}
           isAudioEnabled={isAudioEnabled}
@@ -1072,7 +1073,7 @@ export function UnifiedVideoCall({
       )}
 
       {/* Chat panel */}
-      {isActive && (
+      {isInRoom && (
         <ChatPanel
           isOpen={isChatPanelOpen}
           messages={chatMessages}

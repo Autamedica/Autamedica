@@ -26,7 +26,7 @@ export type DoctorCancelStatusResolution =
     }
 
 const TERMINAL_STATUSES = new Set<CallStatus>(['declined', 'canceled', 'ended'])
-const CONNECTING_ALLOWED_FROM = new Set<CallStatus>(['requested', 'ringing', 'accepted', 'connecting'])
+const CONNECTING_ALLOWED_FROM = new Set<CallStatus>(['accepted', 'connecting'])
 const CONNECTED_ALLOWED_FROM = new Set<CallStatus>(['accepted', 'connecting'])
 const ENDABLE_STATUSES = new Set<CallStatus>(['accepted', 'connecting', 'connected'])
 const DOCTOR_CANCELABLE_STATUSES = new Set<CallStatus>(['requested', 'ringing', 'accepted'])

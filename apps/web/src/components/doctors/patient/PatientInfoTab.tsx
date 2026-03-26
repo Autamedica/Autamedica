@@ -214,7 +214,7 @@ export function PatientInfoTab({ patientId }: PatientInfoTabProps): JSX.Element 
           {/* Contacto de emergencia */}
           <div className="rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-am-surface-900">
-              <AlertTriangle className="h-5 w-5 text-orange-400" />
+              <AlertTriangle className="h-5 w-5 text-orange-700" />
               Contacto de Emergencia
             </h2>
 

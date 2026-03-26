@@ -160,6 +160,14 @@ export default function AppointmentsPage({
     )[0] ?? null
   }, [focusAppointmentId, isTelemedicineView, visibleAppointments])
 
+  const incomingCallFocusAppointmentId = useMemo(() => {
+    if (!isTelemedicineView) {
+      return null
+    }
+
+    return focusAppointmentId ?? featuredTelemedicineAppointment?.id ?? null
+  }, [featuredTelemedicineAppointment?.id, focusAppointmentId, isTelemedicineView])
+
   const stats = useMemo(() => {
     const upcoming = visibleAppointments.filter(
       (apt) => apt.status === 'scheduled' || apt.status === 'confirmed'
@@ -219,13 +227,13 @@ export default function AppointmentsPage({
           <section className="mb-8 overflow-hidden rounded-[28px] bg-stone-950 p-6 text-white shadow-xl shadow-stone-950/10">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700">
                   Acceso directo
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-tight">
                   Entrá a tu videoconsulta sin copiar links ni room IDs
                 </h2>
-                <p className="mt-3 text-sm text-stone-300">
+                <p className="mt-3 text-sm text-stone-500">
                   La sala se resuelve desde tu turno real. Si ya existe una llamada activa, te conecta
                   a esa misma sesión; si no existe, la prepara antes de abrir el video.
                 </p>
@@ -262,7 +270,7 @@ export default function AppointmentsPage({
             {featuredTelemedicineAppointment ? (
               <div className="mt-6 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 sm:grid-cols-3">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-400">Profesional</p>
+                  <p className="text-xs uppercase tracking-wide text-stone-500">Profesional</p>
                   <p className="mt-1 text-sm font-semibold text-white">
                     {featuredTelemedicineAppointment.doctor
                       ? `Dr. ${featuredTelemedicineAppointment.doctor.first_name ?? ''} ${featuredTelemedicineAppointment.doctor.last_name ?? ''}`.trim()
@@ -270,7 +278,7 @@ export default function AppointmentsPage({
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-400">Fecha</p>
+                  <p className="text-xs uppercase tracking-wide text-stone-500">Fecha</p>
                   <p className="mt-1 text-sm font-semibold text-white">
                     {new Intl.DateTimeFormat('es-AR', {
                       weekday: 'short',
@@ -280,7 +288,7 @@ export default function AppointmentsPage({
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-400">Hora</p>
+                  <p className="text-xs uppercase tracking-wide text-stone-500">Hora</p>
                   <p className="mt-1 text-sm font-semibold text-white">
                     {new Intl.DateTimeFormat('es-AR', {
                       hour: '2-digit',
@@ -291,7 +299,7 @@ export default function AppointmentsPage({
               </div>
             ) : (
               <div className="mt-6 rounded-2xl border border-dashed border-white/15 bg-white/5 p-5">
-                <p className="text-sm text-stone-300">
+                <p className="text-sm text-stone-500">
                   Todavía no tenés una videoconsulta activa o próxima para abrir directo desde acá.
                 </p>
               </div>
@@ -305,19 +313,19 @@ export default function AppointmentsPage({
             icon={Calendar}
             label="Próximas"
             value={stats.upcoming}
-            accent="bg-sky-50 text-sky-600"
+            accent="bg-sky-50 text-sky-700"
           />
           <StatCard
             icon={CheckCircle}
             label={isTelemedicineView ? 'En vivo' : 'Completadas'}
             value={isTelemedicineView ? stats.live : stats.completed}
-            accent={isTelemedicineView ? 'bg-cyan-50 text-cyan-600' : 'bg-emerald-50 text-emerald-600'}
+            accent={isTelemedicineView ? 'bg-cyan-50 text-cyan-700' : 'bg-emerald-50 text-emerald-700'}
           />
           <StatCard
             icon={XCircle}
             label={isTelemedicineView ? 'Completadas' : 'Canceladas'}
             value={isTelemedicineView ? stats.completed : stats.cancelled}
-            accent={isTelemedicineView ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-500'}
+            accent={isTelemedicineView ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}
           />
         </div>
 
@@ -339,7 +347,7 @@ export default function AppointmentsPage({
         ) : visibleAppointments.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white py-20 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-50">
-              <CalendarPlus className="h-7 w-7 text-stone-400" />
+              <CalendarPlus className="h-7 w-7 text-stone-500" />
             </div>
             <h3 className="text-lg font-semibold text-stone-900">
               {isTelemedicineView ? 'Sin videoconsultas programadas' : 'Sin citas programadas'}
@@ -385,7 +393,12 @@ export default function AppointmentsPage({
         />
       )}
 
-      {patientProfileId && <IncomingCallHandler patientId={patientProfileId} />}
+      {patientProfileId && (
+        <IncomingCallHandler
+          patientId={patientProfileId}
+          focusAppointmentId={incomingCallFocusAppointmentId}
+        />
+      )}
     </div>
   )
 }

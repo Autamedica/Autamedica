@@ -88,7 +88,7 @@ export function ProfileForm() {
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100">
-            <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            <CheckCircle2 className="h-8 w-8 text-emerald-700" />
           </div>
           <div>
             <p className="text-lg font-semibold text-am-surface-900">Perfil completado</p>

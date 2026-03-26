@@ -1,0 +1,150 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: '¿Qué hizo el Protomedicato?',
+  author: 'Equipo AutaMedica',
+  role: 'Historia de la Medicina',
+  date: '26 de marzo, 2026',
+  readTime: '5 min',
+  image: '/images/article_telemed.webp',
+  category: 'Historia Médica',
+};
+---
+
+<Layout
+  title="¿Qué hizo el Protomedicato? Historia de la regulación médica en Argentina | AutaMedica"
+  description="El Protomedicato fue el primer organismo que reguló el ejercicio de la medicina en América colonial. Conocé su historia y cómo influyó en el sistema de salud argentino actual."
+  canonical="https://www.autamedica.com/blog/que-hizo-el-protomedicato"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-26T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+
+          <section>
+            <h2>¿Qué es el Protomedicato?</h2>
+            <p>
+              El <strong>Protomedicato</strong> fue el primer organismo oficial que reguló el ejercicio de la
+              medicina en el mundo hispanoamericano. Creado por la Corona española durante la época colonial,
+              funcionó como un tribunal con autoridad para examinar, habilitar y sancionar a quienes ejercían
+              la medicina, la cirugía y la farmacia.
+            </p>
+            <div class="highlight-box">
+              En Argentina, el Protomedicato fue el antecedente directo de los actuales colegios médicos y del
+              sistema de matriculación profesional que rige hoy en todo el país.
+            </div>
+          </section>
+
+          <section>
+            <h2>¿Qué funciones tenía?</h2>
+            <p>Las funciones del Protomedicato iban mucho más allá de expedir títulos. Sus principales responsabilidades eran:</p>
+            <ul>
+              <li><strong>Examinación y habilitación:</strong> evaluaba a todo aquel que quisiera ejercer como médico, cirujano, boticario o partera. Sin la aprobación del tribunal, el ejercicio era ilegal.</li>
+              <li><strong>Control de farmacias y boticas:</strong> inspeccionaba los establecimientos donde se expendían medicamentos, verificando su preparación y calidad.</li>
+              <li><strong>Persecución del intrusismo:</strong> tenía autoridad para sancionar a quienes ejercían la medicina sin habilitación — lo que hoy llamaríamos ejercicio ilegal de la medicina.</li>
+              <li><strong>Asesoramiento judicial:</strong> actuaba como perito en causas criminales donde se requería dictamen médico.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>El Protomedicato en el Río de la Plata</h2>
+            <p>
+              En el territorio que hoy es Argentina, el Protomedicato del Río de la Plata fue establecido
+              formalmente en <strong>1780</strong> por el Virrey Juan José de Vértiz. Su creación respondió
+              a la necesidad de ordenar una práctica médica que hasta entonces era caótica, con curanderos,
+              sangradores y empíricos ejerciendo sin ningún control.
+            </p>
+            <p class="italic-note">
+              El primer protomédico del Río de la Plata fue el Dr. Miguel Gorman, médico irlandés al servicio
+              de la Corona española.
+            </p>
+
+            <h3>Disolución y legado</h3>
+            <p>
+              Con la Revolución de Mayo de 1810 y la posterior independencia, el Protomedicato fue gradualmente
+              reemplazado por instituciones republicanas. En 1852 se creó la Facultad de Medicina de la
+              Universidad de Buenos Aires, que absorbió sus funciones de formación y habilitación.
+            </p>
+            <p>
+              Sin embargo, su legado es estructural: la idea de que el Estado debe verificar y habilitar a
+              quienes ejercen la medicina es el principio que sostiene hoy los colegios médicos provinciales,
+              la matrícula médica y las leyes de ejercicio profesional de la salud.
+            </p>
+          </section>
+
+          <section>
+            <h2>Del Protomedicato a la telemedicina</h2>
+            <p>
+              El espíritu del Protomedicato — garantizar que quienes ejercen la medicina estén debidamente
+              habilitados — sigue vigente en la era digital. Plataformas como AutaMédica verifican la matrícula
+              y credenciales de cada profesional antes de incorporarlo, asegurando que la teleconsulta cumpla
+              con los mismos estándares que la medicina presencial.
+            </p>
+            <p>La tecnología cambió el consultorio, pero no la exigencia de seguridad para el paciente.</p>
+          </section>
+
+          <div class="cta-block">
+            <p class="cta-title">Médicos verificados, sin sala de espera</p>
+            <p class="cta-desc">En AutaMédica todos los profesionales tienen matrícula habilitante vigente. Consultá hoy en menos de 15 minutos.</p>
+            <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
+          </div>
+
+        </div>
+      </div>
+    </article>
+
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container { min-height: 100vh; background: var(--au-bg); }
+  .article-hero { padding: 4rem var(--section-px) 2rem; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2)); border-bottom: 1px solid var(--au-border); }
+  .container { max-width: 800px; margin: 0 auto; }
+  .back-link { color: #3b82f6; text-decoration: none; font-size: 0.95rem; display: inline-block; margin-bottom: 1.5rem; }
+  h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 300; letter-spacing: -0.02em; color: white; margin-bottom: 1.5rem; line-height: 1.2; }
+  .article-meta { display: flex; gap: 1rem; align-items: center; }
+  .category { background: rgba(59,130,246,0.2); color: #3b82f6; padding: 0.35rem 0.75rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .read-time { color: #a1a1a1; font-size: 0.9rem; }
+  .article-image-section { width: 100%; max-height: 500px; overflow: hidden; }
+  .article-image-section img { width: 100%; height: 100%; object-fit: cover; }
+  .article-content { padding: 4rem var(--section-px); }
+  .article-body { max-width: 800px; margin: 0 auto; }
+  section { margin-bottom: 3rem; }
+  h2 { font-size: 1.75rem; font-weight: 400; color: white; margin-bottom: 1rem; margin-top: 2rem; }
+  h3 { font-size: 1.25rem; font-weight: 400; color: #e0e0e0; margin: 1.5rem 0 0.75rem; }
+  p { color: #c1c1c1; line-height: 1.8; margin-bottom: 1rem; font-size: 1.05rem; }
+  ul { list-style: none; padding: 0; margin: 1.5rem 0; }
+  li { color: #c1c1c1; padding: 0.75rem 0; padding-left: 1.5rem; position: relative; line-height: 1.6; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  li::before { content: '→'; position: absolute; left: 0; color: #3b82f6; font-weight: bold; }
+  .highlight-box { border-left: 3px solid #17C8D4; padding: 1rem 1.5rem; background: rgba(23,200,212,0.08); border-radius: 0 8px 8px 0; color: #a0f0f5; font-size: 0.95rem; line-height: 1.7; margin: 1.5rem 0; }
+  .italic-note { font-style: italic; color: #17C8D4; font-size: 0.95rem; }
+  .cta-block { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; margin-top: 3rem; text-align: center; }
+  .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
+  .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+</style>

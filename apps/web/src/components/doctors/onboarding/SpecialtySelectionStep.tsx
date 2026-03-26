@@ -86,7 +86,7 @@ export function SpecialtySelectionStep({
       <div className="space-y-4">
         <div>
           <label htmlFor="specialty" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-            Especialidad Principal <span className="text-red-500">*</span>
+            Especialidad Principal <span className="text-red-600">*</span>
           </label>
           <select
             id="specialty"
@@ -158,7 +158,7 @@ export function SpecialtySelectionStep({
 
         <div>
           <label htmlFor="experience" className="block text-sm font-medium text-am-surface-700 mb-1.5">
-            Años de Experiencia Profesional <span className="text-red-500">*</span>
+            Años de Experiencia Profesional <span className="text-red-600">*</span>
           </label>
           <select
             id="experience"

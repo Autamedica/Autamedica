@@ -26,10 +26,10 @@ export function OnboardingReminder({ daysRemaining }: OnboardingReminderProps) {
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
         className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-lg shadow-amber-500/10"
       >
-        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
+        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-700" />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-amber-800">Completa tu perfil</p>
-          <p className="text-xs text-amber-600">{label}</p>
+          <p className="text-xs text-amber-700">{label}</p>
         </div>
         <a
           href="/doctors/perfil"
@@ -40,7 +40,7 @@ export function OnboardingReminder({ daysRemaining }: OnboardingReminderProps) {
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="ml-1 shrink-0 rounded-lg p-1 text-amber-400 transition-colors hover:bg-amber-100 hover:text-amber-600"
+          className="ml-1 shrink-0 rounded-lg p-1 text-amber-400 transition-colors hover:bg-amber-100 hover:text-amber-700"
           aria-label="Cerrar recordatorio"
         >
           <X className="h-4 w-4" />

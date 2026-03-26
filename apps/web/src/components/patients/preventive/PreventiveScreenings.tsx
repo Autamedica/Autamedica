@@ -32,14 +32,14 @@ const statusConfig = {
     color: 'bg-amber-50 border-amber-300',
     textColor: 'text-amber-900',
     icon: Clock,
-    iconColor: 'text-amber-600',
+    iconColor: 'text-amber-700',
   },
   up_to_date: {
     label: 'Al día',
     color: 'bg-green-50 border-green-300',
     textColor: 'text-green-900',
     icon: CheckCircle,
-    iconColor: 'text-green-600',
+    iconColor: 'text-green-700',
   },
 };
 

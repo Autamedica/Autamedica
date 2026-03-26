@@ -18,6 +18,113 @@ Tener una lectura operativa y honesta del canal web:
 
 ---
 
+## Donde nos equivocamos (visual)
+
+### Flujo que queriamos
+
+`Turno telemedicina`
+-> `Agenda medico`
+-> `StartCallButton(appointmentId)`
+-> `POST /api/doctors/calls/start`
+-> `create_call ligado al turno`
+-> `Paciente recibe la llamada correcta`
+-> `Paciente acepta`
+-> `Doctor entra al room correcto`
+-> `Peer media real`
+-> `UI = Conectado`
+
+### Flujo que realmente vimos en pruebas
+
+`Turno telemedicina`
+-> `Agenda medico`
+-> `StartCallButton SIN appointmentId`
+-> `start genérico por doctor/patient`
+-> `quedan o se reciclan llamadas viejas`
+-> `IncomingCallHandler elige el primer ringing que encuentra`
+-> `Paciente puede atender una llamada huérfana`
+-> `Doctor puede seguir en agenda o en otro room`
+-> `runtime marca connected por sala/signaling`
+-> `UI muestra Conectado aunque siga 1 en sala`
+
+### Mapa del error por capa
+
+```text
+CAPA 1  UI
+doctor agenda / paciente modal
+  ERROR:
+  el doctor iniciaba desde agenda sin appointmentId
+  y el paciente podia atender un ringing viejo
+
+CAPA 2  Hook / Controller
+useStartCall / IncomingCallHandler
+  ERROR:
+  incoming-call elegia "el primer ringing"
+  en lugar de la llamada vigente del turno
+
+CAPA 3  Browser service
+start-call.browser / respond-call.browser
+  ESTADO:
+  correctos como boundary
+  pero dependian de input ya contaminado desde arriba
+
+CAPA 4  API
+/api/doctors/calls/start
+/api/patients/calls/respond
+  ERROR:
+  la API era correcta, pero no siempre recibia appointmentId
+
+CAPA 5  Backend service
+start-call.service / persist-call-status.service
+  ERROR:
+  no cancelabamos pending calls viejas al iniciar una nueva
+  y durante parte de las pruebas "connected" quedaba semantizado demasiado pronto
+
+CAPA 6  Repo
+call-start.repo / call-session.repo
+  ERROR:
+  el modo legacy y la compatibilidad con drift de schema
+  nos obliga a tolerar mas estados ambiguos de los deseables
+
+CAPA 7  Runtime / media truth
+UnifiedVideoCall / webrtc-client
+  ERROR:
+  confundimos "estoy dentro del room" con
+  "ya tengo peer real y media usable"
+```
+
+### Error mas grave de concepto
+
+```text
+ANTES
+room connected = llamada conectada = UI "Conectado"
+
+PERO EN REALIDAD
+room connected != peer connected
+peer connected != remote media usable
+
+POR LO TANTO
+UI "Conectado" solo puede aparecer cuando:
+1. existe otro participante real
+2. existe peer connection real
+3. la llamada no esta resolviendo solo una presencia local en sala
+```
+
+### Estado despues de las correcciones de hoy
+
+```text
+CORREGIDO
+- StartCallButton en agenda ya pasa appointmentId
+- nuevas llamadas cancelan pending calls viejas del mismo doctor/patient
+- CallTopBar ya no dice "Conectado" si todavia hay 1 en sala
+
+TODAVIA ABIERTO
+- IncomingCallHandler sigue siendo demasiado grueso
+- el paciente sigue resolviendo llamadas activas por lista de calls y no por una sesion mas fuerte
+- el runtime sigue mezclando lifecycle de negocio con lifecycle de media
+```
+
+---
+
 ## Circuito real hoy
 
 ### Inicio del doctor
@@ -88,14 +195,16 @@ Ya resuelto:
 
 - el paciente entra por un boton canonico de telemedicina desde el turno
 - el doctor inicia llamada desde UI web real
+- la agenda del medico ya pasa `appointmentId` al iniciar llamada
 - las paginas de call no montan la videollamada "a ciegas"; primero hacen bootstrap
 - una sala vieja o terminal ya no abre la llamada; devuelve estado de error claro
 
 Falta:
 
-- `IncomingCallHandler.tsx` sigue siendo una UI demasiado "gruesa": escucha realtime, decide estado y redirige
+- `IncomingCallHandler.tsx` sigue siendo una UI demasiado "gruesa": escucha realtime, decide estado, elige llamadas activas y redirige
 - las UIs de entrada doctor/paciente todavia no comparten una capa visual de waiting room realmente unificada
 - la experiencia post-error sigue siendo minima; no hay CTA de "volver al turno" o "reanudar consulta" mas contextual
+- la agenda del medico sigue siendo una superficie sensible: cualquier drift de hidratacion o de lista rompe la entrada al room
 
 ### 2. Hook / Controller
 
@@ -116,6 +225,7 @@ Ya resuelto:
 Falta:
 
 - no existe un controller unico para "incoming call"
+- no existe regla de seleccion fuerte de "la llamada vigente" del paciente
 - no existe un controller de waiting room separado del runtime
 - no existe un controller de reintento / recuperacion de sesion stale
 
@@ -159,6 +269,7 @@ Ya resuelto:
 - existe superficie HTTP explicita para start, join, respond, bootstrap y status
 - el bootstrap ya bloquea calls terminales
 - el status update ya pasa por servidor autenticado
+- `start` ya recibe `appointmentId` desde la agenda del medico
 
 Falta:
 
@@ -180,6 +291,7 @@ Estado: PARCIAL
 Ya resuelto:
 
 - `startCall` valida doctor, paciente y appointment real
+- `startCall` ya cancela pending calls viejas del mismo doctor/patient cuando nace una llamada ligada a turno
 - `respondCall` endurece `accept` y `decline`
 - `callSessionBackend` resuelve bootstrap y acceso por participante real
 - `persistCallStatus` ya evita transiciones sobre calls terminales
@@ -190,6 +302,7 @@ Falta:
   hoy puede avanzar desde cualquier estado no terminal, cuando deberia exigir al menos `accepted`
 - falta una maquina de estados explicita del lado backend para todas las transiciones validas
 - falta separar mejor "joinable", "connectable" y "endable" como reglas de dominio reutilizables
+- falta una nocion canonica de "call vigente" para el paciente cuando existen multiples filas activas o stale
 
 ### 6. Repository
 
@@ -206,6 +319,7 @@ Ya resuelto:
 - el acceso a `calls` ya esta centralizado en repos dedicados
 - los repos separan `start`, `response` y `session`
 - el flujo appointment-backed ya existe a nivel de repositorio
+- `call-start.repo.ts` ya puede listar pending calls por participantes para cancelar residuos operativos
 
 Falta:
 
@@ -251,13 +365,14 @@ Lectura real:
 
 - `UnifiedVideoCall` sigue siendo un runtime-orchestrator grande
 - ahi conviven lifecycle, retry, warmup, chat, media, stats y parte de la observabilidad
+- el runtime recien ahora empieza a separar "room connected" de "peer ready"
 - eso explica por que la arquitectura de 7 capas ya esta mejor del lado web, pero todavia no esta completamente cerrada del lado runtime
 
 Conclusion:
 
 - las 7 capas web ya existen y hoy son usables
 - la deuda principal ya no esta en los endpoints web
-- la deuda principal esta en el runtime compartido y en la maquina de estados final
+- la deuda principal esta en el runtime compartido, en la seleccion de llamada vigente y en la maquina de estados final
 
 ---
 

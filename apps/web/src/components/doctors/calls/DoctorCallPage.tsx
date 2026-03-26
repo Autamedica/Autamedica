@@ -439,7 +439,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700/80">
                     Videollamada lista
                   </p>
                   <h1 className="mt-3 text-3xl font-semibold text-white">

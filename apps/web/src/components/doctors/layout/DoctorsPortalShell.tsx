@@ -628,7 +628,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {!statsLoading && stats?.activeCount ? (
                   <>
                     <span className="h-3 w-px bg-am-surface-300" />
-                    <span className="flex items-center gap-1.5 text-emerald-600">
+                    <span className="flex items-center gap-1.5 text-emerald-700">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       {stats.activeCount} consulta{stats.activeCount !== 1 ? 's' : ''} activa{stats.activeCount !== 1 ? 's' : ''}
                     </span>

@@ -15,8 +15,8 @@ const toneClasses: Record<AuthAlertTone, { container: string; icon: string; text
   },
   success: {
     container: 'bg-emerald-500/10 border-emerald-500/20 backdrop-blur-md',
-    icon: 'text-emerald-400',
-    text: 'text-emerald-200',
+    icon: 'text-emerald-700',
+    text: 'text-emerald-700',
   },
   info: {
     container: 'bg-[var(--au-accent-soft)] border-[var(--au-accent)]/20 backdrop-blur-md',

@@ -41,7 +41,7 @@ export function SessionStats({
   const qualityConfig = {
     excellent: {
       label: 'Excelente',
-      color: 'text-green-500',
+      color: 'text-green-700',
       bgColor: 'bg-green-500/10',
       borderColor: 'border-green-500/30',
     },
@@ -59,7 +59,7 @@ export function SessionStats({
     },
     poor: {
       label: 'Pobre',
-      color: 'text-red-500',
+      color: 'text-red-600',
       bgColor: 'bg-red-500/10',
       borderColor: 'border-red-500/30',
     },
@@ -111,7 +111,7 @@ export function SessionStats({
           packetLoss < 1 ? 'bg-yellow-500/10' : 'bg-red-500/10'
         }`}>
           <span className={`text-sm font-medium ${
-            packetLoss < 1 ? 'text-yellow-500' : 'text-red-500'
+            packetLoss < 1 ? 'text-yellow-500' : 'text-red-600'
           }`}>
             {packetLoss.toFixed(1)}% pérdida
           </span>
@@ -140,10 +140,10 @@ export function ConnectionBadge({
   }
 
   const colorClasses = {
-    excellent: 'text-green-500',
+    excellent: 'text-green-700',
     good: 'text-blue-500',
     fair: 'text-yellow-500',
-    poor: 'text-red-500',
+    poor: 'text-red-600',
     unknown: 'text-gray-500',
   }
 

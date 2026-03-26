@@ -64,18 +64,18 @@ export function DiagnosisPanel() {
 
   const getUrgencyColor = (level: string) => {
     switch (level) {
-      case 'critical': return 'text-red-500 bg-red-50 border-red-200'
-      case 'high': return 'text-orange-500 bg-orange-50 border-orange-200'
+      case 'critical': return 'text-red-600 bg-red-50 border-red-200'
+      case 'high': return 'text-orange-700 bg-orange-50 border-orange-200'
       case 'medium': return 'text-yellow-500 bg-yellow-50 border-yellow-200'
-      default: return 'text-green-500 bg-green-50 border-green-200'
+      default: return 'text-green-700 bg-green-50 border-green-200'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'analyzing': return <Clock className="w-4 h-4 text-am-doctor-500 animate-spin" />
-      case 'completed': return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />
+      case 'completed': return <CheckCircle className="w-4 h-4 text-green-700" />
+      case 'error': return <AlertCircle className="w-4 h-4 text-red-600" />
       default: return null
     }
   }
@@ -172,10 +172,10 @@ export function DiagnosisPanel() {
 
           <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
             <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="text-amber-700 font-medium mb-1">Importante</p>
-                <p className="text-amber-600">
+                <p className="text-amber-700">
                   La IA es una herramienta de apoyo. Siempre confirme con evaluación clínica presencial.
                 </p>
               </div>

@@ -41,10 +41,10 @@ function ParticipantTile({ participant, isLocal = false }: { participant: Partic
   }, [participant.videoTrack])
 
   const qualityColors = {
-    excellent: 'text-green-500',
+    excellent: 'text-green-700',
     good: 'text-blue-500',
     fair: 'text-yellow-500',
-    poor: 'text-red-500',
+    poor: 'text-red-600',
   }
 
   const qualityColor = participant.connectionQuality ? qualityColors[participant.connectionQuality] : 'text-gray-500'
@@ -81,7 +81,7 @@ function ParticipantTile({ participant, isLocal = false }: { participant: Partic
               <span className="text-xs text-blue-400 font-semibold">(Tú)</span>
             )}
             {participant.role === 'doctor' && (
-              <span className="text-xs text-emerald-400 font-semibold px-2 py-0.5 bg-emerald-500/20 rounded-full">
+              <span className="text-xs text-emerald-700 font-semibold px-2 py-0.5 bg-emerald-500/20 rounded-full">
                 Doctor
               </span>
             )}

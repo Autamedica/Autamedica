@@ -305,7 +305,7 @@ export function AutaChatbot() {
       {/* AI Status Header */}
       <div className="border-b border-stone-200 bg-gradient-to-r from-stone-50 to-white px-4 py-2">
         <div className="flex items-center gap-2">
-          <Sparkles className={`h-4 w-4 ${aiReady ? 'text-green-600' : 'text-stone-400'}`} />
+          <Sparkles className={`h-4 w-4 ${aiReady ? 'text-green-700' : 'text-stone-500'}`} />
           <span className="text-xs font-medium text-stone-700">
             {aiReady ? 'IA Médica Activa' : 'Inicializando IA...'}
           </span>

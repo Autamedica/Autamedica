@@ -1,0 +1,214 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: '¿Qué dice la ley 26529?',
+  author: 'Equipo AutaMedica',
+  role: 'Derechos del Paciente',
+  date: '26 de marzo, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Derechos del Paciente',
+};
+---
+
+<Layout
+  title="¿Qué dice la ley 26529? Derechos del Paciente en Argentina | AutaMedica"
+  description="La ley 26529 es la Ley de Derechos del Paciente en Argentina. Establece el consentimiento informado, acceso a la historia clínica y el derecho a tomar decisiones sobre tu tratamiento."
+  canonical="https://www.autamedica.com/blog/que-dice-la-ley-26529"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-26T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+
+          <section>
+            <h2>¿Qué es la ley 26529?</h2>
+            <div class="ley-badge">Ley 26.529</div>
+            <p>
+              La <strong>ley 26529</strong>, sancionada en 2009, es la <strong>Ley de Derechos del Paciente
+              en su Relación con los Profesionales e Instituciones de la Salud</strong>. Establece los derechos
+              fundamentales que tiene toda persona cuando accede a una consulta médica, internación o cualquier
+              práctica de salud en Argentina.
+            </p>
+            <p>
+              Fue complementada en 2012 por la <strong>Ley 26742</strong>, conocida como la ley de "muerte
+              digna", que amplió los derechos relacionados con el rechazo de tratamientos en situaciones terminales.
+            </p>
+            <div class="highlight-box">
+              La ley 26529 es la "carta de derechos" del paciente argentino. Toda consulta médica —
+              presencial o digital — debe cumplirla.
+            </div>
+          </section>
+
+          <section>
+            <h2>Los 8 derechos principales que establece</h2>
+            <div class="derechos-grid">
+              <div class="derecho-card">
+                <span class="num">1</span>
+                <div>
+                  <p class="titulo">Asistencia</p>
+                  <p>Recibir atención médica sin discriminación de ningún tipo.</p>
+                </div>
+              </div>
+              <div class="derecho-card">
+                <span class="num">2</span>
+                <div>
+                  <p class="titulo">Trato digno</p>
+                  <p>Ser tratado con respeto, sin humillaciones ni trato denigrante.</p>
+                </div>
+              </div>
+              <div class="derecho-card">
+                <span class="num">3</span>
+                <div>
+                  <p class="titulo">Intimidad</p>
+                  <p>El entorno de la consulta debe resguardar la privacidad del paciente.</p>
+                </div>
+              </div>
+              <div class="derecho-card">
+                <span class="num">4</span>
+                <div>
+                  <p class="titulo">Confidencialidad</p>
+                  <p>La información médica solo puede ser revelada con consentimiento del paciente.</p>
+                </div>
+              </div>
+              <div class="derecho-card">
+                <span class="num">5</span>
+                <div>
+                  <p class="titulo">Autonomía</p>
+                  <p>El paciente puede aceptar o rechazar tratamientos luego de recibir información.</p>
+                </div>
+              </div>
+              <div class="derecho-card">
+                <span class="num">6</span>
+                <div>
+                  <p class="titulo">Información</p>
+                  <p>Recibir información clara, veraz y comprensible sobre su estado de salud.</p>
+                </div>
+              </div>
+              <div class="derecho-card">
+                <span class="num">7</span>
+                <div>
+                  <p class="titulo">Historia clínica</p>
+                  <p>Acceder, obtener copia y conocer el contenido de su propia historia clínica.</p>
+                </div>
+              </div>
+              <div class="derecho-card">
+                <span class="num">8</span>
+                <div>
+                  <p class="titulo">Consentimiento informado</p>
+                  <p>Ningún procedimiento puede realizarse sin el consentimiento previo del paciente.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2>El consentimiento informado: el derecho más importante</h2>
+            <p>
+              El artículo 5 define el <strong>consentimiento informado</strong> como "la declaración de voluntad
+              suficiente efectuada por el paciente" luego de recibir información adecuada. Un médico no puede
+              realizar ninguna práctica — ni una extracción de sangre, ni una cirugía, ni una teleconsulta —
+              sin que el paciente haya comprendido y aceptado el procedimiento.
+            </p>
+            <p class="italic-note">
+              El consentimiento puede ser revocado en cualquier momento, incluso durante el tratamiento.
+            </p>
+            <h3>Excepciones al consentimiento</h3>
+            <p>
+              La ley contempla casos donde no se requiere consentimiento previo: emergencias que pongan en
+              riesgo la vida, riesgo para terceros (enfermedades de declaración obligatoria), o cuando el
+              paciente no está en condiciones de decidir y no hay representante legal disponible.
+            </p>
+          </section>
+
+          <section>
+            <h2>Historia clínica: tu derecho de acceso</h2>
+            <p>
+              La ley establece que la historia clínica es <strong>propiedad del paciente</strong>, aunque
+              físicamente esté en manos del médico o la institución. Podés solicitar copia en cualquier momento
+              sin necesidad de justificar el pedido. El profesional tiene la obligación de entregarla en un
+              plazo no mayor a 48 horas.
+            </p>
+          </section>
+
+          <section>
+            <h2>La ley 26529 y la telemedicina</h2>
+            <p>
+              La <strong>Ley 27553 de Telemedicina</strong> (2020) reforzó que toda teleconsulta debe cumplir
+              con los derechos establecidos en la 26529, incluyendo el consentimiento informado digital y la
+              confidencialidad de los datos del paciente.
+            </p>
+            <p>
+              En AutaMédica, el consentimiento informado se gestiona de forma digital antes de cada consulta,
+              y la historia clínica queda disponible para el paciente en su panel personal.
+            </p>
+          </section>
+
+          <div class="cta-block">
+            <p class="cta-title">AutaMédica cumple con la ley 26529 en cada consulta</p>
+            <p class="cta-desc">Consentimiento informado digital, historia clínica accesible y confidencialidad garantizada.</p>
+            <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
+          </div>
+
+        </div>
+      </div>
+    </article>
+
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container { min-height: 100vh; background: var(--au-bg); }
+  .article-hero { padding: 4rem var(--section-px) 2rem; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2)); border-bottom: 1px solid var(--au-border); }
+  .container { max-width: 800px; margin: 0 auto; }
+  .back-link { color: #3b82f6; text-decoration: none; font-size: 0.95rem; display: inline-block; margin-bottom: 1.5rem; }
+  h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 300; letter-spacing: -0.02em; color: white; margin-bottom: 1.5rem; line-height: 1.2; }
+  .article-meta { display: flex; gap: 1rem; align-items: center; }
+  .category { background: rgba(59,130,246,0.2); color: #3b82f6; padding: 0.35rem 0.75rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .read-time { color: #a1a1a1; font-size: 0.9rem; }
+  .article-image-section { width: 100%; max-height: 500px; overflow: hidden; }
+  .article-image-section img { width: 100%; height: 100%; object-fit: cover; }
+  .article-content { padding: 4rem var(--section-px); }
+  .article-body { max-width: 800px; margin: 0 auto; }
+  section { margin-bottom: 3rem; }
+  h2 { font-size: 1.75rem; font-weight: 400; color: white; margin-bottom: 1rem; margin-top: 2rem; }
+  h3 { font-size: 1.25rem; font-weight: 400; color: #e0e0e0; margin: 1.5rem 0 0.75rem; }
+  p { color: #c1c1c1; line-height: 1.8; margin-bottom: 1rem; font-size: 1.05rem; }
+  .ley-badge { display: inline-block; background: rgba(23,200,212,0.15); color: #17C8D4; font-size: 1.1rem; font-weight: 700; padding: 4px 14px; border-radius: 6px; margin-bottom: 1rem; }
+  .highlight-box { border-left: 3px solid #17C8D4; padding: 1rem 1.5rem; background: rgba(23,200,212,0.08); border-radius: 0 8px 8px 0; color: #a0f0f5; font-size: 0.95rem; line-height: 1.7; margin: 1.5rem 0; }
+  .italic-note { font-style: italic; color: #17C8D4; font-size: 0.95rem; }
+  .derechos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 1.5rem 0; }
+  .derecho-card { display: flex; gap: 12px; align-items: flex-start; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px 16px; }
+  .num { font-size: 1.4rem; font-weight: 700; color: #17C8D4; min-width: 28px; line-height: 1; padding-top: 2px; }
+  .titulo { font-size: 0.9rem; font-weight: 600; color: white; margin-bottom: 4px !important; }
+  .derecho-card p { font-size: 0.85rem; color: #a1a1a1; margin: 0; line-height: 1.5; }
+  .cta-block { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; margin-top: 3rem; text-align: center; }
+  .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
+  .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+</style>

@@ -13,7 +13,7 @@ export function VitalSignsPanel({ onNavigateToPatients }: VitalSignsPanelProps):
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 ring-1 ring-emerald-200">
-            <Activity className="h-5 w-5 text-emerald-600" />
+            <Activity className="h-5 w-5 text-emerald-700" />
           </div>
           <div>
             <h1 className="text-xl font-semibold text-am-surface-900">Signos Vitales</h1>

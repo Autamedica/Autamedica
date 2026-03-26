@@ -82,7 +82,7 @@ export function ProfileCompletionStep({
           <p className="text-xs text-am-surface-400">
             Una buena biografía ayuda a los pacientes a conocerte y generar confianza
           </p>
-          <span className={`text-xs font-medium ${bioCharacterCount > maxBioLength * 0.9 ? 'text-red-500' : 'text-am-surface-400'}`}>
+          <span className={`text-xs font-medium ${bioCharacterCount > maxBioLength * 0.9 ? 'text-red-600' : 'text-am-surface-400'}`}>
             {bioCharacterCount}/{maxBioLength}
           </span>
         </div>
@@ -190,7 +190,7 @@ export function ProfileCompletionStep({
       {/* Info */}
       <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
         <div className="flex">
-          <svg className="w-5 h-5 text-emerald-500 mr-2 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-emerald-700 mr-2 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
           <div>

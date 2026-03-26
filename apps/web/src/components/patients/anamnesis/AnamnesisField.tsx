@@ -65,7 +65,7 @@ function VoiceMicButton({ onResult, currentValue }: { onResult: (text: string) =
       className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all ${
         listening
           ? 'bg-red-100 text-red-600 animate-pulse'
-          : 'bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-600'
+          : 'bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-700'
       }`}
       title={listening ? 'Detener grabación' : 'Hablar para completar'}
     >
@@ -228,7 +228,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
           />
           <button
             type="button"
-            className="absolute right-2 top-2 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-600 transition-all"
+            className="absolute right-2 top-2 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-700 transition-all"
             title="Hablar para completar"
             onClick={() => {
               const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -289,7 +289,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
                         : currentValue.filter((v) => v !== option.value);
                       updateFieldValue(newValue);
                     }}
-                    className="mt-0.5 h-4 w-4 text-sky-600 border-stone-300 rounded focus:ring-sky-500"
+                    className="mt-0.5 h-4 w-4 text-sky-700 border-stone-300 rounded focus:ring-sky-500"
                   />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-stone-900">{option.label}</p>
@@ -393,7 +393,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
       {showEducationalNote && field.educationalNote && (
         <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded-r-lg animate-fade-in">
           <div className="flex items-start gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <CheckCircle className="h-5 w-5 text-green-700 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-green-900 font-medium mb-1">¡Excelente!</p>
               <p className="text-sm text-green-800">{field.educationalNote}</p>

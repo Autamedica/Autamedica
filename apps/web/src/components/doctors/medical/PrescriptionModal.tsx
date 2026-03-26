@@ -236,7 +236,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                     <button
                       type="button"
                       onClick={() => removeMedication(med.id)}
-                      className="rounded p-1 text-rose-500 transition hover:bg-rose-50"
+                      className="rounded p-1 text-rose-600 transition hover:bg-rose-50"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -326,7 +326,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
 
         {/* Footer */}
         <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-am-surface-200 bg-white p-4">
-          <div className="flex items-center gap-2 text-xs text-amber-600">
+          <div className="flex items-center gap-2 text-xs text-amber-700">
             <AlertCircle className="h-3 w-3" />
             <span>Verifique alergias y contraindicaciones</span>
           </div>

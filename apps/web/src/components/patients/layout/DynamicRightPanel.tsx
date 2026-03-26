@@ -222,7 +222,7 @@ function DailyBriefPanel({ locale }: { locale?: string }) {
         <div className="space-y-3">
           {pendingScreenings.length === 0 && (
             <div className="rounded-xl border border-emerald-200/50 bg-emerald-50/50 p-4 text-xs font-medium text-emerald-800 backdrop-blur-sm shadow-sm flex gap-3 items-center">
-              <div className="flex bg-emerald-100/50 h-8 w-8 rounded-full items-center justify-center shrink-0 text-emerald-600"><Heart className="h-4 w-4" /></div>
+              <div className="flex bg-emerald-100/50 h-8 w-8 rounded-full items-center justify-center shrink-0 text-emerald-700"><Heart className="h-4 w-4" /></div>
               No hay alertas pendientes. Mantené tu seguimiento con la misma frecuencia.
             </div>
           )}
@@ -297,7 +297,7 @@ function CommunityPanel() {
 
         {!loading && !error && posts.length === 0 && (
           <div className="rounded-lg border border-stone-200 bg-white p-4 text-center">
-            <MessageSquare className="mx-auto mb-2 h-8 w-8 text-stone-400" />
+            <MessageSquare className="mx-auto mb-2 h-8 w-8 text-stone-500" />
             <p className="text-sm text-stone-700">Aun no hay publicaciones recientes.</p>
             <p className="mt-1 text-xs text-stone-500">Podes abrir una conversacion cuando lo necesites.</p>
           </div>
@@ -402,7 +402,7 @@ function MedicalContextPanel() {
         <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Signos vitales</p>
         <div className="space-y-3">
           <VitalSign
-            icon={<Heart className="h-5 w-5 text-rose-500" />}
+            icon={<Heart className="h-5 w-5 text-rose-600" />}
             label="Presion arterial"
             value="120/80"
             status="Dentro de rango esperado"
@@ -612,7 +612,7 @@ function MedicationItem({ name, time, completed = false }: { name: string; time:
             <span className="text-[10px] text-white">✓</span>
           </div>
         ) : (
-          <Clock className="h-4 w-4 text-amber-600" />
+          <Clock className="h-4 w-4 text-amber-700" />
         )}
         <span className="text-sm text-stone-900">{name}</span>
       </div>

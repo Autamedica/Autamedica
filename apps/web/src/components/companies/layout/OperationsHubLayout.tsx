@@ -248,7 +248,7 @@ export function OperationsHubLayout({
                   <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                     <div className="bg-autamedica-negro/50 backdrop-blur-lg rounded-lg p-6 border border-autamedica-secondary/30">
                       <div className="flex items-center space-x-3">
-                        <Heart className="w-8 h-8 text-red-500" />
+                        <Heart className="w-8 h-8 text-red-600" />
                         <div>
                           <div className="text-2xl font-bold text-autamedica-blanco">0</div>
                           <div className="text-sm text-autamedica-text-light">Emergencias Críticas</div>
@@ -275,7 +275,7 @@ export function OperationsHubLayout({
                     </div>
                     <div className="bg-autamedica-negro/50 backdrop-blur-lg rounded-lg p-6 border border-autamedica-secondary/30">
                       <div className="flex items-center space-x-3">
-                        <Activity className="w-8 h-8 text-green-500" />
+                        <Activity className="w-8 h-8 text-green-700" />
                         <div>
                           <div className="text-2xl font-bold text-autamedica-blanco">--</div>
                           <div className="text-sm text-autamedica-text-light">Eficiencia Red</div>

@@ -54,7 +54,7 @@ function StarSelector({
     <div className="flex items-center justify-between py-2" role="group" aria-label={label}>
       <span className="text-sm text-stone-700">
         {label}
-        {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
+        {required && <span className="text-red-600 ml-1" aria-hidden="true">*</span>}
       </span>
       <div className="flex gap-1" onMouseLeave={() => setHover(0)}>
         {[1, 2, 3, 4, 5].map((star) => (
@@ -70,7 +70,7 @@ function StarSelector({
               className={`h-6 w-6 transition-colors ${
                 star <= (hover || value)
                   ? 'fill-amber-400 text-amber-400'
-                  : 'fill-none text-stone-300'
+                  : 'fill-none text-stone-500'
               }`}
             />
           </button>
@@ -160,7 +160,7 @@ export function ReviewModal({
         {submitted ? (
           <div className="p-8 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <Star className="h-6 w-6 fill-green-600 text-green-600" />
+              <Star className="h-6 w-6 fill-green-600 text-green-700" />
             </div>
             <p className="text-lg font-medium text-stone-900">Evaluacion enviada</p>
             <p className="mt-1 text-sm text-stone-500">Gracias por tu feedback</p>
@@ -196,7 +196,7 @@ export function ReviewModal({
                 placeholder="Comparte tu experiencia..."
                 className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-stone-800 focus:border-transparent resize-none text-sm"
               />
-              <p className="text-xs text-stone-400 text-right">{comment.length}/1000</p>
+              <p className="text-xs text-stone-500 text-right">{comment.length}/1000</p>
             </div>
 
             <label htmlFor="review-anonymous" className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">

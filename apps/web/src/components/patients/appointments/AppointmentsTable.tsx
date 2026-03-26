@@ -38,12 +38,12 @@ const statusConfig: Record<string, { label: string; dot: string; bg: string }> =
 };
 
 const typeConfig: Record<string, { label: string; icon: typeof Stethoscope; color: string }> = {
-  consultation: { label: 'Consulta', icon: Stethoscope, color: 'text-sky-600 bg-sky-50' },
-  in_person: { label: 'Presencial', icon: MapPin, color: 'text-emerald-600 bg-emerald-50' },
+  consultation: { label: 'Consulta', icon: Stethoscope, color: 'text-sky-700 bg-sky-50' },
+  in_person: { label: 'Presencial', icon: MapPin, color: 'text-emerald-700 bg-emerald-50' },
   follow_up: { label: 'Seguimiento', icon: ArrowRight, color: 'text-violet-600 bg-violet-50' },
   emergency: { label: 'Emergencia', icon: Clock, color: 'text-red-600 bg-red-50' },
-  telemedicine: { label: 'Telemedicina', icon: Video, color: 'text-cyan-600 bg-cyan-50' },
-  lab_test: { label: 'Laboratorio', icon: Stethoscope, color: 'text-amber-600 bg-amber-50' },
+  telemedicine: { label: 'Telemedicina', icon: Video, color: 'text-cyan-700 bg-cyan-50' },
+  lab_test: { label: 'Laboratorio', icon: Stethoscope, color: 'text-amber-700 bg-amber-50' },
   checkup: { label: 'Chequeo', icon: UserRound, color: 'text-indigo-600 bg-indigo-50' },
 };
 
@@ -122,22 +122,22 @@ export function AppointmentsTable({
               {/* Date/time row */}
               <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-stone-600">
                 <span className="inline-flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-stone-400" />
+                  <Calendar className="h-3.5 w-3.5 text-stone-500" />
                   <span className="capitalize">{fmtFullDate(appointment.start_time)}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-stone-400" />
+                  <Clock className="h-3.5 w-3.5 text-stone-500" />
                   {fmtTime(appointment.start_time)}
                   {appointment.end_time ? ` — ${fmtTime(appointment.end_time)}` : ''}
                 </span>
                 {appointment.location && (
                   <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-stone-400" />
+                    <MapPin className="h-3.5 w-3.5 text-stone-500" />
                     {appointment.location}
                   </span>
                 )}
                 {isTelemedicine && (
-                  <span className="inline-flex items-center gap-1.5 text-cyan-600">
+                  <span className="inline-flex items-center gap-1.5 text-cyan-700">
                     <Video className="h-3.5 w-3.5" />
                     Videoconsulta
                   </span>

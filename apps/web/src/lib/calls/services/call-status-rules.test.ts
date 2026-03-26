@@ -6,8 +6,8 @@ import {
 
 describe('resolvePersistCallStatus', () => {
   describe('connecting', () => {
-    it('allows moving from ringing to connecting for the current waiting-room flow', () => {
-      expect(resolvePersistCallStatus('connecting', 'ringing')).toEqual({
+    it('allows moving from accepted to connecting after the patient joins', () => {
+      expect(resolvePersistCallStatus('connecting', 'accepted')).toEqual({
         kind: 'allow',
         effectiveStatus: 'connecting',
         changed: true,
@@ -24,6 +24,13 @@ describe('resolvePersistCallStatus', () => {
 
     it('rejects terminal calls', () => {
       expect(resolvePersistCallStatus('connecting', 'ended')).toEqual({
+        kind: 'conflict',
+        message: 'call_not_joinable',
+      })
+    })
+
+    it('rejects jumping to connecting from ringing now that waiting-room has its own state', () => {
+      expect(resolvePersistCallStatus('connecting', 'ringing')).toEqual({
         kind: 'conflict',
         message: 'call_not_joinable',
       })

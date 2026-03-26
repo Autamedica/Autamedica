@@ -263,7 +263,7 @@ function RightsTab() {
     {
       title: 'Objeción de conciencia limitada',
       description: 'Si un médico objeta, debe derivarte inmediatamente a otro profesional',
-      icon: <Users className="h-5 w-5 text-amber-600" />
+      icon: <Users className="h-5 w-5 text-amber-700" />
     }
   ];
 
@@ -423,7 +423,7 @@ function ProceduresTab() {
       {/* Cuidados post-procedimiento */}
       <div className="bg-green-50 border-2 border-green-400 rounded-xl p-6">
         <h3 className="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
-          <Heart className="h-5 w-5 text-green-600" />
+          <Heart className="h-5 w-5 text-green-700" />
           Cuidados posteriores
         </h3>
         <div className="space-y-3 text-sm text-green-900">
@@ -471,7 +471,7 @@ function DoctorsTab({ onRequestCall }: { onRequestCall: () => void }) {
           </div>
         ) : specialists.length === 0 ? (
           <div className="rounded-xl border border-stone-200 bg-stone-50 p-6 text-center text-sm text-stone-600">
-            <Stethoscope className="mx-auto mb-2 h-8 w-8 text-stone-400" />
+            <Stethoscope className="mx-auto mb-2 h-8 w-8 text-stone-500" />
             No hay especialistas disponibles en este momento.
           </div>
         ) : (

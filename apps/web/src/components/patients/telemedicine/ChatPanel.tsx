@@ -127,7 +127,7 @@ export function ChatPanel({
                     <span className="text-xs text-gray-400">{formatTime(msg.timestamp)}</span>
                     <span className="text-xs font-medium text-gray-300">{msg.senderName}</span>
                     {msg.senderRole === 'doctor' && (
-                      <span className="text-xs text-emerald-400 font-semibold px-1.5 py-0.5 bg-emerald-500/20 rounded">
+                      <span className="text-xs text-emerald-700 font-semibold px-1.5 py-0.5 bg-emerald-500/20 rounded">
                         Doctor
                       </span>
                     )}

@@ -207,7 +207,7 @@ export function MedicalRankingPanel() {
   const getRankIcon = (rank: number | null) => {
     if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />
     if (rank === 2) return <Trophy className="w-5 h-5 text-am-surface-400" />
-    if (rank === 3) return <Medal className="w-5 h-5 text-amber-600" />
+    if (rank === 3) return <Medal className="w-5 h-5 text-amber-700" />
     return <span className="text-lg font-bold text-am-surface-500">#{rank ?? '-'}</span>
   }
 

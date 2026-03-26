@@ -37,7 +37,7 @@ export function PausaCognitiva({ stepNumber, onContinue }: PausaCognitivaProps) 
         {/* Mensaje principal */}
         <div className="bg-white/80 rounded-xl p-6 mb-6">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Brain className="h-8 w-8 text-orange-600" />
+            <Brain className="h-8 w-8 text-orange-700" />
             <p className="text-xl font-semibold text-stone-800">
               Has completado {stepNumber} pasos
             </p>
@@ -84,12 +84,12 @@ export function PausaCognitiva({ stepNumber, onContinue }: PausaCognitivaProps) 
         {!canContinue ? (
           <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-xl p-6 mb-6">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <Clock className="h-6 w-6 text-orange-600" />
+              <Clock className="h-6 w-6 text-orange-700" />
               <p className="text-sm font-medium text-orange-900">
                 Tiempo de pausa obligatoria
               </p>
             </div>
-            <div className="text-5xl font-bold text-orange-600">
+            <div className="text-5xl font-bold text-orange-700">
               {countdown}s
             </div>
             <p className="text-sm text-orange-700 mt-2">

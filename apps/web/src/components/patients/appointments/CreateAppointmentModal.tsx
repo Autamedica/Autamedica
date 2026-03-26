@@ -268,7 +268,7 @@ export function CreateAppointmentModal({
             onClick={onClose}
             aria-label="Cerrar"
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-600"
           >
             <X className="h-4 w-4" />
           </button>
@@ -284,7 +284,7 @@ export function CreateAppointmentModal({
                 Profesional
               </label>
               {doctorsLoading ? (
-                <div className="flex items-center gap-2 py-3 text-sm text-stone-400">
+                <div className="flex items-center gap-2 py-3 text-sm text-stone-500">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-stone-200 border-t-stone-500" />
                   Cargando profesionales...
                 </div>
@@ -339,7 +339,7 @@ export function CreateAppointmentModal({
                       type="button"
                       onClick={goToPreviousWeek}
                       disabled={isPastDate(from)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 disabled:opacity-30"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-600 disabled:opacity-30"
                       aria-label="Semana anterior"
                     >
                       <ChevronLeft className="h-4 w-4" />
@@ -350,7 +350,7 @@ export function CreateAppointmentModal({
                     <button
                       type="button"
                       onClick={goToNextWeek}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-600"
                       aria-label="Semana siguiente"
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -359,7 +359,7 @@ export function CreateAppointmentModal({
                 </div>
 
                 {slotsLoading ? (
-                  <div className="flex items-center justify-center py-10 text-sm text-stone-400">
+                  <div className="flex items-center justify-center py-10 text-sm text-stone-500">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-200 border-t-stone-500 mr-2" />
                     Cargando horarios...
                   </div>
@@ -385,14 +385,14 @@ export function CreateAppointmentModal({
                               isActive
                                 ? 'bg-stone-900 text-white shadow-sm'
                                 : past || !hasSlots
-                                  ? 'text-stone-300'
+                                  ? 'text-stone-500'
                                   : 'text-stone-600 hover:bg-stone-100'
                             }`}
                           >
                             <span className="text-[10px] font-medium uppercase tracking-wide">
                               {weekday}
                             </span>
-                            <span className={`text-lg font-bold leading-none ${today && !isActive ? 'text-sky-600' : ''}`}>
+                            <span className={`text-lg font-bold leading-none ${today && !isActive ? 'text-sky-700' : ''}`}>
                               {dayNum}
                             </span>
                             {hasSlots && !past && (
@@ -432,13 +432,13 @@ export function CreateAppointmentModal({
                     )}
 
                     {selectedDay && activeDaySlots.length === 0 && (
-                      <p className="mt-4 text-center text-sm text-stone-400">
+                      <p className="mt-4 text-center text-sm text-stone-500">
                         Sin horarios este día
                       </p>
                     )}
 
                     {!selectedDay && (
-                      <p className="mt-4 text-center text-sm text-stone-400">
+                      <p className="mt-4 text-center text-sm text-stone-500">
                         Seleccioná un día para ver horarios
                       </p>
                     )}
@@ -449,7 +449,7 @@ export function CreateAppointmentModal({
                 {selectedSlot && (
                   <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100">
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      <Check className="h-4 w-4 text-emerald-700" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-emerald-900 capitalize">
@@ -489,10 +489,10 @@ export function CreateAppointmentModal({
                               : 'border-stone-100 hover:border-stone-200'
                           }`}
                         >
-                          <TIcon className={`h-4 w-4 shrink-0 ${isSelected ? 'text-stone-900' : 'text-stone-400'}`} />
+                          <TIcon className={`h-4 w-4 shrink-0 ${isSelected ? 'text-stone-900' : 'text-stone-500'}`} />
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-stone-900 truncate">{t.label}</p>
-                            <p className="text-[11px] text-stone-400 truncate">{t.desc}</p>
+                            <p className="text-[11px] text-stone-500 truncate">{t.desc}</p>
                           </div>
                         </button>
                       );
@@ -510,14 +510,14 @@ export function CreateAppointmentModal({
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Ej: Consulta general, dolor de cabeza..."
-                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:outline-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-500 transition-colors focus:border-stone-900 focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label htmlFor="appointment-notes" className="mb-2 block text-sm font-semibold text-stone-700">
-                    <MessageSquare className="mr-1 inline h-3.5 w-3.5 text-stone-400" />
-                    Notas <span className="font-normal text-stone-400">(opcional)</span>
+                    <MessageSquare className="mr-1 inline h-3.5 w-3.5 text-stone-500" />
+                    Notas <span className="font-normal text-stone-500">(opcional)</span>
                   </label>
                   <textarea
                     id="appointment-notes"
@@ -525,7 +525,7 @@ export function CreateAppointmentModal({
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
                     placeholder="Información adicional para el médico..."
-                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition-colors focus:border-stone-900 focus:outline-none resize-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-500 transition-colors focus:border-stone-900 focus:outline-none resize-none"
                   />
                 </div>
               </>

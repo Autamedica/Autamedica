@@ -23,7 +23,7 @@ export default function MedicalReportsPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-emerald-600" />
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-emerald-700" />
           <p className="mt-3 text-sm text-gray-500">Cargando informes...</p>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function MedicalReportsPage() {
             >
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-                  <FileText className="h-5 w-5 text-emerald-600" />
+                  <FileText className="h-5 w-5 text-emerald-700" />
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-gray-900">{report.title}</h3>
@@ -105,7 +105,7 @@ export default function MedicalReportsPage() {
               <button
                 onClick={() => downloadPdf(report.id)}
                 disabled={downloading === report.id}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 transition-colors hover:bg-emerald-100 disabled:opacity-50"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
                 title="Descargar PDF"
               >
                 {downloading === report.id ? (

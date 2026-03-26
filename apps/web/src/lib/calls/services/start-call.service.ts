@@ -41,6 +41,28 @@ async function ensureRinging(supabase: Db, callId: string, currentStatus: CallSt
   return 'ringing'
 }
 
+async function cancelSupersededPendingCalls(
+  supabase: Db,
+  doctorId: string,
+  patientId: string,
+  appointmentId?: string,
+): Promise<void> {
+  const pendingCalls = await callStartRepo.listPendingByParticipants(supabase, doctorId, patientId)
+
+  for (const call of pendingCalls) {
+    if (appointmentId && call.appointment_id === appointmentId) {
+      continue
+    }
+
+    await callStartRepo.updateCallStatus(
+      supabase,
+      call.id,
+      'canceled',
+      'superseded_by_new_call'
+    )
+  }
+}
+
 export const startCallService = {
   async startCall(
     admin: Db,
@@ -93,6 +115,8 @@ export const startCallService = {
           },
         }
       }
+
+      await cancelSupersededPendingCalls(actorSupabase, doctorId, input.patientId, input.appointmentId)
     } else {
       const hasAccess = await doctorHasPatientAccess(admin, doctorId, input.patientId)
       if (!hasAccess) {

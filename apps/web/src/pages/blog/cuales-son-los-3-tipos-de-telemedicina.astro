@@ -1,0 +1,203 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: '¿Cuáles son los 3 tipos de telemedicina?',
+  author: 'Equipo AutaMedica',
+  role: 'Telemedicina',
+  date: '26 de marzo, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Telemedicina',
+};
+---
+
+<Layout
+  title="¿Cuáles son los 3 tipos de telemedicina? Guía completa | AutaMedica"
+  description="Los 3 tipos de telemedicina son: teleconsulta en tiempo real, store-and-forward (asincrónica) y telemonitoreo. Conocé cómo funciona cada una y para qué situaciones se usa."
+  canonical="https://www.autamedica.com/blog/cuales-son-los-3-tipos-de-telemedicina"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-03-26T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="article-container">
+
+    <div class="article-hero">
+      <div class="container">
+        <a href="/blog" class="back-link">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="article-meta">
+          <span class="category">{article.category}</span>
+          <span class="read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="article-image-section">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="article-content">
+      <div class="container">
+        <div class="article-body">
+
+          <section>
+            <h2>La respuesta directa</h2>
+            <p>
+              Los <strong>3 tipos principales de telemedicina</strong> son la teleconsulta sincrónica (en
+              tiempo real), la telemedicina asincrónica o store-and-forward (en diferido), y el telemonitoreo
+              (seguimiento remoto de signos vitales). Cada modalidad resuelve necesidades clínicas distintas.
+            </p>
+            <div class="highlight-box">
+              Esta clasificación es adoptada por la OMS, la OPS y el Ministerio de Salud de Argentina en el
+              marco regulatorio de la Ley 27553 de Telemedicina (2020).
+            </div>
+          </section>
+
+          <section>
+            <h2>Los 3 tipos en detalle</h2>
+
+            <div class="tipo-card tipo-1">
+              <div class="tipo-numero">Tipo 1 · Sincrónica · En tiempo real</div>
+              <h3>Teleconsulta</h3>
+              <p>
+                El médico y el paciente se comunican en tiempo real a través de videollamada, llamada de audio
+                o chat en vivo. Es el equivalente digital de la consulta presencial.
+              </p>
+              <ul>
+                <li>Consultas de baja y mediana complejidad</li>
+                <li>Seguimiento de enfermedades crónicas</li>
+                <li>Renovación de recetas digitales</li>
+                <li>Consultas de salud mental</li>
+              </ul>
+            </div>
+
+            <div class="tipo-card tipo-2">
+              <div class="tipo-numero">Tipo 2 · Asincrónica · En diferido</div>
+              <h3>Store-and-Forward</h3>
+              <p>
+                El paciente envía datos, imágenes o resultados, y el médico los evalúa y responde en un
+                momento posterior. No se requiere coincidencia de horarios.
+              </p>
+              <ul>
+                <li>Derivación de imágenes médicas (teleradiología, teledermatología)</li>
+                <li>Interconsultas entre especialistas</li>
+                <li>Evaluación de resultados de estudios</li>
+                <li>Consultas no urgentes con envío de fotos o documentos</li>
+              </ul>
+            </div>
+
+            <div class="tipo-card tipo-3">
+              <div class="tipo-numero">Tipo 3 · Continua · Monitoreo remoto</div>
+              <h3>Telemonitoreo</h3>
+              <p>
+                Dispositivos conectados registran y transmiten parámetros vitales del paciente (presión
+                arterial, glucemia, frecuencia cardíaca) de forma continua. El equipo médico monitorea
+                los datos de forma remota.
+              </p>
+              <ul>
+                <li>Pacientes con hipertensión, diabetes o insuficiencia cardíaca</li>
+                <li>Monitoreo post-quirúrgico domiciliario</li>
+                <li>Adultos mayores con enfermedades crónicas</li>
+                <li>Alertas automáticas ante valores fuera de rango</li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2>¿Cuál usar según la situación?</h2>
+            <div class="tabla-wrapper">
+              <table class="tabla">
+                <thead>
+                  <tr><th>Situación</th><th>Teleconsulta</th><th>Store-and-Forward</th><th>Telemonitoreo</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Urgencia no grave (fiebre, dolor)</td><td class="si">✓ Ideal</td><td class="no">✗</td><td class="no">✗</td></tr>
+                  <tr><td>Diagnóstico por imagen</td><td class="parcial">◐ Parcial</td><td class="si">✓ Ideal</td><td class="no">✗</td></tr>
+                  <tr><td>Control de hipertensión crónica</td><td class="parcial">◐</td><td class="parcial">◐</td><td class="si">✓ Ideal</td></tr>
+                  <tr><td>Segunda opinión médica</td><td class="si">✓ Sí</td><td class="si">✓ Ideal</td><td class="no">✗</td></tr>
+                  <tr><td>Salud mental / psicología</td><td class="si">✓ Ideal</td><td class="no">✗</td><td class="no">✗</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section>
+            <h2>Marco legal en Argentina</h2>
+            <p>
+              La <strong>Ley 27553</strong> (2020) reconoce oficialmente las tres modalidades. Establece que
+              toda teleconsulta debe garantizar la identidad del profesional, la confidencialidad de los datos
+              del paciente y la emisión de receta digital cuando corresponda.
+            </p>
+            <p class="italic-note">
+              Argentina fue uno de los primeros países de Latinoamérica en regular la telemedicina por ley,
+              dando mayor seguridad jurídica tanto al médico como al paciente.
+            </p>
+          </section>
+
+          <section>
+            <h2>El futuro: telemedicina con IA</h2>
+            <p>
+              Las plataformas de nueva generación como AutaMédica incorporan inteligencia artificial como capa
+              transversal: triaje automático que sugiere la modalidad correcta según el motivo de consulta,
+              análisis de historial clínico previo y alertas predictivas en el telemonitoreo.
+            </p>
+          </section>
+
+          <div class="cta-block">
+            <p class="cta-title">AutaMédica integra los 3 tipos de telemedicina</p>
+            <p class="cta-desc">Teleconsulta en tiempo real, seguimiento asincrónico y monitoreo. Todo en una sola plataforma, con médicos verificados.</p>
+            <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
+          </div>
+
+        </div>
+      </div>
+    </article>
+
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .article-container { min-height: 100vh; background: var(--au-bg); }
+  .article-hero { padding: 4rem var(--section-px) 2rem; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2)); border-bottom: 1px solid var(--au-border); }
+  .container { max-width: 800px; margin: 0 auto; }
+  .back-link { color: #3b82f6; text-decoration: none; font-size: 0.95rem; display: inline-block; margin-bottom: 1.5rem; }
+  h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 300; letter-spacing: -0.02em; color: white; margin-bottom: 1.5rem; line-height: 1.2; }
+  .article-meta { display: flex; gap: 1rem; align-items: center; }
+  .category { background: rgba(59,130,246,0.2); color: #3b82f6; padding: 0.35rem 0.75rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .read-time { color: #a1a1a1; font-size: 0.9rem; }
+  .article-image-section { width: 100%; max-height: 500px; overflow: hidden; }
+  .article-image-section img { width: 100%; height: 100%; object-fit: cover; }
+  .article-content { padding: 4rem var(--section-px); }
+  .article-body { max-width: 800px; margin: 0 auto; }
+  section { margin-bottom: 3rem; }
+  h2 { font-size: 1.75rem; font-weight: 400; color: white; margin-bottom: 1rem; margin-top: 2rem; }
+  p { color: #c1c1c1; line-height: 1.8; margin-bottom: 1rem; font-size: 1.05rem; }
+  ul { list-style: none; padding: 0; margin: 1rem 0 0; }
+  li { color: #a1a1a1; padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.92rem; line-height: 1.5; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  li::before { content: '→'; position: absolute; left: 0; color: #17C8D4; }
+  .highlight-box { border-left: 3px solid #17C8D4; padding: 1rem 1.5rem; background: rgba(23,200,212,0.08); border-radius: 0 8px 8px 0; color: #a0f0f5; font-size: 0.95rem; line-height: 1.7; margin: 1.5rem 0; }
+  .italic-note { font-style: italic; color: #17C8D4; font-size: 0.95rem; }
+  .tipo-card { border-radius: 12px; padding: 1.5rem 1.75rem; margin: 1.25rem 0; }
+  .tipo-1 { background: rgba(255,255,255,0.04); border: 1px solid rgba(23,200,212,0.3); }
+  .tipo-2 { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); }
+  .tipo-3 { background: rgba(23,200,212,0.06); border: 1px solid rgba(23,200,212,0.2); }
+  .tipo-numero { font-size: 0.75rem; font-weight: 600; color: #17C8D4; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .tipo-card h3 { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.75rem; margin-top: 0; }
+  .tabla-wrapper { overflow-x: auto; margin: 1.5rem 0; }
+  .tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .tabla th { background: rgba(255,255,255,0.08); color: white; padding: 10px 12px; text-align: left; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tabla td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #c1c1c1; }
+  .si { color: #4ade80; font-weight: 600; }
+  .no { color: #f87171; }
+  .parcial { color: #fbbf24; }
+  .cta-block { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; margin-top: 3rem; text-align: center; }
+  .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
+  .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
+  .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+</style>

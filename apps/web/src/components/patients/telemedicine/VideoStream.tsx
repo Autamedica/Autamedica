@@ -119,7 +119,7 @@ function CameraError({ error, onRetry }: { error: string; onRetry: () => void })
 function ConnectingOverlay() {
   return (
     <div className="absolute inset-0 flex h-full flex-col items-center justify-center gap-3 bg-black/70 text-white backdrop-blur-md">
-      <Loader2 className="h-10 w-10 animate-spin text-stone-400" />
+      <Loader2 className="h-10 w-10 animate-spin text-stone-500" />
       <p className="text-sm font-medium">Conectando videollamada…</p>
       <p className="text-xs text-white/60">Esto puede tomar unos segundos</p>
     </div>

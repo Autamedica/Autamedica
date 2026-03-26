@@ -40,7 +40,7 @@ export function ClarificationStep({
       {/* Header */}
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sky-50">
-          <Sparkles className="h-7 w-7 text-sky-600" />
+          <Sparkles className="h-7 w-7 text-sky-700" />
         </div>
         <h2 className="text-xl font-bold text-gray-900">
           {isPartial
@@ -69,7 +69,7 @@ export function ClarificationStep({
             className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
           >
             <div className="mb-1 flex items-start gap-2">
-              <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />
+              <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" />
               <div>
                 <p className="text-sm font-medium text-gray-900">{question.text}</p>
                 <p className="mt-1 text-xs text-gray-400">{question.rationale}</p>
