@@ -104,6 +104,14 @@ export const anamnesisService = {
       cleanUpdates.completed_at = updates.completed_at
     }
 
+    if (typeof updates.privacy_accepted === 'boolean') {
+      cleanUpdates.privacy_accepted = updates.privacy_accepted
+    }
+
+    if (typeof updates.terms_accepted === 'boolean') {
+      cleanUpdates.terms_accepted = updates.terms_accepted
+    }
+
     if (Object.keys(cleanUpdates).length === 0) {
       throw Object.assign(new Error('no_updates'), { code: 'NO_UPDATES' })
     }
