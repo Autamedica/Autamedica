@@ -266,15 +266,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error) {
-      logger.error('Middleware auth error:', error);
-      // Clear invalid session cookies so the browser stops sending them and
-      // the browser-side Supabase client stops entering an infinite refresh loop.
-      // signOut({ scope: 'local' }) calls setAll() with max-age=0 cookies in the
-      // response — no network call to Supabase required.
-      try {
-        await supabase.auth.signOut({ scope: 'local' });
-      } catch {
-        // Ignore cleanup errors
+      // Rate-limit or transient server errors: do NOT clear cookies — the session
+      // may still be valid. Only clear on definitive auth failures (invalid JWT, etc.).
+      const isTransient = /rate.limit|too.many|429|5\d\d/i.test(error.message ?? '');
+      if (isTransient) {
+        logger.warn('Middleware auth: transient error, preserving session cookies', { msg: error.message });
+      } else {
+        logger.error('Middleware auth error, clearing session:', error);
+        try {
+          await supabase.auth.signOut({ scope: 'local' });
+        } catch {
+          // Ignore cleanup errors
+        }
       }
     }
 
