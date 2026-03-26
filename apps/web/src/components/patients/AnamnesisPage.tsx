@@ -14,14 +14,17 @@ import {
 } from 'lucide-react';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import { useAnamnesis } from '@/hooks/patients/useAnamnesis';
+import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance';
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
 import { AnamnesisField as AnamnesisFieldRenderer } from '@/components/patients/anamnesis/AnamnesisField';
 import { PausaCognitiva } from '@/components/patients/anamnesis/PausaCognitiva';
+import { ClarificationStep } from '@/components/patients/anamnesis/ClarificationStep';
 import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour';
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis';
 import type { AnamnesisSection } from '@autamedica/types';
 
 const PAUSE_EVERY_N_STEPS = 4;
+const PARTIAL_CHECKPOINT_AFTER_STEP = 6; // Checkpoint 1: after step index 5 (step 6 of 13)
 
 type FormDataMap = Record<string, Record<string, AnamnesisFieldValue>>;
 
@@ -39,9 +42,19 @@ export default function AnamnesisPage() {
     updateSection,
   } = useAnamnesis();
 
+  const {
+    guidance,
+    isExtracting,
+    triggerExtraction,
+    addClarification,
+    dismissGuidance,
+  } = useAnamnesisGuidance();
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [formData, setFormData] = useState<FormDataMap>({});
   const [showPause, setShowPause] = useState(false);
+  const [showClarification, setShowClarification] = useState(false);
+  const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const initializedRef = useRef(false);
@@ -130,19 +143,39 @@ export default function AnamnesisPage() {
     const saved = await saveCurrentStep();
     if (!saved) return;
 
+    // Checkpoint 2 (final): before marking completed
     if (isLastStep) {
+      setPendingCheckpoint('final');
+      const result = await triggerExtraction('final');
+      if (result?.hasCritical) {
+        setShowClarification(true);
+        return;
+      }
+      // No critical questions or extraction failed — complete
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
       return;
     }
 
     const nextIndex = currentStepIndex + 1;
+
+    // Checkpoint 1 (partial): after step 6 — non-blocking
+    if (currentStepIndex + 1 === PARTIAL_CHECKPOINT_AFTER_STEP) {
+      setPendingCheckpoint('partial');
+      // Fire and don't wait — if questions come back, show before advancing
+      triggerExtraction('partial').then(result => {
+        if (result && result.questions.length > 0) {
+          setShowClarification(true);
+        }
+      });
+    }
+
     if ((nextIndex) % PAUSE_EVERY_N_STEPS === 0 && nextIndex < anamnesisSteps.length) {
       setShowPause(true);
       return;
     }
 
     setCurrentStepIndex(nextIndex);
-  }, [saveCurrentStep, isLastStep, currentStepIndex, updateAnamnesis]);
+  }, [saveCurrentStep, isLastStep, currentStepIndex, updateAnamnesis, triggerExtraction]);
 
   const handlePrev = useCallback(() => {
     if (!isFirstStep) {
@@ -155,6 +188,36 @@ export default function AnamnesisPage() {
     setShowPause(false);
     setCurrentStepIndex((prev) => prev + 1);
   }, []);
+
+  const handleClarificationSubmit = useCallback(async (
+    answers: { question: string; answer: string }[],
+  ) => {
+    // Store clarification turns
+    for (const a of answers) {
+      addClarification(a.question, a.answer);
+    }
+
+    setShowClarification(false);
+
+    // If this was the final checkpoint, complete the anamnesis
+    if (pendingCheckpoint === 'final') {
+      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+    }
+
+    setPendingCheckpoint(null);
+    dismissGuidance();
+  }, [addClarification, pendingCheckpoint, updateAnamnesis, dismissGuidance]);
+
+  const handleClarificationSkip = useCallback(async () => {
+    setShowClarification(false);
+
+    if (pendingCheckpoint === 'final') {
+      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+    }
+
+    setPendingCheckpoint(null);
+    dismissGuidance();
+  }, [pendingCheckpoint, updateAnamnesis, dismissGuidance]);
 
   const handleAcceptPrivacy = useCallback(async () => {
     setSaving(true);
@@ -306,7 +369,10 @@ export default function AnamnesisPage() {
       <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <span className="text-sm font-semibold text-emerald-700">AutaMedica</span>
-          <span className="text-xs text-stone-500">
+          <span className="flex items-center gap-1.5 text-xs text-stone-500">
+            {isExtracting && (
+              <Loader2 className="h-3 w-3 animate-spin text-sky-500" />
+            )}
             Paso {currentStepIndex + 1} de {anamnesisSteps.length}
           </span>
           <a
@@ -420,6 +486,19 @@ export default function AnamnesisPage() {
           </button>
         </div>
       </footer>
+
+      {/* AI Clarification overlay */}
+      {showClarification && guidance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm">
+          <ClarificationStep
+            guidance={guidance}
+            isPartial={pendingCheckpoint === 'partial'}
+            onSubmit={handleClarificationSubmit}
+            onSkip={handleClarificationSkip}
+            isSubmitting={saving}
+          />
+        </div>
+      )}
 
       {/* Cognitive pause overlay */}
       {showPause && (
