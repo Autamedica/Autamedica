@@ -11,7 +11,6 @@ import type {
 } from '@/lib/patients/types/anamnesis-extraction'
 import {
   buildAnamnesisSummary,
-  ensureServerEnv,
   getServerEnvOrDefault,
   logger,
 } from '@autamedica/shared'
@@ -39,17 +38,36 @@ function normalizeProviderPreference(value: string | null | undefined): Extracti
   return 'auto'
 }
 
+/**
+ * Resolve server env var — works in both Node (process.env) and Cloudflare Workers (import.meta.env).
+ * Cloudflare Pages secrets are exposed via import.meta.env at runtime in Astro SSR.
+ */
+function resolveServerEnv(name: string): string | undefined {
+  // 1. Astro / Vite — import.meta.env (works in Cloudflare Pages)
+  try {
+    const metaVal = (import.meta as unknown as { env: Record<string, string> }).env?.[name]
+    if (metaVal) return metaVal
+  } catch { /* not available */ }
+
+  // 2. Node / fallback — process.env
+  try {
+    return getServerEnvOrDefault(name)
+  } catch { /* not available */ }
+
+  return undefined
+}
+
 function hasOpenAiKey(): boolean {
-  return Boolean(getServerEnvOrDefault('OPENAI_API_KEY'))
+  return Boolean(resolveServerEnv('OPENAI_API_KEY'))
 }
 
 function hasGeminiKey(): boolean {
-  return Boolean(getServerEnvOrDefault('GEMINI_API_KEY'))
+  return Boolean(resolveServerEnv('GEMINI_API_KEY'))
 }
 
 function resolveExtractionTarget(): ExtractionTarget | null {
   const preferredProvider = normalizeProviderPreference(
-    getServerEnvOrDefault('ANAMNESIS_AI_PROVIDER', getServerEnvOrDefault('PATIENT_AI_PROVIDER')),
+    resolveServerEnv('ANAMNESIS_AI_PROVIDER') ?? resolveServerEnv('PATIENT_AI_PROVIDER'),
   )
 
   if (preferredProvider === 'openai') {
@@ -57,7 +75,7 @@ function resolveExtractionTarget(): ExtractionTarget | null {
       ? {
           providerName: 'openai',
           modelName:
-            getServerEnvOrDefault('ANAMNESIS_AI_OPENAI_MODEL', getServerEnvOrDefault('ANAMNESIS_AI_MODEL')) ??
+            resolveServerEnv('ANAMNESIS_AI_OPENAI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
             DEFAULT_OPENAI_MODEL,
         }
       : null
@@ -68,7 +86,7 @@ function resolveExtractionTarget(): ExtractionTarget | null {
       ? {
           providerName: 'gemini',
           modelName:
-            getServerEnvOrDefault('ANAMNESIS_AI_GEMINI_MODEL', getServerEnvOrDefault('ANAMNESIS_AI_MODEL')) ??
+            resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
             DEFAULT_GEMINI_MODEL,
         }
       : null
@@ -78,7 +96,7 @@ function resolveExtractionTarget(): ExtractionTarget | null {
     return {
       providerName: 'openai',
       modelName:
-        getServerEnvOrDefault('ANAMNESIS_AI_OPENAI_MODEL', getServerEnvOrDefault('ANAMNESIS_AI_MODEL')) ??
+        resolveServerEnv('ANAMNESIS_AI_OPENAI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
         DEFAULT_OPENAI_MODEL,
     }
   }
@@ -87,7 +105,7 @@ function resolveExtractionTarget(): ExtractionTarget | null {
     return {
       providerName: 'gemini',
       modelName:
-        getServerEnvOrDefault('ANAMNESIS_AI_GEMINI_MODEL', getServerEnvOrDefault('ANAMNESIS_AI_MODEL')) ??
+        resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
         DEFAULT_GEMINI_MODEL,
     }
   }
@@ -642,7 +660,8 @@ async function executeOpenAiExtraction(
   result: AnamnesisExtractionResult
   rawResponse: Json
 }> {
-  const apiKey = ensureServerEnv('OPENAI_API_KEY')
+  const apiKey = resolveServerEnv('OPENAI_API_KEY')
+  if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
   const response = await fetch(OPENAI_RESPONSES_URL, {
     method: 'POST',
     headers: {
@@ -701,7 +720,8 @@ async function executeGeminiExtraction(
   result: AnamnesisExtractionResult
   rawResponse: Json
 }> {
-  const apiKey = ensureServerEnv('GEMINI_API_KEY')
+  const apiKey = resolveServerEnv('GEMINI_API_KEY')
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
   const response = await fetch(
     `${GEMINI_GENERATE_CONTENT_URL}/${encodeURIComponent(target.modelName)}:generateContent`,
     {
