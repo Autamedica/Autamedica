@@ -1116,7 +1116,7 @@ export function buildAnamnesisExportHtml(input: {
     <style>
       :root {
         color-scheme: light;
-        font-family: "Segoe UI", Arial, sans-serif;
+        font-family: "Plus Jakarta Sans", "Segoe UI", Arial, sans-serif;
       }
       body {
         margin: 0;

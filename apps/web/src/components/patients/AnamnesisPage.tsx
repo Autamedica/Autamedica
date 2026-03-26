@@ -490,7 +490,7 @@ export default function AnamnesisPage() {
               <p className="text-sm font-medium text-white/60">
                 {completedDate ?? 'Completada'}
               </p>
-              <h1 className="mt-1 text-3xl font-black text-white">
+              <h1 className="mt-1 font-heading text-3xl font-bold text-white">
                 Tu historia <span className="text-cyan-400">clínica</span>
               </h1>
             </div>

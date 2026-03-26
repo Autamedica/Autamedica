@@ -52,6 +52,11 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
       keywords="telemedicina, consulta virtual, médico online, salud digital, consultas online, HIPAA, AutaMedica, receta digital, historia clínica digital, inteligencia artificial médica, telemedicina Argentina, consulta médica virtual"
     />
 
+    <!-- Typography: Source Serif 4 (headlines) + Plus Jakarta Sans (body/UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet" />
+
     <!-- Env vars for pre-compiled packages (@autamedica/auth) that can't use import.meta.env -->
     <script is:inline define:vars={{
       PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL ?? '',
@@ -70,9 +75,7 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
       </script>
     )}
 
-    <!-- Performance: font preload (eliminates FOUT delay) -->
-    <link rel="preload" href="/fonts/DMSans-Variable.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Fonts loaded via Google Fonts CDN (preconnect in <head>) -->
 
     <!-- Performance hints -->
     <link rel="preconnect" href="https://qxjjrpksmwwrmubhvjew.supabase.co" />

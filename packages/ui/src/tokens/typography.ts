@@ -1,19 +1,24 @@
 /**
  * AutaMedica Design Tokens — Typography
  *
- * Geist Variable (primary) with Inter fallback.
+ * Plus Jakarta Sans (body/UI) + Source Serif 4 (headlines).
  * Semantic scale for consistent hierarchy across the portal.
  */
 
 export const fontFamily = {
   sans: [
-    "'Geist'",
+    "'Plus Jakarta Sans'",
     'Inter',
     'system-ui',
     '-apple-system',
     'BlinkMacSystemFont',
     '"Segoe UI"',
     'sans-serif',
+  ],
+  heading: [
+    "'Source Serif 4'",
+    'Georgia',
+    'serif',
   ],
   mono: [
     '"JetBrains Mono"',

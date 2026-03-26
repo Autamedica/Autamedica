@@ -80,13 +80,24 @@ const autamedicaPreset = {
 
       fontFamily: {
         sans: [
-          "'Geist'",
+          "'Plus Jakarta Sans'",
           'Inter',
           'system-ui',
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',
           'sans-serif',
+        ],
+        serif: [
+          "'Source Serif 4'",
+          'Georgia',
+          '"Times New Roman"',
+          'serif',
+        ],
+        heading: [
+          "'Source Serif 4'",
+          'Georgia',
+          'serif',
         ],
         mono: [
           '"JetBrains Mono"',

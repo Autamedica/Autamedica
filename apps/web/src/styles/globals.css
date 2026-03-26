@@ -21,31 +21,17 @@
 }
 
 /* ═══════════════════════════════════════════
-   DM Sans Variable Font — friendly premium
+   Typography — Plus Jakarta Sans + Source Serif 4
+   Loaded via Google Fonts in Layout.astro <head>
    ═══════════════════════════════════════════ */
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/fonts/DMSans-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-  font-style: normal;
-}
-
-/* Geist fallback (legacy) */
-@font-face {
-  font-family: 'Geist';
-  src: url('/fonts/Geist-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-  font-style: normal;
-}
 
 /* ═══════════════════════════════════════════
    Design Tokens
    ═══════════════════════════════════════════ */
 :root {
   /* Typography */
-  --font-sans: 'DM Sans', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-heading: 'Source Serif 4', Georgia, serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
