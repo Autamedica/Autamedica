@@ -69,8 +69,8 @@ describe('Config Utilities', () => {
       const config = getDomainConfig()
 
       expect(config.base).toBe('autamedica.com')
-      expect(config.apps.patients).toBe('https://patients.autamedica.com')
-      expect(config.apps.doctors).toBe('https://doctors.autamedica.com')
+      expect(config.apps.patients).toBe('https://paciente.autamedica.com')
+      expect(config.apps.doctors).toBe('https://doctor.autamedica.com')
     })
 
     it('should return staging config', () => {

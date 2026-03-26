@@ -8,6 +8,7 @@ import {
   buildRoleAuthPath,
   resolveEntryRoleFromParams,
 } from '../../lib/auth-flow';
+import { getCanonicalAuthCallbackUrl } from '../../lib/auth-utils';
 import { getCurrentUser, updateUserRole } from '../../lib/auth/service';
 import { AuthCard } from './AuthCard';
 import { AuthButton } from './AuthButton';
@@ -78,7 +79,7 @@ export function RoleSelectionForm({ locale = 'es' }: { locale?: Locale }) {
 
       // Never overwrite privileged roles from the UI
       if (currentRole && PRIVILEGED_ROLES.has(currentRole)) {
-        const callbackUrl = new URL('/auth/callback', window.location.origin);
+        const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
         if (returnTo) callbackUrl.searchParams.set('returnTo', returnTo);
         window.location.href = callbackUrl.toString();
         return;
@@ -90,7 +91,9 @@ export function RoleSelectionForm({ locale = 'es' }: { locale?: Locale }) {
 
       const callbackParams = new URLSearchParams({ role: selectedRole });
       if (returnTo) callbackParams.set('returnTo', returnTo);
-      window.location.href = `/auth/callback?${callbackParams.toString()}`;
+      const callbackUrl = new URL(getCanonicalAuthCallbackUrl(window.location.origin));
+      callbackUrl.search = callbackParams.toString();
+      window.location.href = callbackUrl.toString();
       return;
     }
 
