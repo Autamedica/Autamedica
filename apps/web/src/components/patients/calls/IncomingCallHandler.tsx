@@ -23,6 +23,16 @@ interface IncomingCallHandlerProps {
   focusAppointmentId?: string | null
 }
 
+function toInviteMessage(call: Pick<Call, 'id' | 'room_id' | 'doctor_id' | 'patient_id'>): InviteMessage {
+  return {
+    type: 'invite',
+    callId: call.id,
+    roomId: call.room_id,
+    from: { doctorId: call.doctor_id, name: 'Doctor' },
+    to: { patientId: call.patient_id },
+  }
+}
+
 export function IncomingCallHandler({
   patientId,
   patientName: _patientName = 'Paciente',
@@ -120,22 +130,6 @@ export function IncomingCallHandler({
     return callServiceRef.current
   }
 
-  const showIncomingCall = useCallback((call: Pick<Call, 'id' | 'room_id' | 'doctor_id' | 'patient_id'>) => {
-    const inviteMessage: InviteMessage = {
-      type: 'invite',
-      callId: call.id,
-      roomId: call.room_id,
-      from: { doctorId: call.doctor_id, name: 'Doctor' },
-      to: { patientId: call.patient_id },
-    }
-
-    setIncomingCall(inviteMessage)
-    tryShowBrowserNotification(
-      'Videollamada entrante',
-      `${inviteMessage.from.name || 'Tu doctor'} te está llamando`,
-    )
-  }, [])
-
   const syncIncomingCall = useCallback(() => {
     const nextCall = selectCurrentIncomingCall(
       Array.from(trackedCallsRef.current.values()),
@@ -153,13 +147,7 @@ export function IncomingCallHandler({
         return currentInvite
       }
 
-      const inviteMessage: InviteMessage = {
-        type: 'invite',
-        callId: nextCall.id,
-        roomId: nextCall.room_id,
-        from: { doctorId: nextCall.doctor_id, name: 'Doctor' },
-        to: { patientId: nextCall.patient_id },
-      }
+      const inviteMessage = toInviteMessage(nextCall)
 
       tryShowBrowserNotification(
         'Videollamada entrante',
@@ -169,6 +157,19 @@ export function IncomingCallHandler({
       return inviteMessage
     })
   }, [focusAppointmentId])
+
+  const refreshIncomingCall = useCallback(async (): Promise<Call | null> => {
+    const callService = getCallService()
+    if (!callService) {
+      return null
+    }
+
+    const activeCalls = await callService.getActiveCallsForPatient(patientId)
+    trackedCallsRef.current = new Map(activeCalls.map((call) => [call.id, call]))
+    syncIncomingCall()
+
+    return selectCurrentIncomingCall(activeCalls, { focusAppointmentId })
+  }, [focusAppointmentId, patientId, syncIncomingCall])
 
   useEffect(() => {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
@@ -234,12 +235,9 @@ export function IncomingCallHandler({
           }
         })
 
-        const activeCalls = await callService.getActiveCallsForPatient(patientId)
-        trackedCallsRef.current = new Map(activeCalls.map((call) => [call.id, call]))
-        const ringingCall = selectCurrentIncomingCall(activeCalls, { focusAppointmentId })
-        if (ringingCall) {
-          logger.info('[IncomingCallHandler] Found current ringing call on mount:', ringingCall)
-          showIncomingCall(ringingCall)
+        const refreshedCall = await refreshIncomingCall()
+        if (refreshedCall) {
+          logger.info('[IncomingCallHandler] Found current ringing call on mount:', refreshedCall)
         }
 
         return subscription
@@ -250,14 +248,24 @@ export function IncomingCallHandler({
     }
 
     let subscription: (() => void) | null = null
+    const pollInterval = window.setInterval(() => {
+      void refreshIncomingCall().catch(() => {})
+    }, 3000)
+    const onWindowFocus = () => {
+      void refreshIncomingCall().catch(() => {})
+    }
+
+    window.addEventListener('focus', onWindowFocus)
     void setupCallListener().then((sub) => {
       subscription = sub
     })
 
     return () => {
+      window.clearInterval(pollInterval)
+      window.removeEventListener('focus', onWindowFocus)
       if (subscription) subscription()
     }
-  }, [focusAppointmentId, patientId, showIncomingCall, syncIncomingCall])
+  }, [patientId, refreshIncomingCall])
 
   const handleAccept = async () => {
     if (!incomingCall) return
@@ -266,8 +274,15 @@ export function IncomingCallHandler({
     stopIncomingRingtone()
 
     try {
+      const currentCall = await refreshIncomingCall()
+      const callToAccept = currentCall ? toInviteMessage(currentCall) : incomingCall
+
+      if (currentCall && currentCall.id !== incomingCall.callId) {
+        setIncomingCall(callToAccept)
+      }
+
       const response = await respondCallBrowserService.respond({
-        callId: incomingCall.callId,
+        callId: callToAccept.callId,
         action: 'accept',
       })
       window.location.href = `/patients/call/${response.roomId}?callId=${response.callId}`

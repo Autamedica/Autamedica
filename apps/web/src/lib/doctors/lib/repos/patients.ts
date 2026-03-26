@@ -3,7 +3,9 @@
  * Single source of truth for all DB queries related to patients and care teams.
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
+import type { Database } from '@autamedica/types'
 import { toCamel, logger } from '@autamedica/shared'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PatientWithProfile, UUID } from '@autamedica/types'
 
 // DB Row structure (simplified for camelCase mapping)
@@ -29,8 +31,10 @@ export interface PatientRow {
   }
 }
 
-function queryWithProfile() {
-  return getBrowserSupabaseClient()
+type PatientsClient = SupabaseClient<Database>
+
+function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()) {
+  return client
     .from('patients')
     .select(`
       *,
@@ -47,9 +51,9 @@ function queryWithProfile() {
 }
 
 export const patientsRepo = {
-  async findAllActive(): Promise<PatientWithProfile[]> {
+  async findAllActive(client: PatientsClient = getBrowserSupabaseClient()): Promise<PatientWithProfile[]> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (queryWithProfile() as any)
+    const { data, error } = await (queryWithProfile(client) as any)
       .eq('active', true)
       .order('created_at', { ascending: false })
 
@@ -61,8 +65,11 @@ export const patientsRepo = {
     return toCamel<PatientWithProfile[]>(data ?? [])
   },
 
-  async findById(id: UUID): Promise<PatientWithProfile | null> {
-    const { data, error } = await queryWithProfile()
+  async findById(
+    id: UUID,
+    client: PatientsClient = getBrowserSupabaseClient(),
+  ): Promise<PatientWithProfile | null> {
+    const { data, error } = await queryWithProfile(client)
       .eq('id', id)
       .eq('active', true)
       .maybeSingle()
@@ -75,8 +82,11 @@ export const patientsRepo = {
     return toCamel<PatientWithProfile>(data)
   },
 
-  async findByUserId(userId: string): Promise<PatientWithProfile | null> {
-    const { data, error } = await queryWithProfile()
+  async findByUserId(
+    userId: string,
+    client: PatientsClient = getBrowserSupabaseClient(),
+  ): Promise<PatientWithProfile | null> {
+    const { data, error } = await queryWithProfile(client)
       .eq('user_id', userId)
       .eq('active', true)
       .maybeSingle()
@@ -89,9 +99,12 @@ export const patientsRepo = {
     return toCamel<PatientWithProfile>(data)
   },
 
-  async findByCompany(companyId: string): Promise<PatientWithProfile[]> {
+  async findByCompany(
+    companyId: string,
+    client: PatientsClient = getBrowserSupabaseClient(),
+  ): Promise<PatientWithProfile[]> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (queryWithProfile() as any)
+    const { data, error } = await (queryWithProfile(client) as any)
       .eq('company_id', companyId)
       .eq('active', true)
       .order('created_at', { ascending: false })
@@ -107,11 +120,12 @@ export const patientsRepo = {
   /**
    * Resolves patients assigned to a specific doctor via care team.
    */
-  async findByDoctorUserId(doctorUserId: string): Promise<PatientWithProfile[]> {
-    const supabase = getBrowserSupabaseClient()
-    
+  async findByDoctorUserId(
+    doctorUserId: string,
+    client: PatientsClient = getBrowserSupabaseClient(),
+  ): Promise<PatientWithProfile[]> {
     // 1. Resolve doctor record ID first
-    const { data: doctor, error: docError } = await supabase
+    const { data: doctor, error: docError } = await client
       .from('doctors')
       .select('id')
       .eq('user_id', doctorUserId)
@@ -123,7 +137,7 @@ export const patientsRepo = {
     }
 
     // 2. Get assigned patient IDs
-    const { data: assignments, error: careError } = await supabase
+    const { data: assignments, error: careError } = await client
       .from('patient_care_team')
       .select('patient_id')
       .eq('doctor_id', doctor.id)
@@ -136,7 +150,7 @@ export const patientsRepo = {
     const patientIds = assignments.map(a => a.patient_id)
 
     // 3. Fetch patient profiles for those IDs
-    const { data: patients, error: patError } = await queryWithProfile()
+    const { data: patients, error: patError } = await queryWithProfile(client)
       .in('id', patientIds)
       .eq('active', true)
 

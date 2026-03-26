@@ -32,6 +32,22 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   } = useCallSession(roomId, isReady)
 
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
+  const effectiveRole = useMemo(() => {
+    if (typeof typedProfile?.role === 'string' && typedProfile.role.length > 0) {
+      return typedProfile.role
+    }
+
+    const sessionUser = session?.user
+    if (typeof sessionUser?.user_metadata?.role === 'string' && sessionUser.user_metadata.role.length > 0) {
+      return sessionUser.user_metadata.role
+    }
+
+    if (typeof sessionUser?.app_metadata?.role === 'string' && sessionUser.app_metadata.role.length > 0) {
+      return sessionUser.app_metadata.role
+    }
+
+    return null
+  }, [session?.user, typedProfile?.role])
 
   useEffect(() => {
     if (loading) return
@@ -50,13 +66,13 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       return
     }
 
-    if (typedProfile?.role !== 'patient') {
+    if (effectiveRole && effectiveRole !== 'patient') {
       window.location.href = '/'
       return
     }
 
     setIsReady(true)
-  }, [session, loading, roomId, typedProfile])
+  }, [effectiveRole, session, loading, roomId])
 
   const handleCallEnd = useCallback(() => {
     logger.info('[PatientCallPage] Call ended, redirecting to dashboard')

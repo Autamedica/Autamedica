@@ -16,7 +16,12 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const { user, supabase } = auth
 
-    const role = user.user_metadata?.role ?? user.app_metadata?.role ?? undefined
+    const metadataRole =
+      typeof user.user_metadata?.role === 'string'
+        ? user.user_metadata.role
+        : typeof user.app_metadata?.role === 'string'
+          ? user.app_metadata.role
+          : undefined
 
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -44,9 +49,16 @@ export const GET: APIRoute = async ({ request }) => {
           medicalLicense: user.user_metadata?.medical_license,
         }
 
+    const profileRole =
+      profile && typeof profile.role === 'string' && profile.role.trim().length > 0
+        ? profile.role
+        : undefined
+    const declaredRole = metadataRole ?? profileRole
+
     let doctorProfileId: string | undefined
     let patientProfileId: string | undefined
-    if (role === 'doctor') {
+
+    if (declaredRole === 'doctor' || !declaredRole) {
       const { data: doctorProfile, error: doctorProfileError } = await supabase
         .from('doctors')
         .select('id')
@@ -60,7 +72,7 @@ export const GET: APIRoute = async ({ request }) => {
       doctorProfileId = doctorProfile?.id ?? undefined
     }
 
-    if (role === 'patient') {
+    if (declaredRole === 'patient' || !declaredRole) {
       const { data: patientProfile, error: patientProfileError } = await supabase
         .from('patients')
         .select('id')
@@ -74,12 +86,16 @@ export const GET: APIRoute = async ({ request }) => {
       patientProfileId = patientProfile?.id ?? undefined
     }
 
+    const effectiveRole = declaredRole
+      ?? (doctorProfileId ? 'doctor' : undefined)
+      ?? (patientProfileId ? 'patient' : undefined)
+
     return jsonOk({
       id: user.id,
       doctorProfileId,
       patientProfileId,
       email: user.email ?? '',
-      role: typeof role === 'string' ? role : undefined,
+      role: effectiveRole,
       createdAt: profile?.created_at ?? undefined,
       onboardingCompletedAt: profile?.onboarding_completed_at ?? null,
       profile: profileData,
