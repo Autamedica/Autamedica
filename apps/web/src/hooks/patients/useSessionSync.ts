@@ -5,6 +5,7 @@
  */
 import { useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { getClientEnvOrDefault } from '@autamedica/shared'
 
 const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
 
@@ -24,9 +25,14 @@ export function useSessionSync() {
     }
 
     if (accessToken && refreshToken && JWT_PATTERN.test(accessToken) && JWT_PATTERN.test(refreshToken)) {
+      const supabaseUrl = getClientEnvOrDefault('PUBLIC_SUPABASE_URL', '')
+      const supabaseAnonKey = getClientEnvOrDefault('PUBLIC_SUPABASE_ANON_KEY', '')
+
+      if (!supabaseUrl || !supabaseAnonKey) return
+
       const supabase = createBrowserClient(
-        import.meta.env.PUBLIC_SUPABASE_URL,
-        import.meta.env.PUBLIC_SUPABASE_ANON_KEY
+        supabaseUrl,
+        supabaseAnonKey
       )
 
       supabase.auth.setSession({

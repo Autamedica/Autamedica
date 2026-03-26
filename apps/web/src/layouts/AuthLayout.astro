@@ -4,6 +4,7 @@ import '../styles/auth.css';
 import SeoMeta from '../components/seo/SeoMeta.astro';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { getI18n } from '../i18n/index';
+import { resolvePublicClientEnv } from '../lib/runtime-env';
 
 interface Props {
   title: string;
@@ -32,6 +33,9 @@ const authFlowLinks = [
   { href: '/auth/login', label: 'Iniciar sesión' },
   { href: '/auth/register', label: 'Crear cuenta' },
 ];
+const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
+  Astro.locals.runtime?.env,
+);
 ---
 
 <!doctype html>
@@ -51,8 +55,8 @@ const authFlowLinks = [
     />
     <!-- Env vars for pre-compiled packages (@autamedica/auth) that can't use import.meta.env -->
     <script is:inline define:vars={{
-      PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL ?? '',
-      PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+      PUBLIC_SUPABASE_URL: publicSupabaseUrl,
+      PUBLIC_SUPABASE_ANON_KEY: publicSupabaseAnonKey,
     }}>
       window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
     </script>

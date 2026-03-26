@@ -19,14 +19,28 @@ import {
   type UserRole
 } from '@autamedica/shared';
 import { validateRedirectUrl, isProduction } from '../../lib/auth-utils';
+import { resolvePublicSupabaseEnv } from '../../lib/runtime-env';
 
 /** Roles that users can self-assign during registration/login. Admin roles require backend assignment. */
 const SELF_ASSIGNABLE_ROLES = new Set<string>(['patient', 'doctor', 'company_admin', 'company']);
 
-function buildSupabaseClient(request: Request, cookies: Parameters<APIRoute>[0]['cookies']) {
+function buildSupabaseClient(
+  request: Request,
+  cookies: Parameters<APIRoute>[0]['cookies'],
+  runtimeEnv?: Record<string, unknown> | null,
+) {
+  const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(runtimeEnv);
+
+  if (!publicSupabaseUrl || !publicSupabaseAnonKey) {
+    throw new Error(
+      `[auth/callback] Missing env: PUBLIC_SUPABASE_URL=${!!publicSupabaseUrl}, ` +
+        `PUBLIC_SUPABASE_ANON_KEY=${!!publicSupabaseAnonKey}.`,
+    );
+  }
+
   return createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+    publicSupabaseUrl,
+    publicSupabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -124,14 +138,14 @@ function getRolePath(role: string): string {
   return portal ? `/?portal=${portal}` : '/auth/select-role';
 }
 
-export const GET: APIRoute = async ({ request, cookies, redirect }) => {
+export const GET: APIRoute = async ({ request, cookies, redirect, locals }) => {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const returnTo = requestUrl.searchParams.get('returnTo');
   const roleHint = requestUrl.searchParams.get('role');
   const parsedReturnTo = parseReturnToParam(returnTo);
 
-  const supabase = buildSupabaseClient(request, cookies);
+  const supabase = buildSupabaseClient(request, cookies, locals.runtime?.env);
 
   // ── Case 1: OAuth code exchange ──
   if (code) {

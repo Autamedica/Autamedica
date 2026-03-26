@@ -3,15 +3,16 @@
  * Crea clientes para uso en páginas (.astro) y endpoints del servidor.
  *
  * IMPORTANTE: Usar estas funciones en lugar de `@autamedica/auth/server`
- * en API routes de `apps/web`. La razón: `@autamedica/auth/server` usa
- * `process.env` que NO está disponible en Cloudflare Pages — solo
- * `import.meta.env` funciona de forma confiable en Astro + Cloudflare.
+ * en API routes de `apps/web`. En Cloudflare Pages el worker puede recibir
+ * variables desde runtime (`locals.runtime.env`) y desde build-time.
+ * Este helper resuelve ambas fuentes de forma consistente.
  */
 
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { Database } from '@autamedica/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AstroCookies } from 'astro';
+import { resolvePublicSupabaseEnv, resolveServiceRoleKey } from './runtime-env';
 
 function parseCookieHeader(request: Request): Array<{ name: string; value: string }> {
   const cookieHeader = request.headers.get('cookie') ?? '';
@@ -25,10 +26,23 @@ function parseCookieHeader(request: Request): Array<{ name: string; value: strin
   });
 }
 
-export function createSupabaseServerClient(request: Request, cookies: AstroCookies) {
+export function createSupabaseServerClient(
+  request: Request,
+  cookies: AstroCookies,
+  runtimeEnv?: Record<string, unknown> | null,
+) {
+  const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(runtimeEnv);
+
+  if (!publicSupabaseUrl || !publicSupabaseAnonKey) {
+    throw new Error(
+      `[createSupabaseServerClient] Missing env: PUBLIC_SUPABASE_URL=${!!publicSupabaseUrl}, ` +
+        `PUBLIC_SUPABASE_ANON_KEY=${!!publicSupabaseAnonKey}.`,
+    );
+  }
+
   return createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+    publicSupabaseUrl,
+    publicSupabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -51,21 +65,20 @@ export function createSupabaseServerClient(request: Request, cookies: AstroCooki
  *
  * SOLO para API routes del servidor. NUNCA exponer al cliente.
  */
-export function createAstroAdminClient(): SupabaseClient<Database> {
-  const url = import.meta.env.PUBLIC_SUPABASE_URL;
-  const serviceRoleKey =
-    import.meta.env.SUPABASE_SERVICE_ROLE_KEY ??
-    // Fallback a process.env para entornos Node.js puros (tests, scripts)
-    (typeof process !== 'undefined' ? process.env.SUPABASE_SERVICE_ROLE_KEY : undefined);
+export function createAstroAdminClient(
+  runtimeEnv?: Record<string, unknown> | null,
+): SupabaseClient<Database> {
+  const { publicSupabaseUrl } = resolvePublicSupabaseEnv(runtimeEnv);
+  const serviceRoleKey = resolveServiceRoleKey(runtimeEnv);
 
-  if (!url || !serviceRoleKey) {
+  if (!publicSupabaseUrl || !serviceRoleKey) {
     throw new Error(
-      `[createAstroAdminClient] Missing env: PUBLIC_SUPABASE_URL=${!!url}, SUPABASE_SERVICE_ROLE_KEY=${!!serviceRoleKey}. ` +
+      `[createAstroAdminClient] Missing env: PUBLIC_SUPABASE_URL=${!!publicSupabaseUrl}, SUPABASE_SERVICE_ROLE_KEY=${!!serviceRoleKey}. ` +
       `Set SUPABASE_SERVICE_ROLE_KEY in apps/web/.env (dev) or as a Cloudflare Pages secret (prod).`
     );
   }
 
-  return createServerClient<Database>(url, serviceRoleKey, {
+  return createServerClient<Database>(publicSupabaseUrl, serviceRoleKey, {
     cookies: { getAll: () => [], setAll: () => {} },
   }) as unknown as SupabaseClient<Database>;
 }
@@ -74,10 +87,22 @@ export function createAstroAdminClient(): SupabaseClient<Database> {
  * Crea un cliente Supabase desde un Request (usando cookies).
  * Wrapper sobre `@supabase/ssr` con `import.meta.env`.
  */
-export function createAstroServerClientFromRequest(request: Request): SupabaseClient<Database> {
+export function createAstroServerClientFromRequest(
+  request: Request,
+  runtimeEnv?: Record<string, unknown> | null,
+): SupabaseClient<Database> {
+  const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(runtimeEnv);
+
+  if (!publicSupabaseUrl || !publicSupabaseAnonKey) {
+    throw new Error(
+      `[createAstroServerClientFromRequest] Missing env: PUBLIC_SUPABASE_URL=${!!publicSupabaseUrl}, ` +
+        `PUBLIC_SUPABASE_ANON_KEY=${!!publicSupabaseAnonKey}.`,
+    );
+  }
+
   return createServerClient<Database>(
-    import.meta.env.PUBLIC_SUPABASE_URL,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+    publicSupabaseUrl,
+    publicSupabaseAnonKey,
     {
       cookies: {
         getAll: () => parseCookieHeader(request),

@@ -4,6 +4,7 @@ import StructuredData from '../components/seo/StructuredData.astro';
 import SeoMeta from '../components/seo/SeoMeta.astro';
 import ScrollProgress from '../components/ui/ScrollProgress.astro';
 import { getI18n } from '../i18n/index';
+import { resolvePublicClientEnv } from '../lib/runtime-env';
 
 interface Props {
   title?: string;
@@ -29,6 +30,9 @@ const {
 } = Astro.props;
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
+const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
+  Astro.locals.runtime?.env,
+);
 ---
 
 <!doctype html>
@@ -59,8 +63,8 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
 
     <!-- Env vars for pre-compiled packages (@autamedica/auth) that can't use import.meta.env -->
     <script is:inline define:vars={{
-      PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL ?? '',
-      PUBLIC_SUPABASE_ANON_KEY: import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+      PUBLIC_SUPABASE_URL: publicSupabaseUrl,
+      PUBLIC_SUPABASE_ANON_KEY: publicSupabaseAnonKey,
     }}>
       window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
     </script>

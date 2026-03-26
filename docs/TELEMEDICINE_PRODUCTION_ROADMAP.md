@@ -42,6 +42,11 @@ Para leer el estado real del flujo web segun las 7 capas del repo, usar:
 - Conviven dos arquitecturas:
   - `calls + UnifiedVideoCall`
   - `consultation + LiveKit`
+- El borde operativo de subdominios todavia es fragil:
+  - `doctor.autamedica.com`, `paciente.autamedica.com` y `autamedica.com`
+    viven en proyectos Pages distintos
+  - un deploy correcto al proyecto equivocado no arregla el subdominio roto
+  - un build sin `PUBLIC_SUPABASE_*` puede romper SSR antes de tocar la logica
 - La capa de red sigue usando fallback TURN de demo si no hay configuracion real en
   [`ice-servers.ts`](/home/edu/Autamedica/packages/telemedicine/src/config/ice-servers.ts).
 - La autenticacion de llamada en doctores sigue teniendo bypass de desarrollo en
@@ -113,6 +118,12 @@ Dejar una sola superficie de telemedicina.
 
 - No hay dos flujos productivos compitiendo.
 - El equipo sabe cual es la ruta oficial.
+- El equipo sabe que un incidente en subdominios se valida primero asi:
+  - subdominio
+  - proyecto Pages
+  - secrets runtime
+  - env de build
+  - codigo de negocio
 
 ---
 

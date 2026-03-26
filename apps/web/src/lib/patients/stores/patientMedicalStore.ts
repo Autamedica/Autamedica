@@ -3,7 +3,7 @@
  * Implementado con Zustand para consistencia con el resto del proyecto.
  */
 import { create } from 'zustand'
-import { logger } from '@autamedica/shared'
+import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import { createBrowserClient } from '@autamedica/auth'
 
 interface PatientMedicalEntry {
@@ -124,7 +124,13 @@ async function submitObservation(
       return null
     }
 
-    const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL
+    const supabaseUrl = getClientEnvOrDefault('PUBLIC_SUPABASE_URL', '')
+    if (!supabaseUrl) {
+      logger.error('[Patient Medical Store] Missing PUBLIC_SUPABASE_URL for observation submit')
+      set({ isLoading: false })
+      return null
+    }
+
     const res = await fetch(`${supabaseUrl}/functions/v1/ingest-patient-observation`, {
       method: 'POST',
       headers: {

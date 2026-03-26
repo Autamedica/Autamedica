@@ -11,6 +11,7 @@ import type { APIRoute } from 'astro';
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { logger } from '@autamedica/shared';
 import { isProduction } from '../../lib/auth-utils';
+import { resolvePublicSupabaseEnv } from '../../lib/runtime-env';
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const allowed =
@@ -33,14 +34,25 @@ export const OPTIONS: APIRoute = async ({ request }) => {
   return new Response(null, { status: 204, headers: getCorsHeaders(origin) });
 };
 
-export const GET: APIRoute = async ({ request, cookies }) => {
+export const GET: APIRoute = async ({ request, cookies, locals }) => {
   const origin = request.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
   try {
+    const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(
+      locals.runtime?.env,
+    );
+
+    if (!publicSupabaseUrl || !publicSupabaseAnonKey) {
+      throw new Error(
+        `[session-sync] Missing env: PUBLIC_SUPABASE_URL=${!!publicSupabaseUrl}, ` +
+          `PUBLIC_SUPABASE_ANON_KEY=${!!publicSupabaseAnonKey}.`,
+      );
+    }
+
     const supabase = createServerClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+      publicSupabaseUrl,
+      publicSupabaseAnonKey,
       {
         cookies: {
           getAll() {

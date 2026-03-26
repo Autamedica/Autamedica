@@ -123,6 +123,79 @@ TODAVIA ABIERTO
 - el runtime sigue mezclando lifecycle de negocio con lifecycle de media
 ```
 
+### Donde nos equivocamos hoy fuera del mapa de 7 capas
+
+Esto no fue un bug de negocio de telemedicina. Fue un bug de operacion/deploy.
+
+```text
+LO QUE ASUMIMOS
+doctor.autamedica.com
+-> usa el mismo deploy que autamedica.com
+-> hereda las mismas env vars
+-> si hay 500 en /api/doctors/patients, entonces el problema esta en la API o en repos
+
+LO QUE PASABA EN REALIDAD
+doctor.autamedica.com
+-> vive en Pages project distinto: autamedica-doctors
+-> paciente.autamedica.com vive en autamedica-patients
+-> el build publicado a doctor se habia generado sin PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_ANON_KEY
+-> el worker SSR arrancaba sin Supabase
+-> createSupabaseServerClient explotaba antes de llegar a la logica de negocio
+
+CONSECUENCIA
+vimos "Internal Server Error"
+pero ese 500 no probaba un fallo en calls, patients repo o estado de llamada
+probaba drift entre:
+- subdominio
+- proyecto Pages
+- secrets runtime
+- env de build
+```
+
+### Mapa visual del error de hoy
+
+```text
+REQUEST
+doctor.autamedica.com/doctors/patients
+    ->
+Cloudflare Pages project: autamedica-doctors
+    ->
+Worker SSR
+    ->
+createSupabaseServerClient()
+    ->
+PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_ANON_KEY vacios
+    ->
+500 antes de tocar patient.backend.ts o patientsRepo
+```
+
+### Lectura correcta despues del fix
+
+```text
+ANTES
+500 en /api/doctors/patients
+= probablemente bug del endpoint
+
+AHORA SABEMOS
+500 en /api/doctors/patients puede significar dos clases de falla:
+
+A. falla dentro de las 7 capas
+- auth
+- controller
+- service
+- repo
+- runtime call
+
+B. falla fuera del mapa
+- proyecto Pages equivocado
+- secrets faltantes
+- build generado sin PUBLIC_*
+- drift entre subdominio y deploy
+
+SI NO VALIDAMOS B PRIMERO
+perdemos tiempo auditando la capa equivocada
+```
+
 ---
 
 ## Circuito real hoy
@@ -177,6 +250,12 @@ TODAVIA ABIERTO
 ---
 
 ## Las 7 capas reales
+
+> Nota critica:
+> Las 7 capas explican el flujo de producto y codigo de telemedicina.
+> No explican por si solas el borde de operacion/deploy.
+> Desde hoy, cualquier incidente en subdominios debe verificarse primero en este orden:
+> `subdominio -> Pages project -> secrets runtime -> env de build -> recien despues codigo`.
 
 ### 1. UI / View
 

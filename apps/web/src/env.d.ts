@@ -24,5 +24,8 @@ declare namespace App {
     session: import('@supabase/supabase-js').Session | null;
     supabase: import('@supabase/supabase-js').SupabaseClient;
     locale: import('./i18n/index').Locale;
+    runtime?: {
+      env?: Record<string, unknown>;
+    };
   }
 }

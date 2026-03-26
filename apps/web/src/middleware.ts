@@ -12,6 +12,7 @@ import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { detectLocale, LOCALE_COOKIE } from './i18n/index';
 import { isProduction } from './lib/auth-utils';
+import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [
@@ -133,10 +134,26 @@ function detectPortal(url: URL): string | null {
   return null;
 }
 
+function getAuthCookieDebug(request: Request): { hasAuthCookies: boolean; authCookieNames: string[] } {
+  const rawCookieHeader = request.headers.get('cookie') ?? '';
+  const authCookieNames = rawCookieHeader
+    .split('; ')
+    .map((entry) => entry.split('=')[0])
+    .filter((name) => name.startsWith('sb-'));
+
+  return {
+    hasAuthCookies: authCookieNames.length > 0,
+    authCookieNames,
+  };
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
+  primeRuntimeEnv(context.locals.runtime?.env);
+
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
   const portal = detectPortal(requestUrl);
+  const authCookieDebug = getAuthCookieDebug(context.request);
   const isDoctorHost = portal === 'doctor';
   const isPatientHost = portal === 'patient';
   const isCompanyHost = portal === 'company';
@@ -231,9 +248,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // Everything below requires auth verification
   try {
+    const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(
+      context.locals.runtime?.env,
+    );
+
+    if (!publicSupabaseUrl || !publicSupabaseAnonKey) {
+      throw new Error(
+        `[middleware] Missing env: PUBLIC_SUPABASE_URL=${!!publicSupabaseUrl}, ` +
+          `PUBLIC_SUPABASE_ANON_KEY=${!!publicSupabaseAnonKey}.`,
+      );
+    }
+
     const supabase = createServerClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+      publicSupabaseUrl,
+      publicSupabaseAnonKey,
       {
         cookies: {
           getAll() {
@@ -270,9 +298,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
       // may still be valid. Only clear on definitive auth failures (invalid JWT, etc.).
       const isTransient = /rate.limit|too.many|429|5\d\d/i.test(error.message ?? '');
       if (isTransient) {
-        logger.warn('Middleware auth: transient error, preserving session cookies', { msg: error.message });
+        logger.warn('Middleware auth: transient error, preserving session cookies', {
+          msg: error.message,
+          pathname,
+          portal,
+          ...authCookieDebug,
+        });
       } else {
-        logger.error('Middleware auth error, clearing session:', error);
+        logger.error('Middleware auth error, clearing session:', {
+          pathname,
+          portal,
+          ...authCookieDebug,
+          error,
+        });
         try {
           await supabase.auth.signOut({ scope: 'local' });
         } catch {
@@ -307,9 +345,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     if (!isAuthenticated && isProtectedRoute) {
       if (isDevMode) {
-        logger.warn(`[MODODEV] Bypass activado para: ${pathname}`);
+        logger.warn('[MODODEV] Bypass activado para ruta protegida sin sesion valida', {
+          pathname,
+          portal,
+          ...authCookieDebug,
+        });
         return next();
       }
+
+      logger.info('Middleware auth: redirecting unauthenticated request to login', {
+        pathname,
+        portal,
+        ...authCookieDebug,
+      });
 
       let loginPortal = 'patients';
       if (isDoctorHostRoot || pathname.startsWith('/doctors')) loginPortal = 'doctors';
