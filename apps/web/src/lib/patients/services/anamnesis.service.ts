@@ -10,6 +10,7 @@ import {
   type AnamnesisRecord,
   type AnamnesisSectionRecord,
 } from '@/lib/patients/lib/repos/anamnesis.repo'
+import { anamnesisVersionService } from './anamnesis-version.service'
 
 type Db = SupabaseClient<Database>
 
@@ -155,7 +156,20 @@ export const anamnesisService = {
     }
 
     const anamnesis = await anamnesisRepo.ensure(supabase, patientId)
-    return anamnesisRepo.updateMeta(supabase, anamnesis.id, cleanUpdates)
+    const result = await anamnesisRepo.updateMeta(supabase, anamnesis.id, cleanUpdates)
+
+    // Auto-create version when anamnesis is completed
+    if (cleanUpdates.status === 'completed') {
+      const isFirstCompletion = !anamnesis.completed_at
+      anamnesisVersionService.createVersion(
+        supabase,
+        patientId,
+        anamnesis.id,
+        isFirstCompletion ? 'initial' : 'update',
+      ).catch(err => logger.warn('[anamnesisService] auto-version creation failed', err))
+    }
+
+    return result
   },
 
   async saveSection(

@@ -2,12 +2,14 @@
  * API Controller: Download anamnesis as PDF.
  * Capa 5 — Auth + fetch data + delegate to pdf-report.service.
  *
- * GET /api/patients/anamnesis/pdf
+ * GET /api/patients/anamnesis/pdf          → latest version
+ * GET /api/patients/anamnesis/pdf?version=N → specific version snapshot
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { anamnesisExtractionRepo } from '@/lib/patients/lib/repos/anamnesis-extraction.repo'
+import { anamnesisVersionsRepo } from '@/lib/patients/lib/repos/anamnesis-versions.repo'
 import { generateAnamnesisPdf } from '@/lib/patients/services/pdf-report.service'
 import { logger } from '@autamedica/shared'
 
@@ -24,6 +26,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient()
+    const url = new URL(request.url)
+    const versionParam = url.searchParams.get('version')
 
     // Fetch anamnesis
     const { data: anamnesis } = await admin
@@ -33,16 +37,6 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .maybeSingle()
 
     if (!anamnesis) return jsonError('no_anamnesis', 404)
-
-    // Fetch sections
-    const { data: sections } = await admin
-      .from('anamnesis_sections')
-      .select('section, data, completed')
-      .eq('anamnesis_id', anamnesis.id)
-      .order('updated_at', { ascending: true })
-
-    // Fetch extraction (if exists)
-    const extraction = await anamnesisExtractionRepo.getLatest(admin, anamnesis.id)
 
     // Fetch patient profile
     const { data: profile } = await admin
@@ -62,24 +56,75 @@ export const GET: APIRoute = async ({ request, locals }) => {
       ? Math.floor((Date.now() - new Date(patientRow.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
       : null
 
+    // Determine data source: version snapshot or live data
+    let sections: { section: string; data: Record<string, unknown>; completed: boolean }[]
+    let extraction: Record<string, unknown> | null = null
+    let versionMeta: { versionNumber: number; trigger: string; relevance: string | null; changesSummary: { added: string[]; modified: string[]; unchanged: string[] } | null; createdAt: string } | null = null
+
+    if (versionParam) {
+      // Load from version snapshot (immutable)
+      const versionNumber = parseInt(versionParam, 10)
+      if (isNaN(versionNumber)) return jsonError('invalid_version', 400)
+
+      const version = await anamnesisVersionsRepo.getByVersion(admin, anamnesis.id, versionNumber)
+      if (!version) return jsonError('version_not_found', 404)
+
+      sections = (Array.isArray(version.sections_snapshot) ? version.sections_snapshot : []) as { section: string; data: Record<string, unknown>; completed: boolean }[]
+      extraction = version.extraction_snapshot
+      versionMeta = {
+        versionNumber: version.version_number,
+        trigger: version.trigger,
+        relevance: version.relevance,
+        changesSummary: version.changes_summary,
+        createdAt: version.created_at,
+      }
+    } else {
+      // Load live data (current state)
+      const { data: liveSections } = await admin
+        .from('anamnesis_sections')
+        .select('section, data, completed')
+        .eq('anamnesis_id', anamnesis.id)
+        .order('updated_at', { ascending: true })
+
+      sections = (liveSections ?? []).map(s => ({
+        section: s.section,
+        data: (s.data ?? {}) as Record<string, unknown>,
+        completed: s.completed ?? false,
+      }))
+
+      const latestExtraction = await anamnesisExtractionRepo.getLatest(admin, anamnesis.id)
+      extraction = latestExtraction?.extraction_result ?? null
+
+      // Check if there's a latest version for metadata
+      const latestVersion = await anamnesisVersionsRepo.getLatest(admin, anamnesis.id).catch(() => null)
+      if (latestVersion) {
+        versionMeta = {
+          versionNumber: latestVersion.version_number,
+          trigger: latestVersion.trigger,
+          relevance: latestVersion.relevance,
+          changesSummary: latestVersion.changes_summary,
+          createdAt: latestVersion.created_at,
+        }
+      }
+    }
+
     // Generate PDF
     const pdf = generateAnamnesisPdf({
-      patient: {
-        name: patientName,
-        age: patientAge,
-        gender: patientRow?.gender ?? null,
-      },
+      patient: { name: patientName, age: patientAge, gender: patientRow?.gender ?? null },
       anamnesis: {
         id: anamnesis.id,
         completedAt: anamnesis.completed_at,
         completionPercentage: anamnesis.completion_percentage ?? 0,
       },
-      extraction: extraction?.extraction_result as AnamnesisPdfExtraction ?? null,
-      sections: (sections ?? []).map(s => ({
-        section: s.section,
-        data: (s.data ?? {}) as Record<string, unknown>,
-        completed: s.completed ?? false,
-      })),
+      version: versionMeta ? {
+        versionNumber: versionMeta.versionNumber,
+        trigger: versionMeta.trigger as 'initial' | 'update' | 'review',
+        relevance: versionMeta.relevance,
+        changesSummary: versionMeta.changesSummary,
+        createdAt: versionMeta.createdAt,
+      } : null,
+      extraction: extraction as AnamnesisPdfExtraction ?? null,
+      sections,
     })
 
     // Audit log
@@ -89,7 +134,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
         action: 'download_anamnesis_pdf',
         resource_type: 'anamnesis',
         resource_id: anamnesis.id,
-        details: { filename: pdf.filename },
+        details: { filename: pdf.filename, version: versionParam ?? 'latest' },
       } as never)
     } catch {
       logger.warn('[anamnesis/pdf] audit log insert failed')

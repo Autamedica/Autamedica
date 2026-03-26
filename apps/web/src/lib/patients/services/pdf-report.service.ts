@@ -319,6 +319,14 @@ export function generateConsultationPdf(input: PdfReportInput): PdfResult {
 // Anamnesis PDF — Historia clínica del paciente
 // ============================================================
 
+export interface AnamnesisPdfVersion {
+  versionNumber: number
+  trigger: 'initial' | 'update' | 'review'
+  relevance: string | null
+  changesSummary: { added: string[]; modified: string[]; unchanged: string[] } | null
+  createdAt: string
+}
+
 export interface AnamnesisPdfInput {
   patient: {
     name: string
@@ -330,6 +338,7 @@ export interface AnamnesisPdfInput {
     completedAt: string | null
     completionPercentage: number
   }
+  version?: AnamnesisPdfVersion | null
   extraction: {
     chiefComplaint?: { rawText?: string | null; normalizedMedicalText?: string | null } | null
     presentIllness?: { clinicalNarrative?: string; chronology?: string | null; severity?: string | null; associatedSymptoms?: string[]; aggravatingFactors?: string[]; relievingFactors?: string[]; treatmentsTried?: string[] } | null
@@ -397,7 +406,7 @@ const FIELD_LABELS: Record<string, string> = {
 }
 
 export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
-  const { patient, anamnesis, extraction, sections } = input
+  const { patient, anamnesis, version, extraction, sections } = input
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 20
 
@@ -463,6 +472,60 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
   y += LINE_HEIGHT
   doc.text(`Progreso: ${anamnesis.completionPercentage}%`, MARGIN_LEFT, y)
   y += LINE_HEIGHT + 4
+
+  // --- Version metadata ---
+  if (version) {
+    const RELEVANCE_LABELS: Record<string, string> = {
+      routine: 'Rutina',
+      new_symptom: 'Sintoma nuevo',
+      follow_up: 'Seguimiento',
+      emergency: 'Emergencia',
+    }
+    const TRIGGER_LABELS: Record<string, string> = {
+      initial: 'Primera consulta',
+      update: 'Actualizacion',
+      review: 'Revision medica',
+    }
+
+    doc.setFillColor(230, 245, 255)
+    doc.rect(MARGIN_LEFT, y - 3, CONTENT_WIDTH, 16, 'F')
+    doc.setTextColor(30, 80, 140)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Version ${version.versionNumber}`, MARGIN_LEFT + 3, y + 2)
+    doc.setFont('helvetica', 'normal')
+    doc.text(
+      `${TRIGGER_LABELS[version.trigger] ?? version.trigger} - ${formatDate(version.createdAt)}`,
+      MARGIN_LEFT + 40, y + 2,
+    )
+    if (version.relevance) {
+      doc.text(
+        `[${RELEVANCE_LABELS[version.relevance] ?? version.relevance}]`,
+        PAGE_WIDTH - MARGIN_RIGHT, y + 2, { align: 'right' },
+      )
+    }
+    y += 8
+
+    if (version.changesSummary) {
+      doc.setFontSize(8)
+      doc.setTextColor(60, 60, 60)
+      const parts: string[] = []
+      if (version.changesSummary.added.length > 0) {
+        parts.push(`${version.changesSummary.added.length} nuevas`)
+      }
+      if (version.changesSummary.modified.length > 0) {
+        parts.push(`${version.changesSummary.modified.length} actualizadas`)
+      }
+      if (version.changesSummary.unchanged.length > 0) {
+        parts.push(`${version.changesSummary.unchanged.length} sin cambios`)
+      }
+      if (parts.length > 0) {
+        doc.text(`Secciones: ${parts.join(', ')}`, MARGIN_LEFT + 3, y + 2)
+      }
+      y += 6
+    }
+    y += 4
+  }
 
   doc.setDrawColor(200, 200, 200)
   doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y)
