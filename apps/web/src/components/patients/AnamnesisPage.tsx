@@ -59,16 +59,18 @@ export default function AnamnesisPage() {
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
   const initializedRef = useRef(false);
 
   // Determine page view
   const pageView: PageView = useMemo(() => {
     if (sessionLoading || anamnesisLoading) return 'loading';
     if (anamnesis?.locked) return 'locked';
+    if (editMode) return 'wizard';
     if (anamnesis?.status === 'completed' || anamnesis?.status === 'approved') return 'completed';
     if (!anamnesis?.privacy_accepted || !anamnesis?.terms_accepted) return 'privacy';
     return 'wizard';
-  }, [sessionLoading, anamnesisLoading, anamnesis]);
+  }, [sessionLoading, anamnesisLoading, anamnesis, editMode]);
 
   // Initialize form data from saved sections and resume position
   useEffect(() => {
@@ -352,8 +354,7 @@ export default function AnamnesisPage() {
 
             <button
               onClick={() => {
-                // Reset to wizard to add new entries
-                // The sections data persists — new data appends
+                setEditMode(true);
                 setCurrentStepIndex(0);
               }}
               className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-stone-200 bg-white px-5 py-3 text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
@@ -471,12 +472,12 @@ export default function AnamnesisPage() {
             )}
             Paso {currentStepIndex + 1} de {anamnesisSteps.length}
           </span>
-          <a
-            href="/patients/dashboard"
+          <button
+            onClick={() => { if (editMode) { setEditMode(false); } else { window.location.href = '/'; } }}
             className="text-xs text-stone-400 transition-colors hover:text-stone-600"
           >
-            Guardar y salir
-          </a>
+            {editMode ? 'Volver al resumen' : 'Guardar y salir'}
+          </button>
         </div>
 
         {/* Progress bar */}
