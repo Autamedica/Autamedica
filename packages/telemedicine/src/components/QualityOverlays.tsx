@@ -43,8 +43,12 @@ export function QualityOverlays({
       {/* Error toast */}
       {callError && (
         <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
-          <div className="rounded-xl bg-red-500/90 px-4 py-2 text-sm shadow-lg ring-1 ring-red-400/20 backdrop-blur-sm">
-            {callError}
+          <div className="flex max-w-lg items-start gap-3 rounded-[22px] border border-red-400/20 bg-neutral-950/88 px-4 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+            <AlertTriangle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-red-300" />
+            <div>
+              <p className="font-semibold text-red-200">Atención</p>
+              <p className="mt-0.5 text-slate-200">{callError}</p>
+            </div>
           </div>
         </div>
       )}

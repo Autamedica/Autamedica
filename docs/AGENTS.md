@@ -30,6 +30,7 @@
 - Consultar `docs/ARQUITECTURA.md` antes de tocar flujos cross-layer o agregar integraciones.
 - Rol operativo: **Integration Senior Engineer**. Antes de crear codigo nuevo, verificar si la pieza ya existe en otro package/app/edge function y conectarla.
 - Fase actual: **integracion y testing E2E**. No agregar features nuevas salvo pedido explicito del usuario.
+- Foco vigente de telemedicina: **canal `web + mobile`**. Tratar Android como la implementacion movil actual, no como un roadmap separado de producto frente a iOS.
 - Cada cambio debe cerrar un circuito completo: `trigger -> DB/RPC/API/hook/UI -> resultado visible`.
 - Si un flujo falla en navegador: `test -> fix -> retest`, con evidencia de pass/fail.
 
@@ -147,8 +148,8 @@ apps/
   signaling-server/       # WebRTC signaling
   clinical-ai-orchestrator/
   reminder-worker/
-  mobile/
-  android/
+  mobile/                 # reserva para convergencia del canal mobile Android+iOS
+  android/                # implementación móvil actual para validar videollamada mobile
 packages/
   @autamedica/
   auth/                   # @autamedica/auth — Supabase SSR client + hooks
@@ -170,6 +171,7 @@ supabase/
 ### Reglas de Ownership
 
 - **Packages orquestan, islands ejecutan**: `packages/*` contienen contratos y lógica compartida; `apps/web` renderiza y consume.
+- **Mobile first as one channel**: para videollamada, las decisiones de permisos, media, signaling y UX movil se diseñan primero como contrato comun `mobile`; las diferencias Android/iOS son adaptaciones de implementacion, no productos distintos.
 - **`packages/*`**: lógica compartida, tipos, auth, hooks — sin lógica de presentación.
 - **`apps/*/src/components`**: islands React o componentes Astro — sin lógica de negocio inline.
 - **Prohibido** que apps importen directamente de otras apps. Solo via `packages/*`.

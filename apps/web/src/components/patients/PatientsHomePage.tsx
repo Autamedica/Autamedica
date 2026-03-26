@@ -2,6 +2,7 @@
 
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
+import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
 import type { Locale } from '@/i18n/index'
 import {
   Bell,
@@ -19,9 +20,14 @@ import {
   IconHistorial,
   IconComunidad,
 } from '@/components/patients/icons/FeatureIcons'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
 import BottomNav from '@/components/patients/layout/BottomNav'
+import {
+  buildPatientTelemedicineEntryUrl,
+  isJoinableTelemedicineAppointment,
+  isTelemedicineAppointment,
+} from '@/lib/patients/lib/telemedicine-entry'
 
 function getFirstName(
   profile: ReturnType<typeof usePatientSession>['profile'],
@@ -60,23 +66,60 @@ interface PatientsHomePageProps {
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const { user, profile, patient } = usePatientSession()
   const { appointments } = useAppointments()
+  const {
+    joinAppointment,
+    joiningAppointmentId,
+    error: joinError,
+    clearError: clearJoinError,
+  } = useJoinTelemedicineAppointment()
+  const [hasHydrated, setHasHydrated] = useState(false)
   const firstName = getFirstName(profile, user)
   const completedConsults = appointments.filter(a => a.status === 'completed').length
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
 
+  useEffect(() => {
+    setHasHydrated(true)
+  }, [])
+
   const upcomingAppointment = useMemo(() => {
+    if (!hasHydrated) {
+      return null
+    }
+
+    const liveAppointment = appointments
+      .filter(a => a.status === 'in_progress')
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] ?? null
+
+    if (liveAppointment) {
+      return liveAppointment
+    }
+
     const now = new Date()
     return appointments
       .filter(a => a.status === 'scheduled' || a.status === 'confirmed')
       .filter(a => new Date(a.scheduled_at) > now)
       .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] ?? null
-  }, [appointments])
+  }, [appointments, hasHydrated])
 
-  const upcomingCount = appointments.filter(a =>
-    (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.scheduled_at) > new Date()
-  ).length
+  const upcomingCount = useMemo(() => {
+    if (!hasHydrated) {
+      return 0
+    }
+
+    const now = new Date()
+    return appointments.filter(a =>
+      (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.scheduled_at) > now
+    ).length
+  }, [appointments, hasHydrated])
 
   const dateLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
+  const greeting = hasHydrated ? getTimeGreeting() : 'Hola'
+  const upcomingTelemedicine = upcomingAppointment && isTelemedicineAppointment(upcomingAppointment)
+    ? upcomingAppointment
+    : null
+  const canJoinUpcomingTelemedicine = upcomingTelemedicine
+    ? isJoinableTelemedicineAppointment(upcomingTelemedicine)
+    : false
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -89,7 +132,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {getTimeGreeting()}, {firstName}
+                {greeting}, {firstName}
               </p>
               <p className="text-xs text-gray-400">Tu salud, tu control</p>
             </div>
@@ -122,9 +165,56 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         {/* Próxima cita */}
         {upcomingAppointment ? (
           <section className="mb-8">
+            {canJoinUpcomingTelemedicine ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!upcomingTelemedicine) return
+                  clearJoinError()
+                  void joinAppointment(upcomingTelemedicine.id)
+                }}
+                disabled={joiningAppointmentId === upcomingTelemedicine?.id}
+                className="group block w-full rounded-2xl border border-gray-100 bg-gray-50 p-5 text-left transition-all hover:border-gray-200 hover:shadow-sm disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="rounded-full bg-gray-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+                    Próxima consulta
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {upcomingAppointment.doctor
+                    ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`
+                    : 'Consulta programada'}
+                </h2>
+                {upcomingAppointment.doctor?.specialty && (
+                  <p className="mt-0.5 text-sm text-gray-500">{upcomingAppointment.doctor.specialty}</p>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-400">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.scheduled_at))}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-gray-900">
+                    <Video className="h-4 w-4" />
+                    Videoconsulta
+                  </span>
+                </div>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1.5 text-sm font-semibold text-cyan-700">
+                  <Video className="h-4 w-4" />
+                  {joiningAppointmentId === upcomingTelemedicine?.id
+                    ? 'Abriendo sala...'
+                    : 'Entrar a la videollamada'}
+                </div>
+              </button>
+            ) : (
             <a
-              href={upcomingAppointment.type === 'telemedicine' && upcomingAppointment.meeting_url
-                ? upcomingAppointment.meeting_url
+              href={upcomingTelemedicine
+                ? buildPatientTelemedicineEntryUrl(upcomingTelemedicine.id)
                 : '/patients/appointments'}
               className="group block rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-gray-200 hover:shadow-sm active:scale-[0.98]"
             >
@@ -151,7 +241,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   <Clock className="h-4 w-4" />
                   {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
                 </span>
-                {upcomingAppointment.type === 'telemedicine' && (
+                {upcomingTelemedicine && (
                   <span className="flex items-center gap-1.5 text-gray-900">
                     <Video className="h-4 w-4" />
                     Videoconsulta
@@ -159,6 +249,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 )}
               </div>
             </a>
+            )}
+            {joinError && canJoinUpcomingTelemedicine && (
+              <p className="mt-3 text-sm text-red-600">{joinError}</p>
+            )}
           </section>
         ) : (
           <a
@@ -236,7 +330,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
       <BottomNav activeTab="inicio" />
 
-      {user?.id && <IncomingCallHandler patientId={user.id} />}
+      {patient?.id && <IncomingCallHandler patientId={patient.id} />}
     </div>
   )
 }

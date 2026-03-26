@@ -3,8 +3,12 @@
  * Single source of truth for all DB queries related to doctor profiles.
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
+import type { Database } from '@autamedica/types'
 import { toCamel, logger } from '@autamedica/shared'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DoctorWithProfile } from '@autamedica/types'
+
+type DoctorsClient = SupabaseClient<Database>
 
 const DOCTOR_WITH_PROFILE_SELECT = `
   id,
@@ -31,8 +35,8 @@ const DOCTOR_WITH_PROFILE_SELECT = `
 `
 
 export const doctorsRepo = {
-  async findAll(): Promise<DoctorWithProfile[]> {
-    const { data, error } = await getBrowserSupabaseClient()
+  async findAll(client: DoctorsClient = getBrowserSupabaseClient()): Promise<DoctorWithProfile[]> {
+    const { data, error } = await client
       .from('doctors')
       .select(DOCTOR_WITH_PROFILE_SELECT)
       .eq('active', true)
@@ -46,8 +50,11 @@ export const doctorsRepo = {
     return toCamel<DoctorWithProfile[]>(data ?? [])
   },
 
-  async findByUserId(userId: string): Promise<DoctorWithProfile | null> {
-    const { data, error } = await getBrowserSupabaseClient()
+  async findByUserId(
+    userId: string,
+    client: DoctorsClient = getBrowserSupabaseClient(),
+  ): Promise<DoctorWithProfile | null> {
+    const { data, error } = await client
       .from('doctors')
       .select(DOCTOR_WITH_PROFILE_SELECT)
       .eq('user_id', userId)
@@ -62,8 +69,11 @@ export const doctorsRepo = {
     return data ? toCamel<DoctorWithProfile>(data) : null
   },
 
-  async findById(id: string): Promise<DoctorWithProfile | null> {
-    const { data, error } = await getBrowserSupabaseClient()
+  async findById(
+    id: string,
+    client: DoctorsClient = getBrowserSupabaseClient(),
+  ): Promise<DoctorWithProfile | null> {
+    const { data, error } = await client
       .from('doctors')
       .select(DOCTOR_WITH_PROFILE_SELECT)
       .eq('id', id)
@@ -78,8 +88,11 @@ export const doctorsRepo = {
     return data ? toCamel<DoctorWithProfile>(data) : null
   },
 
-  async findBySpecialty(specialty: string): Promise<DoctorWithProfile[]> {
-    const { data, error } = await getBrowserSupabaseClient()
+  async findBySpecialty(
+    specialty: string,
+    client: DoctorsClient = getBrowserSupabaseClient(),
+  ): Promise<DoctorWithProfile[]> {
+    const { data, error } = await client
       .from('doctors')
       .select(DOCTOR_WITH_PROFILE_SELECT)
       .eq('specialty', specialty)
@@ -94,8 +107,11 @@ export const doctorsRepo = {
     return toCamel<DoctorWithProfile[]>(data ?? [])
   },
 
-  async resolveIdByUserId(userId: string): Promise<string | null> {
-    const { data, error } = await getBrowserSupabaseClient()
+  async resolveIdByUserId(
+    userId: string,
+    client: DoctorsClient = getBrowserSupabaseClient(),
+  ): Promise<string | null> {
+    const { data, error } = await client
       .from('doctors')
       .select('id')
       .eq('user_id', userId)

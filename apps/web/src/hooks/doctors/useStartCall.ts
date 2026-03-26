@@ -1,24 +1,27 @@
 /**
- * Hook: encapsulates call initiation logic (create call → signaling → navigate).
+ * Hook: encapsulates call initiation logic (server-side validation → create call → navigate).
  * Extracted from StartCallButton.tsx to keep components free of business logic.
  */
 import { useState, useCallback } from 'react'
-import { createCallService, createSignalingClient } from '@autamedica/telemedicine'
-import { createBrowserClient } from '@autamedica/auth'
 import { logger } from '@autamedica/shared'
+import { startCallBrowserService } from '@/lib/calls/services/start-call.browser'
 
 interface UseStartCallOptions {
   doctorId: string
-  doctorName?: string
   patientId: string
   appointmentId?: string
 }
 
-export function useStartCall({ doctorId, doctorName, patientId, appointmentId }: UseStartCallOptions) {
+export function useStartCall({ doctorId, patientId, appointmentId }: UseStartCallOptions) {
   const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const startCall = useCallback(async () => {
+    if (!doctorId.trim()) {
+      setError('No encontramos tu perfil médico para iniciar la llamada')
+      return
+    }
+
     if (!patientId.trim()) {
       setError('Selecciona un paciente antes de iniciar la llamada')
       return
@@ -28,22 +31,12 @@ export function useStartCall({ doctorId, doctorName, patientId, appointmentId }:
     setError(null)
 
     try {
-      const callService = createCallService(createBrowserClient())
-      const call = await callService.createCall(doctorId, patientId, appointmentId)
-
-      const signaling = createSignalingClient(doctorId, 'doctor')
-      await signaling.connect()
-
-      await callService.updateCallStatus(call.id, 'ringing')
-      signaling.sendToUser(patientId, {
-        type: 'invite',
-        callId: call.id,
-        roomId: call.room_id,
-        from: { doctorId, name: doctorName || 'Médico' },
-        to: { patientId },
+      const call = await startCallBrowserService.startCall({
+        patientId,
+        ...(appointmentId ? { appointmentId } : {}),
       })
 
-      window.location.href = `/doctors/call/${call.room_id}?callId=${call.id}&waiting=true`
+      window.location.href = `/doctors/call/${call.roomId}?callId=${call.callId}`
     } catch (err) {
       logger.error('Failed to start call:', err)
 
@@ -60,7 +53,7 @@ export function useStartCall({ doctorId, doctorName, patientId, appointmentId }:
     } finally {
       setIsStarting(false)
     }
-  }, [doctorId, doctorName, patientId, appointmentId])
+  }, [doctorId, patientId, appointmentId])
 
   return { startCall, isStarting, error }
 }

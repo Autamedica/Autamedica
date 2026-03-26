@@ -58,11 +58,6 @@ type PatientAgeCandidate = {
   date_of_birth?: string | null
 }
 
-type DoctorIdentityCandidate = {
-  email?: string | null
-  profile?: PatientNameCandidate | null
-}
-
 export function getPatientDisplayName(patient: unknown): string {
   if (!patient || typeof patient !== 'object') {
     return 'Paciente'
@@ -90,19 +85,6 @@ function getPatientAge(patient: unknown): string {
   const ageDifMs = Date.now() - birthDate.getTime()
   const ageDate = new Date(ageDifMs)
   return Math.abs(ageDate.getUTCFullYear() - 1970).toString()
-}
-
-function getDoctorDisplayName(user: DoctorIdentityCandidate | null | undefined): string {
-  const profileName = user?.profile ? getPatientDisplayName(user.profile) : null
-  if (profileName && profileName !== 'Paciente') {
-    return profileName
-  }
-
-  if (user?.email?.trim()) {
-    return user.email.trim()
-  }
-
-  return 'Cuenta médica'
 }
 
 interface DoctorsHomePageProps {
@@ -480,8 +462,7 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                     </div>
                   ) : user ? (
                     <StartCallButton
-                      doctorId={user.id}
-                      doctorName={getDoctorDisplayName(user)}
+                      doctorId={user.doctorProfileId || ''}
                       patientId={session?.patientId || ''}
                       patientName={getPatientDisplayName(patient)}
                       className="group relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40 active:scale-95"

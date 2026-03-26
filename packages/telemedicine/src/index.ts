@@ -63,6 +63,7 @@ export { UnifiedVideoCall } from './unified-video-call'
 export type { UnifiedVideoCallProps } from './unified-video-call'
 export { TelemedicineDebugPanel } from './telemedicine-debug-panel'
 export type { TelemedicineDebugPanelProps } from './telemedicine-debug-panel'
+export type { CallSessionBootstrap, CallSessionRole, CallSessionRuntime } from './call-session/types'
 
 // Types
 export type { SignalKind, Signal } from './types'

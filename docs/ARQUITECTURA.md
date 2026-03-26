@@ -47,36 +47,44 @@ PACIENTE                         DOCTOR                          SISTEMA
 
 ### Apps (servicios desplegados)
 
-| App | Que hace | Estado | Deploy |
-|-----|----------|--------|--------|
-| `apps/web` | App principal — Astro 5 + React 19 islands | **Produccion** | Cloudflare Pages (5 subdominios) |
-| `apps/signaling-server` | WebRTC signaling (Socket.io) | **Funcional** | Cloudflare Worker |
-| `apps/clinical-ai-orchestrator` | Audio → STT → IA → JSON clinico | **Funcional, aislado** | Independiente (Express) |
-| `apps/reminder-worker` | Recordatorios WhatsApp (cron cada 1 min) | **Funcional** | Daemon (Bun) |
-| `apps/mobile` | App nativa iOS/Android | **Stub** | No existe |
-| `apps/android` | App nativa Android | **Stub** | No existe |
+| App                             | Que hace                                                                        | Estado                 | Deploy                           |
+| ------------------------------- | ------------------------------------------------------------------------------- | ---------------------- | -------------------------------- |
+| `apps/web`                      | App principal — Astro 5 + React 19 islands                                      | **Produccion**         | Cloudflare Pages (5 subdominios) |
+| `apps/signaling-server`         | WebRTC signaling (Socket.io)                                                    | **Funcional**          | Cloudflare Worker                |
+| `apps/clinical-ai-orchestrator` | Audio → STT → IA → JSON clinico                                                 | **Funcional, aislado** | Independiente (Express)          |
+| `apps/reminder-worker`          | Recordatorios WhatsApp (cron cada 1 min)                                        | **Funcional**          | Daemon (Bun)                     |
+| `apps/mobile`                   | Superficie movil convergente pensada para el canal unico Android+iOS            | **Reservada**          | No activa                        |
+| `apps/android`                  | Implementacion movil actual para validar el contrato compartido de videollamada | **En desarrollo**      | Local / pruebas                  |
+
+### Lectura vigente del canal de videollamada
+
+- El foco actual del producto es **un solo canal de telemedicina `web + mobile`**.
+- `apps/web` define hoy la ruta canonica del flujo funcional y del contrato de negocio de la videollamada.
+- `apps/android` se usa como implementacion movil actual para validar permisos, media devices, signaling y experiencia movil real.
+- **No estamos tratando Android e iOS como productos separados**. Las decisiones deben tomarse primero a nivel de capacidad movil comun; las divergencias por plataforma solo se aceptan cuando el hardware, permisos o SDKs las fuerzan.
+- `apps/mobile` permanece reservado como espacio de convergencia futura; no debe leerse como un segundo frente activo paralelo a Android.
 
 ### Packages (logica compartida)
 
-| Package | Que exporta |
-|---------|-------------|
-| `types` | 190+ tipos TypeScript, branded types (PatientId, DoctorId), Zod schemas |
-| `shared` | Env validation, logger, role routing, DB helpers |
-| `auth` | createServerClient(), createBrowserClient(), hooks de sesion |
-| `hooks` | usePatients(), useAppointments() |
-| `telemedicine` | WebRTCClient, UnifiedVideoCall.tsx, hooks de media/stats |
-| `scheduling` | Tipos de disponibilidad, waitlist, recordatorios |
-| `ui` | Componentes compartidos (buttons, forms, modals) |
-| `tailwind-config` | Preset Tailwind |
+| Package           | Que exporta                                                             |
+| ----------------- | ----------------------------------------------------------------------- |
+| `types`           | 190+ tipos TypeScript, branded types (PatientId, DoctorId), Zod schemas |
+| `shared`          | Env validation, logger, role routing, DB helpers                        |
+| `auth`            | createServerClient(), createBrowserClient(), hooks de sesion            |
+| `hooks`           | usePatients(), useAppointments()                                        |
+| `telemedicine`    | WebRTCClient, UnifiedVideoCall.tsx, hooks de media/stats                |
+| `scheduling`      | Tipos de disponibilidad, waitlist, recordatorios                        |
+| `ui`              | Componentes compartidos (buttons, forms, modals)                        |
+| `tailwind-config` | Preset Tailwind                                                         |
 
 ### Supabase Edge Functions
 
-| Funcion | Trigger | Que hace |
-|---------|---------|----------|
-| `create-call` | POST al iniciar teleconsulta | Crea registro en `calls` |
-| `ingest-patient-observation` | POST desde paciente/doctor | Inserta vital/medicamento/sintoma + genera alerta si critico |
-| `send-push-notification` | Cambio critico o mensaje | Firebase Cloud Messaging |
-| `update-call-status` | Disconnect del signaling | Marca call como completed + duracion |
+| Funcion                      | Trigger                      | Que hace                                                     |
+| ---------------------------- | ---------------------------- | ------------------------------------------------------------ |
+| `create-call`                | POST al iniciar teleconsulta | Crea registro en `calls`                                     |
+| `ingest-patient-observation` | POST desde paciente/doctor   | Inserta vital/medicamento/sintoma + genera alerta si critico |
+| `send-push-notification`     | Cambio critico o mensaje     | Firebase Cloud Messaging                                     |
+| `update-call-status`         | Disconnect del signaling     | Marca call como completed + duracion                         |
 
 ---
 
@@ -127,6 +135,7 @@ RANKING
 ```
 
 **Patron de borrado:**
+
 - Tablas medicas → `deleted_at` (soft delete con timestamp)
 - Tablas de negocio (patients, doctors, appointments) → `active: boolean`
 
@@ -162,20 +171,20 @@ CLEANUP ──────→ Limpia artefactos temporales
 
 ### Circuitos rotos (Tier 3)
 
-| Problema | Impacto | Donde |
-|----------|---------|-------|
-| **`startSession()` nunca se llama** | Session siempre null → notas, prescribir, vitales, telemedicina son no-ops silenciosos | `useActiveSession` hook sin consumidor |
-| **AI output no visible en portal doctor** | El orchestrator genera JSON pero el doctor no lo ve en la UI | `clinical_ai_outputs` sin fetch en `/doctors/` |
-| **"Dr. Garcia" hardcodeado** | Placeholder que viola reglas del proyecto | `VideoLayout.tsx` |
-| **Sin UI para seleccionar paciente → iniciar sesion** | Doctor no puede arrancar el flujo de quick actions | Falta componente |
+| Problema                                              | Impacto                                                                                | Donde                                          |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **`startSession()` nunca se llama**                   | Session siempre null → notas, prescribir, vitales, telemedicina son no-ops silenciosos | `useActiveSession` hook sin consumidor         |
+| **AI output no visible en portal doctor**             | El orchestrator genera JSON pero el doctor no lo ve en la UI                           | `clinical_ai_outputs` sin fetch en `/doctors/` |
+| **"Dr. Garcia" hardcodeado**                          | Placeholder que viola reglas del proyecto                                              | `VideoLayout.tsx`                              |
+| **Sin UI para seleccionar paciente → iniciar sesion** | Doctor no puede arrancar el flujo de quick actions                                     | Falta componente                               |
 
 ### Piezas que no existen (Tier 4)
 
-| Pieza | Que seria |
-|-------|-----------|
-| App mobile funcional | React Native / Expo con funcionalidad real |
-| Integracion AI ↔ portal doctor | Mostrar output del orchestrator en la UI del doctor |
-| Pagos y facturacion | Flujo completo de cobro (mencionado en E2E pero no implementado) |
+| Pieza                          | Que seria                                                        |
+| ------------------------------ | ---------------------------------------------------------------- |
+| App mobile funcional           | React Native / Expo con funcionalidad real                       |
+| Integracion AI ↔ portal doctor | Mostrar output del orchestrator en la UI del doctor              |
+| Pagos y facturacion            | Flujo completo de cobro (mencionado en E2E pero no implementado) |
 
 ---
 

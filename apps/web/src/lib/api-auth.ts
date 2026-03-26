@@ -1,7 +1,7 @@
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
-import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { unauthorized } from '@/lib/api-helpers'
+import { createAstroServerClientFromRequest } from '@/lib/supabase'
 
 type TypedClient = SupabaseClient<Database>
 
@@ -22,7 +22,7 @@ export interface SessionRequest {
 export async function withAuth(request: Request): Promise<AuthedRequest | Response> {
   let supabase: TypedClient
   try {
-    supabase = createServerClientFromRequest(request)
+    supabase = createAstroServerClientFromRequest(request)
   } catch {
     return unauthorized()
   }
@@ -40,7 +40,7 @@ export async function withAuth(request: Request): Promise<AuthedRequest | Respon
 export async function withSession(request: Request): Promise<SessionRequest | Response> {
   let supabase: TypedClient
   try {
-    supabase = createServerClientFromRequest(request)
+    supabase = createAstroServerClientFromRequest(request)
   } catch {
     return unauthorized()
   }

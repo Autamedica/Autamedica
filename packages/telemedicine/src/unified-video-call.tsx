@@ -56,6 +56,7 @@ export interface UnifiedVideoCallProps {
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
   onError?: (error: unknown) => void
+  persistCallStatus?: (status: CallStatus, reason?: string) => Promise<void>
   className?: string
   theme?: 'doctor' | 'patient'
   autoStart?: boolean
@@ -129,6 +130,7 @@ export function UnifiedVideoCall({
   onCallStart,
   onStatusChange,
   onError,
+  persistCallStatus: persistCallStatusOverride,
   className = '',
   theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
@@ -253,9 +255,13 @@ export function UnifiedVideoCall({
       }
 
       try {
-        const callService = callServiceRef.current ?? createCallService()
-        callServiceRef.current = callService
-        await callService.updateCallStatus(callId, status, reason)
+        if (persistCallStatusOverride) {
+          await persistCallStatusOverride(status, reason)
+        } else {
+          const callService = callServiceRef.current ?? createCallService()
+          callServiceRef.current = callService
+          await callService.updateCallStatus(callId, status, reason)
+        }
         lastPersistedCallStatusRef.current = status
       } catch (error) {
         logger.warn('[UnifiedVideoCall] Failed to persist call status', {
@@ -265,7 +271,7 @@ export function UnifiedVideoCall({
         })
       }
     },
-    [callId]
+    [callId, persistCallStatusOverride]
   )
 
   const emitDebug = useCallback(

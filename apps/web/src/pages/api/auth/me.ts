@@ -44,8 +44,24 @@ export const GET: APIRoute = async ({ request }) => {
           medicalLicense: user.user_metadata?.medical_license,
         }
 
+    let doctorProfileId: string | undefined
+    if (role === 'doctor') {
+      const { data: doctorProfile, error: doctorProfileError } = await supabase
+        .from('doctors')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (doctorProfileError && doctorProfileError.code !== 'PGRST116') {
+        logger.warn('[api/auth/me] Doctor profile fetch error:', doctorProfileError.message)
+      }
+
+      doctorProfileId = doctorProfile?.id ?? undefined
+    }
+
     return jsonOk({
       id: user.id,
+      doctorProfileId,
       email: user.email ?? '',
       role: typeof role === 'string' ? role : undefined,
       createdAt: profile?.created_at ?? undefined,

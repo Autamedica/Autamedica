@@ -56,6 +56,15 @@ const authFlowLinks = [
     }}>
       window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
     </script>
+    {import.meta.env.DEV && (
+      <script type="module" is:inline>
+        import RefreshRuntime from '/@react-refresh';
+        RefreshRuntime.injectIntoGlobalHook(window);
+        window.$RefreshReg$ = () => {};
+        window.$RefreshSig$ = () => (type) => type;
+        window.__vite_plugin_react_preamble_installed__ = true;
+      </script>
+    )}
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

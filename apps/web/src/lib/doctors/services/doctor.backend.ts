@@ -3,13 +3,14 @@
  * Orchestrates repository access for API Controllers.
  */
 import { doctorsRepo } from '@/lib/doctors/lib/repos/doctors'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { DoctorWithProfile } from '@autamedica/types'
 
 export const doctorBackendService = {
   async getDoctors(): Promise<DoctorWithProfile[]> {
     try {
-      return await doctorsRepo.findAll()
+      return await doctorsRepo.findAll(createAstroAdminClient())
     } catch (error) {
       logger.error('[doctorBackendService] getDoctors failed', error)
       throw error
@@ -18,7 +19,7 @@ export const doctorBackendService = {
 
   async getDoctorByUserId(userId: string): Promise<DoctorWithProfile | null> {
     try {
-      return await doctorsRepo.findByUserId(userId)
+      return await doctorsRepo.findByUserId(userId, createAstroAdminClient())
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorByUserId failed', { userId, error })
       throw error
@@ -27,7 +28,7 @@ export const doctorBackendService = {
 
   async getDoctorById(id: string): Promise<DoctorWithProfile | null> {
     try {
-      return await doctorsRepo.findById(id)
+      return await doctorsRepo.findById(id, createAstroAdminClient())
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorById failed', { id, error })
       throw error
@@ -36,7 +37,7 @@ export const doctorBackendService = {
 
   async getDoctorsBySpecialty(specialty: string): Promise<DoctorWithProfile[]> {
     try {
-      return await doctorsRepo.findBySpecialty(specialty)
+      return await doctorsRepo.findBySpecialty(specialty, createAstroAdminClient())
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorsBySpecialty failed', { specialty, error })
       throw error

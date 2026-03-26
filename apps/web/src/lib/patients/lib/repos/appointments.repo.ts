@@ -11,6 +11,7 @@ import {
   mapTypeToDb,
   type DbAppointmentRow,
 } from '@/lib/patients/api/appointment-utils'
+import { buildPatientTelemedicineEntryUrl } from '@/lib/patients/lib/telemedicine-entry'
 import type {
   AppointmentWithDoctor,
   AppointmentType,
@@ -92,10 +93,8 @@ export const appointmentsRepo = {
     const combinedNotes = [reason, notes].filter(Boolean).join(' — ') || null
 
     let effectiveMeetingUrl = meeting_url ?? null
-    if (!effectiveMeetingUrl && (effectiveType === 'telemedicine' || effectiveType === 'emergency')) {
-      const roomId = `room_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`
-      effectiveMeetingUrl = `/patients/call/${roomId}`
-    }
+    const needsCanonicalTelemedicineUrl =
+      !effectiveMeetingUrl && (effectiveType === 'telemedicine' || effectiveType === 'emergency')
 
     const { data, error } = await supabase
       .from('appointments')
@@ -108,7 +107,7 @@ export const appointmentsRepo = {
         type: effectiveType,
         status: 'scheduled',
         notes: combinedNotes,
-        meeting_url: effectiveMeetingUrl,
+        meeting_url: needsCanonicalTelemedicineUrl ? null : effectiveMeetingUrl,
         location: location ?? null,
       } as never)
       .select(DOCTOR_SELECT)
@@ -119,7 +118,31 @@ export const appointmentsRepo = {
       throw error
     }
 
-    return mapAppointment(data as unknown as DbAppointmentRow)
+    const appointment = mapAppointment(data as unknown as DbAppointmentRow)
+
+    if (!needsCanonicalTelemedicineUrl) {
+      return appointment
+    }
+
+    effectiveMeetingUrl = buildPatientTelemedicineEntryUrl(appointment.id)
+
+    const { data: updatedAppointment, error: updateError } = await supabase
+      .from('appointments')
+      .update({
+        meeting_url: effectiveMeetingUrl,
+        updated_at: new Date().toISOString(),
+      } as never)
+      .eq('id', appointment.id)
+      .eq('patient_id', patientId)
+      .select(DOCTOR_SELECT)
+      .single()
+
+    if (updateError) {
+      logger.error('[appointmentsRepo] create failed while setting telemedicine entry url', updateError)
+      throw updateError
+    }
+
+    return mapAppointment(updatedAppointment as unknown as DbAppointmentRow)
   },
 
   async update(

@@ -8,6 +8,7 @@ import { logger } from '@autamedica/shared'
 
 export interface AuthenticatedUserProfile {
   id: string
+  doctorProfileId?: string
   email: string
   role?: 'doctor' | 'patient' | 'company_admin' | 'platform_admin'
   createdAt?: string

@@ -1,24 +1,15 @@
 "use client"
 
-import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
+import type { JSX, ReactNode } from 'react'
+import { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
-const AppointmentsPanel = lazy(() => import('@/components/doctors/appointments/AppointmentsPanel').then(m => ({ default: m.AppointmentsPanel })))
-const DiagnosisPanel = lazy(() => import('@/components/doctors/diagnosis/DiagnosisPanel').then(m => ({ default: m.DiagnosisPanel })))
-const AIHistoryTab = lazy(() => import('@/components/doctors/medical/AIHistoryTab').then(m => ({ default: m.AIHistoryTab })))
-const MedicalHistoryTab = lazy(() => import('@/components/doctors/medical/MedicalHistoryTab').then(m => ({ default: m.MedicalHistoryTab })))
-const PrescriptionsTab = lazy(() => import('@/components/doctors/medical/PrescriptionsTab').then(m => ({ default: m.PrescriptionsTab })))
-const VitalSignsTab = lazy(() => import('@/components/doctors/medical/VitalSignsTab').then(m => ({ default: m.VitalSignsTab })))
-const PatientInfoTab = lazy(() => import('@/components/doctors/patient/PatientInfoTab').then(m => ({ default: m.PatientInfoTab })))
-const MedicalRankingPanel = lazy(() => import('@/components/doctors/ranking/MedicalRankingPanel').then(m => ({ default: m.MedicalRankingPanel })))
-const RecordsPanel = lazy(() => import('@/components/doctors/records/RecordsPanel').then(m => ({ default: m.RecordsPanel })))
-const SettingsPanel = lazy(() => import('@/components/doctors/settings/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
-const VitalSignsPanel = lazy(() => import('@/components/doctors/vitals/VitalSignsPanel').then(m => ({ default: m.VitalSignsPanel })))
-const MarketplacePanel = lazy(() => import('@/components/doctors/marketplace/MarketplacePanel').then(m => ({ default: m.MarketplacePanel })))
-import type { UUID } from '@/types/medical'
+import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
 import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorStats } from '@/hooks/doctors/useDoctorStats'
 import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
+import { signOutLocal } from '@/lib/auth/service'
+import type { UUID } from '@/types/medical'
 import type { LucideIcon } from 'lucide-react'
 import {
     Activity,
@@ -42,9 +33,19 @@ import {
     X,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { JSX, ReactNode } from 'react'
-import { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { signOutLocal } from '@/lib/auth/service'
+
+const AppointmentsPanel = lazy(() => import('@/components/doctors/appointments/AppointmentsPanel').then(m => ({ default: m.AppointmentsPanel })))
+const DiagnosisPanel = lazy(() => import('@/components/doctors/diagnosis/DiagnosisPanel').then(m => ({ default: m.DiagnosisPanel })))
+const AIHistoryTab = lazy(() => import('@/components/doctors/medical/AIHistoryTab').then(m => ({ default: m.AIHistoryTab })))
+const MedicalHistoryTab = lazy(() => import('@/components/doctors/medical/MedicalHistoryTab').then(m => ({ default: m.MedicalHistoryTab })))
+const PrescriptionsTab = lazy(() => import('@/components/doctors/medical/PrescriptionsTab').then(m => ({ default: m.PrescriptionsTab })))
+const VitalSignsTab = lazy(() => import('@/components/doctors/medical/VitalSignsTab').then(m => ({ default: m.VitalSignsTab })))
+const PatientInfoTab = lazy(() => import('@/components/doctors/patient/PatientInfoTab').then(m => ({ default: m.PatientInfoTab })))
+const MedicalRankingPanel = lazy(() => import('@/components/doctors/ranking/MedicalRankingPanel').then(m => ({ default: m.MedicalRankingPanel })))
+const RecordsPanel = lazy(() => import('@/components/doctors/records/RecordsPanel').then(m => ({ default: m.RecordsPanel })))
+const SettingsPanel = lazy(() => import('@/components/doctors/settings/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
+const VitalSignsPanel = lazy(() => import('@/components/doctors/vitals/VitalSignsPanel').then(m => ({ default: m.VitalSignsPanel })))
+const MarketplacePanel = lazy(() => import('@/components/doctors/marketplace/MarketplacePanel').then(m => ({ default: m.MarketplacePanel })))
 
 type TabId = 'video-call' | 'patient-info' | 'medical-history' | 'prescriptions' | 'vital-signs' | 'ai-history'
 

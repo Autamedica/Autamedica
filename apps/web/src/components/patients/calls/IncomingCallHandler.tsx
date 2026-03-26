@@ -5,6 +5,7 @@ import { createBrowserClient } from '@autamedica/auth'
 import { createCallService } from '@autamedica/telemedicine'
 import type { InviteMessage } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
+import { respondCallBrowserService } from '@/lib/calls/services/respond-call.browser'
 
 function tryShowBrowserNotification(title: string, body: string) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
@@ -99,8 +100,11 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
     setIsConnecting(true)
 
     try {
-      await getCallService().updateCallStatus(incomingCall.callId, 'accepted')
-      window.location.href = `/patients/call/${incomingCall.roomId}?callId=${incomingCall.callId}`
+      const response = await respondCallBrowserService.respond({
+        callId: incomingCall.callId,
+        action: 'accept',
+      })
+      window.location.href = `/patients/call/${response.roomId}?callId=${response.callId}`
     } catch (error) {
       logger.error('[IncomingCallHandler] Failed to accept call:', error)
       setIsConnecting(false)
@@ -111,7 +115,10 @@ export function IncomingCallHandler({ patientId, patientName: _patientName = 'Pa
     if (!incomingCall) return
 
     try {
-      await getCallService().updateCallStatus(incomingCall.callId, 'declined', 'patient_declined')
+      await respondCallBrowserService.respond({
+        callId: incomingCall.callId,
+        action: 'decline',
+      })
       setIncomingCall(null)
     } catch (error) {
       logger.error('[IncomingCallHandler] Failed to decline call:', error)

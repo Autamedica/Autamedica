@@ -17,29 +17,38 @@ Usa el template estándar:
 # ADR-XXXX: Título de la Decisión
 
 ## Estado
+
 [Propuesto | Aceptado | Rechazado | Deprecated | Superseded]
 
 ## Contexto
+
 ¿Qué problema estamos resolviendo?
 
 ## Decisión
+
 ¿Qué hemos decidido hacer?
 
 ## Consecuencias
+
 ### Positivas
+
 - Beneficio 1
 - Beneficio 2
 
 ### Negativas
+
 - Costo 1
 - Limitación 2
 
 ## Compliance
+
 ### HIPAA
+
 - Impacto en PHI/PII
 - Consideraciones de auditoría
 
 ### Médico
+
 - Impacto en flujos clínicos
 - Validaciones requeridas
 ```
@@ -47,6 +56,7 @@ Usa el template estándar:
 ## 🚨 Cuándo Crear un ADR
 
 ### Obligatorio para:
+
 - ✅ **Breaking changes** en tipos críticos
 - ✅ **Cambios de arquitectura** que afecten boundaries
 - ✅ **Nuevas integraciones** con sistemas médicos
@@ -54,6 +64,7 @@ Usa el template estándar:
 - ✅ **Performance** que afecte flujos críticos
 
 ### Tipos Críticos que Requieren ADR:
+
 - `PatientId`, `DoctorId`, `CompanyId`, `UUID`
 - `Patient`, `Doctor`, `Appointment`, `MedicalRecord`
 - `APIResponse`, `AuthUser`, `UserRole`
@@ -67,9 +78,7 @@ Usa el template estándar:
 
 ## 🔗 ADRs Existentes
 
-<!-- Lista automática generada por scripts -->
-- ADR-0001: [Ejemplo] Arquitectura de tipos médicos branded
-- ADR-0002: [Ejemplo] Sistema de autenticación HIPAA-compliant
+- [ADR-0001: Telemedicina Web + Mobile con arquitectura canonica de llamada](./ADR-0001-telemedicine-web-mobile-canonical-call-architecture.md)
 
 ---
 

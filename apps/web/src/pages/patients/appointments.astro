@@ -2,10 +2,18 @@
 import Layout from '@/layouts/Layout.astro';
 import AppointmentsPage from '@/components/patients/AppointmentsPage';
 
-const title = 'Mis Citas | AutaMedica';
-const description = 'Gestiona tus citas médicas programadas';
+const isTelemedicineView = Astro.url.searchParams.get('type') === 'telemedicine';
+const focusAppointmentId = Astro.url.searchParams.get('appointmentId');
+const title = isTelemedicineView ? 'Telemedicina | AutaMedica' : 'Mis Citas | AutaMedica';
+const description = isTelemedicineView
+  ? 'Gestiona tus videoconsultas y accede a tus turnos online'
+  : 'Gestiona tus citas médicas programadas';
 ---
 
 <Layout title={title} description={description}>
-  <AppointmentsPage client:load />
+  <AppointmentsPage
+    client:load
+    mode={isTelemedicineView ? 'telemedicine' : 'all'}
+    focusAppointmentId={focusAppointmentId}
+  />
 </Layout>

@@ -205,7 +205,7 @@ const SERVER_ONLY_VARS = new Set([
 
 // Utilidad genérica para variables de entorno obligatorias (compatibilidad hacia atrás)
 export function ensureEnv(name: string): string {
-  const value = process.env[name];
+  const value = processRef?.env?.[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
@@ -326,7 +326,7 @@ export function ensureServerEnv(name: string): string {
     );
   }
 
-  const value = process.env[name];
+  const value = processRef?.env?.[name];
   if (!value) {
     throw new Error(`Missing required server environment variable: ${name}`);
   }
@@ -340,7 +340,7 @@ export function getServerEnvOrDefault(name: string, defaultValue?: string): stri
     );
   }
 
-  const value = process.env[name];
+  const value = processRef?.env?.[name];
   return value ?? defaultValue;
 }
 

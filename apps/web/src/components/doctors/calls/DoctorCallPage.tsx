@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { UnifiedVideoCall, useAudioTranscription } from '@autamedica/telemedicine'
 import type { TranscriptSegment } from '@autamedica/telemedicine'
+import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
+import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
+import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
 import { ConsultationContextPanel } from './ConsultationContextPanel'
 
 interface DoctorCallPageProps {
@@ -26,6 +29,12 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const [isReady, setIsReady] = useState(false)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
+  const {
+    session: callSession,
+    loading: callSessionLoading,
+    error: callSessionError,
+    refresh: refreshCallSession,
+  } = useCallSession(roomId, isReady)
 
   // Transcription — mandatory, automatic, silent
   const [transcriptionState, transcriptionActions] = useAudioTranscription('es-AR')
@@ -124,6 +133,24 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [transcriptionState.isSupported, transcriptionActions])
 
+  const handlePersistCallStatus = useCallback(
+    async (status: CallStatus, reason?: string) => {
+      if (!callSession) {
+        return
+      }
+
+      if (status !== 'connecting' && status !== 'connected' && status !== 'ended') {
+        return
+      }
+
+      await persistCallStatusBrowserService.persist(callSession.callId, {
+        status,
+        ...(reason ? { reason } : {}),
+      })
+    },
+    [callSession]
+  )
+
   const { userId, userName } = useMemo(() => {
     if (session && typedProfile) {
       return {
@@ -140,7 +167,34 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [session, typedProfile, roomId])
 
-  if (loading || !isReady) {
+  if (callSessionError) {
+    return (
+      <div className="min-h-screen bg-[#101d32] flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
+          <h1 className="text-xl font-semibold text-white">No pudimos preparar la videollamada</h1>
+          <p className="mt-3 text-sm text-slate-300">{callSessionError}</p>
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => void refreshCallSession()}
+              className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Reintentar
+            </button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = '/doctors' }}
+              className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200"
+            >
+              Volver al portal
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading || !isReady || callSessionLoading || !callSession) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
@@ -156,13 +210,22 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       {/* Video Call */}
       <div className={`flex-1 min-w-0 transition-all duration-300 relative ${panelCollapsed ? '' : 'mr-0'}`}>
         <UnifiedVideoCall
-          roomId={roomId}
-          userId={userId}
-          userType="doctor"
-          userName={userName}
+          roomId={callSession.roomId}
+          callId={callSession.callId}
+          userId={callSession.user.id || userId}
+          userType={callSession.user.role}
+          userName={callSession.user.displayName || userName}
+          iceServers={callSession.transport.iceServers}
+          cloudflareCallsApiUrl={
+            callSession.runtime === 'webrtc-p2p'
+              ? null
+              : (callSession.transport.cloudflareCallsApiUrl ?? null)
+          }
           theme="doctor"
           onCallEnd={handleCallEnd}
           onCallStart={handleCallStart}
+          persistCallStatus={handlePersistCallStatus}
+          autoStart
           className="h-screen"
         />
 

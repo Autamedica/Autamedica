@@ -1,6 +1,10 @@
 'use client';
 
 import type { AppointmentWithDoctor } from '@/lib/patients/types/appointment';
+import {
+  buildPatientTelemedicineEntryUrl,
+  isTelemedicineAppointment,
+} from '@/lib/patients/lib/telemedicine-entry';
 import { formatTime } from '@/lib/date-utils';
 import {
   Calendar,
@@ -12,6 +16,7 @@ import {
   Stethoscope,
   UserRound,
   ArrowRight,
+  Loader2,
 } from 'lucide-react';
 
 interface AppointmentsTableProps {
@@ -19,6 +24,8 @@ interface AppointmentsTableProps {
   locale?: string;
   reviewedAppointmentIds?: Set<string>;
   onReviewClick?: (appointment: AppointmentWithDoctor) => void;
+  onJoinTelemedicine?: (appointment: AppointmentWithDoctor) => void;
+  joiningAppointmentId?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; dot: string; bg: string }> = {
@@ -46,6 +53,8 @@ export function AppointmentsTable({
   locale,
   reviewedAppointmentIds,
   onReviewClick,
+  onJoinTelemedicine,
+  joiningAppointmentId,
 }: AppointmentsTableProps) {
   const intlLocale = locale === 'pt' ? 'pt-BR' : 'es-AR';
 
@@ -72,7 +81,16 @@ export function AppointmentsTable({
         const doctorName = appointment.doctor
           ? `Dr. ${appointment.doctor.first_name ?? ''} ${appointment.doctor.last_name ?? ''}`.trim()
           : null;
-        const isActive = statusKey === 'scheduled' || statusKey === 'confirmed' || statusKey === 'in_progress';
+        const isActive =
+          statusKey === 'scheduled' ||
+          statusKey === 'confirmed' ||
+          statusKey === 'in_progress';
+        const isTelemedicine = isTelemedicineAppointment(appointment);
+        const hasExternalMeetingUrl = Boolean(
+          appointment.meeting_url && /^https?:\/\//i.test(appointment.meeting_url),
+        );
+        const entryUrl = buildPatientTelemedicineEntryUrl(appointment.id);
+        const isJoining = joiningAppointmentId === appointment.id;
 
         return (
           <div
@@ -122,7 +140,7 @@ export function AppointmentsTable({
                     {appointment.location}
                   </span>
                 )}
-                {appointment.meeting_url && (
+                {isTelemedicine && (
                   <span className="inline-flex items-center gap-1.5 text-cyan-600">
                     <Video className="h-3.5 w-3.5" />
                     Videoconsulta
@@ -139,16 +157,27 @@ export function AppointmentsTable({
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-2">
-                {appointment.meeting_url && isActive && (
+                {isTelemedicine && isActive && onJoinTelemedicine && (
+                  <button
+                    type="button"
+                    onClick={() => onJoinTelemedicine(appointment)}
+                    disabled={isJoining}
+                    className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-stone-800 disabled:cursor-wait disabled:opacity-70 active:scale-[0.98]"
+                  >
+                    {isJoining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                    {isJoining ? 'Abriendo sala...' : 'Entrar a la videollamada'}
+                  </button>
+                )}
+                {isTelemedicine && isActive && !onJoinTelemedicine && (
                   <a
-                    href={appointment.meeting_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={hasExternalMeetingUrl ? appointment.meeting_url ?? entryUrl : entryUrl}
+                    target={hasExternalMeetingUrl ? '_blank' : undefined}
+                    rel={hasExternalMeetingUrl ? 'noopener noreferrer' : undefined}
                     className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-stone-800 active:scale-[0.98]"
                   >
                     <Video className="h-4 w-4" />
-                    Unirse
-                    <ExternalLink className="h-3 w-3 opacity-60" />
+                    Entrar a la videollamada
+                    {hasExternalMeetingUrl && <ExternalLink className="h-3 w-3 opacity-60" />}
                   </a>
                 )}
                 {appointment.status === 'scheduled' && (

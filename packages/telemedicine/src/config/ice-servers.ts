@@ -7,9 +7,11 @@ import {
 
 /** Lee ICE desde env (cliente o server) */
 export function loadIceServers(): RTCIceServer[] {
-  const raw =
-    getOptionalClientEnv('PUBLIC_ICE_SERVERS') ??
-    getServerEnvOrDefault('ICE_SERVERS_JSON', '[]')
+  const raw = getOptionalClientEnv('PUBLIC_ICE_SERVERS') ?? (
+    typeof window === 'undefined'
+      ? getServerEnvOrDefault('ICE_SERVERS_JSON', '[]')
+      : '[]'
+  )
   try { return JSON.parse(raw) } catch { return [] }
 }
 
@@ -25,11 +27,12 @@ export const ICE_STUN_ONLY: RTCIceServer[] = [
  */
 export function getProductionICEServers(): RTCIceServer[] {
   const iceServers: RTCIceServer[] = [...ICE_STUN_ONLY]
+  const serverEnv = typeof process !== 'undefined' ? process.env : undefined
 
   // TURN servers desde environment variables
-  const turnUrls = process.env.PUBLIC_TURN_URLS
-  const turnUsername = process.env.PUBLIC_TURN_USERNAME
-  const turnCredential = process.env.PUBLIC_TURN_CREDENTIAL
+  const turnUrls = serverEnv?.PUBLIC_TURN_URLS
+  const turnUsername = serverEnv?.PUBLIC_TURN_USERNAME
+  const turnCredential = serverEnv?.PUBLIC_TURN_CREDENTIAL
 
   if (turnUrls && turnUsername && turnCredential) {
     iceServers.push({

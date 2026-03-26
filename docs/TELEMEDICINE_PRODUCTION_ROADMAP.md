@@ -100,7 +100,8 @@ Dejar una sola superficie de telemedicina.
 - Marcar legacy en:
   - [`apps/doctors/src/app/consultation/[id]/page.tsx`](/home/edu/Autamedica/apps/doctors/src/app/consultation/[id]/page.tsx)
   - [`apps/doctors/src/components/consultation/DoctorVideoConsultation.tsx`](/home/edu/Autamedica/apps/doctors/src/components/consultation/DoctorVideoConsultation.tsx)
-- Publicar ADR corto en repo.
+- Publicar y referenciar ADR aceptado:
+  - [`ADR-0001: Telemedicina Web + Mobile con arquitectura canonica de llamada`](/home/edu/Autamedica/docs/adr/ADR-0001-telemedicine-web-mobile-canonical-call-architecture.md)
 
 ### Done
 
