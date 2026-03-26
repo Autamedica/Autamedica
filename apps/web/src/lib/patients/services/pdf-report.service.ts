@@ -354,10 +354,42 @@ const SECTION_NAMES: Record<string, string> = {
   medicamentos: 'Medicamentos',
   alergias: 'Alergias',
   cardiovascular: 'Sistema cardiovascular',
+  respiratory: 'Sistema respiratorio',
   respiratorio: 'Sistema respiratorio',
+  digestive: 'Sistema digestivo',
   digestivo: 'Sistema digestivo',
+  genitourinary: 'Sistema genitourinario',
   genitourinario: 'Sistema genitourinario',
   musculoesqueletico: 'Sistema musculoesquelético',
+}
+
+/** Fields that are shared/accumulated across sections — exclude from raw display */
+const ACCUMULATED_FIELDS = new Set([
+  'edad', 'fecha_nacimiento', 'ocupacion_actual', 'años_ocupacion',
+  'sintoma_principal', 'cuando_empezo', 'intensidad_sintoma',
+  'toma_medicamentos', 'tiene_alergias', 'enfermedades_cronicas',
+  'fuma', 'alcohol', 'ejercicio', 'dieta', 'horas_sueno',
+  'madre_viva', 'padre_vivo',
+])
+
+/** Human-readable labels for raw field keys */
+const FIELD_LABELS: Record<string, string> = {
+  dolor_pecho: 'Dolor de pecho',
+  falta_aire: 'Falta de aire',
+  palpitaciones: 'Palpitaciones',
+  hinchazon_piernas: 'Hinchazón de piernas',
+  tos: 'Tos',
+  silbido_pecho: 'Silbido en el pecho',
+  falta_aire_respiratorio: 'Disnea de esfuerzo',
+  acidez: 'Acidez/reflujo',
+  dolor_abdominal: 'Dolor abdominal',
+  cambio_habito_intestinal: 'Cambio en hábito intestinal',
+  sintomas_digestivos: 'Síntomas digestivos',
+  dolor_orinar: 'Dolor al orinar',
+  frecuencia_urinaria: 'Frecuencia urinaria',
+  lista_medicamentos: 'Medicamentos actuales',
+  exposicion_riesgos: 'Exposición a riesgos',
+  confirma_informacion: 'Información confirmada',
 }
 
 export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
@@ -432,19 +464,23 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
   doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y)
   y += 8
 
-  // --- Coverage summary ---
+  // --- Coverage summary (AutaMedica IA branding) ---
   if (extraction?.argenteCoverage) {
     checkPageBreak(30)
     doc.setTextColor(16, 95, 67)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    doc.text('COBERTURA SEMIOLÓGICA (Argente-Álvarez)', MARGIN_LEFT, y)
+    doc.text('ANÁLISIS CLÍNICO — AutaMedica IA', MARGIN_LEFT, y)
     y += LINE_HEIGHT + 2
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
 
     const adequate = extraction.argenteCoverage.adequatelyCovered ?? []
     const weak = extraction.argenteCoverage.weakOrMissing ?? []
+
+    doc.setTextColor(80, 80, 80)
+    doc.text(`Áreas cubiertas: ${adequate.length} de ${adequate.length + weak.length}`, MARGIN_LEFT + 2, y)
+    y += LINE_HEIGHT + 2
 
     for (const area of adequate) {
       checkPageBreak(LINE_HEIGHT)
@@ -457,6 +493,28 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
       doc.setTextColor(200, 120, 0)
       doc.text(`⚠ ${SECTION_NAMES[area] ?? area} — información insuficiente`, MARGIN_LEFT + 4, y)
       y += LINE_HEIGHT
+    }
+
+    // Show gaps as actionable items for the patient
+    if (weak.length > 0) {
+      y += 4
+      checkPageBreak(20)
+      doc.setFillColor(255, 248, 230)
+      const gapBoxHeight = 8 + weak.length * LINE_HEIGHT
+      doc.rect(MARGIN_LEFT, y - 4, CONTENT_WIDTH, gapBoxHeight, 'F')
+      doc.setTextColor(160, 100, 0)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Para completar tu historia clínica, tu médico necesita:', MARGIN_LEFT + 4, y + 1)
+      y += LINE_HEIGHT + 2
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      for (const area of weak) {
+        checkPageBreak(LINE_HEIGHT)
+        const gapLabel = SECTION_NAMES[area] ?? area
+        doc.text(`→ Más detalles sobre: ${gapLabel}`, MARGIN_LEFT + 6, y)
+        y += LINE_HEIGHT
+      }
+      doc.setFontSize(9)
     }
     y += 6
   }
@@ -522,39 +580,67 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
     y += 4
   }
 
-  // --- Raw sections (what patient actually entered) ---
-  checkPageBreak(15)
-  doc.setTextColor(16, 95, 67)
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text('DATOS INGRESADOS POR EL PACIENTE', MARGIN_LEFT, y)
-  y += LINE_HEIGHT + 4
+  // --- Raw sections (deduplicated, human labels, only unique fields per section) ---
+  // Only show if extraction is missing (fallback) or as compact supplement
+  const seenFields = new Set<string>()
+  const sectionsWithUniqueData = sections.map(section => {
+    const uniqueEntries = Object.entries(section.data)
+      .filter(([key, v]) => {
+        if (v === null || v === '' || v === undefined) return false
+        if (ACCUMULATED_FIELDS.has(key)) return false
+        if (v === true || v === false) {
+          // Only show boolean fields that are clinically relevant (true = symptom present)
+          if (v === false) return false
+        }
+        const fieldKey = `${key}:${JSON.stringify(v)}`
+        if (seenFields.has(fieldKey)) return false
+        seenFields.add(fieldKey)
+        return true
+      })
+    return { ...section, uniqueEntries }
+  }).filter(s => s.uniqueEntries.length > 0)
 
-  for (const section of sections) {
-    const label = SECTION_NAMES[section.section] ?? section.section
-    const entries = Object.entries(section.data).filter(([, v]) => v !== null && v !== '' && v !== undefined)
-    if (entries.length === 0) continue
-
+  if (sectionsWithUniqueData.length > 0) {
     checkPageBreak(15)
-    doc.setTextColor(80, 80, 80)
-    doc.setFontSize(9)
+    doc.setTextColor(16, 95, 67)
+    doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    doc.text(`${label} ${section.completed ? '✓' : '○'}`, MARGIN_LEFT + 2, y)
-    y += LINE_HEIGHT
+    doc.text('RESPUESTAS DEL PACIENTE', MARGIN_LEFT, y)
+    y += LINE_HEIGHT + 4
 
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(60, 60, 60)
-    for (const [key, value] of entries) {
-      const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value)
-      const text = `${key}: ${displayValue}`
-      const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH - 8)
-      for (const w of wrapped) {
-        checkPageBreak(LINE_HEIGHT)
-        doc.text(w, MARGIN_LEFT + 6, y)
-        y += LINE_HEIGHT
+    for (const section of sectionsWithUniqueData) {
+      const label = SECTION_NAMES[section.section] ?? section.section
+      checkPageBreak(15)
+      doc.setTextColor(80, 80, 80)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.text(label, MARGIN_LEFT + 2, y)
+      y += LINE_HEIGHT
+
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(60, 60, 60)
+      for (const [key, value] of section.uniqueEntries) {
+        const fieldLabel = FIELD_LABELS[key] ?? key.replace(/_/g, ' ')
+        let displayValue: string
+        if (Array.isArray(value)) {
+          const items = value.filter(v => v !== 'ninguno' && v !== 'ninguna')
+          if (items.length === 0) continue
+          displayValue = items.join(', ')
+        } else if (typeof value === 'boolean') {
+          displayValue = value ? 'Sí' : 'No'
+        } else {
+          displayValue = String(value)
+        }
+        const text = `${fieldLabel}: ${displayValue}`
+        const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH - 8)
+        for (const w of wrapped) {
+          checkPageBreak(LINE_HEIGHT)
+          doc.text(w, MARGIN_LEFT + 6, y)
+          y += LINE_HEIGHT
+        }
       }
+      y += 3
     }
-    y += 3
   }
 
   // --- Footer ---
@@ -568,7 +654,7 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
     doc.setFont('helvetica', 'normal')
     doc.text('Documento confidencial — Ley 26.529 de Derechos del Paciente', MARGIN_LEFT, 285)
     doc.text(`Página ${i} de ${pageCount}`, PAGE_WIDTH - MARGIN_RIGHT, 285, { align: 'right' })
-    doc.text('Historia clínica generada con asistencia de IA — Sujeta a validación médica', MARGIN_LEFT, 289)
+    doc.text('Analizado por AutaMedica IA — Sujeta a validación médica profesional', MARGIN_LEFT, 289)
   }
 
   const buffer = doc.output('arraybuffer')
