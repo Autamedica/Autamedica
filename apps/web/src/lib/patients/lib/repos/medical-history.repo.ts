@@ -35,6 +35,39 @@ export const medicalHistoryRepo = {
     return (data ?? []) as MedicalRecord[]
   },
 
+  async findById(supabase: Db, patientId: string, recordId: string): Promise<MedicalRecord | null> {
+    const { data, error } = await supabase
+      .from('medical_records')
+      .select('*')
+      .eq('id', recordId)
+      .eq('patient_id', patientId)
+      .maybeSingle()
+
+    if (error) {
+      logger.error('[medicalHistoryRepo] findById failed', { recordId, error })
+      throw error
+    }
+
+    return (data as MedicalRecord) ?? null
+  },
+
+  async listConsultations(supabase: Db, patientId: string, limit = 50): Promise<MedicalRecord[]> {
+    const { data, error } = await supabase
+      .from('medical_records')
+      .select('*')
+      .eq('patient_id', patientId)
+      .eq('type', 'consultation')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      logger.error('[medicalHistoryRepo] listConsultations failed', error)
+      throw error
+    }
+
+    return (data ?? []) as MedicalRecord[]
+  },
+
   async listAll(supabase: Db, patientId: string, limit = 50): Promise<MedicalRecord[]> {
     const { data, error } = await supabase
       .from('medical_records')

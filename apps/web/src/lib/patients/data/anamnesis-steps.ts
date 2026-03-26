@@ -1,6 +1,6 @@
 /**
  * Configuración de pasos de Anamnesis Interactiva
- * Con storytelling médico educativo
+ * Con storytelling analítico (Estilo Editorial NYT)
  */
 
 import type { AnamnesisStep } from '../types/anamnesis';
@@ -14,10 +14,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'filiacion',
     completed: false,
     story: {
-      intro: 'Imagina que un paciente llega diciendo "me duele el pecho". La primera pregunta del médico es: ¿cuántos años tiene?',
-      why: 'La edad cambia completamente lo que el médico piensa. Un dolor de pecho en un niño de 8 años probablemente sea una contractura muscular por jugar. El mismo dolor en un adulto de 65 años con presión alta puede ser un infarto. ¡La edad es el primer detective!',
-      example: '👦 Carlos, 10 años, dolor de pecho después de jugar fútbol → Médico piensa: contractura muscular.\n\n👨 Roberto, 60 años, dolor de pecho irradiado al brazo → Médico piensa: ¿infarto? ¡Urgente!',
-      didYouKnow: '💡 ¿Sabías que hay enfermedades que solo aparecen en ciertas edades? Por ejemplo, la apendicitis es rara antes de los 2 años, y la diabetes tipo 2 era rara en niños hasta hace 20 años (ahora no tanto por obesidad infantil).',
+      intro: 'La edad es el principal factor de contexto. Antes de evaluar un síntoma, tu edad establece la probabilidad estadística de cualquier diagnóstico.',
+      why: 'Las enfermedades tienen ventanas de incidencia claras. Un mismo síntoma sugiere causas benignas en la juventud, pero exige descartar riesgos severos en la madurez.',
+      example: 'Un dolor de pecho a los 20 años suele ser muscular; a los 60, los protocolos exigen descartar primero un evento cardiovascular.',
+      didYouKnow: 'Tu riesgo base cambia cada década. Los protocolos médicos ajustan el uso de pruebas y medicamentos estrictamente según tu edad biológica.',
     },
     fields: [
       {
@@ -27,14 +27,14 @@ export const anamnesisSteps: AnamnesisStep[] = [
         placeholder: 'Ejemplo: 45',
         required: true,
         validation: { min: 0, max: 120 },
-        educationalNote: 'Tu edad ayuda al médico a pensar en las causas más probables de tus síntomas. Cada etapa de la vida tiene sus propias condiciones típicas.',
+        educationalNote: 'Tu edad define tu perfil de riesgo clínico base y ajusta los parámetros de diagnóstico médico.',
       },
       {
         id: 'fecha_nacimiento',
         type: 'date',
         label: 'Fecha de nacimiento',
         required: true,
-        tooltip: 'Importante para calcular dosis de medicamentos y vacunas pendientes',
+        tooltip: 'Requerida estadísticamente para calibrar farmacocinética y protocolos de vacunación.',
       },
     ],
   },
@@ -47,6 +47,12 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'filiacion',
     completed: false,
     mediaUrl: '/videos/patient_seguimiento.mp4',
+    story: {
+      intro: 'Tu entorno laboral moldea tu salud. Conocer tu ocupación revela exposiciones crónicas que a menudo pasan desapercibidas en una consulta breve.',
+      why: 'El cuerpo acumula el impacto del estrés físico, acústico o químico. Identificar estos factores permite al médico vincular tus síntomas con tu rutina diaria.',
+      example: 'La pérdida de audición temprana o los problemas lumbares crónicos suelen tener una correlación directa con años de trabajo en construcción o industria.',
+      didYouKnow: 'El trabajo sedentario prolongado se considera un riesgo cardiovascular independiente, con un impacto a largo plazo comparable al tabaquismo leve.',
+    },
     fields: [
       {
         id: 'ocupacion_actual',
@@ -54,7 +60,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿A qué te dedicas actualmente?',
         placeholder: 'Ejemplo: Maestra de primaria',
         required: true,
-        educationalNote: 'Conocer tu ocupación ayuda a identificar factores de riesgo específicos de tu trabajo.',
+        educationalNote: 'Ciertas profesiones presentan factores de exposición patológica crónica (física o química).',
       },
       {
         id: 'años_ocupacion',
@@ -62,7 +68,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Cuántos años llevas en este trabajo?',
         placeholder: 'Ejemplo: 10',
         required: false,
-        tooltip: 'El tiempo de exposición a factores laborales es importante',
+        tooltip: 'Mide la cronicidad de tu exposición a factores de estrés ambiental.',
       },
       {
         id: 'exposicion_riesgos',
@@ -70,12 +76,12 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Estás expuesto a alguno de estos en tu trabajo?',
         required: false,
         options: [
-          { value: 'quimicos', label: 'Químicos o vapores', explanation: 'Pinturas, solventes, gases' },
-          { value: 'ruido', label: 'Ruido intenso', explanation: 'Fábricas, construcción, música alta' },
-          { value: 'polvo', label: 'Polvo o partículas', explanation: 'Construcción, minería, carpintería' },
-          { value: 'pantallas', label: 'Pantallas por muchas horas', explanation: 'Oficinas, programación' },
-          { value: 'cargas', label: 'Cargar peso frecuentemente', explanation: 'Mudanzas, enfermería, construcción' },
-          { value: 'estres', label: 'Estrés laboral alto', explanation: 'Atención al cliente, emergencias' },
+          { value: 'quimicos', label: 'Químicos o vapores', explanation: 'Asociado a toxicidad hepática o pulmonar.' },
+          { value: 'ruido', label: 'Ruido intenso', explanation: 'Asociado a pérdida auditiva neurosensorial.' },
+          { value: 'polvo', label: 'Polvo o partículas', explanation: 'Asociado a neumoconiosis o asma ocupacional.' },
+          { value: 'pantallas', label: 'Pantallas por muchas horas', explanation: 'Asociado a fatiga visual y sedentarismo.' },
+          { value: 'cargas', label: 'Cargar peso frecuentemente', explanation: 'Asociado a discopatía y dolor articular crónico.' },
+          { value: 'estres', label: 'Estrés laboral alto', explanation: 'Asociado a riesgo cardiovascular y metabólico.' },
         ],
       },
     ],
@@ -89,6 +95,12 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'motivo_consulta',
     completed: false,
     mediaUrl: '/videos/patient_consulta_virtual.mp4',
+    story: {
+      intro: 'La descripción exacta de tu malestar es el punto de partida clínico. Tu relato define la dirección de la investigación diagnóstica.',
+      why: 'Los detalles sobre cuándo y cómo empezó el dolor revelan la evolución de la enfermedad, diferenciando un cuadro agudo de una condición crónica.',
+      example: 'Mencionar que tu dolor de cabeza "palpita" o "empeora con la luz" ayuda al médico a distinguir una migraña de una cefalea tensional común.',
+      didYouKnow: 'En la medicina basada en evidencia, más del 70% de los diagnósticos precisos se logran únicamente escuchando la cronología de tus síntomas.',
+    },
     fields: [
       {
         id: 'sintoma_principal',
@@ -96,7 +108,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: 'Describe con tus palabras qué te está molestando',
         placeholder: 'Ejemplo: Me duele la cabeza del lado derecho, como si me palpitara, y me da cuando estoy estresada...',
         required: true,
-        educationalNote: 'Mientras más detalles, mejor. No tengas miedo de usar tus propias palabras.',
+        educationalNote: 'La cronología y naturaleza exacta de tu dolor es la pieza central para descartar etiologías graves.',
       },
       {
         id: 'cuando_empezo',
@@ -104,11 +116,11 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Cuándo comenzó este síntoma?',
         required: true,
         options: [
-          { value: 'hoy', label: 'Hoy', explanation: 'Síntoma agudo, inicio reciente' },
-          { value: '2-7dias', label: 'Hace 2-7 días', explanation: 'Síntoma subagudo' },
-          { value: '1-4semanas', label: 'Hace 1-4 semanas', explanation: 'Síntoma reciente pero persistente' },
-          { value: '1-6meses', label: 'Hace 1-6 meses', explanation: 'Síntoma crónico' },
-          { value: 'mas6meses', label: 'Más de 6 meses', explanation: 'Síntoma crónico establecido' },
+          { value: 'hoy', label: 'Hoy', explanation: 'Manifestación aguda, sugiere intervención inmediata.' },
+          { value: '2-7dias', label: 'Hace 2-7 días', explanation: 'Manifestación subaguda, evaluación temprana requerida.' },
+          { value: '1-4semanas', label: 'Hace 1-4 semanas', explanation: 'Síntoma de desarrollo reciente o infeccioso.' },
+          { value: '1-6meses', label: 'Hace 1-6 meses', explanation: 'Patología en fase de cronificación.' },
+          { value: 'mas6meses', label: 'Más de 6 meses', explanation: 'Condición estructural o sistémica crónica.' },
         ],
       },
       {
@@ -117,7 +129,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: 'Intensidad del síntoma (1 = leve, 10 = insoportable)',
         required: true,
         validation: { min: 1, max: 10 },
-        tooltip: '1-3: Leve (no interrumpe actividades)\n4-6: Moderado (molesta pero puedes funcionar)\n7-9: Severo (dificulta mucho tu día)\n10: Peor dolor imaginable',
+        tooltip: '1-3: Tolerable. 4-6: Interfiere con rutina. 7-9: Discapacitante. 10: Umbral máximo de dolor.',
       },
     ],
   },
@@ -130,6 +142,12 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'antecedentes_personales',
     completed: false,
     mediaUrl: '/videos/patient_historia_clinica.mp4',
+    story: {
+      intro: 'Tu historial médico es el mapa de tu salud. Condiciones crónicas o previas condicionan cómo tu cuerpo responde a nuevas patologías.',
+      why: 'Enfermedades como la diabetes o la hipertensión alteran silenciosamente tus sistemas sistémicos, obligando al médico a adaptar sus decisiones terapéuticas.',
+      example: 'Un cuadro infeccioso requiere un manejo mucho más agresivo si tienes antecedentes de inmunosupresión o enfermedades metabólicas activas.',
+      didYouKnow: 'Condiciones que consideras "controladas" o "antiguas" siguen afectando tu farmacocinética y el riesgo biológico de futuras complicaciones.',
+    },
     fields: [
       {
         id: 'enfermedades_cronicas',
@@ -137,15 +155,15 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Tienes o has tenido alguna de estas enfermedades?',
         required: true,
         options: [
-          { value: 'diabetes', label: 'Diabetes', explanation: 'Afecta cicatrización, riesgo de infecciones' },
-          { value: 'hipertension', label: 'Presión alta (Hipertensión)', explanation: 'Riesgo cardiovascular' },
-          { value: 'asma', label: 'Asma', explanation: 'Importante para anestesia y medicamentos' },
-          { value: 'epilepsia', label: 'Epilepsia', explanation: 'Importante para manejo de crisis' },
-          { value: 'cancer', label: 'Cáncer', explanation: 'Seguimiento y riesgo de recurrencia' },
-          { value: 'hepatitis', label: 'Hepatitis B o C', explanation: 'Riesgo de cirrosis' },
-          { value: 'vih', label: 'VIH', explanation: 'Inmunosupresión, infecciones oportunistas' },
-          { value: 'tiroides', label: 'Problemas de tiroides', explanation: 'Afecta metabolismo' },
-          { value: 'ninguna', label: 'Ninguna de las anteriores', explanation: '' },
+          { value: 'diabetes', label: 'Diabetes', explanation: 'Compromete tu sistema vascular y respuesta inmune.' },
+          { value: 'hipertension', label: 'Presión alta (Hipertensión)', explanation: 'Eleva críticamente tu riesgo de accidente cerebrovascular.' },
+          { value: 'asma', label: 'Asma', explanation: 'Modifica protocolos de oxigenación y anestesia.' },
+          { value: 'epilepsia', label: 'Epilepsia', explanation: 'Exige evitar fármacos que reduzcan el umbral convulsivo.' },
+          { value: 'cancer', label: 'Cáncer', explanation: 'Requiere evaluación de inmunosupresión o recurrencia.' },
+          { value: 'hepatitis', label: 'Hepatitis B o C', explanation: 'Afecta el metabolismo hepático de futuros fármacos.' },
+          { value: 'vih', label: 'VIH', explanation: 'Altera el manejo de patógenos oportunistas.' },
+          { value: 'tiroides', label: 'Problemas de tiroides', explanation: 'Impacta tu metabolismo basal y función cardíaca.' },
+          { value: 'ninguna', label: 'Ninguna de las anteriores', explanation: 'Sin antecedentes clínicos relevantes reportados.' },
         ],
       },
     ],
@@ -159,10 +177,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'antecedentes_personales',
     completed: false,
     story: {
-      intro: 'Una señora llega al hospital con sangrado. Toma warfarina (anticoagulante) pero olvidó decirlo. El médico le da aspirina (también anticoagulante). Resultado: hemorragia grave. ¡Conocer tus medicamentos es VITAL!',
-      why: 'Los medicamentos interactúan entre sí. Algunos se potencian (efecto multiplicado), otros se anulan, y otros se vuelven tóxicos juntos.',
-      example: '⚠️ INTERACCIONES PELIGROSAS:\n- Warfarina + Aspirina = Sangrado grave\n- Antidepresivos + Tramadol = Síndrome serotoninérgico (mortal)\n- Antibióticos + Anticonceptivos = Embarazo no deseado (el antibiótico anula la píldora)\n- Omeprazol + Anticoagulantes = Menos efecto anticoagulante',
-      didYouKnow: '💡 DATO IMPORTANTE:\n- El jugo de pomelo (toronja) interactúa con más de 85 medicamentos\n- La hierba de San Juan anula anticonceptivos y antidepresivos\n- Muchos medicamentos "naturales" interactúan con fármacos\n- SIEMPRE debes decir TODO lo que tomas, incluido vitaminas y hierbas',
+      intro: 'Un registro farmacológico inexacto es una de las principales causas de emergencias médicas prevenibles. Para tu médico, cada píldora cuenta.',
+      why: 'Los principios activos interactúan constantemente. Pueden anularse, potenciar sus efectos o generar toxicidad sistémica si se combinan por error.',
+      example: 'Combinar un anticoagulante recetado con analgésicos comunes de venta libre puede alterar peligrosamente tu capacidad de coagulación sanguínea.',
+      didYouKnow: 'Los suplementos "naturales" no son inocuos. Algunos extractos botánicos inhiben enzimas hepáticas, alterando cómo procesas otros medicamentos.',
     },
     fields: [
       {
@@ -178,7 +196,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         placeholder: 'Ejemplo:\n- Enalapril 10mg, 1 por día, para presión\n- Metformina 850mg, 2 por día, para diabetes\n- Omeprazol 20mg, 1 por día, para gastritis',
         required: false,
         dependsOn: { fieldId: 'toma_medicamentos', value: true },
-        educationalNote: 'Incluye: medicamentos de farmacia, vitaminas, suplementos, hierbas naturales, cremas. TODO cuenta.',
+        educationalNote: 'Incluye obligatoriamente suplementos y remedios botánicos; pueden alterar severamente tus funciones hepáticas.',
       },
     ],
   },
@@ -191,10 +209,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'antecedentes_personales',
     completed: false,
     story: {
-      intro: 'Un paciente dice "soy alérgico a la penicilina". El médico pregunta: ¿qué te pasó? "Me dio diarrea". Eso NO es alergia, es efecto secundario. La diferencia puede salvar una vida porque la penicilina podría ser el mejor antibiótico para su infección actual.',
-      why: 'Hay ENORME diferencia entre alergia real (reacción del sistema inmune) y efecto secundario (molestia tolerab le). Una alergia verdadera significa que el medicamento puede matarte. Un efecto secundario significa que te molesta pero no es peligroso.',
-      example: '⚠️ ALERGIA REAL vs EFECTO SECUNDARIO:\n\n✅ ALERGIA (PELIGROSO):\n- Ronchas por todo el cuerpo\n- Hinchazón de labios/lengua/garganta\n- Dificultad para respirar\n- Desmayo o presión muy baja\n\n⚡ EFECTO SECUNDARIO (MOLESTO pero NO peligroso):\n- Náusea o diarrea\n- Dolor de cabeza\n- Somnolencia\n- Mareo leve',
-      didYouKnow: '💡 DATOS IMPORTANTES:\n- Solo 10% de personas que dicen "soy alérgico a penicilina" tienen alergia real\n- Reportar alergia falsa puede forzar al médico a usar antibióticos menos efectivos\n- Las alergias VERDADERAS pueden empeorar con cada exposición (anafilaxia)\n- Alergia a mariscos/yodo NO significa alergia a medio de contraste radiológico',
+      intro: 'Diferenciar una hipersensibilidad real de un efecto adverso protege tu vida y evita limitar tus opciones de tratamiento en urgencias.',
+      why: 'Una alergia verdadera detona una respuesta inmunológica sistémica grave. Un efecto secundario es una reacción adversa predecible, pero manejable.',
+      example: 'La inflamación súbita del rostro es una alergia severa. Una molestia gástrica tras tomar antibióticos es solo un efecto adverso esperado.',
+      didYouKnow: 'Solo el 10% de quienes reportan alergia a la penicilina la padecen realmente. Esto obliga a los médicos a usar alternativas menos eficaces.',
     },
     fields: [
       {
@@ -210,7 +228,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         placeholder: 'Ejemplo:\n- Penicilina: ronchas en todo el cuerpo y hinchazón de labios (alergia real)\n- Ibuprofeno: me da dolor de estómago (efecto secundario)\n- Mariscos: vómitos y ronchas (alergia real)',
         required: false,
         dependsOn: { fieldId: 'tiene_alergias', value: true },
-        educationalNote: 'Describe los síntomas EXACTOS. Esto ayuda al médico a distinguir alergia real de efecto secundario.',
+        educationalNote: 'Diferencia estrictamente si sufriste dificultad respiratoria (alergia real) o solo malestar digestivo (efecto adverso).',
       },
     ],
   },
@@ -222,6 +240,12 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Las enfermedades de tu familia son pistas de tu futuro',
     category: 'antecedentes_familiares',
     completed: false,
+    story: {
+      intro: 'Tu genética establece predisposiciones estructurales y metabólicas. Tu historial familiar revela riesgos clínicos antes de que se manifiesten.',
+      why: 'Ciertas patologías oncológicas y cardiovasculares tienen un fuerte componente hereditario, lo que justifica adelantar los estudios de tamizaje.',
+      example: 'Un historial paterno de infarto antes de los 55 años duplica tu propio riesgo, exigiendo controles de colesterol mucho más estrictos.',
+      didYouKnow: 'Heredar el riesgo no garantiza la enfermedad, pero indica a tu médico de forma estadística qué sistemas orgánicos deben monitorearse.',
+    },
     fields: [
       {
         id: 'padre_vivo',
@@ -244,12 +268,12 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: 'Enfermedades de tu padre (vivo o fallecido)',
         required: false,
         options: [
-          { value: 'diabetes', label: 'Diabetes', explanation: 'Aumenta tu riesgo 40%' },
-          { value: 'hipertension', label: 'Presión alta', explanation: 'Riesgo hereditario 2x' },
-          { value: 'infarto', label: 'Infarto cardíaco', explanation: 'Especialmente si fue antes de 55 años' },
-          { value: 'cancer', label: 'Cáncer (especificar tipo abajo)', explanation: 'Algunos cánceres son hereditarios' },
-          { value: 'colesterol_alto', label: 'Colesterol alto familiar', explanation: 'Forma genética = riesgo de infarto joven' },
-          { value: 'ninguna', label: 'Ninguna enfermedad conocida', explanation: '' },
+          { value: 'diabetes', label: 'Diabetes', explanation: 'Eleva sustancialmente tu predisposición a resistencia a la insulina.' },
+          { value: 'hipertension', label: 'Presión alta', explanation: 'Requiere monitoreo cardiovascular preventivo.' },
+          { value: 'infarto', label: 'Infarto cardíaco', explanation: 'Alerta clínica, especialmente si ocurrió antes de los 55 años.' },
+          { value: 'cancer', label: 'Cáncer (especificar tipo abajo)', explanation: 'Puede requerir tamizaje genético temprano.' },
+          { value: 'colesterol_alto', label: 'Colesterol alto familiar', explanation: 'Indica riesgo prematuro de aterosclerosis.' },
+          { value: 'ninguna', label: 'Ninguna enfermedad conocida', explanation: 'Sin predisposición patológica paterna conocida.' },
         ],
       },
       {
@@ -281,13 +305,13 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: 'Enfermedades de tu madre (viva o fallecida)',
         required: false,
         options: [
-          { value: 'diabetes', label: 'Diabetes', explanation: 'Aumenta tu riesgo 40%' },
-          { value: 'hipertension', label: 'Presión alta', explanation: 'Riesgo hereditario 2x' },
-          { value: 'cancer_mama', label: 'Cáncer de mama', explanation: 'Riesgo hereditario importante, considerar BRCA' },
-          { value: 'cancer_ovario', label: 'Cáncer de ovario', explanation: 'Puede indicar síndrome BRCA' },
-          { value: 'osteoporosis', label: 'Osteoporosis', explanation: 'Riesgo hereditario en mujeres' },
-          { value: 'tiroides', label: 'Problemas de tiroides', explanation: 'Componente hereditario frecuente' },
-          { value: 'ninguna', label: 'Ninguna enfermedad conocida', explanation: '' },
+          { value: 'diabetes', label: 'Diabetes', explanation: 'Eleva sustancialmente tu predisposición metabólica.' },
+          { value: 'hipertension', label: 'Presión alta', explanation: 'Requiere monitoreo cardiovascular preventivo.' },
+          { value: 'cancer_mama', label: 'Cáncer de mama', explanation: 'Exige protocolo de detección oncológica precoz (gen BRCA).' },
+          { value: 'cancer_ovario', label: 'Cáncer de ovario', explanation: 'Marcador crítico de síndromes hereditarios.' },
+          { value: 'osteoporosis', label: 'Osteoporosis', explanation: 'Aumenta el riesgo de deterioro de densidad ósea.' },
+          { value: 'tiroides', label: 'Problemas de tiroides', explanation: 'Sugiere susceptibilidad a disfunciones endocrinas.' },
+          { value: 'ninguna', label: 'Ninguna enfermedad conocida', explanation: 'Sin predisposición patológica materna conocida.' },
         ],
       },
       {
@@ -304,12 +328,12 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Tus hermanos tienen alguna de estas condiciones?',
         required: false,
         options: [
-          { value: 'diabetes', label: 'Diabetes tipo 1 o 2', explanation: 'Riesgo compartido familiar' },
-          { value: 'cancer_joven', label: 'Cáncer antes de 50 años', explanation: 'Señal de síndrome hereditario' },
-          { value: 'enfermedad_mental', label: 'Depresión o trastorno bipolar', explanation: 'Componente hereditario significativo' },
-          { value: 'autoinmune', label: 'Enfermedad autoinmune', explanation: 'Lupus, artritis reumatoide, etc.' },
-          { value: 'no_hermanos', label: 'No tengo hermanos', explanation: '' },
-          { value: 'ninguna', label: 'Ninguna enfermedad conocida', explanation: '' },
+          { value: 'diabetes', label: 'Diabetes tipo 1 o 2', explanation: 'Señala una alta penetrancia genética familiar.' },
+          { value: 'cancer_joven', label: 'Cáncer antes de 50 años', explanation: 'Marcador primario de mutaciones oncológicas hereditarias.' },
+          { value: 'enfermedad_mental', label: 'Depresión o trastorno bipolar', explanation: 'Indica vulnerabilidad neuroquímica compartida.' },
+          { value: 'autoinmune', label: 'Enfermedad autoinmune', explanation: 'Sugiere desregulación inmunológica familiar.' },
+          { value: 'no_hermanos', label: 'No tengo hermanos', explanation: 'Historial no aplicable.' },
+          { value: 'ninguna', label: 'Ninguna enfermedad conocida', explanation: 'Sin predisposición compartida conocida.' },
         ],
       },
     ],
@@ -323,10 +347,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'antecedentes_personales',
     completed: false,
     story: {
-      intro: 'Dos gemelos idénticos, mismo ADN. Uno fuma 20 cigarrillos al día, sedentario, come comida rápida. El otro no fuma, corre 3 veces por semana, dieta mediterránea. A los 60 años: el primero tiene enfisema, diabetes y tuvo un infarto. El segundo está sano. La genética carga el arma, pero el estilo de vida aprieta el gatillo.',
-      why: 'Los hábitos son el factor MÁS IMPORTANTE para prevenir enfermedades. Fumar causa 30% de todos los cánceres. El sedentarismo aumenta riesgo de infarto 2x. La dieta puede prevenir o causar diabetes tipo 2.',
-      example: '📊 IMPACTO DE HÁBITOS EN TU SALUD:\n\n🚬 TABAQUISMO:\n- 1 paquete/día por 20 años = riesgo de cáncer pulmón 20x\n- Fumar + anticonceptivos = riesgo de trombosis 35x\n- Dejar de fumar antes de 40 años = casi elimina el exceso de riesgo\n\n🍺 ALCOHOL:\n- 2+ bebidas/día = riesgo de cirrosis 6x\n- Alcohol + hepatitis C = cirrosis en 10 años (vs 30 años sin alcohol)\n- "Binge drinking" (5+ bebidas) 1 vez/semana = daño cardíaco\n\n🏃 EJERCICIO:\n- 150 min/semana = reduce mortalidad 30%\n- Sedentarismo = equivalente a fumar para riesgo cardiovascular\n- Ejercicio reduce riesgo de Alzheimer 45%',
-      didYouKnow: '💡 DATOS QUE TE SORPRENDERÁN:\n- Dormir <6 horas aumenta riesgo de diabetes 28%\n- Sentarse >8 horas/día = riesgo de muerte prematura +15% (incluso si haces ejercicio)\n- Comer ultra-procesados 4+ veces/semana = riesgo de muerte 62% mayor\n- Red social fuerte reduce mortalidad 50% (equivalente a dejar de fumar)\n- Tener propósito de vida reduce riesgo de Alzheimer 50%',
+      intro: 'Tus rutinas diarias moldean tu pronóstico de salud con mayor fuerza que tu genética. Las decisiones crónicas dejan marcas biológicas.',
+      why: 'El tabaquismo, la dieta y el nivel de actividad física influyen directamente en la inflamación sistémica y el daño endotelial a largo plazo.',
+      example: 'El consumo crónico de ultraprocesados altera tu microbiota y sensibilidad a la insulina, pavimentando el camino al síndrome metabólico.',
+      didYouKnow: 'En cardiología preventiva, el sedentarismo absoluto genera un daño cardiovascular estadísticamente comparable al consumo leve de tabaco.',
     },
     fields: [
       {
@@ -335,9 +359,9 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Fumas o has fumado?',
         required: true,
         options: [
-          { value: 'nunca', label: 'Nunca he fumado', explanation: '¡Excelente! Mantente así' },
-          { value: 'exfumador', label: 'Fumé antes, ya dejé', explanation: 'El riesgo disminuye con los años' },
-          { value: 'actual', label: 'Sí, fumo actualmente', explanation: 'Importante para calcular riesgo' },
+          { value: 'nunca', label: 'Nunca he fumado', explanation: 'Riesgo respiratorio y endotelial basal mínimo.' },
+          { value: 'exfumador', label: 'Fumé antes, ya dejé', explanation: 'Reversión progresiva de daño celular acumulado.' },
+          { value: 'actual', label: 'Sí, fumo actual mente', explanation: 'Factor causal primario de mutagénesis e isquemia.' },
         ],
       },
       {
@@ -348,7 +372,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         required: false,
         dependsOn: { fieldId: 'fuma', value: 'actual' },
         validation: { min: 0, max: 100 },
-        educationalNote: 'Cada cigarrillo reduce tu vida 11 minutos. Un paquete al día = 7 años menos de vida.',
+        educationalNote: 'El daño endotelial es proporcional a la carga tóxica. El cálculo de "paquetes-año" define tu riesgo oncológico.',
       },
       {
         id: 'años_fumando',
@@ -358,7 +382,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         required: false,
         dependsOn: { fieldId: 'fuma', value: 'actual' },
         validation: { min: 0, max: 80 },
-        tooltip: 'Esto ayuda a calcular "paquetes-año" (paquetes/día × años)',
+        tooltip: 'Variable crítica para determinar tu índice de riesgo respiratorio crónico.',
       },
       {
         id: 'alcohol',
@@ -366,11 +390,11 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Consumes bebidas alcohólicas?',
         required: true,
         options: [
-          { value: 'nunca', label: 'No bebo alcohol', explanation: '' },
-          { value: 'ocasional', label: 'Ocasional (1-2 veces al mes)', explanation: 'Consumo bajo riesgo' },
-          { value: 'moderado', label: 'Moderado (1-2 veces por semana)', explanation: 'Dentro de límites recomendados' },
-          { value: 'frecuente', label: 'Frecuente (3-6 veces por semana)', explanation: 'Riesgo aumentado' },
-          { value: 'diario', label: 'Diario', explanation: 'Riesgo alto de daño hepático' },
+          { value: 'nunca', label: 'No bebo alcohol', explanation: 'Hígado exento de estrés metabólico por etanol.' },
+          { value: 'ocasional', label: 'Ocasional (1-2 veces al mes)', explanation: 'Impacto hepático estadísticamente marginal.' },
+          { value: 'moderado', label: 'Moderado (1-2 veces por semana)', explanation: 'Carga metabólica dentro de umbrales tolerables.' },
+          { value: 'frecuente', label: 'Frecuente (3-6 veces por semana)', explanation: 'Inflamación subclínica y riesgo orgánico sostenido.' },
+          { value: 'diario', label: 'Diario', explanation: 'Toxicidad celular crónica y riesgo alto de cirrosis.' },
         ],
       },
       {
@@ -379,10 +403,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Haces ejercicio regularmente?',
         required: true,
         options: [
-          { value: 'sedentario', label: 'No, soy sedentario', explanation: 'Riesgo equivalente a fumar' },
-          { value: 'ligero', label: 'Ligero (caminar 30 min, 1-2 veces/semana)', explanation: 'Algo es mejor que nada' },
-          { value: 'moderado', label: 'Moderado (30-60 min, 3-4 veces/semana)', explanation: '¡Muy bien! Cerca de lo óptimo' },
-          { value: 'intenso', label: 'Intenso (>60 min, 5+ veces/semana)', explanation: '¡Excelente! Beneficio máximo' },
+          { value: 'sedentario', label: 'No, soy sedentario', explanation: 'Deterioro vascular equivalente al consumo leve de tabaco.' },
+          { value: 'ligero', label: 'Ligero (caminar 30 min, 1-2 veces/semana)', explanation: 'Mitigación parcial de atrofia sistémica.' },
+          { value: 'moderado', label: 'Moderado (30-60 min, 3-4 veces/semana)', explanation: 'Rendimiento basal óptimo para salud circulatoria.' },
+          { value: 'intenso', label: 'Intenso (>60 min, 5+ veces/semana)', explanation: 'Prevención máxima contra el síndrome metabólico.' },
         ],
       },
       {
@@ -391,7 +415,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Cuántas horas duermes por noche normalmente?',
         required: true,
         validation: { min: 1, max: 12 },
-        tooltip: 'Óptimo: 7-9 horas. <6 horas = riesgo de diabetes, obesidad, Alzheimer',
+        tooltip: 'La privación crónica (<6h) induce resistencia a la insulina y aceleración del deterioro cognitivo.',
       },
       {
         id: 'dieta',
@@ -399,10 +423,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Cómo describirías tu alimentación?',
         required: true,
         options: [
-          { value: 'muy_mala', label: 'Comida rápida y ultra-procesados frecuentemente', explanation: 'Riesgo muy alto' },
-          { value: 'regular', label: 'Mezcla de procesados y comida casera', explanation: 'Hay espacio para mejorar' },
-          { value: 'buena', label: 'Principalmente comida casera, balanceada', explanation: '¡Buen trabajo!' },
-          { value: 'excelente', label: 'Dieta mediterránea, muchas verduras y frutas', explanation: '¡Óptimo para salud!' },
+          { value: 'muy_mala', label: 'Comida rápida y ultra-procesados frecuentemente', explanation: 'Catabolismo alto; vía directa a patologías crónicas.' },
+          { value: 'regular', label: 'Mezcla de procesados y comida casera', explanation: 'Aporte de nutrientes subóptimo pero funcional.' },
+          { value: 'buena', label: 'Principalmente comida casera, balanceada', explanation: 'Regulación metabólica y baja inflamación sistémica.' },
+          { value: 'excelente', label: 'Dieta mediterránea, muchas verduras y frutas', explanation: 'Protección celular demostrada por medicina preventiva.' },
         ],
       },
     ],
@@ -416,10 +440,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'revision_sistemas',
     completed: false,
     story: {
-      intro: 'Un paciente de 50 años consulta por "cansancio". El médico pregunta: ¿te cuesta respirar al subir escaleras? "Sí, pero pensé que era normal por la edad". Examen: soplo cardíaco. Eco: válvula aórtica muy estrecha, necesita cirugía urgente. Si no se operaba en 3 meses, muerte súbita.',
-      why: 'Los síntomas cardiovasculares son sutiles pero mortales. Dolor de pecho, falta de aire, hinchazón de piernas, palpitaciones... pueden ser la primera señal de infarto, insuficiencia cardíaca, arritmia peligrosa.',
-      example: '🚨 SÍNTOMAS CARDIOVASCULARES QUE NO DEBES IGNORAR:\n\n💔 DOLOR DE PECHO:\n- Opresivo "como elefante sentado en pecho" = INFARTO\n- Punzante al respirar = posible pericarditis o embolia pulmonar\n- Ardor que sube = probablemente reflujo (pero confirmar)\n\n🫁 FALTA DE AIRE:\n- Al acostarse (ortopnea) = insuficiencia cardíaca\n- Súbita con dolor de pecho = embolia pulmonar (EMERGENCIA)\n- Progresiva con tos = puede ser corazón o pulmón\n\n🦵 HINCHAZÓN:\n- Ambas piernas = corazón, hígado o riñón\n- Una pierna = trombosis venosa (puede soltar émbolo al pulmón)',
-      didYouKnow: '💡 TU CORAZÓN EN NÚMEROS:\n- Late 100,000 veces al día = 35 millones/año\n- Bombea 5 litros de sangre por minuto = 7,200 litros/día\n- Infarto: cada minuto perdido = 2 millones de células cardíacas muertas\n- Síntomas de infarto en MUJERES son diferentes: náusea, cansancio, dolor de espalda (no dolor de pecho típico)',
+      intro: 'El sistema circulatorio suele emitir advertencias sutiles antes de fallar. Identificarlas a tiempo frena el daño tisular irreversible.',
+      why: 'La fatiga prematura, edemas en las piernas o variaciones del ritmo cardíaco delatan una disfunción en la mecánica de bombeo sistémico.',
+      example: 'Una presión opresiva en el pecho al hacer esfuerzo físico indica isquemia, requiriendo evaluación coronaria inmediata.',
+      didYouKnow: 'El fenotipo isquémico varía por sexo. En mujeres, el infarto frecuentemente se presenta como agotamiento extremo, sin dolor torácico.',
     },
     fields: [
       {
@@ -460,11 +484,11 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Has experimentado alguno de estos síntomas?',
         required: false,
         options: [
-          { value: 'mareos', label: 'Mareos o desmayos', explanation: 'Puede indicar arritmia o presión baja' },
-          { value: 'sudoracion', label: 'Sudoración fría sin razón', explanation: 'Síntoma de infarto' },
-          { value: 'fatiga_extrema', label: 'Cansancio extremo inexplicable', explanation: 'Puede ser insuficiencia cardíaca' },
-          { value: 'tos_nocturna', label: 'Tos al acostarse', explanation: 'Puede indicar líquido en pulmones por corazón' },
-          { value: 'ninguno', label: 'Ninguno de estos', explanation: '' },
+          { value: 'mareos', label: 'Mareos o desmayos', explanation: 'Sugiere deficiencias en perfusión cerebral o arritmias.' },
+          { value: 'sudoracion', label: 'Sudoración fría sin razón', explanation: 'Respuesta del sistema simpático a isquemia miocárdica.' },
+          { value: 'fatiga_extrema', label: 'Cansancio extremo inexplicable', explanation: 'Signo clínico temprano de disfunción de bombeo ventricular.' },
+          { value: 'tos_nocturna', label: 'Tos al acostarse', explanation: 'Indica congestión pulmonar por estancamiento vascular.' },
+          { value: 'ninguno', label: 'Ninguno de estos', explanation: 'Ausencia de sintomatología vascular periférica.' },
         ],
       },
     ],
@@ -478,10 +502,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'revision_sistemas',
     completed: false,
     story: {
-      intro: 'Una mujer joven consulta por "tos que no se quita". Lleva 3 semanas. "¿Tiene fiebre?" "No". "¿Fuma?" "No". "¿Le falta el aire?" "Un poco, al subir escaleras". Radiografía: tumor en pulmón. A los 32 años, nunca fumó. Cáncer de pulmón. Si hubiera esperado 2 meses más para consultar, inoperable.',
-      why: 'La tos, la falta de aire, el dolor al respirar... son alarmas del sistema respiratorio. Pueden indicar desde asma (tratable) hasta cáncer de pulmón o embolia pulmonar (mortal en minutos).',
-      example: '🚨 SÍNTOMAS RESPIRATORIOS IMPORTANTES:\n\n😮‍💨 TOS:\n- Tos >3 semanas = siempre investigar (no es "normal")\n- Tos con sangre = URGENTE (puede ser cáncer, tuberculosis, embolia)\n- Tos nocturna = puede ser asma, reflujo, o insuficiencia cardíaca\n\n🫁 FALTA DE AIRE:\n- Súbita = embolia pulmonar (EMERGENCIA)\n- Progresiva en fumador = EPOC\n- Con sibilancias = asma\n\n🤧 OTROS:\n- Ronquidos + pausas al dormir = apnea del sueño (aumenta riesgo de infarto 3x)\n- Dolor al respirar profundo = pleuresía, neumonia, o pericarditis',
-      didYouKnow: '💡 TUS PULMONES EN NÚMEROS:\n- Respiras 20,000 veces al día\n- Superficie pulmonar = 70 m² (tamaño de una cancha de tenis)\n- Capacidad: 6 litros de aire\n- Fumadores pierden 150-250 ml de capacidad pulmonar por año\n- Apnea del sueño no tratada: aumenta riesgo de stroke 4x',
+      intro: 'Tus pulmones compensan el daño de forma silenciosa. Reconocer síntomas respiratorios tempranos evita complicaciones severas.',
+      why: 'Desestimar una tos crónica o la dificultad para respirar retrasa intervenciones críticas en casos de asma, fibrosis o tumores incipientes.',
+      example: 'Una tos persistente por más de tres semanas nunca es habitual en un adulto sano y exige descartar patologías pulmonares crónicas.',
+      didYouKnow: 'La apnea del sueño severa (pausas respiratorias al dormir) dispara la hipertensión y multiplica por tres tu riesgo de derrame cerebral.',
     },
     fields: [
       {
@@ -509,7 +533,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         type: 'boolean',
         label: '¿Escuchas silbidos en el pecho al respirar?',
         required: true,
-        tooltip: 'Sibilancias pueden indicar asma o EPOC',
+        tooltip: 'La sibilancia denota broncoconstricción o edema de las vías aéreas bajas.',
       },
       {
         id: 'sintomas_respiratorios',
@@ -517,11 +541,11 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Has experimentado alguno de estos síntomas?',
         required: false,
         options: [
-          { value: 'sangre_tos', label: 'Sangre al toser', explanation: 'URGENTE - puede ser cáncer o tuberculosis' },
-          { value: 'dolor_respirar', label: 'Dolor al respirar profundo', explanation: 'Puede ser pleuresía o neumonía' },
-          { value: 'ronquidos', label: 'Ronquidos fuertes con pausas', explanation: 'Apnea del sueño - riesgo cardiovascular' },
-          { value: 'flema_color', label: 'Flema amarilla o verde persistente', explanation: 'Puede indicar infección' },
-          { value: 'ninguno', label: 'Ninguno de estos', explanation: '' },
+          { value: 'sangre_tos', label: 'Sangre al toser', explanation: 'Hallazgo crítico; exige descartar hemorragia o neoplasia pulmonar.' },
+          { value: 'dolor_respirar', label: 'Dolor al respirar profundo', explanation: 'Sugiere inflamación de la pleura o infección alveolar.' },
+          { value: 'ronquidos', label: 'Ronquidos fuertes con pausas', explanation: 'Indicador primario de hipoxia nocturna y riesgo de apoplejía.' },
+          { value: 'flema_color', label: 'Flema amarilla o verde persistente', explanation: 'Correlacionado con procesos infecciosos bacterianos activos.' },
+          { value: 'ninguno', label: 'Ninguno de estos', explanation: 'Ausencia de alarma en tracto respiratorio inferior.' },
         ],
       },
     ],
@@ -535,10 +559,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'revision_sistemas',
     completed: false,
     story: {
-      intro: 'Un señor de 55 años llega por "acidez". Toma omeprazol hace 2 años, lo compra sin receta. El médico pregunta: ¿ha bajado de peso? "Sí, 8 kilos en 3 meses". Endoscopia: cáncer gástrico avanzado. El omeprazol solo tapaba el síntoma. El cáncer crecía silenciosamente.',
-      why: 'El sistema digestivo da señales sutiles de problemas graves. Acidez persistente puede ser reflujo simple... o cáncer de estómago. Diarrea crónica puede ser intestino irritable... o enfermedad inflamatoria intestinal que necesita tratamiento urgente.',
-      example: '🚨 SÍNTOMAS DIGESTIVOS DE ALARMA:\n\n⚠️ BANDERAS ROJAS (requieren estudio URGENTE):\n- Sangre en heces (roja o negra como alquitrán)\n- Pérdida de peso sin intentarlo (>5% en 6 meses)\n- Dificultad para tragar (disfagia)\n- Vómitos persistentes\n- Dolor abdominal intenso súbito\n\n🔍 SÍNTOMAS COMUNES PERO IMPORTANTES:\n- Acidez >2 veces/semana por >3 semanas = necesita endoscopia\n- Diarrea >4 semanas = no es "normal", investigar\n- Estreñimiento nuevo en >50 años = descartar cáncer colon\n- Hinchazón + diarrea = puede ser celiaquía o intolerancia',
-      didYouKnow: '💡 TU SISTEMA DIGESTIVO EN NÚMEROS:\n- Intestino: 7-9 metros de largo\n- Produce 1-2 litros de saliva al día\n- Ácido del estómago puede disolver metal (pH 1-2)\n- Microbiota: 100 TRILLONES de bacterias (10x más que células humanas)\n- Colon absorbe 1.5 litros de agua al día de las heces',
+      intro: 'El tracto gastrointestinal reacciona tanto al estrés como a patologías severas. Sus alteraciones crónicas exigen revisión clínica.',
+      why: 'Desórdenes como acidez constante o cambios repentinos en el hábito intestinal ocultan desde intolerancias hasta neoplasias tempranas.',
+      example: 'La pérdida de peso involuntaria sumada a una acidez refractaria es una señal de alerta médica que obliga a descartar patologías malignas.',
+      didYouKnow: 'El uso prolongado y sin supervisión de protectores gástricos puede enmascarar síntomas críticos y alterar tu absorción de nutrientes.',
     },
     fields: [
       {
@@ -559,10 +583,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Has tenido cambios en tus hábitos intestinales?',
         required: true,
         options: [
-          { value: 'no', label: 'No, todo normal', explanation: '' },
-          { value: 'diarrea', label: 'Diarrea frecuente', explanation: 'Si >4 semanas, necesita estudio' },
-          { value: 'estrenimiento', label: 'Estreñimiento', explanation: 'Si es nuevo, puede ser señal de alarma' },
-          { value: 'alternante', label: 'Alterno entre diarrea y estreñimiento', explanation: 'Puede ser intestino irritable' },
+          { value: 'no', label: 'No, todo normal', explanation: 'Tránsito digestivo y absorción conservados.' },
+          { value: 'diarrea', label: 'Diarrea frecuente', explanation: 'Alteración de la microbiota o posible mala absorción.' },
+          { value: 'estrenimiento', label: 'Estreñimiento', explanation: 'Enlentecimiento del vaciado, factor de riesgo anatómico si es súbito.' },
+          { value: 'alternante', label: 'Alterno entre diarrea y estreñimiento', explanation: 'Clásico patrón de inflamación intestinal crónica o funcional.' },
         ],
       },
       {
@@ -571,13 +595,13 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Has experimentado alguno de estos síntomas?',
         required: false,
         options: [
-          { value: 'sangre_heces', label: 'Sangre en las heces', explanation: 'URGENTE - puede ser cáncer, hemorroides, o enfermedad inflamatoria' },
-          { value: 'heces_negras', label: 'Heces negras como alquitrán', explanation: 'URGENTE - sangrado digestivo alto' },
-          { value: 'perdida_peso', label: 'Pérdida de peso sin hacer dieta', explanation: 'Bandera roja - investigar' },
-          { value: 'dificultad_tragar', label: 'Dificultad para tragar', explanation: 'Puede ser cáncer de esófago' },
-          { value: 'nausea_vomito', label: 'Náusea o vómito persistente', explanation: 'Múltiples causas, necesita evaluación' },
-          { value: 'hinchazon', label: 'Hinchazón abdominal constante', explanation: 'Puede ser intolerancia o celiaquía' },
-          { value: 'ninguno', label: 'Ninguno de estos', explanation: '' },
+          { value: 'sangre_heces', label: 'Sangre en las heces', explanation: 'Emergencia clínica; indica sangrado del tracto gastrointestinal inferior.' },
+          { value: 'heces_negras', label: 'Heces negras como alquitrán', explanation: 'Emergencia clínica; denota hemorragia digestiva alta (melena).' },
+          { value: 'perdida_peso', label: 'Pérdida de peso sin hacer dieta', explanation: 'Marcador oncológico o metabólico de alta prioridad.' },
+          { value: 'dificultad_tragar', label: 'Dificultad para tragar', explanation: 'Posible obstrucción esofágica o trastorno de motilidad neurológica.' },
+          { value: 'nausea_vomito', label: 'Náusea o vómito persistente', explanation: 'Refleja intolerancia aguda, inflamación gástrica o desorden central.' },
+          { value: 'hinchazon', label: 'Hinchazón abdominal constante', explanation: 'Signo de fermentación bacteriana atípica o enfermedad celíaca.' },
+          { value: 'ninguno', label: 'Ninguno de estos', explanation: 'Ausencia de banderas rojas gastrointestinales.' },
         ],
       },
     ],
@@ -591,10 +615,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'revision_sistemas',
     completed: false,
     story: {
-      intro: 'Un hombre de 60 años consulta porque "orina muchas veces en la noche". Piensa que es "normal de la edad". El médico pregunta: ¿le cuesta iniciar? ¿el chorro es débil? "Sí". Análisis PSA: muy elevado. Biopsia: cáncer de próstata. Tratado a tiempo, curable. Si esperaba 1 año más, con metástasis.',
-      why: 'Los síntomas urinarios pueden indicar desde infección simple (tratable con antibióticos) hasta cáncer de riñón, vejiga o próstata. El dolor al orinar, la sangre en orina, orinar frecuente... son señales que no debes ignorar.',
-      example: '🚨 SÍNTOMAS GENITOURINARIOS IMPORTANTES:\n\n🩸 SANGRE EN ORINA:\n- Visible (roja) = URGENTE (cáncer, cálculo, infección severa)\n- Microscópica (solo en análisis) = también requiere estudio\n- En hombre >40 años = descartar cáncer vejiga/riñón/próstata\n\n💧 SÍNTOMAS URINARIOS:\n- Orinar muchas veces = puede ser diabetes, próstata, infección\n- Dolor al orinar = infección urinaria (mujeres) o próstata (hombres)\n- Levantarse >2 veces en noche = nicturia (próstata, diabetes, apnea sueño)\n\n👨 HOMBRES:\n- Chorro débil + esfuerzo = próstata agrandada (benigna o cáncer)\n- Disfunción eréctil = primer síntoma de enfermedad cardiovascular',
-      didYouKnow: '💡 TUS RIÑONES EN NÚMEROS:\n- Filtran 180 litros de sangre AL DÍA\n- Producen 1-2 litros de orina al día (99% del filtrado se reabsorbe)\n- Tienen 2 millones de nefronas (filtros microscópicos)\n- Pueden perder 50% de función sin dar síntomas\n- Diabetes e hipertensión causan 70% de insuficiencia renal',
+      intro: 'Tus riñones y vías urinarias son sistemas de alta precisión. Cambios en la excreción revelan disfunciones metabólicas u oncológicas.',
+      why: 'Ignorar el aumento de frecuencia urinaria o dolor pélvico retrasa el diagnóstico de infecciones crónicas, diabetes o daños prostáticos.',
+      example: 'La nicturia (levantarse múltiples veces en la noche a orinar) en hombres requiere descartar hipertrofia o alteraciones prostáticas.',
+      didYouKnow: 'Tus riñones pueden perder hasta el 50% de su capacidad biológica de filtración celular sin generar síntomas físicos evidentes.',
     },
     fields: [
       {
@@ -609,10 +633,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Has notado cambios en la frecuencia al orinar?',
         required: true,
         options: [
-          { value: 'normal', label: 'No, todo normal', explanation: '' },
-          { value: 'frecuente_dia', label: 'Orino muy frecuente durante el día', explanation: 'Puede ser diabetes, infección, próstata' },
-          { value: 'frecuente_noche', label: 'Me levanto muchas veces en la noche', explanation: 'Nicturia - próstata, diabetes, apnea' },
-          { value: 'urgencia', label: 'Urgencia súbita (casi no llego)', explanation: 'Puede ser vejiga hiperactiva o infección' },
+          { value: 'normal', label: 'No, todo normal', explanation: 'Capacidad de retención y filtrado renal fisiológicos.' },
+          { value: 'frecuente_dia', label: 'Orino muy frecuente durante el día', explanation: 'Signo primario de poliuria; sugiere hiperglucemia o fallas de concentración.' },
+          { value: 'frecuente_noche', label: 'Me levanto muchas veces en la noche', explanation: 'Marcador de estancamiento de fluidos o crecimiento prostático obstructivo.' },
+          { value: 'urgencia', label: 'Urgencia súbita (casi no llego)', explanation: 'Sugiere disfunción muscular de la vejiga o infección bacteriana aguda.' },
         ],
       },
       {
@@ -621,11 +645,11 @@ export const anamnesisSteps: AnamnesisStep[] = [
         label: '¿Has experimentado alguno de estos síntomas?',
         required: false,
         options: [
-          { value: 'sangre_orina', label: 'Sangre en la orina', explanation: 'URGENTE - cáncer, cálculo, infección' },
-          { value: 'chorro_debil', label: 'Chorro urinario débil o entrecortado', explanation: 'Próstata agrandada (hombres)' },
-          { value: 'incontinencia', label: 'Pérdida involuntaria de orina', explanation: 'Múltiples causas, tiene tratamiento' },
-          { value: 'dolor_lumbar', label: 'Dolor en la espalda baja (zona riñones)', explanation: 'Puede ser cálculo renal o infección' },
-          { value: 'ninguno', label: 'Ninguno de estos', explanation: '' },
+          { value: 'sangre_orina', label: 'Sangre en la orina', explanation: 'Alerta clínica insoslayable; requiere descartar daño renal o tumor uroepitelial.' },
+          { value: 'chorro_debil', label: 'Chorro urinario débil o entrecortado', explanation: 'Indica obstrucción mecánica del flujo de salida, usualmente prostática.' },
+          { value: 'incontinencia', label: 'Pérdida involuntaria de orina', explanation: 'Déficit de esfínteres, tratable con intervención urológica.' },
+          { value: 'dolor_lumbar', label: 'Dolor en la espalda baja (zona riñones)', explanation: 'Sugiere inflamación del parénquima renal o litiasis (cálculos).' },
+          { value: 'ninguno', label: 'Ninguno de estos', explanation: 'Ausencia de anomalías en tracto urogenital.' },
         ],
       },
     ],
@@ -639,10 +663,10 @@ export const anamnesisSteps: AnamnesisStep[] = [
     category: 'revision_sistemas',
     completed: false,
     story: {
-      intro: '🎉 ¡Felicidades! Has completado un recorrido educativo por tu historia clínica. Ahora entiendes mejor cómo piensan los médicos y por qué hacen las preguntas que hacen.',
-      why: 'Esta información que compartiste es INVALUABLE para tu médico. Le permite conocerte antes de verte, pensar en diagnósticos precisos, y darte mejor atención. Has participado activamente en tu salud.',
-      example: '📊 LO QUE LOGRASTE:\n\n✅ Completaste tu filiación y datos personales\n✅ Describiste tu motivo de consulta con detalle\n✅ Compartiste tus antecedentes médicos y familiares\n✅ Reportaste tus medicamentos y alergias\n✅ Analizaste tus hábitos de salud\n✅ Revisaste todos tus sistemas corporales\n\n🎓 APRENDISTE:\n- Cómo la edad cambia el pensamiento médico\n- Por qué los antecedentes familiares son importantes\n- Qué síntomas son banderas rojas\n- Cómo los hábitos afectan tu salud futura',
-      didYouKnow: '💡 PRÓXIMOS PASOS:\n\n✅ Esta información se guardará en tu expediente\n✅ Tu médico la revisará ANTES de tu consulta\n✅ Puedes actualizar esta información cuando quieras\n✅ Recuerda: eres el experto en tu cuerpo, el médico es el experto en medicina\n✅ Juntos forman el mejor equipo para cuidar tu salud',
+      intro: 'La recopilación de tus datos estructura tu perfil clínico empírico. Es la base sobre la cual el médico construirá su hipótesis diagnóstica.',
+      why: 'La medicina basada en evidencia demuestra que una historia clínica detallada reduce los sesgos cognitivos y agiliza el tratamiento eficaz.',
+      example: 'Conocer tus hábitos, genética y síntomas previos permite a tu médico priorizar las pruebas de laboratorio que son verdaderamente útiles.',
+      didYouKnow: 'Al documentar esta información previamente, maximizas el tiempo de tu consulta para discutir soluciones reales, no para recabar datos.',
     },
     fields: [
       {
@@ -650,7 +674,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
         type: 'boolean',
         label: '¿Confirmas que toda la información proporcionada es correcta?',
         required: true,
-        tooltip: 'Es importante que toda la información sea veraz y completa',
+        tooltip: 'La omisión de factores críticos invalida la eficacia clínica de tus resultados empíricos.',
       },
       {
         id: 'comentarios_adicionales',
