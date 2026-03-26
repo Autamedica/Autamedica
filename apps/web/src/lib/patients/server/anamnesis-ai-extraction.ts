@@ -20,7 +20,7 @@ import type { Json } from '@autamedica/types'
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
 const GEMINI_GENERATE_CONTENT_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 const DEFAULT_OPENAI_MODEL = 'gpt-5.4-2026-03-05'
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro'
 export const ANAMNESIS_EXTRACTION_PROMPT_VERSION = 'argente_interrogator_v3'
 
 type ExtractionProvider = 'openai' | 'gemini'
