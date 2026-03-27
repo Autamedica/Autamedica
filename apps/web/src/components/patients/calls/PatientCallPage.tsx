@@ -9,6 +9,7 @@ import type { UserProfile } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
+import { respondCallBrowserService } from '@/lib/calls/services/respond-call.browser'
 
 interface PatientCallPageProps {
   roomId: string
@@ -82,6 +83,19 @@ function PatientCallContent({ roomId }: { roomId: string }) {
 
     setIsReady(true)
   }, [effectiveRole, session, loading, roomId])
+
+  // Auto-accept the call when patient enters the room directly via URL
+  // This covers the case where the patient navigates to the call URL without
+  // going through IncomingCallHandler's accept flow
+  useEffect(() => {
+    if (!callSession?.callId) return
+    const callId = callSession.callId
+    respondCallBrowserService
+      .respond({ callId, action: 'accept' })
+      .catch((err: unknown) => {
+        logger.warn('[PatientCallPage] Auto-accept failed (may already be accepted)', err)
+      })
+  }, [callSession?.callId])
 
   const handleCallEnd = useCallback(() => {
     logger.info('[PatientCallPage] Call ended, redirecting to dashboard')
