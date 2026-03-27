@@ -89,12 +89,21 @@ export const communityService = {
     const { actorIds } = resolveCommunityActor(context);
 
     const [groups, memberships, posts] = await Promise.all([
-      communityRepo.listGroups(supabase),
-      communityRepo.listMemberships(supabase, actorIds),
+      communityRepo.listGroups(supabase).catch((error) => {
+        logger.warn('[communityService] listGroups degraded to empty state', error);
+        return [];
+      }),
+      communityRepo.listMemberships(supabase, actorIds).catch((error) => {
+        logger.warn('[communityService] listMemberships degraded to empty state', error);
+        return [];
+      }),
       communityRepo.listPosts(supabase, {
         limit,
         sortBy,
         groupId: options?.groupId,
+      }).catch((error) => {
+        logger.warn('[communityService] listPosts degraded to empty state', error);
+        return [];
       }),
     ]);
 

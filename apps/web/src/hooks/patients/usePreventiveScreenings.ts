@@ -47,6 +47,47 @@ export function usePreventiveScreenings(
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const computeAgeFromBirthDate = (birthDate?: string | null): number | null => {
+    if (!birthDate) {
+      return null;
+    }
+
+    const date = new Date(birthDate);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    const now = new Date();
+    let age = now.getFullYear() - date.getFullYear();
+    const monthDiff = now.getMonth() - date.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) {
+      age -= 1;
+    }
+
+    return age >= 0 ? age : null;
+  };
+
+  const isApplicableRecommendation = (
+    screening: PreventiveScreening,
+    patientAge: number | null,
+    patientGender: 'male' | 'female' | null,
+  ): boolean => {
+    if (screening.target_gender !== 'all' && patientGender && screening.target_gender !== patientGender) {
+      return false;
+    }
+
+    if (screening.min_age !== null && patientAge !== null && patientAge < screening.min_age) {
+      return false;
+    }
+
+    if (screening.max_age !== null && patientAge !== null && patientAge > screening.max_age) {
+      return false;
+    }
+
+    return true;
+  };
+
   // Fetch screenings del paciente
   const fetchMyScreenings = useCallback(async () => {
     if (!options.patientId) {
@@ -78,11 +119,6 @@ export function usePreventiveScreenings(
             covered_by_public_health,
             requires_specialist,
             preparation_instructions
-          ),
-          assigned_doctor:doctors!assigned_doctor_id (
-            id,
-            first_name,
-            last_name
           )
         `)
         .eq('patient_id', options.patientId);
@@ -113,7 +149,6 @@ export function usePreventiveScreenings(
           id: string; patient_id: string; screening_id: string; status: string; scheduled_date?: string;
           completed_date?: string; next_due_date?: string; assigned_doctor_id?: string; notes?: string;
           result_summary?: string; created_at: string; updated_at: string; screening: PreventiveScreening;
-          assigned_doctor?: { id: string; first_name: string; last_name: string; };
         };
         return {
           id: item.id,
@@ -129,12 +164,7 @@ export function usePreventiveScreenings(
           created_at: item.created_at,
           updated_at: item.updated_at,
           screening: item.screening,
-          assigned_doctor: item.assigned_doctor ? {
-            id: item.assigned_doctor.id,
-            first_name: item.assigned_doctor.first_name,
-            last_name: item.assigned_doctor.last_name,
-            specialty: '' // TODO(blocked): [Screenings] specialty no disponible en la join actual con doctors ticket:BACKLOG
-          } : null
+          assigned_doctor: null
         } as unknown as PatientScreeningWithDetails;
       });
 
@@ -158,42 +188,73 @@ export function usePreventiveScreenings(
     try {
       setIsLoadingRecommendations(true);
 
-      // Llamar función SQL que calcula recomendaciones
-      const { data, error: rpcError } = await supabase.rpc('get_recommended_screenings', {
-        patient_id_param: options.patientId,
-        include_overdue: true
-      });
-
-      if (rpcError) throw rpcError;
-
-      // Transform to ScreeningRecommendation format
-      const transformedRecommendations: ScreeningRecommendation[] = await Promise.all(
-        (data || []).map(async (item: { screening_id: string; status: string; urgency: string; reason: string; next_due_date: string }) => {
-          // Fetch full screening details
-          const { data: screeningData } = await supabase
+      const [{ data: patientData, error: patientError }, { data: screeningsCatalog, error: screeningsError }] =
+        await Promise.all([
+          supabase
+            .from('patients')
+            .select('birth_date, gender')
+            .eq('id', options.patientId)
+            .maybeSingle(),
+          supabase
             .from('preventive_screenings')
-            .select('*')
-            .eq('id', item.screening_id)
-            .single();
+            .select(`
+              id,
+              name,
+              category,
+              description,
+              target_gender,
+              min_age,
+              max_age,
+              recommended_frequency,
+              is_mandatory,
+              estimated_cost_ars,
+              covered_by_public_health,
+              requires_specialist,
+              preparation_instructions,
+              created_at,
+              updated_at
+            `)
+        ]);
 
-          return {
-            screening: screeningData as PreventiveScreening,
-            is_due: item.status === 'overdue' || item.status === 'not_started',
-            urgency: item.urgency as 'low' | 'medium' | 'high',
-            reason: item.reason,
-            next_due_date: item.next_due_date
-          };
-        })
-      );
+      if (patientError) throw patientError;
+      if (screeningsError) throw screeningsError;
+
+      const patientAge = computeAgeFromBirthDate(patientData?.birth_date);
+      const patientGender =
+        patientData?.gender === 'male' || patientData?.gender === 'female'
+          ? patientData.gender
+          : null;
+      const existingIds = new Set(myScreenings.map((screening) => screening.screening_id));
+
+      const transformedRecommendations: ScreeningRecommendation[] = (screeningsCatalog || [])
+        .filter((screening) => !existingIds.has(screening.id))
+        .filter((screening) =>
+          isApplicableRecommendation(
+            screening as PreventiveScreening,
+            patientAge,
+            patientGender,
+          )
+        )
+        .slice(0, 8)
+        .map((screening) => ({
+          screening: screening as PreventiveScreening,
+          is_due: true,
+          urgency: screening.is_mandatory ? 'high' : 'medium',
+          reason:
+            screening.is_mandatory
+              ? 'Control preventivo prioritario para tu perfil.'
+              : 'Control preventivo sugerido según edad y contexto.',
+          next_due_date: null
+        }));
 
       setRecommendations(transformedRecommendations);
     } catch (err) {
       logger.error('Error fetching recommendations:', err);
-      // No setear error aquí para no bloquear el resto de la UI
+      setRecommendations([]);
     } finally {
       setIsLoadingRecommendations(false);
     }
-  }, [supabase, options.patientId]);
+  }, [myScreenings, supabase, options.patientId]);
 
   // Schedule a screening
   const scheduleScreening = useCallback(async (
