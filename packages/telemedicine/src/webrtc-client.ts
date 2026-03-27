@@ -716,6 +716,7 @@ export class WebRTCClient {
       this.logInfo('Pre-warm: local media acquired', { videoTracks, audioTracks })
       this.emit('media-acquired', { videoTracks, audioTracks, source: 'warm-up' })
       applyContentHints(this.localStream)
+      this.attachTracksToExistingPeers()
     } else {
       this.logWarn('Pre-warm: getUserMedia failed, will retry on connect', {
         error: streamResult.reason,
@@ -940,6 +941,9 @@ export class WebRTCClient {
           source: 'connect',
         })
       }
+
+      // Retroactively attach tracks to any peer connections created before media was ready
+      this.attachTracksToExistingPeers()
 
       // Monitor network changes for adaptive bitrate
       this.startNetworkMonitoring()
@@ -1226,7 +1230,10 @@ export class WebRTCClient {
 
   private attachLocalTracks(pc: RTCPeerConnection): void {
     const stream = this.localStream
-    if (!stream) return
+    if (!stream) {
+      this.logWarn('attachLocalTracks called but localStream is null — tracks will be added after media acquisition')
+      return
+    }
 
     const existingTrackIds = new Set(
       pc.getSenders()
@@ -1265,6 +1272,22 @@ export class WebRTCClient {
 
     // Prefer VP9 codec if browser supports it
     this.preferCodec(pc)
+  }
+
+  /** Attach local tracks to all existing peer connections that have no senders yet. */
+  private attachTracksToExistingPeers(): void {
+    if (!this.localStream || this.peerConnections.size === 0) return
+    this.logInfo('Attaching local tracks to existing peer connections', {
+      peerCount: this.peerConnections.size,
+      trackCount: this.localStream.getTracks().length,
+    })
+    for (const [peerId, peerState] of this.peerConnections) {
+      const hasTracks = peerState.pc.getSenders().some(s => s.track !== null)
+      if (!hasTracks) {
+        this.logInfo('Retroactively attaching tracks to peer', { peerId })
+        this.attachLocalTracks(peerState.pc)
+      }
+    }
   }
 
   /** Set codec preference: H264 on Safari, VP9 on Chrome/Firefox */

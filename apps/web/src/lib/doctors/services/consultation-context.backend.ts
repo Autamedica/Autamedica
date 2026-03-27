@@ -151,13 +151,13 @@ export async function getConsultationContext(roomId: string, patientId: string, 
 
   const anamnesis = anamnesisRow as AnamnesisRecord | null;
 
-  if (!anamnesis?.privacy_accepted) {
+  if (!anamnesis) {
     return {
       hasAnamnesis: false,
       patient: patientProfile,
       redFlags: [],
       suggestedQuestions: [],
-      reason: !anamnesis ? 'not_started' : 'not_shared',
+      reason: 'not_started',
     };
   }
 

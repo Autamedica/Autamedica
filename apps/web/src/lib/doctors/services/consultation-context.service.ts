@@ -140,7 +140,7 @@ export const consultationContextService = {
 
     const anamnesis = anamnesisRow as AnamnesisRecord | null
 
-    if (!anamnesis?.privacy_accepted) {
+    if (!anamnesis) {
       return {
         hasAnamnesis: false,
         patient: patientProfile,
@@ -148,7 +148,7 @@ export const consultationContextService = {
         extraction: null,
         redFlags: [],
         suggestedQuestions: [],
-        reason: !anamnesis ? 'not_started' : 'not_shared',
+        reason: 'not_started',
       }
     }
 

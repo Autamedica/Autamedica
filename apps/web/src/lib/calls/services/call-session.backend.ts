@@ -3,6 +3,7 @@ import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import type { Call, CallSessionBootstrap, CallSessionRole, CallSessionRuntime } from '@autamedica/telemedicine'
 import { getIceServersConfig, hasTurnIceServer } from '@autamedica/telemedicine'
+import { handleTurnCredentials } from '@autamedica/telemedicine/server'
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
 
 type Db = SupabaseClient<Database>
@@ -51,20 +52,37 @@ function buildWaitingRoom(call: Call, role: CallSessionRole): CallSessionBootstr
   }
 }
 
-function buildBootstrap(
+async function fetchCloudflareTurnServers(): Promise<RTCIceServer[]> {
+  const keyId = import.meta.env.CLOUDFLARE_CALLS_TURN_KEY_ID
+  const token = import.meta.env.CLOUDFLARE_CALLS_TURN_TOKEN
+  if (!keyId || !token) return []
+
+  const result = await handleTurnCredentials({ keyId, token })
+  if (result.status !== 200) return []
+
+  const body = result.body as { ok: boolean; iceServers?: RTCIceServer[] }
+  return body.ok && Array.isArray(body.iceServers) ? body.iceServers : []
+}
+
+async function buildBootstrap(
   call: Call,
   viewerUserId: string,
   viewerRole: CallSessionRole,
   displayName?: string,
-): CallSessionBootstrap {
+): Promise<CallSessionBootstrap> {
   const runtime = resolveRuntime()
-  const iceServers = runtime === 'webrtc-p2p' ? getIceServersConfig() : undefined
   const cloudflareCallsApiUrl =
     runtime === 'cloudflare-calls'
       ? viewerRole === 'doctor'
         ? '/api/doctors/cloudflare-calls'
         : '/api/patients/cloudflare-calls'
       : null
+
+  let iceServers: RTCIceServer[] | undefined
+  if (runtime === 'webrtc-p2p') {
+    const turnServers = await fetchCloudflareTurnServers()
+    iceServers = turnServers.length > 0 ? turnServers : getIceServersConfig()
+  }
 
   return {
     callId: call.id,
@@ -125,39 +143,19 @@ export const callSessionBackendService = {
     ])
 
     if (matchesParticipant(doctorProfileId, call.doctor_id, viewerUserId)) {
-      if (resolveRuntime() === 'webrtc-p2p') {
-        const iceServers = getIceServersConfig()
-        if (!hasTurnIceServer(iceServers)) {
-          logger.warn('[callSessionBackendService] p2p bootstrap without TURN', {
-            roomId,
-            callId: call.id,
-            role: 'doctor',
-          })
-        }
+      const data = await buildBootstrap(call, viewerUserId, 'doctor', displayName)
+      if (resolveRuntime() === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
+        logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'doctor' })
       }
-
-      return {
-        kind: 'ok',
-        data: buildBootstrap(call, viewerUserId, 'doctor', displayName),
-      }
+      return { kind: 'ok', data }
     }
 
     if (matchesParticipant(patientProfileId, call.patient_id, viewerUserId)) {
-      if (resolveRuntime() === 'webrtc-p2p') {
-        const iceServers = getIceServersConfig()
-        if (!hasTurnIceServer(iceServers)) {
-          logger.warn('[callSessionBackendService] p2p bootstrap without TURN', {
-            roomId,
-            callId: call.id,
-            role: 'patient',
-          })
-        }
+      const data = await buildBootstrap(call, viewerUserId, 'patient', displayName)
+      if (resolveRuntime() === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
+        logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'patient' })
       }
-
-      return {
-        kind: 'ok',
-        data: buildBootstrap(call, viewerUserId, 'patient', displayName),
-      }
+      return { kind: 'ok', data }
     }
 
     logger.warn('[callSessionBackendService] access denied to room', {
