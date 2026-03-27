@@ -162,6 +162,10 @@ export {
   isGracePeriodExpired,
 } from './onboarding';
 
+// Domain Events (Event Bus)
+export { domainEvents } from './events';
+export type { IEventBus, DomainEvents, DomainEventName, DomainEventPayload } from './events';
+
 // Anamnesis summary + export helpers
 export {
   buildAnamnesisExportHtml,

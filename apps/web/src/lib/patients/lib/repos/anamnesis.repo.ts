@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
+import type { IAnamnesisRepository } from '@autamedica/types'
 
 type Db = SupabaseClient<Database>
 
@@ -150,4 +151,24 @@ export const anamnesisRepo = {
 
     return result as AnamnesisSectionRecord
   },
+}
+
+/**
+ * Factory: crea un adapter que implementa IAnamnesisRepository
+ * cerrando sobre un SupabaseClient específico.
+ */
+export function createAnamnesisRepositoryAdapter(
+  supabase: Db
+): IAnamnesisRepository {
+  return {
+    findByPatient: (patientId) => anamnesisRepo.findByPatient(supabase, patientId),
+    ensure: (patientId) => anamnesisRepo.ensure(supabase, patientId),
+    updateProgress: (anamnesisId, pct, sections) =>
+      anamnesisRepo.updateProgress(supabase, anamnesisId, pct, sections),
+    updateMeta: (anamnesisId, updates) =>
+      anamnesisRepo.updateMeta(supabase, anamnesisId, updates),
+    getSections: (anamnesisId) => anamnesisRepo.getSections(supabase, anamnesisId),
+    upsertSection: (anamnesisId, section, data, completed) =>
+      anamnesisRepo.upsertSection(supabase, anamnesisId, section, data, completed),
+  }
 }

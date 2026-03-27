@@ -5,6 +5,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
+import type { IAppointmentQueryRepository } from '@autamedica/types'
 import {
   computeEndTime,
   mapAppointment,
@@ -219,4 +220,19 @@ export const appointmentsRepo = {
 
     return data ? mapAppointment(data as unknown as DbAppointmentRow) : null
   },
+}
+
+/**
+ * Factory: crea un adapter read-only que implementa IAppointmentQueryRepository
+ * scoped a un paciente específico.
+ */
+export function createAppointmentQueryAdapter(
+  supabase: Db,
+  patientId: string
+): IAppointmentQueryRepository<AppointmentWithDoctor> {
+  return {
+    listByPatient: () => appointmentsRepo.listByPatient(supabase, patientId),
+    listByDoctor: async () => [],
+    findById: (id) => appointmentsRepo.findById(supabase, id, patientId),
+  }
 }

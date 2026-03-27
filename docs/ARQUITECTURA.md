@@ -246,3 +246,82 @@ GitHub Actions (CI/CD)
 /api/admin/
 └── telemedicine-stats     GET estadisticas
 ```
+
+---
+
+## Patrones Avanzados (2026-03-27)
+
+### Ports (Interfaces de Repositorio)
+
+Cada repositorio tiene una interfaz abstracta en `packages/types/src/ports/`.
+La implementación concreta (adaptador Supabase) vive en `apps/web`.
+Tests pueden usar mock adapters sin tocar Supabase.
+
+```
+packages/types/src/ports/
+├── index.ts                    # barrel export
+├── patients.port.ts            # IPatientRepository
+├── appointments.port.ts        # IAppointmentRepository (Query + Command)
+└── anamnesis.port.ts           # IAnamnesisRepository
+```
+
+Uso en services/use cases:
+
+```typescript
+import type { IPatientRepository } from "@autamedica/types";
+// El service no sabe si habla con Supabase, Postgres directo, o un mock
+```
+
+### Domain Events (Event Bus)
+
+Bus de eventos tipado en `packages/shared/src/events/`.
+Desacopla acciones de side-effects. No reemplaza Supabase Realtime.
+
+```typescript
+import { domainEvents } from "@autamedica/shared";
+
+// Suscribir (en un handler de notificaciones, por ejemplo)
+domainEvents.on("appointment.completed", async ({ patientId }) => {
+  await notifyPatient(patientId);
+});
+
+// Emitir (en un use case)
+await domainEvents.emit("appointment.completed", { appointmentId, doctorId, patientId });
+```
+
+Eventos definidos: `appointment.*`, `anamnesis.*`, `call.*`, `consultation.*`
+
+### Use Cases (Orquestación de Flujos)
+
+Archivos `*.usecase.ts` en `apps/web/src/lib/*/usecases/`.
+Un use case = 1 flujo de negocio que cruza múltiples repos/services.
+Recibe dependencias por parámetro (inversión de dependencias).
+
+```
+apps/web/src/lib/
+├── patients/usecases/complete-anamnesis.usecase.ts
+├── calls/usecases/start-teleconsultation.usecase.ts
+└── doctors/usecases/get-leaderboard.usecase.ts
+```
+
+### CQRS Lite (Read Models de Dashboard)
+
+Queries pesadas de dashboard separadas en `queries/`.
+Son read-only, optimizadas con `Promise.all`, sin side-effects.
+
+```
+apps/web/src/lib/
+├── doctors/queries/dashboard-stats.query.ts    # Stats del doctor
+└── patients/queries/notification-feed.query.ts  # Feed de notificaciones
+```
+
+### Flujo completo (11 capas)
+
+```
+UI → Hook → Service(FE) → API Client → [HTTP]
+  → Controller → Use Case → Service(BE) → Repository(Port) → [Supabase]
+                    ↓
+              Domain Events → Handlers (notificaciones, logging, sync)
+                    ↓
+              Queries (CQRS) ← Dashboard reads optimizados
+```

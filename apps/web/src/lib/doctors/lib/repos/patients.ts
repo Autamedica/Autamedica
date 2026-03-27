@@ -6,7 +6,7 @@ import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type { Database } from '@autamedica/types'
 import { toCamel, logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { PatientWithProfile, UUID } from '@autamedica/types'
+import type { PatientWithProfile, UUID, IPatientRepository } from '@autamedica/types'
 
 // DB Row structure (simplified for camelCase mapping)
 export interface PatientRow {
@@ -160,5 +160,22 @@ export const patientsRepo = {
     }
 
     return toCamel<PatientWithProfile[]>(patients ?? [])
+  }
+}
+
+/**
+ * Factory: crea un adapter que implementa IPatientRepository
+ * cerrando sobre un SupabaseClient específico.
+ * Útil para use cases con inversión de dependencias y testing.
+ */
+export function createPatientRepositoryAdapter(
+  client: PatientsClient = getBrowserSupabaseClient()
+): IPatientRepository {
+  return {
+    findAllActive: () => patientsRepo.findAllActive(client),
+    findById: (id) => patientsRepo.findById(id, client),
+    findByUserId: (userId) => patientsRepo.findByUserId(userId, client),
+    findByCompany: (companyId) => patientsRepo.findByCompany(companyId, client),
+    findByDoctorUserId: (doctorUserId) => patientsRepo.findByDoctorUserId(doctorUserId, client),
   }
 }

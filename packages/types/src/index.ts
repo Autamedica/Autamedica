@@ -918,3 +918,17 @@ export {
   type CompanyMemberInsertSnake,
   type CompanyMemberUpdateSnake
 } from './validators/company-member.schema';
+
+// ==========================================
+// Ports (Repository Interfaces)
+// ==========================================
+
+export type {
+  IPatientRepository,
+  IAppointmentRepository,
+  IAppointmentQueryRepository,
+  IAppointmentCommandRepository,
+  IAnamnesisRepository,
+  AnamnesisEntity,
+  AnamnesisSectionEntity,
+} from './ports';
