@@ -3,6 +3,9 @@ import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
 
+const canonicalUrl = 'https://www.autamedica.com/blog/cuales-son-los-3-tipos-de-telemedicina';
+const publishedTime = '2026-03-26T00:00:00Z';
+
 const article = {
   title: '¿Cuáles son los 3 tipos de telemedicina?',
   author: 'Equipo AutaMedica',
@@ -12,17 +15,140 @@ const article = {
   image: '/images/article_telemed.webp',
   category: 'Telemedicina',
 };
+
+const faqItems = [
+  {
+    question: '¿Cuáles son los 3 tipos de telemedicina?',
+    answer:
+      'Los 3 tipos principales son la teleconsulta en tiempo real, la modalidad asincrónica o store-and-forward, y el telemonitoreo remoto de signos vitales.',
+  },
+  {
+    question: '¿Qué tipo de telemedicina se usa para seguimiento de enfermedades crónicas?',
+    answer:
+      'El telemonitoreo suele ser la modalidad más útil para el seguimiento crónico porque permite registrar parámetros como presión arterial, glucemia o frecuencia cardíaca a distancia.',
+  },
+  {
+    question: '¿La telemedicina está regulada en Argentina?',
+    answer:
+      'Sí. La Ley 27553 habilita la teleasistencia en salud y exige que se respeten los derechos del paciente previstos por la Ley 26529.',
+  },
+];
+
+const relatedArticles = [
+  {
+    href: '/blog/telemedicina-revolucion-salud',
+    category: 'Telemedicina',
+    title: '¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina?',
+  },
+  {
+    href: '/blog/acceso-especialistas-provincias',
+    category: 'Acceso',
+    title: 'Acceso a Especialistas en Provincias: La Brecha Que la Telemedicina Cierra',
+  },
+  {
+    href: '/blog/que-dice-la-ley-26529',
+    category: 'Marco legal',
+    title: '¿Qué dice la ley 26529? Derechos del Paciente en Argentina',
+  },
+];
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'BlogPosting',
+      headline: article.title,
+      description:
+        'Los 3 tipos de telemedicina son la teleconsulta en tiempo real, la modalidad asincrónica y el telemonitoreo remoto. Esta guía explica cuándo conviene cada una.',
+      image: [`https://www.autamedica.com${article.image}`],
+      datePublished: publishedTime,
+      dateModified: publishedTime,
+      inLanguage: 'es-AR',
+      mainEntityOfPage: canonicalUrl,
+      author: {
+        '@type': 'Organization',
+        name: article.author,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'AutaMedica',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.autamedica.com/images/brand/app_icon_glass.png',
+        },
+      },
+      isPartOf: {
+        '@type': 'Blog',
+        name: 'Blog de Salud de AutaMedica',
+        url: 'https://www.autamedica.com/blog',
+      },
+      about: [
+        { '@type': 'MedicalSpecialty', name: 'Telemedicine' },
+        { '@type': 'Thing', name: 'Teleconsulta' },
+        { '@type': 'Thing', name: 'Store-and-forward' },
+        { '@type': 'Thing', name: 'Telemonitoreo' },
+      ],
+      mentions: [
+        {
+          '@type': 'Legislation',
+          name: 'Ley 27553',
+          url: 'https://www.boletinoficial.gob.ar/detalleAviso/primera/233439/20200811.',
+        },
+        {
+          '@type': 'Legislation',
+          name: 'Ley 26529',
+          url: 'https://servicios.infoleg.gob.ar/infolegInternet/anexos/160000-164999/160432/norma.htm',
+        },
+      ],
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Inicio',
+          item: 'https://www.autamedica.com/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Blog',
+          item: 'https://www.autamedica.com/blog',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: article.title,
+          item: canonicalUrl,
+        },
+      ],
+    },
+  ],
+};
 ---
 
 <Layout
   title="¿Cuáles son los 3 tipos de telemedicina? Guía completa | AutaMedica"
   description="Los 3 tipos de telemedicina son: teleconsulta en tiempo real, store-and-forward (asincrónica) y telemonitoreo. Conocé cómo funciona cada una y para qué situaciones se usa."
-  canonical="https://www.autamedica.com/blog/cuales-son-los-3-tipos-de-telemedicina"
+  canonical={canonicalUrl}
   ogImage="/images/seo/og-main.webp"
   ogType="article"
-  publishedTime="2026-03-26T00:00:00Z"
+  publishedTime={publishedTime}
   robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
 >
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
   <Navbar />
   <main class="article-container">
 
@@ -133,6 +259,16 @@ const article = {
               toda teleconsulta debe garantizar la identidad del profesional, la confidencialidad de los datos
               del paciente y la emisión de receta digital cuando corresponda.
             </p>
+            <p>
+              Podés revisar el texto oficial en el
+              <a href="https://www.boletinoficial.gob.ar/detalleAviso/primera/233439/20200811." rel="noopener noreferrer" target="_blank">
+                Boletín Oficial de la Ley 27553
+              </a>
+              y complementar con los derechos del paciente previstos por la
+              <a href="https://servicios.infoleg.gob.ar/infolegInternet/anexos/160000-164999/160432/norma.htm" rel="noopener noreferrer" target="_blank">
+                Ley 26529
+              </a>.
+            </p>
             <p class="italic-note">
               Argentina fue uno de los primeros países de Latinoamérica en regular la telemedicina por ley,
               dando mayor seguridad jurídica tanto al médico como al paciente.
@@ -148,10 +284,34 @@ const article = {
             </p>
           </section>
 
+          <section aria-labelledby="faq-title">
+            <h2 id="faq-title">Preguntas frecuentes sobre telemedicina</h2>
+            <div class="faq-list">
+              {faqItems.map((item) => (
+                <details class="faq-item">
+                  <summary>{item.question}</summary>
+                  <p>{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+
           <div class="cta-block">
             <p class="cta-title">AutaMédica integra los 3 tipos de telemedicina</p>
             <p class="cta-desc">Teleconsulta en tiempo real, seguimiento asincrónico y monitoreo. Todo en una sola plataforma, con médicos verificados.</p>
             <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
+          </div>
+
+          <div class="related-articles">
+            <h3>Artículos relacionados</h3>
+            <div class="related-grid">
+              {relatedArticles.map((relatedArticle) => (
+                <a href={relatedArticle.href} class="related-card">
+                  <span class="category">{relatedArticle.category}</span>
+                  <h4>{relatedArticle.title}</h4>
+                </a>
+              ))}
+            </div>
           </div>
 
         </div>
@@ -178,6 +338,8 @@ const article = {
   section { margin-bottom: 3rem; }
   h2 { font-size: 1.75rem; font-weight: 400; color: white; margin-bottom: 1rem; margin-top: 2rem; }
   p { color: #c1c1c1; line-height: 1.8; margin-bottom: 1rem; font-size: 1.05rem; }
+  a { color: #7dd3fc; }
+  a:hover { color: #bae6fd; }
   ul { list-style: none; padding: 0; margin: 1rem 0 0; }
   li { color: #a1a1a1; padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.92rem; line-height: 1.5; border-bottom: 1px solid rgba(255,255,255,0.04); }
   li::before { content: '→'; position: absolute; left: 0; color: #17C8D4; }
@@ -200,4 +362,15 @@ const article = {
   .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
   .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
   .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  .faq-list { display: grid; gap: 0.75rem; }
+  .faq-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem 1.25rem; }
+  .faq-item summary { cursor: pointer; color: white; font-weight: 600; list-style: none; }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item p { margin: 0.9rem 0 0; font-size: 0.98rem; }
+  .related-articles { margin-top: 3rem; }
+  .related-articles h3 { font-size: 1.4rem; font-weight: 400; color: white; margin-bottom: 1rem; }
+  .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  .related-card { display: block; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; transition: transform 0.2s ease, border-color 0.2s ease; }
+  .related-card:hover { transform: translateY(-2px); border-color: rgba(23,200,212,0.45); }
+  .related-card h4 { color: white; font-size: 1rem; line-height: 1.4; margin-top: 0.75rem; }
 </style>

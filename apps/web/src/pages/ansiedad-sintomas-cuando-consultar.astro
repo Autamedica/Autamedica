@@ -1,0 +1,84 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/ansiedad-sintomas-cuando-consultar';
+---
+
+<Layout
+  title="Ansiedad: Síntomas y Cuándo Consultar | AutaMedica"
+  description="Ansiedad: cómo reconocer síntomas frecuentes, cuándo pedir ayuda y en qué momento una consulta clínica o psicológica puede ordenar el cuadro."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="editorial-page">
+    <section class="hero">
+      <div class="wrap">
+        <span class="eyebrow">Salud mental</span>
+        <h1>La ansiedad suele hablar en muchos idiomas: insomnio, taquicardia, irritabilidad, cansancio, sensación de amenaza.</h1>
+        <p class="lede">
+          El problema no es sentir ansiedad alguna vez. El problema es cuando empieza a ordenar la vida alrededor
+          del miedo, la evitación o la hiperalerta. Ahí conviene dejar de adivinar y empezar a consultar.
+        </p>
+      </div>
+    </section>
+    <section class="content">
+      <div class="wrap grid">
+        <article class="main">
+          <section>
+            <h2>Síntomas que suelen aparecer</h2>
+            <p>
+              Palpitaciones, opresión en el pecho, pensamientos repetitivos, dificultad para concentrarse, tensión muscular,
+              irritabilidad, trastornos del sueño, sensación de no poder cortar la preocupación.
+            </p>
+          </section>
+          <section>
+            <h2>Cuándo conviene consultar</h2>
+            <p>
+              Cuando el malestar es frecuente, interfiere con trabajo, estudio, vínculos o descanso, o cuando ya empezaste
+              a organizar tu rutina para evitar situaciones que antes eran normales.
+            </p>
+          </section>
+          <section>
+            <h2>Por dónde empezar</h2>
+            <p>
+              A veces con psicología. A veces con una evaluación clínica general para descartar otras causas o entender mejor
+              el cuadro. Lo importante es no quedar atrapado en una explicación única antes de hablar con un profesional.
+            </p>
+          </section>
+        </article>
+        <aside class="rail">
+          <div class="rail-card">
+            <p class="rail-title">Relacionado</p>
+            <a href="/psicologo-online">Psicólogo online</a>
+            <a href="/blog/ansiedad-cronica-herramientas">Ansiedad crónica</a>
+            <a href="/medico-online">Médico online</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .editorial-page { min-height: 100vh; background: var(--au-bg); }
+  .wrap { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+  .hero { padding: 5rem 0 3rem; border-bottom: 1px solid var(--au-border); background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
+  .eyebrow { display: inline-block; margin-bottom: 1rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+  h1 { max-width: 980px; margin: 0; color: white; font-size: clamp(2.4rem, 6vw, 4.7rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.04em; }
+  .lede { max-width: 760px; margin-top: 1.5rem; color: #d1d5db; font-size: 1.15rem; line-height: 1.8; }
+  .content { padding: 3rem 0 5rem; }
+  .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr); gap: 2rem; }
+  .main section { margin-bottom: 2.5rem; }
+  h2 { color: white; font-size: 1.8rem; margin-bottom: 1rem; }
+  p { color: #cbd5e1; line-height: 1.85; font-size: 1.04rem; }
+  .rail { position: sticky; top: 1rem; }
+  .rail-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.03); padding: 1rem; }
+  .rail-title { color: white; font-weight: 600; }
+  .rail-card a { display: block; color: #93c5fd; text-decoration: none; margin-top: 0.8rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .rail { position: static; } }
+</style>

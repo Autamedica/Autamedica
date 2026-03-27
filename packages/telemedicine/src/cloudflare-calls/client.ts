@@ -54,6 +54,8 @@ export class CloudflareCallsClient {
   private cachedDevices: DeviceInfo[] = []
   // stream ID → remoteUserId (para mapear tracks a usuarios)
   private streamIdToUserId = new Map<string, string>()
+  private pendingRemoteUserIds: string[] = []
+  private connectedPeerIds = new Set<string>()
   private pendingSessionId: string | null = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners = new Map<keyof WebRTCEvents, ((...args: any[]) => void)[]>()
@@ -236,6 +238,8 @@ export class CloudflareCallsClient {
     for (const t of this.localStream?.getTracks() ?? []) t.stop()
     this.localStream = null
     this.streamIdToUserId.clear()
+    this.pendingRemoteUserIds = []
+    this.connectedPeerIds.clear()
   }
 
   /* ── Chat (via señalización WS) ── */
@@ -336,6 +340,7 @@ export class CloudflareCallsClient {
       }
 
       case 'user-left': {
+        this.connectedPeerIds.delete(msg.from)
         this.emit('user-left', msg.from)
         break
       }
@@ -344,6 +349,9 @@ export class CloudflareCallsClient {
         const { sessionId: remoteSessionId, userType: remoteUserType } = msg.data
         const remoteUserId = msg.from
         this.emit('user-joined', remoteUserId, remoteUserType)
+        if (!this.pendingRemoteUserIds.includes(remoteUserId)) {
+          this.pendingRemoteUserIds.push(remoteUserId)
+        }
 
         if (this.cfSession) {
           // Suscribirse a los tracks del peer remoto
@@ -369,9 +377,23 @@ export class CloudflareCallsClient {
 
   private handleRemoteTrack(event: RTCTrackEvent): void {
     const stream = event.streams[0] ?? new MediaStream([event.track])
-    // En una llamada 2-personas el primer peer remoto es el único
-    const userId = this.streamIdToUserId.get(stream.id) ?? stream.id
+    let userId = this.streamIdToUserId.get(stream.id)
+
+    if (!userId) {
+      userId = this.pendingRemoteUserIds.shift() ?? stream.id
+      this.streamIdToUserId.set(stream.id, userId)
+    }
+
     this.emit('remote-stream', stream, userId)
+
+    if (!this.connectedPeerIds.has(userId)) {
+      this.connectedPeerIds.add(userId)
+      this.emit('peer-connected', {
+        peerId: userId,
+        connectionState: 'connected',
+        iceConnectionState: 'connected',
+      })
+    }
   }
 
   private sendSignal(data: Record<string, unknown>): void {

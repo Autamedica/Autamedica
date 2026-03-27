@@ -10,6 +10,7 @@ export class CallService {
   private functionsBaseUrl: string
   private anonKey: string
   private readonly debugLogger = createTelemedicineLogger({ source: 'CallService' })
+  private callEventsPersistenceDisabled = false
 
   constructor(supabaseUrl: string, supabaseKey: string, existingClient?: SupabaseClient<Database>) {
     this.supabase = existingClient ?? createClient<Database>(supabaseUrl, supabaseKey, {
@@ -37,6 +38,53 @@ export class CallService {
     }
   }
 
+  private disableCallEventsPersistence(error: unknown): void {
+    if (this.callEventsPersistenceDisabled) {
+      return
+    }
+
+    this.callEventsPersistenceDisabled = true
+    this.writeLocalDebug('warn', 'Persistencia de call_events deshabilitada por error de auth/RLS', {
+      error,
+    })
+  }
+
+  private shouldDisableCallEventsPersistence(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false
+    }
+
+    const maybeError = error as {
+      code?: string
+      message?: string
+      details?: string
+      hint?: string
+      status?: number
+      statusCode?: number
+    }
+
+    const message = [
+      maybeError.message,
+      maybeError.details,
+      maybeError.hint,
+    ]
+      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      .join(' ')
+      .toLowerCase()
+
+    return (
+      maybeError.status === 401
+      || maybeError.statusCode === 401
+      || maybeError.code === '401'
+      || message.includes('401')
+      || message.includes('unauthorized')
+      || message.includes('jwt')
+      || message.includes('permission denied')
+      || message.includes('row-level security')
+      || message.includes('not allowed')
+    )
+  }
+
   async logDebugEvent(
     callId: string,
     level: TelemedicineDebugLevel,
@@ -44,6 +92,10 @@ export class CallService {
     message: string,
     payload?: Record<string, unknown>,
   ): Promise<void> {
+    if (this.callEventsPersistenceDisabled) {
+      return
+    }
+
     try {
       await this.logEvent(callId, 'debug_log', {
         level,
@@ -59,6 +111,10 @@ export class CallService {
         payload,
         error,
       })
+
+      if (this.shouldDisableCallEventsPersistence(error)) {
+        this.disableCallEventsPersistence(error)
+      }
     }
   }
 
@@ -314,6 +370,10 @@ export class CallService {
   }
 
   async logEvent(callId: string, type: string, payload?: Json): Promise<void> {
+    if (this.callEventsPersistenceDisabled) {
+      return
+    }
+
     this.writeLocalDebug('info', 'Persistiendo call_event', { callId, type, payload })
     const { error } = await this.supabase
       .from('call_events')
@@ -323,7 +383,14 @@ export class CallService {
         payload
       })
 
-    if (error) throw error
+    if (error) {
+      if (this.shouldDisableCallEventsPersistence(error)) {
+        this.disableCallEventsPersistence(error)
+        return
+      }
+
+      throw error
+    }
   }
 
   async getCallEvents(callId: string): Promise<CallEvent[]> {

@@ -39,6 +39,8 @@ export {
   ICE_WITH_TURN,
   loadSignalingUrl,
   fetchTurnCredentials,
+  hasTurnIceServer,
+  hasStunIceServer,
 } from './config/ice-servers'
 
 export {

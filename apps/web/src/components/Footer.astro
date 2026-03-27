@@ -4,30 +4,49 @@ import { getI18n } from '../i18n/index';
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
 const currentYear = new Date().getFullYear();
+const socialLinks = [
+  { text: 'YouTube', href: 'https://www.youtube.com/@AUTAMEDICA' },
+  { text: 'TikTok', href: 'https://www.tiktok.com/@auta_medica' },
+  { text: 'LinkedIn', href: 'https://www.linkedin.com/in/eduardo-marques-b00739249/' },
+];
 
 const columns = [
   {
     title: t('landing.footer.platformTitle'),
     links: [
-      { text: t('landing.footer.patients'), href: "/auth/select-role" },
-      { text: t('landing.footer.doctors'), href: "/auth/select-role" },
-      { text: t('landing.footer.companies'), href: "/auth/select-role" },
+      { text: t('landing.footer.patients'), href: '/patients' },
+      { text: t('landing.footer.doctors'), href: '/doctors' },
+      { text: t('landing.footer.companies'), href: '/companies' },
+      { text: 'Especialidades', href: '/especialidades' },
     ]
   },
   {
     title: t('landing.footer.resourcesTitle'),
     links: [
-      { text: t('landing.footer.howItWorks'), href: "#proceso" },
-      { text: t('landing.footer.security'), href: "/privacidad" },
-      { text: t('landing.footer.support'), href: "mailto:soporte@autamedica.com" },
+      { text: t('landing.footer.howItWorks'), href: '/consulta-medica-online' },
+      { text: 'Telemedicina', href: '/telemedicina-argentina' },
+      { text: 'Médico online', href: '/medico-online' },
+      { text: 'Turno médico online', href: '/turno-medico-online' },
+      { text: 'Blog', href: '/blog' },
+      { text: t('landing.footer.support'), href: 'mailto:soporte@autamedica.com' },
+    ]
+  },
+  {
+    title: 'Especialidades',
+    links: [
+      { text: 'Psicólogo online', href: '/psicologo-online' },
+      { text: 'Cardiólogo online', href: '/cardiologo-online' },
+      { text: 'Dermatólogo online', href: '/dermatologo-online' },
+      { text: 'Receta electrónica', href: '/receta-electronica' },
     ]
   },
   {
     title: t('landing.footer.legalTitle'),
     links: [
-      { text: t('landing.footer.privacy'), href: "/privacidad" },
-      { text: t('landing.footer.terms'), href: "/terms" },
-      { text: t('landing.footer.hipaaCompliance'), href: "/privacidad" },
+      { text: t('landing.footer.privacy'), href: '/privacidad' },
+      { text: t('landing.footer.terms'), href: '/terms' },
+      { text: 'Ley 26529', href: '/blog/que-dice-la-ley-26529' },
+      { text: 'Ley 27553', href: '/ley-27553-telemedicina' },
     ]
   }
 ];
@@ -45,18 +64,27 @@ const columns = [
           <span class="text-2xl font-medium tracking-tight mt-6 block text-[var(--au-text-primary)]">AutaMedica</span>
         </a>
         <p class="brand-desc mt-4 text-[var(--au-text-tertiary)] text-lg max-w-sm font-light" set:html={t('landing.footer.tagline').replace('\n', '<br/>')} />
+        <ul class="social-links mt-8" role="list">
+          {socialLinks.map((link) => (
+            <li>
+              <a href={link.href} target="_blank" rel="me noopener noreferrer" class="social-link">
+                {link.text}
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div class="nav-cols">
         {columns.map((col) => (
           <div class="nav-group">
-            <h4 class="nav-header text-[10px] tracking-widest text-[var(--au-text-tertiary)] mb-8">{col.title}</h4>
+            <h4 class="nav-header text-[10px] tracking-widest mb-8">{col.title}</h4>
             <ul class="nav-list space-y-4">
               {col.links.map((link) => (
                 <li>
-                  <a href={link.href} class="nav-link text-[var(--au-text-secondary)] hover:text-[var(--au-text-primary)] transition-colors duration-300 text-lg relative inline-block group">
+                  <a href={link.href} class="nav-link transition-colors duration-300 text-lg relative inline-block group">
                     {link.text}
-                    <span class="absolute -bottom-1 left-0 w-0 h-[1px] bg-[var(--au-text-primary)] transition-all duration-300 group-hover:w-full" />
+                    <span class="absolute -bottom-1 left-0 w-0 h-[1px] transition-all duration-300 group-hover:w-full" />
                   </a>
                 </li>
               ))}
@@ -88,7 +116,7 @@ const columns = [
 <style>
   .footer-premium {
     background: var(--au-bg);
-    color: var(--au-text-primary);
+    color: #ffffff;
     padding-top: clamp(8rem, 15vh, 12rem);
     position: relative;
     z-index: 10;
@@ -120,13 +148,68 @@ const columns = [
 
   .nav-cols {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-16);
+  }
+
+  .nav-group {
+    min-width: 180px;
+  }
+
+  .nav-header {
+    color: #38d4ff;
+  }
+
+  .nav-link {
+    color: #ffffff;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
+  }
+
+  .nav-link:hover {
+    color: #38d4ff;
+    text-shadow: 0 0 18px rgba(56, 212, 255, 0.42);
+  }
+
+  .nav-link span {
+    background: #38d4ff;
   }
 
   .footer-massive-word {
     color: rgba(255, 255, 255, 0.14);
     text-shadow: 0 0 24px rgba(255, 255, 255, 0.06);
+  }
+
+  .social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-bottom: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .social-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.55rem 0.95rem;
+    border: 1px solid rgba(56, 212, 255, 0.3);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.08);
+    transition:
+      color var(--transition-base),
+      border-color var(--transition-base),
+      box-shadow var(--transition-base),
+      background var(--transition-base);
+  }
+
+  .social-link:hover {
+    color: #38d4ff;
+    border-color: rgba(56, 212, 255, 0.75);
+    background: rgba(0, 0, 0, 0.72);
+    box-shadow: 0 0 20px rgba(56, 212, 255, 0.18);
   }
   
   @media (max-width: 640px) {

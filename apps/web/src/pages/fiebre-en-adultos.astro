@@ -1,0 +1,84 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/fiebre-en-adultos';
+---
+
+<Layout
+  title="Fiebre en Adultos: Qué Hacer y Cuándo Consultar | AutaMedica"
+  description="Fiebre en adultos: cuándo observar, cuándo consultar y qué signos cambian una molestia común en una urgencia."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="editorial-page">
+    <section class="hero">
+      <div class="wrap">
+        <span class="eyebrow">Síntomas</span>
+        <h1>La fiebre no es el problema en sí. Es una señal. La pregunta correcta es de qué cuadro forma parte.</h1>
+        <p class="lede">
+          Tener fiebre no siempre exige estudios ni guardia. Pero sí exige contexto: cuánto dura, qué otros síntomas
+          aparecen, si hay enfermedades de base y si el estado general está cambiado.
+        </p>
+      </div>
+    </section>
+    <section class="content">
+      <div class="wrap grid">
+        <article class="main">
+          <section>
+            <h2>Cuándo puede observarse en casa</h2>
+            <p>
+              Fiebre de corta evolución con buen estado general, hidratación conservada y síntomas respiratorios o
+              virales leves puede controlarse inicialmente con seguimiento clínico.
+            </p>
+          </section>
+          <section>
+            <h2>Cuándo conviene consultar pronto</h2>
+            <p>
+              Si persiste, reaparece, se asocia a dolor fuerte, dificultad respiratoria, confusión, deshidratación,
+              rigidez de cuello o empeoramiento marcado del estado general.
+            </p>
+          </section>
+          <section>
+            <h2>Por qué una videollamada puede servir</h2>
+            <p>
+              Porque ayuda a definir si el cuadro parece viral, si hay que controlar evolución o si ya hay criterios
+              para examen presencial, laboratorio o imágenes. La fiebre aislada dice poco; el cuadro completo dice más.
+            </p>
+          </section>
+        </article>
+        <aside class="rail">
+          <div class="rail-card">
+            <p class="rail-title">Relacionado</p>
+            <a href="/medico-online">Médico online</a>
+            <a href="/turno-medico-online">Turno médico online</a>
+            <a href="/blog/guia-consulta-medica-online">Guía de consulta online</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .editorial-page { min-height: 100vh; background: var(--au-bg); }
+  .wrap { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+  .hero { padding: 5rem 0 3rem; border-bottom: 1px solid var(--au-border); background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
+  .eyebrow { display: inline-block; margin-bottom: 1rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+  h1 { max-width: 940px; margin: 0; color: white; font-size: clamp(2.4rem, 6vw, 4.7rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.04em; }
+  .lede { max-width: 760px; margin-top: 1.5rem; color: #d1d5db; font-size: 1.15rem; line-height: 1.8; }
+  .content { padding: 3rem 0 5rem; }
+  .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr); gap: 2rem; }
+  .main section { margin-bottom: 2.5rem; }
+  h2 { color: white; font-size: 1.8rem; margin-bottom: 1rem; }
+  p { color: #cbd5e1; line-height: 1.85; font-size: 1.04rem; }
+  .rail { position: sticky; top: 1rem; }
+  .rail-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.03); padding: 1rem; }
+  .rail-title { color: white; font-weight: 600; }
+  .rail-card a { display: block; color: #93c5fd; text-decoration: none; margin-top: 0.8rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .rail { position: static; } }
+</style>

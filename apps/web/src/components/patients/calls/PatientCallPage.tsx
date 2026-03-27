@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { UnifiedVideoCall } from '@autamedica/telemedicine'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createBrowserClient } from '@autamedica/auth'
+import { UnifiedVideoCall, createCallService } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
@@ -30,8 +31,16 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     error: callSessionError,
     refresh: refreshCallSession,
   } = useCallSession(roomId, isReady)
+  const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
 
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
+  const getCallService = useCallback(() => {
+    if (!callServiceRef.current) {
+      callServiceRef.current = createCallService(createBrowserClient())
+    }
+
+    return callServiceRef.current
+  }, [])
   const effectiveRole = useMemo(() => {
     if (typeof typedProfile?.role === 'string' && typedProfile.role.length > 0) {
       return typedProfile.role
@@ -163,6 +172,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       theme="patient"
       onCallEnd={handleCallEnd}
       persistCallStatus={handlePersistCallStatus}
+      callService={getCallService()}
       autoStart
       className="h-screen"
     />

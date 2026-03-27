@@ -1,0 +1,86 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/ley-27553-telemedicina';
+---
+
+<Layout
+  title="Ley 27553: Qué Regula la Telemedicina en Argentina | AutaMedica"
+  description="Qué regula la Ley 27553 en Argentina y por qué importa para la práctica de telemedicina, la identidad profesional, la receta y los derechos del paciente."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="editorial-page">
+    <section class="hero">
+      <div class="wrap">
+        <span class="eyebrow">Marco legal</span>
+        <h1>La Ley 27553 no hizo “virtual” a la medicina. Hizo explícitas condiciones para ejercerla con responsabilidad a distancia.</h1>
+        <p class="lede">
+          Cuando se habla de telemedicina, la pregunta legal suele aparecer tarde. Debería aparecer antes: qué vale,
+          qué obligaciones existen, qué pasa con la identidad profesional, la receta, el registro clínico y los
+          derechos del paciente.
+        </p>
+      </div>
+    </section>
+    <section class="content">
+      <div class="wrap grid">
+        <article class="main">
+          <section>
+            <h2>Qué ordena la ley</h2>
+            <p>
+              Reconoce el uso de herramientas digitales en la atención, enmarca la prescripción electrónica y obliga a
+              que la práctica remota conserve trazabilidad, identificación profesional, resguardo de información y
+              consistencia clínica.
+            </p>
+          </section>
+          <section>
+            <h2>Qué no cambia</h2>
+            <p>
+              La obligación médica de actuar con criterio, documentar, explicar y derivar cuando corresponde. La distancia
+              tecnológica no reduce la responsabilidad profesional.
+            </p>
+          </section>
+          <section>
+            <h2>Por qué importa para el paciente</h2>
+            <p>
+              Porque una teleconsulta seria no es solo una videollamada. También es identidad verificable, confidencialidad,
+              continuidad documental y acceso a indicaciones que realmente puedan ejecutarse después.
+            </p>
+          </section>
+        </article>
+        <aside class="rail">
+          <div class="rail-card">
+            <p class="rail-title">Relacionado</p>
+            <a href="/blog/que-dice-la-ley-26529">Ley 26529</a>
+            <a href="/receta-electronica">Receta electrónica</a>
+            <a href="/blog/cuales-son-los-3-tipos-de-telemedicina">Tipos de telemedicina</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .editorial-page { min-height: 100vh; background: var(--au-bg); }
+  .wrap { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+  .hero { padding: 5rem 0 3rem; border-bottom: 1px solid var(--au-border); background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
+  .eyebrow { display: inline-block; margin-bottom: 1rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+  h1 { max-width: 980px; margin: 0; color: white; font-size: clamp(2.4rem, 6vw, 4.7rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.04em; }
+  .lede { max-width: 760px; margin-top: 1.5rem; color: #d1d5db; font-size: 1.15rem; line-height: 1.8; }
+  .content { padding: 3rem 0 5rem; }
+  .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr); gap: 2rem; }
+  .main section { margin-bottom: 2.5rem; }
+  h2 { color: white; font-size: 1.8rem; margin-bottom: 1rem; }
+  p { color: #cbd5e1; line-height: 1.85; font-size: 1.04rem; }
+  .rail { position: sticky; top: 1rem; }
+  .rail-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.03); padding: 1rem; }
+  .rail-title { color: white; font-weight: 600; }
+  .rail-card a { display: block; color: #93c5fd; text-decoration: none; margin-top: 0.8rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .rail { position: static; } }
+</style>

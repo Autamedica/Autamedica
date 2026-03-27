@@ -18,8 +18,19 @@ const jsonLd = {
       description: 'Plataforma de telemedicina sin fricciones con IA médica',
       sameAs: [
         'https://twitter.com/autamedica',
-        'https://linkedin.com/company/autamedica'
+        'https://www.youtube.com/@AUTAMEDICA',
+        'https://www.tiktok.com/@auta_medica'
       ]
+    },
+    {
+      '@type': 'Person',
+      '@id': `${baseUrl}/#founder`,
+      name: 'Eduardo Marques',
+      url: 'https://www.linkedin.com/in/eduardo-marques-b00739249/',
+      sameAs: ['https://www.linkedin.com/in/eduardo-marques-b00739249/'],
+      worksFor: {
+        '@id': `${baseUrl}/#organization`
+      }
     },
     {
       '@type': 'WebSite',
@@ -51,6 +62,9 @@ const jsonLd = {
       },
       isPartOf: {
         '@id': `${baseUrl}/#website`,
+      },
+      founder: {
+        '@id': `${baseUrl}/#founder`,
       },
     },
     {

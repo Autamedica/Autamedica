@@ -132,19 +132,31 @@ export function getIceServersConfig(): RTCIceServer[] {
 export function validateIceServersConfig(servers: RTCIceServer[]): boolean {
   if (!Array.isArray(servers) || servers.length === 0) return false
 
-  const hasStun = servers.some((s) => {
-    const url = Array.isArray(s.urls) ? s.urls[0] : s.urls
-    return typeof url === 'string' && url.startsWith('stun:')
-  })
-  const hasTurn = servers.some((s) => {
-    const url = Array.isArray(s.urls) ? s.urls[0] : s.urls
-    return typeof url === 'string' && (url.startsWith('turn:') || url.startsWith('turns:'))
-  })
+  const hasStun = hasStunIceServer(servers)
+  const hasTurn = hasTurnIceServer(servers)
 
   if (!hasStun) logger.warn('No STUN servers configured. ICE may fail in some networks.')
   if (!hasTurn) logger.warn('No TURN servers configured. Connections behind strict NAT may fail.')
 
   return true
+}
+
+export function hasTurnIceServer(servers: RTCIceServer[]): boolean {
+  if (!Array.isArray(servers) || servers.length === 0) return false
+
+  return servers.some((server) => {
+    const urls = Array.isArray(server.urls) ? server.urls : [server.urls]
+    return urls.some((url) => typeof url === 'string' && (url.startsWith('turn:') || url.startsWith('turns:')))
+  })
+}
+
+export function hasStunIceServer(servers: RTCIceServer[]): boolean {
+  if (!Array.isArray(servers) || servers.length === 0) return false
+
+  return servers.some((server) => {
+    const urls = Array.isArray(server.urls) ? server.urls : [server.urls]
+    return urls.some((url) => typeof url === 'string' && url.startsWith('stun:'))
+  })
 }
 
 /**

@@ -1,0 +1,84 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/dolor-de-pecho';
+---
+
+<Layout
+  title="Dolor de Pecho: Cuándo Consultar y Cuándo es Urgencia | AutaMedica"
+  description="Dolor de pecho: señales de alarma, cuándo consultar de inmediato y cuándo una primera orientación médica puede hacerse por telemedicina."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="editorial-page">
+    <section class="hero">
+      <div class="wrap">
+        <span class="eyebrow">Síntomas</span>
+        <h1>Dolor de pecho: el dato más importante no es si duele, sino cómo, cuándo y con qué otros síntomas.</h1>
+        <p class="lede">
+          El dolor de pecho no significa siempre un problema cardíaco. Pero a veces sí. Y por eso la primera
+          tarea médica no es tranquilizar rápido ni alarmar de más: es separar lo que puede esperar de lo que no.
+        </p>
+      </div>
+    </section>
+    <section class="content">
+      <div class="wrap grid">
+        <article class="main">
+          <section>
+            <h2>Cuándo es urgencia</h2>
+            <p>
+              Si el dolor es opresivo, aparece con falta de aire, sudor frío, náuseas, desmayo, irradiación al brazo,
+              mandíbula o espalda, o si ocurre en reposo y no cede, la prioridad es la evaluación presencial urgente.
+            </p>
+          </section>
+          <section>
+            <h2>Cuándo una primera orientación puede hacerse a distancia</h2>
+            <p>
+              En molestias leves, recurrentes, vinculadas a movimiento, ansiedad o antecedentes ya estudiados, una
+              consulta inicial puede ordenar el caso. Eso no descarta estudios posteriores; ayuda a decidir mejor.
+            </p>
+          </section>
+          <section>
+            <h2>Lo que busca entender un médico</h2>
+            <p>
+              Tipo de dolor, duración, contexto, factores que lo disparan, antecedentes cardiovasculares, edad,
+              medicación, síntomas asociados y riesgo basal. En dolor torácico, el matiz importa.
+            </p>
+          </section>
+        </article>
+        <aside class="rail">
+          <div class="rail-card">
+            <p class="rail-title">Relacionado</p>
+            <a href="/cardiologo-online">Cardiólogo online</a>
+            <a href="/blog/5-senales-alerta-cardiaca">Señales de alerta cardíaca</a>
+            <a href="/turno-medico-online">Turno médico online</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .editorial-page { min-height: 100vh; background: var(--au-bg); }
+  .wrap { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+  .hero { padding: 5rem 0 3rem; border-bottom: 1px solid var(--au-border); background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
+  .eyebrow { display: inline-block; margin-bottom: 1rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+  h1 { max-width: 940px; margin: 0; color: white; font-size: clamp(2.4rem, 6vw, 4.7rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.04em; }
+  .lede { max-width: 760px; margin-top: 1.5rem; color: #d1d5db; font-size: 1.15rem; line-height: 1.8; }
+  .content { padding: 3rem 0 5rem; }
+  .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr); gap: 2rem; }
+  .main section { margin-bottom: 2.5rem; }
+  h2 { color: white; font-size: 1.8rem; margin-bottom: 1rem; }
+  p { color: #cbd5e1; line-height: 1.85; font-size: 1.04rem; }
+  .rail { position: sticky; top: 1rem; }
+  .rail-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.03); padding: 1rem; }
+  .rail-title { color: white; font-weight: 600; }
+  .rail-card a { display: block; color: #93c5fd; text-decoration: none; margin-top: 0.8rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .rail { position: static; } }
+</style>

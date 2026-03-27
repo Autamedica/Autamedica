@@ -11,6 +11,16 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/telemedicina-argentina', priority: '0.85', changefreq: 'weekly' },
   { path: '/consulta-medica-online', priority: '0.85', changefreq: 'weekly' },
   { path: '/especialidades', priority: '0.8', changefreq: 'weekly' },
+  { path: '/medico-online', priority: '0.85', changefreq: 'weekly' },
+  { path: '/turno-medico-online', priority: '0.85', changefreq: 'weekly' },
+  { path: '/psicologo-online', priority: '0.8', changefreq: 'weekly' },
+  { path: '/cardiologo-online', priority: '0.8', changefreq: 'weekly' },
+  { path: '/dermatologo-online', priority: '0.8', changefreq: 'weekly' },
+  { path: '/receta-electronica', priority: '0.8', changefreq: 'weekly' },
+  { path: '/dolor-de-pecho', priority: '0.85', changefreq: 'weekly' },
+  { path: '/fiebre-en-adultos', priority: '0.8', changefreq: 'weekly' },
+  { path: '/ansiedad-sintomas-cuando-consultar', priority: '0.8', changefreq: 'weekly' },
+  { path: '/ley-27553-telemedicina', priority: '0.8', changefreq: 'weekly' },
 
   // Blog
   { path: '/blog', priority: '0.85', changefreq: 'weekly' },
@@ -23,6 +33,12 @@ const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/blog/ansiedad-cronica-herramientas', priority: '0.7', changefreq: 'monthly' },
   { path: '/blog/dermatologia-acne-adulto', priority: '0.7', changefreq: 'monthly' },
   { path: '/blog/historia-clinica-digital', priority: '0.7', changefreq: 'monthly' },
+
+  // SEO FAQ Articles (People Also Ask - Google)
+  { path: '/blog/que-hizo-el-protomedicato', priority: '0.75', changefreq: 'monthly' },
+  { path: '/blog/que-es-r1-r2-r3-r4-en-medicina', priority: '0.75', changefreq: 'monthly' },
+  { path: '/blog/que-dice-la-ley-26529', priority: '0.80', changefreq: 'monthly' },
+  { path: '/blog/cuales-son-los-3-tipos-de-telemedicina', priority: '0.85', changefreq: 'monthly' },
 
   { path: '/privacidad', priority: '0.4', changefreq: 'yearly' },
   { path: '/terms', priority: '0.4', changefreq: 'yearly' },

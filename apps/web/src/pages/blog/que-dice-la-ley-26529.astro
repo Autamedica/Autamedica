@@ -174,6 +174,24 @@ const article = {
             <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
           </div>
 
+          <div class="related-articles">
+            <h3>Artículos relacionados</h3>
+            <div class="related-grid">
+              <a href="/blog/cuales-son-los-3-tipos-de-telemedicina" class="related-card">
+                <span class="category">Telemedicina</span>
+                <h4>¿Cuáles son los 3 tipos de telemedicina?</h4>
+              </a>
+              <a href="/blog/telemedicina-revolucion-salud" class="related-card">
+                <span class="category">Telemedicina</span>
+                <h4>¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina?</h4>
+              </a>
+              <a href="/blog/guia-consulta-medica-online" class="related-card">
+                <span class="category">Guía Práctica</span>
+                <h4>Guía Completa: Cómo Hacer una Consulta Médica Online</h4>
+              </a>
+            </div>
+          </div>
+
         </div>
       </div>
     </article>
@@ -211,4 +229,10 @@ const article = {
   .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
   .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
   .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
+  .related-articles { margin-top: 3rem; }
+  .related-articles h3 { font-size: 1.4rem; font-weight: 400; color: white; margin-bottom: 1rem; }
+  .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  .related-card { display: block; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; transition: transform 0.2s ease, border-color 0.2s ease; }
+  .related-card:hover { transform: translateY(-2px); border-color: rgba(23,200,212,0.45); }
+  .related-card h4 { color: white; font-size: 1rem; line-height: 1.4; margin-top: 0.75rem; }
 </style>

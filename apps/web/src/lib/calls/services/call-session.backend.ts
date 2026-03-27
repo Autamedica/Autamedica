@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import type { Call, CallSessionBootstrap, CallSessionRole, CallSessionRuntime } from '@autamedica/telemedicine'
+import { getIceServersConfig, hasTurnIceServer } from '@autamedica/telemedicine'
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
 
 type Db = SupabaseClient<Database>
@@ -57,6 +58,7 @@ function buildBootstrap(
   displayName?: string,
 ): CallSessionBootstrap {
   const runtime = resolveRuntime()
+  const iceServers = runtime === 'webrtc-p2p' ? getIceServersConfig() : undefined
   const cloudflareCallsApiUrl =
     runtime === 'cloudflare-calls'
       ? viewerRole === 'doctor'
@@ -87,6 +89,7 @@ function buildBootstrap(
       allowAudioOnlyFallback: true,
     },
     transport: {
+      ...(iceServers ? { iceServers } : {}),
       cloudflareCallsApiUrl,
     },
     waitingRoom: buildWaitingRoom(call, viewerRole),
@@ -122,6 +125,17 @@ export const callSessionBackendService = {
     ])
 
     if (matchesParticipant(doctorProfileId, call.doctor_id, viewerUserId)) {
+      if (resolveRuntime() === 'webrtc-p2p') {
+        const iceServers = getIceServersConfig()
+        if (!hasTurnIceServer(iceServers)) {
+          logger.warn('[callSessionBackendService] p2p bootstrap without TURN', {
+            roomId,
+            callId: call.id,
+            role: 'doctor',
+          })
+        }
+      }
+
       return {
         kind: 'ok',
         data: buildBootstrap(call, viewerUserId, 'doctor', displayName),
@@ -129,6 +143,17 @@ export const callSessionBackendService = {
     }
 
     if (matchesParticipant(patientProfileId, call.patient_id, viewerUserId)) {
+      if (resolveRuntime() === 'webrtc-p2p') {
+        const iceServers = getIceServersConfig()
+        if (!hasTurnIceServer(iceServers)) {
+          logger.warn('[callSessionBackendService] p2p bootstrap without TURN', {
+            roomId,
+            callId: call.id,
+            role: 'patient',
+          })
+        }
+      }
+
       return {
         kind: 'ok',
         data: buildBootstrap(call, viewerUserId, 'patient', displayName),

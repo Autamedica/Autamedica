@@ -4,6 +4,7 @@ import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
 import { appointmentsService } from '@/lib/patients/services/appointments.service'
 import { callStartRepo } from '@/lib/calls/repos/call-start.repo'
+import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { badRequest, conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 
 const JOINABLE_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress', 'in-progress'])
@@ -24,6 +25,23 @@ async function ensurePatientJoined(
     logger.warn('[patients/appointments/[id]/join] Failed to move call to accepted', error)
     return currentStatus
   }
+}
+
+function isCallAlignedWithAppointmentWindow(
+  call: { created_at: string },
+  appointment: {
+    start_time?: string | null
+    scheduled_at?: string | null
+    end_time?: string | null
+    duration_minutes?: number | null
+  },
+): boolean {
+  const callCreatedAtMs = Date.parse(call.created_at)
+  if (Number.isNaN(callCreatedAtMs)) {
+    return false
+  }
+
+  return isTelemedicineCallWindowOpen(appointment, callCreatedAtMs)
 }
 
 export const POST: APIRoute = async ({ request, params, locals }) => {
@@ -53,12 +71,23 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return conflict('appointment_not_joinable')
     }
 
+    if (!isTelemedicineCallWindowOpen(appointment)) {
+      return conflict('appointment_outside_call_window')
+    }
+
     const appointmentScopedCall = await callStartRepo.findActiveByAppointmentId(admin, appointment.id)
-    const existingCall = appointmentScopedCall ?? await callStartRepo.findActiveByParticipants(
-      admin,
-      appointment.doctor_id,
-      context.patientId,
-    )
+    const participantCall = appointmentScopedCall
+      ? null
+      : await callStartRepo.findActiveByParticipants(
+        admin,
+        appointment.doctor_id,
+        context.patientId,
+      )
+
+    const existingCall = appointmentScopedCall
+      ?? (participantCall && isCallAlignedWithAppointmentWindow(participantCall, appointment)
+        ? participantCall
+        : null)
 
     if (existingCall) {
       const status = await ensurePatientJoined(actorSupabase, existingCall.id, existingCall.status)

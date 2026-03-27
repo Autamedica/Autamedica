@@ -1,0 +1,86 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
+const canonicalUrl = 'https://www.autamedica.com/dermatologo-online';
+---
+
+<Layout
+  title="Dermatólogo Online en Argentina | AutaMedica"
+  description="Dermatólogo online para acné, dermatitis, lesiones cutáneas y seguimiento visual de la piel con consulta remota."
+  canonical={canonicalUrl}
+  ogImage="/images/seo/og-main.webp"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main class="editorial-page">
+    <section class="hero">
+      <div class="wrap">
+        <span class="eyebrow">Dermatología</span>
+        <h1>Dermatólogo online: una especialidad especialmente apta para mirar, comparar y seguir la evolución.</h1>
+        <p class="lede">
+          En dermatología, la imagen importa. Y por eso mismo, muchas consultas funcionan muy bien a distancia:
+          brotes de acné, eccema, dermatitis, infecciones superficiales, seguimiento de tratamientos y segunda opinión
+          sobre lesiones que requieren evaluación rápida.
+        </p>
+      </div>
+    </section>
+    <section class="content">
+      <div class="wrap grid">
+        <article class="main">
+          <section>
+            <h2>Qué casos suelen resolverse bien online</h2>
+            <p>
+              Acné, rosácea, dermatitis, reacciones alérgicas, hongos superficiales y seguimiento de lesiones ya
+              evaluadas. En estos escenarios, la comparación visual y la evolución en el tiempo suelen aportar tanto
+              como el examen inicial.
+            </p>
+          </section>
+          <section>
+            <h2>Cuándo conviene pasar a presencial</h2>
+            <p>
+              Cuando la calidad de imagen no alcanza, la lesión requiere dermatoscopía, hay sospecha oncológica,
+              o se necesita procedimiento. La teleconsulta sirve para ordenar el caso y acelerar esa derivación.
+            </p>
+          </section>
+          <section>
+            <h2>La ventaja concreta</h2>
+            <p>
+              En piel, esperar demasiado suele empeorar el cuadro o la adherencia. Una consulta más accesible permite
+              iniciar tratamiento antes, ajustar a tiempo y evitar que problemas manejables se vuelvan crónicos.
+            </p>
+          </section>
+        </article>
+        <aside class="rail">
+          <div class="rail-card">
+            <p class="rail-title">Relacionado</p>
+            <a href="/blog/dermatologia-acne-adulto">Acné en adultos</a>
+            <a href="/turno-medico-online">Reservar turno</a>
+            <a href="/especialidades">Especialidades</a>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .editorial-page { min-height: 100vh; background: var(--au-bg); }
+  .wrap { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+  .hero { padding: 5rem 0 3rem; border-bottom: 1px solid var(--au-border); background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
+  .eyebrow { display: inline-block; margin-bottom: 1rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+  h1 { max-width: 920px; margin: 0; color: white; font-size: clamp(2.4rem, 6vw, 4.7rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.04em; }
+  .lede { max-width: 760px; margin-top: 1.5rem; color: #d1d5db; font-size: 1.15rem; line-height: 1.8; }
+  .content { padding: 3rem 0 5rem; }
+  .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr); gap: 2rem; }
+  .main section { margin-bottom: 2.5rem; }
+  h2 { color: white; font-size: 1.8rem; margin-bottom: 1rem; }
+  p { color: #cbd5e1; line-height: 1.85; font-size: 1.04rem; }
+  .rail { position: sticky; top: 1rem; }
+  .rail-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.03); padding: 1rem; }
+  .rail-title { color: white; font-weight: 600; }
+  .rail-card a { display: block; color: #93c5fd; text-decoration: none; margin-top: 0.8rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .rail { position: static; } }
+</style>

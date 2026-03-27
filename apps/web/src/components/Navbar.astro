@@ -5,6 +5,14 @@ import { getI18n } from '../i18n/index';
 
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
+
+const navLinks = [
+  { href: '/consulta-medica-online', label: 'Consulta online' },
+  { href: '/telemedicina-argentina', label: 'Telemedicina' },
+  { href: '/especialidades', label: t('navbar.specialties') },
+  { href: '/blog', label: 'Blog' },
+  { href: '/doctors', label: t('navbar.professionals') },
+];
 ---
 
 <nav class="navbar" aria-label="Navegacion principal">
@@ -15,10 +23,9 @@ const { t } = getI18n(locale);
     </a>
 
     <ul class="navbar-links" role="list">
-      <li><a href="#producto">{t('navbar.product')}</a></li>
-      <li><a href="#profesionales">{t('navbar.professionals')}</a></li>
-      <li><a href="#sintomas">{t('navbar.specialties')}</a></li>
-      <li><a href="#portales">{t('navbar.access')}</a></li>
+      {navLinks.map((link) => (
+        <li><a href={link.href}>{link.label}</a></li>
+      ))}
     </ul>
 
     <div class="navbar-actions">
@@ -37,8 +44,9 @@ const { t } = getI18n(locale);
     z-index: 50;
     backdrop-filter: var(--blur-md);
     -webkit-backdrop-filter: var(--blur-md);
-    background: rgba(9, 9, 11, 0.85);
-    border-bottom: 1px solid var(--au-border);
+    background: rgba(0, 0, 0, 0.86);
+    border-bottom: 1px solid rgba(56, 212, 255, 0.18);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
   }
 
   .navbar-inner {
@@ -57,7 +65,7 @@ const { t } = getI18n(locale);
     gap: var(--space-3);
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
-    color: var(--au-text-primary);
+    color: #ffffff;
     letter-spacing: -0.01em;
   }
 
@@ -75,13 +83,17 @@ const { t } = getI18n(locale);
 
   .navbar-links a {
     font-size: var(--text-sm);
-    color: var(--au-text-secondary);
-    transition: color var(--transition-base);
+    color: #ffffff;
+    transition:
+      color var(--transition-base),
+      text-shadow var(--transition-base);
     letter-spacing: 0.01em;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
   }
 
   .navbar-links a:hover {
-    color: var(--au-text-primary);
+    color: #38d4ff;
+    text-shadow: 0 0 18px rgba(56, 212, 255, 0.42);
   }
 
   .navbar-actions {

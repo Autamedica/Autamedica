@@ -1,0 +1,26 @@
+priority,keyword,intent,page_type,difficulty,recommended_title,slug,status,notes
+P1,consulta médica online,transactional,landing,high,Consulta Médica Online en Argentina,consulta-medica-online,existing,Reforzar conversión y enlazado desde home y blog
+P1,médico online,transactional,landing,high,Médico Online: Consultá Hoy Sin Esperas,medico-online,planned,Landing comercial orientada a intención directa
+P1,telemedicina,mixed,hub,high,Telemedicina en Argentina: Cómo Funciona,telemedicina-argentina,existing,Usar como hub principal del cluster
+P1,turno médico online,transactional,landing,medium,Turno Médico Online en Minutos,turno-medico-online,planned,Enfocada en reserva rápida
+P1,psicólogo online,transactional,specialty,high,Psicólogo Online: Terapia por Videollamada,psicologo-online,planned,Alta intención comercial
+P1,cardiólogo online,transactional,specialty,medium,Cardiólogo Online: Consulta Cardiológica Virtual,cardiologo-online,planned,Apalancar artículo ya existente de cardiología
+P1,dermatólogo online,transactional,specialty,medium,Dermatólogo Online: Consulta de Piel por Video,dermatologo-online,planned,Conectar con contenido actual de dermatología
+P1,receta electrónica,informational,guide,medium,Receta Electrónica en Argentina: Qué Es y Cómo Funciona,receta-electronica,planned,Ideal para tráfico regulatorio y trust
+P1,historia clínica digital,informational,guide,medium,Historia Clínica Digital: Beneficios Reales para Pacientes,historia-clinica-digital,existing,Ya existe; reforzar enlazado interno y CTA
+P1,videoconsulta médica,transactional,landing,medium,Videoconsulta Médica Segura y Rápida,videoconsulta-medica,planned,Variante semántica fuerte de consulta online
+P1,ansiedad,informational,article,high,Ansiedad: Síntomas, Cuándo Consultar y Opciones de Ayuda,ansiedad-sintomas-cuando-consultar,planned,Separar de contenido lifestyle
+P1,dolor de pecho,informational,article,high,Dolor de Pecho: Cuándo es Urgencia y Cuándo Consultar,dolor-de-pecho,planned,Contenido clínico crítico y de alto interés
+P1,fiebre,informational,article,high,Fiebre en Adultos: Qué Hacer y Cuándo Consultar,fiebre-en-adultos,planned,Orientado a triaje y consulta temprana
+P2,dolor de garganta,informational,article,medium,Dolor de Garganta: Causas y Señales de Alarma,dolor-de-garganta,planned,Keyword de síntoma frecuente
+P2,tos,informational,article,high,Tos Persistente: Cuándo Deja de Ser Normal,tos-persistente,planned,Cluster respiratorio
+P2,dolor de cabeza,informational,article,high,Dolor de Cabeza: Tipos, Causas y Alertas,dolor-de-cabeza,planned,Keyword amplia; requiere enfoque clínico
+P2,dolor de espalda,informational,article,medium,Dolor de Espalda: Cuándo Puede Esperar y Cuándo No,dolor-de-espalda,planned,Síntoma frecuente con oportunidad SEO
+P2,dolor de estómago,informational,article,medium,Dolor de Estómago: Causas Frecuentes y Cuándo Consultar,dolor-de-estomago,planned,Keyword top-funnel de salud general
+P2,diabetes,informational,hub,high,Diabetes: Seguimiento, Síntomas y Control a Distancia,diabetes-control,planned,Crear cluster crónico y telemonitoreo
+P2,hipertensión,informational,hub,high,Hipertensión: Cómo Monitorearla y Cuándo Ajustar Tratamiento,hipertension-control,planned,Conectar con telemonitoreo
+P2,depresión,informational,article,high,Depresión: Síntomas Iniciales y Cuándo Buscar Ayuda,depresion-sintomas,planned,Coherente con especialidad de salud mental
+P2,certificado médico online,transactional,landing,medium,Certificado Médico Online: Qué Se Puede Emitir Legalmente,certificado-medico-online,planned,Requiere validación legal/editorial antes de publicar
+P2,ley 26529,informational,article,low,Ley 26529: Derechos del Paciente Explicados Simple,que-dice-la-ley-26529,existing,Ya existe; seguir usando como nodo legal
+P2,ley 27553,informational,article,low,Ley 27553: Qué Regula la Telemedicina en Argentina,ley-27553-telemedicina,planned,Complemento legal del cluster
+P2,especialidades médicas online,commercial,hub,medium,Especialidades Médicas Online Disponibles,especialidades,existing,Hub navegacional para enlazar especialidades

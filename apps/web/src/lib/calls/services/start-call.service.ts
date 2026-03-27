@@ -3,6 +3,7 @@ import type { Database } from '@autamedica/types'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room'
 import { callStartRepo } from '@/lib/calls/repos/call-start.repo'
+import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 
 type Db = SupabaseClient<Database>
 
@@ -99,6 +100,10 @@ export const startCallService = {
 
       if (!CALLABLE_APPOINTMENT_STATUSES.has(appointment.status)) {
         return { kind: 'conflict', message: 'appointment_not_callable' }
+      }
+
+      if (!isTelemedicineCallWindowOpen(appointment)) {
+        return { kind: 'conflict', message: 'appointment_outside_call_window' }
       }
 
       const existingCall = await callStartRepo.findActiveByAppointmentId(admin, input.appointmentId)

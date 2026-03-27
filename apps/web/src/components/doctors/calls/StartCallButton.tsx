@@ -7,6 +7,8 @@ interface StartCallButtonProps {
   patientId: string
   patientName?: string
   appointmentId?: string
+  disabled?: boolean
+  disabledMessage?: string
   className?: string
 }
 
@@ -15,18 +17,21 @@ export function StartCallButton({
   patientId,
   patientName = 'Paciente',
   appointmentId,
+  disabled = false,
+  disabledMessage,
   className = "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
 }: StartCallButtonProps) {
   const { startCall, isStarting, error } = useStartCall({ doctorId, patientId, appointmentId })
   const hasDoctor = doctorId.trim().length > 0
   const hasPatient = patientId.trim().length > 0
+  const isDisabled = disabled || isStarting || !hasDoctor || !hasPatient
 
   return (
     <div className="space-y-2">
       <button
         onClick={startCall}
-        disabled={isStarting || !hasDoctor || !hasPatient}
-        className={`${className} ${isStarting || !hasDoctor || !hasPatient ? 'opacity-50 cursor-not-allowed' : ''}`}
+        disabled={isDisabled}
+        className={`${className} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isStarting ? (
           <div className="flex items-center space-x-2">
@@ -47,6 +52,13 @@ export function StartCallButton({
             </svg>
             <span>Selecciona un paciente</span>
           </div>
+        ) : disabled ? (
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 3c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z" />
+            </svg>
+            <span>Llamada no disponible</span>
+          </div>
         ) : (
           <div className="flex items-center space-x-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +75,13 @@ export function StartCallButton({
         </div>
       )}
 
-      {!error && hasDoctor && hasPatient && (
+      {!error && disabled && disabledMessage && (
+        <p className="text-xs text-stone-500">
+          {disabledMessage}
+        </p>
+      )}
+
+      {!error && !disabled && hasDoctor && hasPatient && (
         <p className="text-xs text-stone-500">
           El paciente recibirá una llamada entrante para atender y entrar a la videoconsulta.
         </p>

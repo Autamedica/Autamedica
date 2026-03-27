@@ -70,13 +70,16 @@ export interface StartCallAppointmentRecord {
   patient_id: string
   type: string | null
   status: string
+  start_time: string | null
+  end_time: string | null
+  duration_minutes: number | null
 }
 
 export const callStartRepo = {
   async findAppointmentById(supabase: Db, appointmentId: string): Promise<StartCallAppointmentRecord | null> {
     const { data, error } = await supabase
       .from('appointments')
-      .select('id, doctor_id, patient_id, type, status')
+      .select('id, doctor_id, patient_id, type, status, start_time, end_time, duration_minutes')
       .eq('id', appointmentId)
       .maybeSingle()
 

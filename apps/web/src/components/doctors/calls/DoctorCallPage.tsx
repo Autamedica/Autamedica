@@ -529,6 +529,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             onCallEnd={handleCallEnd}
             onCallStart={handleCallStart}
             persistCallStatus={handlePersistCallStatus}
+            callService={getCallService()}
             autoStart
             className="h-screen"
           />

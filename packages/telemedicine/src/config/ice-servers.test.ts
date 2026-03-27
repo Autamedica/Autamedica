@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { getIceServersConfig, validateIceServersConfig, getExampleIceServersConfig } from './ice-servers'
+import {
+  getExampleIceServersConfig,
+  getIceServersConfig,
+  hasStunIceServer,
+  hasTurnIceServer,
+  validateIceServersConfig,
+} from './ice-servers'
 
 describe('ICE Servers Configuration', () => {
   beforeEach(() => {
@@ -130,6 +136,45 @@ describe('ICE Servers Configuration', () => {
 
       // Still returns true (config is usable), but logs a warning internally
       expect(validateIceServersConfig(servers)).toBe(true)
+    })
+  })
+
+  describe('hasTurnIceServer', () => {
+    it('returns true when TURN or TURNS urls are present', () => {
+      expect(
+        hasTurnIceServer([
+          { urls: 'stun:stun.example.com:19302' },
+          { urls: ['turn:turn.example.com:3478', 'turns:turn.example.com:5349'] },
+        ]),
+      ).toBe(true)
+    })
+
+    it('returns false for stun-only configs', () => {
+      expect(
+        hasTurnIceServer([
+          { urls: 'stun:stun.example.com:19302' },
+          { urls: 'stun:stun2.example.com:19302' },
+        ]),
+      ).toBe(false)
+    })
+  })
+
+  describe('hasStunIceServer', () => {
+    it('returns true when stun urls are present', () => {
+      expect(
+        hasStunIceServer([
+          { urls: 'stun:stun.example.com:19302' },
+          { urls: 'turn:turn.example.com:3478' },
+        ]),
+      ).toBe(true)
+    })
+
+    it('returns false when config only has turn servers', () => {
+      expect(
+        hasStunIceServer([
+          { urls: 'turn:turn.example.com:3478' },
+        ]),
+      ).toBe(false)
     })
   })
 

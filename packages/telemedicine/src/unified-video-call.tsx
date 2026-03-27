@@ -12,7 +12,9 @@ import {
   patchVideoPlayback,
 } from './media-optimizations'
 import { createCallService } from './calls/service'
+import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
+import { hasTurnIceServer } from './config/ice-servers'
 import { createTelemedicineLogger, type TelemedicineDebugLevel } from './debug'
 import {
   WebRTCClient,
@@ -36,6 +38,8 @@ import {
   QualityOverlays,
 } from './components'
 
+type UnifiedVideoCallService = Pick<CallService, 'updateCallStatus' | 'logDebugEvent' | 'logEvent'>
+
 /* ── Props ── */
 
 export interface UnifiedVideoCallProps {
@@ -58,6 +62,7 @@ export interface UnifiedVideoCallProps {
   onStatusChange?: (status: ConnectionState) => void
   onError?: (error: unknown) => void
   persistCallStatus?: (status: CallStatus, reason?: string) => Promise<void>
+  callService?: UnifiedVideoCallService
   className?: string
   theme?: 'doctor' | 'patient'
   autoStart?: boolean
@@ -105,6 +110,8 @@ function formatDuration(totalSeconds: number): string {
 
 const QUALITY_WARMUP_MS = 15000
 const POOR_QUALITY_THRESHOLD_MS = 30_000 // Suggest audio-only after 30s of poor quality
+const REMOTE_MEDIA_TIMEOUT_MS = 20_000
+const REMOTE_MEDIA_TIMEOUT_MESSAGE = 'El video del otro participante está demorando. Podés continuar solo con audio.'
 
 function hasRemoteVideoEvidence(summary: StreamQualitySummary): boolean {
   return summary.peers.some((peer) => {
@@ -132,6 +139,7 @@ export function UnifiedVideoCall({
   onStatusChange,
   onError,
   persistCallStatus: persistCallStatusOverride,
+  callService: callServiceOverride,
   className = '',
   theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
@@ -170,7 +178,7 @@ export function UnifiedVideoCall({
   const chatMessagesRef = useRef<HTMLDivElement>(null)
   const chatPanelOpenRef = useRef(false)
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
+  const callServiceRef = useRef<UnifiedVideoCallService | null>(null)
   const joinSoundContextRef = useRef<AudioContext | null>(null)
   const joinSoundPlayedRef = useRef(false)
   const lastPersistedCallStatusRef = useRef<CallStatus | null>(null)
@@ -182,6 +190,8 @@ export function UnifiedVideoCall({
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasAnnouncedCallStartRef = useRef(false)
+  const remoteMediaWaitStartedAtRef = useRef<number | null>(null)
+  const remoteMediaTimeoutHandledRef = useRef(false)
 
   /* ── Callback refs (prevent useEffect re-runs when parent re-renders) ── */
   const onCallStartRef = useRef(onCallStart)
@@ -216,6 +226,11 @@ export function UnifiedVideoCall({
   const isInRoom = sessionPhase === 'room-ready' || sessionPhase === 'peer-ready'
   const isIdle = sessionPhase === 'prejoin'
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
+  const remoteUsersWithMedia = useMemo(
+    () => Array.from(remoteUsers.values()).filter((user) => user.stream),
+    [remoteUsers]
+  )
+  const isP2PRuntime = cloudflareCallsApiUrl === null
   const debugLogger = useMemo(
     () => createTelemedicineLogger({ source: 'UnifiedVideoCall', callId, roomId, userId, userType }),
     [callId, roomId, userId, userType]
@@ -323,7 +338,9 @@ export function UnifiedVideoCall({
         if (persistCallStatusOverride) {
           await persistCallStatusOverride(status, reason)
         } else {
-          const callService = callServiceRef.current ?? createCallService()
+          const callService = callServiceOverride
+            ?? callServiceRef.current
+            ?? createCallService()
           callServiceRef.current = callService
           await callService.updateCallStatus(callId, status, reason)
         }
@@ -336,7 +353,7 @@ export function UnifiedVideoCall({
         })
       }
     },
-    [callId, persistCallStatusOverride]
+    [callId, callServiceOverride, persistCallStatusOverride]
   )
 
   const emitDebug = useCallback(
@@ -358,7 +375,11 @@ export function UnifiedVideoCall({
       }
 
       try {
-        const callService = callServiceRef.current ?? createCallService()
+        const callService = callServiceOverride ?? callServiceRef.current
+        if (!callService) {
+          return
+        }
+
         callServiceRef.current = callService
         void callService.logDebugEvent(callId, level, 'UnifiedVideoCall', message, {
           roomId,
@@ -374,21 +395,25 @@ export function UnifiedVideoCall({
         })
       }
     },
-    [callId, debugLogger, roomId, userId, userType]
+    [callId, callServiceOverride, debugLogger, roomId, userId, userType]
   )
 
   const logCallEvent = useCallback(
     async (type: string, payload?: Record<string, unknown>) => {
       if (!callId) return
       try {
-        const callService = callServiceRef.current ?? createCallService()
+        const callService = callServiceOverride ?? callServiceRef.current
+        if (!callService) {
+          return
+        }
+
         callServiceRef.current = callService
         await callService.logEvent(callId, type, (payload ?? null) as import('@autamedica/types').Json)
       } catch {
         // non-critical: don't block the call flow
       }
     },
-    [callId]
+    [callId, callServiceOverride]
   )
 
   /* ── WebRTC setup ── */
@@ -613,6 +638,16 @@ export function UnifiedVideoCall({
 
   /* ── Duration timer ── */
   useEffect(() => {
+    if (!isP2PRuntime || !iceServers || hasTurnIceServer(iceServers)) {
+      return
+    }
+
+    emitDebug('warn', 'La llamada P2P no tiene TURN configurado; algunas redes estrictas pueden fallar', {
+      iceServerCount: iceServers.length,
+    })
+  }, [emitDebug, iceServers, isP2PRuntime])
+
+  useEffect(() => {
     if (isCallEstablished) {
       setConnectedAt((prev) => prev ?? Date.now())
       connectedAtRef.current ??= Date.now()
@@ -631,6 +666,51 @@ export function UnifiedVideoCall({
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [connectedAt])
+
+  useEffect(() => {
+    if (!isInRoom || remoteUsers.size === 0 || remoteUsersWithMedia.length > 0) {
+      remoteMediaWaitStartedAtRef.current = null
+      remoteMediaTimeoutHandledRef.current = false
+      if (callError === REMOTE_MEDIA_TIMEOUT_MESSAGE) {
+        setCallError(null)
+      }
+      return
+    }
+
+    if (remoteMediaTimeoutHandledRef.current) {
+      return
+    }
+
+    if (remoteMediaWaitStartedAtRef.current === null) {
+      remoteMediaWaitStartedAtRef.current = Date.now()
+    }
+
+    const elapsedMs = Date.now() - remoteMediaWaitStartedAtRef.current
+    const remainingMs = Math.max(0, REMOTE_MEDIA_TIMEOUT_MS - elapsedMs)
+
+    if (remainingMs === 0) {
+      remoteMediaTimeoutHandledRef.current = true
+      setShowAudioOnlySuggestion(true)
+      setCallError((current) => current ?? REMOTE_MEDIA_TIMEOUT_MESSAGE)
+      emitDebug('warn', 'El peer entro a la sala pero el video remoto no estuvo listo a tiempo', {
+        remoteUsers: remoteUsers.size,
+        timeoutMs: REMOTE_MEDIA_TIMEOUT_MS,
+      })
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      remoteMediaTimeoutHandledRef.current = true
+      setShowAudioOnlySuggestion(true)
+      setCallError((current) => current ?? REMOTE_MEDIA_TIMEOUT_MESSAGE)
+      emitDebug('warn', 'El peer entro a la sala pero el video remoto no estuvo listo a tiempo', {
+        remoteUsers: remoteUsers.size,
+        timeoutMs: REMOTE_MEDIA_TIMEOUT_MS,
+      })
+    }, remainingMs)
+
+    return () => window.clearTimeout(timer)
+  }, [callError, emitDebug, isInRoom, remoteUsers, remoteUsersWithMedia.length])
 
   useEffect(() => {
     if (isCallEstablished && !hasAnnouncedCallStartRef.current) {
@@ -941,8 +1021,11 @@ export function UnifiedVideoCall({
     client.toggleVideo(false)
     setIsVideoEnabled(false)
     setShowAudioOnlySuggestion(false)
+    if (callError === REMOTE_MEDIA_TIMEOUT_MESSAGE) {
+      setCallError(null)
+    }
     emitDebug('info', 'Switched to audio-only mode due to poor connection')
-  }, [client, emitDebug])
+  }, [callError, client, emitDebug])
 
   const handleDeviceChange = useCallback(async (kind: 'video' | 'audio', deviceId: string) => {
     if (!client) return

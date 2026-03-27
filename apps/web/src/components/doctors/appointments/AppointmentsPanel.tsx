@@ -1,15 +1,32 @@
 "use client"
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { JSX } from 'react'
 import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
+import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { StartCallButton } from '../calls/StartCallButton'
 
 interface AppointmentsPanelProps {
   doctorId?: string
+}
+
+const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
+
+function canStartTelemedicineCall(appointment: {
+  type: string | null
+  status: string | null
+  start_time?: string | null
+  end_time?: string | null
+  duration_minutes?: number | null
+}): boolean {
+  return (
+    appointment.type === 'telemedicine' &&
+    CALLABLE_APPOINTMENT_STATUSES.has(appointment.status ?? 'scheduled') &&
+    isTelemedicineCallWindowOpen(appointment)
+  )
 }
 
 export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
@@ -18,6 +35,31 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
   const resolvedDoctorId = doctorId ?? user?.doctorProfileId
 
   const { appointments, loading, error, isClientReady } = useDoctorAppointments(resolvedDoctorId)
+  const sortedAppointments = useMemo(() => {
+    const now = Date.now()
+
+    return [...appointments].sort((left, right) => {
+      const leftCallable = canStartTelemedicineCall(left)
+      const rightCallable = canStartTelemedicineCall(right)
+
+      if (leftCallable !== rightCallable) {
+        return leftCallable ? -1 : 1
+      }
+
+      const leftStart = Date.parse(left.start_time ?? '')
+      const rightStart = Date.parse(right.start_time ?? '')
+      const safeLeftStart = Number.isNaN(leftStart) ? 0 : leftStart
+      const safeRightStart = Number.isNaN(rightStart) ? 0 : rightStart
+      const leftIsFuture = safeLeftStart >= now
+      const rightIsFuture = safeRightStart >= now
+
+      if (leftIsFuture !== rightIsFuture) {
+        return leftIsFuture ? -1 : 1
+      }
+
+      return leftIsFuture ? safeLeftStart - safeRightStart : safeRightStart - safeLeftStart
+    })
+  }, [appointments])
 
   const resolveNames = useCallback(async () => {
     if (appointments.length === 0) return
@@ -125,7 +167,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
             <div>
               <p className="text-sm text-am-surface-500">Hoy</p>
               <p className="text-xl font-semibold text-am-surface-900">
-                {appointments.filter(apt => new Date(apt.start_time).toDateString() === new Date().toDateString()).length}
+                {sortedAppointments.filter(apt => new Date(apt.start_time).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
           </div>
@@ -139,7 +181,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
             <div>
               <p className="text-sm text-am-surface-500">Telemedicina</p>
               <p className="text-xl font-semibold text-am-surface-900">
-                {appointments.filter(apt => apt.type === 'telemedicine').length}
+                {sortedAppointments.filter(apt => apt.type === 'telemedicine').length}
               </p>
             </div>
           </div>
@@ -153,7 +195,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
             <div>
               <p className="text-sm text-am-surface-500">Pendientes</p>
               <p className="text-xl font-semibold text-am-surface-900">
-                {appointments.filter(apt => apt.status === 'scheduled').length}
+                {sortedAppointments.filter(apt => apt.status === 'scheduled').length}
               </p>
             </div>
           </div>
@@ -167,7 +209,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
             <div>
               <p className="text-sm text-am-surface-500">Confirmadas</p>
               <p className="text-xl font-semibold text-am-surface-900">
-                {appointments.filter(apt => apt.status === 'confirmed').length}
+                {sortedAppointments.filter(apt => apt.status === 'confirmed').length}
               </p>
             </div>
           </div>
@@ -176,7 +218,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
 
       {/* Appointments List */}
       <div className="flex-1 overflow-hidden">
-        {appointments.length === 0 ? (
+        {sortedAppointments.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <Calendar className="mx-auto h-12 w-12 text-am-surface-400 mb-4" />
@@ -194,7 +236,10 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
         ) : (
           <div className="h-full overflow-auto">
             <div className="grid gap-4">
-              {appointments.map((appointment) => (
+              {sortedAppointments.map((appointment) => {
+                const isCallEnabled = canStartTelemedicineCall(appointment)
+
+                return (
                 <div
                   key={appointment.id}
                   className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm transition-all duration-am-fast ease-am-ease hover:-translate-y-0.5 hover:shadow-am-card-hover hover:border-am-surface-300"
@@ -237,6 +282,12 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                           patientId={appointment.patient_id}
                           patientName={patientNames[appointment.patient_id] || 'Paciente'}
                           appointmentId={appointment.id}
+                          disabled={!isCallEnabled}
+                          disabledMessage={
+                            isCallEnabled
+                              ? undefined
+                              : 'Solo puedes iniciar la videollamada cerca del horario real del turno.'
+                          }
                           className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-green-700"
                         />
                       )}
@@ -249,7 +300,8 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
