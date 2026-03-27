@@ -91,8 +91,10 @@ const {
   .portal-header {
     border: 1px solid var(--au-border);
     border-radius: var(--radius-lg);
-    background: rgba(20, 20, 22, 0.94);
+    background: #fff;
     padding: clamp(1.5rem, 3vw, 2.5rem);
+    color: var(--au-text-primary);
+    box-shadow: 0 24px 48px -36px rgba(14, 165, 233, 0.22);
   }
 
   .portal-badge {
@@ -102,7 +104,8 @@ const {
     border-radius: var(--radius-full);
     padding: 0.35rem 0.85rem;
     font-size: var(--text-xs);
-    color: color-mix(in srgb, var(--portal-accent) 70%, #fff);
+    color: var(--portal-accent);
+    background: color-mix(in srgb, var(--portal-accent) 12%, white);
     text-transform: uppercase;
     letter-spacing: 0.07em;
   }
@@ -151,6 +154,7 @@ const {
   .cta.secondary {
     border: 1px solid var(--au-border-hover);
     color: var(--au-text-primary);
+    background: #fff;
   }
 
   .cta.secondary:hover {

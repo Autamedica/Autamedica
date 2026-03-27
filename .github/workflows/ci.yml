@@ -42,9 +42,9 @@ jobs:
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
-          PUBLIC_PATIENTS_URL: https://paciente.autamedica.com
-          PUBLIC_DOCTORS_URL: https://doctor.autamedica.com
-          PUBLIC_COMPANIES_URL: https://empresa.autamedica.com
+          PUBLIC_PATIENTS_URL: https://patients.autamedica.com
+          PUBLIC_DOCTORS_URL: https://doctors.autamedica.com
+          PUBLIC_COMPANIES_URL: https://companies.autamedica.com
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
 
   lint-gate:

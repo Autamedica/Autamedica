@@ -31,14 +31,14 @@ function StatCard({
   accent: string
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-stone-100 bg-white p-5 transition-all duration-200 hover:shadow-md hover:border-stone-200">
+    <div className="group relative overflow-hidden rounded-2xl border border-sky-100 bg-white p-5 transition-all duration-200 hover:border-sky-200 hover:shadow-md">
       <div className="flex items-center gap-4">
         <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${accent}`}>
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-sm font-medium text-stone-500">{label}</p>
-          <p className="text-2xl font-bold tracking-tight text-stone-900">{value}</p>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="text-2xl font-bold tracking-tight text-[#050505]">{value}</p>
         </div>
       </div>
     </div>
@@ -199,15 +199,15 @@ export default function AppointmentsPage({
   }
 
   return (
-    <div className="min-h-screen bg-stone-50/50">
+    <div className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f7fbff_100%)]">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-[#050505] sm:text-3xl">
               {isTelemedicineView ? 'Telemedicina' : 'Mis citas'}
             </h1>
-            <p className="mt-1 text-sm text-stone-500">
+            <p className="mt-1 text-sm text-slate-500">
               {isTelemedicineView
                 ? 'Agenda y gestioná tus videoconsultas con acceso directo a la sala'
                 : 'Agenda, gestiona y da seguimiento a tus consultas'}
@@ -216,7 +216,7 @@ export default function AppointmentsPage({
           <button
             onClick={() => setIsModalOpen(true)}
             aria-label={isTelemedicineView ? 'Crear una nueva videoconsulta' : 'Crear una nueva cita médica'}
-            className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-500/20 transition-all hover:bg-sky-600 active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
             {isTelemedicineView ? 'Nueva videoconsulta' : 'Nueva cita'}
@@ -224,16 +224,16 @@ export default function AppointmentsPage({
         </div>
 
         {isTelemedicineView && (
-          <section className="mb-8 overflow-hidden rounded-[28px] bg-stone-950 p-6 text-white shadow-xl shadow-stone-950/10">
+          <section className="mb-8 overflow-hidden rounded-[28px] border border-sky-100 bg-white p-6 text-[#050505] shadow-xl shadow-sky-500/5">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
                   Acceso directo
                 </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight">
+                <h2 className="font-heading mt-2 text-2xl font-bold tracking-tight">
                   Entrá a tu videoconsulta sin copiar links ni room IDs
                 </h2>
-                <p className="mt-3 text-sm text-stone-500">
+                <p className="mt-3 text-sm text-slate-500">
                   La sala se resuelve desde tu turno real. Si ya existe una llamada activa, te conecta
                   a esa misma sesión; si no existe, la prepara antes de abrir el video.
                 </p>
@@ -244,7 +244,7 @@ export default function AppointmentsPage({
                   type="button"
                   onClick={() => void handleJoinTelemedicine(featuredTelemedicineAppointment)}
                   disabled={joiningAppointmentId === featuredTelemedicineAppointment.id}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-green-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-400 disabled:cursor-wait disabled:opacity-70"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-wait disabled:opacity-70"
                 >
                   {joiningAppointmentId === featuredTelemedicineAppointment.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -259,7 +259,7 @@ export default function AppointmentsPage({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
                 >
                   <Plus className="h-4 w-4" />
                   Agendar videoconsulta
@@ -268,18 +268,18 @@ export default function AppointmentsPage({
             </div>
 
             {featuredTelemedicineAppointment ? (
-              <div className="mt-6 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 sm:grid-cols-3">
+              <div className="mt-6 grid gap-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-5 sm:grid-cols-3">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-500">Profesional</p>
-                  <p className="mt-1 text-sm font-semibold text-white">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Profesional</p>
+                  <p className="mt-1 text-sm font-semibold text-[#050505]">
                     {featuredTelemedicineAppointment.doctor
                       ? `Dr. ${featuredTelemedicineAppointment.doctor.first_name ?? ''} ${featuredTelemedicineAppointment.doctor.last_name ?? ''}`.trim()
                       : 'Profesional asignado'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-500">Fecha</p>
-                  <p className="mt-1 text-sm font-semibold text-white">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Fecha</p>
+                  <p className="mt-1 text-sm font-semibold text-[#050505]">
                     {new Intl.DateTimeFormat('es-AR', {
                       weekday: 'short',
                       day: 'numeric',
@@ -288,8 +288,8 @@ export default function AppointmentsPage({
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-stone-500">Hora</p>
-                  <p className="mt-1 text-sm font-semibold text-white">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Hora</p>
+                  <p className="mt-1 text-sm font-semibold text-[#050505]">
                     {new Intl.DateTimeFormat('es-AR', {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -298,8 +298,8 @@ export default function AppointmentsPage({
                 </div>
               </div>
             ) : (
-              <div className="mt-6 rounded-2xl border border-dashed border-white/15 bg-white/5 p-5">
-                <p className="text-sm text-stone-500">
+              <div className="mt-6 rounded-2xl border border-dashed border-sky-200 bg-sky-50/60 p-5">
+                <p className="text-sm text-slate-500">
                   Todavía no tenés una videoconsulta activa o próxima para abrir directo desde acá.
                 </p>
               </div>
@@ -319,13 +319,13 @@ export default function AppointmentsPage({
             icon={CheckCircle}
             label={isTelemedicineView ? 'En vivo' : 'Completadas'}
             value={isTelemedicineView ? stats.live : stats.completed}
-            accent={isTelemedicineView ? 'bg-cyan-50 text-cyan-700' : 'bg-emerald-50 text-emerald-700'}
+            accent="bg-sky-50 text-sky-700"
           />
           <StatCard
             icon={XCircle}
             label={isTelemedicineView ? 'Completadas' : 'Canceladas'}
             value={isTelemedicineView ? stats.completed : stats.cancelled}
-            accent={isTelemedicineView ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500'}
+            accent="bg-sky-50 text-sky-700"
           />
         </div>
 
@@ -338,28 +338,28 @@ export default function AppointmentsPage({
 
         {/* Content */}
         {loading && visibleAppointments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-stone-100 bg-white py-20">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-200 border-t-stone-800" />
-            <p className="mt-4 text-sm text-stone-500">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-sky-100 bg-white py-20">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-100 border-t-sky-500" />
+            <p className="mt-4 text-sm text-slate-500">
               {isTelemedicineView ? 'Cargando videoconsultas...' : 'Cargando citas...'}
             </p>
           </div>
         ) : visibleAppointments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white py-20 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-50">
-              <CalendarPlus className="h-7 w-7 text-stone-500" />
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-sky-200 bg-white py-20 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50">
+              <CalendarPlus className="h-7 w-7 text-sky-600" />
             </div>
-            <h3 className="text-lg font-semibold text-stone-900">
+            <h3 className="font-heading text-lg font-semibold text-[#050505]">
               {isTelemedicineView ? 'Sin videoconsultas programadas' : 'Sin citas programadas'}
             </h3>
-            <p className="mt-1 max-w-sm text-sm text-stone-500">
+            <p className="mt-1 max-w-sm text-sm text-slate-500">
               {isTelemedicineView
                 ? 'Agendá tu primera consulta online con un profesional de salud verificado'
                 : 'Agendá tu primera consulta con un profesional de salud verificado'}
             </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.98]"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-500/20 transition-all hover:bg-sky-600 active:scale-[0.98]"
             >
               <Plus className="h-4 w-4" />
               {isTelemedicineView ? 'Agendar videoconsulta' : 'Agendar cita'}

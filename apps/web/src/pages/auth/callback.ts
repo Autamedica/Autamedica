@@ -113,10 +113,10 @@ function resolveRole(
 function getRolePath(role: string): string {
   if (isProduction()) {
     const PROD_PATHS: Record<string, string> = {
-      patient: 'https://paciente.autamedica.com',
-      doctor: 'https://doctor.autamedica.com',
-      company: 'https://empresa.autamedica.com',
-      company_admin: 'https://empresa.autamedica.com',
+      patient: 'https://patients.autamedica.com',
+      doctor: 'https://doctors.autamedica.com',
+      company: 'https://companies.autamedica.com',
+      company_admin: 'https://companies.autamedica.com',
       organization_admin: 'https://admin.autamedica.com',
       platform_admin: 'https://admin.autamedica.com',
       admin: 'https://admin.autamedica.com',

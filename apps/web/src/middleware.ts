@@ -49,10 +49,10 @@ const PUBLIC_ROUTES = [
 function getRoleRedirect(role: string): string {
   if (import.meta.env.PROD) {
     const PROD: Record<string, string> = {
-      patient: 'https://paciente.autamedica.com',
-      doctor: 'https://doctor.autamedica.com',
-      company: 'https://empresa.autamedica.com',
-      company_admin: 'https://empresa.autamedica.com',
+      patient: 'https://patients.autamedica.com',
+      doctor: 'https://doctors.autamedica.com',
+      company: 'https://companies.autamedica.com',
+      company_admin: 'https://companies.autamedica.com',
       organization_admin: 'https://admin.autamedica.com',
       platform_admin: 'https://admin.autamedica.com',
       admin: 'https://admin.autamedica.com',
@@ -128,9 +128,15 @@ function detectPortal(url: URL): string | null {
   if (!import.meta.env.PROD && url.searchParams.has('portal')) {
     return url.searchParams.get('portal');
   }
-  if (url.hostname === 'doctor.autamedica.com') return 'doctor';
-  if (url.hostname === 'paciente.autamedica.com') return 'patient';
-  if (url.hostname === 'empresa.autamedica.com') return 'company';
+  if (url.hostname === 'doctor.autamedica.com' || url.hostname === 'doctors.autamedica.com') {
+    return 'doctor';
+  }
+  if (url.hostname === 'paciente.autamedica.com' || url.hostname === 'patients.autamedica.com') {
+    return 'patient';
+  }
+  if (url.hostname === 'empresa.autamedica.com' || url.hostname === 'companies.autamedica.com') {
+    return 'company';
+  }
   return null;
 }
 
@@ -159,7 +165,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isCompanyHost = portal === 'company';
   const isDoctorHostRoot = isDoctorHost && pathname === '/';
   const isPatientHostRoot = isPatientHost && pathname === '/';
-  const isPortalHostRoot = isDoctorHostRoot || isPatientHostRoot;
+  const isCompanyHostRoot = isCompanyHost && pathname === '/';
+  const isPortalHostRoot = isDoctorHostRoot || isPatientHostRoot || isCompanyHostRoot;
 
   // Doctor portal: normalize dashboard paths to /
   if (isDoctorHost && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
@@ -396,7 +403,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect(getRoleRedirect(userRole));
       }
 
-      if (pathname.startsWith('/companies') && !['company', 'company_admin', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
+      if ((isCompanyHostRoot || pathname.startsWith('/companies')) && !['company', 'company_admin', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
         return context.redirect(getRoleRedirect(userRole));
       }
     }

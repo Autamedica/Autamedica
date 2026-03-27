@@ -48,15 +48,15 @@ function getTimeGreeting(): string {
 }
 
 const CONSULTAS = [
-  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: IconVideoconsulta, color: '#0891b2' },
-  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: IconTurnos, color: '#059669' },
-  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: IconAnamnesis, color: '#7c3aed' },
+  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: IconVideoconsulta, color: '#0ea5e9' },
+  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: IconTurnos, color: '#0ea5e9' },
+  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: IconAnamnesis, color: '#0ea5e9' },
 ] as const
 
 const SALUD = [
-  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: IconRecetas, color: '#ea580c' },
-  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: IconHistorial, color: '#db2777' },
-  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: IconComunidad, color: '#4f46e5' },
+  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: IconRecetas, color: '#0ea5e9' },
+  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: IconHistorial, color: '#0ea5e9' },
+  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: IconComunidad, color: '#0ea5e9' },
 ] as const
 
 interface PatientsHomePageProps {
@@ -127,11 +127,11 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-sm font-bold text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white shadow-sm shadow-sky-500/20">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="font-heading text-sm font-semibold text-gray-900">
                 {greeting}, {firstName}
               </p>
               <p className="text-xs text-gray-400">Tu salud, tu control</p>
@@ -174,10 +174,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   void joinAppointment(upcomingTelemedicine.id)
                 }}
                 disabled={joiningAppointmentId === upcomingTelemedicine?.id}
-                className="group block w-full rounded-2xl border border-gray-100 bg-gray-50 p-5 text-left transition-all hover:border-gray-200 hover:shadow-sm disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
+                className="group block w-full rounded-2xl border border-sky-100 bg-sky-50/40 p-5 text-left transition-all hover:border-sky-200 hover:shadow-sm disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
               >
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="rounded-full bg-gray-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+                  <span className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
                     Próxima consulta
                   </span>
                   <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />
@@ -204,7 +204,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     Videoconsulta
                   </span>
                 </div>
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1.5 text-sm font-semibold text-cyan-700">
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700">
                   <Video className="h-4 w-4" />
                   {joiningAppointmentId === upcomingTelemedicine?.id
                     ? 'Abriendo sala...'
@@ -216,10 +216,10 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               href={upcomingTelemedicine
                 ? buildPatientTelemedicineEntryUrl(upcomingTelemedicine.id)
                 : '/patients/appointments'}
-              className="group block rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-gray-200 hover:shadow-sm active:scale-[0.98]"
+              className="group block rounded-2xl border border-sky-100 bg-sky-50/40 p-5 transition-all hover:border-sky-200 hover:shadow-sm active:scale-[0.98]"
             >
               <div className="mb-3 flex items-center justify-between">
-                <span className="rounded-full bg-gray-900 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+                <span className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
                   Próxima consulta
                 </span>
                 <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />

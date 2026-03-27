@@ -17,13 +17,25 @@ import FAQSection from '../components/FAQSection.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
 import ValueProps from '../components/ValueProps.astro';
+import PortalLanding from '../components/portal/PortalLanding.astro';
 import { resolveLandingCopy } from '../lib/landing-copy';
+import { buildRoleAuthPath } from '../lib/auth-flow';
 import { getI18n } from '../i18n';
 const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
 const devPortal = import.meta.env.DEV ? Astro.url.searchParams.get('portal') : null;
-const isDoctorHost = Astro.url.hostname === 'doctor.autamedica.com' || devPortal === 'doctor';
-const isPatientHost = Astro.url.hostname === 'paciente.autamedica.com' || devPortal === 'patient';
+const isDoctorHost =
+  Astro.url.hostname === 'doctor.autamedica.com' ||
+  Astro.url.hostname === 'doctors.autamedica.com' ||
+  devPortal === 'doctor';
+const isPatientHost =
+  Astro.url.hostname === 'paciente.autamedica.com' ||
+  Astro.url.hostname === 'patients.autamedica.com' ||
+  devPortal === 'patient';
+const isCompanyHost =
+  Astro.url.hostname === 'empresa.autamedica.com' ||
+  Astro.url.hostname === 'companies.autamedica.com' ||
+  devPortal === 'company';
 
 const {
   variant: copyVariant,
@@ -37,7 +49,7 @@ const {
   <Layout
     title="Portal Médico | AutaMedica"
     description="Portal de videoconsultas para profesionales médicos"
-    canonical="https://doctor.autamedica.com/"
+    canonical="https://doctors.autamedica.com/"
     ogImage="/images/seo/og-doctors.webp"
   >
     <DoctorsDashboardPage client:load locale={locale} />
@@ -46,10 +58,61 @@ const {
   <Layout
     title="Mi Portal de Salud | AutaMedica"
     description="Tu espacio personal de salud: consultas, historial médico y seguimiento"
-    canonical="https://paciente.autamedica.com/"
+    canonical="https://patients.autamedica.com/"
     ogImage="/images/seo/og-patients.webp"
   >
     <PatientsHomePage client:load locale={locale} />
+  </Layout>
+) : isCompanyHost ? (
+  <Layout
+    title={t('portals.companies.title')}
+    description={t('portals.companies.description')}
+    canonical="https://companies.autamedica.com/"
+    ogImage="/images/seo/og-companies.webp"
+  >
+    <PortalLanding
+      badge={t('portals.companies.badge')}
+      title={t('portals.companies.title')}
+      subtitle={t('portals.companies.description')}
+      accent="var(--portal-companies)"
+      stats={[
+        { value: '24/7', label: 'Monitoreo en tiempo real' },
+        { value: '1-2', label: 'Clics para acciones clave' },
+        { value: '<200ms', label: 'Meta de INP p75' },
+      ]}
+      pillars={[
+        {
+          title: 'Control operativo',
+          description: 'Visibilidad centralizada sobre incidentes, equipos y continuidad asistencial.',
+        },
+        {
+          title: 'Gestión de profesionales',
+          description: 'Marketplace y coordinación de cobertura con el mismo lenguaje visual del resto de la red.',
+        },
+        {
+          title: 'Superficie clara',
+          description: 'Fondo blanco, texto negro y un único acento celeste para evitar ruido entre portales.',
+        },
+      ]}
+      primaryCta={{
+        href: buildRoleAuthPath('login', 'company_admin'),
+        label: t('roles.company_admin.buttonLabel'),
+      }}
+      secondaryCta={{
+        href: buildRoleAuthPath('register', 'company_admin'),
+        label: t('auth.createAccount'),
+      }}
+    />
+    <section class="quick-links" aria-label="Accesos rapidos companies">
+      <div class="quick-links-inner">
+        <h2>Accesos rápidos del portal</h2>
+        <div class="quick-links-grid">
+          <a href="/companies/crisis">Centro de Control de Crisis</a>
+          <a href="/companies/marketplace">Marketplace Médico</a>
+          <a href="/companies/reports">Métricas y Reportes</a>
+        </div>
+      </div>
+    </section>
   </Layout>
 ) : (
   <Layout
@@ -93,6 +156,45 @@ const {
   .symptom-section {
     padding: var(--section-py) var(--section-px);
     background: var(--au-bg);
+  }
+
+  .quick-links {
+    padding: 0 var(--section-px) var(--space-16);
+    background: var(--au-bg);
+  }
+
+  .quick-links-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-md);
+    background: var(--au-surface);
+    padding: var(--space-6);
+  }
+
+  .quick-links h2 {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-lg);
+  }
+
+  .quick-links-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .quick-links-grid a {
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    color: var(--au-text-secondary);
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .quick-links-grid a:hover {
+    border-color: var(--portal-companies);
+    color: var(--au-text-primary);
+    background: var(--au-accent-soft);
   }
 
   .symptom-inner {

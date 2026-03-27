@@ -1,34 +1,34 @@
 /**
  * AutaMedica Design Tokens — Color Palette
  *
- * Inspired by Doctolib's medical-professional aesthetic:
- * blue for trust, role-specific accents, clean neutral surfaces.
+ * White surfaces, black text, and one saturated sky-blue accent
+ * shared across portals.
  */
 
 export const colors = {
   /* ── Primary (blue — trust, calm, professionalism) ── */
   primary: {
-    50: '#EFF6FF',
-    100: '#DBEAFE',
-    200: '#BFDBFE',
-    300: '#93C5FD',
-    400: '#60A5FA',
-    500: '#3B82F6',
-    600: '#2563EB',
-    700: '#1D4ED8',
-    800: '#1E40AF',
-    900: '#1E3A8A',
+    50: '#F0F9FF',
+    100: '#E0F2FE',
+    200: '#BAE6FD',
+    300: '#7DD3FC',
+    400: '#38BDF8',
+    500: '#0EA5E9',
+    600: '#0284C7',
+    700: '#0369A1',
+    800: '#075985',
+    900: '#0C4A6E',
   },
 
-  /* ── Role accents ── */
+  /* ── Role accents (unified) ── */
   doctor: {
-    50: '#F5F3FF',
-    100: '#EDE9FE',
-    200: '#DDD6FE',
-    400: '#A78BFA',
-    500: '#8B5CF6',
-    600: '#7C3AED',
-    700: '#6D28D9',
+    50: '#F0F9FF',
+    100: '#E0F2FE',
+    200: '#BAE6FD',
+    400: '#38BDF8',
+    500: '#0EA5E9',
+    600: '#0284C7',
+    700: '#0369A1',
   },
   patient: {
     50: '#F0F9FF',
@@ -40,19 +40,19 @@ export const colors = {
     700: '#0369A1',
   },
 
-  /* ── Surfaces (slate-based neutrals) ── */
+  /* ── Surfaces ── */
   surface: {
     white: '#FFFFFF',
-    50: '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    300: '#CBD5E1',
-    400: '#94A3B8',
+    50: '#F8FBFF',
+    100: '#F1F7FD',
+    200: '#DCE9F5',
+    300: '#C5D6E6',
+    400: '#8AA0B8',
     500: '#64748B',
     600: '#475569',
     700: '#334155',
-    800: '#1E293B',
-    900: '#0F172A',
+    800: '#0F172A',
+    900: '#050505',
   },
 
   /* ── Semantic ── */
@@ -63,7 +63,7 @@ export const colors = {
 
   /* ── Text ── */
   text: {
-    primary: '#0F172A',
+    primary: '#050505',
     secondary: '#475569',
     tertiary: '#94A3B8',
     inverse: '#FFFFFF',

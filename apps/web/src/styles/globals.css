@@ -49,32 +49,31 @@
   --font-bold: 700;
   --font-extrabold: 800;
 
-  /* Colors — refined dark palette */
-  --au-bg: #09090b;
-  --au-surface: #141416;
-  --au-surface-hover: #1c1c20;
-  --au-hover: #18181b;
-  --au-hover-border: #2a2a2f;
+  /* Colors — white base, black text, saturated sky blue accent */
+  --au-bg: #ffffff;
+  --au-surface: #f8fbff;
+  --au-surface-hover: #eef6ff;
+  --au-hover: #f3f8ff;
+  --au-hover-border: #d6e7f5;
 
-  --au-border: rgba(255, 255, 255, 0.08);
-  --au-border-hover: rgba(255, 255, 255, 0.15);
+  --au-border: rgba(14, 165, 233, 0.12);
+  --au-border-hover: rgba(14, 165, 233, 0.24);
 
-  --au-text-primary: #f4f4f5;
-  --au-text-secondary: #a1a1aa;
-  --au-text-tertiary: #71717a;
+  --au-text-primary: #050505;
+  --au-text-secondary: #334155;
+  --au-text-tertiary: #64748b;
 
-  /* Accent: cyan vibrante (Resend/Supabase style) */
-  --au-accent: #22d3ee;
-  --au-accent-soft: rgba(34, 211, 238, 0.10);
-  --au-accent-glow: rgba(34, 211, 238, 0.18);
+  --au-accent: #0ea5e9;
+  --au-accent-soft: rgba(14, 165, 233, 0.10);
+  --au-accent-glow: rgba(14, 165, 233, 0.22);
   --au-success: #22c55e;
   --au-warning: #f59e0b;
   --au-danger: #ef4444;
 
-  /* Portal colors — saturación +20% */
-  --portal-patients: #00d68f;
+  /* Portal colors — single accent source */
+  --portal-patients: #0ea5e9;
   --portal-doctors: #0ea5e9;
-  --portal-companies: #f97316;
+  --portal-companies: #0ea5e9;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -106,16 +105,16 @@
   --blur-sm: blur(8px);
   --blur-md: blur(16px);
   --blur-lg: blur(24px);
-  --shadow-glow: 0 0 60px rgba(255, 255, 255, 0.04);
-  --shadow-glow-accent: 0 0 80px rgba(34, 211, 238, 0.15);
+  --shadow-glow: 0 20px 60px rgba(14, 165, 233, 0.08);
+  --shadow-glow-accent: 0 24px 72px rgba(14, 165, 233, 0.16);
 
   /* Glass card system — single source of truth for glassmorphism cards */
-  --au-glass-bg: rgba(255, 255, 255, 0.02);
-  --au-glass-bg-hover: rgba(255, 255, 255, 0.04);
-  --au-glass-border: rgba(255, 255, 255, 0.08);
-  --au-glass-border-hover: rgba(255, 255, 255, 0.18);
-  --au-glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-  --au-glass-shadow-hover: 0 12px 24px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  --au-glass-bg: rgba(255, 255, 255, 0.8);
+  --au-glass-bg-hover: rgba(255, 255, 255, 0.92);
+  --au-glass-border: rgba(14, 165, 233, 0.10);
+  --au-glass-border-hover: rgba(14, 165, 233, 0.22);
+  --au-glass-highlight: inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+  --au-glass-shadow-hover: 0 16px 32px -18px rgba(14, 165, 233, 0.24), inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
   --au-transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -125,6 +124,7 @@
 html {
   background: var(--au-bg);
   scrollbar-gutter: stable;
+  color-scheme: light;
 }
 
 body {
@@ -140,6 +140,25 @@ body {
   overflow-x: hidden;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -149,7 +168,7 @@ body {
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.20);
+  background: rgba(14, 165, 233, 0.18);
   color: var(--au-text-primary);
 }
 
@@ -214,12 +233,12 @@ a {
   --am-text-primary: #1C1917;
   --am-text-secondary: #57534E;
   --am-text-tertiary: #A8A29E;
-  --am-accent: #8B5CF6;
-  --am-accent-soft: rgba(139, 92, 246, 0.08);
+  --am-accent: #0EA5E9;
+  --am-accent-soft: rgba(14, 165, 233, 0.10);
 }
 
 .portal-doctor ::selection {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(14, 165, 233, 0.15);
   color: var(--am-text-primary);
 }
 

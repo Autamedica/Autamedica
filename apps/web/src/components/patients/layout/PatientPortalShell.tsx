@@ -56,7 +56,7 @@ export function PatientPortalShell({ children, className = '' }: PatientPortalSh
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white ${
+      className={`min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f4fbff_100%)] text-[#050505] ${
         isFocusMode ? 'overflow-hidden' : ''
       } ${className}`}
     >
@@ -66,7 +66,7 @@ export function PatientPortalShell({ children, className = '' }: PatientPortalSh
 
       {/* Focus mode overlay */}
       {isFocusMode && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 pointer-events-none" />
+        <div className="fixed inset-0 z-40 pointer-events-none bg-sky-500/8 backdrop-blur-sm" />
       )}
     </div>
   );
