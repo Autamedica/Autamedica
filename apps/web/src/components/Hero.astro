@@ -157,7 +157,16 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(to right, rgba(9, 9, 11, 0.55) 0%, rgba(9, 9, 11, 0.3) 40%, transparent 65%);
+      linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.81) 0%,
+        rgba(255, 255, 255, 0.72) 26%,
+        rgba(255, 255, 255, 0.55) 42%,
+        rgba(255, 255, 255, 0.24) 58%,
+        rgba(255, 255, 255, 0.06) 74%,
+        rgba(255, 255, 255, 0) 100%
+      ),
+      linear-gradient(to bottom, rgba(5, 5, 5, 0.06), rgba(5, 5, 5, 0.18));
     z-index: 1;
   }
 
@@ -248,10 +257,11 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
   .hero-subtitle {
     font-size: var(--text-xl);
     line-height: 1.6;
-    font-weight: var(--font-normal);
-    color: var(--au-text-secondary);
+    font-weight: var(--font-medium);
+    color: color-mix(in srgb, var(--au-text-primary) 88%, black);
     margin: 0 0 var(--space-8);
-    max-width: 540px;
+    max-width: 34ch;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
   }
 
   .hero-actions {
@@ -294,13 +304,18 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
     color: var(--au-text-primary);
-    border: 1px solid var(--au-border);
+    border: 1px solid rgba(5, 5, 5, 0.12);
+    background: rgba(255, 255, 255, 0.68);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 14px 34px rgba(5, 5, 5, 0.08);
     border-radius: var(--radius-sm);
-    transition: border-color var(--transition-base);
+    transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base);
   }
 
   .btn-secondary:hover {
-    border-color: var(--au-border-hover);
+    border-color: rgba(14, 165, 233, 0.28);
+    background: rgba(255, 255, 255, 0.82);
+    transform: translateY(-1px);
   }
 
   .role-shortcut {
@@ -330,12 +345,12 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     gap: var(--space-6);
     margin-top: var(--space-12);
     padding-top: var(--space-8);
-    border-top: 1px solid var(--au-border);
+    border-top: 1px solid rgba(5, 5, 5, 0.12);
   }
 
   .hero-metric {
     font-size: var(--text-xs);
-    color: var(--au-text-tertiary);
+    color: var(--au-text-secondary);
     line-height: 1.4;
   }
 
@@ -353,7 +368,7 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     bottom: var(--space-8);
     left: 50%;
     transform: translateX(-50%);
-    color: var(--au-text-tertiary);
+    color: rgba(5, 5, 5, 0.46);
     animation: float 3s ease-in-out infinite;
     z-index: 2;
   }

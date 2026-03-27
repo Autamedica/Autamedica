@@ -49,10 +49,10 @@ const PUBLIC_ROUTES = [
 function getRoleRedirect(role: string): string {
   if (import.meta.env.PROD) {
     const PROD: Record<string, string> = {
-      patient: 'https://patients.autamedica.com',
-      doctor: 'https://doctors.autamedica.com',
-      company: 'https://companies.autamedica.com',
-      company_admin: 'https://companies.autamedica.com',
+      patient: 'https://paciente.autamedica.com',
+      doctor: 'https://doctor.autamedica.com',
+      company: 'https://empresa.autamedica.com',
+      company_admin: 'https://empresa.autamedica.com',
       organization_admin: 'https://admin.autamedica.com',
       platform_admin: 'https://admin.autamedica.com',
       admin: 'https://admin.autamedica.com',

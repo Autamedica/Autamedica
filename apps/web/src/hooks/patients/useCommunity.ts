@@ -1,112 +1,111 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useSupabase } from '@autamedica/auth/react';
+import { communityBrowserService } from '@/lib/patients/services/community.browser';
+import type {
+  CommunityGroup,
+  CommunityMembership,
+  CommunityPost,
+  CommunitySortBy,
+  CreateCommunityPostInput,
+} from '@/lib/patients/types/community';
 import { logger } from '@autamedica/shared';
-
-export interface CommunityGroup {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  category: string | null;
-  member_count: number;
-  post_count: number;
-}
-
-export interface CommunityPost {
-  id: string;
-  group_id: string;
-  author_id: string;
-  author_display_name: string | null;
-  is_anonymous: boolean;
-  title: string;
-  content: string;
-  tags: string[];
-  moderation_status: string;
-  reaction_count: number;
-  comment_count: number;
-  view_count: number;
-  created_at: string;
-  group?: CommunityGroup;
-}
+import { useSupabase } from '@autamedica/auth/react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface LoadPostsOptions {
-  sort_by?: 'recent' | 'popular';
+  sort_by?: CommunitySortBy;
   limit?: number;
+  group_id?: string;
+}
+
+interface UseCommunityReturn {
+  groups: CommunityGroup[];
+  memberships: CommunityMembership[];
+  posts: CommunityPost[];
+  loading: boolean;
+  error: string | null;
+  loadGroups: () => Promise<void>;
+  loadPosts: (options?: LoadPostsOptions) => Promise<void>;
+  refresh: (options?: LoadPostsOptions) => Promise<void>;
+  createPost: (payload: {
+    groupId: string;
+    content: string;
+    title?: string;
+    anonymous?: boolean;
+    tags?: string[];
+  }) => Promise<void>;
+  addReaction: (payload: { postId: string; reactionType: string }) => Promise<void>;
 }
 
 const DEFAULT_POST_LIMIT = 10;
 
-export function useCommunity() {
-  const supabase = useSupabase();
+export type { CommunityGroup, CommunityPost, CommunityMembership };
 
+export function useCommunity(): UseCommunityReturn {
   const [groups, setGroups] = useState<CommunityGroup[]>([]);
+  const [memberships, setMemberships] = useState<CommunityMembership[]>([]);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [postsLoading, setPostsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadGroups = useCallback(async () => {
-    if (!supabase) {
-      return;
-    }
+  const applyOverview = useCallback(
+    (overview: {
+      groups: CommunityGroup[];
+      memberships: CommunityMembership[];
+      posts: CommunityPost[];
+    }) => {
+      setGroups(overview.groups);
+      setMemberships(overview.memberships);
+      setPosts(overview.posts);
+    },
+    [],
+  );
 
+  const loadGroups = useCallback(async () => {
     setGroupsLoading(true);
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('community_groups')
-        .select('*')
-        .is('deleted_at', null)
-        .order('member_count', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setGroups(data ?? []);
+      const overview = await communityBrowserService.getOverview({ limit: 1 });
+      setGroups(overview.groups);
+      setMemberships(overview.memberships);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar grupos';
       setError(message);
     } finally {
       setGroupsLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   const loadPosts = useCallback(async (options: LoadPostsOptions = {}) => {
-    if (!supabase) {
-      return;
-    }
-
-    const { sort_by = 'recent', limit = DEFAULT_POST_LIMIT } = options;
+    const { sort_by = 'recent', limit = DEFAULT_POST_LIMIT, group_id } = options;
 
     setPostsLoading(true);
     setError(null);
 
     try {
-      let query = supabase
-        .from('community_posts')
-        .select('*, group:community_groups(*)')
-        .eq('moderation_status', 'approved')
-        .is('deleted_at', null)
-        .limit(limit);
+      const overview = await communityBrowserService.getOverview({
+        sortBy: sort_by,
+        limit,
+        groupId: group_id,
+      });
 
-      if (sort_by === 'popular') {
-        query = query.order('reaction_count', { ascending: false });
-      } else {
-        query = query.order('created_at', { ascending: false });
-      }
-
-      const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
-
-      setPosts(data ?? []);
+      applyOverview(overview);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al cargar publicaciones';
       setError(message);
     } finally {
       setPostsLoading(false);
     }
-  }, [supabase]);
+  }, [applyOverview]);
+
+  const refresh = useCallback(
+    async (options: LoadPostsOptions = {}) => {
+      await loadPosts(options);
+    },
+    [loadPosts],
+  );
 
   const createPost = useCallback(
     async (payload: {
@@ -116,75 +115,38 @@ export function useCommunity() {
       anonymous?: boolean;
       tags?: string[];
     }) => {
-      if (!supabase) {
-        throw new Error('Supabase no está disponible en este contexto');
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Usuario no autenticado');
-      }
-
-      const { error: insertError } = await supabase
-        .from('community_posts')
-        .insert({
-          group_id: payload.groupId,
-          content: payload.content,
-          title: payload.title ?? null,
-          is_anonymous: payload.anonymous ?? false,
-          tags: payload.tags ?? [],
-          author_id: user.id,
-        });
-
-      if (insertError) {
-        throw insertError;
-      }
+      await communityBrowserService.createPost({
+        groupId: payload.groupId,
+        content: payload.content,
+        title: payload.title,
+        anonymous: payload.anonymous,
+        tags: payload.tags,
+      } satisfies CreateCommunityPostInput);
 
       await loadPosts();
     },
-    [supabase, loadPosts],
+    [loadPosts],
   );
 
   const addReaction = useCallback(
     async (payload: { postId: string; reactionType: string }) => {
-      if (!supabase) {
-        throw new Error('Supabase no está disponible en este contexto');
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Usuario no autenticado');
-      }
-
-      const { error: upsertError } = await supabase
-        .from('post_reactions')
-        .upsert(
-          {
-            post_id: payload.postId,
-            reaction_type: payload.reactionType,
-            user_id: user.id,
-          },
-          { onConflict: 'post_id,user_id' }
-        );
-
-      if (upsertError) {
-        throw upsertError;
-      }
-
+      await communityBrowserService.addReaction(payload);
       await loadPosts();
     },
-    [supabase, loadPosts],
+    [loadPosts],
   );
 
   const loading = groupsLoading || postsLoading;
 
   return {
     groups,
+    memberships,
     posts,
     loading,
     error,
     loadGroups,
     loadPosts,
+    refresh,
     createPost,
     addReaction,
   };
@@ -217,30 +179,35 @@ export function useAutoJoinGroup() {
 
   const autoJoin = useCallback(
     async (groupId: string) => {
-      if (!supabase) return;
+      if (!supabase || !groupId.trim()) {
+        return;
+      }
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData.user?.id;
+        if (!userId) {
+          return;
+        }
 
         const { data: existing } = await supabase
           .from('group_memberships')
           .select('id')
           .eq('group_id', groupId)
-          .eq('patient_id', user.id)
+          .eq('patient_id', userId)
           .eq('status', 'active')
           .maybeSingle();
 
-        if (existing) return;
+        if (existing) {
+          return;
+        }
 
-        await supabase
-          .from('group_memberships')
-          .insert({
-            group_id: groupId,
-            patient_id: user.id,
-            role: 'member',
-            status: 'active',
-          });
+        await supabase.from('group_memberships').insert({
+          group_id: groupId,
+          patient_id: userId,
+          role: 'member',
+          status: 'active',
+        });
       } catch (err) {
         logger.error('Error auto-joining group:', err);
       }

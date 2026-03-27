@@ -37,8 +37,8 @@ export function usePatientReports(): UsePatientReportsReturn {
     try {
       setLoading(true)
       setError(null)
-      const result = await fetchApi<{ data: PatientReport[] }>('/api/patients/reports')
-      setReports(result.data ?? [])
+      const result = await fetchApi<PatientReport[]>('/api/patients/reports')
+      setReports(result ?? [])
     } catch (err) {
       logger.error('[usePatientReports] fetch failed', err)
       setError('No se pudieron cargar los informes')
