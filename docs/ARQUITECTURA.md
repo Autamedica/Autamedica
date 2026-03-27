@@ -249,7 +249,7 @@ GitHub Actions (CI/CD)
 
 ---
 
-## Patrones Avanzados (2026-03-27)
+## Hexagonal Layered — Patrones Transversales (2026-03-27)
 
 ### Ports (Interfaces de Repositorio)
 

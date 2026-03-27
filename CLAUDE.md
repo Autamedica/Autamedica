@@ -233,7 +233,7 @@ packages/
 - No dividir decisiones de producto o arquitectura entre Android e iOS salvo cuando una restricción de plataforma lo obligue.
 - `apps/mobile` no debe interpretarse como otro frente activo separado; es una reserva para futura convergencia del canal móvil.
 
-### Arquitectura de Capas (OBLIGATORIA)
+### Hexagonal Layered Architecture (OBLIGATORIA)
 
 Toda feature debe respetar la separación de capas. Código que mezcla capas = bug arquitectural.
 
@@ -270,7 +270,7 @@ Controller (APIRoute)  →  Service  →  Repository  →  [Supabase/DB]
 - **`createBrowserClient()` en hooks/componentes**: Usar `getBrowserSupabaseClient()` singleton o `fetchApi()`. No instanciar clientes ad-hoc.
 - **Lógica de negocio en componentes**: Si un componente tiene `if/else` de reglas de dominio, eso va en un Service.
 
-### Patrones Avanzados (sobre las 7 capas)
+### Hexagonal Layered — Patrones Transversales
 
 - **Ports**: Interfaces abstractas de repos en `packages/types/src/ports/`. Adapter factories en cada repo existente. Permite testing con mocks.
 - **Domain Events**: Event bus tipado en `packages/shared/src/events/`. Use cases emiten, handlers reaccionan. No reemplaza Supabase Realtime.

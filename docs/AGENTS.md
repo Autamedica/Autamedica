@@ -177,7 +177,7 @@ supabase/
 - **Prohibido** que apps importen directamente de otras apps. Solo via `packages/*`.
 - Lógica médica y financiera en backend (Supabase RPC/Edge Functions), no en components.
 
-### Patrones Avanzados (sobre las 7 capas base)
+### Hexagonal Layered — Patrones Transversales
 
 - **Ports** → `packages/types/src/ports/`: interfaces de repos. Adapter factories en cada repo. Mock testing sin Supabase.
 - **Domain Events** → `packages/shared/src/events/`: event bus tipado (`domainEvents.emit/on`). Desacopla side-effects.

@@ -212,9 +212,9 @@ const normalized = normalizeRole("company_admin"); // 'company'
 
 ---
 
-## 🧱 **Patrones Arquitecturales**
+## 🧱 **Hexagonal Layered Architecture**
 
-Sobre la arquitectura de 7 capas (UI → Hook → Service → API Client → Controller → Service → Repository):
+7 capas base (UI → Hook → Service → API Client → Controller → Service → Repository) + 4 patrones transversales:
 
 | Patrón            | Ubicación                      | Propósito                                                       |
 | ----------------- | ------------------------------ | --------------------------------------------------------------- |

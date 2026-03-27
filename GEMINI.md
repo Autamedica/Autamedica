@@ -135,9 +135,9 @@ Para cualquier feature o bug de datos, analizar y validar siempre en dos niveles
 
 - **Turbo cache invalidation:** Si Turbo usa cache obsoleta, usar `--force` o limpiar `.turbo/` local.
 
-### Patrones Arquitecturales Avanzados
+### Hexagonal Layered Architecture — Patrones Transversales
 
-Sobre la arquitectura de 7 capas (UI → Hook → Service → API Client → Controller → Service → Repository), se aplican 4 patrones adicionales:
+Sobre las 7 capas base (UI → Hook → Service → API Client → Controller → Service → Repository), se aplican 4 patrones adicionales:
 
 - **Ports** (`packages/types/src/ports/`): Interfaces abstractas de repos (`IPatientRepository`, `IAnamnesisRepository`, `IAppointmentQueryRepository`). Cada repo tiene un `createXxxAdapter(supabase)` factory. Permite mock testing sin DB.
 - **Domain Events** (`packages/shared/src/events/`): `domainEvents.emit('appointment.completed', payload)` / `domainEvents.on(...)`. Tipado con `DomainEvents` map. Complementa (no reemplaza) Supabase Realtime.
