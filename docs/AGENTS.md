@@ -177,6 +177,15 @@ supabase/
 - **Prohibido** que apps importen directamente de otras apps. Solo via `packages/*`.
 - Lógica médica y financiera en backend (Supabase RPC/Edge Functions), no en components.
 
+### Patrones Avanzados (sobre las 7 capas base)
+
+- **Ports** → `packages/types/src/ports/`: interfaces de repos. Adapter factories en cada repo. Mock testing sin Supabase.
+- **Domain Events** → `packages/shared/src/events/`: event bus tipado (`domainEvents.emit/on`). Desacopla side-effects.
+- **Use Cases** → `apps/web/src/lib/*/usecases/`: orquestación de flujos completos con DI.
+- **CQRS Lite** → `apps/web/src/lib/*/queries/`: read models de dashboard separados de services.
+
+Ver `docs/ARQUITECTURA.md` para detalle completo.
+
 ---
 
 ## 5. Astro-Specific Patterns

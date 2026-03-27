@@ -270,6 +270,15 @@ Controller (APIRoute)  →  Service  →  Repository  →  [Supabase/DB]
 - **`createBrowserClient()` en hooks/componentes**: Usar `getBrowserSupabaseClient()` singleton o `fetchApi()`. No instanciar clientes ad-hoc.
 - **Lógica de negocio en componentes**: Si un componente tiene `if/else` de reglas de dominio, eso va en un Service.
 
+### Patrones Avanzados (sobre las 7 capas)
+
+- **Ports**: Interfaces abstractas de repos en `packages/types/src/ports/`. Adapter factories en cada repo existente. Permite testing con mocks.
+- **Domain Events**: Event bus tipado en `packages/shared/src/events/`. Use cases emiten, handlers reaccionan. No reemplaza Supabase Realtime.
+- **Use Cases**: `*.usecase.ts` en `apps/web/src/lib/*/usecases/`. Orquestan flujos completos con inyección de dependencias.
+- **CQRS Lite**: Queries de dashboard en `apps/web/src/lib/*/queries/`. Read models separados de services de negocio.
+
+Detalle completo: `docs/ARQUITECTURA.md` sección "Patrones Avanzados".
+
 ### Estrategia de Ramas (Trunk-Based Development)
 
 1. **`main` es Producción.** Única rama eterna. Nunca commit directo. Siempre estable.

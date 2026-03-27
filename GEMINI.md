@@ -135,6 +135,17 @@ Para cualquier feature o bug de datos, analizar y validar siempre en dos niveles
 
 - **Turbo cache invalidation:** Si Turbo usa cache obsoleta, usar `--force` o limpiar `.turbo/` local.
 
+### Patrones Arquitecturales Avanzados
+
+Sobre la arquitectura de 7 capas (UI → Hook → Service → API Client → Controller → Service → Repository), se aplican 4 patrones adicionales:
+
+- **Ports** (`packages/types/src/ports/`): Interfaces abstractas de repos (`IPatientRepository`, `IAnamnesisRepository`, `IAppointmentQueryRepository`). Cada repo tiene un `createXxxAdapter(supabase)` factory. Permite mock testing sin DB.
+- **Domain Events** (`packages/shared/src/events/`): `domainEvents.emit('appointment.completed', payload)` / `domainEvents.on(...)`. Tipado con `DomainEvents` map. Complementa (no reemplaza) Supabase Realtime.
+- **Use Cases** (`apps/web/src/lib/*/usecases/*.usecase.ts`): Flujos de negocio completos con inyección de dependencias. Ej: `completeAnamnesis(deps, input)`, `startTeleconsultation(deps, input)`.
+- **CQRS Lite** (`apps/web/src/lib/*/queries/*.query.ts`): Read models de dashboard separados de services. Ej: `queryDashboardStats()`, `queryNotificationFeed()`.
+
+Detalle: `docs/ARQUITECTURA.md` sección "Patrones Avanzados".
+
 ---
 
 ## 4. Contexto & Memorias Activas

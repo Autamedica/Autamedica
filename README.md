@@ -8,6 +8,7 @@
 ## 🎯 **ESTADO ACTUAL: SISTEMA DE ROLES OPERATIVO**
 
 **✅ COMPLETADO EXITOSAMENTE**
+
 - 🔐 **Migración de roles aplicada** - Sistema organization + user_roles funcional
 - 📊 **Datos de prueba cargados** - 5 usuarios, 1 organización, roles asignados
 - 🧪 **Tests pasando** - 29/29 tests de role routing exitosos
@@ -16,15 +17,15 @@
 
 ### 🔐 **Roles Disponibles y Portales**
 
-| Rol | Portal de Destino | URL | Estado |
-|-----|------------------|-----|---------|
-| `organization_admin` | **Admin Portal** | `https://admin.autamedica.com` | ✅ Operativo |
-| `company` | **Companies Portal** | `https://companies.autamedica.com` | ✅ Operativo |
-| `company_admin` | **Companies Portal** | `https://companies.autamedica.com` | ✅ Legacy Support |
-| `doctor` | **Doctors Portal** | `https://doctors.autamedica.com` | ✅ Operativo |
-| `patient` | **Patients Portal** | `https://patients.autamedica.com` | ✅ Operativo |
-| `admin` | **Admin Portal** | `https://admin.autamedica.com` | ✅ Operativo |
-| `platform_admin` | **Main Platform** | `https://www.autamedica.com` | ✅ Operativo |
+| Rol                  | Portal de Destino    | URL                                | Estado            |
+| -------------------- | -------------------- | ---------------------------------- | ----------------- |
+| `organization_admin` | **Admin Portal**     | `https://admin.autamedica.com`     | ✅ Operativo      |
+| `company`            | **Companies Portal** | `https://companies.autamedica.com` | ✅ Operativo      |
+| `company_admin`      | **Companies Portal** | `https://companies.autamedica.com` | ✅ Legacy Support |
+| `doctor`             | **Doctors Portal**   | `https://doctors.autamedica.com`   | ✅ Operativo      |
+| `patient`            | **Patients Portal**  | `https://patients.autamedica.com`  | ✅ Operativo      |
+| `admin`              | **Admin Portal**     | `https://admin.autamedica.com`     | ✅ Operativo      |
+| `platform_admin`     | **Main Platform**    | `https://www.autamedica.com`       | ✅ Operativo      |
 
 ---
 
@@ -93,13 +94,13 @@ public.user_roles (id, profile_id, organization_id, role, granted_by, expires_at
 
 ### 👥 **Usuarios de Prueba Disponibles**
 
-| Email | Rol Global | Organización | Propósito |
-|-------|------------|--------------|-----------|
-| `admin@clinica-demo.com` | `organization_admin` | Clínica Demo | Testing admin portal |
-| `company@clinica-demo.com` | `company_admin` | Clínica Demo | Testing companies portal |
-| `doctor@clinica-demo.com` | `doctor` | - | Testing doctors portal |
-| `patient@clinica-demo.com` | `patient` | - | Testing patients portal |
-| `platform@clinica-demo.com` | `platform_admin` | - | Testing platform admin |
+| Email                       | Rol Global           | Organización | Propósito                |
+| --------------------------- | -------------------- | ------------ | ------------------------ |
+| `admin@clinica-demo.com`    | `organization_admin` | Clínica Demo | Testing admin portal     |
+| `company@clinica-demo.com`  | `company_admin`      | Clínica Demo | Testing companies portal |
+| `doctor@clinica-demo.com`   | `doctor`             | -            | Testing doctors portal   |
+| `patient@clinica-demo.com`  | `patient`            | -            | Testing patients portal  |
+| `platform@clinica-demo.com` | `platform_admin`     | -            | Testing platform admin   |
 
 **Organización de prueba**: `Clínica Demo AutaMedica` (slug: `clinica-demo`)
 
@@ -145,30 +146,35 @@ node test-role-routing.mjs
 ## 🚀 **Aplicaciones Multi-Portal**
 
 ### 🌐 **Web-App** (puerto 3000)
+
 - **Landing Page + Autenticación Central**
 - **Role Selection** - Selección de rol post-login
 - **Redirección automática** según rol del usuario
 - **OAuth completo** con Google + email magic links
 
 ### 👨‍⚕️ **Doctors** (puerto 3001)
+
 - **Portal médico profesional** estilo VSCode
 - **Sistema de videollamadas** WebRTC integrado
 - **Dashboard médico** con información de pacientes
 - **Componentes especializados** para workflow médico
 
 ### 👤 **Patients** (puerto 3002)
+
 - **Portal personal del paciente** responsive
 - **Sistema de temas** personalizables
 - **Historial médico** y resultados
 - **Interfaz amigable** optimizada para pacientes
 
 ### 🏢 **Companies** (puerto 3003)
+
 - **Centro de Control de Crisis** médicas
 - **Marketplace Médico** integrado
 - **Dashboard corporativo** para empresas
 - **Sistema de contratación** de profesionales
 
 ### ⚙️ **Admin** (puerto 3004)
+
 - **Panel administrativo** para organization_admin
 - **Gestión de organizaciones** y usuarios
 - **Métricas** y reportes del sistema
@@ -178,47 +184,60 @@ node test-role-routing.mjs
 ## 📦 **Packages del Sistema**
 
 ### 🔐 **@autamedica/auth** - Autenticación + Roles
+
 ```typescript
-import { getTargetUrlByRole, getPortalForRole } from '@autamedica/shared';
+import { getTargetUrlByRole, getPortalForRole } from "@autamedica/shared";
 
 // organization_admin → https://admin.autamedica.com
-const adminUrl = getTargetUrlByRole('organization_admin');
-const portal = getPortalForRole('organization_admin'); // 'admin'
+const adminUrl = getTargetUrlByRole("organization_admin");
+const portal = getPortalForRole("organization_admin"); // 'admin'
 ```
 
 ### 🏗️ **@autamedica/types** - Contratos de Roles
-```typescript
-export type UserRole =
-  | "patient"
-  | "doctor"
-  | "company"
-  | "company_admin"
-  | "organization_admin"
-  | "admin"
-  | "platform_admin";
 
-export type OrganizationRole = 'owner' | 'admin' | 'member' | 'billing' | 'support';
+```typescript
+export type UserRole = "patient" | "doctor" | "company" | "company_admin" | "organization_admin" | "admin" | "platform_admin";
+
+export type OrganizationRole = "owner" | "admin" | "member" | "billing" | "support";
 ```
 
 ### 🛠️ **@autamedica/shared** - Role Utilities
-```typescript
-import { isValidRole, normalizeRole } from '@autamedica/shared';
 
-const isValid = isValidRole('organization_admin'); // true
-const normalized = normalizeRole('company_admin'); // 'company'
+```typescript
+import { isValidRole, normalizeRole } from "@autamedica/shared";
+
+const isValid = isValidRole("organization_admin"); // true
+const normalized = normalizeRole("company_admin"); // 'company'
 ```
+
+---
+
+## 🧱 **Patrones Arquitecturales**
+
+Sobre la arquitectura de 7 capas (UI → Hook → Service → API Client → Controller → Service → Repository):
+
+| Patrón            | Ubicación                      | Propósito                                                       |
+| ----------------- | ------------------------------ | --------------------------------------------------------------- |
+| **Ports**         | `packages/types/src/ports/`    | Interfaces abstractas de repos + adapter factories para testing |
+| **Domain Events** | `packages/shared/src/events/`  | Event bus tipado para desacoplar side-effects                   |
+| **Use Cases**     | `apps/web/src/lib/*/usecases/` | Flujos de negocio completos con inyección de dependencias       |
+| **CQRS Lite**     | `apps/web/src/lib/*/queries/`  | Read models de dashboard separados de lógica de negocio         |
+
+Ver [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) para detalle completo.
 
 ---
 
 ## 🔄 **CI/CD y Deployment**
 
 ### ✅ **GitHub Actions Operativo**
+
 - **Validación automática** - TypeScript + ESLint + Build
 - **Tests de roles** - Ejecución automática en PRs
 - **Deploy automático** - Cloudflare Pages configurado
 - **Smoke tests** - Validación post-deployment
 
 ### 🚀 **URLs de Producción**
+
 - **Web-App**: https://autamedica-web-app.pages.dev
 - **Doctors**: https://autamedica-doctors.pages.dev
 - **Patients**: https://autamedica-patients.pages.dev
@@ -229,6 +248,7 @@ const normalized = normalizeRole('company_admin'); // 'company'
 ## 🛡️ **Seguridad y RLS**
 
 ### 🔒 **Row Level Security**
+
 ```sql
 -- Solo owners/admins pueden gestionar su organización
 CREATE POLICY "Organization owners manage organization"
@@ -242,6 +262,7 @@ USING (profile_id = auth.uid() OR EXISTS (...));
 ```
 
 ### 🔐 **Funciones de Utilidad**
+
 ```sql
 -- Selección automática de rol primario
 SELECT public.select_primary_role_for_profile('user-uuid');
@@ -255,16 +276,19 @@ TRIGGER sync_profile_role_after_user_roles
 ## 🎯 **Próximos Pasos**
 
 ### 1. **Testing Manual** 🧪
+
 - Probar login con usuarios de prueba
 - Validar redirects por rol
 - Verificar RLS policies funcionando
 
 ### 2. **Features Avanzadas** 🚀
+
 - Dashboard admin con métricas
 - Gestión de organizaciones vía UI
 - Sistema de invitaciones
 
 ### 3. **Optimización** ⚡
+
 - Performance monitoring
 - Caching de roles
 - Audit logs
@@ -295,6 +319,7 @@ Script inteligente para manejar commits y push con permisos correctos.
 ```
 
 **Características:**
+
 - ✅ Auto-corrección de permisos (root vs edu)
 - ✅ Commits creados como usuario `edu`
 - ✅ Push ejecutado con credenciales de `root`
@@ -308,6 +333,7 @@ Script inteligente para manejar commits y push con permisos correctos.
 ## 🐛 Troubleshooting
 
 ### Problemas de Roles
+
 ```bash
 # Verificar configuración de roles
 node test-role-routing.mjs
@@ -320,6 +346,7 @@ psql "$SUPABASE_DB_URL" -c "SELECT COUNT(*) FROM public.user_roles WHERE metadat
 ```
 
 ### Build Errors
+
 ```bash
 # Limpiar cache completo
 rm -rf node_modules dist .next .turbo
@@ -344,6 +371,7 @@ pnpm docs:validate
 ## 🏆 **Estado del Proyecto**
 
 **✅ PRODUCTION READY**
+
 - ✅ 29/29 tests pasando
 - ✅ 0 warnings ESLint
 - ✅ TypeScript strict mode
@@ -372,24 +400,26 @@ pnpm docs:validate
 
 ### 🏗️ **Agentes del Sistema**
 
-| Agente | Responsabilidad | Herramientas |
-|--------|----------------|--------------|
-| `agent_code` | Lint, TypeCheck, Build, Convenciones | ESLint, TypeScript, validate-conventions.mjs |
-| `agent_db` | Migraciones, RLS, Performance | Supabase CLI, psql, MCP |
-| `agent_security` | Headers, CORS, CVEs | pnpm audit, _headers validation |
-| `agent_dns_deploy` | Deploy a Cloudflare Pages | wrangler, build scripts |
-| `agent_qa` | Fetch, Screenshots, Tests | node_fetch_check.mjs, screenshot_check.mjs, vitest |
-| `agent_docs` | Actualizar README, claude.md, agente.md | Git auto-commit |
+| Agente             | Responsabilidad                         | Herramientas                                       |
+| ------------------ | --------------------------------------- | -------------------------------------------------- |
+| `agent_code`       | Lint, TypeCheck, Build, Convenciones    | ESLint, TypeScript, validate-conventions.mjs       |
+| `agent_db`         | Migraciones, RLS, Performance           | Supabase CLI, psql, MCP                            |
+| `agent_security`   | Headers, CORS, CVEs                     | pnpm audit, \_headers validation                   |
+| `agent_dns_deploy` | Deploy a Cloudflare Pages               | wrangler, build scripts                            |
+| `agent_qa`         | Fetch, Screenshots, Tests               | node_fetch_check.mjs, screenshot_check.mjs, vitest |
+| `agent_docs`       | Actualizar README, claude.md, agente.md | Git auto-commit                                    |
 
 ### 🚀 **Cómo Ejecutar el Workflow**
 
 #### Automático (push a main):
+
 ```bash
 git push origin main
 # El workflow se ejecuta automáticamente
 ```
 
 #### Manual (workflow_dispatch):
+
 ```bash
 # Via GitHub UI
 Actions → "AutaMedica Agentic OS" → Run workflow
@@ -452,6 +482,7 @@ AutaMedica usa **Next.js App Router** exclusivamente:
 - ❌ `apps/*/pages/` (bloqueado por hooks y CI)
 
 Ejemplo de estructura:
+
 ```
 apps/patients/
 ├── app/
@@ -470,6 +501,7 @@ apps/patients/
 Si el workflow falla, el job `rollback_on_fail` ejecuta:
 
 #### Cloudflare Pages Rollback:
+
 ```bash
 # Obtiene deployment previo y revierte
 prev=$(npx wrangler pages deployment list --json | jq -r '.[1].id')
@@ -477,6 +509,7 @@ npx wrangler pages deployment rollback "$prev" --project-name=autamedica-doctors
 ```
 
 #### DB Rollback:
+
 ```bash
 # Si existe backup, restaura
 psql "$DATABASE_URL" -f generated-docs/db-backup.sql
