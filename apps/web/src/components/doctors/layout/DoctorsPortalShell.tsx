@@ -35,6 +35,7 @@ import {
     X,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { SidebarNavigation } from './SidebarNavigation'
 
 const AppointmentsPanel = lazy(() => import('@/components/doctors/appointments/AppointmentsPanel').then(m => ({ default: m.AppointmentsPanel })))
 const DiagnosisPanel = lazy(() => import('@/components/doctors/diagnosis/DiagnosisPanel').then(m => ({ default: m.DiagnosisPanel })))
@@ -443,55 +444,14 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {isSidebarCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
               </button>
             </div>
-            <nav className="space-y-0.5 overflow-y-auto flex-1">
-              {sidebarItems.map(({ id, icon: Icon, label, count, badge }, index) => {
-                const isActive = activeSection === id
-                const groupLabel = !isSidebarCollapsed && (index === 0 ? 'Clínica' : index === clinicalEnd + 1 ? 'Herramientas' : index === toolsEnd + 1 ? 'Plataforma' : null)
-                return (
-                  <div key={id}>
-                    {groupLabel && (
-                      <p className={`px-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-500 ${index > 0 ? 'mt-4 mb-1.5' : 'mb-1.5'}`}>
-                        {groupLabel}
-                      </p>
-                    )}
-                    {!isSidebarCollapsed && index > 0 && (index === clinicalEnd + 1 || index === toolsEnd + 1) && (
-                      <div className="mx-2.5 mb-2 h-px bg-am-surface-200" />
-                    )}
-                    <button
-                      type="button"
-                      className={`sidebar-button relative flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-all duration-am-fast ease-am-ease ${
-                        isActive
-                          ? 'bg-am-doctor-50 text-am-doctor-600 ring-1 ring-am-doctor-200'
-                          : 'text-am-surface-700 hover:bg-am-surface-100 hover:text-am-surface-900'
-                      } ${isSidebarCollapsed ? 'flex-col gap-1 text-center' : 'gap-2'}`}
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        handleSidebarItemClick(id)
-                      }}
-                      title={isSidebarCollapsed ? label : undefined}
-                    >
-                      {isActive && !isSidebarCollapsed && (
-                        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-am-doctor-500" />
-                      )}
-                      <span className={`flex items-center gap-2.5 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-                        <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-am-doctor-600' : 'text-am-surface-500'}`} />
-                        {!isSidebarCollapsed && <span className="font-medium">{label}</span>}
-                      </span>
-                      {!isSidebarCollapsed && (
-                        <span className="flex items-center gap-2">
-                          {typeof count === 'number' && count > 0 && (
-                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-am-doctor-100 px-1.5 text-[10px] font-semibold text-am-doctor-600">{count}</span>
-                          )}
-                          {badge && (
-                            <span className="rounded-full bg-am-doctor-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{badge}</span>
-                          )}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                )
-              })}
-            </nav>
+            <SidebarNavigation
+              items={sidebarItems}
+              activeSection={activeSection}
+              isSidebarCollapsed={isSidebarCollapsed}
+              clinicalEnd={clinicalEnd}
+              toolsEnd={toolsEnd}
+              onItemClick={handleSidebarItemClick}
+            />
             <div className={`mt-auto space-y-2 ${isSidebarCollapsed ? '' : ''}`}>
               <div className={`rounded-xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-am-primary-50 p-2.5 ${isSidebarCollapsed ? 'px-2' : ''}`}>
                 <div className={`flex items-center gap-2.5 ${isSidebarCollapsed ? 'flex-col text-center' : ''}`}>

@@ -1,14 +1,20 @@
 /**
  * WebRTC Client for AltaMedica Telemedicine
- * Handles peer-to-peer video/audio connections with signaling server
+ * Orchestrator: delegates to BitrateAdapter, TurnManager, PeerConnectionFactory,
+ * MediaManager, and QualityMonitor for specific concerns.
  */
 
 import { createTelemedicineLogger } from './debug'
-import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY, fetchTurnCredentials, hasTurnIceServer } from './config/ice-servers'
+import { openSignalingSocket } from './signaling-socket'
+import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
 import { MediaManager } from './media-manager'
 import { QualityMonitor, type StreamQualitySummary } from './quality-monitor'
+import { BitrateAdapter } from './bitrate-adapter'
+import { TurnManager } from './turn-manager'
+import { PeerConnectionFactory, type PeerState, type ChatMessage } from './peer-connection-factory'
 export type { StreamQualityLevel, StreamQualityMetrics, StreamQualitySummary } from './quality-monitor'
+export type { ChatMessage } from './peer-connection-factory'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -26,15 +32,6 @@ export interface MediaConstraints {
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'failed' | 'closed'
 
-export interface ChatMessage {
-  id: string
-  text: string
-  senderId: string
-  senderType: 'doctor' | 'patient' | 'nurse'
-  senderName?: string
-  timestamp: number
-}
-
 export interface WebRTCEvents {
   'connection-state': (state: ConnectionState) => void
   'remote-stream': (stream: MediaStream, userId: string) => void
@@ -47,7 +44,6 @@ export interface WebRTCEvents {
   'audio-only-fallback': (info: { reason: string; error: unknown }) => void
   'device-change': (devices: DeviceInfo[]) => void
   'error': (error: Error) => void
-  // Observability events
   'media-acquired': (info: { videoTracks: number; audioTracks: number; source: string }) => void
   'signaling-connected': (info: { latencyMs: number }) => void
   'ice-state-change': (info: { peerId: string; state: string }) => void
@@ -62,32 +58,6 @@ type ServerSignalingMessage =
   | { type: 'answer'; from: string; data: RTCSessionDescriptionInit }
   | { type: 'ice-candidate'; from: string; data: RTCIceCandidateInit }
   | { type: 'error'; data: string }
-
-interface PeerState {
-  pc: RTCPeerConnection
-  pendingIceCandidates: RTCIceCandidateInit[]
-  isMakingOffer: boolean
-  isSettingRemoteAnswerPending: boolean
-  ignoreOffer: boolean
-  isPolite: boolean
-  dataChannel: RTCDataChannel | null
-  iceRestartCount: number
-  lastIceRestartAt: number
-}
-
-const MAX_ICE_RESTART_ATTEMPTS = 3
-const ICE_RESTART_BACKOFF_BASE_MS = 2_000
-
-const CHAT_CHANNEL_LABEL = 'autamedica-chat'
-
-// Pre-warm & adaptive media constants
-const INITIAL_VIDEO_BITRATE = 500_000  // Start conservative: 500kbps
-const TARGET_VIDEO_BITRATE = 2_500_000 // Ramp to 2.5Mbps for 720p quality
-const BITRATE_RAMP_DURATION_MS = 10_000 // Over 10 seconds
-const BITRATE_RAMP_INTERVAL_MS = 2_000  // Step every 2s
-// Codec preference resolved at runtime via getPreferredCodecs() from media-optimizations
-
-// Media constraints replaced by getAdaptiveConstraints() from media-optimizations.ts
 
 export interface DeviceInfo {
   deviceId: string
@@ -113,18 +83,14 @@ export class WebRTCClient {
   private connectionState: ConnectionState = 'disconnected'
   private readonly qualityMonitor: QualityMonitor
   private readonly debugLogger: ReturnType<typeof createTelemedicineLogger>
+  private readonly bitrateAdapter: BitrateAdapter
+  private readonly turnManager: TurnManager
+  private readonly peerFactory: PeerConnectionFactory
   readonly media: MediaManager
   private isWarmedUp = false
   private warmUpPromise: Promise<WarmUpResult> | null = null
-  private bitrateRampInterval: ReturnType<typeof setInterval> | null = null
-  private bitrateRampStartMs: number | null = null
-  private networkChangeCleanup: (() => void) | null = null
-  private onlineOfflineCleanup: (() => void) | null = null
-  private turnRefreshInterval: ReturnType<typeof setInterval> | null = null
-  private deviceChangeCleanup: (() => void) | null = null
 
   constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
-    // Use environment-configured ICE servers or fallback to STUN-only defaults
     const envServers = loadIceServers()
     const iceServers = config.iceServers || (envServers.length > 0 ? envServers : ICE_STUN_ONLY)
 
@@ -154,153 +120,42 @@ export class WebRTCClient {
       this.emit('stream-quality', summary)
     }
 
-    this.media = new MediaManager(this.debugLogger, this.sessionId, {
+    const emitCallback = {
       emit: (event: string, ...args: unknown[]) => {
         this.emit(event as keyof WebRTCEvents, ...args as [never])
       },
-      onBitrateRampNeeded: () => this.startBitrateRamp(),
+    }
+
+    this.media = new MediaManager(this.debugLogger, this.sessionId, {
+      ...emitCallback,
+      onBitrateRampNeeded: () => this.bitrateAdapter.startBitrateRamp(this.peerConnections),
     })
+
+    this.bitrateAdapter = new BitrateAdapter(this.debugLogger, this.sessionId, emitCallback)
+    this.turnManager = new TurnManager(this.debugLogger, this.sessionId)
+    this.peerFactory = new PeerConnectionFactory(
+      this.debugLogger,
+      this.sessionId,
+      this.media,
+      this.qualityMonitor,
+      {
+        ...emitCallback,
+        sendSignalingMessage: (msg) => this.sendSignalingMessage(msg),
+        emitChatReady: () => this.emitChatReady(),
+      },
+    )
   }
 
   private logInfo(message: string, context: Record<string, unknown> = {}): void {
-    this.debugLogger.info(message, {
-      sessionId: this.sessionId,
-      ...context,
-    })
+    this.debugLogger.info(message, { sessionId: this.sessionId, ...context })
   }
 
   private logWarn(message: string, context: Record<string, unknown> = {}): void {
-    this.debugLogger.warn(message, {
-      sessionId: this.sessionId,
-      ...context,
-    })
+    this.debugLogger.warn(message, { sessionId: this.sessionId, ...context })
   }
 
   private logError(message: string, error: unknown, context: Record<string, unknown> = {}): void {
-    this.debugLogger.error(message, error, {
-      sessionId: this.sessionId,
-      ...context,
-    })
-  }
-
-  /** Monitor network changes (WiFi→cellular etc) and adjust bitrate */
-  private startNetworkMonitoring(): void {
-    const conn = (navigator as Navigator & { connection?: EventTarget & { effectiveType?: string; downlink?: number } }).connection
-    if (!conn) return
-
-    const handler = () => {
-      const info = conn as { effectiveType?: string; downlink?: number }
-      this.logInfo('Network change detected', { effectiveType: info.effectiveType, downlink: info.downlink })
-
-      // On degraded network, reset bitrate ramp to start conservative again
-      if (info.effectiveType === '2g' || info.effectiveType === '3g' || info.effectiveType === 'slow-2g') {
-        this.stopBitrateRamp()
-        for (const [, peerState] of this.peerConnections) {
-          for (const sender of peerState.pc.getSenders()) {
-            if (sender.track?.kind !== 'video') continue
-            const params = sender.getParameters()
-            if (params.encodings?.[0]) {
-              params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
-              params.encodings[0].maxFramerate = 15
-              sender.setParameters(params).catch(() => { /* ignore */ })
-            }
-          }
-        }
-      }
-    }
-
-    conn.addEventListener('change', handler)
-    this.networkChangeCleanup = () => conn.removeEventListener('change', handler)
-  }
-
-  /** Refresh TURN credentials mid-call (Cloudflare credentials expire in 24h) */
-  private startTurnCredentialRefresh(): void {
-    if (this.turnRefreshInterval) return
-    if (!hasTurnIceServer(this.config.iceServers)) return
-
-    const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000 // Every 6 hours
-    this.turnRefreshInterval = setInterval(async () => {
-      try {
-        const freshServers = await fetchTurnCredentials()
-        if (hasTurnIceServer(freshServers)) {
-          this.config.iceServers = freshServers
-          // Update existing peer connections with new credentials
-          for (const [peerId, peerState] of this.peerConnections) {
-            peerState.pc.setConfiguration({
-              iceServers: freshServers,
-              bundlePolicy: 'max-bundle',
-              rtcpMuxPolicy: 'require',
-            })
-            this.logInfo('TURN credentials refreshed for peer', { peerId })
-          }
-        }
-      } catch {
-        this.logWarn('Failed to refresh TURN credentials')
-      }
-    }, REFRESH_INTERVAL_MS)
-  }
-
-  private stopTurnCredentialRefresh(): void {
-    if (this.turnRefreshInterval) {
-      clearInterval(this.turnRefreshInterval)
-      this.turnRefreshInterval = null
-    }
-  }
-
-  /** Detect browser going offline/online and trigger reconnection */
-  private startOnlineOfflineMonitoring(): void {
-    if (typeof window === 'undefined') return
-
-    const onOffline = () => {
-      this.logWarn('Browser went offline')
-      this.emit('error', new Error('network_offline'))
-    }
-
-    const onOnline = () => {
-      this.logInfo('Browser came back online, restarting ICE for all peers')
-      for (const [peerId, peerState] of this.peerConnections) {
-        peerState.iceRestartCount = 0
-        peerState.pc.restartIce()
-        this.logInfo('ICE restart triggered after online recovery', { peerId })
-      }
-      // Re-start bitrate ramp from conservative
-      this.stopBitrateRamp()
-      this.startBitrateRamp()
-    }
-
-    window.addEventListener('offline', onOffline)
-    window.addEventListener('online', onOnline)
-    this.onlineOfflineCleanup = () => {
-      window.removeEventListener('offline', onOffline)
-      window.removeEventListener('online', onOnline)
-    }
-  }
-
-  private stopNetworkMonitoring(): void {
-    this.networkChangeCleanup?.()
-    this.networkChangeCleanup = null
-    this.onlineOfflineCleanup?.()
-    this.onlineOfflineCleanup = null
-  }
-
-  /** Detect when devices are connected/disconnected (headset, camera, etc.) */
-  private startDeviceChangeMonitoring(): void {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.addEventListener) return
-
-    const handler = async () => {
-      const devices = await this.enumerateDevices()
-      this.media.setCachedDevices(devices)
-      this.emit('device-change', devices)
-      this.logInfo('Device change detected', { deviceCount: devices.length })
-    }
-
-    navigator.mediaDevices.addEventListener('devicechange', handler)
-    this.deviceChangeCleanup = () => navigator.mediaDevices.removeEventListener('devicechange', handler)
-  }
-
-  private stopDeviceChangeMonitoring(): void {
-    this.deviceChangeCleanup?.()
-    this.deviceChangeCleanup = null
+    this.debugLogger.error(message, error, { sessionId: this.sessionId, ...context })
   }
 
   // Event listener methods
@@ -311,11 +166,7 @@ export class WebRTCClient {
       this.eventListeners.set(event, listeners)
     }
     listeners.push(listener)
-
-    // Return unsubscribe function
-    return () => {
-      this.off(event, listener)
-    }
+    return () => { this.off(event, listener) }
   }
 
   off<T extends keyof WebRTCEvents>(event: T, listener: WebRTCEvents[T]): void {
@@ -346,10 +197,7 @@ export class WebRTCClient {
       const previousState = this.connectionState
       this.connectionState = state
       this.emit('connection-state', state)
-      this.logInfo('Connection state changed', {
-        from: previousState,
-        to: state,
-      })
+      this.logInfo('Connection state changed', { from: previousState, to: state })
 
       if (state === 'connected') {
         this.qualityMonitor.start(this.peerConnections)
@@ -366,15 +214,10 @@ export class WebRTCClient {
     }
   }
 
-  /**
-   * Pre-warm the client: acquire media + open signaling socket in parallel.
-   * Call this early (e.g. on page mount) so that `connect()` becomes near-instant.
-   */
   async warmUp(constraints?: MediaStreamConstraints): Promise<WarmUpResult> {
     if (this.warmUpPromise) {
       return this.warmUpPromise
     }
-
     this.warmUpPromise = this.doWarmUp(constraints)
     return this.warmUpPromise
   }
@@ -385,7 +228,6 @@ export class WebRTCClient {
       hasExistingStream: !!this.media.getLocalStream(),
     })
 
-    // Run getUserMedia and WS open in parallel
     const [streamResult, signalingResult, devicesResult] = await Promise.allSettled([
       this.media.getLocalStream()
         ? Promise.resolve(this.media.getLocalStream() as MediaStream)
@@ -394,7 +236,6 @@ export class WebRTCClient {
       this.media.enumerateDevices(),
     ])
 
-    // Handle stream
     if (streamResult.status === 'fulfilled') {
       this.media.setLocalStream(streamResult.value)
       const localStream = this.media.getLocalStream() as MediaStream
@@ -427,130 +268,42 @@ export class WebRTCClient {
     }
   }
 
-  /** List available media devices (useful for device selector in Green Room) */
   async enumerateDevices(): Promise<DeviceInfo[]> {
     return this.media.enumerateDevices()
   }
 
-  /** Get cached devices from last warmUp/enumerate */
   getDevices(): DeviceInfo[] {
     return this.media.getDevices()
   }
 
-  /** Switch to a different camera or microphone device */
   async switchDevice(kind: 'video' | 'audio', deviceId: string): Promise<void> {
     return this.media.switchDevice(kind, deviceId, this.peerConnections)
   }
 
-  /** Compute approximate signaling latency by ping */
   async measureSignalingLatency(): Promise<number | null> {
     if (this.ws?.readyState !== WebSocket.OPEN) return null
     const start = performance.now()
-    // Simple ping: send a small message and see how quickly onmessage fires
-    // For now, return the time it took to open the socket (captured during warmUp)
     return Math.round(performance.now() - start)
   }
 
   private openSignalingSocket(): Promise<void> {
     const roomId = this.config.roomId || 'default-room'
-    const wsUrl = `${this.config.signalingUrl}?roomId=${encodeURIComponent(roomId)}`
-
-    // If already open, skip
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      return Promise.resolve()
-    }
-
-    if (this.ws?.readyState === WebSocket.CONNECTING && this.signalingSocketPromise) {
-      return this.signalingSocketPromise
-    }
-
-    const socket = new WebSocket(wsUrl)
-    this.ws = socket
-
-    const openPromise = new Promise<void>((resolve, reject) => {
-      const wsOpenedAt = performance.now()
-      this.logInfo('Opening signaling socket', { signalingUrl: this.config.signalingUrl, wsUrl })
-
-      const timeout = setTimeout(() => {
-        try {
-          socket.close()
-        } catch {
-          // Ignore close failures on half-open sockets.
-        }
-        if (this.ws === socket) {
-          this.ws = null
-        }
-        reject(new Error('Signaling connection timeout'))
-      }, 8000)
-
-      socket.onopen = () => {
-        if (this.ws !== socket) {
-          clearTimeout(timeout)
-          try {
-            socket.close(1000, 'stale_socket')
-          } catch {
-            // Ignore close failures on stale sockets.
-          }
-          resolve()
-          return
-        }
-
-        clearTimeout(timeout)
-        const latencyMs = Math.round(performance.now() - wsOpenedAt)
-        this.logInfo('WebSocket connected (pre-warm)', { latencyMs })
-        this.emit('signaling-connected', { latencyMs })
-        resolve()
-      }
-
-      socket.onmessage = (event) => {
-        if (this.ws !== socket) {
-          return
-        }
-
-        try {
-          this.handleSignalingMessage(JSON.parse(event.data) as ServerSignalingMessage)
-        } catch (error) {
-          this.logError('Failed parsing signaling message', error, {
-            payloadPreview: String(event.data).slice(0, 200),
-          })
-        }
-      }
-
-      socket.onerror = (error) => {
-        if (this.ws !== socket) {
-          clearTimeout(timeout)
-          reject(new Error('Stale WebSocket connection failed'))
-          return
-        }
-
-        clearTimeout(timeout)
-        this.logError('WebSocket error', error)
-        this.setConnectionState('failed')
-        this.emit('error', new Error('WebSocket connection failed'))
-        this.ws = null
-        reject(new Error('WebSocket connection failed'))
-      }
-
-      socket.onclose = () => {
-        if (this.ws !== socket) {
-          return
-        }
-
-        this.logInfo('WebSocket disconnected')
-        this.ws = null
-        this.setConnectionState('disconnected')
-        this.cleanup()
-      }
-    })
-
-    const managedPromise = openPromise.finally(() => {
-      if (this.signalingSocketPromise === managedPromise) {
-        this.signalingSocketPromise = null
-      }
-    })
-
-    this.signalingSocketPromise = managedPromise
-    return managedPromise
+    const wsState = { ws: this.ws, promise: this.signalingSocketPromise }
+    const result = openSignalingSocket(
+      this.config.signalingUrl,
+      roomId,
+      {
+        logger: { logInfo: this.logInfo.bind(this), logWarn: this.logWarn.bind(this), logError: this.logError.bind(this) },
+        setConnectionState: (s) => this.setConnectionState(s as ConnectionState),
+        handleMessage: (msg) => { void this.handleSignalingMessage(msg as ServerSignalingMessage) },
+        emit: (event, ...args) => this.emit(event as keyof WebRTCEvents, ...args as [never]),
+        cleanup: () => this.cleanup(),
+      },
+      wsState,
+    )
+    this.ws = wsState.ws
+    this.signalingSocketPromise = wsState.promise
+    return result
   }
 
   async connect(roomId?: string): Promise<void> {
@@ -564,19 +317,15 @@ export class WebRTCClient {
       const finalRoomId = roomId || this.config.roomId || 'default-room'
       this.config.roomId = finalRoomId
 
-      // If pre-warmed, socket is already open — just join.
-      // Otherwise, open it now (backwards compatible).
       if (this.ws?.readyState !== WebSocket.OPEN) {
         await this.openSignalingSocket()
       }
 
-      // Acquire media if not pre-warmed
       if (!this.media.getLocalStream()) {
         let stream: MediaStream
         try {
           stream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
         } catch (mediaError) {
-          // Fallback to audio-only if video fails
           this.logWarn('Video getUserMedia failed, falling back to audio-only', { error: mediaError })
           stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
           this.emit('audio-only-fallback', { reason: 'getUserMedia_video_failed', error: mediaError })
@@ -591,22 +340,27 @@ export class WebRTCClient {
         })
       }
 
-      // Retroactively attach tracks to any peer connections created before media was ready
       this.media.attachTracksToExistingPeers(this.peerConnections)
+      this.bitrateAdapter.startNetworkMonitoring(this.peerConnections)
+      this.bitrateAdapter.startOnlineOfflineMonitoring(this.peerConnections)
+      this.turnManager.startTurnCredentialRefresh(this.config.iceServers, (freshServers) => {
+        this.config.iceServers = freshServers
+        for (const [peerId, peerState] of this.peerConnections) {
+          peerState.pc.setConfiguration({
+            iceServers: freshServers,
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require',
+          })
+          this.logInfo('TURN credentials refreshed for peer', { peerId })
+        }
+      })
+      this.media.startDeviceChangeMonitoring()
 
-      // Monitor network changes for adaptive bitrate
-      this.startNetworkMonitoring()
-      this.startOnlineOfflineMonitoring()
-      this.startTurnCredentialRefresh()
-      this.startDeviceChangeMonitoring()
-
-      // Send join — this is the only thing the user "waits" for
       this.sendSignalingMessage({
         type: 'join',
         from: this.config.userId,
         data: { userType: this.config.userType }
       })
-
     } catch (error) {
       this.setConnectionState('failed')
       this.logError('Failed connecting to signaling server', error)
@@ -643,12 +397,11 @@ export class WebRTCClient {
   private cleanup(): void {
     this.qualityMonitor.stop()
     this.qualityMonitor.clearState()
-    this.stopBitrateRamp()
-    this.stopNetworkMonitoring()
-    this.stopTurnCredentialRefresh()
-    this.stopDeviceChangeMonitoring()
+    this.bitrateAdapter.stopBitrateRamp()
+    this.bitrateAdapter.stopNetworkMonitoring()
+    this.turnManager.stopTurnCredentialRefresh()
+    this.media.stopDeviceChangeMonitoring()
 
-    // Close all peer connections
     for (const [, peerState] of this.peerConnections) {
       peerState.dataChannel?.close()
       peerState.pc.close()
@@ -656,10 +409,7 @@ export class WebRTCClient {
     this.peerConnections.clear()
     this.emit('chat-ready', false)
 
-    // Stop local stream
     this.stopLocalStream()
-
-    // Reset warm-up state
     this.isWarmedUp = false
     this.warmUpPromise = null
   }
@@ -669,7 +419,6 @@ export class WebRTCClient {
       this.ws.send(JSON.stringify(message))
       return
     }
-
     this.logWarn('Skipped signaling message: socket not open', {
       readyState: this.ws?.readyState ?? null,
       messageType: typeof message.type === 'string' ? message.type : 'unknown',
@@ -681,7 +430,6 @@ export class WebRTCClient {
 
     switch (message.type) {
       case 'room-state':
-        // Handle initial room state — create peer connections for existing users
         for (const user of message.data.users) {
           this.emit('user-joined', user.id, user.userType)
           this.ensurePeerConnection(user.id)
@@ -726,269 +474,13 @@ export class WebRTCClient {
   }
 
   private ensurePeerConnection(userId: string): PeerState {
-    let peerState = this.peerConnections.get(userId)
-    if (peerState) {
-      return peerState
-    }
-
-    const pc = new RTCPeerConnection({
-      iceServers: this.config.iceServers,
-      bundlePolicy: 'max-bundle',
-      rtcpMuxPolicy: 'require',
-      iceCandidatePoolSize: 1,
-    })
-    const isPolite = this.config.userType !== 'doctor'
-    this.logInfo('Creating peer connection', { peerId: userId, isPolite })
-
-    peerState = {
-      pc,
-      pendingIceCandidates: [],
-      isMakingOffer: false,
-      isSettingRemoteAnswerPending: false,
-      ignoreOffer: false,
-      isPolite,
-      dataChannel: null,
-      iceRestartCount: 0,
-      lastIceRestartAt: 0,
-    }
-
-    pc.ontrack = (event) => {
-      this.logInfo('Received remote stream', { peerId: userId, trackCount: event.streams?.[0]?.getTracks().length ?? 0 })
-      const stream = event.streams?.[0]
-      if (stream) {
-        this.emit('remote-stream', stream, userId)
-      }
-    }
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        this.sendSignalingMessage({
-          type: 'ice-candidate',
-          to: userId,
-          data: event.candidate
-        })
-      }
-    }
-
-    pc.onconnectionstatechange = () => {
-      this.logInfo('Peer connection state changed', {
-        peerId: userId,
-        connectionState: pc.connectionState,
-        iceConnectionState: pc.iceConnectionState,
-      })
-      if (pc.connectionState === 'connected') {
-        this.emit('peer-connected', {
-          peerId: userId,
-          connectionState: pc.connectionState,
-          iceConnectionState: pc.iceConnectionState,
-        })
-      }
-      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        this.peerConnections.delete(userId)
-        this.qualityMonitor.deletePeer(userId)
-        this.emitChatReady()
-      }
-    }
-
-    pc.oniceconnectionstatechange = () => {
-      const iceState = pc.iceConnectionState
-      this.logInfo('ICE connection state changed', { peerId: userId, iceConnectionState: iceState })
-      this.emit('ice-state-change', { peerId: userId, state: iceState })
-
-      // ICE Restart with exponential backoff (max 3 attempts)
-      if (iceState === 'failed' && peerState) {
-        if (peerState.iceRestartCount >= MAX_ICE_RESTART_ATTEMPTS) {
-          this.logWarn('ICE restart limit reached, giving up', {
-            peerId: userId,
-            attempts: peerState.iceRestartCount,
-          })
-          return
-        }
-        const backoffMs = ICE_RESTART_BACKOFF_BASE_MS * Math.pow(2, peerState.iceRestartCount)
-        peerState.iceRestartCount++
-        peerState.lastIceRestartAt = Date.now()
-        this.logWarn('ICE connection failed, scheduling restart', {
-          peerId: userId,
-          attempt: peerState.iceRestartCount,
-          backoffMs,
-        })
-        setTimeout(() => {
-          if (this.peerConnections.has(userId) && pc.iceConnectionState === 'failed') {
-            pc.restartIce()
-          }
-        }, backoffMs)
-      }
-      // Reset restart counter on successful reconnection
-      if (iceState === 'connected' && peerState) {
-        peerState.iceRestartCount = 0
-      }
-    }
-
-    pc.onsignalingstatechange = () => {
-      this.logInfo('Peer signaling state changed', {
-        peerId: userId,
-        signalingState: pc.signalingState,
-      })
-    }
-
-    pc.ondatachannel = (event) => {
-      this.attachDataChannel(userId, event.channel)
-    }
-
-    pc.onnegotiationneeded = async () => {
-      if (!peerState) {
-        return
-      }
-
-      try {
-        if (pc.signalingState !== 'stable') {
-          this.logInfo('Skipping negotiationneeded because signaling state is not stable', {
-            peerId: userId,
-            signalingState: pc.signalingState,
-          })
-          return
-        }
-
-        peerState.isMakingOffer = true
-        await pc.setLocalDescription()
-
-        if (pc.localDescription) {
-          this.sendSignalingMessage({
-            type: 'offer',
-            to: userId,
-            data: pc.localDescription
-          })
-        }
-      } catch (error) {
-        this.logError('Failed handling negotiationneeded', error, { peerId: userId })
-      } finally {
-        if (peerState) {
-          peerState.isMakingOffer = false
-        }
-      }
-    }
-
-    this.media.attachLocalTracks(pc)
-    this.peerConnections.set(userId, peerState)
-
-    if (this.shouldCreateChatChannel(userId)) {
-      const outgoingChannel = pc.createDataChannel(CHAT_CHANNEL_LABEL, { ordered: true })
-      this.attachDataChannel(userId, outgoingChannel)
-    }
-
-    this.emitChatReady()
-    this.qualityMonitor.collectNow()
-    return peerState
-  }
-
-  /** Gradually increase video bitrate from conservative to target */
-  private startBitrateRamp(): void {
-    if (this.bitrateRampInterval) return
-
-    this.bitrateRampStartMs = Date.now()
-    this.logInfo('Starting progressive bitrate ramp', {
-      initial: INITIAL_VIDEO_BITRATE,
-      target: TARGET_VIDEO_BITRATE,
-      durationMs: BITRATE_RAMP_DURATION_MS,
-    })
-
-    this.bitrateRampInterval = setInterval(() => {
-      if (!this.bitrateRampStartMs) {
-        this.stopBitrateRamp()
-        return
-      }
-
-      const elapsed = Date.now() - this.bitrateRampStartMs
-      const progress = Math.min(elapsed / BITRATE_RAMP_DURATION_MS, 1)
-      const currentBitrate = Math.round(
-        INITIAL_VIDEO_BITRATE + (TARGET_VIDEO_BITRATE - INITIAL_VIDEO_BITRATE) * progress
-      )
-
-      // Apply to all video senders
-      for (const [, peerState] of this.peerConnections) {
-        for (const sender of peerState.pc.getSenders()) {
-          if (sender.track?.kind !== 'video') continue
-          const params = sender.getParameters()
-          if (params.encodings?.[0]) {
-            params.encodings[0].maxBitrate = currentBitrate
-            // Upgrade framerate at 50% ramp
-            if (progress >= 0.5) {
-              params.encodings[0].maxFramerate = 30
-            }
-            sender.setParameters(params).catch(() => { /* ignore */ })
-          }
-        }
-      }
-
-      if (progress >= 1) {
-        this.logInfo('Bitrate ramp complete', { finalBitrate: currentBitrate })
-        this.stopBitrateRamp()
-      }
-    }, BITRATE_RAMP_INTERVAL_MS)
-  }
-
-  private stopBitrateRamp(): void {
-    if (this.bitrateRampInterval) {
-      clearInterval(this.bitrateRampInterval)
-      this.bitrateRampInterval = null
-    }
-    this.bitrateRampStartMs = null
-  }
-
-  /** Reduce bitrate when encoder reports cpu or bandwidth limitation */
-  private handleQualityLimitation(peerId: string, pc: RTCPeerConnection, reason: string): void {
-    for (const sender of pc.getSenders()) {
-      if (sender.track?.kind !== 'video') continue
-      const params = sender.getParameters()
-      const current = params.encodings?.[0]?.maxBitrate
-      if (!current || !params.encodings?.[0]) continue
-
-      const reduced = reason === 'cpu'
-        ? Math.max(current * 0.6, INITIAL_VIDEO_BITRATE)   // CPU: drop 40%
-        : Math.max(current * 0.75, INITIAL_VIDEO_BITRATE)  // Bandwidth: drop 25%
-
-      if (reduced < current) {
-        params.encodings[0].maxBitrate = Math.round(reduced)
-        if (reason === 'cpu') {
-          params.encodings[0].maxFramerate = 15
-        }
-        sender.setParameters(params).catch(() => { /* ignore */ })
-        this.logInfo('Reduced bitrate due to quality limitation', {
-          peerId,
-          reason,
-          fromKbps: Math.round(current / 1000),
-          toKbps: Math.round(reduced / 1000),
-        })
-      }
-    }
-  }
-
-  /** Reduce resolution when packet loss exceeds threshold */
-  private handlePacketLoss(peerId: string, pc: RTCPeerConnection, lossPct: number): void {
-    for (const sender of pc.getSenders()) {
-      if (sender.track?.kind !== 'video') continue
-      const params = sender.getParameters()
-      if (!params.encodings?.[0]) continue
-
-      if (lossPct > 10) {
-        // Severe loss: drop to 360p/15fps
-        params.encodings[0].maxBitrate = Math.round(INITIAL_VIDEO_BITRATE * 0.5)
-        params.encodings[0].maxFramerate = 15
-        params.encodings[0].scaleResolutionDownBy = 2.0
-      } else {
-        // Moderate loss (5-10%): drop to 480p/20fps
-        params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
-        params.encodings[0].maxFramerate = 20
-        params.encodings[0].scaleResolutionDownBy = 1.5
-      }
-
-      sender.setParameters(params).catch(() => { /* ignore */ })
-      this.logInfo('Reduced quality due to packet loss', {
-        peerId,
-        lossPct: Math.round(lossPct * 100) / 100,
-        scaleDown: params.encodings[0].scaleResolutionDownBy,
-      })
-    }
+    return this.peerFactory.ensurePeerConnection(
+      userId,
+      this.config.iceServers,
+      this.config.userId,
+      this.config.userType,
+      this.peerConnections,
+    )
   }
 
   private async handleOffer(userId: string, offer: RTCSessionDescriptionInit): Promise<void> {
@@ -1009,8 +501,7 @@ export class WebRTCClient {
     try {
       if (offerCollision && pc.signalingState !== 'stable') {
         this.logInfo('Offer collision detected, rolling back local description', {
-          peerId: userId,
-          signalingState: pc.signalingState,
+          peerId: userId, signalingState: pc.signalingState,
         })
         await pc.setLocalDescription({ type: 'rollback' })
       }
@@ -1022,11 +513,7 @@ export class WebRTCClient {
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
 
-      this.sendSignalingMessage({
-        type: 'answer',
-        to: userId,
-        data: answer
-      })
+      this.sendSignalingMessage({ type: 'answer', to: userId, data: answer })
 
       await this.flushPendingIceCandidates(peerState)
       peerState.ignoreOffer = false
@@ -1070,9 +557,7 @@ export class WebRTCClient {
   }
 
   private async flushPendingIceCandidates(peerState: PeerState): Promise<void> {
-    if (!peerState.pc.remoteDescription) {
-      return
-    }
+    if (!peerState.pc.remoteDescription) return
 
     while (peerState.pendingIceCandidates.length > 0) {
       const candidateInit = peerState.pendingIceCandidates.shift()
@@ -1085,59 +570,10 @@ export class WebRTCClient {
     }
   }
 
-  private shouldCreateChatChannel(remoteUserId: string): boolean {
-    return this.config.userId.localeCompare(remoteUserId) < 0
-  }
-
-  private attachDataChannel(remoteUserId: string, channel: RTCDataChannel): void {
-    const peerState = this.peerConnections.get(remoteUserId)
-    if (!peerState) {
-      return
-    }
-
-    peerState.dataChannel = channel
-
-    channel.onopen = () => {
-      this.logInfo('Chat channel opened', { remoteUserId })
-      this.emitChatReady()
-    }
-
-    channel.onclose = () => {
-      this.logInfo('Chat channel closed', { remoteUserId })
-      if (peerState.dataChannel === channel) {
-        peerState.dataChannel = null
-      }
-      this.emitChatReady()
-    }
-
-    channel.onerror = (event) => {
-      this.logError('Chat channel error', event, { remoteUserId })
-    }
-
-    channel.onmessage = (event) => {
-      if (typeof event.data !== 'string') {
-        return
-      }
-
-      try {
-        const parsed = JSON.parse(event.data) as ChatMessage
-        if (!parsed || parsed.senderId === this.config.userId || typeof parsed.text !== 'string') {
-          return
-        }
-        this.emit('chat-message', parsed)
-      } catch (error) {
-        this.logWarn('Ignoring invalid chat payload', { error, remoteUserId })
-      }
-    }
-
-    this.emitChatReady()
-  }
-
   private emitChatReady(): void {
     this.emit('chat-ready', this.isChatReady())
   }
 
-  // Utility methods
   getConnectionState(): ConnectionState {
     return this.connectionState
   }
@@ -1146,11 +582,6 @@ export class WebRTCClient {
     return this.media.getLocalStream()
   }
 
-  /**
-   * Replace the current video track sent to all peers.
-   * Used for screen sharing: pass a screen track to share, then pass `null`
-   * to restore the original camera track.
-   */
   async replaceVideoTrack(newTrack: MediaStreamTrack | null): Promise<void> {
     return this.media.replaceVideoTrack(newTrack, this.peerConnections)
   }
@@ -1165,9 +596,7 @@ export class WebRTCClient {
 
   sendChatMessage(text: string): boolean {
     const trimmedText = text.trim()
-    if (!trimmedText) {
-      return false
-    }
+    if (!trimmedText) return false
 
     const payload: ChatMessage = {
       id: `${this.config.userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1186,7 +615,6 @@ export class WebRTCClient {
         this.logWarn('Chat channel not ready', { remoteUserId })
         continue
       }
-
       try {
         channel.send(JSON.stringify(payload))
         delivered = true
@@ -1207,11 +635,9 @@ export class WebRTCClient {
     return false
   }
 
-  // Media control methods
   toggleVideo(enabled?: boolean): boolean {
     const localStream = this.media.getLocalStream()
     if (!localStream) return false
-
     const videoTrack = localStream.getVideoTracks()[0]
     if (videoTrack) {
       videoTrack.enabled = enabled !== undefined ? enabled : !videoTrack.enabled
@@ -1223,7 +649,6 @@ export class WebRTCClient {
   toggleAudio(enabled?: boolean): boolean {
     const localStream = this.media.getLocalStream()
     if (!localStream) return false
-
     const audioTrack = localStream.getAudioTracks()[0]
     if (audioTrack) {
       audioTrack.enabled = enabled !== undefined ? enabled : !audioTrack.enabled
@@ -1246,14 +671,10 @@ export class WebRTCClient {
     return audioTrack ? audioTrack.enabled : false
   }
 
-  /**
-   * Toggle noise suppression on the audio track.
-   * Clinical use: disable NS when using a stethoscope so heart/lung sounds are not filtered.
-   * Returns the new state, or null if not supported.
-   */
   async setNoiseSuppression(enabled: boolean): Promise<boolean | null> {
-    if (!this.media.getLocalStream()) return null
-    const audioTrack = this.media.getLocalStream().getAudioTracks()[0]
+    const stream = this.media.getLocalStream()
+    if (!stream) return null
+    const audioTrack = stream.getAudioTracks()[0]
     if (!audioTrack) return null
 
     try {
@@ -1269,10 +690,10 @@ export class WebRTCClient {
     }
   }
 
-  /** Check if noise suppression is currently active */
   isNoiseSuppressionEnabled(): boolean {
-    if (!this.media.getLocalStream()) return true
-    const audioTrack = this.media.getLocalStream().getAudioTracks()[0]
+    const localStream = this.media.getLocalStream()
+    if (!localStream) return true
+    const audioTrack = localStream.getAudioTracks()[0]
     if (!audioTrack) return true
     const settings = audioTrack.getSettings()
     return settings.noiseSuppression !== false

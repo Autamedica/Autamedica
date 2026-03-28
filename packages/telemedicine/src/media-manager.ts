@@ -6,9 +6,7 @@
 import { getAdaptiveConstraints, getPreferredCodecs, detectBrowser } from './media-optimizations'
 import type { createTelemedicineLogger } from './debug'
 import type { DeviceInfo, MediaConstraints } from './webrtc-client'
-
-// Progressive bitrate constants (mirrored from webrtc-client)
-const INITIAL_VIDEO_BITRATE = 500_000
+import { INITIAL_VIDEO_BITRATE } from './bitrate-adapter'
 
 export interface MediaManagerCallbacks {
   emit: (event: string, ...args: unknown[]) => void
@@ -18,6 +16,7 @@ export interface MediaManagerCallbacks {
 export class MediaManager {
   private localStream: MediaStream | null = null
   private cachedDevices: DeviceInfo[] = []
+  private deviceChangeCleanup: (() => void) | null = null
 
   constructor(
     private readonly logger: ReturnType<typeof createTelemedicineLogger>,
@@ -233,6 +232,26 @@ export class MediaManager {
         this.attachLocalTracks(peerState.pc)
       }
     }
+  }
+
+  /** Detect when devices are connected/disconnected (headset, camera, etc.) */
+  startDeviceChangeMonitoring(): void {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.addEventListener) return
+
+    const handler = async () => {
+      const devices = await this.enumerateDevices()
+      this.cachedDevices = devices
+      this.callbacks.emit('device-change', devices)
+      this.logInfo('Device change detected', { deviceCount: devices.length })
+    }
+
+    navigator.mediaDevices.addEventListener('devicechange', handler)
+    this.deviceChangeCleanup = () => navigator.mediaDevices.removeEventListener('devicechange', handler)
+  }
+
+  stopDeviceChangeMonitoring(): void {
+    this.deviceChangeCleanup?.()
+    this.deviceChangeCleanup = null
   }
 
   preferCodec(pc: RTCPeerConnection): void {

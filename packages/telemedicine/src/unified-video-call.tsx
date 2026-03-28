@@ -1,35 +1,34 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import type { FormEvent, JSX, KeyboardEvent } from 'react'
+import type { JSX } from 'react'
 import { logger } from '@autamedica/shared'
-import {
-  acquireWakeLock,
-  releaseWakeLock,
-  setupWakeLockVisibilityHandler,
-  setupVisibilityVideoPause,
-  applyScreenShareHint,
-  patchVideoPlayback,
-} from './media-optimizations'
-import { createCallService } from './calls/service'
+import { patchVideoPlayback } from './media-optimizations'
 import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
 import { hasTurnIceServer } from './config/ice-servers'
-import { createTelemedicineLogger, type TelemedicineDebugLevel } from './debug'
 import {
   WebRTCClient,
-  type ChatMessage,
   type ConnectionState,
   type DeviceInfo,
-  type StreamQualitySummary,
   type WarmUpResult,
 } from './webrtc-client'
 import { CloudflareCallsClient } from './cloudflare-calls'
 import { useCallRecording } from './hooks/useCallRecording'
 import { useCallDuration } from './hooks/useCallDuration'
-import { useCallQuality, REMOTE_MEDIA_TIMEOUT_MESSAGE } from './hooks/useCallQuality'
+import { useCallQuality } from './hooks/useCallQuality'
 import { useAutoHideControls } from './hooks/useAutoHideControls'
 import { useGreenRoom } from './hooks/useGreenRoom'
+import { sanitizeErrorForUser } from './utils/error-messages'
+import { hasRemoteVideoEvidence } from './utils/stream-helpers'
+import { useViewportDetection } from './hooks/useViewportDetection'
+import { useParticipantSound } from './hooks/useParticipantSound'
+import { useChatMessages } from './hooks/useChatMessages'
+import { useScreenShare } from './hooks/useScreenShare'
+import { useCallStatusPersistence } from './hooks/useCallStatusPersistence'
+import { useCallDebugger } from './hooks/useCallDebugger'
+import { useRemoteMediaTimeout } from './hooks/useRemoteMediaTimeout'
+import { useCallLifecycleEffects } from './hooks/useCallLifecycleEffects'
 import { deriveCallSessionPhase } from './runtime/call-session-phase'
 import {
   GreenRoom,
@@ -42,8 +41,6 @@ import {
 } from './components'
 
 type UnifiedVideoCallService = Pick<CallService, 'updateCallStatus' | 'logDebugEvent' | 'logEvent'>
-
-/* ── Props ── */
 
 export interface UnifiedVideoCallProps {
   roomId: string
@@ -71,8 +68,6 @@ export interface UnifiedVideoCallProps {
   autoStart?: boolean
 }
 
-/* ── Internal types ── */
-
 interface RemoteUser {
   userId: string
   userType: string
@@ -80,43 +75,7 @@ interface RemoteUser {
   stream?: MediaStream
 }
 
-interface UiChatMessage extends ChatMessage {
-  mine: boolean
-  senderLabel: string
-}
-
-/* ── Helpers ── */
-
-function sanitizeErrorForUser(raw: string): string {
-  const lower = raw.toLowerCase()
-  if (lower.includes('permission') || lower.includes('notallowed') || lower.includes('not allowed'))
-    return 'Necesitamos acceso a tu cámara y micrófono. Revisá los permisos del navegador.'
-  if (lower.includes('notfound') || lower.includes('not found') || lower.includes('no device'))
-    return 'No se encontró cámara o micrófono. Verificá que estén conectados.'
-  if (lower.includes('signaling') || lower.includes('websocket'))
-    return 'No pudimos conectar con el servidor. Recargá la página para reintentar.'
-  if (lower.includes('icecandidate') || lower.includes('ice candidate') || lower.includes('ice failed') || lower.includes('stun') || lower.includes('relay'))
-    return 'Problema de red. Verificá tu conexión a internet.'
-  if (lower.includes('timeout') || lower.includes('timed out'))
-    return 'La conexión tardó demasiado. Intentá de nuevo.'
-  return 'Ocurrió un error. Recargá la página para reintentar.'
-}
-
 const QUALITY_WARMUP_MS = 15000
-const REMOTE_MEDIA_TIMEOUT_MS = 20_000
-
-function hasRemoteVideoEvidence(summary: StreamQualitySummary): boolean {
-  return summary.peers.some((peer) => {
-    const inboundVideo = peer.inboundVideoBitrateKbps ?? 0
-    const fps = peer.framesPerSecond ?? 0
-    const width = peer.frameWidth ?? 0
-    const height = peer.frameHeight ?? 0
-
-    return inboundVideo >= 150 || fps >= 8 || (width >= 160 && height >= 120)
-  })
-}
-
-/* ── Component ── */
 
 export function UnifiedVideoCall({
   roomId,
@@ -141,19 +100,10 @@ export function UnifiedVideoCall({
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [isVideoEnabled, setIsVideoEnabled] = useState(true)
   const [isAudioEnabled, setIsAudioEnabled] = useState(true)
-  const [isScreenSharing, setIsScreenSharing] = useState(false)
   const [remoteUsers, setRemoteUsers] = useState<Map<string, RemoteUser>>(new Map())
   const [callError, setCallError] = useState<string | null>(null)
-  const [screenStream, setScreenStream] = useState<MediaStream | null>(null)
   const [isChatReady, setIsChatReady] = useState(false)
-  const [isChatPanelOpen, setIsChatPanelOpen] = useState(false)
-  const [chatMessages, setChatMessages] = useState<UiChatMessage[]>([])
-  const [chatInput, setChatInput] = useState('')
-  const [unreadMessages, setUnreadMessages] = useState(0)
   const [hasPeerConnection, setHasPeerConnection] = useState(false)
-  // Iniciar siempre con `true` en SSR y en cliente para evitar mismatch de hidratación.
-  // El efecto de resize lo corrige en el primer render del cliente.
-  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(true)
 
   /* ── Retry state ── */
   const [retryKey, setRetryKey] = useState(0)
@@ -164,20 +114,13 @@ export function UnifiedVideoCall({
   const remoteVideosRef = useRef<Map<string, HTMLVideoElement>>(new Map())
   const screenShareRef = useRef<HTMLVideoElement>(null)
   const chatMessagesRef = useRef<HTMLDivElement>(null)
-  const chatPanelOpenRef = useRef(false)
-  const callServiceRef = useRef<UnifiedVideoCallService | null>(null)
-  const joinSoundContextRef = useRef<AudioContext | null>(null)
   const joinSoundPlayedRef = useRef(false)
-  const lastPersistedCallStatusRef = useRef<CallStatus | null>(null)
   const hasStartedCallRef = useRef(false)
   const autoStartAttemptedRef = useRef(false)
   const manualHangupRef = useRef(false)
   const connectedAtRef = useRef<number | null>(null)
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasAnnouncedCallStartRef = useRef(false)
-  const remoteMediaWaitStartedAtRef = useRef<number | null>(null)
-  const remoteMediaTimeoutHandledRef = useRef(false)
 
   /* ── Callback refs (prevent useEffect re-runs when parent re-renders) ── */
   const onCallStartRef = useRef(onCallStart)
@@ -191,6 +134,16 @@ export function UnifiedVideoCall({
 
   /* ── Recording ── */
   const [recordingState, recordingActions] = useCallRecording()
+
+  /* ── Extracted hooks ── */
+  const isDesktopViewport = useViewportDetection()
+  const { playParticipantJoinedSound, cleanupSound } = useParticipantSound()
+  const { isScreenSharing, setIsScreenSharing, screenStream, setScreenStream, toggleScreenShare } = useScreenShare(client)
+  const { persistCallStatus } = useCallStatusPersistence({
+    callId,
+    callServiceOverride,
+    persistCallStatusOverride,
+  })
 
   /* ── Green Room state ── */
   const [warmUpResult, setWarmUpResult] = useState<WarmUpResult | null>(null)
@@ -212,159 +165,14 @@ export function UnifiedVideoCall({
     [remoteUsers]
   )
   const isP2PRuntime = cloudflareCallsApiUrl === null
-  const debugLogger = useMemo(
-    () => createTelemedicineLogger({ source: 'UnifiedVideoCall', callId, roomId, userId, userType }),
-    [callId, roomId, userId, userType]
-  )
 
   /* ── Extracted hooks ── */
   const { controlsVisible, resetControlsTimer } = useAutoHideControls({ isInRoom })
   const { formattedDuration } = useCallDuration(isCallEstablished)
   const { audioLevel, greenRoomChecks } = useGreenRoom({ warmUpResult, isInRoom })
-
-  const playParticipantJoinedSound = useCallback(async () => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    const AudioContextCtor = window.AudioContext
-      ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-
-    if (!AudioContextCtor) {
-      return
-    }
-
-    try {
-      let ctx = joinSoundContextRef.current
-
-      if (!ctx || ctx.state === 'closed') {
-        ctx = new AudioContextCtor()
-        joinSoundContextRef.current = ctx
-      }
-
-      if (ctx.state === 'suspended') {
-        await ctx.resume()
-      }
-
-      const activeContext = ctx
-      const startAt = ctx.currentTime + 0.02
-      const master = activeContext.createGain()
-      master.gain.setValueAtTime(0.0001, startAt)
-      master.gain.exponentialRampToValueAtTime(0.08, startAt + 0.02)
-      master.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.42)
-      master.connect(activeContext.destination)
-
-      const notes = [
-        { frequency: 880, offset: 0 },
-        { frequency: 1174.66, offset: 0.16 },
-      ]
-
-      notes.forEach(({ frequency, offset }) => {
-        const noteStart = startAt + offset
-        const oscillator = activeContext.createOscillator()
-        const gain = activeContext.createGain()
-
-        oscillator.type = 'sine'
-        oscillator.frequency.setValueAtTime(frequency, noteStart)
-        gain.gain.setValueAtTime(0.0001, noteStart)
-        gain.gain.exponentialRampToValueAtTime(0.18, noteStart + 0.02)
-        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.16)
-
-        oscillator.connect(gain)
-        gain.connect(master)
-        oscillator.start(noteStart)
-        oscillator.stop(noteStart + 0.2)
-      })
-    } catch {
-      // Best-effort UX cue: audio restrictions must not break the call.
-    }
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    const handleResize = () => setIsDesktopViewport(window.innerWidth >= 768)
-    handleResize()
-    window.addEventListener('resize', handleResize)
-
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  const persistCallStatus = useCallback(
-    async (status: CallStatus, reason?: string) => {
-      if (!callId) {
-        return
-      }
-
-      if (lastPersistedCallStatusRef.current === status && !reason) {
-        return
-      }
-
-      try {
-        if (persistCallStatusOverride) {
-          await persistCallStatusOverride(status, reason)
-        } else {
-          const callService = callServiceOverride
-            ?? callServiceRef.current
-            ?? createCallService()
-          callServiceRef.current = callService
-          await callService.updateCallStatus(callId, status, reason)
-        }
-        lastPersistedCallStatusRef.current = status
-      } catch (error) {
-        logger.warn('[UnifiedVideoCall] Failed to persist call status', {
-          callId,
-          status,
-          error,
-        })
-      }
-    },
-    [callId, callServiceOverride, persistCallStatusOverride]
-  )
-
-  const emitDebug = useCallback(
-    (level: TelemedicineDebugLevel, message: string, payload?: Record<string, unknown>) => {
-      switch (level) {
-        case 'error':
-          debugLogger.error(message, undefined, payload)
-          break
-        case 'warn':
-          debugLogger.warn(message, payload)
-          break
-        default:
-          debugLogger.info(message, payload)
-          break
-      }
-
-      if (!callId) {
-        return
-      }
-
-      try {
-        const callService = callServiceOverride ?? callServiceRef.current
-        if (!callService) {
-          return
-        }
-
-        callServiceRef.current = callService
-        void callService.logDebugEvent(callId, level, 'UnifiedVideoCall', message, {
-          roomId,
-          userId,
-          userType,
-          ...payload,
-        })
-      } catch (error) {
-        debugLogger.warn('No fue posible preparar persistencia de debug_log', {
-          callId,
-          roomId,
-          error,
-        })
-      }
-    },
-    [callId, callServiceOverride, debugLogger, roomId, userId, userType]
-  )
+  const { emitDebug, logCallEvent } = useCallDebugger({
+    callId, roomId, userId, userType, callServiceOverride,
+  })
 
   const {
     qualityLevel, setQualityLevel,
@@ -372,28 +180,16 @@ export function UnifiedVideoCall({
     switchToAudioOnly,
   } = useCallQuality({ client, callError, setCallError, emitDebug })
 
-  const logCallEvent = useCallback(
-    async (type: string, payload?: Record<string, unknown>) => {
-      if (!callId) return
-      try {
-        const callService = callServiceOverride ?? callServiceRef.current
-        if (!callService) {
-          return
-        }
-
-        callServiceRef.current = callService
-        await callService.logEvent(callId, type, (payload ?? null) as import('@autamedica/types').Json)
-      } catch {
-        // non-critical: don't block the call flow
-      }
-    },
-    [callId, callServiceOverride]
-  )
+  const {
+    chatMessages, chatInput, setChatInput, unreadMessages,
+    isChatPanelOpen, setIsChatPanelOpen, syncPanelRef: syncChatPanelRef,
+    addRemoteMessage, sendChat: _sendChat, handleChatSubmit, handleChatKeyDown, toggleChatPanel,
+  } = useChatMessages({ client, userId, userType, userName, emitDebug, setCallError })
 
   /* ── WebRTC setup ── */
   useEffect(() => {
-    chatPanelOpenRef.current = isChatPanelOpen
-  }, [isChatPanelOpen])
+    syncChatPanelRef(isChatPanelOpen)
+  }, [isChatPanelOpen, syncChatPanelRef])
 
   useEffect(() => {
     emitDebug('info', 'Inicializando componente de videollamada', {
@@ -526,11 +322,7 @@ export function UnifiedVideoCall({
 
     unsubs.push(
       webrtcClient.on('chat-message', (message) => {
-        setChatMessages((prev) => [
-          ...prev,
-          { ...message, mine: false, senderLabel: message.senderName || message.senderId },
-        ])
-        if (!chatPanelOpenRef.current) setUnreadMessages((prev) => prev + 1)
+        addRemoteMessage(message)
       })
     )
 
@@ -613,14 +405,13 @@ export function UnifiedVideoCall({
       unsubs.forEach((u) => u())
       void webrtcClient.disconnect()
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
-      if (joinSoundContextRef.current?.state !== 'closed') joinSoundContextRef.current?.close()
-      joinSoundContextRef.current = null
+      cleanupSound()
       joinSoundPlayedRef.current = false
     }
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [autoStart, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, userId, userName, userType])
+  }, [addRemoteMessage, autoStart, cleanupSound, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
@@ -642,129 +433,35 @@ export function UnifiedVideoCall({
     }
   }, [isCallEstablished, setQualityLevel])
 
-  useEffect(() => {
-    if (!isInRoom || remoteUsers.size === 0 || remoteUsersWithMedia.length > 0) {
-      remoteMediaWaitStartedAtRef.current = null
-      remoteMediaTimeoutHandledRef.current = false
-      if (callError === REMOTE_MEDIA_TIMEOUT_MESSAGE) {
-        setCallError(null)
-      }
-      return
-    }
+  useRemoteMediaTimeout({
+    isInRoom,
+    remoteUsersSize: remoteUsers.size,
+    remoteUsersWithMediaCount: remoteUsersWithMedia.length,
+    callError,
+    setCallError,
+    setShowAudioOnlySuggestion,
+    emitDebug,
+  })
 
-    if (remoteMediaTimeoutHandledRef.current) {
-      return
-    }
-
-    if (remoteMediaWaitStartedAtRef.current === null) {
-      remoteMediaWaitStartedAtRef.current = Date.now()
-    }
-
-    const elapsedMs = Date.now() - remoteMediaWaitStartedAtRef.current
-    const remainingMs = Math.max(0, REMOTE_MEDIA_TIMEOUT_MS - elapsedMs)
-
-    if (remainingMs === 0) {
-      remoteMediaTimeoutHandledRef.current = true
-      setShowAudioOnlySuggestion(true)
-      setCallError((current) => current ?? REMOTE_MEDIA_TIMEOUT_MESSAGE)
-      emitDebug('warn', 'El peer entro a la sala pero el video remoto no estuvo listo a tiempo', {
-        remoteUsers: remoteUsers.size,
-        timeoutMs: REMOTE_MEDIA_TIMEOUT_MS,
-      })
-      return
-    }
-
-    const timer = window.setTimeout(() => {
-      remoteMediaTimeoutHandledRef.current = true
-      setShowAudioOnlySuggestion(true)
-      setCallError((current) => current ?? REMOTE_MEDIA_TIMEOUT_MESSAGE)
-      emitDebug('warn', 'El peer entro a la sala pero el video remoto no estuvo listo a tiempo', {
-        remoteUsers: remoteUsers.size,
-        timeoutMs: REMOTE_MEDIA_TIMEOUT_MS,
-      })
-    }, remainingMs)
-
-    return () => window.clearTimeout(timer)
-  }, [callError, emitDebug, isInRoom, remoteUsers, remoteUsersWithMedia.length])
-
-  useEffect(() => {
-    if (isCallEstablished && !hasAnnouncedCallStartRef.current) {
-      hasAnnouncedCallStartRef.current = true
-      onCallStartRef.current?.()
-      return
-    }
-
-    if (!isCallEstablished) {
-      hasAnnouncedCallStartRef.current = false
-    }
-  }, [isCallEstablished])
-
-  /* ── Wake Lock: keep screen on during active call ── */
-  useEffect(() => {
-    if (!isInRoom) return
-    void acquireWakeLock()
-    const cleanup = setupWakeLockVisibilityHandler()
-    return () => {
-      cleanup()
-      void releaseWakeLock()
-    }
-  }, [isInRoom])
-
-  /* ── Pause video when tab hidden (save CPU/battery) ── */
-  useEffect(() => {
-    if (!isInRoom || !client) return
-    return setupVisibilityVideoPause(() => client.getLocalStream())
-  }, [isInRoom, client])
-
-  useEffect(() => {
-    if (!callId || !hasStartedCallRef.current) {
-      return
-    }
-
-    if (connectionState === 'connecting') {
-      void persistCallStatus('connecting')
-      return
-    }
-
-    if (connectionState === 'connected' && isCallEstablished) {
-      void persistCallStatus('connected')
-      return
-    }
-
-    if ((connectionState === 'closed' || connectionState === 'failed') && !manualHangupRef.current) {
-      void persistCallStatus('ended', 'connection_closed')
-    }
-  }, [callId, connectionState, isCallEstablished, persistCallStatus])
-
-  /* ── Stream sync effects ── */
-  useEffect(() => {
-    remoteUsers.forEach((user, uid) => {
-      if (!user.stream) return
-      const el = remoteVideosRef.current.get(uid)
-      if (el && el.srcObject !== user.stream) {
-        el.srcObject = user.stream
-        patchVideoPlayback(el)
-      }
-    })
-  }, [remoteUsers])
-
-  // Re-attach local stream when layout changes (waiting → PiP transition)
-  useEffect(() => {
-    if (!client || !localVideoRef.current) return
-    const stream = client.getLocalStream()
-    if (stream && localVideoRef.current.srcObject !== stream) {
-      localVideoRef.current.srcObject = stream
-      patchVideoPlayback(localVideoRef.current)
-    }
-  }, [client, remoteUsers])
-
-  useEffect(() => {
-    if (screenShareRef.current && screenStream) screenShareRef.current.srcObject = screenStream
-  }, [screenStream])
-
-  useEffect(() => {
-    if (chatMessagesRef.current) chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight
-  }, [chatMessages, isChatPanelOpen])
+  useCallLifecycleEffects({
+    isInRoom,
+    isCallEstablished,
+    client,
+    callId,
+    connectionState,
+    persistCallStatus,
+    hasStartedCallRef,
+    manualHangupRef,
+    onCallStartRef,
+    remoteUsers,
+    remoteVideosRef,
+    localVideoRef,
+    screenShareRef,
+    screenStream,
+    chatMessagesRef,
+    chatMessages,
+    isChatPanelOpen,
+  })
 
   /* ── Actions ── */
   const startCall = useCallback(async () => {
@@ -834,39 +531,6 @@ export function UnifiedVideoCall({
     setIsAudioEnabled(client.toggleAudio())
   }, [client])
 
-  const toggleScreenShare = useCallback(async () => {
-    if (isScreenSharing) {
-      screenStream?.getTracks().forEach((t) => t.stop())
-      setScreenStream(null)
-      setIsScreenSharing(false)
-      // Restore camera track in WebRTC connection
-      if (client && 'replaceVideoTrack' in client) {
-        await (client as { replaceVideoTrack: (t: MediaStreamTrack | null) => Promise<void> }).replaceVideoTrack(null)
-      }
-      return
-    }
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
-      applyScreenShareHint(stream)
-      setScreenStream(stream)
-      setIsScreenSharing(true)
-      // Send screen share track to remote peers
-      const screenTrack = stream.getVideoTracks()[0]
-      if (screenTrack && client && 'replaceVideoTrack' in client) {
-        await (client as { replaceVideoTrack: (t: MediaStreamTrack | null) => Promise<void> }).replaceVideoTrack(screenTrack)
-      }
-      screenTrack?.addEventListener('ended', async () => {
-        setScreenStream(null)
-        setIsScreenSharing(false)
-        if (client && 'replaceVideoTrack' in client) {
-          await (client as { replaceVideoTrack: (t: MediaStreamTrack | null) => Promise<void> }).replaceVideoTrack(null)
-        }
-      })
-    } catch {
-      setIsScreenSharing(false)
-    }
-  }, [isScreenSharing, screenStream, client])
-
   const toggleRecording = useCallback(() => {
     if (recordingState.isRecording) {
       recordingActions.stop()
@@ -877,13 +541,6 @@ export function UnifiedVideoCall({
     const firstRemote = remoteUsers.values().next().value as RemoteUser | undefined
     recordingActions.start(localStream, firstRemote?.stream ?? null)
   }, [recordingState.isRecording, recordingActions, client, remoteUsers])
-
-  const toggleChatPanel = useCallback(() => {
-    setIsChatPanelOpen((prev) => {
-      if (!prev) setUnreadMessages(0)
-      return !prev
-    })
-  }, [])
 
   const togglePiP = useCallback(async () => {
     if (typeof document === 'undefined') return
@@ -901,53 +558,6 @@ export function UnifiedVideoCall({
       } catch { /* user denied or not supported */ }
     }
   }, [])
-
-  const sendChat = useCallback(() => {
-    if (!client) return
-    const text = chatInput.trim()
-    if (!text) return
-
-    if (!client.sendChatMessage(text)) {
-      emitDebug('warn', 'Envio de chat rechazado porque el canal no esta listo')
-      setCallError('Chat aún no listo. Espera la conexión del otro participante.')
-      return
-    }
-
-    setChatMessages((prev) => [
-      ...prev,
-      {
-        id: `${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        text,
-        senderId: userId,
-        senderType: userType,
-        senderName: userName,
-        senderLabel: 'Tú',
-        timestamp: Date.now(),
-        mine: true,
-      },
-    ])
-    setChatInput('')
-    setCallError(null)
-    emitDebug('info', 'Mensaje de chat enviado', { length: text.length })
-  }, [chatInput, client, emitDebug, userId, userName, userType])
-
-  const handleChatSubmit = useCallback(
-    (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
-      sendChat()
-    },
-    [sendChat]
-  )
-
-  const handleChatKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault()
-        sendChat()
-      }
-    },
-    [sendChat]
-  )
 
   const handleDeviceChange = useCallback(async (kind: 'video' | 'audio', deviceId: string) => {
     if (!client) return

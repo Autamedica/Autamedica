@@ -1,7 +1,10 @@
 "use client"
 
+import { DiagnosisPanel } from '@/components/doctors/DiagnosisPanel'
 import { GracePeriodBanner } from '@/components/doctors/GracePeriodBanner'
 import { OnboardingReminder } from '@/components/doctors/OnboardingReminder'
+import { QuickActionsPanel } from '@/components/doctors/QuickActionsPanel'
+import { VideoControlsOverlay } from '@/components/doctors/VideoControlsOverlay'
 import { StartCallButton } from '@/components/doctors/calls/StartCallButton'
 import { useDoctorsPortal } from '@/components/doctors/layout/DoctorsPortalShell'
 import { PrescriptionModal } from '@/components/doctors/medical/PrescriptionModal'
@@ -11,39 +14,26 @@ import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useCheckDoctorExists } from '@/hooks/doctors/useCheckDoctorExists'
 import { usePatientData } from '@/hooks/doctors/usePatientData'
+import { useVideoCallControls } from '@/hooks/doctors/useVideoCallControls'
 import type { Locale } from '@/i18n/index'
 import { getOnboardingStatus } from '@/lib/onboarding-grace'
-import { getClientEnvOrDefault, isProduction, logger } from '@autamedica/shared'
+import { getClientEnvOrDefault, isProduction } from '@autamedica/shared'
 import {
     Activity,
     Brain,
-    CheckCircle2,
     ChevronDown,
     ChevronUp,
     FileText,
     Loader2,
-    Mic,
-    MicOff,
     MonitorUp,
-    PhoneOff,
     Pill,
     ScreenShare,
-    ScreenShareOff,
     Sparkles,
-    Video,
     VideoOff,
     X
 } from 'lucide-react'
-import type { JSX, ReactNode } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-
-type ControlButtonProps = {
-  active: boolean
-  iconActive: ReactNode
-  iconInactive: ReactNode
-  label: string
-  onClick: () => void
-}
+import type { JSX } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type PatientNameCandidate = {
   full_name?: string | null
@@ -92,10 +82,6 @@ interface DoctorsHomePageProps {
 }
 
 export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProps): JSX.Element {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const screenShareRef = useRef<HTMLVideoElement | null>(null)
-
-  // Hooks para obtener datos de autenticación y paciente
   const { user, loading: authLoading } = useAuthenticatedUser()
   const [onboardingRequired, setOnboardingRequired] = useState<boolean | null>(null)
 
@@ -111,12 +97,10 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
     if (authLoading) {
       return
     }
-
     if (!user) {
       setOnboardingRequired(false)
       return
     }
-
     setOnboardingRequired(doctorExists === false)
   }, [authLoading, user, doctorExists])
 
@@ -136,14 +120,24 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
     return () => setFocusMode(false)
   }, [setFocusMode])
 
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
-  const [screenStream, setScreenStream] = useState<MediaStream | null>(null)
-  const [isMuted, setIsMuted] = useState(false)
-  const [isVideoEnabled, setIsVideoEnabled] = useState(false)
-  const [isScreenSharing, setIsScreenSharing] = useState(false)
-  const [callStatus, setCallStatus] = useState<'idle' | 'connecting' | 'live' | 'ended'>('idle')
-  const [callDuration, setCallDuration] = useState(0)
-  const [cameraError, setCameraError] = useState<string | null>(null)
+  const {
+    videoRef,
+    screenShareRef,
+    localStream,
+    screenStream,
+    isMuted,
+    isVideoEnabled,
+    isScreenSharing,
+    callStatus,
+    callDuration,
+    cameraError,
+    handleActivateCamera,
+    handleToggleAudio,
+    handleToggleVideo,
+    handleToggleScreenShare,
+    handleEndCall,
+  } = useVideoCallControls()
+
   const [showDiagnosisPanel, setShowDiagnosisPanel] = useState(false)
   const [showTelemedicinePanel, setShowTelemedicinePanel] = useState(false)
   const [isQuickActionsVisible, setIsQuickActionsVisible] = useState(false)
@@ -172,33 +166,19 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
   }, [])
 
   useEffect(() => {
-    if (callStatus !== 'live') {
-      return
-    }
-
-    const interval = setInterval(() => {
-      setCallDuration((prev) => prev + 1)
-    }, 1_000)
-
-    return () => clearInterval(interval)
-  }, [callStatus])
-
-  // Mostrar overlay de calidad temporalmente cuando cambie el estado de la llamada
-  useEffect(() => {
     if (callStatus === 'live') {
       setShowQualityOverlay(true)
-      setFocusMode(true) // Activar modo foco automáticamente en llamada
-      setIsQuickActionsCollapsed(true) // Colapsar acciones rápidas
+      setFocusMode(true)
+      setIsQuickActionsCollapsed(true)
       const timer = setTimeout(() => {
         setShowQualityOverlay(false)
-      }, 3000) // Se oculta después de 3 segundos
+      }, 3000)
       return () => clearTimeout(timer)
     } else {
       setFocusMode(false)
     }
   }, [callStatus, setFocusMode])
 
-  // Auto-ocultar controles después de 3 segundos sin movimiento del mouse
   useEffect(() => {
     const handleMouseMove = () => {
       setShowControls(true)
@@ -229,25 +209,6 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
     }
   }, [isFocusMode])
 
-  useEffect(() => {
-    return () => {
-      stopMedia(localStream)
-      stopMedia(screenStream)
-    }
-  }, [localStream, screenStream])
-
-  useEffect(() => {
-    if (videoRef.current && localStream) {
-      videoRef.current.srcObject = localStream
-    }
-  }, [localStream])
-
-  useEffect(() => {
-    if (screenShareRef.current && screenStream) {
-      screenShareRef.current.srcObject = screenStream
-    }
-  }, [screenStream])
-
   const formattedDuration = useMemo(() => {
     const minutes = Math.floor(callDuration / 60)
     const seconds = callDuration % 60
@@ -266,104 +227,6 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
     }
     return { label: 'En espera', color: 'text-slate-400' }
   }, [cameraError, callStatus])
-
-  async function handleActivateCamera() {
-    if (callStatus === 'live') {
-      return
-    }
-
-    try {
-      setCameraError(null)
-      setCallStatus('connecting')
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
-        },
-        audio: true,
-      })
-
-      setLocalStream(stream)
-      setIsVideoEnabled(true)
-      setIsMuted(false)
-      setCallDuration(0)
-      setCallStatus('live')
-    } catch (error) {
-      logger.error('[VideoCall] Error al activar la cámara', error)
-      const message =
-        error instanceof DOMException
-          ? error.message
-          : 'No se pudo acceder a la cámara. Verifica los permisos del navegador.'
-      setCameraError(message)
-      setCallStatus('idle')
-    }
-  }
-
-  function handleToggleAudio() {
-    if (!localStream) {
-      return
-    }
-    const nextMuted = !isMuted
-    localStream.getAudioTracks().forEach((track) => {
-      track.enabled = !nextMuted
-    })
-    setIsMuted(nextMuted)
-  }
-
-  function handleToggleVideo() {
-    if (!localStream) {
-      return
-    }
-    const nextEnabled = !isVideoEnabled
-    localStream.getVideoTracks().forEach((track) => {
-      track.enabled = nextEnabled
-    })
-    setIsVideoEnabled(nextEnabled)
-  }
-
-  async function handleToggleScreenShare() {
-    if (isScreenSharing) {
-      stopMedia(screenStream)
-      setScreenStream(null)
-      setIsScreenSharing(false)
-      return
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
-      setScreenStream(stream)
-      setIsScreenSharing(true)
-    } catch (error) {
-      logger.warn('[VideoCall] El usuario canceló la compartición de pantalla', error)
-      setIsScreenSharing(false)
-    }
-  }
-
-  function handleEndCall() {
-    stopMedia(localStream)
-    stopMedia(screenStream)
-    setLocalStream(null)
-    setScreenStream(null)
-    setIsVideoEnabled(false)
-    setIsMuted(false)
-    setIsScreenSharing(false)
-    setCallStatus('ended')
-  }
-
-  // Manejar acciones médicas con actualización automática
-  function handleTakeNotes() {
-    setShowNotesModal(true)
-  }
-
-  function handlePrescribe() {
-    setShowPrescriptionModal(true)
-  }
-
-  function handleAnalyzeWithAI() {
-    setShowDiagnosisPanel(true)
-  }
 
   const toggleQuickActionsVisibility = () => {
     setIsQuickActionsVisible((prev) => {
@@ -387,7 +250,6 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
       setIsQuickActionsVisible(false)
     }
   }
-
 
   if (authLoading || (user && onboardingRequired === null)) {
     return (
@@ -439,14 +301,14 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
               />
             ) : (
               <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-8 text-center overflow-hidden">
-                <img 
-                  src="/images/doctor_portal_bg.webp" 
-                  alt="" 
-                  className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-luminosity" 
+                <img
+                  src="/images/doctor_portal_bg.webp"
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-luminosity"
                   aria-hidden="true"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 to-slate-950/90 z-0"></div>
-                
+
                 <div className="relative z-10">
                   <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-3xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-fuchsia-500/20 mb-6">
                     <VideoOff className="h-12 w-12" />
@@ -563,40 +425,17 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
               )}
             </div>
 
-            <div className={`video-overlay absolute bottom-6 inset-x-0 flex justify-center transition-opacity duration-300 ${showControls ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-              <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-white/10 bg-black/40 px-6 py-4 backdrop-blur-2xl shadow-2xl shadow-black/50 sm:flex-nowrap">
-                <ControlButton
-                  active={!isMuted}
-                  iconActive={<Mic className="h-5 w-5" />}
-                  iconInactive={<MicOff className="h-5 w-5" />}
-                  label={isMuted ? 'Activar micrófono' : 'Silenciar'}
-                  onClick={handleToggleAudio}
-                />
-                <ControlButton
-                  active={isVideoEnabled}
-                  iconActive={<Video className="h-5 w-5" />}
-                  iconInactive={<VideoOff className="h-5 w-5" />}
-                  label={isVideoEnabled ? 'Ocultar video' : 'Mostrar video'}
-                  onClick={handleToggleVideo}
-                />
-                <ControlButton
-                  active={isScreenSharing}
-                  iconActive={<ScreenShare className="h-5 w-5" />}
-                  iconInactive={<ScreenShareOff className="h-5 w-5" />}
-                  label={isScreenSharing ? 'Detener pantalla' : 'Compartir pantalla'}
-                  onClick={handleToggleScreenShare}
-                />
-                <button
-                  type="button"
-                  onClick={handleEndCall}
-                  className={`flex items-center justify-center rounded-full bg-rose-600 text-white transition hover:bg-rose-500 ${
-                    isFocusMode ? 'h-10 w-10' : 'h-12 w-12'
-                  }`}
-                >
-                  <PhoneOff className={isFocusMode ? 'h-4 w-4' : 'h-5 w-5'} />
-                </button>
-              </div>
-            </div>
+            <VideoControlsOverlay
+              showControls={showControls}
+              isMuted={isMuted}
+              isVideoEnabled={isVideoEnabled}
+              isScreenSharing={isScreenSharing}
+              isFocusMode={isFocusMode}
+              onToggleAudio={handleToggleAudio}
+              onToggleVideo={handleToggleVideo}
+              onToggleScreenShare={handleToggleScreenShare}
+              onEndCall={handleEndCall}
+            />
           </div>
 
           {!isProduction() && showTelemedicinePanel && signalingRoomId && signalingUserId && (
@@ -644,96 +483,22 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
           </button>
         )}
 
-        <aside
-          className={`right-drawer hidden h-full flex-col space-y-4 rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm ${
-            hasSession ? 'lg:flex' : 'lg:hidden'
-          } ${
-            isFocusMode && isQuickActionsVisible ? 'right-drawer--open' : ''
-          }`}
-        >
-          <div className="flex items-center justify-between px-1 pb-0">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.25em] text-am-surface-500">Acciones rápidas</h3>
-            <div className="flex items-center gap-1">
-              {isFocusMode && (
-                <button
-                  type="button"
-                  onClick={closeQuickActions}
-                  className="rounded-lg p-1 text-am-surface-500 transition-all duration-am-fast hover:bg-am-surface-100 hover:text-am-surface-800"
-                  aria-label="Cerrar acciones rápidas"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setIsQuickActionsCollapsed(!isQuickActionsCollapsed)}
-                className="rounded-lg p-1 text-am-surface-500 transition-all duration-am-fast hover:bg-am-surface-100 hover:text-am-surface-800"
-                aria-expanded={!isQuickActionsCollapsed}
-                aria-controls="quick-actions-panel"
-              >
-                {isQuickActionsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          {!isQuickActionsCollapsed && (
-            <div id="quick-actions-panel" className="space-y-3 px-1 pb-2">
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                <CompactAction
-                  label="Notas"
-                  icon={<FileText className="h-4 w-4" />}
-                  onClick={handleTakeNotes}
-                  disabled={!hasSession || isBlocked}
-                />
-                <CompactAction
-                  label="Prescribir"
-                  icon={<Pill className="h-4 w-4" />}
-                  onClick={handlePrescribe}
-                  disabled={!hasSession || isBlocked}
-                />
-                <CompactAction
-                  label="Signos vitales"
-                  icon={<Activity className="h-4 w-4" />}
-                  disabled
-                />
-                {!isProduction() && (
-                  <CompactAction
-                    label={hasSession && showTelemedicinePanel ? 'Ocultar señalización' : 'Señalización (dev)'}
-                    icon={<MonitorUp className="h-4 w-4" />}
-                    intent={hasSession && showTelemedicinePanel ? 'primary' : 'default'}
-                    onClick={() => setShowTelemedicinePanel(!showTelemedicinePanel)}
-                    disabled={!hasSession || isBlocked}
-                  />
-                )}
-                <CompactAction
-                  label={aiProcessing ? 'Procesando...' : 'Análisis IA'}
-                  icon={<Brain className="h-4 w-4" />}
-                  intent="success"
-                  onClick={handleAnalyzeWithAI}
-                  disabled={isBlocked}
-                />
-              </div>
-
-              {!session?.patientId && (
-                <div className="rounded-xl border border-am-surface-200 bg-am-surface-50 p-3">
-                  <p className="text-xs text-am-surface-500">Selecciona un paciente para habilitar acciones médicas</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isQuickActionsCollapsed && (
-            <div className="px-1 pb-2">
-              <div className="flex items-center justify-center gap-3 rounded-xl border border-am-surface-200 bg-am-surface-50 py-2.5">
-                <FileText className="h-3 w-3 text-am-surface-500" />
-                <Pill className="h-3 w-3 text-am-surface-500" />
-                <Activity className="h-3 w-3 text-am-surface-500" />
-                <Brain className="h-3 w-3 text-am-surface-500" />
-                <span className="text-xs text-am-surface-500">5 acciones disponibles</span>
-              </div>
-            </div>
-          )}
-        </aside>
+        <QuickActionsPanel
+          hasSession={hasSession}
+          isBlocked={isBlocked}
+          isFocusMode={isFocusMode}
+          isQuickActionsCollapsed={isQuickActionsCollapsed}
+          isQuickActionsVisible={isQuickActionsVisible}
+          showTelemedicinePanel={showTelemedicinePanel}
+          aiProcessing={aiProcessing}
+          patientId={session?.patientId}
+          onToggleCollapsed={() => setIsQuickActionsCollapsed(!isQuickActionsCollapsed)}
+          onClose={closeQuickActions}
+          onTakeNotes={() => setShowNotesModal(true)}
+          onPrescribe={() => setShowPrescriptionModal(true)}
+          onToggleTelemedicinePanel={() => setShowTelemedicinePanel(!showTelemedicinePanel)}
+          onAnalyzeWithAI={() => setShowDiagnosisPanel(true)}
+        />
       </div>
 
       {isFocusMode && (
@@ -780,67 +545,11 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
       )}
 
       {showDiagnosisPanel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-2xl border border-am-surface-200 bg-white p-5 shadow-am-xl sm:p-8">
-            <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3 text-am-surface-900">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-50 to-am-primary-50 ring-1 ring-am-doctor-200">
-                  <Brain className="h-5 w-5 text-am-doctor-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold">Análisis IA · {getPatientDisplayName(patient)}</h2>
-                  <p className="text-xs text-am-surface-500">Carga un resumen de síntomas para generar diagnósticos asistidos.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowDiagnosisPanel(false)}
-                className="self-start rounded-xl border border-am-surface-200 px-4 py-1.5 text-xs font-medium text-am-surface-700 transition-all duration-am-fast hover:border-am-surface-300 hover:bg-am-surface-50 hover:text-am-surface-900 active:scale-95 sm:self-auto"
-              >
-                Cerrar
-              </button>
-            </header>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2 text-sm text-am-surface-800">
-                <span className="font-medium">Síntomas principales</span>
-                <textarea
-                  placeholder="Describe los síntomas del paciente..."
-                  className="min-h-[120px] w-full rounded-xl border border-am-surface-200 bg-am-surface-50 p-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 transition-all duration-am-fast focus:border-am-doctor-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-400/30"
-                />
-              </label>
-              <label className="space-y-2 text-sm text-am-surface-800">
-                <span className="font-medium">Duración de síntomas</span>
-                <input
-                  placeholder="Ej: 3 días"
-                  className="w-full rounded-xl border border-am-surface-200 bg-am-surface-50 p-3 text-sm text-am-surface-900 placeholder:text-am-surface-400 transition-all duration-am-fast focus:border-am-doctor-400 focus:outline-none focus:ring-2 focus:ring-am-doctor-400/30"
-                />
-              </label>
-            </div>
-
-            {aiProcessing && (
-              <div className="mt-6 flex items-center gap-3 rounded-xl border border-am-doctor-200 bg-am-doctor-50 p-4">
-                <Loader2 className="h-5 w-5 animate-spin text-am-doctor-600" />
-                <p className="text-sm font-medium text-am-doctor-700">Analizando síntomas con IA...</p>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-xs text-am-surface-500">
-                <CheckCircle2 className="h-4 w-4 text-am-doctor-500" />
-                Datos encriptados y auditados.
-              </div>
-              <button
-                type="button"
-                disabled={aiProcessing}
-                className="flex items-center gap-2 self-stretch rounded-xl bg-gradient-to-r from-am-doctor-600 to-am-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-am-doctor-500/20 transition-all duration-am-fast hover:-translate-y-0.5 hover:shadow-am-doctor disabled:opacity-50 sm:self-auto"
-              >
-                <Brain className="h-4 w-4" />
-                {aiProcessing ? 'Analizando...' : 'Analizar con IA'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DiagnosisPanel
+          patientDisplayName={getPatientDisplayName(patient)}
+          aiProcessing={aiProcessing}
+          onClose={() => setShowDiagnosisPanel(false)}
+        />
       )}
 
       {showNotesModal && session?.patientId && (
@@ -873,64 +582,5 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
         <OnboardingReminder daysRemaining={onboardingStatus.daysRemaining} />
       )}
     </div>
-  )
-}
-
-function stopMedia(stream: MediaStream | null) {
-  stream?.getTracks().forEach((track) => {
-    track.stop()
-  })
-}
-
-
-function ControlButton({ active, iconActive, iconInactive, label, onClick }: ControlButtonProps): JSX.Element {
-  const { isFocusMode } = useDoctorsPortal()
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center justify-center rounded-full transition ${
-        isFocusMode ? 'h-10 w-10' : 'h-12 w-12'
-      } ${
-        active
-          ? 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'
-          : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
-      }`}
-      aria-label={label}
-      title={label}
-    >
-      {active ? iconActive : iconInactive}
-    </button>
-  )
-}
-
-interface CompactActionProps {
-  label: string
-  icon: JSX.Element
-  intent?: 'default' | 'primary' | 'success'
-  onClick?: () => void
-  disabled?: boolean
-}
-
-function CompactAction({ label, icon, intent = 'default', onClick, disabled }: CompactActionProps): JSX.Element {
-  const intentStyles = {
-    default: 'border-am-surface-200 bg-white text-am-surface-700 hover:bg-am-surface-50 hover:border-am-surface-300',
-    primary: 'border-am-doctor-200 bg-am-doctor-50 text-am-doctor-700 hover:bg-am-doctor-100',
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all duration-am-fast active:enabled:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${intentStyles[intent]}`}
-    >
-      <span className={intent === 'success' ? 'text-emerald-700' : intent === 'primary' ? 'text-am-doctor-600' : 'text-am-surface-500'}>
-        {icon}
-      </span>
-      {label}
-    </button>
   )
 }
