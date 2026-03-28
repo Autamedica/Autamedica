@@ -6,8 +6,10 @@ import { Suspense, createContext, lazy, useCallback, useContext, useEffect, useM
 import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
 import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useClock } from '@/hooks/doctors/useClock'
 import { useDoctorStats } from '@/hooks/doctors/useDoctorStats'
 import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
+import { useSidebar } from '@/hooks/doctors/useSidebar'
 import { signOutLocal } from '@/lib/auth/service'
 import type { UUID } from '@/types/medical'
 import type { LucideIcon } from 'lucide-react'
@@ -132,31 +134,22 @@ function resolveDoctorDisplayName(...candidates: Array<NameCandidate | null | un
 
 export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabId>('video-call')
-  const [currentTime, setCurrentTime] = useState<string>('')
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [activeSection, setActiveSection] = useState<string | null>(null)
   const [isFocusMode, setIsFocusMode] = useState(false)
 
-  // Production-ready hooks for real data
+  const currentTime = useClock()
+  const {
+    isSidebarOpen,
+    isSidebarCollapsed,
+    activeSection,
+    setIsSidebarOpen,
+    setIsSidebarCollapsed,
+    setActiveSection,
+    handleSidebarItemClick,
+  } = useSidebar(isFocusMode, setIsFocusMode)
+
   const { user } = useAuthenticatedUser()
   const { doctor } = useCurrentDoctor(user?.id)
   const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
-
-  useEffect(() => {
-    const updateClock = () => {
-      setCurrentTime(
-        new Intl.DateTimeFormat('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(new Date()),
-      )
-    }
-
-    updateClock()
-    const interval = setInterval(updateClock, 60_000)
-    return () => clearInterval(interval)
-  }, [])
 
   // Hook para obtener la sesión activa con el paciente
   const { session, startSession } = useActiveSession()
@@ -186,24 +179,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     setActiveSection(null)
   }, [startSession])
 
-  // Efecto para plegar el sidebar automáticamente cuando inicia una videollamada
   useEffect(() => {
     if (session?.status === 'en_progreso' && activeTab === 'video-call' && !activeSection) {
       setIsSidebarCollapsed(true)
     }
-  }, [session?.status, activeTab, activeSection])
-
-  useEffect(() => {
-    if (isFocusMode) {
-      setIsSidebarCollapsed(true)
-    }
-  }, [isFocusMode])
-
-  const handleSidebarItemClick = (itemId: string) => {
-    setIsSidebarOpen(false)
-    if (isFocusMode) setIsFocusMode(false)
-    setActiveSection(itemId)
-  }
+  }, [session?.status, activeTab, activeSection, setIsSidebarCollapsed])
 
   const sidebarItems = useMemo<SidebarItem[]>(
     () => [

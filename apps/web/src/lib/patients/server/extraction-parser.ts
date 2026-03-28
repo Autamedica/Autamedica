@@ -1,0 +1,102 @@
+import { AnamnesisExtractionResultSchema } from '@/lib/patients/lib/zod/anamnesis-extraction'
+import type { AnamnesisExtractionResult } from '@/lib/patients/types/anamnesis-extraction'
+import { logger } from '@autamedica/shared'
+import type { Json } from '@autamedica/types'
+import type { ExtractionProvider } from './ai-provider'
+
+export function isJsonObject(value: Json): value is Record<string, Json> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function parseStructuredExtractionPayload(
+  rawPayload: string,
+  providerName: ExtractionProvider,
+): AnamnesisExtractionResult {
+  let parsedPayload: unknown
+
+  try {
+    parsedPayload = JSON.parse(rawPayload)
+  } catch (error) {
+    logger.error(`[extract ${providerName}] Invalid JSON payload`, {
+      error,
+      rawPayload,
+    })
+    throw new Error('La salida del modelo no fue JSON valido')
+  }
+
+  const validation = AnamnesisExtractionResultSchema.safeParse(parsedPayload)
+  if (!validation.success) {
+    logger.warn(`[extract ${providerName}] Structured output validation issues (using raw)`, {
+      issues: validation.error.issues.slice(0, 5).map((issue) => ({
+        path: issue.path.join('.'),
+        code: issue.code,
+        message: issue.message,
+      })),
+    })
+    return parsedPayload as AnamnesisExtractionResult
+  }
+
+  return validation.data as AnamnesisExtractionResult
+}
+
+export function extractOpenAiStructuredOutput(payload: Record<string, unknown>): AnamnesisExtractionResult {
+  if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
+    return parseStructuredExtractionPayload(payload.output_text, 'openai')
+  }
+
+  const output = Array.isArray(payload.output) ? payload.output : []
+  for (const item of output) {
+    if (!item || typeof item !== 'object') {
+      continue
+    }
+
+    const message = item as Record<string, unknown>
+    const content = Array.isArray(message.content) ? message.content : []
+    for (const entry of content) {
+      if (!entry || typeof entry !== 'object') {
+        continue
+      }
+
+      const record = entry as Record<string, unknown>
+      if (
+        (record.type === 'output_text' || record.type === 'text') &&
+        typeof record.text === 'string' &&
+        record.text.trim()
+      ) {
+        return parseStructuredExtractionPayload(record.text, 'openai')
+      }
+    }
+  }
+
+  throw new Error('La respuesta del modelo no incluyo contenido estructurado')
+}
+
+export function extractGeminiStructuredOutput(payload: Record<string, unknown>): AnamnesisExtractionResult {
+  const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') {
+      continue
+    }
+
+    const candidateRecord = candidate as Record<string, unknown>
+    const content =
+      candidateRecord.content && typeof candidateRecord.content === 'object'
+        ? (candidateRecord.content as Record<string, unknown>)
+        : null
+    const parts = content && Array.isArray(content.parts) ? content.parts : []
+
+    for (const part of parts) {
+      if (!part || typeof part !== 'object') {
+        continue
+      }
+
+      const text = (part as Record<string, unknown>).text
+      if (typeof text === 'string' && text.trim()) {
+        return parseStructuredExtractionPayload(text, 'gemini')
+      }
+    }
+  }
+
+  throw new Error('La respuesta de Gemini no incluyo contenido estructurado')
+}

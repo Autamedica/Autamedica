@@ -5,7 +5,10 @@
 
 import { createTelemedicineLogger } from './debug'
 import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
-import { getAdaptiveConstraints, applyContentHints, getPreferredCodecs, detectBrowser } from './media-optimizations'
+import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
+import { MediaManager } from './media-manager'
+import { QualityMonitor, type StreamQualitySummary } from './quality-monitor'
+export type { StreamQualityLevel, StreamQualityMetrics, StreamQualitySummary } from './quality-monitor'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -30,31 +33,6 @@ export interface ChatMessage {
   senderType: 'doctor' | 'patient' | 'nurse'
   senderName?: string
   timestamp: number
-}
-
-export type StreamQualityLevel = 'unknown' | 'excellent' | 'good' | 'fair' | 'poor'
-
-export interface StreamQualityMetrics {
-  userId: string
-  level: StreamQualityLevel
-  timestamp: number
-  outboundVideoBitrateKbps: number | null
-  outboundAudioBitrateKbps: number | null
-  inboundVideoBitrateKbps: number | null
-  inboundAudioBitrateKbps: number | null
-  packetsLostPct: number | null
-  jitterMs: number | null
-  roundTripTimeMs: number | null
-  framesPerSecond: number | null
-  frameWidth: number | null
-  frameHeight: number | null
-  availableOutgoingBitrateKbps: number | null
-}
-
-export interface StreamQualitySummary {
-  roomId: string
-  overallLevel: StreamQualityLevel
-  peers: StreamQualityMetrics[]
 }
 
 export interface WebRTCEvents {
@@ -94,20 +72,7 @@ interface PeerState {
   dataChannel: RTCDataChannel | null
 }
 
-interface PeerStatsSample {
-  timestampMs: number
-  outboundVideoBytes: number
-  outboundAudioBytes: number
-  inboundVideoBytes: number
-  inboundAudioBytes: number
-  packetsLost: number
-  packetsReceived: number
-}
-
-const QUALITY_POLL_INTERVAL_MS = 5000
-const QUALITY_LOG_INTERVAL_MS = 30000
 const CHAT_CHANNEL_LABEL = 'autamedica-chat'
-const QUALITY_SCORE_TO_LEVEL: StreamQualityLevel[] = ['poor', 'fair', 'good', 'excellent']
 
 // Pre-warm & adaptive media constants
 const INITIAL_VIDEO_BITRATE = 500_000  // Start conservative: 500kbps
@@ -135,22 +100,18 @@ export class WebRTCClient {
   private ws: WebSocket | null = null
   private signalingSocketPromise: Promise<void> | null = null
   private peerConnections = new Map<string, PeerState>()
-  private localStream: MediaStream | null = null
   private config: WebRTCConfig
   private readonly sessionId = `${Math.random().toString(36).slice(2, 8)}-${Date.now()}`
-   
+
   private eventListeners = new Map<keyof WebRTCEvents, Function[]>()
   private connectionState: ConnectionState = 'disconnected'
-  private qualityInterval: ReturnType<typeof setInterval> | null = null
-  private peerStatsSamples = new Map<string, PeerStatsSample>()
-  private latestQualityByPeer = new Map<string, StreamQualityMetrics>()
-  private qualityLogState = new Map<string, { level: StreamQualityLevel; at: number }>()
+  private readonly qualityMonitor: QualityMonitor
   private readonly debugLogger: ReturnType<typeof createTelemedicineLogger>
+  readonly media: MediaManager
   private isWarmedUp = false
   private warmUpPromise: Promise<WarmUpResult> | null = null
   private bitrateRampInterval: ReturnType<typeof setInterval> | null = null
   private bitrateRampStartMs: number | null = null
-  private cachedDevices: DeviceInfo[] = []
   private networkChangeCleanup: (() => void) | null = null
 
   constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
@@ -170,6 +131,25 @@ export class WebRTCClient {
       roomId: this.config.roomId,
       userId: this.config.userId,
       userType: this.config.userType,
+    })
+
+    const loggerProxy = {
+      info: (msg: string, ctx?: Record<string, unknown>) => this.logInfo(msg, ctx),
+      warn: (msg: string, ctx?: Record<string, unknown>) => this.logWarn(msg, ctx),
+    }
+    this.qualityMonitor = new QualityMonitor({
+      logger: loggerProxy,
+      roomId: this.config.roomId || 'default-room',
+    })
+    this.qualityMonitor.onQualitySummary = (summary) => {
+      this.emit('stream-quality', summary)
+    }
+
+    this.media = new MediaManager(this.debugLogger, this.sessionId, {
+      emit: (event: string, ...args: unknown[]) => {
+        this.emit(event as keyof WebRTCEvents, ...args as [never])
+      },
+      onBitrateRampNeeded: () => this.startBitrateRamp(),
     })
   }
 
@@ -278,405 +258,18 @@ export class WebRTCClient {
       })
 
       if (state === 'connected') {
-        this.startQualityMonitor()
+        this.qualityMonitor.start(this.peerConnections)
         return
       }
 
-      this.stopQualityMonitor()
-      this.peerStatsSamples.clear()
-      this.latestQualityByPeer.clear()
+      this.qualityMonitor.stop()
+      this.qualityMonitor.clearState()
       this.emit('stream-quality', {
         roomId: this.config.roomId || 'default-room',
         overallLevel: 'unknown',
         peers: [],
       })
     }
-  }
-
-  private startQualityMonitor(): void {
-    if (this.qualityInterval) {
-      return
-    }
-
-    const collect = () => {
-      void this.collectQualityMetrics()
-    }
-
-    collect()
-    this.qualityInterval = setInterval(collect, QUALITY_POLL_INTERVAL_MS)
-  }
-
-  private stopQualityMonitor(): void {
-    if (!this.qualityInterval) {
-      return
-    }
-
-    clearInterval(this.qualityInterval)
-    this.qualityInterval = null
-  }
-
-  private getStatNumber(stat: RTCStats, key: string): number | null {
-    const value = (stat as unknown as Record<string, unknown>)[key]
-    return typeof value === 'number' ? value : null
-  }
-
-  private getStatString(stat: RTCStats, key: string): string | null {
-    const value = (stat as unknown as Record<string, unknown>)[key]
-    return typeof value === 'string' ? value : null
-  }
-
-  private getStatBoolean(stat: RTCStats, key: string): boolean | null {
-    const value = (stat as unknown as Record<string, unknown>)[key]
-    return typeof value === 'boolean' ? value : null
-  }
-
-  private getStatKind(stat: RTCStats): 'audio' | 'video' | null {
-    const kind = this.getStatString(stat, 'kind') ?? this.getStatString(stat, 'mediaType')
-    if (kind === 'audio' || kind === 'video') {
-      return kind
-    }
-    return null
-  }
-
-  private computeBitrateKbps(currentBytes: number, previousBytes: number, elapsedMs: number): number | null {
-    if (elapsedMs <= 0 || currentBytes < previousBytes) {
-      return null
-    }
-    return ((currentBytes - previousBytes) * 8) / elapsedMs
-  }
-
-  private roundMetric(value: number | null, digits = 1): number | null {
-    if (value === null || Number.isNaN(value)) {
-      return null
-    }
-
-    const factor = 10 ** digits
-    return Math.round(value * factor) / factor
-  }
-
-  private scoreInboundBitrate(kbps: number): number {
-    if (kbps >= 1800) return 3
-    if (kbps >= 1000) return 2
-    if (kbps >= 450) return 1
-    return 0
-  }
-
-  private scoreFps(fps: number): number {
-    if (fps >= 24) return 3
-    if (fps >= 15) return 2
-    if (fps >= 8) return 1
-    return 0
-  }
-
-  private scorePacketLoss(packetsLostPct: number): number {
-    if (packetsLostPct <= 1) return 3
-    if (packetsLostPct <= 3) return 2
-    if (packetsLostPct <= 6) return 1
-    return 0
-  }
-
-  private scoreRoundTripTime(roundTripTimeMs: number): number {
-    if (roundTripTimeMs <= 120) return 3
-    if (roundTripTimeMs <= 220) return 2
-    if (roundTripTimeMs <= 350) return 1
-    return 0
-  }
-
-  private scoreJitter(jitterMs: number): number {
-    if (jitterMs <= 20) return 3
-    if (jitterMs <= 40) return 2
-    if (jitterMs <= 70) return 1
-    return 0
-  }
-
-  private levelToScore(level: StreamQualityLevel): number {
-    switch (level) {
-      case 'excellent':
-        return 3
-      case 'good':
-        return 2
-      case 'fair':
-        return 1
-      case 'poor':
-        return 0
-      default:
-        return -1
-    }
-  }
-
-  private classifyQualityLevel(metrics: Omit<StreamQualityMetrics, 'userId' | 'timestamp' | 'level'>): StreamQualityLevel {
-    const scores: number[] = []
-    const hasRenderableVideoStats =
-      metrics.framesPerSecond !== null || metrics.frameWidth !== null || metrics.frameHeight !== null
-
-    // Bitrate alone is not a reliable proxy for user-perceived quality when some browsers do not expose
-    // FPS/resolution stats consistently. Avoid downgrading a healthy LAN call just because the codec picked
-    // a modest bitrate without any accompanying visual degradation signals.
-    if (metrics.inboundVideoBitrateKbps !== null && hasRenderableVideoStats) {
-      scores.push(this.scoreInboundBitrate(metrics.inboundVideoBitrateKbps))
-    }
-    if (metrics.framesPerSecond !== null) {
-      scores.push(this.scoreFps(metrics.framesPerSecond))
-    }
-    if (metrics.packetsLostPct !== null) {
-      scores.push(this.scorePacketLoss(metrics.packetsLostPct))
-    }
-    if (metrics.roundTripTimeMs !== null) {
-      scores.push(this.scoreRoundTripTime(metrics.roundTripTimeMs))
-    }
-    if (metrics.jitterMs !== null) {
-      scores.push(this.scoreJitter(metrics.jitterMs))
-    }
-
-    if (scores.length === 0) {
-      return 'unknown'
-    }
-
-    const worstScore = Math.min(...scores)
-    return QUALITY_SCORE_TO_LEVEL[worstScore] ?? 'unknown'
-  }
-
-  private getOverallQualityLevel(peers: StreamQualityMetrics[]): StreamQualityLevel {
-    let worstScore = 4
-
-    for (const peer of peers) {
-      const score = this.levelToScore(peer.level)
-      if (score >= 0) {
-        worstScore = Math.min(worstScore, score)
-      }
-    }
-
-    if (worstScore > 3) {
-      return 'unknown'
-    }
-
-    return QUALITY_SCORE_TO_LEVEL[worstScore] ?? 'unknown'
-  }
-
-  private maybeLogPeerQuality(metrics: StreamQualityMetrics): void {
-    const previous = this.qualityLogState.get(metrics.userId)
-    const now = Date.now()
-    const shouldLog =
-      previous?.level !== metrics.level ||
-      now - (previous?.at ?? 0) >= QUALITY_LOG_INTERVAL_MS
-
-    if (!shouldLog) {
-      return
-    }
-
-    this.qualityLogState.set(metrics.userId, { level: metrics.level, at: now })
-    this.logInfo('Stream quality sample', {
-      peerId: metrics.userId,
-      level: metrics.level,
-      outboundVideoBitrateKbps: metrics.outboundVideoBitrateKbps,
-      inboundVideoBitrateKbps: metrics.inboundVideoBitrateKbps,
-      packetsLostPct: metrics.packetsLostPct,
-      jitterMs: metrics.jitterMs,
-      roundTripTimeMs: metrics.roundTripTimeMs,
-      framesPerSecond: metrics.framesPerSecond,
-      resolution:
-        metrics.frameWidth !== null && metrics.frameHeight !== null
-          ? `${metrics.frameWidth}x${metrics.frameHeight}`
-          : null,
-    })
-  }
-
-  private async buildPeerQualityMetrics(userId: string, pc: RTCPeerConnection): Promise<StreamQualityMetrics | null> {
-    const stats = await pc.getStats()
-    const now = Date.now()
-
-    let outboundVideoBytes = 0
-    let outboundAudioBytes = 0
-    let inboundVideoBytes = 0
-    let inboundAudioBytes = 0
-    let packetsLost = 0
-    let packetsReceived = 0
-    let jitterMs: number | null = null
-    let roundTripTimeMs: number | null = null
-    let framesPerSecond: number | null = null
-    let frameWidth: number | null = null
-    let frameHeight: number | null = null
-    let availableOutgoingBitrateKbps: number | null = null
-
-    stats.forEach((stat) => {
-      if (stat.type === 'outbound-rtp') {
-        const kind = this.getStatKind(stat)
-        const bytesSent = this.getStatNumber(stat, 'bytesSent')
-        if (bytesSent !== null) {
-          if (kind === 'video') {
-            outboundVideoBytes += bytesSent
-          } else if (kind === 'audio') {
-            outboundAudioBytes += bytesSent
-          }
-        }
-        return
-      }
-
-      if (stat.type === 'inbound-rtp') {
-        const kind = this.getStatKind(stat)
-        const bytesReceived = this.getStatNumber(stat, 'bytesReceived')
-        if (bytesReceived !== null) {
-          if (kind === 'video') {
-            inboundVideoBytes += bytesReceived
-          } else if (kind === 'audio') {
-            inboundAudioBytes += bytesReceived
-          }
-        }
-
-        if (kind === 'video') {
-          const currentPacketsLost = this.getStatNumber(stat, 'packetsLost')
-          const currentPacketsReceived = this.getStatNumber(stat, 'packetsReceived')
-          const jitterSeconds = this.getStatNumber(stat, 'jitter')
-
-          packetsLost += currentPacketsLost ?? 0
-          packetsReceived += currentPacketsReceived ?? 0
-          if (jitterSeconds !== null) {
-            jitterMs = jitterSeconds * 1000
-          }
-        }
-        return
-      }
-
-      if (stat.type === 'candidate-pair') {
-        const selected = this.getStatBoolean(stat, 'selected')
-        const nominated = this.getStatBoolean(stat, 'nominated')
-        const state = this.getStatString(stat, 'state')
-
-        if (selected === true || (nominated === true && state === 'succeeded')) {
-          const rttSeconds = this.getStatNumber(stat, 'currentRoundTripTime')
-          const availableOutgoingBitrate = this.getStatNumber(stat, 'availableOutgoingBitrate')
-
-          if (rttSeconds !== null) {
-            roundTripTimeMs = rttSeconds * 1000
-          }
-          if (availableOutgoingBitrate !== null) {
-            availableOutgoingBitrateKbps = availableOutgoingBitrate / 1000
-          }
-        }
-        return
-      }
-
-      if (stat.type === 'track') {
-        const kind = this.getStatKind(stat)
-        if (kind !== 'video') {
-          return
-        }
-
-        const candidateFps = this.getStatNumber(stat, 'framesPerSecond')
-        if (candidateFps !== null) {
-          framesPerSecond = candidateFps
-        }
-
-        const candidateWidth = this.getStatNumber(stat, 'frameWidth')
-        const candidateHeight = this.getStatNumber(stat, 'frameHeight')
-        if (candidateWidth !== null) {
-          frameWidth = candidateWidth
-        }
-        if (candidateHeight !== null) {
-          frameHeight = candidateHeight
-        }
-      }
-    })
-
-    const previous = this.peerStatsSamples.get(userId)
-    const elapsedMs = previous ? now - previous.timestampMs : 0
-
-    const outboundVideoBitrateKbps =
-      previous === undefined
-        ? null
-        : this.computeBitrateKbps(outboundVideoBytes, previous.outboundVideoBytes, elapsedMs)
-    const outboundAudioBitrateKbps =
-      previous === undefined
-        ? null
-        : this.computeBitrateKbps(outboundAudioBytes, previous.outboundAudioBytes, elapsedMs)
-    const inboundVideoBitrateKbps =
-      previous === undefined
-        ? null
-        : this.computeBitrateKbps(inboundVideoBytes, previous.inboundVideoBytes, elapsedMs)
-    const inboundAudioBitrateKbps =
-      previous === undefined
-        ? null
-        : this.computeBitrateKbps(inboundAudioBytes, previous.inboundAudioBytes, elapsedMs)
-
-    let packetsLostPct: number | null = null
-    if (previous) {
-      const deltaLost = packetsLost - previous.packetsLost
-      const deltaReceived = packetsReceived - previous.packetsReceived
-      const deltaTotal = deltaLost + deltaReceived
-
-      if (deltaTotal > 0 && deltaLost >= 0 && deltaReceived >= 0) {
-        packetsLostPct = (deltaLost / deltaTotal) * 100
-      }
-    } else {
-      const totalPackets = packetsLost + packetsReceived
-      if (totalPackets > 0) {
-        packetsLostPct = (packetsLost / totalPackets) * 100
-      }
-    }
-
-    this.peerStatsSamples.set(userId, {
-      timestampMs: now,
-      outboundVideoBytes,
-      outboundAudioBytes,
-      inboundVideoBytes,
-      inboundAudioBytes,
-      packetsLost,
-      packetsReceived,
-    })
-
-    const normalizedMetrics = {
-      outboundVideoBitrateKbps: this.roundMetric(outboundVideoBitrateKbps),
-      outboundAudioBitrateKbps: this.roundMetric(outboundAudioBitrateKbps),
-      inboundVideoBitrateKbps: this.roundMetric(inboundVideoBitrateKbps),
-      inboundAudioBitrateKbps: this.roundMetric(inboundAudioBitrateKbps),
-      packetsLostPct: this.roundMetric(packetsLostPct, 2),
-      jitterMs: this.roundMetric(jitterMs),
-      roundTripTimeMs: this.roundMetric(roundTripTimeMs),
-      framesPerSecond: this.roundMetric(framesPerSecond),
-      frameWidth: frameWidth !== null ? Math.round(frameWidth) : null,
-      frameHeight: frameHeight !== null ? Math.round(frameHeight) : null,
-      availableOutgoingBitrateKbps: this.roundMetric(availableOutgoingBitrateKbps),
-    }
-
-    return {
-      userId,
-      level: this.classifyQualityLevel(normalizedMetrics),
-      timestamp: now,
-      ...normalizedMetrics,
-    }
-  }
-
-  private async collectQualityMetrics(): Promise<void> {
-    if (this.connectionState !== 'connected') {
-      return
-    }
-
-    const peers: StreamQualityMetrics[] = []
-
-    for (const [userId, peerState] of this.peerConnections) {
-      if (peerState.pc.connectionState === 'closed') {
-        continue
-      }
-
-      try {
-        const metrics = await this.buildPeerQualityMetrics(userId, peerState.pc)
-        if (!metrics) {
-          continue
-        }
-
-        peers.push(metrics)
-        this.latestQualityByPeer.set(userId, metrics)
-        this.maybeLogPeerQuality(metrics)
-      } catch (error) {
-        this.logWarn('Failed collecting stream quality stats', { peerId: userId, error })
-      }
-    }
-
-    this.emit('stream-quality', {
-      roomId: this.config.roomId || 'default-room',
-      overallLevel: this.getOverallQualityLevel(peers),
-      peers,
-    })
   }
 
   /**
@@ -695,28 +288,29 @@ export class WebRTCClient {
   private async doWarmUp(constraints?: MediaStreamConstraints): Promise<WarmUpResult> {
     const t0 = performance.now()
     this.logInfo('Pre-warming: starting parallel getUserMedia + signaling', {
-      hasExistingStream: !!this.localStream,
+      hasExistingStream: !!this.media.getLocalStream(),
     })
 
     // Run getUserMedia and WS open in parallel
     const [streamResult, signalingResult, devicesResult] = await Promise.allSettled([
-      this.localStream
-        ? Promise.resolve(this.localStream)
+      this.media.getLocalStream()
+        ? Promise.resolve(this.media.getLocalStream() as MediaStream)
         : navigator.mediaDevices.getUserMedia(constraints ?? getAdaptiveConstraints()),
       this.openSignalingSocket(),
-      this.enumerateDevices(),
+      this.media.enumerateDevices(),
     ])
 
     // Handle stream
     if (streamResult.status === 'fulfilled') {
-      this.localStream = streamResult.value
-      this.emit('local-stream', this.localStream)
-      const videoTracks = this.localStream.getVideoTracks().length
-      const audioTracks = this.localStream.getAudioTracks().length
+      this.media.setLocalStream(streamResult.value)
+      const localStream = this.media.getLocalStream() as MediaStream
+      this.emit('local-stream', localStream)
+      const videoTracks = localStream.getVideoTracks().length
+      const audioTracks = localStream.getAudioTracks().length
       this.logInfo('Pre-warm: local media acquired', { videoTracks, audioTracks })
       this.emit('media-acquired', { videoTracks, audioTracks, source: 'warm-up' })
-      applyContentHints(this.localStream)
-      this.attachTracksToExistingPeers()
+      applyContentHints(localStream)
+      this.media.attachTracksToExistingPeers(this.peerConnections)
     } else {
       this.logWarn('Pre-warm: getUserMedia failed, will retry on connect', {
         error: streamResult.reason,
@@ -725,14 +319,14 @@ export class WebRTCClient {
 
     const signalingReady = signalingResult.status === 'fulfilled'
     const devices = devicesResult.status === 'fulfilled' ? devicesResult.value : []
-    this.cachedDevices = devices
+    this.media.setCachedDevices(devices)
 
     const latencyMs = Math.round(performance.now() - t0)
     this.isWarmedUp = true
     this.logInfo('Pre-warm complete', { latencyMs, signalingReady, deviceCount: devices.length })
 
     return {
-      stream: this.localStream ?? new MediaStream(),
+      stream: this.media.getLocalStream() ?? new MediaStream(),
       devices,
       signalingReady,
       latencyMs,
@@ -741,58 +335,17 @@ export class WebRTCClient {
 
   /** List available media devices (useful for device selector in Green Room) */
   async enumerateDevices(): Promise<DeviceInfo[]> {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices()
-      return devices
-        .filter((d) => d.kind === 'audioinput' || d.kind === 'videoinput' || d.kind === 'audiooutput')
-        .map((d) => ({
-          deviceId: d.deviceId,
-          label: d.label || `${d.kind} (${d.deviceId.slice(0, 6)})`,
-          kind: d.kind as DeviceInfo['kind'],
-        }))
-    } catch {
-      return []
-    }
+    return this.media.enumerateDevices()
   }
 
   /** Get cached devices from last warmUp/enumerate */
   getDevices(): DeviceInfo[] {
-    return this.cachedDevices
+    return this.media.getDevices()
   }
 
   /** Switch to a different camera or microphone device */
   async switchDevice(kind: 'video' | 'audio', deviceId: string): Promise<void> {
-    if (!this.localStream) return
-
-    const adaptive = getAdaptiveConstraints()
-    const constraints: MediaStreamConstraints = kind === 'video'
-      ? { video: { deviceId: { exact: deviceId }, ...adaptive.video as MediaTrackConstraints } }
-      : { audio: { deviceId: { exact: deviceId }, ...adaptive.audio as MediaTrackConstraints } }
-
-    const newStream = await navigator.mediaDevices.getUserMedia(constraints)
-    const newTrack = newStream.getTracks()[0]
-    if (!newTrack) return
-
-    // Replace track in local stream
-    const oldTracks = kind === 'video'
-      ? this.localStream.getVideoTracks()
-      : this.localStream.getAudioTracks()
-    for (const old of oldTracks) {
-      this.localStream.removeTrack(old)
-      old.stop()
-    }
-    this.localStream.addTrack(newTrack)
-
-    // Replace track in all peer connections (no renegotiation needed)
-    for (const [, peerState] of this.peerConnections) {
-      const sender = peerState.pc.getSenders().find((s) => s.track?.kind === kind)
-      if (sender) {
-        await sender.replaceTrack(newTrack)
-      }
-    }
-
-    this.emit('local-stream', this.localStream)
-    this.logInfo('Device switched', { kind, deviceId })
+    return this.media.switchDevice(kind, deviceId, this.peerConnections)
   }
 
   /** Compute approximate signaling latency by ping */
@@ -924,26 +477,28 @@ export class WebRTCClient {
       }
 
       // Acquire media if not pre-warmed
-      if (!this.localStream) {
+      if (!this.media.getLocalStream()) {
+        let stream: MediaStream
         try {
-          this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
+          stream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
         } catch (mediaError) {
           // Fallback to audio-only if video fails
           this.logWarn('Video getUserMedia failed, falling back to audio-only', { error: mediaError })
-          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
           this.emit('audio-only-fallback', { reason: 'getUserMedia_video_failed', error: mediaError })
         }
-        applyContentHints(this.localStream)
-        this.emit('local-stream', this.localStream)
+        this.media.setLocalStream(stream)
+        applyContentHints(stream)
+        this.emit('local-stream', stream)
         this.emit('media-acquired', {
-          videoTracks: this.localStream.getVideoTracks().length,
-          audioTracks: this.localStream.getAudioTracks().length,
+          videoTracks: stream.getVideoTracks().length,
+          audioTracks: stream.getAudioTracks().length,
           source: 'connect',
         })
       }
 
       // Retroactively attach tracks to any peer connections created before media was ready
-      this.attachTracksToExistingPeers()
+      this.media.attachTracksToExistingPeers(this.peerConnections)
 
       // Monitor network changes for adaptive bitrate
       this.startNetworkMonitoring()
@@ -963,41 +518,14 @@ export class WebRTCClient {
   }
 
   async startLocalStream(constraints: MediaConstraints = { video: true, audio: true }): Promise<MediaStream> {
-    try {
-      try {
-        this.localStream = await navigator.mediaDevices.getUserMedia(constraints)
-      } catch (mediaError) {
-        if (constraints.video) {
-          this.logWarn('Video getUserMedia failed in startLocalStream, falling back to audio-only', { error: mediaError })
-          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-          this.emit('audio-only-fallback', { reason: 'getUserMedia_video_failed', error: mediaError })
-        } else {
-          throw mediaError
-        }
-      }
-      this.emit('local-stream', this.localStream)
-      const videoTrackCount = this.localStream.getVideoTracks().length
-      const audioTrackCount = this.localStream.getAudioTracks().length
-      this.logInfo('Local media stream started', { videoTrackCount, audioTrackCount })
-      this.emit('media-acquired', { videoTracks: videoTrackCount, audioTracks: audioTrackCount, source: 'startLocalStream' })
-
-      // Add tracks to all existing peer connections
-      for (const [, peerState] of this.peerConnections) {
-        this.attachLocalTracks(peerState.pc)
-      }
-
-      return this.localStream
-    } catch (error) {
-      this.logError('Failed to get local stream', error)
-      this.emit('error', new Error('Failed to access camera/microphone'))
-      throw error
-    }
+    return this.media.startLocalStream(constraints, this.peerConnections)
   }
 
   stopLocalStream(): void {
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop())
-      this.localStream = null
+    const stream = this.media.getLocalStream()
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+      this.media.setLocalStream(null)
       this.logInfo('Local media stream stopped')
     }
   }
@@ -1016,12 +544,10 @@ export class WebRTCClient {
   }
 
   private cleanup(): void {
-    this.stopQualityMonitor()
+    this.qualityMonitor.stop()
+    this.qualityMonitor.clearState()
     this.stopBitrateRamp()
     this.stopNetworkMonitoring()
-    this.peerStatsSamples.clear()
-    this.latestQualityByPeer.clear()
-    this.qualityLogState.clear()
 
     // Close all peer connections
     for (const [, peerState] of this.peerConnections) {
@@ -1152,9 +678,7 @@ export class WebRTCClient {
       }
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         this.peerConnections.delete(userId)
-        this.peerStatsSamples.delete(userId)
-        this.latestQualityByPeer.delete(userId)
-        this.qualityLogState.delete(userId)
+        this.qualityMonitor.deletePeer(userId)
         this.emitChatReady()
       }
     }
@@ -1215,7 +739,7 @@ export class WebRTCClient {
       }
     }
 
-    this.attachLocalTracks(pc)
+    this.media.attachLocalTracks(pc)
     this.peerConnections.set(userId, peerState)
 
     if (this.shouldCreateChatChannel(userId)) {
@@ -1224,102 +748,8 @@ export class WebRTCClient {
     }
 
     this.emitChatReady()
-    void this.collectQualityMetrics()
+    this.qualityMonitor.collectNow()
     return peerState
-  }
-
-  private attachLocalTracks(pc: RTCPeerConnection): void {
-    const stream = this.localStream
-    if (!stream) {
-      this.logWarn('attachLocalTracks called but localStream is null — tracks will be added after media acquisition')
-      return
-    }
-
-    const existingTrackIds = new Set(
-      pc.getSenders()
-        .map(sender => sender.track?.id)
-        .filter((id): id is string => Boolean(id))
-    )
-
-    stream.getTracks().forEach(track => {
-      if (!existingTrackIds.has(track.id)) {
-        const sender = pc.addTrack(track, stream)
-        
-        // Progressive bitrate: start conservative, ramp up
-        if (track.kind === 'video') {
-          const params = sender.getParameters()
-          if (!params.encodings) {
-            params.encodings = [{}]
-          }
-          params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
-          params.encodings[0].maxFramerate = 24
-          
-          sender.setParameters(params).catch(e => {
-            this.logWarn('Failed to set video encoding parameters', { error: e, trackId: track.id })
-          })
-
-          // Start bitrate ramp for this connection
-          this.startBitrateRamp()
-        }
-
-        this.logInfo('Attached local track to peer connection', {
-          trackId: track.id,
-          trackKind: track.kind,
-          peerConnectionSignalingState: pc.signalingState,
-        })
-      }
-    })
-
-    // Prefer VP9 codec if browser supports it
-    this.preferCodec(pc)
-  }
-
-  /** Attach local tracks to all existing peer connections that have no senders yet. */
-  private attachTracksToExistingPeers(): void {
-    if (!this.localStream || this.peerConnections.size === 0) return
-    this.logInfo('Attaching local tracks to existing peer connections', {
-      peerCount: this.peerConnections.size,
-      trackCount: this.localStream.getTracks().length,
-    })
-    for (const [peerId, peerState] of this.peerConnections) {
-      const hasTracks = peerState.pc.getSenders().some(s => s.track !== null)
-      if (!hasTracks) {
-        this.logInfo('Retroactively attaching tracks to peer', { peerId })
-        this.attachLocalTracks(peerState.pc)
-      }
-    }
-  }
-
-  /** Set codec preference: H264 on Safari, VP9 on Chrome/Firefox */
-  private preferCodec(pc: RTCPeerConnection): void {
-    if (!('getTransceivers' in pc)) return
-
-    try {
-      const preferred = getPreferredCodecs()
-      const transceivers = pc.getTransceivers()
-      for (const transceiver of transceivers) {
-        if (transceiver.sender.track?.kind !== 'video') continue
-
-        const codecs = RTCRtpSender.getCapabilities?.('video')?.codecs
-        if (!codecs) continue
-
-        const sorted = [...codecs].sort((a, b) => {
-          const aIdx = preferred.indexOf(a.mimeType)
-          const bIdx = preferred.indexOf(b.mimeType)
-          return (aIdx >= 0 ? aIdx : 999) - (bIdx >= 0 ? bIdx : 999)
-        })
-
-        if ('setCodecPreferences' in transceiver) {
-          transceiver.setCodecPreferences(sorted)
-          this.logInfo('Codec preference set', {
-            preferred: sorted[0]?.mimeType ?? 'unknown',
-            browser: detectBrowser(),
-          })
-        }
-      }
-    } catch (error) {
-      this.logWarn('Could not set codec preference', { error })
-    }
   }
 
   /** Gradually increase video bitrate from conservative to target */
@@ -1402,7 +832,7 @@ export class WebRTCClient {
 
       peerState.isSettingRemoteAnswerPending = false
       await pc.setRemoteDescription(new RTCSessionDescription(offer))
-      this.attachLocalTracks(pc)
+      this.media.attachLocalTracks(pc)
 
       const answer = await pc.createAnswer()
       await pc.setLocalDescription(answer)
@@ -1528,7 +958,7 @@ export class WebRTCClient {
   }
 
   getLocalStream(): MediaStream | null {
-    return this.localStream
+    return this.media.getLocalStream()
   }
 
   /**
@@ -1537,43 +967,7 @@ export class WebRTCClient {
    * to restore the original camera track.
    */
   async replaceVideoTrack(newTrack: MediaStreamTrack | null): Promise<void> {
-    if (!this.localStream) return
-
-    const currentVideoTrack = this.localStream.getVideoTracks()[0]
-
-    // If null, try to restore the camera by re-requesting getUserMedia
-    if (!newTrack) {
-      if (currentVideoTrack?.readyState === 'live') return
-      try {
-        const camStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false,
-        })
-        newTrack = camStream.getVideoTracks()[0]
-        if (!newTrack) return
-      } catch {
-        return
-      }
-    }
-
-    // Swap in the local stream
-    for (const old of this.localStream.getVideoTracks()) {
-      this.localStream.removeTrack(old)
-      // Only stop if it's the camera track being replaced by screen share
-      if (newTrack.id !== old.id) old.stop()
-    }
-    this.localStream.addTrack(newTrack)
-
-    // Replace in all peer connections (no renegotiation needed)
-    for (const [, peerState] of this.peerConnections) {
-      const sender = peerState.pc.getSenders().find((s) => s.track?.kind === 'video')
-      if (sender) {
-        await sender.replaceTrack(newTrack)
-      }
-    }
-
-    this.emit('local-stream', this.localStream)
-    this.logInfo('Video track replaced', { trackLabel: newTrack.label })
+    return this.media.replaceVideoTrack(newTrack, this.peerConnections)
   }
 
   getPeerConnections(): Map<string, RTCPeerConnection> {
@@ -1630,9 +1024,10 @@ export class WebRTCClient {
 
   // Media control methods
   toggleVideo(enabled?: boolean): boolean {
-    if (!this.localStream) return false
+    const localStream = this.media.getLocalStream()
+    if (!localStream) return false
 
-    const videoTrack = this.localStream.getVideoTracks()[0]
+    const videoTrack = localStream.getVideoTracks()[0]
     if (videoTrack) {
       videoTrack.enabled = enabled !== undefined ? enabled : !videoTrack.enabled
       return videoTrack.enabled
@@ -1641,9 +1036,10 @@ export class WebRTCClient {
   }
 
   toggleAudio(enabled?: boolean): boolean {
-    if (!this.localStream) return false
+    const localStream = this.media.getLocalStream()
+    if (!localStream) return false
 
-    const audioTrack = this.localStream.getAudioTracks()[0]
+    const audioTrack = localStream.getAudioTracks()[0]
     if (audioTrack) {
       audioTrack.enabled = enabled !== undefined ? enabled : !audioTrack.enabled
       return audioTrack.enabled
@@ -1652,14 +1048,16 @@ export class WebRTCClient {
   }
 
   isVideoEnabled(): boolean {
-    if (!this.localStream) return false
-    const videoTrack = this.localStream.getVideoTracks()[0]
+    const localStream = this.media.getLocalStream()
+    if (!localStream) return false
+    const videoTrack = localStream.getVideoTracks()[0]
     return videoTrack ? videoTrack.enabled : false
   }
 
   isAudioEnabled(): boolean {
-    if (!this.localStream) return false
-    const audioTrack = this.localStream.getAudioTracks()[0]
+    const localStream = this.media.getLocalStream()
+    if (!localStream) return false
+    const audioTrack = localStream.getAudioTracks()[0]
     return audioTrack ? audioTrack.enabled : false
   }
 }

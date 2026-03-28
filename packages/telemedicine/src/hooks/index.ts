@@ -20,3 +20,15 @@ export type {
   CallRecordingActions,
   CallRecordingHook,
 } from './useCallRecording'
+
+export { useCallDuration } from './useCallDuration'
+export type { CallDurationState } from './useCallDuration'
+
+export { useCallQuality, REMOTE_MEDIA_TIMEOUT_MESSAGE } from './useCallQuality'
+export type { UseCallQualityParams, CallQualityState } from './useCallQuality'
+
+export { useAutoHideControls } from './useAutoHideControls'
+export type { AutoHideControlsState } from './useAutoHideControls'
+
+export { useGreenRoom } from './useGreenRoom'
+export type { GreenRoomChecks, GreenRoomState } from './useGreenRoom'

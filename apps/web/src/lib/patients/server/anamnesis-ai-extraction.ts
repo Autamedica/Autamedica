@@ -1,8 +1,3 @@
-import {
-  AnamnesisExtractionResultSchema,
-  BodyMapSelectionsSchema,
-} from '@/lib/patients/lib/zod/anamnesis-extraction'
-import type { BodyMapSelection } from '@/lib/patients/types/anamnesis'
 import type {
   AnamnesisClarificationTurn,
   AnamnesisSectionRecord,
@@ -11,107 +6,36 @@ import type {
 } from '@/lib/patients/types/anamnesis-extraction'
 import {
   buildAnamnesisSummary,
-  getServerEnvOrDefault,
   logger,
 } from '@autamedica/shared'
 import type { Json } from '@autamedica/types'
+import {
+  resolveServerEnv,
+  resolveExtractionTarget,
+  type ExtractionProvider,
+  type ExtractionTarget,
+} from './ai-provider'
+export {
+  isAnamnesisExtractionConfigured,
+  getAnamnesisExtractionProviderName,
+  getAnamnesisExtractionModelName,
+} from './ai-provider'
+export {
+  isJsonObject,
+  parseStructuredExtractionPayload,
+  extractOpenAiStructuredOutput,
+  extractGeminiStructuredOutput,
+} from './extraction-parser'
+export {
+  deduplicateBodySelections,
+  extractBodySelectionsFromSections,
+} from './body-selection'
+import { extractOpenAiStructuredOutput, extractGeminiStructuredOutput } from './extraction-parser'
+import { extractBodySelectionsFromSections } from './body-selection'
 
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
 const GEMINI_GENERATE_CONTENT_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
-const DEFAULT_OPENAI_MODEL = 'gpt-5.4-2026-03-05'
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro'
 export const ANAMNESIS_EXTRACTION_PROMPT_VERSION = 'argente_interrogator_v3'
-
-type ExtractionProvider = 'openai' | 'gemini'
-type ExtractionProviderPreference = ExtractionProvider | 'auto'
-
-interface ExtractionTarget {
-  providerName: ExtractionProvider
-  modelName: string
-}
-
-function normalizeProviderPreference(value: string | null | undefined): ExtractionProviderPreference {
-  if (value === 'openai' || value === 'gemini') {
-    return value
-  }
-
-  return 'auto'
-}
-
-/**
- * Resolve server env var — works in both Node (process.env) and Cloudflare Workers (import.meta.env).
- * Cloudflare Pages secrets are exposed via import.meta.env at runtime in Astro SSR.
- */
-function resolveServerEnv(name: string): string | undefined {
-  // 1. Astro / Vite — import.meta.env (works in Cloudflare Pages)
-  try {
-    const metaVal = (import.meta as unknown as { env: Record<string, string> }).env?.[name]
-    if (metaVal) return metaVal
-  } catch { /* not available */ }
-
-  // 2. Node / fallback — process.env
-  try {
-    return getServerEnvOrDefault(name)
-  } catch { /* not available */ }
-
-  return undefined
-}
-
-function hasOpenAiKey(): boolean {
-  return Boolean(resolveServerEnv('OPENAI_API_KEY'))
-}
-
-function hasGeminiKey(): boolean {
-  return Boolean(resolveServerEnv('GEMINI_API_KEY'))
-}
-
-function resolveExtractionTarget(): ExtractionTarget | null {
-  const preferredProvider = normalizeProviderPreference(
-    resolveServerEnv('ANAMNESIS_AI_PROVIDER') ?? resolveServerEnv('PATIENT_AI_PROVIDER'),
-  )
-
-  if (preferredProvider === 'openai') {
-    return hasOpenAiKey()
-      ? {
-          providerName: 'openai',
-          modelName:
-            resolveServerEnv('ANAMNESIS_AI_OPENAI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-            DEFAULT_OPENAI_MODEL,
-        }
-      : null
-  }
-
-  if (preferredProvider === 'gemini') {
-    return hasGeminiKey()
-      ? {
-          providerName: 'gemini',
-          modelName:
-            resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-            DEFAULT_GEMINI_MODEL,
-        }
-      : null
-  }
-
-  if (hasOpenAiKey()) {
-    return {
-      providerName: 'openai',
-      modelName:
-        resolveServerEnv('ANAMNESIS_AI_OPENAI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-        DEFAULT_OPENAI_MODEL,
-    }
-  }
-
-  if (hasGeminiKey()) {
-    return {
-      providerName: 'gemini',
-      modelName:
-        resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-        DEFAULT_GEMINI_MODEL,
-    }
-  }
-
-  return null
-}
 
 export function buildAnamnesisExtractionSystemPrompt(): string {
   return [
@@ -141,44 +65,6 @@ export function buildAnamnesisExtractionSystemPrompt(): string {
     '16. Si el relato libre y bodySelections no coinciden, no fuerces una sintesis falsa: marca la discrepancia en qualityAlerts o dataIntegrity.',
     '17. Responde exclusivamente en JSON valido y estricto, segun el schema adjunto.',
   ].join(' ')
-}
-
-function isJsonObject(value: Json): value is Record<string, Json> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function deduplicateBodySelections(
-  selections: BodyMapSelection[],
-): BodyMapSelection[] {
-  const deduplicated = new Map<string, BodyMapSelection>()
-
-  for (const selection of selections) {
-    deduplicated.set(selection.partId, selection)
-  }
-
-  return Array.from(deduplicated.values())
-}
-
-function extractBodySelectionsFromSections(
-  sections: AnamnesisSectionRecord[],
-): BodyMapSelection[] {
-  const collected: BodyMapSelection[] = []
-
-  for (const section of sections) {
-    if (!isJsonObject(section.data)) {
-      continue
-    }
-
-    for (const key of ['body_selections', 'bodySelections']) {
-      const candidate = section.data[key]
-      const parsed = BodyMapSelectionsSchema.safeParse(candidate)
-      if (parsed.success) {
-        collected.push(...(parsed.data as BodyMapSelection[]))
-      }
-    }
-  }
-
-  return deduplicateBodySelections(collected)
 }
 
 export function getAnamnesisExtractionResponseSchema(): Record<string, unknown> {
@@ -509,113 +395,6 @@ export function getAnamnesisExtractionResponseSchema(): Record<string, unknown> 
       'safetyFlags',
     ],
   }
-}
-
-function parseStructuredExtractionPayload(
-  rawPayload: string,
-  providerName: ExtractionProvider,
-): AnamnesisExtractionResult {
-  let parsedPayload: unknown
-
-  try {
-    parsedPayload = JSON.parse(rawPayload)
-  } catch (error) {
-    logger.error(`[extract ${providerName}] Invalid JSON payload`, {
-      error,
-      rawPayload,
-    })
-    throw new Error('La salida del modelo no fue JSON valido')
-  }
-
-  const validation = AnamnesisExtractionResultSchema.safeParse(parsedPayload)
-  if (!validation.success) {
-    logger.warn(`[extract ${providerName}] Structured output validation issues (using raw)`, {
-      issues: validation.error.issues.slice(0, 5).map((issue) => ({
-        path: issue.path.join('.'),
-        code: issue.code,
-        message: issue.message,
-      })),
-    })
-    // Use the raw parsed payload — the model may have returned a close-enough structure.
-    // Missing fields will be undefined, which downstream code handles gracefully.
-    return parsedPayload as AnamnesisExtractionResult
-  }
-
-  return validation.data as AnamnesisExtractionResult
-}
-
-function extractOpenAiStructuredOutput(payload: Record<string, unknown>): AnamnesisExtractionResult {
-  if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
-    return parseStructuredExtractionPayload(payload.output_text, 'openai')
-  }
-
-  const output = Array.isArray(payload.output) ? payload.output : []
-  for (const item of output) {
-    if (!item || typeof item !== 'object') {
-      continue
-    }
-
-    const message = item as Record<string, unknown>
-    const content = Array.isArray(message.content) ? message.content : []
-    for (const entry of content) {
-      if (!entry || typeof entry !== 'object') {
-        continue
-      }
-
-      const record = entry as Record<string, unknown>
-      if (
-        (record.type === 'output_text' || record.type === 'text') &&
-        typeof record.text === 'string' &&
-        record.text.trim()
-      ) {
-        return parseStructuredExtractionPayload(record.text, 'openai')
-      }
-    }
-  }
-
-  throw new Error('La respuesta del modelo no incluyo contenido estructurado')
-}
-
-function extractGeminiStructuredOutput(payload: Record<string, unknown>): AnamnesisExtractionResult {
-  const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
-
-  for (const candidate of candidates) {
-    if (!candidate || typeof candidate !== 'object') {
-      continue
-    }
-
-    const candidateRecord = candidate as Record<string, unknown>
-    const content =
-      candidateRecord.content && typeof candidateRecord.content === 'object'
-        ? (candidateRecord.content as Record<string, unknown>)
-        : null
-    const parts = content && Array.isArray(content.parts) ? content.parts : []
-
-    for (const part of parts) {
-      if (!part || typeof part !== 'object') {
-        continue
-      }
-
-      const text = (part as Record<string, unknown>).text
-      if (typeof text === 'string' && text.trim()) {
-        return parseStructuredExtractionPayload(text, 'gemini')
-      }
-    }
-  }
-
-  throw new Error('La respuesta de Gemini no incluyo contenido estructurado')
-}
-
-export function isAnamnesisExtractionConfigured(): boolean {
-  return resolveExtractionTarget() !== null
-}
-
-export function getAnamnesisExtractionProviderName(): ExtractionProvider | null {
-  return resolveExtractionTarget()?.providerName ?? null
-}
-
-export function getAnamnesisExtractionModelName(): string {
-  return resolveExtractionTarget()?.modelName ?? DEFAULT_OPENAI_MODEL
 }
 
 export function buildAnamnesisExtractionRequest(input: {

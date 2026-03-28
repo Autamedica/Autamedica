@@ -21,12 +21,15 @@ import {
   type ChatMessage,
   type ConnectionState,
   type DeviceInfo,
-  type StreamQualityLevel,
   type StreamQualitySummary,
   type WarmUpResult,
 } from './webrtc-client'
 import { CloudflareCallsClient } from './cloudflare-calls'
 import { useCallRecording } from './hooks/useCallRecording'
+import { useCallDuration } from './hooks/useCallDuration'
+import { useCallQuality, REMOTE_MEDIA_TIMEOUT_MESSAGE } from './hooks/useCallQuality'
+import { useAutoHideControls } from './hooks/useAutoHideControls'
+import { useGreenRoom } from './hooks/useGreenRoom'
 import { deriveCallSessionPhase } from './runtime/call-session-phase'
 import {
   GreenRoom,
@@ -99,19 +102,8 @@ function sanitizeErrorForUser(raw: string): string {
   return 'Ocurrió un error. Recargá la página para reintentar.'
 }
 
-function formatDuration(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`
-}
-
-
 const QUALITY_WARMUP_MS = 15000
-const POOR_QUALITY_THRESHOLD_MS = 30_000 // Suggest audio-only after 30s of poor quality
 const REMOTE_MEDIA_TIMEOUT_MS = 20_000
-const REMOTE_MEDIA_TIMEOUT_MESSAGE = 'El video del otro participante está demorando. Podés continuar solo con audio.'
 
 function hasRemoteVideoEvidence(summary: StreamQualitySummary): boolean {
   return summary.peers.some((peer) => {
@@ -158,10 +150,6 @@ export function UnifiedVideoCall({
   const [chatMessages, setChatMessages] = useState<UiChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [unreadMessages, setUnreadMessages] = useState(0)
-  const [connectedAt, setConnectedAt] = useState<number | null>(null)
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
-  const [qualityLevel, setQualityLevel] = useState<StreamQualityLevel>('unknown')
-  const [controlsVisible, setControlsVisible] = useState(true)
   const [hasPeerConnection, setHasPeerConnection] = useState(false)
   // Iniciar siempre con `true` en SSR y en cliente para evitar mismatch de hidratación.
   // El efecto de resize lo corrige en el primer render del cliente.
@@ -177,7 +165,6 @@ export function UnifiedVideoCall({
   const screenShareRef = useRef<HTMLVideoElement>(null)
   const chatMessagesRef = useRef<HTMLDivElement>(null)
   const chatPanelOpenRef = useRef(false)
-  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const callServiceRef = useRef<UnifiedVideoCallService | null>(null)
   const joinSoundContextRef = useRef<AudioContext | null>(null)
   const joinSoundPlayedRef = useRef(false)
@@ -186,7 +173,6 @@ export function UnifiedVideoCall({
   const autoStartAttemptedRef = useRef(false)
   const manualHangupRef = useRef(false)
   const connectedAtRef = useRef<number | null>(null)
-  const poorQualityStartRef = useRef<number | null>(null)
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hasAnnouncedCallStartRef = useRef(false)
@@ -209,14 +195,9 @@ export function UnifiedVideoCall({
   /* ── Green Room state ── */
   const [warmUpResult, setWarmUpResult] = useState<WarmUpResult | null>(null)
   const [isWarmingUp, setIsWarmingUp] = useState(false)
-  const [audioLevel, setAudioLevel] = useState(0)
   const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([])
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('')
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('')
-  const [showAudioOnlySuggestion, setShowAudioOnlySuggestion] = useState(false)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const audioAnalyserRef = useRef<AnalyserNode | null>(null)
-  const audioAnimFrameRef = useRef<number | null>(null)
 
   /* ── Derived ── */
   const accentColor = theme === 'doctor' ? 'violet' : 'sky'
@@ -236,12 +217,10 @@ export function UnifiedVideoCall({
     [callId, roomId, userId, userType]
   )
 
-  /* ── Controls auto-hide ── */
-  const resetControlsTimer = useCallback(() => {
-    setControlsVisible(true)
-    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
-    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 5000)
-  }, [])
+  /* ── Extracted hooks ── */
+  const { controlsVisible, resetControlsTimer } = useAutoHideControls({ isInRoom })
+  const { formattedDuration } = useCallDuration(isCallEstablished)
+  const { audioLevel, greenRoomChecks } = useGreenRoom({ warmUpResult, isInRoom })
 
   const playParticipantJoinedSound = useCallback(async () => {
     if (typeof window === 'undefined') {
@@ -312,17 +291,6 @@ export function UnifiedVideoCall({
 
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  useEffect(() => {
-    if (!isInRoom) {
-      setControlsVisible(true)
-      return
-    }
-    resetControlsTimer()
-    return () => {
-      if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current)
-    }
-  }, [isInRoom, resetControlsTimer])
 
   const persistCallStatus = useCallback(
     async (status: CallStatus, reason?: string) => {
@@ -397,6 +365,12 @@ export function UnifiedVideoCall({
     },
     [callId, callServiceOverride, debugLogger, roomId, userId, userType]
   )
+
+  const {
+    qualityLevel, setQualityLevel,
+    showAudioOnlySuggestion, setShowAudioOnlySuggestion,
+    switchToAudioOnly,
+  } = useCallQuality({ client, callError, setCallError, emitDebug })
 
   const logCallEvent = useCallback(
     async (type: string, payload?: Record<string, unknown>) => {
@@ -633,9 +607,6 @@ export function UnifiedVideoCall({
       unsubs.forEach((u) => u())
       void webrtcClient.disconnect()
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
-      // Clean up audio monitoring
-      if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
-      if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close()
       if (joinSoundContextRef.current?.state !== 'closed') joinSoundContextRef.current?.close()
       joinSoundContextRef.current = null
       joinSoundPlayedRef.current = false
@@ -658,23 +629,12 @@ export function UnifiedVideoCall({
 
   useEffect(() => {
     if (isCallEstablished) {
-      setConnectedAt((prev) => prev ?? Date.now())
       connectedAtRef.current ??= Date.now()
     } else {
-      setConnectedAt(null)
-      setElapsedSeconds(0)
       connectedAtRef.current = null
       setQualityLevel('unknown')
     }
-  }, [isCallEstablished])
-
-  useEffect(() => {
-    if (connectedAt === null) return
-    const tick = () => setElapsedSeconds(Math.floor((Date.now() - connectedAt) / 1000))
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [connectedAt])
+  }, [isCallEstablished, setQualityLevel])
 
   useEffect(() => {
     if (!isInRoom || remoteUsers.size === 0 || remoteUsersWithMedia.length > 0) {
@@ -786,8 +746,6 @@ export function UnifiedVideoCall({
   useEffect(() => {
     if (chatMessagesRef.current) chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight
   }, [chatMessages, isChatPanelOpen])
-
-  const formattedDuration = useMemo(() => formatDuration(elapsedSeconds), [elapsedSeconds])
 
   /* ── Actions ── */
   const startCall = useCallback(async () => {
@@ -972,70 +930,6 @@ export function UnifiedVideoCall({
     [sendChat]
   )
 
-  /* ── Audio VU Meter for Green Room ── */
-  useEffect(() => {
-    if (!warmUpResult?.stream || isInRoom) return
-
-    const audioTrack = warmUpResult.stream.getAudioTracks()[0]
-    if (!audioTrack) return
-
-    try {
-      const ctx = new AudioContext()
-      audioContextRef.current = ctx
-      const source = ctx.createMediaStreamSource(new MediaStream([audioTrack]))
-      const analyser = ctx.createAnalyser()
-      analyser.fftSize = 256
-      analyser.smoothingTimeConstant = 0.3
-      source.connect(analyser)
-      audioAnalyserRef.current = analyser
-
-      const dataArray = new Uint8Array(analyser.frequencyBinCount)
-
-      const tick = () => {
-        analyser.getByteFrequencyData(dataArray)
-        let sum = 0
-        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i]
-        const avg = sum / dataArray.length
-        setAudioLevel(Math.min(avg / 128, 1)) // normalize 0-1
-        audioAnimFrameRef.current = requestAnimationFrame(tick)
-      }
-      tick()
-    } catch {
-      // AudioContext not supported — ignore
-    }
-
-    return () => {
-      if (audioAnimFrameRef.current) cancelAnimationFrame(audioAnimFrameRef.current)
-      if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close()
-      audioContextRef.current = null
-    }
-  }, [isInRoom, warmUpResult])
-
-  /* ── Audio-only suggestion when quality is persistently poor ── */
-  useEffect(() => {
-    if (qualityLevel === 'poor') {
-      if (!poorQualityStartRef.current) {
-        poorQualityStartRef.current = Date.now()
-      } else if (Date.now() - poorQualityStartRef.current >= POOR_QUALITY_THRESHOLD_MS) {
-        setShowAudioOnlySuggestion(true)
-      }
-    } else {
-      poorQualityStartRef.current = null
-      setShowAudioOnlySuggestion(false)
-    }
-  }, [qualityLevel])
-
-  const switchToAudioOnly = useCallback(() => {
-    if (!client) return
-    client.toggleVideo(false)
-    setIsVideoEnabled(false)
-    setShowAudioOnlySuggestion(false)
-    if (callError === REMOTE_MEDIA_TIMEOUT_MESSAGE) {
-      setCallError(null)
-    }
-    emitDebug('info', 'Switched to audio-only mode due to poor connection')
-  }, [callError, client, emitDebug])
-
   const handleDeviceChange = useCallback(async (kind: 'video' | 'audio', deviceId: string) => {
     if (!client) return
     try {
@@ -1046,15 +940,6 @@ export function UnifiedVideoCall({
       emitDebug('warn', 'Device switch failed', { kind, deviceId, error })
     }
   }, [client, emitDebug])
-
-  /* ── Green Room readiness checks ── */
-  const greenRoomChecks = useMemo(() => {
-    const hasVideo = warmUpResult?.stream?.getVideoTracks()?.[0]?.readyState === 'live'
-    const hasAudio = warmUpResult?.stream?.getAudioTracks()?.[0]?.readyState === 'live'
-    const hasSignaling = warmUpResult?.signalingReady ?? false
-    const allReady = hasVideo && hasAudio && hasSignaling
-    return { hasVideo, hasAudio, hasSignaling, allReady }
-  }, [warmUpResult])
 
   /* ── Render ── */
   return (
@@ -1133,7 +1018,7 @@ export function UnifiedVideoCall({
       {isInRoom && (
         <QualityOverlays
           showAudioOnlySuggestion={showAudioOnlySuggestion}
-          onSwitchAudioOnly={switchToAudioOnly}
+          onSwitchAudioOnly={() => { switchToAudioOnly(); setIsVideoEnabled(false) }}
           onDismissSuggestion={() => setShowAudioOnlySuggestion(false)}
           callError={callError}
           isTestRoom={isTestRoom}
