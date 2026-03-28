@@ -4,8 +4,10 @@
  */
 
 import { createTelemedicineLogger } from './debug'
-import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY, fetchTurnCredentials, hasTurnIceServer } from './config/ice-servers'
+import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints, getPreferredCodecs, detectBrowser } from './media-optimizations'
+import { NetworkResilience } from './network/resilience'
+import { DeviceManager } from './device/manager'
 import {
   type StreamQualityLevel, type StreamQualityMetrics, type StreamQualitySummary, type PeerStatsSample,
   computeMOS, classifyQualityLevel, getOverallQualityLevel,
@@ -128,11 +130,8 @@ export class WebRTCClient {
   private warmUpPromise: Promise<WarmUpResult> | null = null
   private bitrateRampInterval: ReturnType<typeof setInterval> | null = null
   private bitrateRampStartMs: number | null = null
-  private cachedDevices: DeviceInfo[] = []
-  private networkChangeCleanup: (() => void) | null = null
-  private onlineOfflineCleanup: (() => void) | null = null
-  private turnRefreshInterval: ReturnType<typeof setInterval> | null = null
-  private deviceChangeCleanup: (() => void) | null = null
+  private readonly networkResilience: NetworkResilience
+  private readonly deviceManager: DeviceManager
 
   constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
     // Use environment-configured ICE servers or fallback to STUN-only defaults
@@ -151,6 +150,31 @@ export class WebRTCClient {
       roomId: this.config.roomId,
       userId: this.config.userId,
       userType: this.config.userType,
+    })
+
+    const log = {
+      info: (msg: string, ctx?: Record<string, unknown>) => this.logInfo(msg, ctx),
+      warn: (msg: string, ctx?: Record<string, unknown>) => this.logWarn(msg, ctx),
+    }
+
+    this.networkResilience = new NetworkResilience({
+      config: this.config,
+      getPeerConnections: () => this.peerConnections,
+      onDegradedNetwork: () => this.stopBitrateRamp(),
+      onOnlineRecovery: () => { this.stopBitrateRamp(); this.startBitrateRamp() },
+      log,
+      emit: (_event, error) => this.emit('error', error),
+    })
+
+    this.deviceManager = new DeviceManager({
+      getLocalStream: () => this.localStream,
+      setLocalStream: (fn) => { if (this.localStream) fn(this.localStream) },
+      getPeerConnections: () => this.peerConnections,
+      emit: (event, data) => {
+        if (event === 'local-stream') this.emit('local-stream', data as MediaStream)
+        if (event === 'device-change') this.emit('device-change', data as DeviceInfo[])
+      },
+      log,
     })
   }
 
@@ -173,126 +197,6 @@ export class WebRTCClient {
       sessionId: this.sessionId,
       ...context,
     })
-  }
-
-  /** Monitor network changes (WiFi→cellular etc) and adjust bitrate */
-  private startNetworkMonitoring(): void {
-    const conn = (navigator as Navigator & { connection?: EventTarget & { effectiveType?: string; downlink?: number } }).connection
-    if (!conn) return
-
-    const handler = () => {
-      const info = conn as { effectiveType?: string; downlink?: number }
-      this.logInfo('Network change detected', { effectiveType: info.effectiveType, downlink: info.downlink })
-
-      // On degraded network, reset bitrate ramp to start conservative again
-      if (info.effectiveType === '2g' || info.effectiveType === '3g' || info.effectiveType === 'slow-2g') {
-        this.stopBitrateRamp()
-        for (const [, peerState] of this.peerConnections) {
-          for (const sender of peerState.pc.getSenders()) {
-            if (sender.track?.kind !== 'video') continue
-            const params = sender.getParameters()
-            if (params.encodings?.[0]) {
-              params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
-              params.encodings[0].maxFramerate = 15
-              sender.setParameters(params).catch(() => { /* ignore */ })
-            }
-          }
-        }
-      }
-    }
-
-    conn.addEventListener('change', handler)
-    this.networkChangeCleanup = () => conn.removeEventListener('change', handler)
-  }
-
-  /** Refresh TURN credentials mid-call (Cloudflare credentials expire in 24h) */
-  private startTurnCredentialRefresh(): void {
-    if (this.turnRefreshInterval) return
-    if (!hasTurnIceServer(this.config.iceServers)) return
-
-    const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000 // Every 6 hours
-    this.turnRefreshInterval = setInterval(async () => {
-      try {
-        const freshServers = await fetchTurnCredentials()
-        if (hasTurnIceServer(freshServers)) {
-          this.config.iceServers = freshServers
-          // Update existing peer connections with new credentials
-          for (const [peerId, peerState] of this.peerConnections) {
-            peerState.pc.setConfiguration({
-              iceServers: freshServers,
-              bundlePolicy: 'max-bundle',
-              rtcpMuxPolicy: 'require',
-            })
-            this.logInfo('TURN credentials refreshed for peer', { peerId })
-          }
-        }
-      } catch {
-        this.logWarn('Failed to refresh TURN credentials')
-      }
-    }, REFRESH_INTERVAL_MS)
-  }
-
-  private stopTurnCredentialRefresh(): void {
-    if (this.turnRefreshInterval) {
-      clearInterval(this.turnRefreshInterval)
-      this.turnRefreshInterval = null
-    }
-  }
-
-  /** Detect browser going offline/online and trigger reconnection */
-  private startOnlineOfflineMonitoring(): void {
-    if (typeof window === 'undefined') return
-
-    const onOffline = () => {
-      this.logWarn('Browser went offline')
-      this.emit('error', new Error('network_offline'))
-    }
-
-    const onOnline = () => {
-      this.logInfo('Browser came back online, restarting ICE for all peers')
-      for (const [peerId, peerState] of this.peerConnections) {
-        peerState.iceRestartCount = 0
-        peerState.pc.restartIce()
-        this.logInfo('ICE restart triggered after online recovery', { peerId })
-      }
-      // Re-start bitrate ramp from conservative
-      this.stopBitrateRamp()
-      this.startBitrateRamp()
-    }
-
-    window.addEventListener('offline', onOffline)
-    window.addEventListener('online', onOnline)
-    this.onlineOfflineCleanup = () => {
-      window.removeEventListener('offline', onOffline)
-      window.removeEventListener('online', onOnline)
-    }
-  }
-
-  private stopNetworkMonitoring(): void {
-    this.networkChangeCleanup?.()
-    this.networkChangeCleanup = null
-    this.onlineOfflineCleanup?.()
-    this.onlineOfflineCleanup = null
-  }
-
-  /** Detect when devices are connected/disconnected (headset, camera, etc.) */
-  private startDeviceChangeMonitoring(): void {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.addEventListener) return
-
-    const handler = async () => {
-      const devices = await this.enumerateDevices()
-      this.cachedDevices = devices
-      this.emit('device-change', devices)
-      this.logInfo('Device change detected', { deviceCount: devices.length })
-    }
-
-    navigator.mediaDevices.addEventListener('devicechange', handler)
-    this.deviceChangeCleanup = () => navigator.mediaDevices.removeEventListener('devicechange', handler)
-  }
-
-  private stopDeviceChangeMonitoring(): void {
-    this.deviceChangeCleanup?.()
-    this.deviceChangeCleanup = null
   }
 
   // Event listener methods
@@ -666,7 +570,7 @@ export class WebRTCClient {
 
     const signalingReady = signalingResult.status === 'fulfilled'
     const devices = devicesResult.status === 'fulfilled' ? devicesResult.value : []
-    this.cachedDevices = devices
+    this.deviceManager.setCachedDevices(devices)
 
     const latencyMs = Math.round(performance.now() - t0)
     this.isWarmedUp = true
@@ -680,60 +584,16 @@ export class WebRTCClient {
     }
   }
 
-  /** List available media devices (useful for device selector in Green Room) */
   async enumerateDevices(): Promise<DeviceInfo[]> {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices()
-      return devices
-        .filter((d) => d.kind === 'audioinput' || d.kind === 'videoinput' || d.kind === 'audiooutput')
-        .map((d) => ({
-          deviceId: d.deviceId,
-          label: d.label || `${d.kind} (${d.deviceId.slice(0, 6)})`,
-          kind: d.kind as DeviceInfo['kind'],
-        }))
-    } catch {
-      return []
-    }
+    return this.deviceManager.enumerateDevices()
   }
 
-  /** Get cached devices from last warmUp/enumerate */
   getDevices(): DeviceInfo[] {
-    return this.cachedDevices
+    return this.deviceManager.getDevices()
   }
 
-  /** Switch to a different camera or microphone device */
   async switchDevice(kind: 'video' | 'audio', deviceId: string): Promise<void> {
-    if (!this.localStream) return
-
-    const adaptive = getAdaptiveConstraints()
-    const constraints: MediaStreamConstraints = kind === 'video'
-      ? { video: { deviceId: { exact: deviceId }, ...adaptive.video as MediaTrackConstraints } }
-      : { audio: { deviceId: { exact: deviceId }, ...adaptive.audio as MediaTrackConstraints } }
-
-    const newStream = await navigator.mediaDevices.getUserMedia(constraints)
-    const newTrack = newStream.getTracks()[0]
-    if (!newTrack) return
-
-    // Replace track in local stream
-    const oldTracks = kind === 'video'
-      ? this.localStream.getVideoTracks()
-      : this.localStream.getAudioTracks()
-    for (const old of oldTracks) {
-      this.localStream.removeTrack(old)
-      old.stop()
-    }
-    this.localStream.addTrack(newTrack)
-
-    // Replace track in all peer connections (no renegotiation needed)
-    for (const [, peerState] of this.peerConnections) {
-      const sender = peerState.pc.getSenders().find((s) => s.track?.kind === kind)
-      if (sender) {
-        await sender.replaceTrack(newTrack)
-      }
-    }
-
-    this.emit('local-stream', this.localStream)
-    this.logInfo('Device switched', { kind, deviceId })
+    return this.deviceManager.switchDevice(kind, deviceId)
   }
 
   /** Compute approximate signaling latency by ping */
@@ -887,10 +747,8 @@ export class WebRTCClient {
       this.attachTracksToExistingPeers()
 
       // Monitor network changes for adaptive bitrate
-      this.startNetworkMonitoring()
-      this.startOnlineOfflineMonitoring()
-      this.startTurnCredentialRefresh()
-      this.startDeviceChangeMonitoring()
+      this.networkResilience.startAll()
+      this.deviceManager.startDeviceChangeMonitoring()
 
       // Send join — this is the only thing the user "waits" for
       this.sendSignalingMessage({
@@ -962,9 +820,8 @@ export class WebRTCClient {
   private cleanup(): void {
     this.stopQualityMonitor()
     this.stopBitrateRamp()
-    this.stopNetworkMonitoring()
-    this.stopTurnCredentialRefresh()
-    this.stopDeviceChangeMonitoring()
+    this.networkResilience.stopAll()
+    this.deviceManager.stopDeviceChangeMonitoring()
     this.peerStatsSamples.clear()
     this.latestQualityByPeer.clear()
     this.qualityLogState.clear()
