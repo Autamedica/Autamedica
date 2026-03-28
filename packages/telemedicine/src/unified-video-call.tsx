@@ -475,13 +475,19 @@ export function UnifiedVideoCall({
           updated.set(remoteUserId, { ...existing, stream })
           return updated
         })
-        setTimeout(() => {
+        // Retry stream attachment — the video element may not be mounted yet
+        const attachStream = (attempt = 0) => {
           const el = remoteVideosRef.current.get(remoteUserId)
-          if (el && el.srcObject !== stream) {
-            el.srcObject = stream
-            patchVideoPlayback(el)
+          if (el) {
+            if (el.srcObject !== stream) {
+              el.srcObject = stream
+              patchVideoPlayback(el)
+            }
+          } else if (attempt < 10) {
+            setTimeout(() => attachStream(attempt + 1), 100)
           }
-        }, 100)
+        }
+        attachStream()
       })
     )
 
@@ -735,9 +741,22 @@ export function UnifiedVideoCall({
     remoteUsers.forEach((user, uid) => {
       if (!user.stream) return
       const el = remoteVideosRef.current.get(uid)
-      if (el && el.srcObject !== user.stream) el.srcObject = user.stream
+      if (el && el.srcObject !== user.stream) {
+        el.srcObject = user.stream
+        patchVideoPlayback(el)
+      }
     })
   }, [remoteUsers])
+
+  // Re-attach local stream when layout changes (waiting → PiP transition)
+  useEffect(() => {
+    if (!client || !localVideoRef.current) return
+    const stream = client.getLocalStream()
+    if (stream && localVideoRef.current.srcObject !== stream) {
+      localVideoRef.current.srcObject = stream
+      patchVideoPlayback(localVideoRef.current)
+    }
+  }, [client, remoteUsers])
 
   useEffect(() => {
     if (screenShareRef.current && screenStream) screenShareRef.current.srcObject = screenStream

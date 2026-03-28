@@ -4,7 +4,7 @@
  */
 
 import { createTelemedicineLogger } from './debug'
-import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
+import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY, fetchTurnCredentials, hasTurnIceServer } from './config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
 import { MediaManager } from './media-manager'
 import { QualityMonitor, type StreamQualitySummary } from './quality-monitor'
@@ -45,6 +45,7 @@ export interface WebRTCEvents {
   'chat-ready': (ready: boolean) => void
   'stream-quality': (summary: StreamQualitySummary) => void
   'audio-only-fallback': (info: { reason: string; error: unknown }) => void
+  'device-change': (devices: DeviceInfo[]) => void
   'error': (error: Error) => void
   // Observability events
   'media-acquired': (info: { videoTracks: number; audioTracks: number; source: string }) => void
@@ -70,7 +71,12 @@ interface PeerState {
   ignoreOffer: boolean
   isPolite: boolean
   dataChannel: RTCDataChannel | null
+  iceRestartCount: number
+  lastIceRestartAt: number
 }
+
+const MAX_ICE_RESTART_ATTEMPTS = 3
+const ICE_RESTART_BACKOFF_BASE_MS = 2_000
 
 const CHAT_CHANNEL_LABEL = 'autamedica-chat'
 
@@ -113,6 +119,9 @@ export class WebRTCClient {
   private bitrateRampInterval: ReturnType<typeof setInterval> | null = null
   private bitrateRampStartMs: number | null = null
   private networkChangeCleanup: (() => void) | null = null
+  private onlineOfflineCleanup: (() => void) | null = null
+  private turnRefreshInterval: ReturnType<typeof setInterval> | null = null
+  private deviceChangeCleanup: (() => void) | null = null
 
   constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
     // Use environment-configured ICE servers or fallback to STUN-only defaults
@@ -204,9 +213,94 @@ export class WebRTCClient {
     this.networkChangeCleanup = () => conn.removeEventListener('change', handler)
   }
 
+  /** Refresh TURN credentials mid-call (Cloudflare credentials expire in 24h) */
+  private startTurnCredentialRefresh(): void {
+    if (this.turnRefreshInterval) return
+    if (!hasTurnIceServer(this.config.iceServers)) return
+
+    const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000 // Every 6 hours
+    this.turnRefreshInterval = setInterval(async () => {
+      try {
+        const freshServers = await fetchTurnCredentials()
+        if (hasTurnIceServer(freshServers)) {
+          this.config.iceServers = freshServers
+          // Update existing peer connections with new credentials
+          for (const [peerId, peerState] of this.peerConnections) {
+            peerState.pc.setConfiguration({
+              iceServers: freshServers,
+              bundlePolicy: 'max-bundle',
+              rtcpMuxPolicy: 'require',
+            })
+            this.logInfo('TURN credentials refreshed for peer', { peerId })
+          }
+        }
+      } catch {
+        this.logWarn('Failed to refresh TURN credentials')
+      }
+    }, REFRESH_INTERVAL_MS)
+  }
+
+  private stopTurnCredentialRefresh(): void {
+    if (this.turnRefreshInterval) {
+      clearInterval(this.turnRefreshInterval)
+      this.turnRefreshInterval = null
+    }
+  }
+
+  /** Detect browser going offline/online and trigger reconnection */
+  private startOnlineOfflineMonitoring(): void {
+    if (typeof window === 'undefined') return
+
+    const onOffline = () => {
+      this.logWarn('Browser went offline')
+      this.emit('error', new Error('network_offline'))
+    }
+
+    const onOnline = () => {
+      this.logInfo('Browser came back online, restarting ICE for all peers')
+      for (const [peerId, peerState] of this.peerConnections) {
+        peerState.iceRestartCount = 0
+        peerState.pc.restartIce()
+        this.logInfo('ICE restart triggered after online recovery', { peerId })
+      }
+      // Re-start bitrate ramp from conservative
+      this.stopBitrateRamp()
+      this.startBitrateRamp()
+    }
+
+    window.addEventListener('offline', onOffline)
+    window.addEventListener('online', onOnline)
+    this.onlineOfflineCleanup = () => {
+      window.removeEventListener('offline', onOffline)
+      window.removeEventListener('online', onOnline)
+    }
+  }
+
   private stopNetworkMonitoring(): void {
     this.networkChangeCleanup?.()
     this.networkChangeCleanup = null
+    this.onlineOfflineCleanup?.()
+    this.onlineOfflineCleanup = null
+  }
+
+  /** Detect when devices are connected/disconnected (headset, camera, etc.) */
+  private startDeviceChangeMonitoring(): void {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.addEventListener) return
+
+    const handler = async () => {
+      const devices = await this.enumerateDevices()
+      this.media.setCachedDevices(devices)
+      this.emit('device-change', devices)
+      this.logInfo('Device change detected', { deviceCount: devices.length })
+    }
+
+    navigator.mediaDevices.addEventListener('devicechange', handler)
+    this.deviceChangeCleanup = () => navigator.mediaDevices.removeEventListener('devicechange', handler)
+  }
+
+  private stopDeviceChangeMonitoring(): void {
+    this.deviceChangeCleanup?.()
+    this.deviceChangeCleanup = null
   }
 
   // Event listener methods
@@ -502,6 +596,9 @@ export class WebRTCClient {
 
       // Monitor network changes for adaptive bitrate
       this.startNetworkMonitoring()
+      this.startOnlineOfflineMonitoring()
+      this.startTurnCredentialRefresh()
+      this.startDeviceChangeMonitoring()
 
       // Send join — this is the only thing the user "waits" for
       this.sendSignalingMessage({
@@ -548,6 +645,8 @@ export class WebRTCClient {
     this.qualityMonitor.clearState()
     this.stopBitrateRamp()
     this.stopNetworkMonitoring()
+    this.stopTurnCredentialRefresh()
+    this.stopDeviceChangeMonitoring()
 
     // Close all peer connections
     for (const [, peerState] of this.peerConnections) {
@@ -582,9 +681,10 @@ export class WebRTCClient {
 
     switch (message.type) {
       case 'room-state':
-        // Handle initial room state
+        // Handle initial room state — create peer connections for existing users
         for (const user of message.data.users) {
           this.emit('user-joined', user.id, user.userType)
+          this.ensurePeerConnection(user.id)
         }
         this.setConnectionState('connected')
         break
@@ -631,7 +731,12 @@ export class WebRTCClient {
       return peerState
     }
 
-    const pc = new RTCPeerConnection({ iceServers: this.config.iceServers })
+    const pc = new RTCPeerConnection({
+      iceServers: this.config.iceServers,
+      bundlePolicy: 'max-bundle',
+      rtcpMuxPolicy: 'require',
+      iceCandidatePoolSize: 1,
+    })
     const isPolite = this.config.userType !== 'doctor'
     this.logInfo('Creating peer connection', { peerId: userId, isPolite })
 
@@ -642,7 +747,9 @@ export class WebRTCClient {
       isSettingRemoteAnswerPending: false,
       ignoreOffer: false,
       isPolite,
-      dataChannel: null
+      dataChannel: null,
+      iceRestartCount: 0,
+      lastIceRestartAt: 0,
     }
 
     pc.ontrack = (event) => {
@@ -688,10 +795,32 @@ export class WebRTCClient {
       this.logInfo('ICE connection state changed', { peerId: userId, iceConnectionState: iceState })
       this.emit('ice-state-change', { peerId: userId, state: iceState })
 
-      // ICE Restart for seamless recovery on network changes (Streamer level resilience)
-      if (iceState === 'failed') {
-        this.logWarn('ICE connection failed, attempting restart', { peerId: userId })
-        pc.restartIce()
+      // ICE Restart with exponential backoff (max 3 attempts)
+      if (iceState === 'failed' && peerState) {
+        if (peerState.iceRestartCount >= MAX_ICE_RESTART_ATTEMPTS) {
+          this.logWarn('ICE restart limit reached, giving up', {
+            peerId: userId,
+            attempts: peerState.iceRestartCount,
+          })
+          return
+        }
+        const backoffMs = ICE_RESTART_BACKOFF_BASE_MS * Math.pow(2, peerState.iceRestartCount)
+        peerState.iceRestartCount++
+        peerState.lastIceRestartAt = Date.now()
+        this.logWarn('ICE connection failed, scheduling restart', {
+          peerId: userId,
+          attempt: peerState.iceRestartCount,
+          backoffMs,
+        })
+        setTimeout(() => {
+          if (this.peerConnections.has(userId) && pc.iceConnectionState === 'failed') {
+            pc.restartIce()
+          }
+        }, backoffMs)
+      }
+      // Reset restart counter on successful reconnection
+      if (iceState === 'connected' && peerState) {
+        peerState.iceRestartCount = 0
       }
     }
 
@@ -804,6 +933,62 @@ export class WebRTCClient {
       this.bitrateRampInterval = null
     }
     this.bitrateRampStartMs = null
+  }
+
+  /** Reduce bitrate when encoder reports cpu or bandwidth limitation */
+  private handleQualityLimitation(peerId: string, pc: RTCPeerConnection, reason: string): void {
+    for (const sender of pc.getSenders()) {
+      if (sender.track?.kind !== 'video') continue
+      const params = sender.getParameters()
+      const current = params.encodings?.[0]?.maxBitrate
+      if (!current || !params.encodings?.[0]) continue
+
+      const reduced = reason === 'cpu'
+        ? Math.max(current * 0.6, INITIAL_VIDEO_BITRATE)   // CPU: drop 40%
+        : Math.max(current * 0.75, INITIAL_VIDEO_BITRATE)  // Bandwidth: drop 25%
+
+      if (reduced < current) {
+        params.encodings[0].maxBitrate = Math.round(reduced)
+        if (reason === 'cpu') {
+          params.encodings[0].maxFramerate = 15
+        }
+        sender.setParameters(params).catch(() => { /* ignore */ })
+        this.logInfo('Reduced bitrate due to quality limitation', {
+          peerId,
+          reason,
+          fromKbps: Math.round(current / 1000),
+          toKbps: Math.round(reduced / 1000),
+        })
+      }
+    }
+  }
+
+  /** Reduce resolution when packet loss exceeds threshold */
+  private handlePacketLoss(peerId: string, pc: RTCPeerConnection, lossPct: number): void {
+    for (const sender of pc.getSenders()) {
+      if (sender.track?.kind !== 'video') continue
+      const params = sender.getParameters()
+      if (!params.encodings?.[0]) continue
+
+      if (lossPct > 10) {
+        // Severe loss: drop to 360p/15fps
+        params.encodings[0].maxBitrate = Math.round(INITIAL_VIDEO_BITRATE * 0.5)
+        params.encodings[0].maxFramerate = 15
+        params.encodings[0].scaleResolutionDownBy = 2.0
+      } else {
+        // Moderate loss (5-10%): drop to 480p/20fps
+        params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
+        params.encodings[0].maxFramerate = 20
+        params.encodings[0].scaleResolutionDownBy = 1.5
+      }
+
+      sender.setParameters(params).catch(() => { /* ignore */ })
+      this.logInfo('Reduced quality due to packet loss', {
+        peerId,
+        lossPct: Math.round(lossPct * 100) / 100,
+        scaleDown: params.encodings[0].scaleResolutionDownBy,
+      })
+    }
   }
 
   private async handleOffer(userId: string, offer: RTCSessionDescriptionInit): Promise<void> {
@@ -1059,5 +1244,37 @@ export class WebRTCClient {
     if (!localStream) return false
     const audioTrack = localStream.getAudioTracks()[0]
     return audioTrack ? audioTrack.enabled : false
+  }
+
+  /**
+   * Toggle noise suppression on the audio track.
+   * Clinical use: disable NS when using a stethoscope so heart/lung sounds are not filtered.
+   * Returns the new state, or null if not supported.
+   */
+  async setNoiseSuppression(enabled: boolean): Promise<boolean | null> {
+    if (!this.media.getLocalStream()) return null
+    const audioTrack = this.media.getLocalStream().getAudioTracks()[0]
+    if (!audioTrack) return null
+
+    try {
+      await audioTrack.applyConstraints({
+        noiseSuppression: enabled,
+        autoGainControl: enabled,
+      })
+      this.logInfo('Noise suppression toggled', { enabled })
+      return enabled
+    } catch {
+      this.logWarn('Failed to toggle noise suppression (not supported by browser)')
+      return null
+    }
+  }
+
+  /** Check if noise suppression is currently active */
+  isNoiseSuppressionEnabled(): boolean {
+    if (!this.media.getLocalStream()) return true
+    const audioTrack = this.media.getLocalStream().getAudioTracks()[0]
+    if (!audioTrack) return true
+    const settings = audioTrack.getSettings()
+    return settings.noiseSuppression !== false
   }
 }
