@@ -6,6 +6,11 @@
 import { createTelemedicineLogger } from './debug'
 import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY, fetchTurnCredentials, hasTurnIceServer } from './config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints, getPreferredCodecs, detectBrowser } from './media-optimizations'
+import {
+  type StreamQualityLevel, type StreamQualityMetrics, type StreamQualitySummary, type PeerStatsSample,
+  computeMOS, classifyQualityLevel, getOverallQualityLevel,
+  getStatNumber, getStatString, getStatBoolean, getStatKind, computeBitrateKbps, roundMetric,
+} from './quality'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -32,31 +37,8 @@ export interface ChatMessage {
   timestamp: number
 }
 
-export type StreamQualityLevel = 'unknown' | 'excellent' | 'good' | 'fair' | 'poor'
-
-export interface StreamQualityMetrics {
-  userId: string
-  level: StreamQualityLevel
-  timestamp: number
-  outboundVideoBitrateKbps: number | null
-  outboundAudioBitrateKbps: number | null
-  inboundVideoBitrateKbps: number | null
-  inboundAudioBitrateKbps: number | null
-  packetsLostPct: number | null
-  jitterMs: number | null
-  roundTripTimeMs: number | null
-  framesPerSecond: number | null
-  frameWidth: number | null
-  frameHeight: number | null
-  availableOutgoingBitrateKbps: number | null
-  mosScore: number | null
-}
-
-export interface StreamQualitySummary {
-  roomId: string
-  overallLevel: StreamQualityLevel
-  peers: StreamQualityMetrics[]
-}
+// Types re-exported from quality/
+export type { StreamQualityLevel, StreamQualityMetrics, StreamQualitySummary } from './quality'
 
 export interface WebRTCEvents {
   'connection-state': (state: ConnectionState) => void
@@ -101,20 +83,9 @@ interface PeerState {
 const MAX_ICE_RESTART_ATTEMPTS = 3
 const ICE_RESTART_BACKOFF_BASE_MS = 2_000
 
-interface PeerStatsSample {
-  timestampMs: number
-  outboundVideoBytes: number
-  outboundAudioBytes: number
-  inboundVideoBytes: number
-  inboundAudioBytes: number
-  packetsLost: number
-  packetsReceived: number
-}
-
 const QUALITY_POLL_INTERVAL_MS = 5000
 const QUALITY_LOG_INTERVAL_MS = 30000
 const CHAT_CHANNEL_LABEL = 'autamedica-chat'
-const QUALITY_SCORE_TO_LEVEL: StreamQualityLevel[] = ['poor', 'fair', 'good', 'excellent']
 
 // Pre-warm & adaptive media constants
 const INITIAL_VIDEO_BITRATE = 500_000  // Start conservative: 500kbps
@@ -410,175 +381,6 @@ export class WebRTCClient {
     this.qualityInterval = null
   }
 
-  private getStatNumber(stat: RTCStats, key: string): number | null {
-    const value = (stat as unknown as Record<string, unknown>)[key]
-    return typeof value === 'number' ? value : null
-  }
-
-  private getStatString(stat: RTCStats, key: string): string | null {
-    const value = (stat as unknown as Record<string, unknown>)[key]
-    return typeof value === 'string' ? value : null
-  }
-
-  private getStatBoolean(stat: RTCStats, key: string): boolean | null {
-    const value = (stat as unknown as Record<string, unknown>)[key]
-    return typeof value === 'boolean' ? value : null
-  }
-
-  private getStatKind(stat: RTCStats): 'audio' | 'video' | null {
-    const kind = this.getStatString(stat, 'kind') ?? this.getStatString(stat, 'mediaType')
-    if (kind === 'audio' || kind === 'video') {
-      return kind
-    }
-    return null
-  }
-
-  private computeBitrateKbps(currentBytes: number, previousBytes: number, elapsedMs: number): number | null {
-    if (elapsedMs <= 0 || currentBytes < previousBytes) {
-      return null
-    }
-    return ((currentBytes - previousBytes) * 8) / elapsedMs
-  }
-
-  private roundMetric(value: number | null, digits = 1): number | null {
-    if (value === null || Number.isNaN(value)) {
-      return null
-    }
-
-    const factor = 10 ** digits
-    return Math.round(value * factor) / factor
-  }
-
-  /**
-   * Estimate Mean Opinion Score (1.0-4.5) using simplified E-model (ITU-T G.107).
-   * Uses RTT, jitter and packet loss to approximate perceived voice quality.
-   */
-  private computeMOS(rttMs: number | null, jitterMs: number | null, lossPct: number | null): number | null {
-    if (rttMs === null && jitterMs === null && lossPct === null) return null
-
-    const rtt = rttMs ?? 0
-    const jitter = jitterMs ?? 0
-    const loss = lossPct ?? 0
-
-    // Effective latency (one-way delay approximation + jitter buffer)
-    const effectiveLatency = (rtt / 2) + jitter * 2 + 10
-
-    // R-factor calculation (simplified E-model)
-    let r = 93.2 - effectiveLatency / 40
-
-    // Packet loss penalty
-    r -= loss * 2.5
-
-    // Clamp R to valid range
-    r = Math.max(0, Math.min(r, 100))
-
-    // Convert R-factor to MOS (ITU-T formula)
-    if (r < 0) return 1.0
-    if (r > 100) return 4.5
-    const mos = 1 + 0.035 * r + r * (r - 60) * (100 - r) * 7e-6
-
-    return Math.round(mos * 10) / 10
-  }
-
-  private scoreInboundBitrate(kbps: number): number {
-    if (kbps >= 1800) return 3
-    if (kbps >= 1000) return 2
-    if (kbps >= 450) return 1
-    return 0
-  }
-
-  private scoreFps(fps: number): number {
-    if (fps >= 24) return 3
-    if (fps >= 15) return 2
-    if (fps >= 8) return 1
-    return 0
-  }
-
-  private scorePacketLoss(packetsLostPct: number): number {
-    if (packetsLostPct <= 1) return 3
-    if (packetsLostPct <= 3) return 2
-    if (packetsLostPct <= 6) return 1
-    return 0
-  }
-
-  private scoreRoundTripTime(roundTripTimeMs: number): number {
-    if (roundTripTimeMs <= 120) return 3
-    if (roundTripTimeMs <= 220) return 2
-    if (roundTripTimeMs <= 350) return 1
-    return 0
-  }
-
-  private scoreJitter(jitterMs: number): number {
-    if (jitterMs <= 20) return 3
-    if (jitterMs <= 40) return 2
-    if (jitterMs <= 70) return 1
-    return 0
-  }
-
-  private levelToScore(level: StreamQualityLevel): number {
-    switch (level) {
-      case 'excellent':
-        return 3
-      case 'good':
-        return 2
-      case 'fair':
-        return 1
-      case 'poor':
-        return 0
-      default:
-        return -1
-    }
-  }
-
-  private classifyQualityLevel(metrics: Omit<StreamQualityMetrics, 'userId' | 'timestamp' | 'level'>): StreamQualityLevel {
-    const scores: number[] = []
-    const hasRenderableVideoStats =
-      metrics.framesPerSecond !== null || metrics.frameWidth !== null || metrics.frameHeight !== null
-
-    // Bitrate alone is not a reliable proxy for user-perceived quality when some browsers do not expose
-    // FPS/resolution stats consistently. Avoid downgrading a healthy LAN call just because the codec picked
-    // a modest bitrate without any accompanying visual degradation signals.
-    if (metrics.inboundVideoBitrateKbps !== null && hasRenderableVideoStats) {
-      scores.push(this.scoreInboundBitrate(metrics.inboundVideoBitrateKbps))
-    }
-    if (metrics.framesPerSecond !== null) {
-      scores.push(this.scoreFps(metrics.framesPerSecond))
-    }
-    if (metrics.packetsLostPct !== null) {
-      scores.push(this.scorePacketLoss(metrics.packetsLostPct))
-    }
-    if (metrics.roundTripTimeMs !== null) {
-      scores.push(this.scoreRoundTripTime(metrics.roundTripTimeMs))
-    }
-    if (metrics.jitterMs !== null) {
-      scores.push(this.scoreJitter(metrics.jitterMs))
-    }
-
-    if (scores.length === 0) {
-      return 'unknown'
-    }
-
-    const worstScore = Math.min(...scores)
-    return QUALITY_SCORE_TO_LEVEL[worstScore] ?? 'unknown'
-  }
-
-  private getOverallQualityLevel(peers: StreamQualityMetrics[]): StreamQualityLevel {
-    let worstScore = 4
-
-    for (const peer of peers) {
-      const score = this.levelToScore(peer.level)
-      if (score >= 0) {
-        worstScore = Math.min(worstScore, score)
-      }
-    }
-
-    if (worstScore > 3) {
-      return 'unknown'
-    }
-
-    return QUALITY_SCORE_TO_LEVEL[worstScore] ?? 'unknown'
-  }
-
   private maybeLogPeerQuality(metrics: StreamQualityMetrics): void {
     const previous = this.qualityLogState.get(metrics.userId)
     const now = Date.now()
@@ -626,8 +428,8 @@ export class WebRTCClient {
 
     stats.forEach((stat) => {
       if (stat.type === 'outbound-rtp') {
-        const kind = this.getStatKind(stat)
-        const bytesSent = this.getStatNumber(stat, 'bytesSent')
+        const kind = getStatKind(stat)
+        const bytesSent = getStatNumber(stat, 'bytesSent')
         if (bytesSent !== null) {
           if (kind === 'video') {
             outboundVideoBytes += bytesSent
@@ -637,7 +439,7 @@ export class WebRTCClient {
         }
         // React to encoder quality limitation (cpu/bandwidth)
         if (kind === 'video') {
-          const reason = this.getStatString(stat, 'qualityLimitationReason')
+          const reason = getStatString(stat, 'qualityLimitationReason')
           if (reason === 'cpu' || reason === 'bandwidth') {
             this.handleQualityLimitation(userId, pc, reason)
           }
@@ -646,8 +448,8 @@ export class WebRTCClient {
       }
 
       if (stat.type === 'inbound-rtp') {
-        const kind = this.getStatKind(stat)
-        const bytesReceived = this.getStatNumber(stat, 'bytesReceived')
+        const kind = getStatKind(stat)
+        const bytesReceived = getStatNumber(stat, 'bytesReceived')
         if (bytesReceived !== null) {
           if (kind === 'video') {
             inboundVideoBytes += bytesReceived
@@ -657,9 +459,9 @@ export class WebRTCClient {
         }
 
         if (kind === 'video') {
-          const currentPacketsLost = this.getStatNumber(stat, 'packetsLost')
-          const currentPacketsReceived = this.getStatNumber(stat, 'packetsReceived')
-          const jitterSeconds = this.getStatNumber(stat, 'jitter')
+          const currentPacketsLost = getStatNumber(stat, 'packetsLost')
+          const currentPacketsReceived = getStatNumber(stat, 'packetsReceived')
+          const jitterSeconds = getStatNumber(stat, 'jitter')
 
           packetsLost += currentPacketsLost ?? 0
           packetsReceived += currentPacketsReceived ?? 0
@@ -671,13 +473,13 @@ export class WebRTCClient {
       }
 
       if (stat.type === 'candidate-pair') {
-        const selected = this.getStatBoolean(stat, 'selected')
-        const nominated = this.getStatBoolean(stat, 'nominated')
-        const state = this.getStatString(stat, 'state')
+        const selected = getStatBoolean(stat, 'selected')
+        const nominated = getStatBoolean(stat, 'nominated')
+        const state = getStatString(stat, 'state')
 
         if (selected === true || (nominated === true && state === 'succeeded')) {
-          const rttSeconds = this.getStatNumber(stat, 'currentRoundTripTime')
-          const availableOutgoingBitrate = this.getStatNumber(stat, 'availableOutgoingBitrate')
+          const rttSeconds = getStatNumber(stat, 'currentRoundTripTime')
+          const availableOutgoingBitrate = getStatNumber(stat, 'availableOutgoingBitrate')
 
           if (rttSeconds !== null) {
             roundTripTimeMs = rttSeconds * 1000
@@ -690,18 +492,18 @@ export class WebRTCClient {
       }
 
       if (stat.type === 'track') {
-        const kind = this.getStatKind(stat)
+        const kind = getStatKind(stat)
         if (kind !== 'video') {
           return
         }
 
-        const candidateFps = this.getStatNumber(stat, 'framesPerSecond')
+        const candidateFps = getStatNumber(stat, 'framesPerSecond')
         if (candidateFps !== null) {
           framesPerSecond = candidateFps
         }
 
-        const candidateWidth = this.getStatNumber(stat, 'frameWidth')
-        const candidateHeight = this.getStatNumber(stat, 'frameHeight')
+        const candidateWidth = getStatNumber(stat, 'frameWidth')
+        const candidateHeight = getStatNumber(stat, 'frameHeight')
         if (candidateWidth !== null) {
           frameWidth = candidateWidth
         }
@@ -717,19 +519,19 @@ export class WebRTCClient {
     const outboundVideoBitrateKbps =
       previous === undefined
         ? null
-        : this.computeBitrateKbps(outboundVideoBytes, previous.outboundVideoBytes, elapsedMs)
+        : computeBitrateKbps(outboundVideoBytes, previous.outboundVideoBytes, elapsedMs)
     const outboundAudioBitrateKbps =
       previous === undefined
         ? null
-        : this.computeBitrateKbps(outboundAudioBytes, previous.outboundAudioBytes, elapsedMs)
+        : computeBitrateKbps(outboundAudioBytes, previous.outboundAudioBytes, elapsedMs)
     const inboundVideoBitrateKbps =
       previous === undefined
         ? null
-        : this.computeBitrateKbps(inboundVideoBytes, previous.inboundVideoBytes, elapsedMs)
+        : computeBitrateKbps(inboundVideoBytes, previous.inboundVideoBytes, elapsedMs)
     const inboundAudioBitrateKbps =
       previous === undefined
         ? null
-        : this.computeBitrateKbps(inboundAudioBytes, previous.inboundAudioBytes, elapsedMs)
+        : computeBitrateKbps(inboundAudioBytes, previous.inboundAudioBytes, elapsedMs)
 
     let packetsLostPct: number | null = null
     if (previous) {
@@ -758,23 +560,23 @@ export class WebRTCClient {
     })
 
     const normalizedMetrics = {
-      outboundVideoBitrateKbps: this.roundMetric(outboundVideoBitrateKbps),
-      outboundAudioBitrateKbps: this.roundMetric(outboundAudioBitrateKbps),
-      inboundVideoBitrateKbps: this.roundMetric(inboundVideoBitrateKbps),
-      inboundAudioBitrateKbps: this.roundMetric(inboundAudioBitrateKbps),
-      packetsLostPct: this.roundMetric(packetsLostPct, 2),
-      jitterMs: this.roundMetric(jitterMs),
-      roundTripTimeMs: this.roundMetric(roundTripTimeMs),
-      framesPerSecond: this.roundMetric(framesPerSecond),
+      outboundVideoBitrateKbps: roundMetric(outboundVideoBitrateKbps),
+      outboundAudioBitrateKbps: roundMetric(outboundAudioBitrateKbps),
+      inboundVideoBitrateKbps: roundMetric(inboundVideoBitrateKbps),
+      inboundAudioBitrateKbps: roundMetric(inboundAudioBitrateKbps),
+      packetsLostPct: roundMetric(packetsLostPct, 2),
+      jitterMs: roundMetric(jitterMs),
+      roundTripTimeMs: roundMetric(roundTripTimeMs),
+      framesPerSecond: roundMetric(framesPerSecond),
       frameWidth: frameWidth !== null ? Math.round(frameWidth) : null,
       frameHeight: frameHeight !== null ? Math.round(frameHeight) : null,
-      availableOutgoingBitrateKbps: this.roundMetric(availableOutgoingBitrateKbps),
-      mosScore: this.computeMOS(roundTripTimeMs, jitterMs, packetsLostPct),
+      availableOutgoingBitrateKbps: roundMetric(availableOutgoingBitrateKbps),
+      mosScore: computeMOS(roundTripTimeMs, jitterMs, packetsLostPct),
     }
 
     return {
       userId,
-      level: this.classifyQualityLevel(normalizedMetrics),
+      level: classifyQualityLevel(normalizedMetrics),
       timestamp: now,
       ...normalizedMetrics,
     }
@@ -813,7 +615,7 @@ export class WebRTCClient {
 
     this.emit('stream-quality', {
       roomId: this.config.roomId || 'default-room',
-      overallLevel: this.getOverallQualityLevel(peers),
+      overallLevel: getOverallQualityLevel(peers),
       peers,
     })
   }
