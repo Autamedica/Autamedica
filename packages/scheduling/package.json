@@ -8,6 +8,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./openclaw": {
+      "types": "./dist/openclaw.d.ts",
+      "default": "./dist/openclaw.js"
+    },
+    "./reminder-worker": {
+      "types": "./dist/reminder-worker.d.ts",
+      "default": "./dist/reminder-worker.js"
     }
   },
   "files": [

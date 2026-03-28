@@ -43,10 +43,10 @@ export {
   predictNoShowProbability,
 } from './noshow-predictor';
 
-// OpenClaw integration
+// OpenClaw integration (node:child_process is lazy-loaded, safe for edge runtimes)
 export {
   sendMessage,
-  sendMessageViaWebhook,
+  sendMessageDirect,
   sendMessageWithFallback,
   buildReminder24h,
   buildReminder2h,

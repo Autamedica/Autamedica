@@ -7,10 +7,13 @@
  * @see https://docs.openclaw.ai/cli/message
  */
 
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const execAsync = promisify(exec);
+// Dynamic import to avoid crashing Cloudflare Workers runtime
+// (node:child_process is not available in edge runtimes)
+async function getExecAsync() {
+  const { exec } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  return promisify(exec);
+}
 
 export interface OpenClawConfig {
   /** URL base de OpenClaw (default: http://127.0.0.1:18789) */
@@ -70,6 +73,7 @@ export async function sendMessage(
   const cmd = args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ');
 
   try {
+    const execAsync = await getExecAsync();
     const { stdout, stderr } = await execAsync(cmd, { timeout: 30_000 });
 
     if (stderr?.includes('error')) {
@@ -195,66 +199,28 @@ export function parsePatientResponse(
 }
 
 // ==========================================
-// HTTP Webhook Integration (preferred over CLI)
+// Direct CLI send (bypasses LLM agent, most reliable)
 // ==========================================
 
 /**
- * Envía un mensaje vía OpenClaw Gateway HTTP API.
- * Usa el endpoint /hooks/agent para enviar como agente directamente.
- * Más confiable y rápido que la CLI.
+ * Envía un mensaje directo vía `openclaw message send` CLI.
+ * NO pasa por el agente LLM — envía el mensaje tal cual por WhatsApp.
+ * Este es el método más confiable para recordatorios automatizados.
  */
-export async function sendMessageViaWebhook(
+export async function sendMessageDirect(
   config: OpenClawConfig,
   options: SendMessageOptions,
 ): Promise<OpenClawResponse> {
-  const { to, message, channel } = options;
-  const ch = channel ?? config.defaultChannel;
-
-  const payload = {
-    agentId: config.accountId ?? 'autamedica',
-    message: `Envía este mensaje exacto al paciente, sin modificar nada:\n\n${message}`,
-    deliver: true,
-    channel: ch,
-    to,
-  };
-
-  try {
-    const response = await fetch(`${config.baseUrl}/hooks/agent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.token}`,
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(30_000),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      return { ok: false, error: `HTTP ${response.status}: ${text}` };
-    }
-
-    const result = await response.text();
-    return { ok: true, raw: result };
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : 'OpenClaw webhook request failed',
-    };
-  }
+  return sendMessage(config, options);
 }
 
 /**
- * Envía un mensaje intentando primero webhook HTTP, y si falla, CLI.
+ * Envía un mensaje intentando CLI directo.
+ * Alias mantenido por compatibilidad con el reminder worker.
  */
 export async function sendMessageWithFallback(
   config: OpenClawConfig,
   options: SendMessageOptions,
 ): Promise<OpenClawResponse> {
-  // Try webhook first
-  const webhookResult = await sendMessageViaWebhook(config, options);
-  if (webhookResult.ok) return webhookResult;
-
-  // Fallback to CLI
   return sendMessage(config, options);
 }
