@@ -5,7 +5,6 @@ import type {
 import { fetchApi } from '@/lib/api-client'
 import { buildMedicalHistorySummary, buildMedicalHistoryTimeline } from '@/lib/patients/services/medical-history.frontend'
 import { logger } from '@autamedica/shared'
-import type { PatientId } from '@autamedica/types'
 import { useCallback, useEffect, useState } from 'react'
 
 interface MedicalHistoryApiResponse {
@@ -18,7 +17,7 @@ interface MedicalHistoryApiResponse {
   anamnesis: unknown[]
 }
 
-export function useMedicalHistory(patientId?: PatientId) {
+export function useMedicalHistory(patientId?: string) {
   const [summary, setSummary] = useState<MedicalHistorySummary | null>(null)
   const [timeline, setTimeline] = useState<MedicalHistoryTimeline | null>(null)
   const [loading, setLoading] = useState(true)
@@ -40,7 +39,7 @@ export function useMedicalHistory(patientId?: PatientId) {
 
       const timelineRecords = (data.timeline ?? []) as Parameters<typeof buildMedicalHistoryTimeline>[1]
 
-      const effectivePatientId = patientId ?? ('' as PatientId)
+      const effectivePatientId = (patientId ?? '') as import('@autamedica/types').PatientId
       setSummary(buildMedicalHistorySummary(effectivePatientId, allRecords))
       setTimeline(buildMedicalHistoryTimeline(effectivePatientId, timelineRecords))
     } catch (err) {
