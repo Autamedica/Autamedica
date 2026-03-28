@@ -1,13 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import {
   Video,
   VideoOff,
   Mic,
   MicOff,
   PhoneOff,
-  ScreenShare,
-  ScreenShareOff,
+  MonitorUp,
+  MonitorOff,
   MessageSquare,
   PictureInPicture2,
   Circle,
@@ -33,6 +34,68 @@ export interface CallControlsBarProps {
   onEndCall: () => void
 }
 
+/* ── Tooltip wrapper ── */
+function ControlButton({
+  onClick,
+  label,
+  active,
+  danger,
+  accent,
+  badge,
+  children,
+}: {
+  onClick: () => void
+  label: string
+  active?: boolean
+  danger?: boolean
+  accent?: boolean
+  badge?: number
+  children: React.ReactNode
+}) {
+  const [hovered, setHovered] = useState(false)
+
+  const base = 'relative flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200 active:scale-90 sm:h-[52px] sm:w-[52px]'
+
+  let style: string
+  if (danger) {
+    style = 'bg-red-500/90 text-white hover:bg-red-400 shadow-lg shadow-red-500/25'
+  } else if (active) {
+    style = accent
+      ? 'bg-violet-600 text-white hover:bg-violet-500 ring-1 ring-violet-400/30'
+      : 'bg-cyan-600 text-white hover:bg-cyan-500 ring-1 ring-cyan-400/30'
+  } else {
+    style = 'bg-white/10 text-white hover:bg-white/[0.18] hover:ring-1 hover:ring-white/20'
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={onClick}
+        aria-label={label}
+        className={`${base} ${style}`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        {children}
+        {badge != null && badge > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white ring-2 ring-neutral-950">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </button>
+      {/* Tooltip */}
+      <div
+        className={`pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white shadow-xl transition-all duration-150 ${
+          hovered ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
+        }`}
+      >
+        {label}
+        <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-neutral-800" />
+      </div>
+    </div>
+  )
+}
+
 export function CallControlsBar({
   isVideoEnabled,
   isAudioEnabled,
@@ -51,135 +114,89 @@ export function CallControlsBar({
   onTogglePiP,
   onEndCall,
 }: CallControlsBarProps) {
+  const hasScreenShareApi = typeof window !== 'undefined' && typeof navigator?.mediaDevices?.getDisplayMedia === 'function'
+  const hasPiPApi = typeof document !== 'undefined' && document.pictureInPictureEnabled
+  const isAccentViolet = accentColor === 'violet'
+
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-20 flex items-end justify-center px-4 pb-5 pt-12 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-opacity duration-500 ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex items-end justify-center px-4 pb-5 pt-16 bg-gradient-to-t from-black/70 via-black/25 to-transparent transition-all duration-500 ${
         showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
-      <div
-        className="rounded-[30px] border border-white/10 bg-neutral-950/78 px-3 pb-3 pt-2 shadow-[0_30px_70px_rgba(0,0,0,0.35)] backdrop-blur-2xl"
-      >
-        <div className="mb-3 flex justify-center">
-          <div className="h-1.5 w-16 rounded-full bg-white/10" />
-        </div>
-
-        <div
-          role="toolbar"
-          aria-label="Controles de videollamada"
-          className="flex items-center gap-2 sm:gap-3"
+      <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-neutral-900/80 px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl sm:gap-3 sm:px-5 sm:py-3">
+        {/* Mic */}
+        <ControlButton
+          onClick={onToggleAudio}
+          label={isAudioEnabled ? 'Silenciar micrófono' : 'Activar micrófono'}
+          danger={!isAudioEnabled}
         >
-          {/* Mic */}
-          <button
-            onClick={onToggleAudio}
-            aria-label={isAudioEnabled ? 'Silenciar microfono' : 'Activar microfono'}
-            aria-pressed={!isAudioEnabled}
-            className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-all active:scale-95 sm:h-14 sm:w-14 ${
-              isAudioEnabled
-                ? 'border-white/10 bg-white/8 text-white hover:bg-white/14'
-                : 'border-red-400/20 bg-red-500/85 text-white hover:bg-red-500'
-            }`}
-            title={isAudioEnabled ? 'Silenciar' : 'Activar microfono'}
+          {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+        </ControlButton>
+
+        {/* Camera */}
+        <ControlButton
+          onClick={onToggleVideo}
+          label={isVideoEnabled ? 'Desactivar cámara' : 'Activar cámara'}
+          danger={!isVideoEnabled}
+        >
+          {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+        </ControlButton>
+
+        {/* Screen share */}
+        {hasScreenShareApi && (
+          <ControlButton
+            onClick={onToggleScreenShare}
+            label={isScreenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}
+            active={isScreenSharing}
           >
-            {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-          </button>
+            {isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <MonitorUp className="h-5 w-5" />}
+          </ControlButton>
+        )}
 
-          {/* Camera */}
-          <button
-            onClick={onToggleVideo}
-            aria-label={isVideoEnabled ? 'Desactivar camara' : 'Activar camara'}
-            aria-pressed={!isVideoEnabled}
-            className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-all active:scale-95 sm:h-14 sm:w-14 ${
-              isVideoEnabled
-                ? 'border-white/10 bg-white/8 text-white hover:bg-white/14'
-                : 'border-red-400/20 bg-red-500/85 text-white hover:bg-red-500'
-            }`}
-            title={isVideoEnabled ? 'Desactivar camara' : 'Activar camara'}
+        {/* Record (doctor only) */}
+        {userType === 'doctor' && (
+          <ControlButton
+            onClick={onToggleRecording}
+            label={isRecording ? 'Detener grabación' : 'Grabar consulta'}
+            danger={isRecording}
           >
-            {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-          </button>
-
-          {/* Screen share */}
-          {typeof window !== 'undefined' && typeof navigator?.mediaDevices?.getDisplayMedia === 'function' && (
-            <button
-              onClick={onToggleScreenShare}
-              aria-label={isScreenSharing ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}
-              aria-pressed={isScreenSharing}
-              className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-all active:scale-95 sm:h-14 sm:w-14 ${
-                isScreenSharing
-                  ? 'border-cyan-400/30 bg-cyan-500 text-white hover:bg-cyan-400'
-                  : 'border-white/10 bg-white/8 text-white hover:bg-white/14'
-              }`}
-              title={isScreenSharing ? 'Dejar de compartir' : 'Compartir pantalla'}
-            >
-              {isScreenSharing ? <ScreenShare className="h-5 w-5" /> : <ScreenShareOff className="h-5 w-5" />}
-            </button>
-          )}
-
-          {/* Record */}
-          {userType === 'doctor' && (
-            <button
-              onClick={onToggleRecording}
-              aria-label={isRecording ? 'Detener grabacion' : 'Grabar consulta'}
-              aria-pressed={isRecording}
-              className={`flex h-12 w-12 items-center justify-center rounded-2xl border transition-all active:scale-95 sm:h-14 sm:w-14 ${
-                isRecording
-                  ? 'border-red-400/20 bg-red-500 text-white hover:bg-red-400'
-                  : 'border-white/10 bg-white/8 text-white hover:bg-white/14'
-              }`}
-              title={isRecording ? 'Detener grabacion' : 'Grabar consulta'}
-            >
-              {isRecording ? <Square className="h-4.5 w-4.5" /> : <Circle className="h-5 w-5" />}
-            </button>
-          )}
-
-          {/* Chat */}
-          <button
-            onClick={onToggleChat}
-            aria-label={isChatPanelOpen ? 'Cerrar chat' : 'Abrir chat'}
-            aria-pressed={isChatPanelOpen}
-            className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border transition-all active:scale-95 sm:h-14 sm:w-14 ${
-              isChatPanelOpen
-                ? accentColor === 'violet'
-                  ? 'border-violet-400/20 bg-violet-600 text-white'
-                  : 'border-cyan-400/20 bg-cyan-600 text-white'
-                : 'border-white/10 bg-white/8 text-white hover:bg-white/14'
-            }`}
-            title={isChatPanelOpen ? 'Cerrar chat' : 'Abrir chat'}
-          >
-            <MessageSquare className="h-5 w-5" />
-            {!isChatPanelOpen && unreadMessages > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold">
-                {unreadMessages > 99 ? '99+' : unreadMessages}
+            {isRecording ? (
+              <span className="relative">
+                <Square className="h-4 w-4" />
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-400 animate-pulse" />
               </span>
+            ) : (
+              <Circle className="h-5 w-5" />
             )}
-          </button>
+          </ControlButton>
+        )}
 
-          {/* PiP */}
-          {typeof document !== 'undefined' && document.pictureInPictureEnabled && (
-            <button
-              onClick={onTogglePiP}
-              aria-label="Picture-in-Picture"
-              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/8 text-white transition-all hover:bg-white/14 active:scale-95 sm:h-14 sm:w-14"
-              title="Picture-in-Picture"
-            >
-              <PictureInPicture2 className="h-5 w-5" />
-            </button>
-          )}
+        {/* Chat */}
+        <ControlButton
+          onClick={onToggleChat}
+          label={isChatPanelOpen ? 'Cerrar chat' : 'Abrir chat'}
+          active={isChatPanelOpen}
+          accent={isAccentViolet}
+          badge={isChatPanelOpen ? 0 : unreadMessages}
+        >
+          <MessageSquare className="h-5 w-5" />
+        </ControlButton>
 
-          <div className="mx-1 h-9 w-px bg-white/10" />
+        {/* PiP */}
+        {hasPiPApi && (
+          <ControlButton onClick={onTogglePiP} label="Picture-in-Picture">
+            <PictureInPicture2 className="h-5 w-5" />
+          </ControlButton>
+        )}
 
-          {/* End call */}
-          <button
-            onClick={onEndCall}
-            aria-label="Terminar videollamada"
-            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-red-500 to-red-600 px-4 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition-all hover:from-red-400 hover:to-red-500 active:scale-95 sm:h-14 sm:px-5"
-            title="Terminar videollamada"
-          >
-            <PhoneOff className="h-5 w-5" />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
-        </div>
+        {/* Divider */}
+        <div className="mx-0.5 h-8 w-px bg-white/10 sm:mx-1" />
+
+        {/* End call */}
+        <ControlButton onClick={onEndCall} label="Terminar llamada" danger>
+          <PhoneOff className="h-5 w-5" />
+        </ControlButton>
       </div>
     </div>
   )

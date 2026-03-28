@@ -278,6 +278,18 @@ export function UnifiedVideoCall({
             if (el.srcObject !== stream) {
               el.srcObject = stream
               patchVideoPlayback(el)
+
+              // Chrome quirk: if stream was assigned while tracks were muted,
+              // the video element stays at readyState=0. Re-assign on unmute.
+              stream.getTracks().forEach(track => {
+                track.addEventListener('unmute', () => {
+                  if (el.srcObject === stream && el.readyState === 0) {
+                    el.srcObject = null
+                    el.srcObject = stream
+                    patchVideoPlayback(el)
+                  }
+                }, { once: true })
+              })
             }
           } else if (attempt < 10) {
             setTimeout(() => attachStream(attempt + 1), 100)
@@ -576,6 +588,14 @@ export function UnifiedVideoCall({
       className={`relative h-full w-full overflow-hidden bg-neutral-900 text-white ${className}`}
       onMouseMove={isInRoom ? resetControlsTimer : undefined}
     >
+      {/* Accessibility: screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {connectionState === 'connected' && 'Conectado a la consulta'}
+        {connectionState === 'connecting' && 'Conectando a la consulta'}
+        {connectionState === 'failed' && 'Error de conexión'}
+        {remoteUsers.size > 0 && `${remoteUsers.size} participante${remoteUsers.size > 1 ? 's' : ''} en la sala`}
+      </div>
+
       {/* Main video area */}
       <div className="absolute inset-0">
         {/* Green Room */}

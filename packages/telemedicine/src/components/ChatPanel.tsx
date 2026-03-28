@@ -166,7 +166,7 @@ export function ChatPanel({
           </div>
           {!chatReady && (
             <p className="mt-2 text-xs text-slate-500">
-              El chat se habilita cuando el otro participante entra a la consulta.
+              Conectando canal de chat... Esperando conexión directa con el otro participante.
             </p>
           )}
         </form>

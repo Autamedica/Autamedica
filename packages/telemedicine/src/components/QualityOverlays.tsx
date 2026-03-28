@@ -1,23 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { AlertTriangle, WifiOff, X } from 'lucide-react'
 import type { StreamQualityLevel } from '../webrtc-client'
-
-const qualityColor: Record<StreamQualityLevel, string> = {
-  excellent: 'text-emerald-400',
-  good: 'text-emerald-400',
-  fair: 'text-amber-400',
-  poor: 'text-red-400',
-  unknown: 'text-slate-400',
-}
-
-const qualityLabel: Record<StreamQualityLevel, string> = {
-  excellent: 'Excelente',
-  good: 'Buena',
-  fair: 'Regular',
-  poor: 'Mala',
-  unknown: '',
-}
 
 export interface QualityOverlaysProps {
   showAudioOnlySuggestion: boolean
@@ -38,17 +23,30 @@ export function QualityOverlays({
   showControls,
   qualityLevel,
 }: QualityOverlaysProps) {
+  // Auto-dismiss error after 8s
+  const [showError, setShowError] = useState(false)
+  useEffect(() => {
+    if (callError) {
+      setShowError(true)
+      const t = setTimeout(() => setShowError(false), 8000)
+      return () => clearTimeout(t)
+    }
+    setShowError(false)
+  }, [callError])
+
   return (
     <>
-      {/* Error toast */}
-      {callError && (
-        <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4">
-          <div className="flex max-w-lg items-start gap-3 rounded-[22px] border border-red-400/20 bg-neutral-950/88 px-4 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
-            <AlertTriangle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-red-300" />
-            <div>
-              <p className="font-semibold text-red-200">Atención</p>
-              <p className="mt-0.5 text-slate-200">{callError}</p>
+      {/* Error toast — slides in from top */}
+      {callError && showError && (
+        <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4 animate-in slide-in-from-top-2 duration-300">
+          <div className="flex max-w-md items-start gap-3 rounded-xl border border-red-400/20 bg-neutral-900/95 px-4 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+            <div className="flex-1">
+              <p className="font-medium text-red-300">{callError}</p>
             </div>
+            <button onClick={() => setShowError(false)} className="shrink-0 text-slate-400 hover:text-white transition-colors">
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
@@ -56,40 +54,46 @@ export function QualityOverlays({
       {/* Test badge */}
       {isTestRoom && (
         <div className="absolute left-4 top-14 z-30">
-          <div className="rounded-full border border-amber-400/20 bg-black/30 px-2.5 py-0.5 text-[10px] text-amber-400/60 backdrop-blur-xl">
-            Test
+          <div className="rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-400 backdrop-blur-sm">
+            TEST
           </div>
         </div>
       )}
 
       {/* Audio-only suggestion */}
       {showAudioOnlySuggestion && (
-        <div className="absolute left-4 bottom-28 z-30 flex max-w-sm items-center gap-3 rounded-2xl bg-amber-950/80 px-4 py-3 text-sm shadow-lg ring-1 ring-amber-500/10 backdrop-blur-xl">
-          <AlertTriangle className="h-5 w-5 text-amber-300 shrink-0" />
-          <div>
-            <p className="text-amber-100 font-medium">Conexion inestable</p>
-            <p className="text-amber-200/70 text-xs">Solo audio puede mejorar la experiencia</p>
+        <div className="absolute bottom-28 left-4 z-30 max-w-sm animate-in slide-in-from-left-2 duration-300">
+          <div className="flex items-center gap-3 rounded-xl border border-amber-400/15 bg-neutral-900/95 px-4 py-3 text-sm shadow-xl backdrop-blur-xl">
+            <WifiOff className="h-5 w-5 shrink-0 text-amber-400" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-white">Conexión inestable</p>
+              <p className="mt-0.5 text-xs text-slate-400">Solo audio puede mejorar la experiencia</p>
+            </div>
+            <button
+              onClick={onSwitchAudioOnly}
+              className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition-colors"
+            >
+              Solo audio
+            </button>
+            <button
+              onClick={onDismissSuggestion}
+              className="shrink-0 rounded-full p-1 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={onSwitchAudioOnly}
-            className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition-colors"
-          >
-            Solo audio
-          </button>
-          <button
-            onClick={onDismissSuggestion}
-            className="shrink-0 rounded-full p-1 text-amber-300 hover:text-white transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
 
-      {/* Quality badge (poor/fair) */}
-      {(qualityLevel === 'poor' || qualityLevel === 'fair') && !showAudioOnlySuggestion && (
-        <div className={`absolute left-4 bottom-24 z-20 flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 text-[11px] backdrop-blur-xl ${showControls ? '' : ''}`}>
-          <WifiOff className={`h-3 w-3 ${qualityColor[qualityLevel]}`} />
-          <span className={qualityColor[qualityLevel]}>Conexion {qualityLabel[qualityLevel].toLowerCase()}</span>
+      {/* Quality warning badge */}
+      {(qualityLevel === 'poor' || qualityLevel === 'fair') && !showAudioOnlySuggestion && showControls && (
+        <div className="absolute bottom-28 left-4 z-20">
+          <div className={`flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 text-[11px] backdrop-blur-sm ${
+            qualityLevel === 'poor' ? 'text-red-400' : 'text-amber-400'
+          }`}>
+            <WifiOff className="h-3 w-3" />
+            Conexión {qualityLevel === 'poor' ? 'débil' : 'regular'}
+          </div>
         </div>
       )}
     </>

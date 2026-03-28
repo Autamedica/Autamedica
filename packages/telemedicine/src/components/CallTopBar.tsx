@@ -1,23 +1,32 @@
 'use client'
 
-import { Clock, Users, Wifi } from 'lucide-react'
+import { Clock, Users } from 'lucide-react'
 import type { StreamQualityLevel } from '../webrtc-client'
 import type { CallSessionPhase } from '../runtime/call-session-phase'
 
-const qualityColor: Record<StreamQualityLevel, string> = {
-  excellent: 'text-emerald-400',
-  good: 'text-emerald-400',
-  fair: 'text-amber-400',
-  poor: 'text-red-400',
-  unknown: 'text-slate-400',
+const qualityConfig: Record<StreamQualityLevel, { color: string; bars: number }> = {
+  excellent: { color: 'text-emerald-400', bars: 4 },
+  good: { color: 'text-emerald-400', bars: 3 },
+  fair: { color: 'text-amber-400', bars: 2 },
+  poor: { color: 'text-red-400', bars: 1 },
+  unknown: { color: 'text-slate-500', bars: 0 },
 }
 
-const qualityLabel: Record<StreamQualityLevel, string> = {
-  excellent: 'Excelente',
-  good: 'Buena',
-  fair: 'Regular',
-  poor: 'Mala',
-  unknown: '',
+function QualityBars({ level }: { level: StreamQualityLevel }) {
+  const { color, bars } = qualityConfig[level]
+  return (
+    <div className={`flex items-end gap-[2px] ${color}`} title={`Calidad: ${level}`}>
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className={`w-[3px] rounded-full transition-all ${
+            i <= bars ? 'bg-current' : 'bg-white/15'
+          }`}
+          style={{ height: `${6 + i * 3}px` }}
+        />
+      ))}
+    </div>
+  )
 }
 
 export interface CallTopBarProps {
@@ -37,67 +46,63 @@ export function CallTopBar({
   isRecording,
   showControls,
 }: CallTopBarProps) {
-  const connectionLabel =
-    phase === 'peer-ready'
-      ? 'Conectado'
-      : phase === 'room-ready'
-        ? 'Esperando'
-        : phase === 'joining'
-        ? 'Conectando'
-        : 'Inestable'
-
-  const connectionDotClass =
-    phase === 'peer-ready'
-      ? 'bg-emerald-400'
-      : phase === 'room-ready'
-        ? 'bg-sky-400'
-        : phase === 'joining'
-        ? 'bg-amber-400'
+  const isConnected = phase === 'peer-ready'
+  const connectionDot = isConnected
+    ? 'bg-emerald-400'
+    : phase === 'room-ready'
+      ? 'bg-sky-400 animate-pulse'
+      : phase === 'joining'
+        ? 'bg-amber-400 animate-pulse'
         : 'bg-red-400'
+
+  const statusLabel = isConnected
+    ? 'En consulta'
+    : phase === 'room-ready'
+      ? 'Esperando participante'
+      : phase === 'joining'
+        ? 'Conectando...'
+        : 'Sin conexión'
 
   return (
     <div
-      className={`absolute inset-x-0 top-0 z-20 px-4 pt-4 transition-all duration-500 ${
-          showControls ? 'opacity-100' : 'opacity-95'
+      className={`absolute inset-x-0 top-0 z-20 transition-all duration-500 ${
+        showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
-        <div className="rounded-[24px] border border-white/10 bg-black/45 px-4 py-3 text-white shadow-2xl backdrop-blur-2xl">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-            {phase === 'peer-ready' ? 'Consulta en vivo' : 'Sala preparada'}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
-              <span className={`h-2 w-2 rounded-full ${connectionDotClass} ${phase === 'peer-ready' ? 'animate-pulse' : ''}`} />
-              <span className="font-medium">{connectionLabel}</span>
-            </span>
-            {qualityLevel !== 'unknown' && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5">
-                <Wifi className={`h-3.5 w-3.5 ${qualityColor[qualityLevel]}`} />
-                <span className={qualityColor[qualityLevel]}>
-                  Calidad {qualityLabel[qualityLevel].toLowerCase()}
-                </span>
-              </span>
-            )}
+      {/* Top gradient for readability */}
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+
+      <div className="relative flex items-center justify-between px-4 pt-3 sm:px-6 sm:pt-4">
+        {/* Left: connection status */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-xl">
+            <span className={`h-2 w-2 rounded-full ${connectionDot}`} />
+            <span>{statusLabel}</span>
           </div>
+          {qualityLevel !== 'unknown' && (
+            <div className="hidden items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 backdrop-blur-xl sm:flex">
+              <QualityBars level={qualityLevel} />
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        {/* Right: timer + participants + recording */}
+        <div className="flex items-center gap-2">
           {isRecording && (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-red-400/20 bg-red-500/20 px-3 py-2 text-[11px] font-semibold text-red-200 shadow-lg backdrop-blur-xl">
+            <div className="flex items-center gap-1.5 rounded-full bg-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-300 backdrop-blur-xl ring-1 ring-red-400/20">
               <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
-              Grabando
+              <span className="hidden sm:inline">REC</span>
             </div>
           )}
-          {phase === 'peer-ready' && (
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-[11px] text-white shadow-lg backdrop-blur-xl">
+          {isConnected && (
+            <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl">
               <Clock className="h-3.5 w-3.5 text-slate-400" />
-              <span className="font-mono">{formattedDuration}</span>
+              <span className="font-mono tabular-nums">{formattedDuration}</span>
             </div>
           )}
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-[11px] text-white shadow-lg backdrop-blur-xl">
+          <div className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-xs text-white backdrop-blur-xl">
             <Users className="h-3.5 w-3.5 text-slate-400" />
-            <span>{participantCount} en sala</span>
+            <span>{participantCount}</span>
           </div>
         </div>
       </div>
