@@ -94,8 +94,15 @@ export class PeerConnectionFactory {
     }
 
     pc.ontrack = (event) => {
-      this.logInfo('Received remote stream', { peerId: userId, trackCount: event.streams?.[0]?.getTracks().length ?? 0 })
       const stream = event.streams?.[0]
+      this.logInfo('Received remote track', {
+        peerId: userId,
+        kind: event.track.kind,
+        muted: event.track.muted,
+        trackCount: stream?.getTracks().length ?? 0,
+      })
+      // Emit immediately — the video element layer (ActiveCallLayout) handles
+      // the Chrome muted-track timing bug via track.onunmute + new MediaStream().
       if (stream) {
         this.callbacks.emit('remote-stream', stream, userId)
       }
@@ -174,44 +181,60 @@ export class PeerConnectionFactory {
       this.attachDataChannel(userId, event.channel, peerConnections, localUserId)
     }
 
-    pc.onnegotiationneeded = async () => {
-      if (!peerState) {
+    // Debounce negotiationneeded — Chrome can fire it multiple times in quick
+    // succession (addTrack + setCodecPreferences + createDataChannel). We coalesce
+    // them into a single offer by delaying slightly.
+    let negotiationTimer: ReturnType<typeof setTimeout> | null = null
+
+    pc.onnegotiationneeded = () => {
+      if (!peerState) return
+
+      if (negotiationTimer) {
+        // Already scheduled — coalesce
         return
       }
 
-      try {
-        if (pc.signalingState !== 'stable') {
-          this.logInfo('Skipping negotiationneeded because signaling state is not stable', {
-            peerId: userId,
-            signalingState: pc.signalingState,
-          })
-          return
-        }
+      negotiationTimer = setTimeout(async () => {
+        negotiationTimer = null
+        if (!peerState) return
 
-        peerState.isMakingOffer = true
-        await pc.setLocalDescription()
+        try {
+          if (pc.signalingState !== 'stable') {
+            this.logInfo('Skipping negotiationneeded: not stable', {
+              peerId: userId,
+              signalingState: pc.signalingState,
+            })
+            return
+          }
 
-        if (pc.localDescription) {
-          this.callbacks.sendSignalingMessage({
-            type: 'offer',
-            to: userId,
-            data: pc.localDescription,
-          })
+          peerState.isMakingOffer = true
+          await pc.setLocalDescription()
+
+          if (pc.localDescription) {
+            this.callbacks.sendSignalingMessage({
+              type: 'offer',
+              to: userId,
+              data: pc.localDescription,
+            })
+          }
+        } catch (error) {
+          this.logError('Failed handling negotiationneeded', error, { peerId: userId })
+        } finally {
+          if (peerState) {
+            peerState.isMakingOffer = false
+          }
         }
-      } catch (error) {
-        this.logError('Failed handling negotiationneeded', error, { peerId: userId })
-      } finally {
-        if (peerState) {
-          peerState.isMakingOffer = false
-        }
-      }
+      }, 0)  // setTimeout(0) — coalesce microtask batches
     }
 
     this.media.attachLocalTracks(pc)
     peerConnections.set(userId, peerState)
 
-    if (this.shouldCreateChatChannel(localUserId, userId)) {
+    const shouldCreate = this.shouldCreateChatChannel(localUserId, userId, isPolite)
+    this.logInfo('Data channel decision', { localUserId, remoteUserId: userId, shouldCreate, isPolite })
+    if (shouldCreate) {
       const outgoingChannel = pc.createDataChannel(CHAT_CHANNEL_LABEL, { ordered: true })
+      this.logInfo('Created outgoing data channel', { label: CHAT_CHANNEL_LABEL, remoteUserId: userId })
       this.attachDataChannel(userId, outgoingChannel, peerConnections, localUserId)
     }
 
@@ -220,8 +243,12 @@ export class PeerConnectionFactory {
     return peerState
   }
 
-  private shouldCreateChatChannel(localUserId: string, remoteUserId: string): boolean {
-    return localUserId.localeCompare(remoteUserId) < 0
+  private shouldCreateChatChannel(_localUserId: string, _remoteUserId: string, isPolite: boolean): boolean {
+    // The IMPOLITE peer (doctor) must create the data channel.
+    // If the polite peer creates it, the channel is included in their offer,
+    // which gets discarded during Perfect Negotiation collision resolution —
+    // the data channel is never negotiated and stays in "connecting" forever.
+    return !isPolite
   }
 
   attachDataChannel(
@@ -238,9 +265,10 @@ export class PeerConnectionFactory {
     peerState.dataChannel = channel
 
     channel.onopen = () => {
-      this.logInfo('Chat channel opened', { remoteUserId })
+      this.logInfo('Chat channel opened', { remoteUserId, label: channel.label, readyState: channel.readyState })
       this.callbacks.emitChatReady()
     }
+    this.logInfo('Data channel attached', { remoteUserId, label: channel.label, readyState: channel.readyState })
 
     channel.onclose = () => {
       this.logInfo('Chat channel closed', { remoteUserId })
