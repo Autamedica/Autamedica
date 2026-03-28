@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { MutableRefObject, RefObject } from 'react'
 import {
   Video,
@@ -23,6 +23,83 @@ interface RemoteUser {
   userType: string
   userName?: string
   stream?: MediaStream
+}
+
+/** PiP component that robustly syncs local stream even during layout transitions */
+function LocalVideoPiP({
+  localVideoRef,
+  client,
+  isVideoEnabled,
+  isAudioEnabled,
+  localLabel,
+}: {
+  localVideoRef: RefObject<HTMLVideoElement | null>
+  client: WebRTCClient | CloudflareCallsClient | null
+  isVideoEnabled: boolean
+  isAudioEnabled: boolean
+  localLabel: string
+}) {
+  const pipVideoRef = useRef<HTMLVideoElement | null>(null)
+  const [hasVideo, setHasVideo] = useState(false)
+
+  // Assign the PiP video element to the shared localVideoRef AND sync stream
+  const setRef = useCallback(
+    (el: HTMLVideoElement | null) => {
+      pipVideoRef.current = el
+      ;(localVideoRef as MutableRefObject<HTMLVideoElement | null>).current = el
+      if (el && client) {
+        const s = client.getLocalStream()
+        if (s && el.srcObject !== s) {
+          el.srcObject = s
+          patchVideoPlayback(el)
+        }
+      }
+    },
+    [client, localVideoRef]
+  )
+
+  // Re-sync stream periodically: covers race where stream arrives after mount
+  useEffect(() => {
+    if (!client) return
+    const sync = () => {
+      const el = pipVideoRef.current
+      const s = client.getLocalStream()
+      if (el && s && el.srcObject !== s) {
+        el.srcObject = s
+        patchVideoPlayback(el)
+      }
+      const liveVideo = !!(s?.getVideoTracks().some(t => t.readyState === 'live' && t.enabled))
+      setHasVideo(liveVideo)
+    }
+    sync()
+    const id = setInterval(sync, 500)
+    return () => clearInterval(id)
+  }, [client])
+
+  return (
+    <div className="absolute bottom-28 right-4 z-10 h-36 w-52 overflow-hidden rounded-[26px] border border-white/12 bg-slate-900/90 shadow-[0_24px_60px_rgba(0,0,0,0.45)] ring-1 ring-white/8 transition-all hover:scale-[1.02] hover:ring-white/20 sm:h-44 sm:w-64 md:right-6">
+      <div className="absolute left-3 top-3 z-10 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-xl">
+        {localLabel}
+      </div>
+      <video
+        ref={setRef}
+        autoPlay
+        muted
+        playsInline
+        className={`h-full w-full object-cover -scale-x-100 transition-opacity duration-300 ${hasVideo && isVideoEnabled ? 'opacity-100' : 'opacity-0'}`}
+      />
+      {(!isVideoEnabled || !hasVideo) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
+          <VideoOff className="h-8 w-8 text-slate-500" />
+        </div>
+      )}
+      {!isAudioEnabled && (
+        <div className="absolute bottom-0 inset-x-0 flex items-center justify-end bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+          <MicOff className="h-3.5 w-3.5 text-red-400" />
+        </div>
+      )}
+    </div>
+  )
 }
 
 function isMachineLikeParticipantId(value: string): boolean {
@@ -68,6 +145,22 @@ export function ActiveCallLayout({
   const hasLocalVideo = !!(
     localStream?.getVideoTracks().some((track) => track.readyState === 'live' && track.enabled)
   )
+
+  // Poll remote video track readiness — covers race where track arrives after video element mount
+  useEffect(() => {
+    if (remoteUsers.size === 0) return
+    const check = () => {
+      remoteUsers.forEach((user, uid) => {
+        const hasLive = !!(user.stream?.getVideoTracks().some(t => t.readyState === 'live' && t.enabled))
+        if (hasLive && !renderableRemoteVideoIds[uid]) {
+          setRenderableRemoteVideoIds(prev => ({ ...prev, [uid]: true }))
+        }
+      })
+    }
+    check()
+    const id = setInterval(check, 500)
+    return () => clearInterval(id)
+  }, [remoteUsers, renderableRemoteVideoIds])
   const localLabel = userName?.trim() || 'Tú'
   const accentPanelClass =
     accentColor === 'violet'
@@ -313,37 +406,13 @@ export function ActiveCallLayout({
 
       {/* Local video PiP (bottom-right) */}
       {firstRemote && (
-        <div className="absolute bottom-28 right-4 z-10 h-36 w-52 overflow-hidden rounded-[26px] border border-white/12 bg-slate-900/90 shadow-[0_24px_60px_rgba(0,0,0,0.45)] ring-1 ring-white/8 transition-all hover:scale-[1.02] hover:ring-white/20 sm:h-44 sm:w-64 md:right-6">
-          <div className="absolute left-3 top-3 z-10 rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-xl">
-            {localLabel}
-          </div>
-          <video
-            ref={(el) => {
-              (localVideoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el
-              if (el && client) {
-                const s = client.getLocalStream()
-                if (s && el.srcObject !== s) {
-                  el.srcObject = s
-                  patchVideoPlayback(el)
-                }
-              }
-            }}
-            autoPlay
-            muted
-            playsInline
-            className={`h-full w-full object-cover -scale-x-100 transition-opacity duration-300 ${isVideoEnabled ? 'opacity-100' : 'opacity-0'}`}
-          />
-          {!isVideoEnabled && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-              <VideoOff className="h-8 w-8 text-slate-500" />
-            </div>
-          )}
-          {!isAudioEnabled && (
-            <div className="absolute bottom-0 inset-x-0 flex items-center justify-end bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
-              <MicOff className="h-3.5 w-3.5 text-red-400" />
-            </div>
-          )}
-        </div>
+        <LocalVideoPiP
+          localVideoRef={localVideoRef}
+          client={client}
+          isVideoEnabled={isVideoEnabled}
+          isAudioEnabled={isAudioEnabled}
+          localLabel={localLabel}
+        />
       )}
 
       {/* Screen share overlay */}
