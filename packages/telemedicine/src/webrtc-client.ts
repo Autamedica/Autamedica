@@ -8,6 +8,8 @@ import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-se
 import { getAdaptiveConstraints, applyContentHints, getPreferredCodecs, detectBrowser } from './media-optimizations'
 import { NetworkResilience } from './network/resilience'
 import { DeviceManager } from './device/manager'
+import { BitrateRamp, INITIAL_VIDEO_BITRATE, TARGET_VIDEO_BITRATE } from './bitrate/ramp'
+import { ChatManager } from './chat/data-channel'
 import {
   type StreamQualityLevel, type StreamQualityMetrics, type StreamQualitySummary, type PeerStatsSample,
   computeMOS, classifyQualityLevel, getOverallQualityLevel,
@@ -90,10 +92,7 @@ const QUALITY_LOG_INTERVAL_MS = 30000
 const CHAT_CHANNEL_LABEL = 'autamedica-chat'
 
 // Pre-warm & adaptive media constants
-const INITIAL_VIDEO_BITRATE = 500_000  // Start conservative: 500kbps
-const TARGET_VIDEO_BITRATE = 2_500_000 // Ramp to 2.5Mbps for 720p quality
-const BITRATE_RAMP_DURATION_MS = 10_000 // Over 10 seconds
-const BITRATE_RAMP_INTERVAL_MS = 2_000  // Step every 2s
+// Bitrate constants imported from './bitrate/ramp'
 // Codec preference resolved at runtime via getPreferredCodecs() from media-optimizations
 
 // Media constraints replaced by getAdaptiveConstraints() from media-optimizations.ts
@@ -128,8 +127,8 @@ export class WebRTCClient {
   private readonly debugLogger: ReturnType<typeof createTelemedicineLogger>
   private isWarmedUp = false
   private warmUpPromise: Promise<WarmUpResult> | null = null
-  private bitrateRampInterval: ReturnType<typeof setInterval> | null = null
-  private bitrateRampStartMs: number | null = null
+  private readonly bitrateRamp: BitrateRamp
+  private readonly chatManager: ChatManager
   private readonly networkResilience: NetworkResilience
   private readonly deviceManager: DeviceManager
 
@@ -160,8 +159,8 @@ export class WebRTCClient {
     this.networkResilience = new NetworkResilience({
       config: this.config,
       getPeerConnections: () => this.peerConnections,
-      onDegradedNetwork: () => this.stopBitrateRamp(),
-      onOnlineRecovery: () => { this.stopBitrateRamp(); this.startBitrateRamp() },
+      onDegradedNetwork: () => this.bitrateRamp.stop(),
+      onOnlineRecovery: () => { this.bitrateRamp.stop(); this.bitrateRamp.start() },
       log,
       emit: (_event, error) => this.emit('error', error),
     })
@@ -175,6 +174,23 @@ export class WebRTCClient {
         if (event === 'device-change') this.emit('device-change', data as DeviceInfo[])
       },
       log,
+    })
+
+    this.bitrateRamp = new BitrateRamp({
+      getPeerConnections: () => this.peerConnections,
+      log,
+    })
+
+    this.chatManager = new ChatManager({
+      userId: this.config.userId,
+      userName: this.config.userName,
+      userType: this.config.userType,
+      getPeerConnections: () => this.peerConnections,
+      emit: (event, data) => {
+        if (event === 'chat-message') this.emit('chat-message', data as ChatMessage)
+        if (event === 'chat-ready') this.emit('chat-ready', data as boolean)
+      },
+      log: { ...log, error: (msg: string, err: unknown, ctx?: Record<string, unknown>) => this.logError(msg, err, ctx) },
     })
   }
 
@@ -345,7 +361,7 @@ export class WebRTCClient {
         if (kind === 'video') {
           const reason = getStatString(stat, 'qualityLimitationReason')
           if (reason === 'cpu' || reason === 'bandwidth') {
-            this.handleQualityLimitation(userId, pc, reason)
+            this.bitrateRamp.handleQualityLimitation(userId, pc, reason)
           }
         }
         return
@@ -510,7 +526,7 @@ export class WebRTCClient {
 
         // P1 #8: Packet loss threshold — reduce resolution when loss > 5%
         if (metrics.packetsLostPct !== null && metrics.packetsLostPct > 5) {
-          this.handlePacketLoss(userId, peerState.pc, metrics.packetsLostPct)
+          this.bitrateRamp.handlePacketLoss(userId, peerState.pc, metrics.packetsLostPct)
         }
       } catch (error) {
         this.logWarn('Failed collecting stream quality stats', { peerId: userId, error })
@@ -819,7 +835,7 @@ export class WebRTCClient {
 
   private cleanup(): void {
     this.stopQualityMonitor()
-    this.stopBitrateRamp()
+    this.bitrateRamp.stop()
     this.networkResilience.stopAll()
     this.deviceManager.stopDeviceChangeMonitoring()
     this.peerStatsSamples.clear()
@@ -879,7 +895,7 @@ export class WebRTCClient {
           peerState.dataChannel?.close()
           peerState.pc.close()
           this.peerConnections.delete(message.from)
-          this.emitChatReady()
+          this.chatManager.emitChatReady()
         }
         break
       }
@@ -966,7 +982,7 @@ export class WebRTCClient {
         this.peerStatsSamples.delete(userId)
         this.latestQualityByPeer.delete(userId)
         this.qualityLogState.delete(userId)
-        this.emitChatReady()
+        this.chatManager.emitChatReady()
       }
     }
 
@@ -1012,7 +1028,7 @@ export class WebRTCClient {
     }
 
     pc.ondatachannel = (event) => {
-      this.attachDataChannel(userId, event.channel)
+      this.chatManager.attachDataChannel(userId, event.channel)
     }
 
     pc.onnegotiationneeded = async () => {
@@ -1051,12 +1067,12 @@ export class WebRTCClient {
     this.attachLocalTracks(pc)
     this.peerConnections.set(userId, peerState)
 
-    if (this.shouldCreateChatChannel(userId)) {
+    if (this.chatManager.shouldCreateChatChannel(userId)) {
       const outgoingChannel = pc.createDataChannel(CHAT_CHANNEL_LABEL, { ordered: true })
-      this.attachDataChannel(userId, outgoingChannel)
+      this.chatManager.attachDataChannel(userId, outgoingChannel)
     }
 
-    this.emitChatReady()
+    this.chatManager.emitChatReady()
     void this.collectQualityMetrics()
     return peerState
   }
@@ -1111,9 +1127,9 @@ export class WebRTCClient {
           })
 
           // Start bitrate ramp for this connection
-          this.startBitrateRamp()
+          this.bitrateRamp.start()
         } else if (track.kind === 'video' && supportsSimulcast) {
-          this.startBitrateRamp()
+          this.bitrateRamp.start()
         }
 
         this.logInfo('Attached local track to peer connection', {
@@ -1176,115 +1192,6 @@ export class WebRTCClient {
     }
   }
 
-  /** Gradually increase video bitrate from conservative to target */
-  private startBitrateRamp(): void {
-    if (this.bitrateRampInterval) return
-
-    this.bitrateRampStartMs = Date.now()
-    this.logInfo('Starting progressive bitrate ramp', {
-      initial: INITIAL_VIDEO_BITRATE,
-      target: TARGET_VIDEO_BITRATE,
-      durationMs: BITRATE_RAMP_DURATION_MS,
-    })
-
-    this.bitrateRampInterval = setInterval(() => {
-      if (!this.bitrateRampStartMs) {
-        this.stopBitrateRamp()
-        return
-      }
-
-      const elapsed = Date.now() - this.bitrateRampStartMs
-      const progress = Math.min(elapsed / BITRATE_RAMP_DURATION_MS, 1)
-      const currentBitrate = Math.round(
-        INITIAL_VIDEO_BITRATE + (TARGET_VIDEO_BITRATE - INITIAL_VIDEO_BITRATE) * progress
-      )
-
-      // Apply to all video senders
-      for (const [, peerState] of this.peerConnections) {
-        for (const sender of peerState.pc.getSenders()) {
-          if (sender.track?.kind !== 'video') continue
-          const params = sender.getParameters()
-          if (params.encodings?.[0]) {
-            params.encodings[0].maxBitrate = currentBitrate
-            // Upgrade framerate at 50% ramp
-            if (progress >= 0.5) {
-              params.encodings[0].maxFramerate = 30
-            }
-            sender.setParameters(params).catch(() => { /* ignore */ })
-          }
-        }
-      }
-
-      if (progress >= 1) {
-        this.logInfo('Bitrate ramp complete', { finalBitrate: currentBitrate })
-        this.stopBitrateRamp()
-      }
-    }, BITRATE_RAMP_INTERVAL_MS)
-  }
-
-  private stopBitrateRamp(): void {
-    if (this.bitrateRampInterval) {
-      clearInterval(this.bitrateRampInterval)
-      this.bitrateRampInterval = null
-    }
-    this.bitrateRampStartMs = null
-  }
-
-  /** Reduce bitrate when encoder reports cpu or bandwidth limitation */
-  private handleQualityLimitation(peerId: string, pc: RTCPeerConnection, reason: string): void {
-    for (const sender of pc.getSenders()) {
-      if (sender.track?.kind !== 'video') continue
-      const params = sender.getParameters()
-      const current = params.encodings?.[0]?.maxBitrate
-      if (!current || !params.encodings?.[0]) continue
-
-      const reduced = reason === 'cpu'
-        ? Math.max(current * 0.6, INITIAL_VIDEO_BITRATE)   // CPU: drop 40%
-        : Math.max(current * 0.75, INITIAL_VIDEO_BITRATE)  // Bandwidth: drop 25%
-
-      if (reduced < current) {
-        params.encodings[0].maxBitrate = Math.round(reduced)
-        if (reason === 'cpu') {
-          params.encodings[0].maxFramerate = 15
-        }
-        sender.setParameters(params).catch(() => { /* ignore */ })
-        this.logInfo('Reduced bitrate due to quality limitation', {
-          peerId,
-          reason,
-          fromKbps: Math.round(current / 1000),
-          toKbps: Math.round(reduced / 1000),
-        })
-      }
-    }
-  }
-
-  /** Reduce resolution when packet loss exceeds threshold */
-  private handlePacketLoss(peerId: string, pc: RTCPeerConnection, lossPct: number): void {
-    for (const sender of pc.getSenders()) {
-      if (sender.track?.kind !== 'video') continue
-      const params = sender.getParameters()
-      if (!params.encodings?.[0]) continue
-
-      if (lossPct > 10) {
-        // Severe loss: drop to 360p/15fps
-        params.encodings[0].maxBitrate = Math.round(INITIAL_VIDEO_BITRATE * 0.5)
-        params.encodings[0].maxFramerate = 15
-        params.encodings[0].scaleResolutionDownBy = 2.0
-      } else {
-        // Moderate loss (5-10%): drop to 480p/20fps
-        params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
-        params.encodings[0].maxFramerate = 20
-        params.encodings[0].scaleResolutionDownBy = 1.5
-      }
-
-      sender.setParameters(params).catch(() => { /* ignore */ })
-      this.logInfo('Reduced quality due to packet loss', {
-        peerId,
-        lossPct: Math.round(lossPct * 100) / 100,
-        scaleDown: params.encodings[0].scaleResolutionDownBy,
-      })
-    }
-  }
 
   private async handleOffer(userId: string, offer: RTCSessionDescriptionInit): Promise<void> {
     const peerState = this.ensurePeerConnection(userId)
@@ -1380,57 +1287,6 @@ export class WebRTCClient {
     }
   }
 
-  private shouldCreateChatChannel(remoteUserId: string): boolean {
-    return this.config.userId.localeCompare(remoteUserId) < 0
-  }
-
-  private attachDataChannel(remoteUserId: string, channel: RTCDataChannel): void {
-    const peerState = this.peerConnections.get(remoteUserId)
-    if (!peerState) {
-      return
-    }
-
-    peerState.dataChannel = channel
-
-    channel.onopen = () => {
-      this.logInfo('Chat channel opened', { remoteUserId })
-      this.emitChatReady()
-    }
-
-    channel.onclose = () => {
-      this.logInfo('Chat channel closed', { remoteUserId })
-      if (peerState.dataChannel === channel) {
-        peerState.dataChannel = null
-      }
-      this.emitChatReady()
-    }
-
-    channel.onerror = (event) => {
-      this.logError('Chat channel error', event, { remoteUserId })
-    }
-
-    channel.onmessage = (event) => {
-      if (typeof event.data !== 'string') {
-        return
-      }
-
-      try {
-        const parsed = JSON.parse(event.data) as ChatMessage
-        if (!parsed || parsed.senderId === this.config.userId || typeof parsed.text !== 'string') {
-          return
-        }
-        this.emit('chat-message', parsed)
-      } catch (error) {
-        this.logWarn('Ignoring invalid chat payload', { error, remoteUserId })
-      }
-    }
-
-    this.emitChatReady()
-  }
-
-  private emitChatReady(): void {
-    this.emit('chat-ready', this.isChatReady())
-  }
 
   // Utility methods
   getConnectionState(): ConnectionState {
@@ -1495,47 +1351,11 @@ export class WebRTCClient {
   }
 
   sendChatMessage(text: string): boolean {
-    const trimmedText = text.trim()
-    if (!trimmedText) {
-      return false
-    }
-
-    const payload: ChatMessage = {
-      id: `${this.config.userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      text: trimmedText,
-      senderId: this.config.userId,
-      senderType: this.config.userType,
-      senderName: this.config.userName,
-      timestamp: Date.now()
-    }
-
-    let delivered = false
-
-    for (const [remoteUserId, peerState] of this.peerConnections) {
-      const channel = peerState.dataChannel
-      if (channel?.readyState !== 'open') {
-        this.logWarn('Chat channel not ready', { remoteUserId })
-        continue
-      }
-
-      try {
-        channel.send(JSON.stringify(payload))
-        delivered = true
-      } catch (error) {
-        this.logError('Failed sending chat message', error, { remoteUserId })
-      }
-    }
-
-    return delivered
+    return this.chatManager.sendChatMessage(text)
   }
 
   isChatReady(): boolean {
-    for (const [, peerState] of this.peerConnections) {
-      if (peerState.dataChannel?.readyState === 'open') {
-        return true
-      }
-    }
-    return false
+    return this.chatManager.isChatReady()
   }
 
   // Media control methods
