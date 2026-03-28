@@ -49,6 +49,7 @@ export interface StreamQualityMetrics {
   frameWidth: number | null
   frameHeight: number | null
   availableOutgoingBitrateKbps: number | null
+  mosScore: number | null
 }
 
 export interface StreamQualitySummary {
@@ -67,6 +68,7 @@ export interface WebRTCEvents {
   'chat-ready': (ready: boolean) => void
   'stream-quality': (summary: StreamQualitySummary) => void
   'audio-only-fallback': (info: { reason: string; error: unknown }) => void
+  'device-change': (devices: DeviceInfo[]) => void
   'error': (error: Error) => void
   // Observability events
   'media-acquired': (info: { videoTracks: number; audioTracks: number; source: string }) => void
@@ -159,6 +161,7 @@ export class WebRTCClient {
   private networkChangeCleanup: (() => void) | null = null
   private onlineOfflineCleanup: (() => void) | null = null
   private turnRefreshInterval: ReturnType<typeof setInterval> | null = null
+  private deviceChangeCleanup: (() => void) | null = null
 
   constructor(config: Partial<WebRTCConfig> & { userId: string; userType: 'doctor' | 'patient' | 'nurse' }) {
     // Use environment-configured ICE servers or fallback to STUN-only defaults
@@ -301,6 +304,26 @@ export class WebRTCClient {
     this.onlineOfflineCleanup = null
   }
 
+  /** Detect when devices are connected/disconnected (headset, camera, etc.) */
+  private startDeviceChangeMonitoring(): void {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.addEventListener) return
+
+    const handler = async () => {
+      const devices = await this.enumerateDevices()
+      this.cachedDevices = devices
+      this.emit('device-change', devices)
+      this.logInfo('Device change detected', { deviceCount: devices.length })
+    }
+
+    navigator.mediaDevices.addEventListener('devicechange', handler)
+    this.deviceChangeCleanup = () => navigator.mediaDevices.removeEventListener('devicechange', handler)
+  }
+
+  private stopDeviceChangeMonitoring(): void {
+    this.deviceChangeCleanup?.()
+    this.deviceChangeCleanup = null
+  }
+
   // Event listener methods
   on<T extends keyof WebRTCEvents>(event: T, listener: WebRTCEvents[T]): () => void {
     let listeners = this.eventListeners.get(event)
@@ -424,6 +447,37 @@ export class WebRTCClient {
 
     const factor = 10 ** digits
     return Math.round(value * factor) / factor
+  }
+
+  /**
+   * Estimate Mean Opinion Score (1.0-4.5) using simplified E-model (ITU-T G.107).
+   * Uses RTT, jitter and packet loss to approximate perceived voice quality.
+   */
+  private computeMOS(rttMs: number | null, jitterMs: number | null, lossPct: number | null): number | null {
+    if (rttMs === null && jitterMs === null && lossPct === null) return null
+
+    const rtt = rttMs ?? 0
+    const jitter = jitterMs ?? 0
+    const loss = lossPct ?? 0
+
+    // Effective latency (one-way delay approximation + jitter buffer)
+    const effectiveLatency = (rtt / 2) + jitter * 2 + 10
+
+    // R-factor calculation (simplified E-model)
+    let r = 93.2 - effectiveLatency / 40
+
+    // Packet loss penalty
+    r -= loss * 2.5
+
+    // Clamp R to valid range
+    r = Math.max(0, Math.min(r, 100))
+
+    // Convert R-factor to MOS (ITU-T formula)
+    if (r < 0) return 1.0
+    if (r > 100) return 4.5
+    const mos = 1 + 0.035 * r + r * (r - 60) * (100 - r) * 7e-6
+
+    return Math.round(mos * 10) / 10
   }
 
   private scoreInboundBitrate(kbps: number): number {
@@ -715,6 +769,7 @@ export class WebRTCClient {
       frameWidth: frameWidth !== null ? Math.round(frameWidth) : null,
       frameHeight: frameHeight !== null ? Math.round(frameHeight) : null,
       availableOutgoingBitrateKbps: this.roundMetric(availableOutgoingBitrateKbps),
+      mosScore: this.computeMOS(roundTripTimeMs, jitterMs, packetsLostPct),
     }
 
     return {
@@ -746,6 +801,11 @@ export class WebRTCClient {
         peers.push(metrics)
         this.latestQualityByPeer.set(userId, metrics)
         this.maybeLogPeerQuality(metrics)
+
+        // P1 #8: Packet loss threshold — reduce resolution when loss > 5%
+        if (metrics.packetsLostPct !== null && metrics.packetsLostPct > 5) {
+          this.handlePacketLoss(userId, peerState.pc, metrics.packetsLostPct)
+        }
       } catch (error) {
         this.logWarn('Failed collecting stream quality stats', { peerId: userId, error })
       }
@@ -1028,6 +1088,7 @@ export class WebRTCClient {
       this.startNetworkMonitoring()
       this.startOnlineOfflineMonitoring()
       this.startTurnCredentialRefresh()
+      this.startDeviceChangeMonitoring()
 
       // Send join — this is the only thing the user "waits" for
       this.sendSignalingMessage({
@@ -1101,6 +1162,7 @@ export class WebRTCClient {
     this.stopBitrateRamp()
     this.stopNetworkMonitoring()
     this.stopTurnCredentialRefresh()
+    this.stopDeviceChangeMonitoring()
     this.peerStatsSamples.clear()
     this.latestQualityByPeer.clear()
     this.qualityLogState.clear()
@@ -1353,24 +1415,45 @@ export class WebRTCClient {
         .filter((id): id is string => Boolean(id))
     )
 
+    const { supportsSimulcast } = detectBrowser()
+
     stream.getTracks().forEach(track => {
       if (!existingTrackIds.has(track.id)) {
-        const sender = pc.addTrack(track, stream)
-        
+        let sender: RTCRtpSender
+
+        // Simulcast: add multiple encodings for video (Chrome/Firefox only)
+        if (track.kind === 'video' && supportsSimulcast) {
+          const transceiver = pc.addTransceiver(track, {
+            direction: 'sendrecv',
+            streams: [stream],
+            sendEncodings: [
+              { rid: 'high', maxBitrate: TARGET_VIDEO_BITRATE, maxFramerate: 30 },
+              { rid: 'mid', maxBitrate: 600_000, maxFramerate: 24, scaleResolutionDownBy: 2.0 },
+              { rid: 'low', maxBitrate: 150_000, maxFramerate: 15, scaleResolutionDownBy: 4.0 },
+            ],
+          })
+          sender = transceiver.sender
+          this.logInfo('Simulcast enabled with 3 layers', { trackId: track.id })
+        } else {
+          sender = pc.addTrack(track, stream)
+        }
+
         // Progressive bitrate: start conservative, ramp up
-        if (track.kind === 'video') {
+        if (track.kind === 'video' && !supportsSimulcast) {
           const params = sender.getParameters()
           if (!params.encodings) {
             params.encodings = [{}]
           }
           params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
           params.encodings[0].maxFramerate = 24
-          
+
           sender.setParameters(params).catch(e => {
             this.logWarn('Failed to set video encoding parameters', { error: e, trackId: track.id })
           })
 
           // Start bitrate ramp for this connection
+          this.startBitrateRamp()
+        } else if (track.kind === 'video' && supportsSimulcast) {
           this.startBitrateRamp()
         }
 
@@ -1513,6 +1596,34 @@ export class WebRTCClient {
           toKbps: Math.round(reduced / 1000),
         })
       }
+    }
+  }
+
+  /** Reduce resolution when packet loss exceeds threshold */
+  private handlePacketLoss(peerId: string, pc: RTCPeerConnection, lossPct: number): void {
+    for (const sender of pc.getSenders()) {
+      if (sender.track?.kind !== 'video') continue
+      const params = sender.getParameters()
+      if (!params.encodings?.[0]) continue
+
+      if (lossPct > 10) {
+        // Severe loss: drop to 360p/15fps
+        params.encodings[0].maxBitrate = Math.round(INITIAL_VIDEO_BITRATE * 0.5)
+        params.encodings[0].maxFramerate = 15
+        params.encodings[0].scaleResolutionDownBy = 2.0
+      } else {
+        // Moderate loss (5-10%): drop to 480p/20fps
+        params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
+        params.encodings[0].maxFramerate = 20
+        params.encodings[0].scaleResolutionDownBy = 1.5
+      }
+
+      sender.setParameters(params).catch(() => { /* ignore */ })
+      this.logInfo('Reduced quality due to packet loss', {
+        peerId,
+        lossPct: Math.round(lossPct * 100) / 100,
+        scaleDown: params.encodings[0].scaleResolutionDownBy,
+      })
     }
   }
 
@@ -1801,5 +1912,37 @@ export class WebRTCClient {
     if (!this.localStream) return false
     const audioTrack = this.localStream.getAudioTracks()[0]
     return audioTrack ? audioTrack.enabled : false
+  }
+
+  /**
+   * Toggle noise suppression on the audio track.
+   * Clinical use: disable NS when using a stethoscope so heart/lung sounds are not filtered.
+   * Returns the new state, or null if not supported.
+   */
+  async setNoiseSuppression(enabled: boolean): Promise<boolean | null> {
+    if (!this.localStream) return null
+    const audioTrack = this.localStream.getAudioTracks()[0]
+    if (!audioTrack) return null
+
+    try {
+      await audioTrack.applyConstraints({
+        noiseSuppression: enabled,
+        autoGainControl: enabled,
+      })
+      this.logInfo('Noise suppression toggled', { enabled })
+      return enabled
+    } catch {
+      this.logWarn('Failed to toggle noise suppression (not supported by browser)')
+      return null
+    }
+  }
+
+  /** Check if noise suppression is currently active */
+  isNoiseSuppressionEnabled(): boolean {
+    if (!this.localStream) return true
+    const audioTrack = this.localStream.getAudioTracks()[0]
+    if (!audioTrack) return true
+    const settings = audioTrack.getSettings()
+    return settings.noiseSuppression !== false
   }
 }
