@@ -3,6 +3,65 @@
 > Fuente de verdad operativa para Claude en AutaMedica.
 > Compacto por diseño: reglas + checklists + enlaces.
 
+## Mapa de Arquitectura por Archivo
+
+> Límite hard: **<700 líneas** por archivo de código. Si un archivo crece, extraer antes de mergear.
+
+### `packages/telemedicine/src/` — Motor WebRTC
+
+| Archivo                      | Responsabilidad                                               |
+| ---------------------------- | ------------------------------------------------------------- |
+| `webrtc-client.ts`           | Orquestador: lifecycle, signaling, peer connections, events   |
+| `media-manager.ts`           | Captura de cámara/mic, devices, tracks, codec preference      |
+| `quality-monitor.ts`         | Métricas de calidad (bitrate, latency, packet loss, MOS)      |
+| `bitrate-adapter.ts`         | Rampa de bitrate progresiva, adaptación por calidad de red    |
+| `peer-connection-factory.ts` | Creación de RTCPeerConnection, handlers de eventos RTC        |
+| `signaling-socket.ts`        | WebSocket de señalización (open, reconnect, message routing)  |
+| `turn-manager.ts`            | Refresh de credenciales TURN (Cloudflare, TTL 24h)            |
+| `unified-video-call.tsx`     | Componente React wrapper — combina todos los hooks y UI       |
+| `media-optimizations.ts`     | Constraints adaptativos, content hints, codec selection       |
+| `debug.ts`                   | Logger factory con niveles (error, warn, info, debug)         |
+| `types.ts`                   | Tipos exportados: WebRTCConfig, CallMetrics, SignalingMessage |
+
+**Hooks (`src/hooks/`):** `useTelemedicineClient` (lifecycle), `useVideoCallReducer` (state consolidation), `useCallDuration`, `useCallQuality`, `useGreenRoom` (pre-call preview), `useChatMessages`, `useScreenShare`, `useCallStatusPersistence` (DB sync), `useCallLifecycleEffects` (wake lock, visibility), `useAutoHideControls`, `useParticipantSound`, `useViewportDetection`, `useCallDebugger`, `useRemoteMediaTimeout`.
+
+**Componentes (`src/components/`):** `ActiveCallLayout` (grid), `CallControlsBar` (botones), `CallTopBar` (duración/calidad), `GreenRoom` (preview), `ChatPanel`, `QualityOverlays`, `ConnectingOverlay`.
+
+**Utils:** `error-messages.ts` (mensajes amigables), `stream-helpers.ts` (detección de video remoto).
+
+### `apps/web/src/components/doctors/` — Portal Médico
+
+| Archivo                              | Responsabilidad                                  |
+| ------------------------------------ | ------------------------------------------------ |
+| `DoctorsHomePage.tsx`                | Home del doctor: stats, turnos, acciones rápidas |
+| `QuickActionsPanel.tsx`              | Sidebar de acciones rápidas (notas, recetas, IA) |
+| `DiagnosisPanel.tsx`                 | Modal de diagnóstico con IA                      |
+| `VideoControlsOverlay.tsx`           | Barra de controles de video + ControlButton      |
+| `layout/DoctorsPortalShell.tsx`      | Shell de navegación: sidebar, topbar             |
+| `layout/SidebarNavigation.tsx`       | Menú lateral de navegación                       |
+| `calls/DoctorCallPage.tsx`           | UI de videollamada del doctor                    |
+| `calls/ConsultationContextPanel.tsx` | Panel: historia, signos vitales, medicamentos    |
+
+### `apps/web/src/components/patients/` — Portal Paciente
+
+`AnamnesisPage` (intake), `anamnesis/VersionTimeline` + `PrivacyAcceptanceScreen` + `AnalysisResultOverlay` (sub-componentes), `PatientProfilePage` (perfil), `profile-constants.ts` (opciones, formateo), `AppointmentsPage` (turnos), `CommunityPage` (foro).
+
+### `apps/web/src/components/shared/` — Reutilizables
+
+`FormFields.tsx` (Field + SelectField), `MetricCard.tsx`, `CrossModuleCard.tsx` (tarjeta con stats grid).
+
+### `apps/web/src/lib/patients/server/` — Server Paciente
+
+`patient-insights` (orquestador), `normalize` (10 normalizadores), `alert-engine` (alertas + fingerprint), `dashboard-builder` (summary + prioridades), `anamnesis-ai-extraction` (entidades clínicas via IA), `ai-provider` (OpenAI/Gemini), `extraction-parser` (respuesta IA → struct), `body-selection` (dedup diagrama corporal).
+
+### `apps/web/src/lib/patients/services/` — Servicios Frontend
+
+`pdf-report.service` (PDF consulta), `pdf-report-config` (constantes PDF), `profile-form` (13 helpers puros), `medical-history.frontend` (transformaciones UI).
+
+### `apps/web/src/hooks/doctors/` — Hooks Doctor
+
+`useVideoCallControls` (cámara/audio/video/screen/end), `useClock` (hora), `useSidebar` (estado sidebar).
+
 ## ROL: Integration Senior Engineer
 
 **Sos la ingeniera de integración de AutaMedica.** Tu trabajo no es crear piezas nuevas — es que las piezas existentes se conecten, hablen entre sí y funcionen de punta a punta. Antes de tocar código, siempre consultá `docs/ARQUITECTURA.md` para entender qué piezas existen y cómo conectan.
@@ -588,43 +647,11 @@ pnpm lint && pnpm typecheck && pnpm build:packages:core
 
 ---
 
-## 8b) Reglas Importadas (AutoRenta, Framework-Agnostic)
+## 8b) Reglas Importadas y Salud Digital
 
-Reglas senior transferidas y activas en AutaMedica:
+**Reglas senior (detalle en `docs/AGENTS-2.md` §23):** AI cross-review, higiene reforzada, regeneración segura de tipos DB, workflows resilientes, post-review UI (375/768/1024/1440), tmux para ops largas, no `atomic` en IDs SQL, frozen code policy.
 
-- **AI Cross-Review:** Cambios generados por IA requieren segunda auditoría antes de merge.
-- **Higiene reforzada:** Si se tocan docs/reportes, correr `pnpm docs:ttl:check`; si hay rename/copy sospechoso (`C100`), auditar con `git log --follow --name-status`.
-- **Regeneración segura de tipos DB:** Generar snapshot en `/tmp`, revisar diff, validar enums/estados críticos y solo luego reemplazar archivo canónico.
-- **Workflows resilientes:** Preferir `precheck + skip explícito`; evitar `continue-on-error` en pasos críticos.
-- **Post-Implementation Review UI:** Capturas before/after + validación en viewports 375/768/1024/1440.
-- **Operaciones largas en tmux:** migraciones/builds/tests largos deben correrse en sesiones persistentes.
-- **Regla SQL `atomic`:** No usar `atomic` en identificadores de DB por bug del parser de Supabase CLI.
-- **Frozen Code policy:** Paths críticos read-only por defecto; cambios solo con pedido explícito del usuario.
-
-Detalle operativo completo: `docs/AGENTS-2.md` sección 23.
-
----
-
-## 8c) Principios de Salud Digital (Producto y Diseño)
-
-> Fuente: Cátedra Libre de Salud Digital, FMED UBA. Aplicables a decisiones de diseño, UX y features clínicas.
-
-**Doble usuario:** AutaMedica tiene dos usuarios simultáneos con necesidades opuestas (doctor + paciente). Toda feature debe diseñarse para ambos. El paciente puede tener baja alfabetización digital — la UI debe funcionar sin experiencia previa.
-
-**Criterios para IA clínica** (aplica a `clinical-ai-orchestrator`):
-
-- **Valor clínico real:** ¿cambia lo que el médico va a hacer con el paciente? Si no cambia la decisión, no tiene valor.
-- **Explicabilidad:** el profesional debe entender por qué el algoritmo llegó a ese resultado.
-- **Human-in-the-loop:** la IA asiste, el humano decide. Nunca diagnóstico automático sin supervisión.
-- **Integración al flujo:** la IA se diseña DENTRO del workflow clínico, no se inserta después.
-
-**Carga regulatoria por nivel de feature:**
-
-- Contenido informativo (blog, artículos) → baja carga, sin regulación especial.
-- Monitoreo y registro (anamnesis, signos vitales) → carga media, datos sensibles.
-- Soporte a decisiones clínicas (IA, alertas, prescripciones) → carga alta, requiere evidencia y supervisión.
-
-**Datos de salud = datos sensibles.** Marcos de referencia: GDPR (Europa), HIPAA (EEUU). Anonimización obligatoria en cualquier análisis de datos agregados. Nunca exponer datos identificables fuera del contexto clínico directo.
+**Salud digital (Cátedra UBA):** Doble usuario (doctor + paciente con baja alfabetización digital). IA clínica: valor clínico real + explicabilidad + human-in-the-loop + integración al workflow. Datos de salud = sensibles (GDPR/HIPAA). Carga regulatoria crece con el nivel de decisión clínica.
 
 ---
 
@@ -658,23 +685,9 @@ git push origin main
 4. Si falla: leer logs (`gh run view <id> --log`), corregir, push de nuevo.
 5. Confirmar sitio respondiendo 200: `curl -so /dev/null -w '%{http_code}' https://www.autamedica.com`.
 
-**Deploy manual solo en emergencia** (sitio caído, pipeline bloqueado):
+**Deploy manual solo en emergencia:** `pnpm deploy:web` (build + wrangler pages deploy directo).
 
-```bash
-pnpm deploy:web    # build + wrangler pages deploy directo
-```
-
-**Workflows activos** (`.github/workflows/`):
-
-| Workflow                | Trigger               | Gate                                           |
-| ----------------------- | --------------------- | ---------------------------------------------- |
-| `ci.yml`                | push (no main), PR    | Build + Lint (blocking), Tests (informational) |
-| `deploy-production.yml` | push main             | Pre-flight → DB → Deploy → Smoke → Rollback    |
-| `pr-validation.yml`     | PR                    | WIP guard, secrets, binarios, size             |
-| `quality-gates.yml`     | PR (paths), weekly    | DB drift, edge functions, clinical, policies   |
-| `security-scan.yml`     | PR, push main, weekly | Audit (high=fail), TruffleHog, dep review      |
-| `e2e-tests.yml`         | PR (paths), dispatch  | Playwright (informational)                     |
-| `deploy-test.yml`       | dispatch              | Runner canary                                  |
+**Workflows:** `ci.yml` (push/PR → build+lint), `deploy-production.yml` (push main → deploy+smoke+rollback), `pr-validation.yml` (PR guards), `quality-gates.yml` (DB drift, policies), `security-scan.yml` (audit, TruffleHog), `e2e-tests.yml` (Playwright), `deploy-test.yml` (canary).
 
 ### Supabase
 
