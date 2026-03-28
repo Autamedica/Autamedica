@@ -39,7 +39,7 @@ export async function handleTurnCredentials(
 
   try {
     const response = await fetch(
-      `https://rtc.live.cloudflare.com/v1/turn/keys/${keyId}/credentials/generate`,
+      `https://rtc.live.cloudflare.com/v1/turn/keys/${keyId}/credentials/generate-ice-servers`,
       {
         method: 'POST',
         headers: {
@@ -62,9 +62,16 @@ export async function handleTurnCredentials(
 
     const data = await response.json() as { iceServers?: RTCIceServer[] }
 
+    // Filter out port 53 URLs — browsers block them causing ICE timeout delays
+    const filtered = (data.iceServers ?? []).map(server => {
+      const urls = Array.isArray(server.urls) ? server.urls : [server.urls]
+      const clean = urls.filter(u => !u.includes(':53'))
+      return { ...server, urls: clean }
+    }).filter(s => (Array.isArray(s.urls) ? s.urls : [s.urls]).length > 0)
+
     return {
       status: 200,
-      body: { ok: true, iceServers: data.iceServers ?? [] },
+      body: { ok: true, iceServers: filtered },
       headers: { 'Cache-Control': `private, max-age=${TURN_TTL - 300}` },
     }
   } catch (err) {

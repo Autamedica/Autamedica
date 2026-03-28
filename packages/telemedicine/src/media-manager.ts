@@ -77,7 +77,10 @@ export class MediaManager {
       } catch (mediaError) {
         if (constraints.video) {
           this.logWarn('Video getUserMedia failed in startLocalStream, falling back to audio-only', { error: mediaError })
-          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+          this.localStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: false,
+          })
           this.callbacks.emit('audio-only-fallback', { reason: 'getUserMedia_video_failed', error: mediaError })
         } else {
           throw mediaError

@@ -144,6 +144,11 @@ export class WebRTCClient {
         emitChatReady: () => this.emitChatReady(),
       },
     )
+
+    // Promote to 'connected' when any peer's RTCPeerConnection actually connects
+    this.on('peer-connected', () => {
+      this.setConnectionState('connected')
+    })
   }
 
   private logInfo(message: string, context: Record<string, unknown> = {}): void {
@@ -434,7 +439,11 @@ export class WebRTCClient {
           this.emit('user-joined', user.id, user.userType)
           this.ensurePeerConnection(user.id)
         }
-        this.setConnectionState('connected')
+        // Only mark as 'connecting' here — real 'connected' comes from
+        // pc.onconnectionstatechange when the WebRTC peer actually connects
+        if (this.connectionState !== 'connected') {
+          this.setConnectionState('connecting')
+        }
         break
 
       case 'user-joined':
@@ -499,21 +508,17 @@ export class WebRTCClient {
     }
 
     try {
-      if (offerCollision && pc.signalingState !== 'stable') {
-        this.logInfo('Offer collision detected, rolling back local description', {
-          peerId: userId, signalingState: pc.signalingState,
-        })
-        await pc.setLocalDescription({ type: 'rollback' })
-      }
-
+      // MDN Perfect Negotiation: setRemoteDescription(offer) auto-rolls back
+      // any pending local offer on polite peer — no explicit rollback needed.
       peerState.isSettingRemoteAnswerPending = false
-      await pc.setRemoteDescription(new RTCSessionDescription(offer))
-      this.media.attachLocalTracks(pc)
+      await pc.setRemoteDescription(offer)
 
-      const answer = await pc.createAnswer()
-      await pc.setLocalDescription(answer)
+      // setLocalDescription() without args auto-creates the correct answer
+      await pc.setLocalDescription()
 
-      this.sendSignalingMessage({ type: 'answer', to: userId, data: answer })
+      if (pc.localDescription) {
+        this.sendSignalingMessage({ type: 'answer', to: userId, data: pc.localDescription })
+      }
 
       await this.flushPendingIceCandidates(peerState)
       peerState.ignoreOffer = false
