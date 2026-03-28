@@ -40,8 +40,15 @@ export function detectBrowser(): BrowserCapabilities {
 
 export function getPreferredCodecs(): string[] {
   const { isSafari, supportsVP9 } = detectBrowser()
-  if (isSafari || !supportsVP9) return ['video/H264', 'video/VP8']
-  return ['video/VP9', 'video/VP8', 'video/H264']
+  if (isSafari) return ['video/H264', 'video/VP8']
+
+  // Check for H.265/HEVC hardware support (Chrome 136+, ~50% bandwidth savings)
+  const codecs = RTCRtpSender.getCapabilities?.('video')?.codecs ?? []
+  const supportsH265 = codecs.some(c => c.mimeType === 'video/H265')
+
+  if (supportsH265 && supportsVP9) return ['video/H265', 'video/VP9', 'video/VP8', 'video/H264']
+  if (supportsVP9) return ['video/VP9', 'video/VP8', 'video/H264']
+  return ['video/H264', 'video/VP8']
 }
 
 /**
@@ -52,7 +59,21 @@ export function patchVideoPlayback(el: HTMLVideoElement): void {
   if (!el.srcObject) return
   const playPromise = el.play()
   if (playPromise) {
-    playPromise.catch(() => { /* AbortError or NotAllowedError — safe to ignore */ })
+    playPromise.catch((err: DOMException) => {
+      if (err.name === 'NotAllowedError') {
+        // Browser blocked autoplay — retry on next user interaction
+        const resume = () => {
+          el.play().catch(() => { /* still blocked */ })
+          document.removeEventListener('click', resume)
+          document.removeEventListener('touchstart', resume)
+          document.removeEventListener('keydown', resume)
+        }
+        document.addEventListener('click', resume, { once: true })
+        document.addEventListener('touchstart', resume, { once: true })
+        document.addEventListener('keydown', resume, { once: true })
+      }
+      // AbortError is safe to ignore (happens when play() is interrupted by a new load)
+    })
   }
 }
 
