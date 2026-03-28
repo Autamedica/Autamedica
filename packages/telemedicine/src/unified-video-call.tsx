@@ -472,10 +472,19 @@ export function UnifiedVideoCall({
 
     unsubs.push(
       webrtcClient.on('local-stream', (stream) => {
+        // Immediate assignment
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream
           patchVideoPlayback(localVideoRef.current)
         }
+        // Deferred retry: during layout transitions the ref may be null momentarily
+        // (e.g. switching from waiting-room full-size video to PiP)
+        setTimeout(() => {
+          if (localVideoRef.current && localVideoRef.current.srcObject !== stream) {
+            localVideoRef.current.srcObject = stream
+            patchVideoPlayback(localVideoRef.current)
+          }
+        }, 300)
       })
     )
 
