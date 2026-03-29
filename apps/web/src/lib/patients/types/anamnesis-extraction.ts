@@ -230,7 +230,14 @@ export interface AnamnesisExtractionResult {
   qualityAlerts: AnamnesisExtractionAlert[]
   argenteCoverage: AnamnesisExtractionCoverage
   dataIntegrity: AnamnesisExtractionIntegrity
+  clinicalCrossReferences: ClinicalCrossReference[]
   clinicianQuestions: string[]
   nextQuestions: AnamnesisExtractionQuestion[]
   safetyFlags: string[]
+}
+
+export interface ClinicalCrossReference {
+  sourceSections: string[]
+  observation: string
+  relevance: 'critical' | 'high' | 'medium'
 }

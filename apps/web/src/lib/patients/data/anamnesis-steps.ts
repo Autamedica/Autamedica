@@ -38,7 +38,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Cada profesión tiene sus propios riesgos de salud',
     category: 'filiacion',
     completed: false,
-    mediaUrl: '/videos/patient_seguimiento.mp4',
+    mediaUrl: '/videos/anamnesis/Tu_Trabajo_Tu_Salud_1.4x.mp4',
     story: {
       intro: 'Tu entorno laboral moldea tu salud. Conocer tu ocupación revela exposiciones crónicas que a menudo pasan desapercibidas en una consulta breve.',
       why: 'El cuerpo acumula el impacto del estrés físico, acústico o químico. Identificar estos factores permite al médico vincular tus síntomas con tu rutina diaria.',
@@ -86,7 +86,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'Cuéntanos qué te trae por aquí',
     category: 'motivo_consulta',
     completed: false,
-    mediaUrl: '/videos/patient_consulta_virtual.mp4',
+    mediaUrl: '/videos/anamnesis/Comunicar_tus_Síntomas_1.4x.mp4',
     story: {
       intro: 'La descripción exacta de tu malestar es el punto de partida clínico. Tu relato define la dirección de la investigación diagnóstica.',
       why: 'Los detalles sobre cuándo y cómo empezó el dolor revelan la evolución de la enfermedad, diferenciando un cuadro agudo de una condición crónica.',
@@ -133,7 +133,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     subtitle: 'El pasado médico explica el presente',
     category: 'antecedentes_personales',
     completed: false,
-    mediaUrl: '/videos/patient_historia_clinica.mp4',
+    mediaUrl: '/videos/anamnesis/El_mapa_genético_de_tu_salud_1.4x.mp4',
     story: {
       intro: 'Tu historial médico es el mapa de tu salud. Condiciones crónicas o previas condicionan cómo tu cuerpo responde a nuevas patologías.',
       why: 'Enfermedades como la diabetes o la hipertensión alteran silenciosamente tus sistemas sistémicos, obligando al médico a adaptar sus decisiones terapéuticas.',

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Coffee, Brain, Clock } from 'lucide-react';
+import { Coffee, Brain } from 'lucide-react';
 
 interface PausaCognitivaProps {
   stepNumber: number;
@@ -9,17 +8,7 @@ interface PausaCognitivaProps {
 }
 
 export function PausaCognitiva({ stepNumber, onContinue }: PausaCognitivaProps) {
-  const [countdown, setCountdown] = useState(30); // 30 segundos de pausa obligatoria
-  const [canContinue, setCanContinue] = useState(false);
-
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setCanContinue(true);
-    }
-  }, [countdown]);
+  const canContinue = true;
 
   return (
     <div className="fixed inset-0 z-50 bg-stone-900/95 flex items-center justify-center p-6">
@@ -80,29 +69,12 @@ export function PausaCognitiva({ stepNumber, onContinue }: PausaCognitivaProps) 
           </ul>
         </div>
 
-        {/* Countdown */}
-        {!canContinue ? (
-          <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-xl p-6 mb-6">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <Clock className="h-6 w-6 text-orange-700" />
-              <p className="text-sm font-medium text-orange-900">
-                Tiempo de pausa obligatoria
-              </p>
-            </div>
-            <div className="text-5xl font-bold text-orange-700">
-              {countdown}s
-            </div>
-            <p className="text-sm text-orange-700 mt-2">
-              Esta pausa te ayuda a mantener la concentración
-            </p>
-          </div>
-        ) : (
-          <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 mb-6">
-            <p className="text-green-800 font-semibold">
-              ✓ ¡Listo! Puedes continuar cuando quieras
-            </p>
-          </div>
-        )}
+        {/* Ready state */}
+        <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 mb-6">
+          <p className="text-green-800 font-semibold">
+            Puedes continuar cuando quieras
+          </p>
+        </div>
 
         {/* Botón */}
         <button

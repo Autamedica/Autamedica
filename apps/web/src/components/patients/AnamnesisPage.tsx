@@ -223,28 +223,14 @@ export default function AnamnesisPage() {
       setShowAnalyzing(true);
       setAnalysisResult(null);
 
-      // Race: extraction vs 20s timeout
-      const extractionPromise = triggerExtraction('partial');
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 20_000));
-      const result = await Promise.race([extractionPromise, timeoutPromise]);
+      const result = await triggerExtraction('partial');
 
-      if (result) {
-        // Show AI results — user must click "Continuar" to proceed
-        setAnalysisResult({
-          coverage: result.coverage ?? [],
-          gaps: result.gaps ?? [],
-          questions: result.questions ?? [],
-        });
-        return; // Wait for user to dismiss the analysis screen
-      }
-
-      // Extraction failed or timed out — show fallback and let user continue
       setAnalysisResult({
-        coverage: [],
-        gaps: [],
-        questions: [],
+        coverage: result?.coverage ?? [],
+        gaps: result?.gaps ?? [],
+        questions: result?.questions ?? [],
       });
-      return; // Still show the results screen (with "no data" message), user clicks to continue
+      return; // User must click "Continuar" to proceed
     }
 
     if ((nextIndex) % PAUSE_EVERY_N_STEPS === 0 && nextIndex < anamnesisSteps.length) {
