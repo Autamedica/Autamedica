@@ -5,6 +5,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
+import { scheduleReminders, cancelReminders, processWaitlist } from '@autamedica/scheduling'
 import { appointmentsRepo } from '@/lib/patients/lib/repos/appointments.repo'
 import type {
   AppointmentWithDoctor,
@@ -62,7 +63,14 @@ export const appointmentsService = {
     if (!doctorExists) throw Object.assign(new Error('Doctor not found or inactive'), { code: 'DOCTOR_NOT_FOUND' })
 
     try {
-      return await appointmentsRepo.create(supabase, patientId, payload)
+      const appointment = await appointmentsRepo.create(supabase, patientId, payload)
+
+      // Fire-and-forget: programar recordatorios 24h y 2h antes
+      scheduleReminders(supabase, appointment.id, 'whatsapp').catch((err) =>
+        logger.error('[appointmentsService] scheduleReminders failed', err),
+      )
+
+      return appointment
     } catch (err) {
       logger.error('[appointmentsService] create failed', err)
       throw err
@@ -89,7 +97,29 @@ export const appointmentsService = {
     patientId: string,
   ): Promise<AppointmentWithDoctor | null> {
     try {
-      return await appointmentsRepo.cancel(supabase, id, patientId)
+      // Leer la cita antes de cancelar para obtener datos del slot liberado
+      const existing = await appointmentsRepo.findById(supabase, id, patientId)
+      if (!existing) return null
+
+      const cancelled = await appointmentsRepo.cancel(supabase, id, patientId)
+
+      // Fire-and-forget: cancelar recordatorios pendientes
+      cancelReminders(supabase, id).catch((err) =>
+        logger.error('[appointmentsService] cancelReminders failed', err),
+      )
+
+      // Fire-and-forget: ofrecer slot liberado a la waitlist
+      if (existing.start_time && existing.end_time) {
+        processWaitlist(supabase, existing.doctor_id, {
+          date: existing.start_time.split('T')[0],
+          start_time: existing.start_time,
+          end_time: existing.end_time,
+        }).catch((err) =>
+          logger.error('[appointmentsService] processWaitlist failed', err),
+        )
+      }
+
+      return cancelled
     } catch (err) {
       logger.error('[appointmentsService] cancel failed', err)
       throw err
