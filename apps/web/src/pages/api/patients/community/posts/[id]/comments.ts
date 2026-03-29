@@ -1,0 +1,57 @@
+import {
+  badRequest,
+  forbidden,
+  internalError,
+  jsonOk,
+  notFound,
+  unauthorized,
+} from '@/lib/api-helpers';
+import { resolvePatientContext } from '@/lib/patients/api/patient-context';
+import { communityService } from '@/lib/patients/services/community.service';
+import type { CreateCommunityCommentInput } from '@/lib/patients/types/community';
+import { createAstroAdminClient } from '@/lib/supabase';
+import { logger } from '@autamedica/shared';
+import type { APIRoute } from 'astro';
+
+export const POST: APIRoute = async ({ request, params, locals }) => {
+  const context = await resolvePatientContext(request, locals);
+  if (!context) {
+    return unauthorized();
+  }
+
+  const postId = params.id;
+  if (!postId?.trim()) {
+    return badRequest('post id is required');
+  }
+
+  const body = (await request.json().catch(() => null)) as Omit<CreateCommunityCommentInput, 'postId'> | null;
+  if (!body) {
+    return badRequest('body is required');
+  }
+
+  try {
+    const comment = await communityService.createComment(createAstroAdminClient(), context, {
+      postId,
+      content: body.content ?? '',
+      anonymous: body.anonymous,
+    });
+    return jsonOk(comment, 201);
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+
+    if (code === 'VALIDATION') {
+      return badRequest((error as Error).message);
+    }
+
+    if (code === 'FORBIDDEN' || code === 'GROUP_RESTRICTED') {
+      return forbidden((error as Error).message);
+    }
+
+    if (code === 'POST_NOT_FOUND') {
+      return notFound((error as Error).message);
+    }
+
+    logger.error('[patients/community/posts/:id/comments/POST]', error);
+    return internalError();
+  }
+};
