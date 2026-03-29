@@ -45,7 +45,7 @@ function buildAppointmentCandidates(
   const now = Date.now();
   const reminderWindowMs = 36 * 60 * 60 * 1000;
 
-  return appointments.flatMap((appointment) => {
+  return appointments.flatMap((appointment): PortalNotificationCandidate[] => {
     const doctorName = formatDoctorName(appointment.doctor);
     const scheduledAtMs = new Date(appointment.scheduled_at).getTime();
     const startsSoon = scheduledAtMs > now && scheduledAtMs - now <= reminderWindowMs;

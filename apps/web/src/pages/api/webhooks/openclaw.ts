@@ -144,13 +144,13 @@ async function findActiveReminderByPhone(
   // Buscar paciente por teléfono → sus citas → sus reminders enviados
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id')
+    .select('user_id')
     .eq('phone', phone)
     .limit(1)
 
   if (!profiles?.length) return null
 
-  const userId = profiles[0].id
+  const userId = profiles[0].user_id
 
   // Buscar patient_id del user
   const { data: patients } = await supabase
@@ -199,7 +199,7 @@ async function handleWaitlistAcceptance(
 ) {
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id')
+    .select('user_id')
     .eq('phone', phone)
     .limit(1)
 
@@ -208,7 +208,7 @@ async function handleWaitlistAcceptance(
   const { data: patients } = await supabase
     .from('patients')
     .select('id')
-    .eq('user_id', profiles[0].id)
+    .eq('user_id', profiles[0].user_id)
     .eq('active', true)
     .limit(1)
 

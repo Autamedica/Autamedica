@@ -3,10 +3,15 @@ import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { communityRepo } from '@/lib/patients/lib/repos/community.repo';
 import type {
+  AddCommentReactionInput,
   AddCommunityReactionInput,
+  CommunityComment,
   CommunityOverview,
+  CommunityPost,
   CommunitySortBy,
+  CreateCommunityCommentInput,
   CreateCommunityPostInput,
+  UpdateCommunityPostInput,
 } from '@/lib/patients/types/community';
 
 type Db = SupabaseClient<Database>;
@@ -171,6 +176,168 @@ export const communityService = {
       postId: payload.postId,
       actorId,
       reactionType: payload.reactionType.trim() || 'like',
+    });
+  },
+
+  async createComment(
+    supabase: Db,
+    context: PatientCommunityContext,
+    payload: CreateCommunityCommentInput,
+  ): Promise<CommunityComment> {
+    if (!payload.postId.trim()) {
+      throw Object.assign(new Error('La publicación es obligatoria'), { code: 'VALIDATION' });
+    }
+
+    if (!payload.content.trim()) {
+      throw Object.assign(new Error('El contenido es obligatorio'), { code: 'VALIDATION' });
+    }
+
+    const post = await communityRepo.findPostById(supabase, payload.postId);
+    if (!post) {
+      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+    }
+
+    const { actorId } = resolveCommunityActor(context);
+    const authorDisplayName = await resolveAuthorDisplayName(supabase, context);
+
+    return communityRepo.createComment(supabase, {
+      postId: payload.postId,
+      authorId: actorId,
+      authorDisplayName,
+      authorRole: 'patient',
+      content: payload.content.trim(),
+      anonymous: payload.anonymous ?? false,
+    });
+  },
+
+  async createDoctorComment(
+    supabase: Db,
+    context: { userId: string; doctorId: string },
+    payload: { postId: string; content: string },
+  ): Promise<CommunityComment> {
+    if (!payload.postId.trim()) {
+      throw Object.assign(new Error('La publicación es obligatoria'), { code: 'VALIDATION' });
+    }
+
+    if (!payload.content.trim()) {
+      throw Object.assign(new Error('El contenido es obligatorio'), { code: 'VALIDATION' });
+    }
+
+    const post = await communityRepo.findPostById(supabase, payload.postId);
+    if (!post) {
+      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+    }
+
+    // Resolve doctor display name and specialty
+    let authorDisplayName: string | null = null;
+    let doctorSpecialty: string | null = null;
+    try {
+      const [profileResult, doctorResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('user_id', context.userId)
+          .maybeSingle(),
+        supabase
+          .from('doctors')
+          .select('specialty')
+          .eq('id', context.doctorId)
+          .maybeSingle(),
+      ]);
+      authorDisplayName = buildDisplayName(profileResult.data);
+      doctorSpecialty = doctorResult.data?.specialty ?? null;
+    } catch (error) {
+      logger.warn('[communityService] createDoctorComment profile resolution failed', error);
+    }
+
+    return communityRepo.createComment(supabase, {
+      postId: payload.postId,
+      authorId: context.userId,
+      authorDisplayName,
+      authorRole: 'doctor',
+      doctorSpecialty,
+      content: payload.content.trim(),
+      anonymous: false,
+    });
+  },
+
+  async addCommentReaction(
+    supabase: Db,
+    context: PatientCommunityContext,
+    payload: AddCommentReactionInput,
+  ): Promise<void> {
+    if (!payload.commentId.trim()) {
+      throw Object.assign(new Error('El comentario es obligatorio'), { code: 'VALIDATION' });
+    }
+
+    const comment = await communityRepo.findCommentById(supabase, payload.commentId);
+    if (!comment) {
+      throw Object.assign(new Error('Comentario no encontrado'), { code: 'COMMENT_NOT_FOUND' });
+    }
+
+    const { actorId } = resolveCommunityActor(context);
+    await communityRepo.upsertCommentReaction(supabase, {
+      commentId: payload.commentId,
+      actorId,
+      reactionType: payload.reactionType.trim() || 'helpful',
+    });
+  },
+
+  async updatePost(
+    supabase: Db,
+    context: PatientCommunityContext,
+    postId: string,
+    payload: UpdateCommunityPostInput,
+  ): Promise<CommunityPost> {
+    const post = await communityRepo.findPostById(supabase, postId);
+    if (!post) {
+      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+    }
+
+    const { actorId } = resolveCommunityActor(context);
+    if (post.author_id !== actorId) {
+      throw Object.assign(new Error('No podés editar esta publicación'), { code: 'FORBIDDEN' });
+    }
+
+    return communityRepo.updatePost(supabase, postId, {
+      title: payload.title,
+      content: payload.content,
+      tags: payload.tags ? normalizeTags(payload.tags) : undefined,
+    });
+  },
+
+  async deletePost(
+    supabase: Db,
+    context: PatientCommunityContext,
+    postId: string,
+  ): Promise<void> {
+    const post = await communityRepo.findPostById(supabase, postId);
+    if (!post) {
+      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+    }
+
+    const { actorId } = resolveCommunityActor(context);
+    if (post.author_id !== actorId) {
+      throw Object.assign(new Error('No podés eliminar esta publicación'), { code: 'FORBIDDEN' });
+    }
+
+    await communityRepo.deletePost(supabase, postId);
+  },
+
+  async getDoctorFeed(
+    supabase: Db,
+    _context: { userId: string; doctorId: string },
+    options?: {
+      limit?: number;
+      sortBy?: CommunitySortBy;
+    },
+  ): Promise<CommunityPost[]> {
+    const limit = options?.limit ?? 20;
+    const sortBy = options?.sortBy ?? 'recent';
+
+    return communityRepo.listPosts(supabase, { limit, sortBy }).catch((error) => {
+      logger.warn('[communityService] getDoctorFeed degraded to empty state', error);
+      return [];
     });
   },
 };

@@ -161,4 +161,77 @@ export const rankingService = {
       ranked_doctors: rankedDoctors,
     }
   },
+
+  async getCommunityLeaderboard(admin: AdminClient): Promise<{
+    leaders: Array<{
+      doctor_id: string;
+      first_name: string | null;
+      last_name: string | null;
+      specialty: string | null;
+      comment_count: number;
+      helpful_count: number;
+    }>;
+  }> {
+    // Aggregate doctor community participation from post_comments
+    const { data: topDoctors } = await admin
+      .from('post_comments')
+      .select('author_id')
+      .eq('author_role', 'doctor')
+
+    if (!topDoctors || topDoctors.length === 0) {
+      return { leaders: [] }
+    }
+
+    // Count comments per doctor
+    const countMap = new Map<string, number>()
+    for (const row of topDoctors as Array<{ author_id: string }>) {
+      countMap.set(row.author_id, (countMap.get(row.author_id) ?? 0) + 1)
+    }
+
+    // Sort by count, take top 20
+    const sorted = Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+
+    const authorIds = sorted.map(([id]) => id)
+    if (authorIds.length === 0) {
+      return { leaders: [] }
+    }
+
+    // Resolve doctor info + profiles
+    const { data: doctors } = await admin
+      .from('doctors')
+      .select('id, specialty, user_id')
+      .in('user_id', authorIds)
+
+    const doctorMap = new Map(
+      ((doctors ?? []) as Array<{ id: string; specialty: string | null; user_id: string | null }>)
+        .filter((d): d is { id: string; specialty: string | null; user_id: string } => d.user_id !== null)
+        .map(d => [d.user_id, d])
+    )
+
+    const userIds = Array.from(doctorMap.keys())
+    const { data: profiles } = userIds.length > 0
+      ? await admin.from('profiles').select('user_id, first_name, last_name').in('user_id', userIds)
+      : { data: [] }
+
+    const profileMap = new Map(
+      ((profiles ?? []) as ProfileRow[]).map(p => [p.user_id, p])
+    )
+
+    const leaders = sorted.map(([authorId, commentCount]) => {
+      const doctor = doctorMap.get(authorId)
+      const profile = profileMap.get(authorId)
+      return {
+        doctor_id: doctor?.id ?? authorId,
+        first_name: profile?.first_name ?? null,
+        last_name: profile?.last_name ?? null,
+        specialty: doctor?.specialty ?? null,
+        comment_count: commentCount,
+        helpful_count: 0,
+      }
+    })
+
+    return { leaders }
+  },
 }

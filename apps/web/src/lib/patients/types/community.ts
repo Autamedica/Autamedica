@@ -63,3 +63,34 @@ export interface AddCommunityReactionInput {
   postId: string;
   reactionType: string;
 }
+
+export interface CreateCommunityCommentInput {
+  postId: string;
+  content: string;
+  anonymous?: boolean;
+}
+
+export interface UpdateCommunityPostInput {
+  title?: string;
+  content?: string;
+  tags?: string[];
+}
+
+export interface AddCommentReactionInput {
+  commentId: string;
+  reactionType: string;
+}
+
+export interface CommunityComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  author_display_name: string | null;
+  author_role: 'patient' | 'doctor';
+  doctor_specialty: string | null;
+  content: string;
+  is_anonymous: boolean;
+  reaction_count: number;
+  created_at: string;
+  post_title: string | null;
+}

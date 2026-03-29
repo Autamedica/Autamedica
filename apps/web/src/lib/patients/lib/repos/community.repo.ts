@@ -2,6 +2,7 @@ import type { Database } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
+  CommunityComment,
   CommunityGroup,
   CommunityMembership,
   CommunityPost,
@@ -84,6 +85,22 @@ function mapMembership(row: DbRow): CommunityMembership {
     comment_count: asNumber(row.comment_count),
     helpful_reactions_received: asNumber(row.helpful_reactions_received),
     last_active: asText(row.last_active),
+  };
+}
+
+function mapComment(row: DbRow): CommunityComment {
+  return {
+    id: asText(row.id) ?? '',
+    post_id: asText(row.post_id) ?? '',
+    author_id: asText(row.author_id) ?? '',
+    author_display_name: asText(row.author_display_name),
+    author_role: asText(row.author_role) === 'doctor' ? 'doctor' : 'patient',
+    doctor_specialty: asText(row.doctor_specialty),
+    content: asText(row.content) ?? '',
+    is_anonymous: asBoolean(row.is_anonymous),
+    reaction_count: asNumber(row.reaction_count),
+    created_at: asText(row.created_at) ?? new Date().toISOString(),
+    post_title: asText(row.post_title),
   };
 }
 
@@ -309,6 +326,197 @@ export const communityRepo = {
 
     if (error) {
       logger.error('[communityRepo] upsertReaction failed', error);
+      throw error;
+    }
+  },
+
+  async listRecentCommentsOnPatientPosts(
+    supabase: Db,
+    patientId: string,
+    limit: number,
+  ): Promise<CommunityComment[]> {
+    const db = supabase as unknown as LooseDb;
+
+    // Find posts authored by this patient
+    const { data: posts, error: postsError } = await db
+      .from('community_posts')
+      .select('id, title')
+      .eq('author_id', patientId)
+      .is('deleted_at', null);
+
+    if (postsError) {
+      logger.error('[communityRepo] listRecentCommentsOnPatientPosts posts lookup failed', postsError);
+      throw postsError;
+    }
+
+    const postIds = Array.isArray(posts) ? posts.map((p) => asText((p as DbRow).id) ?? '') : [];
+    if (postIds.length === 0) {
+      return [];
+    }
+
+    const postTitleMap = new Map(
+      Array.isArray(posts)
+        ? posts.map((p) => [asText((p as DbRow).id) ?? '', asText((p as DbRow).title)])
+        : [],
+    );
+
+    // Get recent comments on those posts, excluding the patient's own comments
+    const { data: comments, error: commentsError } = await db
+      .from('post_comments')
+      .select('*')
+      .in('post_id', postIds)
+      .neq('author_id', patientId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (commentsError) {
+      logger.error('[communityRepo] listRecentCommentsOnPatientPosts comments lookup failed', commentsError);
+      throw commentsError;
+    }
+
+    return Array.isArray(comments)
+      ? comments.map((row) => {
+          const mapped = mapComment(row as DbRow);
+          mapped.post_title = postTitleMap.get(mapped.post_id) ?? null;
+          return mapped;
+        })
+      : [];
+  },
+
+  async createComment(
+    supabase: Db,
+    payload: {
+      postId: string;
+      authorId: string;
+      authorDisplayName: string | null;
+      authorRole: 'patient' | 'doctor';
+      doctorSpecialty?: string | null;
+      content: string;
+      anonymous: boolean;
+    },
+  ): Promise<CommunityComment> {
+    const db = supabase as unknown as LooseDb;
+    const { data, error } = await db
+      .from('post_comments')
+      .insert({
+        post_id: payload.postId,
+        author_id: payload.authorId,
+        author_display_name: payload.anonymous ? 'Anónimo' : payload.authorDisplayName,
+        author_role: payload.authorRole,
+        doctor_specialty: payload.doctorSpecialty ?? null,
+        content: payload.content,
+        is_anonymous: payload.anonymous,
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      logger.error('[communityRepo] createComment failed', error);
+      throw error;
+    }
+
+    return mapComment(data as DbRow);
+  },
+
+  async findCommentById(supabase: Db, commentId: string): Promise<CommunityComment | null> {
+    const db = supabase as unknown as LooseDb;
+    const { data, error } = await db
+      .from('post_comments')
+      .select('*')
+      .eq('id', commentId)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('[communityRepo] findCommentById failed', error);
+      throw error;
+    }
+
+    return data ? mapComment(data as DbRow) : null;
+  },
+
+  async upsertCommentReaction(
+    supabase: Db,
+    payload: {
+      commentId: string;
+      actorId: string;
+      reactionType: string;
+    },
+  ): Promise<void> {
+    const db = supabase as unknown as LooseDb;
+    const { error } = await db.from('comment_reactions').upsert(
+      {
+        comment_id: payload.commentId,
+        user_id: payload.actorId,
+        reaction_type: payload.reactionType,
+      },
+      { onConflict: 'comment_id,user_id' },
+    );
+
+    if (error) {
+      logger.error('[communityRepo] upsertCommentReaction failed', error);
+      throw error;
+    }
+  },
+
+  async updatePost(
+    supabase: Db,
+    postId: string,
+    payload: {
+      title?: string;
+      content?: string;
+      tags?: string[];
+    },
+  ): Promise<CommunityPost> {
+    const db = supabase as unknown as LooseDb;
+
+    const updates: DbRow = {};
+    if (payload.title !== undefined) {
+      updates.title = payload.title.trim() || null;
+    }
+    if (payload.content !== undefined) {
+      updates.content = payload.content.trim();
+    }
+    if (payload.tags !== undefined) {
+      updates.tags = payload.tags;
+    }
+    updates.updated_at = new Date().toISOString();
+
+    const { error: updateError } = await db
+      .from('community_posts')
+      .upsert({ id: postId, ...updates }, { onConflict: 'id' });
+
+    if (updateError) {
+      logger.error('[communityRepo] updatePost failed', updateError);
+      throw updateError;
+    }
+
+    const { data, error: fetchError } = await db
+      .from('community_posts')
+      .select('*, group:community_groups(*)')
+      .eq('id', postId)
+      .single();
+
+    if (fetchError) {
+      logger.error('[communityRepo] updatePost re-fetch failed', fetchError);
+      throw fetchError;
+    }
+
+    return mapPost(data as DbRow);
+  },
+
+  async deletePost(supabase: Db, postId: string): Promise<void> {
+    const db = supabase as unknown as LooseDb;
+    const { error } = await db
+      .from('community_posts')
+      .upsert(
+        { id: postId, deleted_at: new Date().toISOString() },
+        { onConflict: 'id' },
+      );
+
+    if (error) {
+      logger.error('[communityRepo] deletePost failed', error);
       throw error;
     }
   },
