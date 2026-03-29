@@ -666,7 +666,7 @@ export function generateAnamnesisPdf(input: AnamnesisPdfInput): PdfResult {
     doc.setFont('helvetica', 'normal')
     doc.text('Documento confidencial — Ley 26.529 de Derechos del Paciente', MARGIN_LEFT, 285)
     doc.text(`Página ${i} de ${pageCount}`, PAGE_WIDTH - MARGIN_RIGHT, 285, { align: 'right' })
-    doc.text('Analizado por AutaMedica IA — Sujeta a validación médica profesional', MARGIN_LEFT, 289)
+    doc.text('AutaMedica IA — Investigador: E.M. — En fase de validación clínica ampliada', MARGIN_LEFT, 289)
   }
 
   const buffer = doc.output('arraybuffer')
