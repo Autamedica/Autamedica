@@ -150,12 +150,23 @@ export const anamnesisService = {
     const anamnesis = await anamnesisRepo.ensure(supabase, patientId)
     const result = await anamnesisRepo.updateMeta(supabase, anamnesis.id, cleanUpdates)
 
-    // Auto-create version when anamnesis is completed (fire-and-forget)
+    // Auto-create version when anamnesis is completed
     if (cleanUpdates.status === 'completed') {
       const isFirstCompletion = !anamnesis.completed_at
-      anamnesisVersionService
-        .createVersion(supabase, patientId, anamnesis.id, isFirstCompletion ? 'initial' : 'update')
-        .catch((err) => logger.warn('[anamnesisService] auto-version creation failed', err))
+      try {
+        await anamnesisVersionService.createVersion(
+          supabase, patientId, anamnesis.id,
+          isFirstCompletion ? 'initial' : 'update',
+        )
+      } catch (err) {
+        // Log but don't block — versioning failure shouldn't prevent completion
+        logger.error('[anamnesisService] auto-version creation failed', {
+          error: err instanceof Error ? err.message : err,
+          patientId,
+          anamnesisId: anamnesis.id,
+          isFirstCompletion,
+        })
+      }
     }
 
     return result
