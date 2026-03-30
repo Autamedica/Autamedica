@@ -362,7 +362,7 @@ export const communityRepo = {
 
     // Get recent comments on those posts, excluding the patient's own comments
     const { data: comments, error: commentsError } = await db
-      .from('post_comments')
+      .from('community_post_comments')
       .select('*')
       .in('post_id', postIds)
       .neq('author_id', patientId)
@@ -398,7 +398,7 @@ export const communityRepo = {
   ): Promise<CommunityComment> {
     const db = supabase as unknown as LooseDb;
     const { data, error } = await db
-      .from('post_comments')
+      .from('community_post_comments')
       .insert({
         post_id: payload.postId,
         author_id: payload.authorId,
@@ -422,7 +422,7 @@ export const communityRepo = {
   async findCommentById(supabase: Db, commentId: string): Promise<CommunityComment | null> {
     const db = supabase as unknown as LooseDb;
     const { data, error } = await db
-      .from('post_comments')
+      .from('community_post_comments')
       .select('*')
       .eq('id', commentId)
       .is('deleted_at', null)
@@ -445,7 +445,7 @@ export const communityRepo = {
     },
   ): Promise<void> {
     const db = supabase as unknown as LooseDb;
-    const { error } = await db.from('comment_reactions').upsert(
+    const { error } = await db.from('community_comment_reactions').upsert(
       {
         comment_id: payload.commentId,
         user_id: payload.actorId,
