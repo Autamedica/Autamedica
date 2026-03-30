@@ -32,6 +32,8 @@ export interface ExtractionServiceInput {
   sections: AnamnesisSectionRecord[]
   clarificationTurns?: AnamnesisClarificationTurn[]
   checkpoint: ExtractionCheckpoint
+  /** Sections modified in this revisit. Undefined = first visit (analyze all). */
+  modifiedSections?: string[]
 }
 
 export interface NextQuestion {
@@ -82,6 +84,7 @@ export const anamnesisExtractionService = {
       privacyAccepted: input.privacyAccepted,
       sections: input.sections,
       clarificationTurns: input.clarificationTurns,
+      modifiedSections: input.modifiedSections,
     })
 
     // 2. Execute extraction (reutiliza motor existente — OpenAI/Gemini)

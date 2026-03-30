@@ -38,4 +38,6 @@ export const ExtractInputSchema = z.object({
     )
     .max(24)
     .default([]),
+  /** Sections modified in this revisit (empty = first visit, analyze all) */
+  modifiedSections: z.array(z.string()).optional(),
 })

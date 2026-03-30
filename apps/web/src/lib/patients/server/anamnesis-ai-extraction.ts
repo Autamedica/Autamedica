@@ -467,8 +467,27 @@ export function buildAnamnesisExtractionRequest(input: {
   privacyAccepted: boolean
   sections: AnamnesisSectionRecord[]
   clarificationTurns?: AnamnesisClarificationTurn[]
+  modifiedSections?: string[]
 }): AnamnesisExtractionRequest {
   const bodySelections = extractBodySelectionsFromSections(input.sections)
+  const isRevisit = input.modifiedSections && input.modifiedSections.length > 0
+
+  const guardrails = [
+    'No emitir diagnosticos ni diferenciales.',
+    'No indicar tratamiento ni conducta terapeutica.',
+    'Consolidar texto libre disperso en una sola queja cardinal si corresponde.',
+    'Marcar datos incongruentes o aislados como alertas a confirmar.',
+    'Mantener separados hechos, inferencias y datos faltantes.',
+    'Usar bodySelections como evidencia anatomica estructurada cuando exista.',
+  ]
+
+  if (isRevisit) {
+    guardrails.push(
+      `REVISITA: El paciente actualizo las secciones [${(input.modifiedSections ?? []).join(', ')}]. Las demas secciones no cambiaron desde la ultima visita.`,
+      'Focalizar nextQuestions en las secciones modificadas. No generar preguntas sobre secciones que no cambiaron salvo que detectes una incongruencia critica con los datos nuevos.',
+      'En coverage, marcar las secciones no modificadas como adequate (son datos previos validados).',
+    )
+  }
 
   return {
     version: 'anamnesis_extraction_v2',
@@ -479,14 +498,7 @@ export function buildAnamnesisExtractionRequest(input: {
       anamnesisStatus: input.anamnesisStatus,
       privacyAccepted: input.privacyAccepted,
     },
-    guardrails: [
-      'No emitir diagnosticos ni diferenciales.',
-      'No indicar tratamiento ni conducta terapeutica.',
-      'Consolidar texto libre disperso en una sola queja cardinal si corresponde.',
-      'Marcar datos incongruentes o aislados como alertas a confirmar.',
-      'Mantener separados hechos, inferencias y datos faltantes.',
-      'Usar bodySelections como evidencia anatomica estructurada cuando exista.',
-    ],
+    guardrails,
     deterministicSummary: buildAnamnesisSummary(input.sections),
     sourceSections: input.sections,
     bodySelections,

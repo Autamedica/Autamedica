@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: parsed.error.issues[0]?.message ?? 'invalid_input' }, 400)
   }
 
-  const { checkpoint, clarificationTurns } = parsed.data
+  const { checkpoint, clarificationTurns, modifiedSections } = parsed.data
 
   if (!anamnesisExtractionService.isConfigured()) {
     return json({ success: false, error: 'ai_not_configured' }, 503)
@@ -88,6 +88,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       })),
       clarificationTurns: clarificationTurns as AnamnesisClarificationTurn[],
       checkpoint,
+      modifiedSections,
     })])
 
     logger.info('[anamnesis/extract] Extraction completed', {
