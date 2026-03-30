@@ -77,11 +77,24 @@ export function AnalysisResultOverlay({ analysisResult, onContinue }: AnalysisRe
               </div>
             )}
 
+            {analysisResult.questions.length > 0 && (
+              <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+                <h3 className="text-sm font-semibold text-sky-700 mb-1">
+                  Tenemos {analysisResult.questions.length} pregunta{analysisResult.questions.length > 1 ? 's' : ''} para vos
+                </h3>
+                <p className="text-xs text-sky-600">
+                  En el siguiente paso te vamos a pedir que aclares algunos datos para que tu médico tenga la información más completa.
+                </p>
+              </div>
+            )}
+
             <button
               onClick={onContinue}
               className="w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
             >
-              Continuar con mi historia clínica →
+              {analysisResult.questions.length > 0
+                ? 'Responder preguntas →'
+                : 'Continuar con mi historia clínica →'}
             </button>
           </div>
         )}

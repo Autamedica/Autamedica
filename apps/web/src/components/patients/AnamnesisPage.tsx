@@ -243,9 +243,11 @@ export default function AnamnesisPage() {
   }, [saveCurrentStep, isLastStep, currentStepIndex, updateAnamnesis, triggerExtraction]);
 
   const handleAnalysisContinue = useCallback(() => {
-    const hasQuestions = analysisResult?.questions && analysisResult.questions.length > 0;
     setShowAnalyzing(false);
     setAnalysisResult(null);
+
+    // Use guidance (hook state) as source of truth — ClarificationStep reads from it
+    const hasQuestions = guidance?.questions && guidance.questions.length > 0;
 
     if (hasQuestions) {
       setShowClarification(true);
@@ -256,7 +258,7 @@ export default function AnamnesisPage() {
     dismissGuidance();
     // Advance to next step
     setCurrentStepIndex((prev) => prev + 1);
-  }, [analysisResult, dismissGuidance]);
+  }, [guidance, dismissGuidance]);
 
   const handlePrev = useCallback(() => {
     if (!isFirstStep) {

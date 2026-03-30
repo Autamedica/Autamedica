@@ -89,11 +89,9 @@ export function transformGuidance(
   const sorted = [...guidance.nextQuestions]
     .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
 
-  // For partial checkpoint: only critical + high (max 3)
-  // For final checkpoint: all priorities (max 3)
-  const filtered = result.checkpoint === 'partial'
-    ? sorted.filter(q => q.priority === 'critical' || q.priority === 'high')
-    : sorted
+  // For partial checkpoint: all priorities (patient needs to see them)
+  // Critical/high sort to top naturally via priorityOrder
+  const filtered = sorted
 
   const questions = filtered
     .slice(0, MAX_QUESTIONS_PER_CHECKPOINT)
