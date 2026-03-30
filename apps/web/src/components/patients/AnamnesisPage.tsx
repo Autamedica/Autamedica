@@ -332,6 +332,9 @@ export default function AnamnesisPage() {
     // If this was the final checkpoint, complete the anamnesis
     if (pendingCheckpoint === 'final') {
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+    } else {
+      // Partial checkpoint — advance to next step
+      setCurrentStepIndex((prev) => prev + 1);
     }
 
     setPendingCheckpoint(null);
@@ -353,6 +356,9 @@ export default function AnamnesisPage() {
 
     if (pendingCheckpoint === 'final') {
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+    } else {
+      // Partial checkpoint — advance to next step
+      setCurrentStepIndex((prev) => prev + 1);
     }
 
     setPendingCheckpoint(null);
