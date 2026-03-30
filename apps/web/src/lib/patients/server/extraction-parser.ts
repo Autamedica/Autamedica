@@ -98,13 +98,23 @@ export function extractGeminiStructuredOutput(payload: Record<string, unknown>):
     }
   }
 
-  // Gemini 2.5 Pro may exhaust output budget with thinking tokens → empty response
-  // Return empty result instead of crashing — extraction is non-blocking
-  logger.warn('[extractGeminiStructuredOutput] Empty Gemini response (likely thinking token overflow)')
-  return {
-    nextQuestions: [],
-    qualityAlerts: [],
-    argenteCoverage: { adequatelyCovered: [], weakOrMissing: [] },
-    safetyFlags: [],
-  } as unknown as AnamnesisExtractionResult
+  // Extract diagnostic info from the response
+  const finishReason = candidates[0] && typeof candidates[0] === 'object'
+    ? (candidates[0] as Record<string, unknown>).finishReason
+    : 'NO_CANDIDATES'
+  const usageMetadata = payload.usageMetadata as Record<string, unknown> | undefined
+
+  logger.error('[extractGeminiStructuredOutput] Gemini returned NO text output', {
+    finishReason,
+    candidatesCount: candidates.length,
+    thoughtsTokens: usageMetadata?.thoughtsTokenCount,
+    totalTokens: usageMetadata?.totalTokenCount,
+    candidatesTokens: usageMetadata?.candidatesTokenCount,
+  })
+
+  throw new Error(
+    `Gemini no generó respuesta (finishReason: ${finishReason}, ` +
+    `thoughtTokens: ${usageMetadata?.thoughtsTokenCount ?? '?'}, ` +
+    `outputTokens: ${usageMetadata?.candidatesTokenCount ?? '?'})`,
+  )
 }

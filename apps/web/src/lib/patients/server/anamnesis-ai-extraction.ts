@@ -608,14 +608,23 @@ async function executeGeminiExtraction(
         generationConfig: {
           temperature: 0,
           seed: 1,
-          maxOutputTokens: 16384,
+          maxOutputTokens: 65536,
           responseMimeType: 'application/json',
+          // Gemini 2.5 Pro: limit internal "thinking" tokens so output budget
+          // is reserved for the actual JSON response, not consumed by reasoning.
+          thinkingConfig: { thinkingBudget: 4096 },
         },
       }),
     },
   )
 
-  const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>
+  let payload: Record<string, unknown>
+  try {
+    payload = (await response.json()) as Record<string, unknown>
+  } catch {
+    logger.error('[executeGeminiExtraction] Gemini response not JSON', { status: response.status })
+    throw new Error(`Gemini response not JSON (HTTP ${response.status})`)
+  }
   if (!response.ok) {
     logger.error('[executeGeminiExtraction] Gemini request failed', payload)
     throw new Error(

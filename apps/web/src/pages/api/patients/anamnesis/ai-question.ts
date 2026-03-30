@@ -90,8 +90,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
           contents: [{ role: 'user', parts: [{ text: userMessage }] }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 32768,
             responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 2048 },
           },
         }),
       })
