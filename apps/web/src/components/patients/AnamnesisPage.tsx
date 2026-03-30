@@ -9,6 +9,7 @@ import {
   Download,
   Loader2,
   Lock,
+  MessageCircle,
   PlayCircle,
   Plus,
 } from 'lucide-react';
@@ -25,8 +26,11 @@ import { VersionTimeline } from '@/components/patients/anamnesis/VersionTimeline
 import { PrivacyAcceptanceScreen } from '@/components/patients/anamnesis/PrivacyAcceptanceScreen';
 import { AnalysisResultOverlay } from '@/components/patients/anamnesis/AnalysisResultOverlay';
 import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour';
+import { ConversationalAnamnesis } from '@/components/patients/anamnesis/ConversationalAnamnesis';
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis';
 import type { AnamnesisSection } from '@autamedica/types';
+
+type AnamnesisMode = 'wizard' | 'conversational';
 
 const PAUSE_EVERY_N_STEPS = 4;
 const PARTIAL_CHECKPOINT_AFTER_STEP = 6; // Checkpoint 1: after step index 5 (step 6 of 13)
@@ -67,6 +71,12 @@ export default function AnamnesisPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [criticalSkipBlocked, setCriticalSkipBlocked] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [anamnesisMode, setAnamnesisMode] = useState<AnamnesisMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('autamedica:anamnesis-mode') as AnamnesisMode) || 'conversational';
+    }
+    return 'conversational';
+  });
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null>(null);
   const initializedRef = useRef(false);
@@ -526,6 +536,27 @@ export default function AnamnesisPage() {
     );
   }
 
+  // --- MODE SWITCH ---
+
+  const switchMode = useCallback((mode: AnamnesisMode) => {
+    setAnamnesisMode(mode);
+    localStorage.setItem('autamedica:anamnesis-mode', mode);
+  }, []);
+
+  // --- CONVERSATIONAL MODE ---
+  if (anamnesisMode === 'conversational') {
+    return (
+      <ConversationalAnamnesis
+        initialData={formData}
+        onComplete={() => {
+          // Refresh to show completed view
+          window.location.reload();
+        }}
+        onSwitchMode={() => switchMode('wizard')}
+      />
+    );
+  }
+
   // --- WIZARD VIEW ---
 
   if (!currentStep) return null;
@@ -542,12 +573,21 @@ export default function AnamnesisPage() {
             )}
             Paso {currentStepIndex + 1} de {anamnesisSteps.length}
           </span>
-          <button
-            onClick={() => { if (editMode) { setEditMode(false); } else { window.location.href = '/'; } }}
-            className="text-xs text-stone-500 transition-colors hover:text-stone-600"
-          >
-            {editMode ? 'Volver al resumen' : 'Guardar y salir'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => switchMode('conversational')}
+              className="text-xs text-emerald-600 transition-colors hover:text-emerald-700"
+              title="Modo conversacional — una pregunta a la vez"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => { if (editMode) { setEditMode(false); } else { window.location.href = '/'; } }}
+              className="text-xs text-stone-500 transition-colors hover:text-stone-600"
+            >
+              {editMode ? 'Volver al resumen' : 'Guardar y salir'}
+            </button>
+          </div>
         </div>
 
         {/* Progress bar */}
