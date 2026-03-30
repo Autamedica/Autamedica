@@ -89,7 +89,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           contents: [{ role: 'user', parts: [{ text: userMessage }] }],
           generationConfig: {
             temperature: 0.3,
-            maxOutputTokens: 1500,
+            maxOutputTokens: 8192,
             responseMimeType: 'application/json',
           },
         }),
@@ -103,6 +103,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
       const geminiResult = await resp.json()
       aiResponse = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      if (!aiResponse) {
+        logger.warn('[ai-question] Gemini returned empty response (thinking tokens exceeded output budget)', {
+          finishReason: geminiResult?.candidates?.[0]?.finishReason,
+          thoughtsTokens: geminiResult?.usageMetadata?.thoughtsTokenCount,
+        })
+        return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
+      }
     } else {
       // OpenAI fallback
       const apiKey = resolveServerEnv('OPENAI_API_KEY') ?? ''

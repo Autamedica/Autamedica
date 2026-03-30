@@ -608,6 +608,7 @@ async function executeGeminiExtraction(
         generationConfig: {
           temperature: 0,
           seed: 1,
+          maxOutputTokens: 16384,
           responseMimeType: 'application/json',
         },
       }),
