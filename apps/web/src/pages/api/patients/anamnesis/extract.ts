@@ -52,10 +52,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ success: false, error: 'no_anamnesis' }, 404)
     }
 
-    // Don't run extraction on already-completed anamnesis unless explicitly updating
-    if (anamnesis.status === 'completed' && !modifiedSections?.length) {
-      return json({ success: true, data: { extractionId: null, checkpoint, guidance: { nextQuestions: [], qualityAlerts: [], coverage: { adequate: [], weak: [] }, safetyFlags: [] }, hasCriticalQuestions: false } })
-    }
+    // Note: removed early-return guard for completed anamnesis.
+    // If the client explicitly requests extraction (partial/final checkpoint),
+    // always run it — the patient may be updating or re-entering the flow.
 
     const { data: sections } = await admin
       .from('anamnesis_sections')

@@ -33,7 +33,7 @@ export const ExtractInputSchema = z.object({
       z.object({
         question: z.string().min(1),
         answer: z.string().min(1),
-        answeredAt: z.string().min(1),
+        answeredAt: z.string().min(1).optional(),
       }),
     )
     .max(24)
