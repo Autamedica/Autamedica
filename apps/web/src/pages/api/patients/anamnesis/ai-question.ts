@@ -22,6 +22,22 @@ function json(data: unknown, status = 200) {
   })
 }
 
+/** In-memory rate limit: 5 AI questions per patient per hour */
+const AI_QUESTION_LIMIT = 5
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+
+function checkRateLimit(patientId: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(patientId)
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(patientId, { count: 1, resetAt: now + 3_600_000 })
+    return true
+  }
+  if (entry.count >= AI_QUESTION_LIMIT) return false
+  entry.count++
+  return true
+}
+
 const SYSTEM_PROMPT = `Sos un asistente médico de AutaMedica. El paciente acaba de describir su motivo de consulta.
 Tu tarea: generar 4–8 preguntas de seguimiento clínicamente relevantes basadas en lo que describió.
 
@@ -64,6 +80,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (chiefComplaint.length > 2000) {
     return json({ success: false, error: 'chief_complaint_too_long' }, 400)
+  }
+
+  if (!checkRateLimit(context.patientId)) {
+    return json({ success: false, error: 'rate_limit_exceeded' }, 429)
   }
 
   if (!isAnamnesisExtractionConfigured()) {

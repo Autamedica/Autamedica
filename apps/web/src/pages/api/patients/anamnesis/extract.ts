@@ -9,7 +9,11 @@ import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { anamnesisExtractionService } from '@/lib/patients/services/anamnesis-extraction.service'
+import { anamnesisExtractionRepo } from '@/lib/patients/lib/repos/anamnesis-extraction.repo'
 import { logger } from '@autamedica/shared'
+
+/** Max AI extractions per patient per day */
+const DAILY_EXTRACTION_LIMIT = 10
 import type { AnamnesisClarificationTurn } from '@/lib/patients/types/anamnesis-extraction'
 import { ExtractInputSchema } from '@/lib/patients/lib/zod/anamnesis'
 
@@ -40,6 +44,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient()
+
+    // Rate limit: max DAILY_EXTRACTION_LIMIT extractions per patient per day
+    const todayCount = await anamnesisExtractionRepo.countToday(admin, context.patientId)
+    if (todayCount >= DAILY_EXTRACTION_LIMIT) {
+      logger.warn('[anamnesis/extract] Rate limit exceeded', {
+        patientId: context.patientId,
+        todayCount,
+        limit: DAILY_EXTRACTION_LIMIT,
+      })
+      return json({ success: false, error: 'rate_limit_exceeded' }, 429)
+    }
 
     // Fetch anamnesis + sections for this patient
     const { data: anamnesis } = await admin

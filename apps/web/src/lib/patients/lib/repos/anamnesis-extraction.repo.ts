@@ -73,6 +73,25 @@ export const anamnesisExtractionRepo = {
     return (data as unknown as ExtractionRecord) ?? null
   },
 
+  /** Count extractions for a patient today (rate limiting) */
+  async countToday(supabase: Db, patientId: string): Promise<number> {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const { count, error } = await supabase
+      .from('anamnesis_extractions' as never)
+      .select('id', { count: 'exact', head: true })
+      .eq('patient_id', patientId)
+      .gte('created_at', today.toISOString())
+
+    if (error) {
+      logger.error('[anamnesisExtractionRepo] countToday failed', error)
+      return 0 // fail open — don't block patient on count errors
+    }
+
+    return count ?? 0
+  },
+
   async getByCheckpoint(
     supabase: Db,
     anamnesisId: string,
