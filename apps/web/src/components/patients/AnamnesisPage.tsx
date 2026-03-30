@@ -71,6 +71,7 @@ export default function AnamnesisPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [criticalSkipBlocked, setCriticalSkipBlocked] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [showUpdatePicker, setShowUpdatePicker] = useState(false);
   const [anamnesisMode, setAnamnesisMode] = useState<AnamnesisMode>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('autamedica:anamnesis-mode') as AnamnesisMode) || 'conversational';
@@ -496,7 +497,7 @@ export default function AnamnesisPage() {
           {/* Actions — clean black/white with cyan accent */}
           <div className="grid grid-cols-3 gap-3">
             <button
-              onClick={() => { setEditMode(true); setCurrentStepIndex(0); }}
+              onClick={() => setShowUpdatePicker(true)}
               className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white">
@@ -558,6 +559,56 @@ export default function AnamnesisPage() {
             <div className="rounded-xl bg-red-50 p-3 text-center text-xs text-red-600">{saveError}</div>
           )}
         </div>
+
+        {/* Update picker — "What do you want to update?" */}
+        {showUpdatePicker && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm sm:items-center sm:p-4">
+            <div className="absolute inset-0" onClick={() => setShowUpdatePicker(false)} />
+            <div className="relative w-full max-w-md rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl">
+              <h2 className="text-lg font-bold text-stone-900 mb-1">Que queres actualizar?</h2>
+              <p className="text-sm text-stone-500 mb-4">Elegi la seccion y te llevamos directo</p>
+              <div className="space-y-2">
+                {[
+                  { id: 'motivo_consulta', label: 'Nuevo motivo de consulta', icon: '🎯', idx: anamnesisSteps.findIndex(s => s.id === 'motivo_consulta') },
+                  { id: 'medicamentos', label: 'Medicamentos', icon: '💊', idx: anamnesisSteps.findIndex(s => s.id === 'medicamentos') },
+                  { id: 'alergias', label: 'Alergias', icon: '⚠️', idx: anamnesisSteps.findIndex(s => s.id === 'alergias') },
+                  { id: 'enfermedades_previas', label: 'Enfermedades', icon: '📋', idx: anamnesisSteps.findIndex(s => s.id === 'enfermedades_previas') },
+                  { id: 'habitos', label: 'Habitos', icon: '🏃', idx: anamnesisSteps.findIndex(s => s.id === 'habitos') },
+                  { id: 'cardiovascular', label: 'Sintomas cardiovasculares', icon: '❤️', idx: anamnesisSteps.findIndex(s => s.id === 'cardiovascular') },
+                ].map(option => (
+                  <button
+                    key={option.id}
+                    onClick={() => {
+                      setShowUpdatePicker(false);
+                      setEditMode(true);
+                      setCurrentStepIndex(option.idx >= 0 ? option.idx : 0);
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-stone-100 bg-white px-4 py-3 text-left transition hover:border-emerald-200 hover:bg-emerald-50 active:scale-[0.98]"
+                  >
+                    <span className="text-xl">{option.icon}</span>
+                    <span className="text-sm font-medium text-stone-900">{option.label}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    setShowUpdatePicker(false);
+                    setEditMode(true);
+                    setCurrentStepIndex(0);
+                  }}
+                  className="w-full rounded-xl border border-dashed border-stone-200 px-4 py-3 text-sm text-stone-500 hover:text-stone-700"
+                >
+                  Revisar todo desde el inicio
+                </button>
+              </div>
+              <button
+                onClick={() => setShowUpdatePicker(false)}
+                className="mt-3 w-full text-center text-sm text-stone-400 hover:text-stone-600"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
