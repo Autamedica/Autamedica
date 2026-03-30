@@ -192,11 +192,11 @@ CLEANUP ──────→ Limpia artefactos temporales
 
 ```
 Cloudflare Pages (5 deploys, mismo codebase)
-├── www.autamedica.com        → automedica-web.pages.dev
+├── www.autamedica.com        → autamedica-web.pages.dev
 ├── paciente.autamedica.com   → autamedica-patients-82t.pages.dev
 ├── doctor.autamedica.com     → autamedica-doctors-az6.pages.dev
 ├── empresa.autamedica.com    → autamedica-companies-drl.pages.dev
-└── admin.autamedica.com      → automedica-admin.pages.dev
+└── admin.autamedica.com      → autamedica-admin.pages.dev
 
 Cloudflare Workers
 ├── automedica-signaling-server (WebRTC)
