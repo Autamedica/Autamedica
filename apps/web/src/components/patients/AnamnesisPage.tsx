@@ -107,6 +107,11 @@ export default function AnamnesisPage() {
     }
   }, [anamnesisAuthRequired, extractionAuthRequired, redirectToPatientLogin]);
 
+  const switchMode = useCallback((mode: AnamnesisMode) => {
+    setAnamnesisMode(mode);
+    localStorage.setItem('autamedica:anamnesis-mode', mode);
+  }, []);
+
   // Determine page view
   const pageView: PageView = useMemo(() => {
     if (sessionLoading || anamnesisLoading) return 'loading';
@@ -568,11 +573,7 @@ export default function AnamnesisPage() {
   }
 
   // --- MODE SWITCH ---
-
-  const switchMode = useCallback((mode: AnamnesisMode) => {
-    setAnamnesisMode(mode);
-    localStorage.setItem('autamedica:anamnesis-mode', mode);
-  }, []);
+  // (switchMode defined above early returns to maintain hook order)
 
   // --- CONVERSATIONAL MODE ---
   if (anamnesisMode === 'conversational') {
