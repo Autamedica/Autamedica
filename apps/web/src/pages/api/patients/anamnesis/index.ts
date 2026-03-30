@@ -4,6 +4,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { anamnesisService } from '@/lib/patients/services/anamnesis.service'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
+import { SaveSectionSchema, UpdateMetaSchema } from '@/lib/patients/lib/zod/anamnesis'
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
@@ -22,23 +23,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
-  const body = await request.json().catch(() => ({})) as {
-    stepId?: unknown
-    data?: Record<string, unknown>
-    completed?: unknown
+  const raw = await request.json().catch(() => ({}))
+  const parsed = SaveSectionSchema.safeParse(raw)
+  if (!parsed.success) {
+    return badRequest(parsed.error.issues[0]?.message ?? 'invalid_input')
   }
 
-  const section = typeof body.stepId === 'string' ? body.stepId : null
-  if (!section) return badRequest('missing_step')
-
-  const completed = body.completed === true || body.completed === 'true'
+  const { stepId, data, completed } = parsed.data
 
   try {
     const result = await anamnesisService.saveSection(
       createAstroAdminClient(),
       context.patientId,
-      section,
-      body.data ?? {},
+      stepId,
+      data,
       completed,
     )
     return jsonOk(result)
@@ -52,13 +50,18 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>
+  const raw = await request.json().catch(() => ({}))
+  const parsed = UpdateMetaSchema.safeParse(raw)
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? 'invalid_input'
+    return badRequest(msg === 'At least one field is required' ? 'no_updates' : msg)
+  }
 
   try {
     const updated = await anamnesisService.updateMeta(
       createAstroAdminClient(),
       context.patientId,
-      body,
+      parsed.data,
     )
     return jsonOk(updated)
   } catch (e) {

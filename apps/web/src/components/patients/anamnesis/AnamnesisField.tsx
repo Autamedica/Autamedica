@@ -1,19 +1,55 @@
- 
-// @ts-nocheck
 'use client';
 
 import { CheckCircle, HelpCircle, Mic, MicOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AnamnesisFieldValue, AnamnesisField as FieldType } from '../../types/anamnesis';
+import type { AnamnesisFieldValue, AnamnesisField as FieldType } from '@/lib/patients/types/anamnesis';
+
+// Web Speech API types — not in default TS lib
+interface SpeechRecognitionEvent extends Event {
+  readonly results: SpeechRecognitionResultList;
+}
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+interface SpeechRecognitionResult {
+  readonly length: number;
+  [index: number]: SpeechRecognitionAlternative;
+}
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+interface SpeechRecognitionInstance extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
+}
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
 
 // --- Voice Input Hook ---
 function useVoiceInput(onResult: (text: string) => void) {
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     setSupported(!!SR);
     if (!SR) return;
 
@@ -23,7 +59,7 @@ function useVoiceInput(onResult: (text: string) => void) {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       onResult(transcript);
     };
@@ -75,9 +111,9 @@ function VoiceMicButton({ onResult, currentValue }: { onResult: (text: string) =
 }
 
 /** Convert AnamnesisFieldValue to a value safe for HTML input/select/textarea elements */
-function toInputValue(v: AnamnesisFieldValue): string | number | readonly string[] | undefined {
+function toInputValue(v: AnamnesisFieldValue): string | number | undefined {
   if (v === null || v === undefined || typeof v === 'boolean') return '';
-  if (Array.isArray(v)) return v;
+  if (Array.isArray(v)) return '';
   return v;
 }
 
@@ -231,11 +267,11 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
             className="absolute right-2 top-2 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-700 transition-all"
             title="Hablar para completar"
             onClick={() => {
-              const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+              const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
               if (!SR) return;
               const r = new SR();
               r.lang = 'es-AR';
-              r.onresult = (e) => {
+              r.onresult = (e: SpeechRecognitionEvent) => {
                 const t = e.results[0][0].transcript;
                 const cur = String(toInputValue(value) || '');
                 updateFieldValue(cur ? `${cur} ${t}` : t);
@@ -269,7 +305,8 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
         return (
           <div className="grid md:grid-cols-2 gap-3">
             {field.options?.map((option) => {
-              const isSelected = Array.isArray(value) && value.includes(option.value);
+              const currentArr = Array.isArray(value) ? value as string[] : [];
+              const isSelected = currentArr.includes(option.value);
               return (
                 <label
                   key={option.value}
@@ -283,10 +320,9 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
                     type="checkbox"
                     checked={isSelected}
                     onChange={(e) => {
-                      const currentValue = Array.isArray(value) ? value : [];
                       const newValue = e.target.checked
-                        ? [...currentValue, option.value]
-                        : currentValue.filter((v) => v !== option.value);
+                        ? [...currentArr, option.value]
+                        : currentArr.filter((v) => v !== option.value);
                       updateFieldValue(newValue);
                     }}
                     className="mt-0.5 h-4 w-4 text-sky-700 border-stone-300 rounded focus:ring-sky-500"

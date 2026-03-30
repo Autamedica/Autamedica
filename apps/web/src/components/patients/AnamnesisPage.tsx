@@ -65,6 +65,7 @@ export default function AnamnesisPage() {
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [criticalSkipBlocked, setCriticalSkipBlocked] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null>(null);
@@ -289,7 +290,17 @@ export default function AnamnesisPage() {
   }, [addClarification, pendingCheckpoint, updateAnamnesis, dismissGuidance]);
 
   const handleClarificationSkip = useCallback(async () => {
+    // Block skip if there are unanswered critical questions
+    const hasCritical = guidance?.questions?.some(
+      (q: GuidanceQuestion) => q.priority === 'critical',
+    );
+    if (hasCritical) {
+      setCriticalSkipBlocked(true);
+      return;
+    }
+
     setShowClarification(false);
+    setCriticalSkipBlocked(false);
 
     if (pendingCheckpoint === 'final') {
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
@@ -297,7 +308,7 @@ export default function AnamnesisPage() {
 
     setPendingCheckpoint(null);
     dismissGuidance();
-  }, [pendingCheckpoint, updateAnamnesis, dismissGuidance]);
+  }, [pendingCheckpoint, updateAnamnesis, dismissGuidance, guidance]);
 
   const handleAcceptPrivacy = useCallback(async () => {
     setSaving(true);
@@ -652,13 +663,26 @@ export default function AnamnesisPage() {
       {/* AI Clarification overlay */}
       {showClarification && guidance && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm">
-          <ClarificationStep
-            guidance={guidance}
-            isPartial={pendingCheckpoint === 'partial'}
-            onSubmit={handleClarificationSubmit}
-            onSkip={handleClarificationSkip}
-            isSubmitting={saving}
-          />
+          <div className="w-full max-w-2xl">
+            {criticalSkipBlocked && (
+              <div className="mx-4 mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+                <p className="text-sm font-semibold text-red-900">
+                  Hay preguntas importantes sin responder
+                </p>
+                <p className="text-sm text-red-700 mt-1">
+                  Por favor, responda las preguntas marcadas como prioritarias antes de continuar.
+                  Son necesarias para que su profesional tenga la informacion completa.
+                </p>
+              </div>
+            )}
+            <ClarificationStep
+              guidance={guidance}
+              isPartial={pendingCheckpoint === 'partial'}
+              onSubmit={handleClarificationSubmit}
+              onSkip={handleClarificationSkip}
+              isSubmitting={saving}
+            />
+          </div>
         </div>
       )}
 

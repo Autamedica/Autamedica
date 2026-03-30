@@ -11,6 +11,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { anamnesisExtractionService } from '@/lib/patients/services/anamnesis-extraction.service'
 import { logger } from '@autamedica/shared'
 import type { AnamnesisClarificationTurn } from '@/lib/patients/types/anamnesis-extraction'
+import { ExtractInputSchema } from '@/lib/patients/lib/zod/anamnesis'
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -24,15 +25,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
   // Validate input
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>
-  const checkpoint = body.checkpoint as string
-  if (checkpoint !== 'partial' && checkpoint !== 'final') {
-    return json({ success: false, error: 'invalid_checkpoint' }, 400)
+  const raw = await request.json().catch(() => ({}))
+  const parsed = ExtractInputSchema.safeParse(raw)
+  if (!parsed.success) {
+    return json({ success: false, error: parsed.error.issues[0]?.message ?? 'invalid_input' }, 400)
   }
 
-  const clarificationTurns = Array.isArray(body.clarificationTurns)
-    ? body.clarificationTurns as AnamnesisClarificationTurn[]
-    : []
+  const { checkpoint, clarificationTurns } = parsed.data
 
   if (!anamnesisExtractionService.isConfigured()) {
     return json({ success: false, error: 'ai_not_configured' }, 503)
@@ -72,8 +71,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const patientLabel = [profile?.first_name, profile?.last_name]
       .filter(Boolean).join(' ') || 'Paciente'
 
-    // Execute extraction (Capa 6)
-    const result = await anamnesisExtractionService.execute(admin, {
+    // Execute extraction (Capa 6) — 30s timeout
+    const extractionTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('extraction_timeout')), 30_000),
+    )
+    const result = await Promise.race([extractionTimeout, anamnesisExtractionService.execute(admin, {
       patientId: context.patientId,
       patientLabel,
       anamnesisId: anamnesis.id,
@@ -84,9 +86,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         data: s.data,
         completed: s.completed ?? false,
       })),
-      clarificationTurns,
+      clarificationTurns: clarificationTurns as AnamnesisClarificationTurn[],
       checkpoint,
-    })
+    })])
 
     logger.info('[anamnesis/extract] Extraction completed', {
       checkpoint,
@@ -97,8 +99,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return json({ success: true, data: result })
   } catch (err) {
-    logger.error('[anamnesis/extract] Failed', err)
     const message = err instanceof Error ? err.message : 'extraction_failed'
+    if (message === 'extraction_timeout') {
+      logger.warn('[anamnesis/extract] Timeout after 30s', { checkpoint })
+      return json({ success: false, error: 'extraction_timeout' }, 504)
+    }
+    logger.error('[anamnesis/extract] Failed', err)
     return json({ success: false, error: message }, 500)
   }
 }
