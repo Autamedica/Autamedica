@@ -50,7 +50,7 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
     setAuthRequired(false)
 
     try {
-      const result = await fetchApi<{ data: ExtractionServiceResult }>(
+      const result = await fetchApi<ExtractionServiceResult>(
         '/api/patients/anamnesis/extract',
         {
           method: 'POST',
@@ -66,13 +66,13 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
       )
 
       // Guard against malformed or empty extraction results
-      if (!result?.data?.guidance) {
+      if (!result?.guidance) {
         logger.warn('[useAnamnesisGuidance] Extraction returned no guidance data')
         setGuidance(null)
         return null
       }
 
-      const transformed = transformGuidance(result.data)
+      const transformed = transformGuidance(result)
 
       if (hasActionableGuidance(transformed)) {
         setGuidance(transformed)
