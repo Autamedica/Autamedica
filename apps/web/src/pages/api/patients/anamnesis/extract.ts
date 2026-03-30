@@ -51,6 +51,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ success: false, error: 'no_anamnesis' }, 404)
     }
 
+    // Don't run extraction on already-completed anamnesis unless explicitly updating
+    if (anamnesis.status === 'completed' && !modifiedSections?.length) {
+      return json({ success: true, data: { extractionId: null, checkpoint, guidance: { nextQuestions: [], qualityAlerts: [], coverage: { adequate: [], weak: [] }, safetyFlags: [] }, hasCriticalQuestions: false } })
+    }
+
     const { data: sections } = await admin
       .from('anamnesis_sections')
       .select('section, data, completed')
