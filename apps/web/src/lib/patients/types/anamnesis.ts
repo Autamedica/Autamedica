@@ -3,6 +3,19 @@
  * Basado en la estructura de Alvarez con storytelling médico
  */
 
+/**
+ * How a step behaves on revisit (patient already completed anamnesis before).
+ * - carry_forward: skip silently, use previous data. Patient can edit manually.
+ * - carry_forward_additive: show previous + ask "anything new?". Only adds, never removes.
+ * - confirm_on_revisit: show compact summary + ask "did anything change?". If yes, open edit.
+ * - per_visit: always ask fresh. New answers each time.
+ */
+export type StepMutability =
+  | 'carry_forward'
+  | 'carry_forward_additive'
+  | 'confirm_on_revisit'
+  | 'per_visit';
+
 export interface AnamnesisStep {
   id: string;
   title: string;
@@ -14,9 +27,11 @@ export interface AnamnesisStep {
     didYouKnow?: string;
   };
   fields: AnamnesisField[];
-  mediaUrl?: string; // URL de imagen o video educativo
+  mediaUrl?: string;
   completed: boolean;
   category: AnamnesisCategory;
+  /** How this step behaves when patient revisits. Default: per_visit */
+  mutability: StepMutability;
 }
 
 export type AnamnesisCategory =

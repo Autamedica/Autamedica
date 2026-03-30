@@ -12,6 +12,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '📅 Tu Fecha de Nacimiento',
     subtitle: 'Tu edad se calcula automáticamente a partir de tu fecha de nacimiento',
     category: 'filiacion',
+    mutability: 'carry_forward',
     completed: false,
     story: {
       intro: 'La edad es el principal factor de contexto clínico. A partir de tu fecha de nacimiento, el sistema calcula tu edad exacta y ajusta automáticamente los parámetros de riesgo.',
@@ -37,6 +38,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '💼 Tu Trabajo: Pistas Escondidas',
     subtitle: 'Cada profesión tiene sus propios riesgos de salud',
     category: 'filiacion',
+    mutability: 'confirm_on_revisit',
     completed: false,
     mediaUrl: '/videos/anamnesis/Tu_Trabajo_Tu_Salud_1.4x.mp4',
     story: {
@@ -85,6 +87,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '🎯 ¿Por Qué Consultas Hoy?',
     subtitle: 'Cuéntanos qué te trae por aquí',
     category: 'motivo_consulta',
+    mutability: 'per_visit',
     completed: false,
     mediaUrl: '/videos/anamnesis/Comunicar_tus_Síntomas_1.4x.mp4',
     story: {
@@ -132,6 +135,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '📋 Tus Enfermedades Previas',
     subtitle: 'El pasado médico explica el presente',
     category: 'antecedentes_personales',
+    mutability: 'carry_forward_additive',
     completed: false,
     mediaUrl: '/videos/anamnesis/El_mapa_genético_de_tu_salud_1.4x.mp4',
     story: {
@@ -167,6 +171,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '💊 Tus Medicamentos Actuales',
     subtitle: 'Saber qué tomas puede salvar tu vida',
     category: 'antecedentes_personales',
+    mutability: 'confirm_on_revisit',
     completed: false,
     story: {
       intro: 'Un registro farmacológico inexacto es una de las principales causas de emergencias médicas prevenibles. Para tu médico, cada píldora cuenta.',
@@ -199,6 +204,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '⚠️ Alergias: Tu Sistema de Alarma',
     subtitle: 'Una alergia mal reportada puede ser mortal',
     category: 'antecedentes_personales',
+    mutability: 'carry_forward_additive',
     completed: false,
     story: {
       intro: 'Diferenciar una hipersensibilidad real de un efecto adverso protege tu vida y evita limitar tus opciones de tratamiento en urgencias.',
@@ -231,6 +237,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '👨‍👩‍👧‍👦 Tu Historia Familiar: El Código Genético',
     subtitle: 'Las enfermedades de tu familia son pistas de tu futuro',
     category: 'antecedentes_familiares',
+    mutability: 'carry_forward',
     completed: false,
     story: {
       intro: 'Tu genética establece predisposiciones estructurales y metabólicas. Tu historial familiar revela riesgos clínicos antes de que se manifiesten.',
@@ -337,6 +344,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '🏃‍♂️ Tus Hábitos: Lo Que Haces Cada Día',
     subtitle: 'Tu estilo de vida determina el 70% de tu salud futura',
     category: 'antecedentes_personales',
+    mutability: 'confirm_on_revisit',
     completed: false,
     story: {
       intro: 'Tus rutinas diarias moldean tu pronóstico de salud con mayor fuerza que tu genética. Las decisiones crónicas dejan marcas biológicas.',
@@ -430,6 +438,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '❤️ Sistema Cardiovascular',
     subtitle: 'Tu corazón y circulación: el motor de la vida',
     category: 'revision_sistemas',
+    mutability: 'per_visit',
     completed: false,
     story: {
       intro: 'El sistema circulatorio suele emitir advertencias sutiles antes de fallar. Identificarlas a tiempo frena el daño tisular irreversible.',
@@ -492,6 +501,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '🫁 Sistema Respiratorio',
     subtitle: 'Tus pulmones: la fábrica de oxígeno',
     category: 'revision_sistemas',
+    mutability: 'per_visit',
     completed: false,
     story: {
       intro: 'Tus pulmones compensan el daño de forma silenciosa. Reconocer síntomas respiratorios tempranos evita complicaciones severas.',
@@ -549,6 +559,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '🍽️ Sistema Digestivo',
     subtitle: 'De la boca al ano: tu fábrica de nutrientes',
     category: 'revision_sistemas',
+    mutability: 'per_visit',
     completed: false,
     story: {
       intro: 'El tracto gastrointestinal reacciona tanto al estrés como a patologías severas. Sus alteraciones crónicas exigen revisión clínica.',
@@ -605,6 +616,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '💧 Sistema Genitourinario',
     subtitle: 'Riñones y vías urinarias: tu sistema de filtración',
     category: 'revision_sistemas',
+    mutability: 'per_visit',
     completed: false,
     story: {
       intro: 'Tus riñones y vías urinarias son sistemas de alta precisión. Cambios en la excreción revelan disfunciones metabólicas u oncológicas.',
@@ -653,6 +665,7 @@ export const anamnesisSteps: AnamnesisStep[] = [
     title: '✅ ¡Completaste tu Anamnesis!',
     subtitle: 'Resumen de tu historia clínica interactiva',
     category: 'revision_sistemas',
+    mutability: 'per_visit',
     completed: false,
     story: {
       intro: 'La recopilación de tus datos estructura tu perfil clínico empírico. Es la base sobre la cual el médico construirá su hipótesis diagnóstica.',

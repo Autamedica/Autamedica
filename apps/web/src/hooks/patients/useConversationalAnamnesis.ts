@@ -44,6 +44,8 @@ interface UseConversationalAnamnesisReturn {
   shouldCheckpoint: () => 'partial' | 'final' | null
   /** Set of completed stepIds based on answered fields */
   completedStepIds: Set<string>
+  /** Whether this is a revisit (patient has previously completed sections) */
+  isRevisit: boolean
 }
 
 /**
@@ -80,8 +82,33 @@ export function useConversationalAnamnesis(
     return firstUnanswered === -1 ? visible.length - 1 : firstUnanswered
   })
 
+  // Detect which sections were previously completed (for revisit logic)
+  const previouslyCompleted = useMemo(() => {
+    if (!initialData) return new Set<string>()
+    const completed = new Set<string>()
+    for (const step of anamnesisSteps) {
+      const stepData = initialData[step.id]
+      if (!stepData) continue
+      const requiredFields = step.fields.filter(f => f.required)
+      if (requiredFields.length === 0) {
+        completed.add(step.id)
+        continue
+      }
+      const allFilled = requiredFields.every(f => {
+        const val = stepData[f.id]
+        return val != null && val !== '' && !(Array.isArray(val) && val.length === 0)
+      })
+      if (allFilled) completed.add(step.id)
+    }
+    return completed
+  }, [initialData])
+
   // Flatten all fields from all steps into a linear queue
-  const allQuestions = useMemo<ConversationalQuestion[]>(() => flattenAll(), [])
+  // On revisit, respects mutability (skip carry_forward, inject confirmations)
+  const allQuestions = useMemo<ConversationalQuestion[]>(
+    () => flattenAll(previouslyCompleted),
+    [previouslyCompleted],
+  )
 
   // Filter by dependsOn using current answers
   const visibleQuestions = useMemo(
@@ -122,16 +149,25 @@ export function useConversationalAnamnesis(
   }, [answers])
 
   const getFormData = useCallback((): Record<string, Record<string, AnamnesisFieldValue>> => {
+    // Start with carried-forward data from initialData (so skipped sections don't lose data)
     const grouped: Record<string, Record<string, AnamnesisFieldValue>> = {}
+    if (initialData) {
+      for (const [stepId, fields] of Object.entries(initialData)) {
+        grouped[stepId] = { ...fields }
+      }
+    }
+    // Overlay current answers (new + updated)
     for (const [key, value] of Object.entries(answers)) {
       const dotIdx = key.indexOf('.')
       const stepId = key.substring(0, dotIdx)
       const fieldId = key.substring(dotIdx + 1)
+      // Skip synthetic revisit fields — they're UI-only
+      if (fieldId.startsWith('_revisit_')) continue
       if (!grouped[stepId]) grouped[stepId] = {}
       grouped[stepId][fieldId] = value
     }
     return grouped
-  }, [answers])
+  }, [answers, initialData])
 
   const currentStepId = current?.stepId ?? null
 
@@ -183,25 +219,102 @@ export function useConversationalAnamnesis(
     currentStepId,
     shouldCheckpoint,
     completedStepIds,
+    isRevisit: previouslyCompleted.size > 0,
   }
 }
 
 // --- Pure helpers ---
 
-function flattenAll(): ConversationalQuestion[] {
+/**
+ * Synthetic field for revisit confirmation questions.
+ * "¿Cambió algo en X?" or "¿Hay algo nuevo en X?"
+ */
+function makeRevisitField(step: typeof anamnesisSteps[number]): AnamnesisField {
+  const isAdditive = step.mutability === 'carry_forward_additive'
+  return {
+    id: `_revisit_${step.id}`,
+    type: 'boolean',
+    label: isAdditive
+      ? `¿Hay algo nuevo en ${step.title.replace(/^[^\s]+ /, '')}?`
+      : `¿Cambió algo en ${step.title.replace(/^[^\s]+ /, '')}?`,
+    required: true,
+    tooltip: isAdditive
+      ? 'Si descubriste algo nuevo desde tu última visita, respondé Sí'
+      : 'Si algo cambió desde tu última visita, respondé Sí para actualizar',
+  }
+}
+
+/**
+ * Flattens anamnesis steps into a conversational queue.
+ * On revisit (completedSections not empty), respects mutability:
+ * - carry_forward: skip entirely (data carried from previous)
+ * - carry_forward_additive: ask "anything new?" → if yes, show fields
+ * - confirm_on_revisit: ask "did anything change?" → if yes, show fields
+ * - per_visit: always show all fields
+ */
+function flattenAll(
+  completedSections?: Set<string>,
+): ConversationalQuestion[] {
+  const isRevisit = completedSections && completedSections.size > 0
   const questions: ConversationalQuestion[] = []
   let rawIndex = 0
+
   for (const step of anamnesisSteps) {
-    // Skip resumen_final — it's a confirmation, not a question
+    // Skip resumen_final — handled separately
     if (step.id === 'resumen_final') continue
+
+    const wasCompleted = isRevisit && completedSections.has(step.id)
+
+    if (wasCompleted) {
+      switch (step.mutability) {
+        case 'carry_forward':
+          // Skip entirely — data persists from previous completion
+          continue
+
+        case 'carry_forward_additive':
+        case 'confirm_on_revisit': {
+          // Inject synthetic boolean: "anything new?" / "did anything change?"
+          const revisitField = makeRevisitField(step)
+          questions.push({
+            key: `${step.id}.${revisitField.id}`,
+            stepId: step.id,
+            field: revisitField,
+            rawIndex: rawIndex++,
+          })
+          // Original fields are conditional on revisit answer = true
+          for (const field of step.fields) {
+            const conditionalField: AnamnesisField = {
+              ...field,
+              dependsOn: {
+                fieldId: revisitField.id,
+                value: true,
+              },
+            }
+            questions.push({
+              key: `${step.id}.${field.id}`,
+              stepId: step.id,
+              field: conditionalField,
+              rawIndex: rawIndex++,
+            })
+          }
+          continue
+        }
+
+        case 'per_visit':
+        default:
+          // Fall through to normal handling
+          break
+      }
+    }
+
+    // Normal: show all fields (first visit or per_visit on revisit)
     for (const field of step.fields) {
       questions.push({
         key: `${step.id}.${field.id}`,
         stepId: step.id,
         field,
-        rawIndex,
+        rawIndex: rawIndex++,
       })
-      rawIndex++
     }
   }
   return questions
