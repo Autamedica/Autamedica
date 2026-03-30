@@ -98,5 +98,13 @@ export function extractGeminiStructuredOutput(payload: Record<string, unknown>):
     }
   }
 
-  throw new Error('La respuesta de Gemini no incluyo contenido estructurado')
+  // Gemini 2.5 Pro may exhaust output budget with thinking tokens → empty response
+  // Return empty result instead of crashing — extraction is non-blocking
+  logger.warn('[extractGeminiStructuredOutput] Empty Gemini response (likely thinking token overflow)')
+  return {
+    nextQuestions: [],
+    qualityAlerts: [],
+    argenteCoverage: { adequatelyCovered: [], weakOrMissing: [] },
+    safetyFlags: [],
+  } as unknown as AnamnesisExtractionResult
 }
