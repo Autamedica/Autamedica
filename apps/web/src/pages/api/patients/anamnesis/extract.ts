@@ -21,6 +21,10 @@ function json(data: unknown, status = 200) {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  // Prime runtime env cache — Cloudflare secrets may not persist across requests
+  const { primeRuntimeEnv } = await import('@/lib/runtime-env')
+  primeRuntimeEnv((locals as Record<string, unknown>).runtime?.env as Record<string, string> | undefined)
+
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
