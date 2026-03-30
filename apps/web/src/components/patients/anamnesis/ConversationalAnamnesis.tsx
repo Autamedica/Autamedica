@@ -35,18 +35,9 @@ export function ConversationalAnamnesis({
   onComplete,
   onSwitchMode,
 }: ConversationalAnamnesisProps) {
-  const hasInitialData = initialData && Object.keys(initialData).length > 0
-  const motivo = initialData?.motivo_consulta?.motivo_principal
-  // Count total filled fields to detect partial progress
-  const filledFieldCount = initialData
-    ? Object.values(initialData).reduce((sum, section) =>
-        sum + Object.values(section).filter(v => v != null && v !== '').length, 0)
-    : 0
-
-  // Skip AI phases if patient already has meaningful data (>3 fields or has motivo)
-  const [phase, setPhase] = useState<Phase>(
-    (hasInitialData && motivo) || filledFieldCount > 3 ? 'structured' : 'chief_complaint',
-  )
+  // Always start with AI phase — returning patients benefit from AI analyzing
+  // their current complaint, even if they have prior data.
+  const [phase, setPhase] = useState<Phase>('chief_complaint')
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [aiQuestionIndex, setAiQuestionIndex] = useState(0)
   const [_aiAnswers, setAiAnswers] = useState<Record<string, string>>({})

@@ -17,8 +17,12 @@ export class ApiError extends Error {
  * - Always sends `credentials: 'include'` (session cookies).
  * - Auto-serialises body as JSON.
  * - Parses the standard `{ success, data, error }` envelope.
- * - Returns `T` directly on success.
+ * - **Returns `data` directly** — NOT the envelope.
  * - Throws `ApiError` on HTTP or envelope error.
+ *
+ * @typeParam T The type of the `data` field INSIDE the envelope.
+ *   WRONG: `fetchApi<{ success: boolean; data: Foo }>`  ← T is NOT the envelope
+ *   RIGHT: `fetchApi<Foo>`                               ← T is the unwrapped data
  */
 export async function fetchApi<T>(
   url: string,

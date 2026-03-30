@@ -627,7 +627,8 @@ export default function AnamnesisPage() {
   // (switchMode defined above early returns to maintain hook order)
 
   // --- CONVERSATIONAL MODE ---
-  if (anamnesisMode === 'conversational') {
+  // editMode uses wizard to target a specific section — don't override with conversational
+  if (anamnesisMode === 'conversational' && !editMode) {
     return (
       <ConversationalAnamnesis
         initialData={formData}

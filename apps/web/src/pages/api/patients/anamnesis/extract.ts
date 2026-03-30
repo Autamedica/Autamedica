@@ -21,11 +21,7 @@ function json(data: unknown, status = 200) {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // Prime runtime env cache — Cloudflare secrets may not persist across requests
-  const { primeRuntimeEnv } = await import('@/lib/runtime-env')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  primeRuntimeEnv((locals as any).runtime?.env as Record<string, string> | undefined)
-
+  // primeRuntimeEnv is called by middleware on every request — no need to repeat here
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
