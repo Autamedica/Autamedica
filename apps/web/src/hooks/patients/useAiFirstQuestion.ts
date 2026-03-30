@@ -49,7 +49,8 @@ export function useAiFirstQuestion(): UseAiFirstQuestionReturn {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetchApi<{ success: boolean; data?: AiQuestionResponse; error?: string }>(
+      // fetchApi unwraps { success, data } envelope → returns AiQuestionResponse directly
+      const res = await fetchApi<AiQuestionResponse>(
         '/api/patients/anamnesis/ai-question',
         {
           method: 'POST',
@@ -57,16 +58,15 @@ export function useAiFirstQuestion(): UseAiFirstQuestionReturn {
         },
       )
 
-      if (!res.success || !res.data) {
-        // AI not available — graceful fallback
-        setError(res.error ?? 'ai_unavailable')
+      if (!res?.questions || res.questions.length === 0) {
+        // AI returned no questions — graceful fallback
         return null
       }
 
-      setAiQuestions(res.data.questions)
-      setDetectedSections(res.data.detectedSections)
-      setUrgencyLevel(res.data.urgencyLevel)
-      return res.data
+      setAiQuestions(res.questions)
+      setDetectedSections(res.detectedSections ?? [])
+      setUrgencyLevel(res.urgencyLevel ?? 'normal')
+      return res
     } catch {
       setError('network_error')
       return null

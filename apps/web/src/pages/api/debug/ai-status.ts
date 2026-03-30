@@ -12,7 +12,9 @@ import {
 
 export const GET: APIRoute = async ({ locals }) => {
   // Prime runtime env from Cloudflare
-  primeRuntimeEnv((locals as Record<string, unknown>).runtime?.env as Record<string, string> | undefined)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const runtimeEnv = (locals as any).runtime?.env as Record<string, string> | undefined
+  primeRuntimeEnv(runtimeEnv)
 
   const target = resolveExtractionTarget()
   const geminiKey = resolveServerEnv('GEMINI_API_KEY')
@@ -24,7 +26,7 @@ export const GET: APIRoute = async ({ locals }) => {
     hasGeminiKey: Boolean(geminiKey),
     geminiKeyPrefix: geminiKey ? geminiKey.substring(0, 8) + '...' : null,
     hasOpenaiKey: Boolean(openaiKey),
-    runtimeEnvAvailable: Boolean((locals as Record<string, unknown>).runtime?.env),
+    runtimeEnvAvailable: Boolean(runtimeEnv),
     timestamp: new Date().toISOString(),
   }), {
     status: 200,
