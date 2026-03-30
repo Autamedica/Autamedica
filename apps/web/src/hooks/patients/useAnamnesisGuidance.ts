@@ -65,6 +65,13 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
         },
       )
 
+      // Guard against malformed or empty extraction results
+      if (!result?.data?.guidance) {
+        logger.warn('[useAnamnesisGuidance] Extraction returned no guidance data')
+        setGuidance(null)
+        return null
+      }
+
       const transformed = transformGuidance(result.data)
 
       if (hasActionableGuidance(transformed)) {
