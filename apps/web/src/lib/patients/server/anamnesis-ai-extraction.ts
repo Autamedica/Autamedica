@@ -612,7 +612,8 @@ async function executeGeminiExtraction(
           responseMimeType: 'application/json',
           // Gemini 2.5 Pro: limit internal "thinking" tokens so output budget
           // is reserved for the actual JSON response, not consumed by reasoning.
-          thinkingConfig: { thinkingBudget: 4096 },
+          // Keep low — structured JSON extraction doesn't need deep reasoning.
+          thinkingConfig: { thinkingBudget: 1024 },
         },
       }),
     },

@@ -93,7 +93,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Execute extraction (Capa 6) — 30s timeout
     const extractionTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('extraction_timeout')), 30_000),
+      setTimeout(() => reject(new Error('extraction_timeout')), 60_000),
     )
     const result = await Promise.race([extractionTimeout, anamnesisExtractionService.execute(admin, {
       patientId: context.patientId,
@@ -122,7 +122,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'extraction_failed'
     if (message === 'extraction_timeout') {
-      logger.warn('[anamnesis/extract] Timeout after 30s', { checkpoint })
+      logger.warn('[anamnesis/extract] Timeout after 60s', { checkpoint })
       return json({ success: false, error: 'extraction_timeout' }, 504)
     }
     logger.error('[anamnesis/extract] Failed', err)
