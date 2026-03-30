@@ -24,7 +24,7 @@ interface UseAnamnesisGuidanceReturn {
   isExtracting: boolean
   extractionError: string | null
   authRequired: boolean
-  triggerExtraction: (checkpoint: 'partial' | 'final') => Promise<ExtractionGuidance | null>
+  triggerExtraction: (checkpoint: 'partial' | 'final', modifiedSections?: string[]) => Promise<ExtractionGuidance | null>
   addClarification: (question: string, answer: string) => void
   dismissGuidance: () => void
 }
@@ -39,6 +39,7 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
 
   const triggerExtraction = useCallback(async (
     checkpoint: 'partial' | 'final',
+    modifiedSections?: string[],
   ): Promise<ExtractionGuidance | null> => {
     // Cancel any in-flight extraction
     abortRef.current?.abort()
@@ -59,6 +60,7 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
               question: t.question,
               answer: t.answer,
             })),
+            ...(modifiedSections && { modifiedSections }),
           },
         },
       )

@@ -164,6 +164,25 @@ export default function AnamnesisPage() {
   const isFirstStep = currentStepIndex === 0;
   const completionPct = progress?.completion_percentage ?? 0;
 
+  // Revisit detection: which steps were previously completed
+  const isRevisit = useMemo(() => {
+    if (!progress?.completed_sections) return false;
+    return progress.completed_sections.length > 0;
+  }, [progress]);
+
+  const isStepCarriedForward = useMemo(() => {
+    if (!isRevisit || !currentStep) return false;
+    const wasCompleted = progress?.completed_sections?.includes(currentStep.id);
+    return wasCompleted && (
+      currentStep.mutability === 'carry_forward'
+      || currentStep.mutability === 'carry_forward_additive'
+      || currentStep.mutability === 'confirm_on_revisit'
+    );
+  }, [isRevisit, currentStep, progress]);
+
+  // For carry_forward steps on revisit: show as readonly unless user clicks edit
+  const [editingCarriedStep, setEditingCarriedStep] = useState(false);
+
   // Visible fields (respecting dependsOn)
   const visibleFields = useMemo(() => {
     if (!currentStep) return [];
@@ -249,8 +268,20 @@ export default function AnamnesisPage() {
       return;
     }
 
-    setCurrentStepIndex(nextIndex);
-  }, [saveCurrentStep, isLastStep, currentStepIndex, updateAnamnesis, triggerExtraction]);
+    // Skip carry_forward steps on revisit (auto-advance)
+    let target = nextIndex;
+    if (isRevisit && progress?.completed_sections) {
+      while (
+        target < anamnesisSteps.length - 1
+        && anamnesisSteps[target].mutability === 'carry_forward'
+        && progress.completed_sections.includes(anamnesisSteps[target].id)
+      ) {
+        target++;
+      }
+    }
+    setEditingCarriedStep(false);
+    setCurrentStepIndex(target);
+  }, [saveCurrentStep, isLastStep, currentStepIndex, updateAnamnesis, triggerExtraction, isRevisit, progress]);
 
   const handleAnalysisContinue = useCallback(() => {
     setShowAnalyzing(false);
@@ -638,7 +669,47 @@ export default function AnamnesisPage() {
           <h1 className="text-xl font-bold text-stone-900 sm:text-2xl">{currentStep.title}</h1>
           <p className="mt-1 text-sm text-stone-500">{currentStep.subtitle}</p>
 
-          {/* Fields */}
+          {/* Revisit: carried-forward preview */}
+          {isStepCarriedForward && !editingCarriedStep ? (
+            <div className="mt-6 space-y-4">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                <p className="text-sm font-medium text-emerald-800 mb-3">
+                  {currentStep.mutability === 'carry_forward_additive'
+                    ? 'Datos anteriores — ¿hay algo nuevo?'
+                    : 'Datos anteriores — ¿cambió algo?'}
+                </p>
+                <div className="space-y-2">
+                  {currentStep.fields.filter(f => formData[currentStep.id]?.[f.id] != null).map(f => {
+                    const val = formData[currentStep.id]?.[f.id];
+                    const display = val === true ? 'Sí' : val === false ? 'No'
+                      : Array.isArray(val) ? (val as string[]).join(', ') || 'Ninguno'
+                      : String(val ?? '');
+                    return (
+                      <div key={f.id} className="flex justify-between text-sm">
+                        <span className="text-stone-600">{f.label}</span>
+                        <span className="font-medium text-stone-900 max-w-[60%] text-right truncate">{display}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setEditingCarriedStep(true)}
+                  className="flex-1 rounded-xl border-2 border-stone-200 px-4 py-3 text-sm font-medium text-stone-600 hover:border-stone-300 hover:bg-stone-50"
+                >
+                  {currentStep.mutability === 'carry_forward_additive' ? 'Sí, agregar datos' : 'Sí, actualizar'}
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700"
+                >
+                  No cambió nada
+                </button>
+              </div>
+            </div>
+          ) : (
+          /* Fields — normal edit mode */
           <div className="mt-6 space-y-5" data-tour="anamnesis-field">
             {visibleFields.map((field) => (
               <AnamnesisFieldRenderer
@@ -649,6 +720,7 @@ export default function AnamnesisPage() {
               />
             ))}
           </div>
+          )}
 
           {/* Save error */}
           {saveError && (
