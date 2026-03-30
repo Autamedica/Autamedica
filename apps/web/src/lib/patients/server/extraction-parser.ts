@@ -73,6 +73,7 @@ export function extractOpenAiStructuredOutput(payload: Record<string, unknown>):
 
 export function extractGeminiStructuredOutput(payload: Record<string, unknown>): AnamnesisExtractionResult {
   const candidates = Array.isArray(payload.candidates) ? payload.candidates : []
+  const usageMetadata = payload.usageMetadata as Record<string, unknown> | undefined
 
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== 'object') {
@@ -93,6 +94,15 @@ export function extractGeminiStructuredOutput(payload: Record<string, unknown>):
 
       const text = (part as Record<string, unknown>).text
       if (typeof text === 'string' && text.trim()) {
+        // Log token usage for monitoring thinkingBudget effectiveness
+        if (usageMetadata) {
+          logger.info('[extractGeminiStructuredOutput] Token usage', {
+            thinkingTokens: usageMetadata.thoughtsTokenCount ?? 0,
+            outputTokens: usageMetadata.candidatesTokenCount ?? 0,
+            inputTokens: usageMetadata.promptTokenCount ?? 0,
+            totalTokens: usageMetadata.totalTokenCount ?? 0,
+          })
+        }
         return parseStructuredExtractionPayload(text, 'gemini')
       }
     }
@@ -102,7 +112,6 @@ export function extractGeminiStructuredOutput(payload: Record<string, unknown>):
   const finishReason = candidates[0] && typeof candidates[0] === 'object'
     ? (candidates[0] as Record<string, unknown>).finishReason
     : 'NO_CANDIDATES'
-  const usageMetadata = payload.usageMetadata as Record<string, unknown> | undefined
 
   logger.error('[extractGeminiStructuredOutput] Gemini returned NO text output', {
     finishReason,

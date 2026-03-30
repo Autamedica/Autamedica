@@ -14,6 +14,8 @@ import {
   resolveServerEnv,
   isAnamnesisExtractionConfigured,
 } from '@/lib/patients/server/ai-provider'
+import { createAstroAdminClient } from '@/lib/supabase'
+import { anamnesisExtractionRepo } from '@/lib/patients/lib/repos/anamnesis-extraction.repo'
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -22,21 +24,8 @@ function json(data: unknown, status = 200) {
   })
 }
 
-/** In-memory rate limit: 5 AI questions per patient per hour */
-const AI_QUESTION_LIMIT = 5
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-
-function checkRateLimit(patientId: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(patientId)
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(patientId, { count: 1, resetAt: now + 3_600_000 })
-    return true
-  }
-  if (entry.count >= AI_QUESTION_LIMIT) return false
-  entry.count++
-  return true
-}
+/** Max AI question calls per patient per day (shared with extract endpoint) */
+const DAILY_AI_QUESTION_LIMIT = 5
 
 const SYSTEM_PROMPT = `Sos un asistente médico de AutaMedica. El paciente acaba de describir su motivo de consulta.
 Tu tarea: generar 4–8 preguntas de seguimiento clínicamente relevantes basadas en lo que describió.
@@ -82,7 +71,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: 'chief_complaint_too_long' }, 400)
   }
 
-  if (!checkRateLimit(context.patientId)) {
+  // DB-backed rate limit: reuses extraction count (both endpoints call Gemini)
+  const admin = createAstroAdminClient()
+  const todayCount = await anamnesisExtractionRepo.countToday(admin, context.patientId)
+  if (todayCount >= DAILY_AI_QUESTION_LIMIT) {
     return json({ success: false, error: 'rate_limit_exceeded' }, 429)
   }
 

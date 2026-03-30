@@ -1,7 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Check, CheckCircle2, Loader2 } from 'lucide-react';
 import type { GuidanceQuestion } from '@/lib/patients/services/anamnesis-guidance.service';
+
+/** Seconds before showing "skip" option on the loading spinner */
+const SLOW_THRESHOLD_S = 40;
 
 interface AnalysisResultOverlayProps {
   analysisResult: { coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null;
@@ -10,6 +14,15 @@ interface AnalysisResultOverlayProps {
 }
 
 export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: AnalysisResultOverlayProps) {
+  const [showSkip, setShowSkip] = useState(false);
+
+  // Show skip button after SLOW_THRESHOLD_S seconds of loading
+  useEffect(() => {
+    if (analysisResult) return; // already loaded
+    const timer = setTimeout(() => setShowSkip(true), SLOW_THRESHOLD_S * 1000);
+    return () => clearTimeout(timer);
+  }, [analysisResult]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-sky-50">
       <div className="mx-auto max-w-lg px-6 text-center">
@@ -34,6 +47,18 @@ export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: A
                 />
               ))}
             </div>
+
+            {showSkip && (
+              <div className="space-y-2 pt-2">
+                <p className="text-xs text-stone-400">Esto está tardando más de lo esperado</p>
+                <button
+                  onClick={onContinue}
+                  className="text-sm text-stone-500 underline transition-colors hover:text-stone-700"
+                >
+                  Continuar sin el análisis
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           // Results state
