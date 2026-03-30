@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Check, Loader2, MessageCircle, Sparkles, Send } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, MessageCircle, Sparkles, Send, Mic } from 'lucide-react'
 import { useConversationalAnamnesis } from '@/hooks/patients/useConversationalAnamnesis'
 import { useAnamnesis } from '@/hooks/patients/useAnamnesis'
 import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance'
 import { useAiFirstQuestion, type AiQuestion } from '@/hooks/patients/useAiFirstQuestion'
+import { VoiceAnamnesis } from './VoiceAnamnesis'
 import { ConversationalField } from './ConversationalField'
 import { ClarificationStep } from './ClarificationStep'
 import { AnalysisResultOverlay } from './AnalysisResultOverlay'
@@ -41,6 +42,7 @@ export function ConversationalAnamnesis({
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [aiQuestionIndex, setAiQuestionIndex] = useState(0)
   const [_aiAnswers, setAiAnswers] = useState<Record<string, string>>({})
+  const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
 
   const {
     current,
@@ -99,7 +101,37 @@ export function ConversationalAnamnesis({
     }
   }, [phase])
 
-  // --- Phase 1: Submit chief complaint to AI ---
+  // --- Phase 1 (voice): Handle data from voice conversation ---
+  const handleVoiceDataExtracted = useCallback(async (data: {
+    chiefComplaint: string
+    transcript: { role: string; text: string; timestamp: number }[]
+    detectedSections: string[]
+  }) => {
+    // Save chief complaint
+    if (data.chiefComplaint) {
+      await updateSection('motivo_consulta' as AnamnesisSection, {
+        motivo_principal: data.chiefComplaint,
+      })
+    }
+
+    // Save transcript as additional context
+    const transcriptText = data.transcript
+      .map(t => `${t.role === 'user' ? 'Paciente' : 'AutaMedica'}: ${t.text}`)
+      .join('\n')
+
+    if (transcriptText) {
+      await updateSection('motivo_consulta' as AnamnesisSection, {
+        motivo_principal: data.chiefComplaint,
+        contexto_conversacion_ia: transcriptText,
+      })
+    }
+
+    // Skip AI questions phase — voice already covered them
+    // Go directly to structured questions, skipping detected sections
+    setPhase('structured')
+  }, [updateSection])
+
+  // --- Phase 1 (text): Submit chief complaint to AI ---
   const handleChiefComplaintSubmit = useCallback(async () => {
     if (!chiefComplaint.trim() || chiefComplaint.length < 5) return
 
@@ -266,7 +298,7 @@ export function ConversationalAnamnesis({
       </header>
 
       <div className="mx-auto w-full max-w-lg flex-1 px-4">
-        {/* ====== PHASE 1: Chief Complaint ====== */}
+        {/* ====== PHASE 1: Chief Complaint (Voice or Text) ====== */}
         {phase === 'chief_complaint' && (
           <div ref={questionRef} className="py-8">
             <div className="mb-3 flex items-center gap-2">
@@ -279,53 +311,89 @@ export function ConversationalAnamnesis({
             <h2 className="mb-2 text-2xl font-bold leading-snug text-stone-900 sm:text-3xl">
               ¿Cuál es tu motivo de consulta?
             </h2>
-            <p className="mb-6 text-sm text-stone-400">
-              Describí brevemente tus síntomas o el motivo por el que necesitás atención médica
-            </p>
 
-            <textarea
-              ref={textareaRef}
-              value={chiefComplaint}
-              onChange={e => setChiefComplaint(e.target.value)}
-              placeholder="Ej: Tengo dolor de cabeza del lado derecho desde hace 3 días, empeora por la tarde..."
-              className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-lg text-stone-900 placeholder:text-stone-300 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 resize-none"
-              rows={4}
-              maxLength={2000}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleChiefComplaintSubmit()
-                }
-              }}
-            />
-
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-xs text-stone-300">
-                {chiefComplaint.length > 0 ? `${chiefComplaint.length}/2000` : ''}
-              </span>
+            {/* Mode toggle */}
+            <div className="mb-6 flex gap-2">
               <button
-                onClick={handleChiefComplaintSubmit}
-                disabled={chiefComplaint.trim().length < 5 || aiLoading}
-                className="flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => setInputMode('voice')}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                  inputMode === 'voice'
+                    ? 'bg-sky-600 text-white shadow-lg'
+                    : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                }`}
               >
-                {aiLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Analizando...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Enviar
-                  </>
-                )}
+                <Mic className="h-4 w-4" />
+                Hablar
+              </button>
+              <button
+                onClick={() => setInputMode('text')}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                  inputMode === 'text'
+                    ? 'bg-sky-600 text-white shadow-lg'
+                    : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                }`}
+              >
+                <Send className="h-4 w-4" />
+                Escribir
               </button>
             </div>
 
-            {aiError && (
-              <p className="mt-3 text-xs text-amber-600">
-                El análisis automático no está disponible en este momento. Continuamos con el cuestionario clínico.
-              </p>
+            {inputMode === 'voice' ? (
+              <VoiceAnamnesis
+                onDataExtracted={handleVoiceDataExtracted}
+                onSwitchToText={() => setInputMode('text')}
+              />
+            ) : (
+              <>
+                <p className="mb-4 text-sm text-stone-400">
+                  Describí brevemente tus síntomas o el motivo por el que necesitás atención médica
+                </p>
+
+                <textarea
+                  ref={textareaRef}
+                  value={chiefComplaint}
+                  onChange={e => setChiefComplaint(e.target.value)}
+                  placeholder="Ej: Tengo dolor de cabeza del lado derecho desde hace 3 días..."
+                  className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-lg text-stone-900 placeholder:text-stone-300 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 resize-none"
+                  rows={4}
+                  maxLength={2000}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleChiefComplaintSubmit()
+                    }
+                  }}
+                />
+
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-xs text-stone-300">
+                    {chiefComplaint.length > 0 ? `${chiefComplaint.length}/2000` : ''}
+                  </span>
+                  <button
+                    onClick={handleChiefComplaintSubmit}
+                    disabled={chiefComplaint.trim().length < 5 || aiLoading}
+                    className="flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {aiLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Analizando...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Enviar
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {aiError && (
+                  <p className="mt-3 text-xs text-amber-600">
+                    El análisis automático no está disponible. Continuamos con el cuestionario clínico.
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}
