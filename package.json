@@ -219,7 +219,9 @@
       "path-to-regexp": ">=0.1.12",
       "jws": ">=3.2.3",
       "svgo": ">=4.0.1",
-      "flatted": ">=3.4.2"
+      "flatted": ">=3.4.2",
+      "handlebars": ">=4.7.9",
+      "happy-dom": ">=20.8.8"
     },
     "patchedDependencies": {
       "astro": "patches/astro.patch"
