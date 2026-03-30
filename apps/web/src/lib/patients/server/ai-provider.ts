@@ -1,4 +1,5 @@
 import { getServerEnvOrDefault } from '@autamedica/shared'
+import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
 const DEFAULT_OPENAI_MODEL = 'gpt-5.4-2026-03-05'
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro'
@@ -24,13 +25,17 @@ export function normalizeProviderPreference(value: string | null | undefined): E
  * Cloudflare Pages secrets are exposed via import.meta.env at runtime in Astro SSR.
  */
 export function resolveServerEnv(name: string): string | undefined {
-  // 1. Astro / Vite — import.meta.env (works in Cloudflare Pages)
+  // 1. Cloudflare runtime cache (primed by middleware from context.locals.runtime.env)
+  const cached = getRuntimeEnvValue(name)
+  if (cached) return cached
+
+  // 2. Astro / Vite — import.meta.env
   try {
     const metaVal = (import.meta as unknown as { env: Record<string, string> }).env?.[name]
     if (metaVal) return metaVal
   } catch { /* not available */ }
 
-  // 2. Node / fallback — process.env
+  // 3. Node / fallback — process.env
   try {
     return getServerEnvOrDefault(name)
   } catch { /* not available */ }

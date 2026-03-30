@@ -34,6 +34,14 @@ function readProcess(keys: string[]): string | undefined {
   return undefined;
 }
 
+/**
+ * Read a single env var from the Cloudflare runtime cache.
+ * Use after primeRuntimeEnv() has been called by middleware.
+ */
+export function getRuntimeEnvValue(key: string): string | undefined {
+  return cachedRuntimeEnv[key] || undefined;
+}
+
 export function primeRuntimeEnv(runtimeEnv?: RuntimeEnvRecord): void {
   if (!runtimeEnv) return;
 
