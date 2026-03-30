@@ -6,6 +6,62 @@ import {
   parseStructuredExtractionPayload,
 } from './extraction-parser'
 
+/** Minimal valid extraction result that passes Zod schema */
+const VALID_RESULT = {
+  normalizedOpenFields: {
+    ageMonths: 420,
+    occupationCategory: 'technology',
+    occupationYears: 10,
+    chiefComplaintCode: 'headache',
+    medicationFamilies: [],
+    allergyGroups: [],
+    fatherDeathCause: 'alive',
+    motherDeathCause: 'alive',
+    chestPainPhenotype: null,
+    coughPhenotype: null,
+    redFlagCodes: [],
+  },
+  chiefComplaint: {
+    rawText: 'Dolor de cabeza',
+    normalizedMedicalText: 'Cefalea tensional',
+    sourceSections: ['motivo_consulta'],
+    contextualMismatch: false,
+  },
+  presentIllness: {
+    chronology: '3 días',
+    severity: 'moderado',
+    clinicalNarrative: 'Cefalea holocraneana de 3 días de evolución',
+    associatedSymptoms: ['fotofobia'],
+    aggravatingFactors: ['estrés'],
+    relievingFactors: ['reposo'],
+    treatmentsTried: ['ibuprofeno'],
+    missingData: [],
+  },
+  personalHistory: {
+    physiological: [],
+    pathological: [],
+    lifestyleAndContext: ['sedentarismo'],
+  },
+  familyHistory: [],
+  reviewOfSystems: {
+    cardiovascular: [],
+    respiratory: [],
+    digestive: [],
+    genitourinary: [],
+  },
+  qualityAlerts: [],
+  argenteCoverage: { adequatelyCovered: ['motivo_consulta'], weakOrMissing: ['antecedentes'] },
+  dataIntegrity: {
+    contradictions: [],
+    possibleMiscalicks: [],
+    duplicatedNarratives: [],
+    missingCriticalData: [],
+  },
+  clinicianQuestions: [],
+  nextQuestions: [],
+  safetyFlags: [],
+}
+
 // ─── isJsonObject ────────────────────────────────────────────────────
 describe('isJsonObject', () => {
   it('returns true for plain objects', () => {
@@ -29,13 +85,7 @@ describe('isJsonObject', () => {
 // ─── parseStructuredExtractionPayload ────────────────────────────────
 describe('parseStructuredExtractionPayload', () => {
   it('parses valid JSON and returns result', () => {
-    const payload = JSON.stringify({
-      nextQuestions: [],
-      qualityAlerts: [],
-      argenteCoverage: { adequatelyCovered: [], weakOrMissing: [] },
-      safetyFlags: [],
-    })
-
+    const payload = JSON.stringify(VALID_RESULT)
     const result = parseStructuredExtractionPayload(payload, 'gemini')
     expect(result.nextQuestions).toEqual([])
     expect(result.safetyFlags).toEqual([])
@@ -47,26 +97,23 @@ describe('parseStructuredExtractionPayload', () => {
     ).toThrow('La salida del modelo no fue JSON valido')
   })
 
-  it('returns raw data when Zod validation fails (warn-and-continue)', () => {
-    // Missing required fields — Zod will fail but function returns raw
+  it('throws when Zod validation fails (strict medical data)', () => {
+    // Missing required fields — Zod will fail and function MUST throw
     const payload = JSON.stringify({ unexpected: 'data' })
-    const result = parseStructuredExtractionPayload(payload, 'openai')
-    expect((result as Record<string, unknown>).unexpected).toBe('data')
+    expect(() =>
+      parseStructuredExtractionPayload(payload, 'openai'),
+    ).toThrow(/Validación de datos fallida/)
   })
 
   it('handles valid payload with populated fields', () => {
-    const payload = JSON.stringify({
+    const withQuestions = {
+      ...VALID_RESULT,
       nextQuestions: [
-        { id: 'q1', question: '¿Cuánto hace?', priority: 'high', targetSection: 'sintomas' },
+        { priority: 'high', targetSection: 'enfermedad_actual', questionType: 'open', question: '¿Cuánto hace?', rationale: 'Temporalidad' },
       ],
-      qualityAlerts: [{ type: 'missing_info', message: 'Falta duración' }],
-      argenteCoverage: {
-        adequatelyCovered: ['motivo_consulta'],
-        weakOrMissing: ['antecedentes'],
-      },
-      safetyFlags: [],
-    })
-
+      qualityAlerts: [{ severity: 'medium', code: 'missing_duration', message: 'Falta duración', sourceSections: ['enfermedad_actual'] }],
+    }
+    const payload = JSON.stringify(withQuestions)
     const result = parseStructuredExtractionPayload(payload, 'gemini')
     expect(result.nextQuestions).toHaveLength(1)
     expect(result.nextQuestions[0].priority).toBe('high')
@@ -80,16 +127,7 @@ describe('extractGeminiStructuredOutput', () => {
     candidates: [
       {
         content: {
-          parts: [
-            {
-              text: JSON.stringify({
-                nextQuestions: [],
-                qualityAlerts: [],
-                argenteCoverage: { adequatelyCovered: ['motivo'], weakOrMissing: [] },
-                safetyFlags: [],
-              }),
-            },
-          ],
+          parts: [{ text: JSON.stringify(VALID_RESULT) }],
         },
         finishReason: 'STOP',
       },
@@ -104,7 +142,7 @@ describe('extractGeminiStructuredOutput', () => {
 
   it('extracts valid structured output from Gemini response', () => {
     const result = extractGeminiStructuredOutput(validGeminiPayload)
-    expect(result.argenteCoverage.adequatelyCovered).toContain('motivo')
+    expect(result.argenteCoverage.adequatelyCovered).toContain('motivo_consulta')
     expect(result.nextQuestions).toEqual([])
   })
 
@@ -184,38 +222,21 @@ describe('extractGeminiStructuredOutput', () => {
 // ─── extractOpenAiStructuredOutput ───────────────────────────────────
 describe('extractOpenAiStructuredOutput', () => {
   it('extracts from output_text field', () => {
-    const payload = {
-      output_text: JSON.stringify({
-        nextQuestions: [],
-        qualityAlerts: [],
-        argenteCoverage: { adequatelyCovered: [], weakOrMissing: [] },
-        safetyFlags: [],
-      }),
-    }
-
+    const payload = { output_text: JSON.stringify(VALID_RESULT) }
     const result = extractOpenAiStructuredOutput(payload)
     expect(result.nextQuestions).toEqual([])
   })
 
   it('extracts from output[].content[].text', () => {
-    const payload = {
-      output: [
-        {
-          content: [
-            {
-              type: 'output_text',
-              text: JSON.stringify({
-                nextQuestions: [{ id: 'q1', question: 'test', priority: 'medium' }],
-                qualityAlerts: [],
-                argenteCoverage: { adequatelyCovered: [], weakOrMissing: [] },
-                safetyFlags: [],
-              }),
-            },
-          ],
-        },
+    const withQuestion = {
+      ...VALID_RESULT,
+      nextQuestions: [
+        { priority: 'medium', targetSection: 'motivo_consulta', questionType: 'open', question: 'test', rationale: 'test' },
       ],
     }
-
+    const payload = {
+      output: [{ content: [{ type: 'output_text', text: JSON.stringify(withQuestion) }] }],
+    }
     const result = extractOpenAiStructuredOutput(payload)
     expect(result.nextQuestions).toHaveLength(1)
   })

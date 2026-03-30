@@ -1,13 +1,17 @@
 /**
- * API: Secure Gemini API key delivery for Live API WebSocket.
- * Browser connects directly to Gemini Live WS — this endpoint
- * provides the key only to authenticated patients, rate-limited.
+ * API: Gemini Live session config (NO API key exposed).
+ * Returns only the model name and WS endpoint hostname.
+ * The actual API key stays server-side.
+ *
+ * SECURITY: Previously this endpoint returned the full WS URL with
+ * the API key as query param — exposing it to any browser DevTools user.
+ * Now the browser must use /api/patients/anamnesis/live-relay for audio.
  *
  * GET /api/patients/anamnesis/live-token
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-import { resolveServerEnv } from '@/lib/patients/server/ai-provider'
+import { isAnamnesisExtractionConfigured } from '@/lib/patients/server/ai-provider'
 import { logger } from '@autamedica/shared'
 
 function json(data: unknown, status = 200) {
@@ -25,7 +29,6 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
-  // Rate limit
   const now = Date.now()
   const entry = liveRateMap.get(context.patientId)
   if (entry && now < entry.resetAt && entry.count >= LIVE_LIMIT) {
@@ -37,18 +40,19 @@ export const GET: APIRoute = async ({ request, locals }) => {
     entry.count++
   }
 
-  const apiKey = resolveServerEnv('GEMINI_API_KEY')
-  if (!apiKey) {
+  if (!isAnamnesisExtractionConfigured()) {
     return json({ success: false, error: 'ai_not_configured' }, 503)
   }
 
-  logger.info('[live-token] Token issued', { patientId: context.patientId })
+  logger.info('[live-token] Session authorized', { patientId: context.patientId })
 
+  // Return only public info — API key never leaves the server
   return json({
     success: true,
     data: {
-      wsUrl: `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`,
+      relayUrl: '/api/patients/anamnesis/live-relay',
       model: 'models/gemini-3.1-flash-live-preview',
+      configured: true,
     },
   })
 }

@@ -30,6 +30,7 @@ export async function fetchApi<T>(
     method?: string
     body?: unknown
     headers?: Record<string, string>
+    signal?: AbortSignal
   },
 ): Promise<T> {
   const method = options?.method ?? (options?.body ? 'POST' : 'GET')
@@ -44,6 +45,7 @@ export async function fetchApi<T>(
     headers,
     credentials: 'include',
     body: options?.body ? JSON.stringify(options.body) : undefined,
+    signal: options?.signal,
   })
 
   // Try to parse JSON regardless of status — errors also come as JSON

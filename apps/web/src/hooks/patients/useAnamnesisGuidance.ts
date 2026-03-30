@@ -62,6 +62,7 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
             })),
             ...(modifiedSections && { modifiedSections }),
           },
+          signal: abortRef.current.signal,
         },
       )
 

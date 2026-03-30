@@ -26,14 +26,19 @@ export function parseStructuredExtractionPayload(
 
   const validation = AnamnesisExtractionResultSchema.safeParse(parsedPayload)
   if (!validation.success) {
-    logger.warn(`[extract ${providerName}] Structured output validation issues (using raw)`, {
-      issues: validation.error.issues.slice(0, 5).map((issue) => ({
-        path: issue.path.join('.'),
-        code: issue.code,
-        message: issue.message,
-      })),
-    })
-    return parsedPayload as AnamnesisExtractionResult
+    const issues = validation.error.issues.slice(0, 5).map((issue) => ({
+      path: issue.path.join('.'),
+      code: issue.code,
+      message: issue.message,
+    }))
+
+    logger.error(`[extract ${providerName}] Structured output validation FAILED`, { issues })
+
+    // For medical data: reject invalid output, don't silently pass it through.
+    // The caller will catch this and show an appropriate message to the patient.
+    throw new Error(
+      `Validación de datos fallida: ${issues.map(i => `${i.path}: ${i.message}`).join('; ')}`,
+    )
   }
 
   return validation.data as AnamnesisExtractionResult
