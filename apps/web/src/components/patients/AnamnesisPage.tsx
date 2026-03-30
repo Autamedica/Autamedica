@@ -238,15 +238,30 @@ export default function AnamnesisPage() {
     const saved = await saveCurrentStep();
     if (!saved) return;
 
-    // Checkpoint 2 (final): before marking completed
+    // Checkpoint 2 (final): before marking completed — show ALL questions
     if (isLastStep) {
       setPendingCheckpoint('final');
+      setShowAnalyzing(true);
+      setAnalysisResult(null);
+
       const result = await triggerExtraction('final');
-      if (result?.hasCritical) {
-        setShowClarification(true);
-        return;
+
+      setAnalysisResult({
+        coverage: result?.coverage ?? [],
+        gaps: result?.gaps ?? [],
+        questions: result?.questions ?? [],
+      });
+
+      // If there are ANY questions, show them (not just critical)
+      if (result?.questions && result.questions.length > 0) {
+        return; // User clicks "Responder preguntas" → handleAnalysisContinue → showClarification
       }
-      // No critical questions or extraction failed — complete
+
+      // No questions — complete directly
+      setShowAnalyzing(false);
+      setAnalysisResult(null);
+      setPendingCheckpoint(null);
+      dismissGuidance();
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
       return;
     }
@@ -830,6 +845,7 @@ export default function AnamnesisPage() {
         <AnalysisResultOverlay
           analysisResult={analysisResult}
           onContinue={handleAnalysisContinue}
+          isFinal={pendingCheckpoint === 'final'}
         />
       )}
 

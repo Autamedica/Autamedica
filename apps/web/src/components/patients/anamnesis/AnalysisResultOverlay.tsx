@@ -6,9 +6,10 @@ import type { GuidanceQuestion } from '@/lib/patients/services/anamnesis-guidanc
 interface AnalysisResultOverlayProps {
   analysisResult: { coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null;
   onContinue: () => void;
+  isFinal?: boolean;
 }
 
-export function AnalysisResultOverlay({ analysisResult, onContinue }: AnalysisResultOverlayProps) {
+export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: AnalysisResultOverlayProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-sky-50">
       <div className="mx-auto max-w-lg px-6 text-center">
@@ -42,7 +43,9 @@ export function AnalysisResultOverlay({ analysisResult, onContinue }: AnalysisRe
                 <CheckCircle2 className="h-8 w-8 text-emerald-700" />
               </div>
               <h2 className="mt-3 text-xl font-bold text-stone-900">Análisis completado</h2>
-              <p className="mt-1 text-sm text-stone-600">Llevás la mitad de tu historia clínica</p>
+              <p className="mt-1 text-sm text-stone-600">
+                {isFinal ? 'Revisión final de tu historia clínica' : 'Llevás la mitad de tu historia clínica'}
+              </p>
             </div>
 
             {analysisResult.coverage.length > 0 && (
