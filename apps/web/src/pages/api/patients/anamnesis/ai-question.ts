@@ -91,36 +91,50 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (target.providerName === 'gemini') {
       const apiKey = resolveServerEnv('GEMINI_API_KEY') ?? ''
-      const model = target.modelName
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+      const models = [target.modelName, 'gemini-2.0-flash'] // primary + fallback
+      let geminiResult: Record<string, unknown> | null = null
 
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 32768,
-            responseMimeType: 'application/json',
-            thinkingConfig: { thinkingBudget: 2048 },
-          },
-        }),
-      })
+      for (let attempt = 0; attempt < models.length; attempt++) {
+        const model = models[attempt]
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
 
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => 'unknown')
-        logger.error('[ai-question] Gemini error', { status: resp.status, body: errText })
-        return json({ success: false, error: 'ai_provider_error' }, 502)
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 32768,
+              responseMimeType: 'application/json',
+              thinkingConfig: { thinkingBudget: 2048 },
+            },
+          }),
+        })
+
+        if (!resp.ok) {
+          const errText = await resp.text().catch(() => 'unknown')
+          const isRetryable = resp.status === 429 || resp.status === 503
+            || errText.includes('high demand') || errText.includes('overloaded')
+
+          if (isRetryable && attempt < models.length - 1) {
+            logger.warn(`[ai-question] ${model} overloaded (${resp.status}), falling back to ${models[attempt + 1]}`)
+            await new Promise(r => setTimeout(r, 1500))
+            continue
+          }
+          logger.error('[ai-question] Gemini error', { status: resp.status, body: errText, model })
+          return json({ success: false, error: 'ai_provider_error' }, 502)
+        }
+
+        geminiResult = await resp.json()
+        break
       }
 
-      const geminiResult = await resp.json()
-      aiResponse = geminiResult?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+      aiResponse = (geminiResult as Record<string, unknown>)?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
       if (!aiResponse) {
-        logger.warn('[ai-question] Gemini returned empty response (thinking tokens exceeded output budget)', {
-          finishReason: geminiResult?.candidates?.[0]?.finishReason,
-          thoughtsTokens: geminiResult?.usageMetadata?.thoughtsTokenCount,
+        logger.warn('[ai-question] Gemini returned empty response', {
+          finishReason: (geminiResult as Record<string, unknown>)?.candidates?.[0]?.finishReason,
         })
         return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
       }

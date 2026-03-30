@@ -643,6 +643,47 @@ async function executeGeminiExtraction(
   }
 }
 
+/** Gemini fallback model when primary is overloaded (429/503) */
+const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash'
+
+/** Retry with exponential backoff + model fallback */
+async function executeGeminiWithRetry(
+  target: ExtractionTarget,
+  request: AnamnesisExtractionRequest,
+  maxRetries = 2,
+): ReturnType<typeof executeGeminiExtraction> {
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const currentTarget = attempt <= 1
+      ? target
+      : { ...target, modelName: GEMINI_FALLBACK_MODEL } // last attempt: fallback model
+
+    try {
+      return await executeGeminiExtraction(currentTarget, request)
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      const msg = lastError.message.toLowerCase()
+      const isRetryable = msg.includes('high demand') || msg.includes('overloaded')
+        || msg.includes('429') || msg.includes('503') || msg.includes('resource exhausted')
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw lastError
+      }
+
+      const delayMs = 2000 * (attempt + 1) // 2s, 4s
+      logger.warn(`[executeGeminiWithRetry] Attempt ${attempt + 1} failed (${lastError.message}), retrying in ${delayMs}ms`, {
+        attempt,
+        model: currentTarget.modelName,
+        nextModel: attempt + 1 <= 1 ? target.modelName : GEMINI_FALLBACK_MODEL,
+      })
+      await new Promise(r => setTimeout(r, delayMs))
+    }
+  }
+
+  throw lastError ?? new Error('Extraction failed after retries')
+}
+
 export async function executeAnamnesisExtraction(
   request: AnamnesisExtractionRequest,
 ): Promise<{
@@ -657,7 +698,7 @@ export async function executeAnamnesisExtraction(
   }
 
   if (target.providerName === 'gemini') {
-    return executeGeminiExtraction(target, request)
+    return executeGeminiWithRetry(target, request)
   }
 
   return executeOpenAiExtraction(target, request)
