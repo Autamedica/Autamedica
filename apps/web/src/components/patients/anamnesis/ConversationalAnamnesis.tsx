@@ -249,7 +249,7 @@ export function ConversationalAnamnesis({
             Ver formulario
           </button>
           <div className="flex items-center gap-2">
-            {(saving || aiLoading) && <Loader2 className="h-3 w-3 animate-spin text-emerald-500" />}
+            {(saving || aiLoading) && <Loader2 className="h-3 w-3 animate-spin text-sky-500" />}
             <span className="text-xs font-medium text-stone-400">
               {completedPhases + 1}/{totalPhases}
             </span>
@@ -258,7 +258,7 @@ export function ConversationalAnamnesis({
         <div className="mx-auto max-w-lg px-4 pb-2">
           <div className="h-1 rounded-full bg-stone-100">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+              className="h-full rounded-full bg-sky-500 transition-all duration-700 ease-out"
               style={{ width: `${overallProgress}%` }}
             />
           </div>
@@ -270,25 +270,25 @@ export function ConversationalAnamnesis({
         {phase === 'chief_complaint' && (
           <div ref={questionRef} className="py-8">
             <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-emerald-600" />
-              <span className="text-xs font-medium text-emerald-600 uppercase tracking-wide">
+              <Sparkles className="h-5 w-5 text-sky-600" />
+              <span className="text-xs font-medium text-sky-600 uppercase tracking-wide">
                 AutaMedica IA
               </span>
             </div>
 
             <h2 className="mb-2 text-2xl font-bold leading-snug text-stone-900 sm:text-3xl">
-              ¿Qué te trae hoy?
+              ¿Cuál es tu motivo de consulta?
             </h2>
             <p className="mb-6 text-sm text-stone-400">
-              Contame con tus palabras qué te pasa o por qué querés consultar
+              Describí brevemente tus síntomas o el motivo por el que necesitás atención médica
             </p>
 
             <textarea
               ref={textareaRef}
               value={chiefComplaint}
               onChange={e => setChiefComplaint(e.target.value)}
-              placeholder="Ej: Hace 3 días me duele la cabeza del lado derecho, sobre todo a la tarde..."
-              className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-lg text-stone-900 placeholder:text-stone-300 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 resize-none"
+              placeholder="Ej: Tengo dolor de cabeza del lado derecho desde hace 3 días, empeora por la tarde..."
+              className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-lg text-stone-900 placeholder:text-stone-300 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 resize-none"
               rows={4}
               maxLength={2000}
               onKeyDown={e => {
@@ -306,7 +306,7 @@ export function ConversationalAnamnesis({
               <button
                 onClick={handleChiefComplaintSubmit}
                 disabled={chiefComplaint.trim().length < 5 || aiLoading}
-                className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {aiLoading ? (
                   <>
@@ -324,7 +324,7 @@ export function ConversationalAnamnesis({
 
             {aiError && (
               <p className="mt-3 text-xs text-amber-600">
-                IA no disponible — continuamos con preguntas estándar
+                El análisis automático no está disponible en este momento. Continuamos con el cuestionario clínico.
               </p>
             )}
           </div>
@@ -356,8 +356,8 @@ export function ConversationalAnamnesis({
                   const val = getAnswer(q.key)
                   return (
                     <div key={q.key} className="flex items-start gap-3 opacity-40">
-                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100">
+                        <Check className="h-3.5 w-3.5 text-sky-600" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm text-stone-500">{q.field.label}</p>
@@ -373,8 +373,8 @@ export function ConversationalAnamnesis({
 
             <div ref={questionRef} className="py-4">
               <div className="mb-2 flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-emerald-600" />
-                <span className="text-xs font-medium text-emerald-600 uppercase tracking-wide">
+                <MessageCircle className="h-5 w-5 text-sky-600" />
+                <span className="text-xs font-medium text-sky-600 uppercase tracking-wide">
                   AutaMedica
                 </span>
               </div>
@@ -478,8 +478,8 @@ const AiQuestionView = forwardRef<HTMLDivElement, AiQuestionViewProps>(
     return (
       <div ref={ref} className="py-8">
         <div className="mb-3 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-emerald-600" />
-          <span className="text-xs font-medium text-emerald-600 uppercase tracking-wide">
+          <Sparkles className="h-5 w-5 text-sky-600" />
+          <span className="text-xs font-medium text-sky-600 uppercase tracking-wide">
             AutaMedica IA — Pregunta {questionNumber}/{totalQuestions}
           </span>
           {question.priority === 'critical' && (
@@ -492,7 +492,7 @@ const AiQuestionView = forwardRef<HTMLDivElement, AiQuestionViewProps>(
         {urgencyLevel === 'urgent' && questionNumber === 1 && (
           <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-3">
             <p className="text-sm font-medium text-red-800">
-              Detectamos síntomas que requieren atención. Respondé estas preguntas para ayudar al médico.
+              Identificamos síntomas que requieren evaluación prioritaria. Completá estas preguntas para que tu médico tenga la información necesaria.
             </p>
           </div>
         )}
@@ -508,7 +508,7 @@ const AiQuestionView = forwardRef<HTMLDivElement, AiQuestionViewProps>(
               value={value}
               onChange={e => setValue(e.target.value)}
               placeholder="Tu respuesta..."
-              className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-lg text-stone-900 placeholder:text-stone-300 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 resize-none"
+              className="w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-lg text-stone-900 placeholder:text-stone-300 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-100 resize-none"
               rows={3}
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -521,7 +521,7 @@ const AiQuestionView = forwardRef<HTMLDivElement, AiQuestionViewProps>(
               <button
                 onClick={handleSubmit}
                 disabled={!value.trim()}
-                className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-emerald-700 disabled:opacity-40"
+                className="rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-40"
               >
                 Confirmar
               </button>
@@ -537,7 +537,7 @@ const AiQuestionView = forwardRef<HTMLDivElement, AiQuestionViewProps>(
                 onClick={() => { setSelected(opt); onAnswer(opt) }}
                 className={`w-full rounded-2xl border-2 p-4 text-left text-lg font-medium transition-all ${
                   selected === opt
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
+                    ? 'border-sky-500 bg-sky-50 text-sky-900'
                     : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                 }`}
               >
@@ -555,7 +555,7 @@ const AiQuestionView = forwardRef<HTMLDivElement, AiQuestionViewProps>(
                 onClick={() => { setSelected(opt); onAnswer(opt) }}
                 className={`w-full rounded-2xl border-2 p-4 text-left text-lg font-medium transition-all ${
                   selected === opt
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-900'
+                    ? 'border-sky-500 bg-sky-50 text-sky-900'
                     : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                 }`}
               >
@@ -578,7 +578,7 @@ const AiQuestionView = forwardRef<HTMLDivElement, AiQuestionViewProps>(
                   onClick={() => { setValue(String(n)); onAnswer(String(n)) }}
                   className={`flex-1 rounded-xl py-3 text-lg font-bold transition-all ${
                     value === String(n)
-                      ? 'bg-emerald-600 text-white'
+                      ? 'bg-sky-600 text-white'
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
                   }`}
                 >

@@ -74,7 +74,7 @@ function BooleanField({ field: _field, onSubmit }: { field: AnamnesisField; onSu
     <div className="flex gap-4">
       <button
         onClick={() => onSubmit(true)}
-        className="flex-1 rounded-2xl border-2 border-emerald-200 bg-white px-6 py-5 text-lg font-bold text-emerald-700 transition-all hover:border-emerald-400 hover:bg-emerald-50 active:scale-95"
+        className="flex-1 rounded-2xl border-2 border-sky-200 bg-white px-6 py-5 text-lg font-bold text-sky-700 transition-all hover:border-sky-400 hover:bg-sky-50 active:scale-95"
       >
         Sí
       </button>
@@ -98,7 +98,7 @@ function SelectField({ field, onSubmit }: { field: AnamnesisField; onSubmit: (v:
         <button
           key={opt.value}
           onClick={() => onSubmit(opt.value)}
-          className="flex w-full items-center gap-3 rounded-2xl border-2 border-stone-200 bg-white px-5 py-4 text-left transition-all hover:border-emerald-300 hover:bg-emerald-50 active:scale-[0.98]"
+          className="flex w-full items-center gap-3 rounded-2xl border-2 border-stone-200 bg-white px-5 py-4 text-left transition-all hover:border-sky-300 hover:bg-sky-50 active:scale-[0.98]"
         >
           <span className="text-base font-medium text-stone-900">{opt.label}</span>
           {opt.explanation && (
@@ -144,18 +144,18 @@ function MultiselectField({
               onClick={() => toggle(opt.value)}
               className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98] ${
                 isSelected
-                  ? 'border-emerald-400 bg-emerald-50'
+                  ? 'border-sky-400 bg-sky-50'
                   : 'border-stone-200 bg-white hover:border-stone-300'
               }`}
             >
               <div
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                  isSelected ? 'bg-emerald-500' : 'bg-stone-100'
+                  isSelected ? 'bg-sky-500' : 'bg-stone-100'
                 }`}
               >
                 {isSelected && <Check className="h-4 w-4 text-white" />}
               </div>
-              <span className={`text-base ${isSelected ? 'font-semibold text-emerald-900' : 'text-stone-700'}`}>
+              <span className={`text-base ${isSelected ? 'font-semibold text-sky-900' : 'text-stone-700'}`}>
                 {opt.label}
               </span>
             </button>
@@ -164,7 +164,7 @@ function MultiselectField({
       </div>
       <button
         onClick={() => onSubmit(selected)}
-        className="w-full rounded-2xl bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-emerald-700 active:scale-[0.98]"
+        className="w-full rounded-2xl bg-sky-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-sky-700 active:scale-[0.98]"
       >
         {selected.length > 0
           ? `Confirmar (${selected.length})`
@@ -192,7 +192,7 @@ function ScaleField({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <span className="text-5xl font-bold text-emerald-700">{val}</span>
+        <span className="text-5xl font-bold text-sky-700">{val}</span>
         <span className="text-lg text-stone-400"> / {max}</span>
       </div>
       <input
@@ -201,7 +201,7 @@ function ScaleField({
         max={max}
         value={val}
         onChange={e => setVal(Number(e.target.value))}
-        className="h-3 w-full cursor-pointer appearance-none rounded-full bg-stone-200 accent-emerald-600"
+        className="h-3 w-full cursor-pointer appearance-none rounded-full bg-stone-200 accent-sky-600"
       />
       <div className="flex justify-between text-sm text-stone-400">
         <span>Leve</span>
@@ -209,7 +209,7 @@ function ScaleField({
       </div>
       <button
         onClick={() => onSubmit(val)}
-        className="w-full rounded-2xl bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-emerald-700 active:scale-[0.98]"
+        className="w-full rounded-2xl bg-sky-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-sky-700 active:scale-[0.98]"
       >
         Confirmar
       </button>
@@ -244,7 +244,7 @@ function DateField({
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
   ]
 
-  const selectClass = 'rounded-xl border-2 border-stone-200 bg-white px-4 py-3.5 text-base font-medium text-stone-900 focus:border-emerald-400 focus:outline-none'
+  const selectClass = 'rounded-xl border-2 border-stone-200 bg-white px-4 py-3.5 text-base font-medium text-stone-900 focus:border-sky-400 focus:outline-none'
 
   return (
     <div className="space-y-4">
@@ -280,7 +280,7 @@ function DateField({
       <button
         onClick={handleSubmit}
         disabled={!isComplete}
-        className="w-full rounded-2xl bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-emerald-700 disabled:bg-stone-300 disabled:text-stone-500 active:scale-[0.98]"
+        className="w-full rounded-2xl bg-sky-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-sky-700 disabled:bg-stone-300 disabled:text-stone-500 active:scale-[0.98]"
       >
         Confirmar
       </button>
@@ -352,7 +352,7 @@ function TextField({
           onChange={e => setText(e.target.value)}
           placeholder={field.placeholder ?? 'Escribí tu respuesta...'}
           rows={field.type === 'textarea' ? 4 : 2}
-          className="w-full resize-none rounded-2xl border-2 border-stone-200 bg-white px-5 py-4 text-base text-stone-900 placeholder:text-stone-400 focus:border-emerald-400 focus:outline-none"
+          className="w-full resize-none rounded-2xl border-2 border-stone-200 bg-white px-5 py-4 text-base text-stone-900 placeholder:text-stone-400 focus:border-sky-400 focus:outline-none"
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey && text.trim()) {
               e.preventDefault()
@@ -378,7 +378,7 @@ function TextField({
       <button
         onClick={() => text.trim() && onSubmit(text.trim())}
         disabled={!text.trim() && field.required}
-        className="w-full rounded-2xl bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-emerald-700 disabled:bg-stone-300 disabled:text-stone-500 active:scale-[0.98]"
+        className="w-full rounded-2xl bg-sky-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-sky-700 disabled:bg-stone-300 disabled:text-stone-500 active:scale-[0.98]"
       >
         {text.trim() ? 'Continuar' : field.required ? 'Escribí tu respuesta' : 'Omitir'}
       </button>
@@ -409,7 +409,7 @@ function NumberField({
         min={field.validation?.min}
         max={field.validation?.max}
         autoFocus
-        className="w-full rounded-2xl border-2 border-stone-200 bg-white px-5 py-4 text-center text-2xl font-bold text-stone-900 placeholder:text-stone-400 focus:border-emerald-400 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-full rounded-2xl border-2 border-stone-200 bg-white px-5 py-4 text-center text-2xl font-bold text-stone-900 placeholder:text-stone-400 focus:border-sky-400 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         onKeyDown={e => {
           if (e.key === 'Enter' && num) {
             e.preventDefault()
@@ -420,7 +420,7 @@ function NumberField({
       <button
         onClick={() => num && onSubmit(Number(num))}
         disabled={!num && field.required}
-        className="w-full rounded-2xl bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-emerald-700 disabled:bg-stone-300 disabled:text-stone-500 active:scale-[0.98]"
+        className="w-full rounded-2xl bg-sky-600 px-6 py-4 text-base font-bold text-white transition-colors hover:bg-sky-700 disabled:bg-stone-300 disabled:text-stone-500 active:scale-[0.98]"
       >
         Continuar
       </button>

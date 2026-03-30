@@ -44,13 +44,13 @@ export function ClarificationStep({
         </div>
         <h2 className="text-xl font-bold text-gray-900">
           {isPartial
-            ? 'Para entender mejor tu caso...'
-            : 'Antes de enviar tu historia clínica'}
+            ? 'Precisamos algunos datos'
+            : 'Revisión final de tu historia clínica'}
         </h2>
         <p className="mt-2 text-sm text-gray-500">
           {isPartial
-            ? 'Nuestro sistema detectó que algunas respuestas podrían ser más precisas. Esto ayuda a que tu médico tenga mejor contexto.'
-            : 'Queremos confirmar algunos datos para que tu historia clínica sea lo más completa posible.'}
+            ? 'Nuestro análisis identificó información que conviene ampliar para que tu médico cuente con el panorama completo.'
+            : 'Antes de finalizar, confirmá estos datos para asegurar la calidad de tu historia clínica.'}
         </p>
       </div>
 
@@ -109,7 +109,7 @@ export function ClarificationStep({
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || !hasAnyAnswer}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-700 disabled:opacity-50"
         >
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

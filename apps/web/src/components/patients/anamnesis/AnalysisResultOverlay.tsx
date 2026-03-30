@@ -16,33 +16,31 @@ interface AnalysisResultOverlayProps {
 export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: AnalysisResultOverlayProps) {
   const [showSkip, setShowSkip] = useState(false);
 
-  // Show skip button after SLOW_THRESHOLD_S seconds of loading
   useEffect(() => {
-    if (analysisResult) return; // already loaded
+    if (analysisResult) return;
     const timer = setTimeout(() => setShowSkip(true), SLOW_THRESHOLD_S * 1000);
     return () => clearTimeout(timer);
   }, [analysisResult]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-sky-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-sky-50 to-white">
       <div className="mx-auto max-w-lg px-6 text-center">
         {!analysisResult ? (
-          // Loading state
           <div className="space-y-6">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
-              <Loader2 className="h-10 w-10 animate-spin text-emerald-700" />
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sky-100">
+              <Loader2 className="h-10 w-10 animate-spin text-sky-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-stone-900">AutaMedica está analizando tus respuestas</h2>
-              <p className="mt-2 text-sm text-stone-600">
-                Estamos revisando tu historia clínica para asegurarnos de que no falte información importante para tu médico.
+              <h2 className="text-xl font-bold text-stone-900">Analizando tu historia clínica</h2>
+              <p className="mt-2 text-sm text-stone-500">
+                Nuestro sistema de inteligencia artificial está revisando tus respuestas para identificar información relevante para tu médico.
               </p>
             </div>
             <div className="flex justify-center gap-1">
               {[0, 1, 2].map((i) => (
                 <div
                   key={i}
-                  className="h-2 w-2 rounded-full bg-emerald-400 animate-bounce"
+                  className="h-2 w-2 rounded-full bg-sky-400 animate-bounce"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}
@@ -50,7 +48,7 @@ export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: A
 
             {showSkip && (
               <div className="space-y-2 pt-2">
-                <p className="text-xs text-stone-400">Esto está tardando más de lo esperado</p>
+                <p className="text-xs text-stone-400">El análisis está tardando más de lo esperado</p>
                 <button
                   onClick={onContinue}
                   className="text-sm text-stone-500 underline transition-colors hover:text-stone-700"
@@ -61,24 +59,23 @@ export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: A
             )}
           </div>
         ) : (
-          // Results state
           <div className="space-y-6 text-left">
             <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                <CheckCircle2 className="h-8 w-8 text-emerald-700" />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-100">
+                <CheckCircle2 className="h-8 w-8 text-sky-600" />
               </div>
               <h2 className="mt-3 text-xl font-bold text-stone-900">Análisis completado</h2>
-              <p className="mt-1 text-sm text-stone-600">
-                {isFinal ? 'Revisión final de tu historia clínica' : 'Llevás la mitad de tu historia clínica'}
+              <p className="mt-1 text-sm text-stone-500">
+                {isFinal ? 'Revisión final de tu historia clínica' : 'Progreso parcial registrado'}
               </p>
             </div>
 
             {analysisResult.coverage.length > 0 && (
-              <div className="rounded-xl border border-emerald-200 bg-white p-4">
-                <h3 className="text-sm font-semibold text-emerald-700 mb-2">Áreas cubiertas</h3>
+              <div className="rounded-xl border border-sky-200 bg-white p-4">
+                <h3 className="text-sm font-semibold text-sky-700 mb-2">Información registrada</h3>
                 <div className="flex flex-wrap gap-2">
                   {analysisResult.coverage.map((area) => (
-                    <span key={area} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                    <span key={area} className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
                       <Check className="h-3 w-3" /> {area}
                     </span>
                   ))}
@@ -88,11 +85,11 @@ export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: A
 
             {analysisResult.gaps.length > 0 && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <h3 className="text-sm font-semibold text-amber-700 mb-2">Tu médico necesitará más detalle en</h3>
+                <h3 className="text-sm font-semibold text-amber-700 mb-2">Información adicional necesaria</h3>
                 <ul className="space-y-1">
                   {analysisResult.gaps.map((gap) => (
                     <li key={gap} className="text-sm text-amber-800 flex items-start gap-2">
-                      <span className="text-amber-700 mt-0.5">●</span> {gap}
+                      <span className="text-amber-600 mt-0.5">●</span> {gap}
                     </li>
                   ))}
                 </ul>
@@ -101,28 +98,28 @@ export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: A
 
             {analysisResult.coverage.length === 0 && analysisResult.gaps.length === 0 && (
               <div className="rounded-xl border border-stone-200 bg-white p-4 text-center">
-                <p className="text-sm text-stone-600">Tus respuestas se registraron correctamente. Continuá con los pasos restantes.</p>
+                <p className="text-sm text-stone-600">Tus respuestas fueron registradas correctamente.</p>
               </div>
             )}
 
             {analysisResult.questions.length > 0 && (
               <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
                 <h3 className="text-sm font-semibold text-sky-700 mb-1">
-                  Tenemos {analysisResult.questions.length} pregunta{analysisResult.questions.length > 1 ? 's' : ''} para vos
+                  {analysisResult.questions.length} pregunta{analysisResult.questions.length > 1 ? 's' : ''} adicional{analysisResult.questions.length > 1 ? 'es' : ''}
                 </h3>
                 <p className="text-xs text-sky-600">
-                  En el siguiente paso te vamos a pedir que aclares algunos datos para que tu médico tenga la información más completa.
+                  Necesitamos precisar algunos datos para que tu médico cuente con un panorama completo.
                 </p>
               </div>
             )}
 
             <button
               onClick={onContinue}
-              className="w-full rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
+              className="w-full rounded-xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-700"
             >
               {analysisResult.questions.length > 0
-                ? 'Responder preguntas →'
-                : 'Continuar con mi historia clínica →'}
+                ? 'Completar información →'
+                : 'Continuar →'}
             </button>
           </div>
         )}
