@@ -698,6 +698,15 @@ git push origin main
 
 ---
 
+## Anamnesis
+
+Documentacion completa: `docs/ANAMNESIS_ARCHITECTURE.md`
+
+- One-per-patient (nunca por visita), update-in-place con versionado automatico
+- 13 secciones con mutabilidad: carry_forward, carry_forward_additive, confirm_on_revisit, per_visit
+- Dos modos de llenado: conversacional (default) y wizard
+- Revisita: saltar carry_forward, preguntar "cambio algo?" para confirm, fresh para per_visit
+
 ## Nota Operativa
 
 Si hay conflicto entre reglas aquí y reglas en apps/packages individuales, prevalece este CLAUDE.md.
