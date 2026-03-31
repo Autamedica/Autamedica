@@ -98,11 +98,39 @@ export function useAnamnesisGuidance(): UseAnamnesisGuidanceReturn {
         return null
       }
 
-      // Blocking for final — show error but don't prevent completion
-      logger.error('[useAnamnesisGuidance] Final extraction failed', err)
-      setExtractionError('No pudimos analizar tu historia clínica. Podés continuar igualmente.')
-      setGuidance(null)
-      return null
+      // Final checkpoint: retry once before giving up
+      logger.warn('[useAnamnesisGuidance] Final extraction failed, retrying once', err)
+      try {
+        await new Promise(r => setTimeout(r, 2000))
+        const retryResult = await fetchApi<ExtractionServiceResult>(
+          '/api/patients/anamnesis/extract',
+          {
+            method: 'POST',
+            body: {
+              checkpoint,
+              clarificationTurns: clarificationTurns.map(t => ({
+                question: t.question,
+                answer: t.answer,
+              })),
+              ...(modifiedSections && { modifiedSections }),
+            },
+          },
+        )
+        if (retryResult?.guidance) {
+          const transformed = transformGuidance(retryResult)
+          if (hasActionableGuidance(transformed)) {
+            setGuidance(transformed)
+            return transformed
+          }
+        }
+        setGuidance(null)
+        return null
+      } catch (retryErr) {
+        logger.error('[useAnamnesisGuidance] Final extraction retry also failed', retryErr)
+        setExtractionError('No pudimos analizar tu historia clínica. Podés continuar igualmente.')
+        setGuidance(null)
+        return null
+      }
     } finally {
       setIsExtracting(false)
     }

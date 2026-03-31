@@ -120,8 +120,10 @@ export function transformGuidance(
 }
 
 /**
- * Determines if guidance has actionable questions worth showing.
+ * Determines if guidance has actionable content worth showing.
+ * Coverage alone (no questions, no gaps) is not actionable — the patient
+ * doesn't need to see an overlay just to learn which sections are adequate.
  */
 export function hasActionableGuidance(guidance: ExtractionGuidance): boolean {
-  return guidance.questions.length > 0 || guidance.coverage.length > 0 || guidance.gaps.length > 0
+  return guidance.questions.length > 0 || guidance.gaps.length > 0
 }

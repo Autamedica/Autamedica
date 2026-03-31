@@ -190,18 +190,16 @@ export function useConversationalAnamnesis(
     return completed
   }, [answers])
 
+  const [partialFired, setPartialFired] = useState(false)
+
   const shouldCheckpoint = useCallback((): 'partial' | 'final' | null => {
     if (!current) return null
-    // Check if we just crossed from step 6 to step 7
-    const prevQ = currentIndex > 0 ? visibleQuestions[currentIndex - 1] : null
-    if (prevQ) {
-      const prevStepIdx = anamnesisSteps.findIndex(s => s.id === prevQ.stepId)
-      const currStepIdx = anamnesisSteps.findIndex(s => s.id === current.stepId)
-      if (prevStepIdx < 6 && currStepIdx >= 6) return 'partial'
-    }
     if (isLast) return 'final'
-    return null
-  }, [current, currentIndex, visibleQuestions, isLast])
+    const answeredCount = Object.keys(answers).length
+    const result = evaluateCheckpoint(answeredCount, partialFired)
+    if (result === 'partial') setPartialFired(true)
+    return result
+  }, [current, isLast, answers, partialFired])
 
   return {
     current,
@@ -341,4 +339,23 @@ function buildAnswers(
     }
   }
   return flat
+}
+
+/** Threshold: trigger partial checkpoint after this many answers */
+export const PARTIAL_AFTER_N_ANSWERS = 15
+
+/**
+ * Pure function: determines if a checkpoint should fire based on answer count.
+ * - 'partial': fires once when answeredCount reaches PARTIAL_AFTER_N_ANSWERS
+ * - 'final': caller must check isLast separately (hook handles this)
+ * - null: no checkpoint
+ */
+export function evaluateCheckpoint(
+  answeredCount: number,
+  partialAlreadyFired: boolean,
+): 'partial' | null {
+  if (!partialAlreadyFired && answeredCount >= PARTIAL_AFTER_N_ANSWERS) {
+    return 'partial'
+  }
+  return null
 }

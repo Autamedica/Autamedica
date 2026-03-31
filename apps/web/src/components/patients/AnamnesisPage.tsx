@@ -35,7 +35,10 @@ import type { AnamnesisSection } from '@autamedica/types';
 type AnamnesisMode = 'wizard' | 'conversational';
 
 const PAUSE_EVERY_N_STEPS = 4;
-const PARTIAL_CHECKPOINT_AFTER_STEP = 6; // Checkpoint 1: after step index 5 (step 6 of 13)
+/** Partial checkpoint triggers when accumulated field count reaches this threshold.
+ * In wizard mode, we check after each step if total fields answered so far >= threshold.
+ * Aligned with PARTIAL_AFTER_N_ANSWERS in useConversationalAnamnesis.ts. */
+const PARTIAL_CHECKPOINT_FIELD_THRESHOLD = 15;
 
 type FormDataMap = Record<string, Record<string, AnamnesisFieldValue>>;
 
@@ -81,6 +84,7 @@ export default function AnamnesisPage() {
     }
     return 'conversational';
   });
+  const [partialCheckpointFired, setPartialCheckpointFired] = useState(false);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null>(null);
   const initializedRef = useRef(false);
@@ -271,8 +275,11 @@ export default function AnamnesisPage() {
 
     const nextIndex = currentStepIndex + 1;
 
-    // Checkpoint 1 (partial): after step 6 — BLOCKING with visible analysis
-    if (currentStepIndex + 1 === PARTIAL_CHECKPOINT_AFTER_STEP) {
+    // Checkpoint 1 (partial): when accumulated fields reach threshold — BLOCKING with visible analysis
+    const answeredFields = Object.values(formData)
+      .reduce((sum, stepData) => sum + Object.keys(stepData).filter(k => stepData[k] != null && stepData[k] !== '').length, 0);
+    if (!partialCheckpointFired && answeredFields >= PARTIAL_CHECKPOINT_FIELD_THRESHOLD) {
+      setPartialCheckpointFired(true);
       setPendingCheckpoint('partial');
       setShowAnalyzing(true);
       setAnalysisResult(null);
