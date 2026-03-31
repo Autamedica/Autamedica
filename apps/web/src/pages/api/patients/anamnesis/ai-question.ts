@@ -10,7 +10,7 @@ import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { logger } from '@autamedica/shared'
 import {
-  resolveExtractionTarget,
+  resolveQuestionsTarget,
   resolveServerEnv,
   isAnamnesisExtractionConfigured,
 } from '@/lib/patients/server/ai-provider'
@@ -81,7 +81,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: 'ai_not_configured' }, 503)
   }
 
-  const target = resolveExtractionTarget()
+  const target = resolveQuestionsTarget()
   if (!target) return json({ success: false, error: 'ai_not_configured' }, 503)
 
   try {
