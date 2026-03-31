@@ -179,15 +179,20 @@ export async function fetchTurnCredentials(
   apiUrl = '/api/turn-credentials'
 ): Promise<RTCIceServer[]> {
   try {
-    const res = await fetch(apiUrl, { cache: 'no-store' })
-    if (!res.ok) return [...ICE_STUN_ONLY]
+    const res = await fetch(apiUrl, { cache: 'no-store', credentials: 'include' })
+    if (!res.ok) {
+      logger.warn(`[fetchTurnCredentials] TURN endpoint returned ${res.status} — falling back to STUN-only`, { apiUrl })
+      return [...ICE_STUN_ONLY]
+    }
     const json = await res.json() as { ok: boolean; iceServers?: RTCIceServer[] }
     if (!json.ok || !Array.isArray(json.iceServers) || json.iceServers.length === 0) {
+      logger.warn('[fetchTurnCredentials] TURN response empty or invalid — falling back to STUN-only', { apiUrl })
       return [...ICE_STUN_ONLY]
     }
     // Cloudflare Calls already includes STUN; just return as-is
     return json.iceServers
-  } catch {
+  } catch (err) {
+    logger.warn('[fetchTurnCredentials] TURN fetch failed — falling back to STUN-only', { apiUrl, error: err })
     return [...ICE_STUN_ONLY]
   }
 }

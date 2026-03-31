@@ -29,6 +29,8 @@ import { useCallStatusPersistence } from './hooks/useCallStatusPersistence'
 import { useCallDebugger } from './hooks/useCallDebugger'
 import { useRemoteMediaTimeout } from './hooks/useRemoteMediaTimeout'
 import { useCallLifecycleEffects } from './hooks/useCallLifecycleEffects'
+import { useNetworkPreflight } from './hooks/useNetworkPreflight'
+import { AutoDegradeService } from './quality/auto-degrade'
 import { deriveCallSessionPhase } from './runtime/call-session-phase'
 import {
   GreenRoom,
@@ -121,6 +123,7 @@ export function UnifiedVideoCall({
   const connectedAtRef = useRef<number | null>(null)
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const connectingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /* ── Callback refs (prevent useEffect re-runs when parent re-renders) ── */
   const onCallStartRef = useRef(onCallStart)
@@ -151,6 +154,33 @@ export function UnifiedVideoCall({
   const [availableDevices, setAvailableDevices] = useState<DeviceInfo[]>([])
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>('')
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>('')
+
+  /* ── Network Preflight ── */
+  const preflightIceServers = useMemo(() => iceServers ?? [], [iceServers])
+  const { result: preflightResult, isRunning: preflightRunning, rerun: preflightRerun } = useNetworkPreflight(preflightIceServers)
+
+  /* ── Auto-degrade service ── */
+  const autoDegradeRef = useRef<AutoDegradeService | null>(null)
+  const [autoDegradeToast, setAutoDegradeToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    const service = new AutoDegradeService({
+      onDegrade: () => {
+        if (client) {
+          client.toggleVideo(false)
+          setIsVideoEnabled(false)
+          setAutoDegradeToast('Conexion inestable — cambiamos a audio para mejor calidad')
+          setTimeout(() => setAutoDegradeToast(null), 6000)
+        }
+      },
+      onRecover: () => {
+        setAutoDegradeToast('Conexion recuperada — podes activar el video')
+        setTimeout(() => setAutoDegradeToast(null), 6000)
+      },
+    })
+    autoDegradeRef.current = service
+    return () => service.dispose()
+  }, [client])
 
   /* ── Derived ── */
   const accentColor = theme === 'doctor' ? 'violet' : 'sky'
@@ -186,6 +216,14 @@ export function UnifiedVideoCall({
     addRemoteMessage, sendChat: _sendChat, handleChatSubmit, handleChatKeyDown, toggleChatPanel,
   } = useChatMessages({ client, userId, userType, userName, emitDebug, setCallError })
 
+  /* ── Auto-disable video if preflight recommends audio-only ── */
+  useEffect(() => {
+    if (preflightResult?.recommendation === 'audio-only' && client && isIdle) {
+      client.toggleVideo(false)
+      setIsVideoEnabled(false)
+    }
+  }, [preflightResult, client, isIdle])
+
   /* ── WebRTC setup ── */
   useEffect(() => {
     syncChatPanelRef(isChatPanelOpen)
@@ -211,15 +249,21 @@ export function UnifiedVideoCall({
         setConnectionState(state)
         onStatusChangeRef.current?.(state)
         emitDebug('info', 'Estado de conexion actualizado', { state })
+        // Clear connecting timeout on any terminal/success state
+        if (connectingTimerRef.current) {
+          clearTimeout(connectingTimerRef.current)
+          connectingTimerRef.current = null
+        }
+
         if (state === 'failed') {
-          const MAX_RETRIES = 3
+          const MAX_RETRIES = 5
           const attempt = retryCountRef.current
           if (!manualHangupRef.current && autoStart && attempt < MAX_RETRIES) {
-            const delayMs = (attempt + 1) * 2000 // 2s, 4s, 6s
+            const delayMs = (attempt + 1) * 2000 + Math.random() * 1000
             retryCountRef.current += 1
             setIsRetrying(true)
             setCallError(null)
-            emitDebug('warn', `Conexion fallida — reintentando (${retryCountRef.current}/${MAX_RETRIES}) en ${delayMs}ms`)
+            emitDebug('warn', `Conexion fallida — reintentando (${retryCountRef.current}/${MAX_RETRIES}) en ${Math.round(delayMs)}ms`)
             retryTimerRef.current = setTimeout(() => {
               autoStartAttemptedRef.current = false
               hasStartedCallRef.current = false
@@ -229,6 +273,32 @@ export function UnifiedVideoCall({
             setIsRetrying(false)
             setCallError('Error de conexión. Verifica tu internet y recarga la página.')
           }
+        } else if (state === 'connecting') {
+          // Start a connecting timeout — if stuck in "connecting" for too long, force retry
+          const CONNECTING_TIMEOUT_MS = 30_000
+          connectingTimerRef.current = setTimeout(() => {
+            connectingTimerRef.current = null
+            emitDebug('warn', 'Conexion colgada en "connecting" por 30s — forzando reintento')
+            onStatusChangeRef.current?.('failed')
+            setConnectionState('failed')
+            const MAX_RETRIES = 5
+            const attempt = retryCountRef.current
+            if (!manualHangupRef.current && autoStart && attempt < MAX_RETRIES) {
+              const delayMs = (attempt + 1) * 2000 + Math.random() * 1000
+              retryCountRef.current += 1
+              setIsRetrying(true)
+              setCallError(null)
+              emitDebug('warn', `Timeout connecting — reintentando (${retryCountRef.current}/${MAX_RETRIES}) en ${Math.round(delayMs)}ms`)
+              retryTimerRef.current = setTimeout(() => {
+                autoStartAttemptedRef.current = false
+                hasStartedCallRef.current = false
+                setRetryKey((k) => k + 1)
+              }, delayMs)
+            } else {
+              setIsRetrying(false)
+              setCallError('Error de conexión. Verifica tu internet y recarga la página.')
+            }
+          }, CONNECTING_TIMEOUT_MS)
         } else if (state === 'connected') {
           retryCountRef.current = 0
           setIsRetrying(false)
@@ -349,6 +419,8 @@ export function UnifiedVideoCall({
         }
 
         setQualityLevel(summary.overallLevel)
+        // Feed auto-degrade service
+        autoDegradeRef.current?.update(summary.overallLevel)
       })
     )
 
@@ -417,6 +489,7 @@ export function UnifiedVideoCall({
       unsubs.forEach((u) => u())
       void webrtcClient.disconnect()
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+      if (connectingTimerRef.current) clearTimeout(connectingTimerRef.current)
       cleanupSound()
       joinSoundPlayedRef.current = false
     }
@@ -618,6 +691,9 @@ export function UnifiedVideoCall({
             roomId={roomId}
             userType={userType}
             accentColor={accentColor}
+            preflightResult={preflightResult}
+            preflightRunning={preflightRunning}
+            onPreflightRerun={preflightRerun}
           />
         )}
 
@@ -674,6 +750,13 @@ export function UnifiedVideoCall({
           showControls={controlsVisible}
           qualityLevel={qualityLevel}
         />
+      )}
+
+      {/* Auto-degrade toast */}
+      {autoDegradeToast && (
+        <div className="absolute left-1/2 top-20 z-50 -translate-x-1/2 rounded-xl border border-white/10 bg-neutral-800/90 px-4 py-3 text-sm text-white shadow-lg backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+          {autoDegradeToast}
+        </div>
       )}
 
       {/* Bottom controls */}

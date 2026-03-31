@@ -1,5 +1,6 @@
 import { ensureClientEnv, logger } from '@autamedica/shared'
 import type { WSMessage, ControlMessage, SignalingMessage } from '../calls/types'
+import type { CallLogger } from '../logging/call-logger'
 
 // WebSocket signaling client
 export class SignalingClient {
@@ -11,11 +12,13 @@ export class SignalingClient {
   private maxReconnectAttempts = 5
   private messageQueue: WSMessage[] = []
   private listeners: Map<string, Set<(message: WSMessage) => void>> = new Map()
+  private callLogger?: CallLogger
 
-  constructor(userId: string, userType: 'doctor' | 'patient', roomId?: string) {
+  constructor(userId: string, userType: 'doctor' | 'patient', roomId?: string, options?: { logger?: CallLogger }) {
     this.userId = userId
     this.userType = userType
     this.roomId = roomId
+    this.callLogger = options?.logger
   }
 
   connect(): Promise<void> {
@@ -32,6 +35,7 @@ export class SignalingClient {
 
         this.ws.onopen = () => {
           logger.info('[SignalingClient] Connected')
+          this.callLogger?.info('signaling', 'ws_connected', { url: wsUrl })
           this.reconnectAttempts = 0
 
           // Send queued messages
@@ -46,18 +50,22 @@ export class SignalingClient {
 
         this.ws.onclose = (event) => {
           logger.info('[SignalingClient] Disconnected:', event.code, event.reason)
+          this.callLogger?.info('signaling', 'ws_disconnected', { code: event.code, reason: event.reason })
 
           if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++
+            const delay = 1000 * this.reconnectAttempts + Math.random() * 500
+            this.callLogger?.info('signaling', 'ws_reconnecting', { attempt: this.reconnectAttempts, maxAttempts: this.maxReconnectAttempts, delayMs: Math.round(delay) })
             setTimeout(() => {
               logger.info(`[SignalingClient] Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
               this.connect()
-            }, 1000 * this.reconnectAttempts)
+            }, delay)
           }
         }
 
         this.ws.onerror = (error) => {
           logger.error('[SignalingClient] Error:', error)
+          this.callLogger?.error('signaling', 'ws_error', { error: String(error) })
           reject(error)
         }
 
@@ -67,6 +75,7 @@ export class SignalingClient {
             this.handleMessage(message)
           } catch (error) {
             logger.error('[SignalingClient] Failed to parse message:', error)
+            this.callLogger?.error('signaling', 'ws_parse_error', { error: String(error) })
           }
         }
 
@@ -111,6 +120,7 @@ export class SignalingClient {
   // Join a room for WebRTC signaling
   joinRoom(roomId: string) {
     this.roomId = roomId
+    this.callLogger?.info('signaling', 'room_joined', { roomId })
     this.send({
       type: 'join',
       roomId,
@@ -149,6 +159,7 @@ export class SignalingClient {
 
   private handleMessage(message: WSMessage) {
     logger.info('[SignalingClient] Received:', message)
+    this.callLogger?.debug('signaling', `${message.type}_received`, { messageType: message.type, from: (message as Record<string, unknown>).from })
 
     // Emit to specific event listeners
     const listeners = this.listeners.get(message.type)

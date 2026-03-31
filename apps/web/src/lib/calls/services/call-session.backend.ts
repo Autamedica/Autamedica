@@ -55,7 +55,10 @@ function buildWaitingRoom(call: Call, role: CallSessionRole): CallSessionBootstr
 async function fetchCloudflareTurnServers(): Promise<RTCIceServer[]> {
   const keyId = import.meta.env.CLOUDFLARE_CALLS_TURN_KEY_ID
   const token = import.meta.env.CLOUDFLARE_CALLS_TURN_TOKEN
-  if (!keyId || !token) return []
+  if (!keyId || !token) {
+    logger.warn('[fetchCloudflareTurnServers] CLOUDFLARE_CALLS_TURN_KEY_ID or CLOUDFLARE_CALLS_TURN_TOKEN not set')
+    return []
+  }
 
   const result = await handleTurnCredentials({ keyId, token })
   if (result.status !== 200) return []
@@ -78,11 +81,12 @@ async function buildBootstrap(
         : '/api/patients/cloudflare-calls'
       : null
 
-  let iceServers: RTCIceServer[] | undefined
-  if (runtime === 'webrtc-p2p') {
-    const turnServers = await fetchCloudflareTurnServers()
-    iceServers = turnServers.length > 0 ? turnServers : getIceServersConfig()
+  // Always fetch TURN — needed for P2P, and improves connectivity for SFU too
+  const turnServers = await fetchCloudflareTurnServers()
+  if (turnServers.length === 0) {
+    logger.warn('[callSession.bootstrap] TURN fetch returned empty — falling back to STUN-only', { roomId: call.room_id, runtime })
   }
+  const iceServers = turnServers.length > 0 ? turnServers : getIceServersConfig()
 
   return {
     callId: call.id,
@@ -107,7 +111,7 @@ async function buildBootstrap(
       allowAudioOnlyFallback: true,
     },
     transport: {
-      ...(iceServers ? { iceServers } : {}),
+      iceServers,
       cloudflareCallsApiUrl,
     },
     waitingRoom: buildWaitingRoom(call, viewerRole),

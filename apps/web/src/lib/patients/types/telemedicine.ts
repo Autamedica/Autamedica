@@ -107,6 +107,8 @@ export interface VideoLayoutProps {
   pipPosition: PIPPosition;
   onSwapVideos: () => void;
   onPIPPositionChange: (position: PIPPosition) => void;
+  /** Nombre del médico remoto (ej: "Dr. López"). Fallback: "Doctor" */
+  doctorName?: string;
   className?: string;
 }
 

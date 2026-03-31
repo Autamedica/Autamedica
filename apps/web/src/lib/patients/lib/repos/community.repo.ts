@@ -223,6 +223,7 @@ export const communityRepo = {
       .from('community_posts')
       .select('*, group:community_groups(*)')
       .eq('id', postId)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (error) {

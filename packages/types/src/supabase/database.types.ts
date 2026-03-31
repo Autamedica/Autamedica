@@ -1,3 +1,4 @@
+// Generated: 2026-03-31T06:50:00Z — RLS policy hardening (no schema changes)
 export type Json =
   | string
   | number

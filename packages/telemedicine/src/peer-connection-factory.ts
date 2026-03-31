@@ -7,8 +7,9 @@
 import type { createTelemedicineLogger } from './debug'
 import type { MediaManager } from './media-manager'
 import type { QualityMonitor } from './quality-monitor'
+import type { CallLogger } from './logging/call-logger'
 
-const MAX_ICE_RESTART_ATTEMPTS = 3
+const MAX_ICE_RESTART_ATTEMPTS = 5
 const ICE_RESTART_BACKOFF_BASE_MS = 2_000
 const CHAT_CHANNEL_LABEL = 'autamedica-chat'
 
@@ -40,13 +41,18 @@ export interface PeerConnectionFactoryCallbacks {
 }
 
 export class PeerConnectionFactory {
+  private callLogger?: CallLogger
+
   constructor(
     private readonly logger: ReturnType<typeof createTelemedicineLogger>,
     private readonly sessionId: string,
     private readonly media: MediaManager,
     private readonly qualityMonitor: QualityMonitor,
     private readonly callbacks: PeerConnectionFactoryCallbacks,
-  ) {}
+    options?: { callLogger?: CallLogger },
+  ) {
+    this.callLogger = options?.callLogger
+  }
 
   private logInfo(message: string, context: Record<string, unknown> = {}): void {
     this.logger.info(message, { sessionId: this.sessionId, ...context })
@@ -80,6 +86,7 @@ export class PeerConnectionFactory {
     })
     const isPolite = localUserType !== 'doctor'
     this.logInfo('Creating peer connection', { peerId: userId, isPolite })
+    this.callLogger?.info('ice', 'pc_created', { peerId: userId, isPolite, iceServerCount: iceServers.length })
 
     peerState = {
       pc,
@@ -124,7 +131,13 @@ export class PeerConnectionFactory {
         connectionState: pc.connectionState,
         iceConnectionState: pc.iceConnectionState,
       })
+      this.callLogger?.info('ice', 'connection_state_change', {
+        peerId: userId,
+        connectionState: pc.connectionState,
+        iceConnectionState: pc.iceConnectionState,
+      })
       if (pc.connectionState === 'connected') {
+        this.callLogger?.info('ice', 'connection_established', { peerId: userId })
         this.callbacks.emit('peer-connected', {
           peerId: userId,
           connectionState: pc.connectionState,
@@ -132,6 +145,7 @@ export class PeerConnectionFactory {
         })
       }
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        this.callLogger?.warn('ice', 'connection_terminated', { peerId: userId, state: pc.connectionState })
         peerConnections.delete(userId)
         this.qualityMonitor.deletePeer(userId)
         this.callbacks.emitChatReady()
@@ -141,6 +155,7 @@ export class PeerConnectionFactory {
     pc.oniceconnectionstatechange = () => {
       const iceState = pc.iceConnectionState
       this.logInfo('ICE connection state changed', { peerId: userId, iceConnectionState: iceState })
+      this.callLogger?.info('ice', 'ice_state_change', { peerId: userId, state: iceState })
       this.callbacks.emit('ice-state-change', { peerId: userId, state: iceState })
 
       if (iceState === 'failed' && peerState) {
@@ -149,9 +164,10 @@ export class PeerConnectionFactory {
             peerId: userId,
             attempts: peerState.iceRestartCount,
           })
+          this.callLogger?.error('ice', 'ice_restart_limit_reached', { peerId: userId, attempts: peerState.iceRestartCount })
           return
         }
-        const backoffMs = ICE_RESTART_BACKOFF_BASE_MS * Math.pow(2, peerState.iceRestartCount)
+        const backoffMs = ICE_RESTART_BACKOFF_BASE_MS * Math.pow(2, peerState.iceRestartCount) + Math.random() * 1000
         peerState.iceRestartCount++
         peerState.lastIceRestartAt = Date.now()
         this.logWarn('ICE connection failed, scheduling restart', {
@@ -159,8 +175,10 @@ export class PeerConnectionFactory {
           attempt: peerState.iceRestartCount,
           backoffMs,
         })
+        this.callLogger?.warn('ice', 'ice_restart', { peerId: userId, attempt: peerState.iceRestartCount, backoffMs: Math.round(backoffMs) })
         setTimeout(() => {
           if (peerConnections.has(userId) && pc.iceConnectionState === 'failed') {
+            this.callLogger?.info('ice', 'ice_restart_attempted', { peerId: userId, attempt: peerState?.iceRestartCount })
             pc.restartIce()
           }
         }, backoffMs)

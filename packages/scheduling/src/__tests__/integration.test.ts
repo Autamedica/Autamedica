@@ -8,7 +8,7 @@
  * Crea datos de prueba, ejecuta los flujos, y limpia al final.
  */
 
-import { test, expect, describe, beforeAll, afterAll } from 'bun:test';
+import { it, expect, describe, beforeAll, afterAll } from 'vitest';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   getAvailableSlots,
@@ -184,7 +184,7 @@ afterAll(async () => {
 // ==========================================
 
 describe('Integration: Availability & Slots', () => {
-  test('create availability and generate slots', async () => {
+  it('create availability and generate slots', async () => {
     // Use Wednesday (3) to avoid conflicts with existing data
     const targetDow = 3;
     const targetDate = nextDayOfWeek(targetDow);
@@ -237,7 +237,7 @@ describe('Integration: Availability & Slots', () => {
     expect(testSlots.every(s => s.duration_minutes === 30)).toBe(true);
   });
 
-  test('override blocks availability for a day', async () => {
+  it('override blocks availability for a day', async () => {
     const targetDow = 3;
     const targetDate = nextDayOfWeek(targetDow);
 
@@ -280,7 +280,7 @@ describe('Integration: Availability & Slots', () => {
 // ==========================================
 
 describe('Integration: Conflict Detection', () => {
-  test('checkConflict returns false when no appointments', async () => {
+  it('checkConflict returns false when no appointments', async () => {
     const tomorrow = futureDate(1);
     const hasConflict = await checkConflict(
       supabase,
@@ -292,7 +292,7 @@ describe('Integration: Conflict Detection', () => {
     expect(hasConflict).toBe(false);
   });
 
-  test('checkConflict detects real appointment overlap', async () => {
+  it('checkConflict detects real appointment overlap', async () => {
     // Create a real appointment
     const startTime = futureDatetime(5, 22, 0); // 5 days from now, 10pm
     const endTime = futureDatetime(5, 22, 30);
@@ -333,7 +333,7 @@ describe('Integration: Conflict Detection', () => {
 // ==========================================
 
 describe('Integration: Waitlist', () => {
-  test('add to waitlist, get doctor waitlist, cancel', async () => {
+  it('add to waitlist, get doctor waitlist, cancel', async () => {
     const entry = await addToWaitlist(supabase, {
       patient_id: testPatientId as import('@autamedica/types').UUID,
       doctor_id: testDoctorId as import('@autamedica/types').UUID,
@@ -360,7 +360,7 @@ describe('Integration: Waitlist', () => {
     expect(gone).toBeUndefined();
   });
 
-  test('expire stale offers (no errors)', async () => {
+  it('expire stale offers (no errors)', async () => {
     // Should not throw even with no stale offers
     const count = await expireStaleOffers(supabase);
     expect(count).toBeGreaterThanOrEqual(0);
@@ -372,7 +372,7 @@ describe('Integration: Waitlist', () => {
 // ==========================================
 
 describe('Integration: Reminders', () => {
-  test('schedule and cancel reminders for appointment', async () => {
+  it('schedule and cancel reminders for appointment', async () => {
     // Create a future appointment (3 days out)
     const startTime = futureDatetime(3, 10, 0);
     const endTime = futureDatetime(3, 10, 30);
@@ -417,7 +417,7 @@ describe('Integration: Reminders', () => {
     expect(afterCancel?.every(r => r.status === 'cancelled')).toBe(true);
   });
 
-  test('markReminderSent and markReminderFailed work', async () => {
+  it('markReminderSent and markReminderFailed work', async () => {
     // Create appointment + reminders
     const startTime = futureDatetime(4, 14, 0);
     const endTime = futureDatetime(4, 14, 30);
@@ -473,7 +473,7 @@ describe('Integration: Reminders', () => {
 // ==========================================
 
 describe('Integration: No-Show Prediction', () => {
-  test('returns prediction with factors', async () => {
+  it('returns prediction with factors', async () => {
     const prediction = await predictNoShowProbability(
       supabase,
       testPatientId,
@@ -500,7 +500,7 @@ describe('Integration: No-Show Prediction', () => {
 // ==========================================
 
 describe('Integration: Worker Cycle', () => {
-  test('processReminderCycle runs without errors in dry run', async () => {
+  it('processReminderCycle runs without errors in dry run', async () => {
     const result = await processReminderCycle(supabase, {
       openclaw: { ...DEFAULT_OPENCLAW_CONFIG, token: '' },
       batchSize: 5,
@@ -518,7 +518,7 @@ describe('Integration: Worker Cycle', () => {
 // ==========================================
 
 describe('Integration: DB Triggers', () => {
-  test('creating appointment auto-logs to appointment_history', async () => {
+  it('creating appointment auto-logs to appointment_history', async () => {
     const startTime = futureDatetime(6, 15, 0);
     const endTime = futureDatetime(6, 15, 30);
 
@@ -555,7 +555,7 @@ describe('Integration: DB Triggers', () => {
     if (entry) cleanupHistoryIds.push(entry.id);
   });
 
-  test('updating appointment status logs to history', async () => {
+  it('updating appointment status logs to history', async () => {
     const startTime = futureDatetime(7, 16, 0);
     const endTime = futureDatetime(7, 16, 30);
 
@@ -600,7 +600,7 @@ describe('Integration: DB Triggers', () => {
     for (const h of history ?? []) cleanupHistoryIds.push(h.id);
   });
 
-  test('conflict trigger prevents overlapping appointments', async () => {
+  it('conflict trigger prevents overlapping appointments', async () => {
     const startTime = futureDatetime(8, 20, 0);
     const endTime = futureDatetime(8, 20, 30);
 

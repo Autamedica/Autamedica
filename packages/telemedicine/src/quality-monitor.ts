@@ -57,11 +57,13 @@ export class QualityMonitor {
   private peerConnections: Map<string, { pc: RTCPeerConnection }> = new Map()
   private readonly logger: QualityLogger
   private readonly roomId: string
+  private callLogger?: import('./logging/call-logger').CallLogger
   onQualitySummary: ((summary: StreamQualitySummary) => void) | null = null
 
-  constructor(opts: { logger: QualityLogger; roomId: string }) {
+  constructor(opts: { logger: QualityLogger; roomId: string; callLogger?: import('./logging/call-logger').CallLogger }) {
     this.logger = opts.logger
     this.roomId = opts.roomId
+    this.callLogger = opts.callLogger
   }
 
   start(peerConnections: Map<string, { pc: RTCPeerConnection }>): void {
@@ -260,6 +262,27 @@ export class QualityMonitor {
     }
 
     this.qualityLogState.set(metrics.userId, { level: metrics.level, at: now })
+
+    // Structured call logger: quality report every log interval, degraded/improved on level change
+    if (this.callLogger) {
+      this.callLogger.info('quality', 'quality_report', {
+        peerId: metrics.userId,
+        level: metrics.level,
+        inboundVideoBitrateKbps: metrics.inboundVideoBitrateKbps,
+        packetsLostPct: metrics.packetsLostPct,
+        roundTripTimeMs: metrics.roundTripTimeMs,
+        framesPerSecond: metrics.framesPerSecond,
+      })
+      if (previous && previous.level !== metrics.level) {
+        const improved = this.levelToScore(metrics.level) > this.levelToScore(previous.level)
+        this.callLogger[improved ? 'info' : 'warn'](
+          'quality',
+          improved ? 'quality_improved' : 'quality_degraded',
+          { peerId: metrics.userId, from: previous.level, to: metrics.level },
+        )
+      }
+    }
+
     this.logger.info('Stream quality sample', {
       peerId: metrics.userId,
       level: metrics.level,

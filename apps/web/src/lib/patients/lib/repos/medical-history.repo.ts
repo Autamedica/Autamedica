@@ -26,6 +26,7 @@ export const medicalHistoryRepo = {
       .select('*')
       .eq('patient_id', patientId)
       .eq('type', type)
+      .is('deleted_at', null)
 
     if (error) {
       logger.error('[medicalHistoryRepo] listByType failed', { type, error })
@@ -41,6 +42,7 @@ export const medicalHistoryRepo = {
       .select('*')
       .eq('id', recordId)
       .eq('patient_id', patientId)
+      .is('deleted_at', null)
       .maybeSingle()
 
     if (error) {
@@ -57,6 +59,7 @@ export const medicalHistoryRepo = {
       .select('*')
       .eq('patient_id', patientId)
       .eq('type', 'consultation')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(limit)
 
@@ -73,6 +76,7 @@ export const medicalHistoryRepo = {
       .from('medical_records')
       .select('*')
       .eq('patient_id', patientId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(limit)
 

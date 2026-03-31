@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createBrowserClient } from '@autamedica/auth'
-import { UnifiedVideoCall, createCallService, useAudioTranscription } from '@autamedica/telemedicine'
+import { UnifiedVideoCall, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
 import type { TranscriptSegment } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
@@ -110,6 +110,9 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     error: callSessionError,
     refresh: refreshCallSession,
   } = useCallSession(roomId, isReady)
+
+  // Client-side TURN fallback — if bootstrap didn't include TURN, fetch from API
+  const { iceServers: clientTurnServers } = useTurnCredentials('/api/doctors/turn-credentials')
 
   // Transcription — mandatory, automatic, silent
   const [transcriptionState, transcriptionActions] = useAudioTranscription('es-AR')
@@ -519,7 +522,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             userId={callSession.user.id || userId}
             userType={callSession.user.role}
             userName={callSession.user.displayName || userName}
-            iceServers={callSession.transport.iceServers}
+            iceServers={clientTurnServers ?? callSession.transport.iceServers}
             cloudflareCallsApiUrl={
               callSession.runtime === 'webrtc-p2p'
                 ? null

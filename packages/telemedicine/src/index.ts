@@ -86,8 +86,24 @@ export type {
   TelemedicineDebugRecord,
 } from './debug'
 
+// Structured Logging (correlation IDs)
+export { createCallLogger, createCallLogCollector } from './logging'
+export type {
+  CallLogger,
+  CallLogContext,
+  CallLogEntry,
+  CallLogLevel,
+  CallLogCategory,
+  CallLogCollector,
+  CallSummary,
+  CallMetrics,
+  ParticipantInfo,
+  QualityTimelineEntry,
+  EventTimelineEntry,
+} from './logging'
+
 // Hooks
-export { useTelemedicineClient, useMediaControls, useRtcStats, useAudioTranscription, useCallRecording } from './hooks'
+export { useTelemedicineClient, useMediaControls, useRtcStats, useAudioTranscription, useCallRecording, useCallReport } from './hooks'
 export { useTurnCredentials } from './hooks/useTurnCredentials'
 export type {
   TelemedicineClientState,
@@ -106,6 +122,7 @@ export type {
   CallRecordingState,
   CallRecordingActions,
   CallRecordingHook,
+  CallReportState,
 } from './hooks'
 
 // Signaling

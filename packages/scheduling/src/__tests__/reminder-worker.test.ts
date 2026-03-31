@@ -1,4 +1,4 @@
-import { test, expect, describe } from 'bun:test';
+import { it, expect, describe } from 'vitest';
 import { processReminderCycle } from '../reminder-worker';
 import { createMockSupabase } from './mock-supabase';
 import { DEFAULT_OPENCLAW_CONFIG } from '../openclaw';
@@ -10,7 +10,7 @@ const workerConfig = {
 };
 
 describe('processReminderCycle', () => {
-  test('processes 0 reminders when none pending', async () => {
+  it('processes 0 reminders when none pending', async () => {
     const sb = createMockSupabase({
       appointment_reminders: { data: [], error: null },
       appointment_waitlist: { data: [], error: null },
@@ -24,7 +24,7 @@ describe('processReminderCycle', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('processes pending reminders in dry run mode', async () => {
+  it('processes pending reminders in dry run mode', async () => {
     const mockReminder = {
       id: 'r-1',
       appointment_id: 'appt-1',
@@ -69,7 +69,7 @@ describe('processReminderCycle', () => {
     expect(result.failed).toBe(0);
   });
 
-  test('handles failed reminder gracefully', async () => {
+  it('handles failed reminder gracefully', async () => {
     const mockReminder = {
       id: 'r-fail',
       appointment_id: 'appt-missing',
@@ -95,7 +95,7 @@ describe('processReminderCycle', () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  test('expires stale waitlist offers', async () => {
+  it('expires stale waitlist offers', async () => {
     const sb = createMockSupabase({
       appointment_reminders: { data: [], error: null },
       appointment_waitlist: {
@@ -109,7 +109,7 @@ describe('processReminderCycle', () => {
     expect(result.waitlistExpired).toBe(1);
   });
 
-  test('returns errors array when cycle-level error occurs', async () => {
+  it('returns errors array when cycle-level error occurs', async () => {
     const sb = createMockSupabase({
       appointment_reminders: { data: null, error: { message: 'DB connection lost' } },
       appointment_waitlist: { data: [], error: null },

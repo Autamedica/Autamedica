@@ -26,7 +26,9 @@
     "dev": "tsc --build --watch tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "check-types": "tsc --noEmit",
-    "clean": "rimraf dist *.tsbuildinfo"
+    "clean": "rimraf dist *.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@autamedica/types": "workspace:*",
@@ -38,6 +40,7 @@
   "devDependencies": {
     "@autamedica/typescript-config": "workspace:*",
     "rimraf": "^5.0.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

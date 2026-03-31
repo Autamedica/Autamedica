@@ -31,6 +31,7 @@ export function VideoLayout({
   pipPosition = 'bottom-right',
   onSwapVideos,
   onPIPPositionChange,
+  doctorName = 'Doctor',
   className = '',
 }: VideoLayoutProps) {
   const [isSwapped, setIsSwapped] = useState(false);
@@ -50,6 +51,7 @@ export function VideoLayout({
           remoteStream={remoteStream}
           isLocalVideoEnabled={isLocalVideoEnabled}
           isRemoteVideoEnabled={isRemoteVideoEnabled}
+          doctorName={doctorName}
           className={className}
         />
       );
@@ -62,6 +64,7 @@ export function VideoLayout({
           isLocalVideoEnabled={isLocalVideoEnabled}
           isRemoteVideoEnabled={isRemoteVideoEnabled}
           isSwapped={isSwapped}
+          doctorName={doctorName}
           className={className}
         />
       );
@@ -78,6 +81,7 @@ export function VideoLayout({
           pipPosition={pipPosition}
           onSwap={handleSwap}
           onPIPPositionChange={onPIPPositionChange}
+          doctorName={doctorName}
           className={className}
         />
       );
@@ -96,6 +100,7 @@ function SpeakerLayout({
   pipPosition,
   onSwap,
   onPIPPositionChange,
+  doctorName,
   className,
 }: {
   localStream: MediaStream | null;
@@ -106,12 +111,13 @@ function SpeakerLayout({
   pipPosition: PIPPosition;
   onSwap: () => void;
   onPIPPositionChange: (pos: PIPPosition) => void;
+  doctorName: string;
   className: string;
 }) {
   // Si está swapped, invertir cuál es grande y cuál es PIP
   const mainStream = isSwapped ? localStream : remoteStream;
   const mainVideoEnabled = isSwapped ? isLocalVideoEnabled : isRemoteVideoEnabled;
-  const mainParticipantName = isSwapped ? 'Tú (Paciente)' : 'Dr. García';
+  const mainParticipantName = isSwapped ? 'Tú (Paciente)' : doctorName;
   const mainParticipantRole = isSwapped ? 'Paciente' : 'Médico Especialista';
 
   const pipStream = isSwapped ? remoteStream : localStream;
@@ -159,12 +165,14 @@ function GridLayout({
   remoteStream,
   isLocalVideoEnabled,
   isRemoteVideoEnabled,
+  doctorName,
   className,
 }: {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   isLocalVideoEnabled: boolean;
   isRemoteVideoEnabled: boolean;
+  doctorName: string;
   className: string;
 }) {
   return (
@@ -173,7 +181,7 @@ function GridLayout({
       <RemoteVideoStream
         remoteStream={remoteStream}
         isVideoEnabled={isRemoteVideoEnabled}
-        participantName="Dr. García"
+        participantName={doctorName}
         participantRole="Médico Especialista"
       />
 
@@ -197,6 +205,7 @@ function SidebarLayout({
   isLocalVideoEnabled,
   isRemoteVideoEnabled,
   isSwapped,
+  doctorName,
   className,
 }: {
   localStream: MediaStream | null;
@@ -204,16 +213,17 @@ function SidebarLayout({
   isLocalVideoEnabled: boolean;
   isRemoteVideoEnabled: boolean;
   isSwapped: boolean;
+  doctorName: string;
   className: string;
 }) {
   const mainStream = isSwapped ? localStream : remoteStream;
   const mainVideoEnabled = isSwapped ? isLocalVideoEnabled : isRemoteVideoEnabled;
-  const mainName = isSwapped ? 'Tú (Paciente)' : 'Dr. García';
+  const mainName = isSwapped ? 'Tú (Paciente)' : doctorName;
   const mainRole = isSwapped ? 'Paciente' : 'Médico Especialista';
 
   const sideStream = isSwapped ? remoteStream : localStream;
   const sideVideoEnabled = isSwapped ? isRemoteVideoEnabled : isLocalVideoEnabled;
-  const sideName = isSwapped ? 'Dr. García' : 'Tú (Paciente)';
+  const sideName = isSwapped ? doctorName : 'Tú (Paciente)';
   const sideRole = isSwapped ? 'Médico Especialista' : 'Paciente';
 
   return (

@@ -1,11 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
+  fetchTurnCredentials,
   getExampleIceServersConfig,
   getIceServersConfig,
+  getProductionICEServers,
   hasStunIceServer,
   hasTurnIceServer,
+  ICE_STUN_ONLY,
   validateIceServersConfig,
 } from './ice-servers'
+
+vi.mock('@autamedica/shared', () => ({
+  getClientEnvOrDefault: vi.fn((_key: string, fallback: string) => fallback),
+  getOptionalClientEnv: vi.fn(() => undefined),
+  getServerEnvOrDefault: vi.fn((_key: string, fallback: string) => fallback),
+  logger: {
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}))
 
 describe('ICE Servers Configuration', () => {
   beforeEach(() => {
@@ -175,6 +190,219 @@ describe('ICE Servers Configuration', () => {
           { urls: 'turn:turn.example.com:3478' },
         ]),
       ).toBe(false)
+    })
+  })
+
+  describe('fetchTurnCredentials', () => {
+    const originalFetch = globalThis.fetch
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch
+    })
+
+    it('should return TURN servers on successful fetch', async () => {
+      const turnServers: RTCIceServer[] = [
+        { urls: 'turn:turn.example.com:3478', username: 'u', credential: 'p' },
+        { urls: 'stun:stun.example.com:19302' },
+      ]
+
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: true, iceServers: turnServers }),
+      })
+
+      const result = await fetchTurnCredentials('/api/turn-credentials')
+
+      expect(result).toEqual(turnServers)
+    })
+
+    it('should include credentials: include in fetch call', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: true, iceServers: [{ urls: 'turn:t.com:3478' }] }),
+      })
+      globalThis.fetch = mockFetch
+
+      await fetchTurnCredentials('/api/turn-credentials')
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/turn-credentials', {
+        cache: 'no-store',
+        credentials: 'include',
+      })
+    })
+
+    it('should return STUN-only fallback on network failure', async () => {
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+      const result = await fetchTurnCredentials()
+
+      expect(result).toEqual(ICE_STUN_ONLY)
+      expect(result).toHaveLength(2)
+      expect(result.every(s => {
+        const urls = Array.isArray(s.urls) ? s.urls : [s.urls]
+        return urls.every(u => u.startsWith('stun:'))
+      })).toBe(true)
+    })
+
+    it('should return STUN-only fallback on non-200 response', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+      })
+
+      const result = await fetchTurnCredentials()
+
+      expect(result).toEqual(ICE_STUN_ONLY)
+    })
+
+    it('should log warning on network failure', async () => {
+      const { logger } = await import('@autamedica/shared')
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'))
+
+      await fetchTurnCredentials('/api/turn-credentials')
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[fetchTurnCredentials] TURN fetch failed'),
+        expect.objectContaining({ apiUrl: '/api/turn-credentials' }),
+      )
+    })
+
+    it('should log warning on non-200 response', async () => {
+      const { logger } = await import('@autamedica/shared')
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 })
+
+      await fetchTurnCredentials('/api/turn-credentials')
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('TURN endpoint returned 403'),
+        expect.objectContaining({ apiUrl: '/api/turn-credentials' }),
+      )
+    })
+
+    it('should return STUN-only when response ok is false', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: false }),
+      })
+
+      const result = await fetchTurnCredentials()
+
+      expect(result).toEqual(ICE_STUN_ONLY)
+    })
+
+    it('should return STUN-only when iceServers array is empty', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: true, iceServers: [] }),
+      })
+
+      const result = await fetchTurnCredentials()
+
+      expect(result).toEqual(ICE_STUN_ONLY)
+    })
+
+    it('should use default apiUrl when none provided', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: true, iceServers: [{ urls: 'turn:t.com:3478' }] }),
+      })
+      globalThis.fetch = mockFetch
+
+      await fetchTurnCredentials()
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/turn-credentials', expect.any(Object))
+    })
+  })
+
+  describe('getProductionICEServers', () => {
+    it('should include default STUN servers when no TURN configured', () => {
+      vi.stubGlobal('process', { env: {} })
+
+      const servers = getProductionICEServers()
+
+      expect(servers).toHaveLength(2) // ICE_STUN_ONLY has 2 servers
+      expect(hasStunIceServer(servers)).toBe(true)
+      expect(hasTurnIceServer(servers)).toBe(false)
+    })
+
+    it('should merge TURN servers with existing STUN servers', () => {
+      vi.stubGlobal('process', {
+        env: {
+          PUBLIC_TURN_URLS: 'turn:turn.example.com:3478,turns:turn.example.com:5349',
+          PUBLIC_TURN_USERNAME: 'myuser',
+          PUBLIC_TURN_CREDENTIAL: 'mysecret',
+        },
+      })
+
+      const servers = getProductionICEServers()
+
+      expect(hasStunIceServer(servers)).toBe(true)
+      expect(hasTurnIceServer(servers)).toBe(true)
+      // 2 STUN + 1 TURN entry (with 2 urls)
+      expect(servers).toHaveLength(3)
+      const turnEntry = servers.find(s => {
+        const urls = Array.isArray(s.urls) ? s.urls : [s.urls]
+        return urls.some(u => u.startsWith('turn:'))
+      })
+      expect(turnEntry).toBeDefined()
+      expect(turnEntry?.username).toBe('myuser')
+      expect(turnEntry.credential).toBe('mysecret')
+      expect(turnEntry.urls).toEqual(['turn:turn.example.com:3478', 'turns:turn.example.com:5349'])
+    })
+
+    it('should log warning when TURN env vars are missing', async () => {
+      const { logger } = await import('@autamedica/shared')
+      vi.stubGlobal('process', { env: {} })
+
+      getProductionICEServers()
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('No TURN servers configured'),
+      )
+    })
+
+    it('should not add TURN when only partial env vars are set', () => {
+      vi.stubGlobal('process', {
+        env: {
+          PUBLIC_TURN_URLS: 'turn:turn.example.com:3478',
+          // Missing username and credential
+        },
+      })
+
+      const servers = getProductionICEServers()
+
+      expect(hasTurnIceServer(servers)).toBe(false)
+      expect(servers).toHaveLength(2) // STUN only
+    })
+  })
+
+  describe('hasTurnIceServer — edge cases', () => {
+    it('returns false for empty array', () => {
+      expect(hasTurnIceServer([])).toBe(false)
+    })
+
+    it('returns false for null/undefined', () => {
+      expect(hasTurnIceServer(null as any)).toBe(false)
+      expect(hasTurnIceServer(undefined as any)).toBe(false)
+    })
+
+    it('handles turns: protocol', () => {
+      expect(hasTurnIceServer([{ urls: 'turns:turn.example.com:5349' }])).toBe(true)
+    })
+  })
+
+  describe('hasStunIceServer — edge cases', () => {
+    it('returns false for empty array', () => {
+      expect(hasStunIceServer([])).toBe(false)
+    })
+
+    it('returns false for null/undefined', () => {
+      expect(hasStunIceServer(null as any)).toBe(false)
+      expect(hasStunIceServer(undefined as any)).toBe(false)
+    })
+
+    it('handles array-form urls', () => {
+      expect(hasStunIceServer([{ urls: ['stun:stun.example.com:19302'] }])).toBe(true)
     })
   })
 

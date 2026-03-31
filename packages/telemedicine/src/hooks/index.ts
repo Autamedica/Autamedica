@@ -49,3 +49,6 @@ export { useCallDebugger } from './useCallDebugger'
 export { useRemoteMediaTimeout } from './useRemoteMediaTimeout'
 
 export { useCallLifecycleEffects } from './useCallLifecycleEffects'
+
+export { useCallReport } from './useCallReport'
+export type { CallReportState } from './useCallReport'

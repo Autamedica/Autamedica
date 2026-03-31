@@ -9,13 +9,17 @@ import {
   UserCircle,
   CheckCircle2,
   AlertTriangle,
+  XCircle,
   ChevronDown,
   Volume2,
   Settings,
+  RefreshCw,
+  Wifi,
 } from 'lucide-react'
 import type { ConnectionState, DeviceInfo, WarmUpResult } from '../webrtc-client'
 import type { WebRTCClient } from '../webrtc-client'
 import type { CloudflareCallsClient } from '../cloudflare-calls'
+import type { PreflightResult } from '../network/preflight'
 
 export interface GreenRoomProps {
   localVideoRef: RefObject<HTMLVideoElement | null>
@@ -35,6 +39,10 @@ export interface GreenRoomProps {
   roomId: string
   userType: 'doctor' | 'patient' | 'nurse'
   accentColor: 'violet' | 'sky'
+  /** Network preflight result (optional — skipped if no ICE servers) */
+  preflightResult?: PreflightResult | null
+  preflightRunning?: boolean
+  onPreflightRerun?: () => void
 }
 
 /* ── Device selector ── */
@@ -99,6 +107,81 @@ function CheckItem({ ok, loading, label }: { ok: boolean; loading?: boolean; lab
   )
 }
 
+/* ── Network preflight result display ── */
+function NetworkQualityDisplay({
+  result,
+  isRunning,
+  onRerun,
+}: {
+  result: PreflightResult | null
+  isRunning: boolean
+  onRerun?: () => void
+}) {
+  if (isRunning) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-amber-400">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Analizando tu conexion...</span>
+      </div>
+    )
+  }
+
+  if (!result) return null
+
+  const { recommendation } = result
+
+  const config: Record<string, { color: string; Icon: typeof CheckCircle2; text: string }> = {
+    hd: {
+      color: 'text-emerald-400',
+      Icon: CheckCircle2,
+      text: 'Conexion excelente — video en alta definicion',
+    },
+    sd: {
+      color: 'text-amber-400',
+      Icon: AlertTriangle,
+      text: 'Conexion moderada — video en definicion estandar',
+    },
+    'audio-only': {
+      color: 'text-orange-400',
+      Icon: AlertTriangle,
+      text: 'Conexion limitada — recomendamos audio sin video',
+    },
+    unreachable: {
+      color: 'text-red-400',
+      Icon: XCircle,
+      text: 'No pudimos conectar — verifica tu red',
+    },
+  }
+
+  const { color, Icon, text } = config[recommendation] ?? config.unreachable
+
+  return (
+    <div className="space-y-2">
+      <div className={`flex items-center gap-2 text-sm ${color}`}>
+        <Icon className="h-4 w-4 shrink-0" />
+        <span>{text}</span>
+      </div>
+      {result.estimatedBandwidthKbps > 0 && (
+        <div className="flex items-center gap-4 text-[11px] text-slate-500">
+          <span>{Math.round(result.estimatedBandwidthKbps)} kbps</span>
+          <span>{Math.round(result.latencyMs)} ms</span>
+          {result.stunReachable && <span>STUN OK</span>}
+          {result.turnReachable && <span>TURN OK</span>}
+        </div>
+      )}
+      {onRerun && (
+        <button
+          onClick={onRerun}
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-300 transition-colors"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Reintentar
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function GreenRoom({
   localVideoRef,
   client,
@@ -117,9 +200,13 @@ export function GreenRoom({
   roomId,
   userType,
   accentColor,
+  preflightResult,
+  preflightRunning,
+  onPreflightRerun,
 }: GreenRoomProps) {
   const videoDevices = availableDevices.filter(d => d.kind === 'videoinput')
   const audioDevices = availableDevices.filter(d => d.kind === 'audioinput')
+  const isUnreachable = preflightResult?.recommendation === 'unreachable'
 
   return (
     <div className="flex h-full items-center justify-center bg-[#0a0a0a] px-4 py-6 sm:px-6">
@@ -195,14 +282,29 @@ export function GreenRoom({
             {warmUpResult && (
               <div className="mt-6 space-y-3 rounded-xl border border-white/8 bg-white/[0.03] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
-                  Verificación
+                  Verificacion
                 </p>
-                <CheckItem ok={greenRoomChecks.hasVideo} label="Cámara" />
-                <CheckItem ok={greenRoomChecks.hasAudio} label="Micrófono" />
+                <CheckItem ok={greenRoomChecks.hasVideo} label="Camara" />
+                <CheckItem ok={greenRoomChecks.hasAudio} label="Microfono" />
                 <CheckItem
                   ok={greenRoomChecks.hasSignaling}
                   loading={!greenRoomChecks.hasSignaling && connectionState !== 'failed'}
                   label={warmUpResult.latencyMs != null ? `Red (${warmUpResult.latencyMs}ms)` : 'Red'}
+                />
+              </div>
+            )}
+
+            {/* Network preflight */}
+            {(preflightRunning || preflightResult) && (
+              <div className="mt-4 space-y-2 rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                  <Wifi className="h-3 w-3" />
+                  Calidad de red
+                </p>
+                <NetworkQualityDisplay
+                  result={preflightResult ?? null}
+                  isRunning={!!preflightRunning}
+                  onRerun={onPreflightRerun}
                 />
               </div>
             )}
@@ -231,7 +333,7 @@ export function GreenRoom({
           <div className="mt-6">
             <button
               onClick={onStartCall}
-              disabled={isWarmingUp}
+              disabled={isWarmingUp || isUnreachable}
               className={`w-full rounded-xl px-6 py-4 text-base font-semibold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
                 accentColor === 'violet'
                   ? 'bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 shadow-violet-600/20'

@@ -21,6 +21,7 @@ interface ResilienceContext {
     warn: (msg: string, ctx?: Record<string, unknown>) => void
   }
   emit: (event: 'error', error: Error) => void
+  callLogger?: import('../logging/call-logger').CallLogger
 }
 
 const INITIAL_VIDEO_BITRATE = 500_000
@@ -79,15 +80,18 @@ export class NetworkResilience {
 
     const onOffline = () => {
       this.ctx.log.warn('Browser went offline')
+      this.ctx.callLogger?.warn('lifecycle', 'network_offline')
       this.ctx.emit('error', new Error('network_offline'))
     }
 
     const onOnline = () => {
       this.ctx.log.info('Browser came back online, restarting ICE for all peers')
+      this.ctx.callLogger?.info('lifecycle', 'network_online')
       for (const [peerId, peerState] of this.ctx.getPeerConnections()) {
         peerState.iceRestartCount = 0
         peerState.pc.restartIce()
         this.ctx.log.info('ICE restart triggered after online recovery', { peerId })
+        this.ctx.callLogger?.info('ice', 'ice_restart_after_online', { peerId })
       }
       this.ctx.onOnlineRecovery()
     }
@@ -124,10 +128,12 @@ export class NetworkResilience {
               rtcpMuxPolicy: 'require',
             })
             this.ctx.log.info('TURN credentials refreshed for peer', { peerId })
+            this.ctx.callLogger?.info('turn', 'turn_refresh', { peerId })
           }
         }
       } catch {
         this.ctx.log.warn('Failed to refresh TURN credentials')
+        this.ctx.callLogger?.warn('turn', 'turn_refresh_failed')
       }
     }, REFRESH_INTERVAL_MS)
   }

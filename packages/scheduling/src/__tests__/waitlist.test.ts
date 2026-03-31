@@ -1,4 +1,4 @@
-import { test, expect, describe } from 'bun:test';
+import { it, expect, describe } from 'vitest';
 import {
   addToWaitlist,
   processWaitlist,
@@ -29,7 +29,7 @@ const mockWaitlistEntry = {
 };
 
 describe('addToWaitlist', () => {
-  test('inserts entry and returns it', async () => {
+  it('inserts entry and returns it', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: { data: mockWaitlistEntry, error: null },
     });
@@ -44,7 +44,7 @@ describe('addToWaitlist', () => {
     expect(result.status).toBe('waiting');
   });
 
-  test('throws on error', async () => {
+  it('throws on error', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: { data: null, error: { message: 'constraint' } },
     });
@@ -59,7 +59,7 @@ describe('addToWaitlist', () => {
 });
 
 describe('processWaitlist', () => {
-  test('returns matching candidate when preferences match', async () => {
+  it('returns matching candidate when preferences match', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: {
         data: [mockWaitlistEntry],
@@ -76,7 +76,7 @@ describe('processWaitlist', () => {
     expect(result).not.toBeNull();
   });
 
-  test('returns null when no candidates', async () => {
+  it('returns null when no candidates', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: { data: [], error: null },
     });
@@ -92,7 +92,7 @@ describe('processWaitlist', () => {
 });
 
 describe('expireStaleOffers', () => {
-  test('returns count of expired offers', async () => {
+  it('returns count of expired offers', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: {
         data: [{ id: 'wl-expired-1' }, { id: 'wl-expired-2' }],
@@ -104,7 +104,7 @@ describe('expireStaleOffers', () => {
     expect(count).toBe(2);
   });
 
-  test('returns 0 when no stale offers', async () => {
+  it('returns 0 when no stale offers', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: { data: [], error: null },
     });
@@ -115,7 +115,7 @@ describe('expireStaleOffers', () => {
 });
 
 describe('cancelWaitlistEntry', () => {
-  test('does not throw on success', async () => {
+  it('does not throw on success', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: { data: null, error: null },
     });
@@ -125,7 +125,7 @@ describe('cancelWaitlistEntry', () => {
     ).resolves.toBeUndefined();
   });
 
-  test('throws on error', async () => {
+  it('throws on error', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: { data: null, error: { message: 'not found' } },
     });
@@ -137,7 +137,7 @@ describe('cancelWaitlistEntry', () => {
 });
 
 describe('getDoctorWaitlist', () => {
-  test('returns waiting entries ordered by priority', async () => {
+  it('returns waiting entries ordered by priority', async () => {
     const sb = createMockSupabase({
       appointment_waitlist: {
         data: [
