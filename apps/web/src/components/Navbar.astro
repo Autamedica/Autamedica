@@ -32,6 +32,31 @@ const navLinks = [
       <LanguageSwitcher currentLocale={locale} client:load />
       <AccountMenu locale={locale} client:load />
     </div>
+
+    <button
+      class="hamburger"
+      id="hamburger-btn"
+      aria-label="Abrir menu de navegacion"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line class="hamburger-line hamburger-line--top" x1="3" y1="6" x2="21" y2="6" />
+        <line class="hamburger-line hamburger-line--mid" x1="3" y1="12" x2="21" y2="12" />
+        <line class="hamburger-line hamburger-line--bot" x1="3" y1="18" x2="21" y2="18" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+    <ul class="mobile-menu-links" role="list">
+      {navLinks.map((link) => (
+        <li><a href={link.href}>{link.label}</a></li>
+      ))}
+    </ul>
+    <div class="mobile-menu-cta">
+      <a href="/auth/login" class="mobile-cta-btn">Acceso</a>
+    </div>
   </div>
 </nav>
 
@@ -101,6 +126,107 @@ const navLinks = [
     align-items: center;
   }
 
+  /* Hamburger button — mobile only */
+  .hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    padding: var(--space-2);
+    margin-left: var(--space-2);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .hamburger-line {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform-origin: center;
+  }
+
+  .hamburger[aria-expanded="true"] .hamburger-line--top {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .hamburger[aria-expanded="true"] .hamburger-line--mid {
+    opacity: 0;
+  }
+
+  .hamburger[aria-expanded="true"] .hamburger-line--bot {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  /* Mobile menu panel */
+  .mobile-menu {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition:
+      max-height 0.35s ease,
+      opacity 0.3s ease,
+      transform 0.3s ease;
+    background: rgba(0, 0, 0, 0.94);
+    border-top: 1px solid rgba(56, 212, 255, 0.1);
+    padding: 0 var(--section-px);
+  }
+
+  .mobile-menu.is-open {
+    max-height: 400px;
+    opacity: 1;
+    transform: translateY(0);
+    padding: var(--space-4) var(--section-px) var(--space-6);
+  }
+
+  .mobile-menu-links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .mobile-menu-links a {
+    display: block;
+    padding: var(--space-3) 0;
+    font-size: var(--text-base);
+    color: #ffffff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: color var(--transition-base);
+  }
+
+  .mobile-menu-links a:hover {
+    color: #38d4ff;
+  }
+
+  .mobile-menu-links li:last-child a {
+    border-bottom: none;
+  }
+
+  .mobile-menu-cta {
+    padding-top: var(--space-4);
+  }
+
+  .mobile-cta-btn {
+    display: block;
+    text-align: center;
+    padding: var(--space-3) var(--space-6);
+    background: linear-gradient(135deg, #38d4ff, #0ea5e9);
+    color: #000000;
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+    border-radius: var(--radius-md);
+    transition: opacity var(--transition-base);
+  }
+
+  .mobile-cta-btn:hover {
+    opacity: 0.9;
+  }
+
   @media (min-width: 768px) {
     .navbar-links {
       display: flex;
@@ -109,5 +235,46 @@ const navLinks = [
     .navbar-inner {
       height: 4.5rem;
     }
+
+    .hamburger {
+      display: none;
+    }
+
+    .mobile-menu {
+      display: none;
+    }
   }
 </style>
+
+<script>
+  const btn = document.getElementById('hamburger-btn');
+  const menu = document.getElementById('mobile-menu');
+
+  if (btn && menu) {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = menu.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', String(isOpen));
+      menu.setAttribute('aria-hidden', String(!isOpen));
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!menu.classList.contains('is-open')) return;
+      const target = e.target as HTMLElement;
+      if (!menu.contains(target) && !btn.contains(target)) {
+        menu.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    menu.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'A') {
+        menu.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        menu.setAttribute('aria-hidden', 'true');
+      }
+    });
+  }
+</script>

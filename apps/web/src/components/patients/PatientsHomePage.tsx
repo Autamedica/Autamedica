@@ -48,15 +48,15 @@ function getTimeGreeting(): string {
 }
 
 const CONSULTAS = [
-  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: IconVideoconsulta, color: '#0ea5e9' },
-  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: IconTurnos, color: '#0ea5e9' },
-  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: IconAnamnesis, color: '#0ea5e9' },
+  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: IconVideoconsulta, color: '#10B981', bgClass: 'bg-emerald-50' },
+  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: IconTurnos, color: '#0EA5E9', bgClass: 'bg-sky-50' },
+  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: IconAnamnesis, color: '#F59E0B', bgClass: 'bg-amber-50' },
 ] as const
 
 const SALUD = [
-  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: IconRecetas, color: '#0ea5e9' },
-  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: IconHistorial, color: '#0ea5e9' },
-  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: IconComunidad, color: '#0ea5e9' },
+  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: IconRecetas, color: '#8B5CF6', bgClass: 'bg-violet-50' },
+  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: IconHistorial, color: '#64748B', bgClass: 'bg-slate-50' },
+  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: IconComunidad, color: '#F43F5E', bgClass: 'bg-rose-50' },
 ] as const
 
 interface PatientsHomePageProps {
@@ -277,7 +277,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         <section className="mb-6">
           <h2 className="mb-3 text-sm font-medium text-gray-500">Consultas</h2>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {CONSULTAS.map(({ key, label, sub, href, icon: Icon, color }, i) => (
+            {CONSULTAS.map(({ key, label, sub, href, icon: Icon, color, bgClass }, i) => (
               <a
                 key={key}
                 href={href}
@@ -287,7 +287,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     : 'w-[180px] border-gray-100 bg-white hover:border-gray-200'
                 }`}
               >
-                <Icon className={`mt-0.5 shrink-0 ${i === 0 ? 'h-6 w-6' : 'h-5 w-5'}`} style={{ color }} />
+                <div className={`flex shrink-0 items-center justify-center rounded-xl ${bgClass} ${i === 0 ? 'h-9 w-9' : 'h-8 w-8'}`}>
+                  <Icon className={`shrink-0 ${i === 0 ? 'h-5 w-5' : 'h-4 w-4'}`} style={{ color }} />
+                </div>
                 <div className="min-w-0">
                   <p className={`font-semibold text-gray-900 ${i === 0 ? 'text-base' : 'text-sm'}`}>{label}</p>
                   <p className="mt-0.5 text-[11px] leading-snug text-gray-400">{sub}</p>
@@ -311,13 +313,15 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         <section>
           <h2 className="mb-3 text-sm font-medium text-gray-500">Tu salud</h2>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {SALUD.map(({ key, label, sub, href, icon: Icon, color }) => (
+            {SALUD.map(({ key, label, sub, href, icon: Icon, color, bgClass }) => (
               <a
                 key={key}
                 href={href}
                 className="group flex w-[180px] shrink-0 items-start gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-gray-200 hover:shadow-md active:scale-[0.97]"
               >
-                <Icon className="mt-0.5 h-5 w-5 shrink-0" style={{ color }} />
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${bgClass}`}>
+                  <Icon className="h-4 w-4 shrink-0" style={{ color }} />
+                </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900">{label}</p>
                   <p className="mt-0.5 text-[11px] leading-snug text-gray-400">{sub}</p>

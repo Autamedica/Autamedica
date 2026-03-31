@@ -148,15 +148,17 @@ textarea {
   color: inherit;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.font-heading {
-  font-family: var(--font-heading);
-  letter-spacing: -0.02em;
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+  }
 }
 
 .scrollbar-hide {
