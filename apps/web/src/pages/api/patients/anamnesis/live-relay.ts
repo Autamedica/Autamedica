@@ -77,6 +77,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }))
 
   try {
+    // 25s timeout to respond before Cloudflare's 30s worker limit
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 25_000)
+
     const resp = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
       {
@@ -85,16 +89,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
           'Content-Type': 'application/json',
           'x-goog-api-key': apiKey,
         },
+        signal: controller.signal,
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
           contents,
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 512,
           },
         }),
       },
     )
+    clearTimeout(timeout)
 
     if (!resp.ok) {
       const errBody = await resp.text().catch(() => 'unknown')
