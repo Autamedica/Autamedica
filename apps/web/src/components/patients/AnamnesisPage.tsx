@@ -9,6 +9,7 @@ import {
   Download,
   Loader2,
   Lock,
+  Mic,
   MessageCircle,
   PlayCircle,
   Plus,
@@ -27,6 +28,7 @@ import { PrivacyAcceptanceScreen } from '@/components/patients/anamnesis/Privacy
 import { AnalysisResultOverlay } from '@/components/patients/anamnesis/AnalysisResultOverlay';
 import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour';
 import { ConversationalAnamnesis } from '@/components/patients/anamnesis/ConversationalAnamnesis';
+import { VoiceAnamnesis } from '@/components/patients/anamnesis/VoiceAnamnesis';
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis';
 import type { AnamnesisSection } from '@autamedica/types';
 
@@ -72,6 +74,7 @@ export default function AnamnesisPage() {
   const [criticalSkipBlocked, setCriticalSkipBlocked] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showUpdatePicker, setShowUpdatePicker] = useState(false);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
   const [anamnesisMode, setAnamnesisMode] = useState<AnamnesisMode>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('autamedica:anamnesis-mode') as AnamnesisMode) || 'conversational';
@@ -474,6 +477,27 @@ export default function AnamnesisPage() {
       resumen_final: 'Resumen',
     };
 
+    // Voice chat overlay
+    if (showVoiceChat) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-stone-50 to-sky-50 p-4">
+          <div className="mx-auto max-w-lg pt-8">
+            <h2 className="mb-6 text-center text-xl font-bold text-stone-900">
+              Conversación con IA
+            </h2>
+            <VoiceAnamnesis
+              onDataExtracted={(_data) => {
+                // Save voice conversation data then go back
+                setShowVoiceChat(false);
+                window.location.reload();
+              }}
+              onSwitchToText={() => setShowVoiceChat(false)}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-white">
         {/* Hero — video background, white text, immersive */}
@@ -516,7 +540,7 @@ export default function AnamnesisPage() {
           </button>
 
           {/* Actions — clean black/white with cyan accent */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <button
               onClick={() => setShowUpdatePicker(true)}
               className="flex flex-col items-center gap-2.5 rounded-2xl border border-stone-200 bg-white p-4 transition-all hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.95]"
@@ -525,6 +549,15 @@ export default function AnamnesisPage() {
                 <Plus className="h-6 w-6" />
               </div>
               <span className="text-xs font-bold text-stone-900">Actualizar</span>
+            </button>
+            <button
+              onClick={() => setShowVoiceChat(true)}
+              className="flex flex-col items-center gap-2.5 rounded-2xl border border-sky-200 bg-sky-50 p-4 transition-all hover:border-sky-400 hover:bg-sky-100 active:scale-[0.95]"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-500 text-white">
+                <Mic className="h-6 w-6" />
+              </div>
+              <span className="text-xs font-bold text-stone-900">Hablar</span>
             </button>
             <a
               href="/patients/dashboard"
