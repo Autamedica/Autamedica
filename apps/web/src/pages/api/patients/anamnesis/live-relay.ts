@@ -59,6 +59,28 @@ export const POST: APIRoute = async ({ request, locals }) => {
     })
   }
 
+  // Quick diagnostic: test if Gemini fetch itself works
+  if (userText === '__diag__') {
+    const ak = resolveServerEnv('GEMINI_API_KEY')
+    try {
+      const r = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': ak ?? '' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: 'Responde solo "ok"' }] }],
+            generationConfig: { maxOutputTokens: 10 },
+          }),
+        },
+      )
+      const body = await r.text()
+      return json({ success: true, data: { status: r.status, hasKey: !!ak, body: body.slice(0, 300) } })
+    } catch (e) {
+      return json({ success: false, error: String(e) })
+    }
+  }
+
   // Build conversation with user's new message
   const turns: Turn[] = [...history, { role: 'user', text: userText }]
 
