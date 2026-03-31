@@ -56,7 +56,6 @@ Responder SOLO en JSON válido:
 }`
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // primeRuntimeEnv is called by middleware on every request — no need to repeat here
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
@@ -87,94 +86,47 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const userMessage = `Motivo de consulta del paciente:\n"${chiefComplaint}"`
-    let aiResponse: string
+    const apiKey = resolveServerEnv('GEMINI_API_KEY') ?? ''
 
-    if (target.providerName === 'gemini') {
-      const apiKey = resolveServerEnv('GEMINI_API_KEY') ?? ''
-      const models = [target.modelName, 'gemini-2.5-flash'] // primary + fallback
-      let geminiResult: Record<string, unknown> | null = null
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${target.modelName}:generateContent`
 
-      for (let attempt = 0; attempt < models.length; attempt++) {
-        const model = models[attempt]
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
-
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 32768,
-              responseMimeType: 'application/json',
-              thinkingConfig: { thinkingBudget: 2048 },
-            },
-          }),
-        })
-
-        if (!resp.ok) {
-          const errText = await resp.text().catch(() => 'unknown')
-          const isRetryable = resp.status === 429 || resp.status === 503
-            || errText.includes('high demand') || errText.includes('overloaded')
-
-          if (isRetryable && attempt < models.length - 1) {
-            logger.warn(`[ai-question] ${model} overloaded (${resp.status}), falling back to ${models[attempt + 1]}`)
-            await new Promise(r => setTimeout(r, 1500))
-            continue
-          }
-          logger.error('[ai-question] Gemini error', { status: resp.status, body: errText, model })
-          return json({ success: false, error: 'ai_provider_error' }, 502)
-        }
-
-        geminiResult = await resp.json()
-        break
-      }
-
-      aiResponse = (geminiResult as Record<string, unknown>)?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-      if (!aiResponse) {
-        logger.warn('[ai-question] Gemini returned empty response', {
-          finishReason: (geminiResult as Record<string, unknown>)?.candidates?.[0]?.finishReason,
-        })
-        return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
-      }
-    } else {
-      // OpenAI fallback
-      const apiKey = resolveServerEnv('OPENAI_API_KEY') ?? ''
-      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: target.modelName,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: userMessage },
-          ],
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: {
           temperature: 0.3,
-          max_tokens: 1500,
-          response_format: { type: 'json_object' },
-        }),
+          maxOutputTokens: 32768,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 2048 },
+        },
+      }),
+    })
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => 'unknown')
+      logger.error('[ai-question] Gemini error', { status: resp.status, body: errText, model: target.modelName })
+      return json({ success: false, error: 'ai_provider_error' }, 502)
+    }
+
+    const geminiResult = await resp.json() as Record<string, unknown>
+    const aiResponse = (geminiResult as Record<string, unknown>)?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+
+    if (!aiResponse) {
+      logger.warn('[ai-question] Gemini returned empty response', {
+        finishReason: (geminiResult as Record<string, unknown>)?.candidates?.[0]?.finishReason,
       })
-
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => 'unknown')
-        logger.error('[ai-question] OpenAI error', { status: resp.status, body: errText })
-        return json({ success: false, error: 'ai_provider_error' }, 502)
-      }
-
-      const openaiResult = await resp.json()
-      aiResponse = openaiResult?.choices?.[0]?.message?.content ?? ''
+      return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
     }
 
     // Parse JSON response (LLM may return non-JSON)
     let parsed: Record<string, unknown>
     try {
-      parsed = JSON.parse(aiResponse)
+      parsed = JSON.parse(aiResponse as string)
     } catch {
-      logger.warn('[ai-question] AI returned non-JSON response', { aiResponse: aiResponse.slice(0, 200) })
+      logger.warn('[ai-question] AI returned non-JSON response', { aiResponse: (aiResponse as string).slice(0, 200) })
       return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
     }
     const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : []

@@ -87,7 +87,7 @@ export const anamnesisExtractionService = {
       modifiedSections: input.modifiedSections,
     })
 
-    // 2. Execute extraction (reutiliza motor existente — OpenAI/Gemini)
+    // 2. Execute extraction (Gemini 3.1 Flash Preview)
     const { providerName, modelName, result } = await executeAnamnesisExtraction(request)
 
     logger.info('[ExtractionService] Extraction completed', {
