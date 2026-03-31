@@ -241,6 +241,11 @@ export const AnamnesisExtractionResultSchema = z.object({
   qualityAlerts: z.array(AnamnesisExtractionAlertSchema),
   argenteCoverage: AnamnesisExtractionCoverageSchema,
   dataIntegrity: AnamnesisExtractionIntegritySchema,
+  clinicalCrossReferences: z.array(z.object({
+    sourceSections: z.array(z.string().trim().min(1)),
+    observation: z.string().trim().min(1),
+    relevance: z.enum(['critical', 'high', 'medium']),
+  })).default([]),
   clinicianQuestions: z.array(z.string().trim().min(1)),
   nextQuestions: z.array(AnamnesisExtractionQuestionSchema),
   safetyFlags: z.array(z.string().trim().min(1)),

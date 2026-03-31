@@ -34,16 +34,17 @@ REGLAS:
 - Después de 6-8 preguntas, hacé un resumen breve
 - Máximo 10 preguntas en total`
 
-/** In-memory conversation store (per session) */
-const sessions = new Map<string, { turns: Array<{ role: string; text: string }>; createdAt: number }>()
+/** Max messages per voice session (prevents abuse) */
+const MAX_SESSION_MESSAGES = 15
 
-// Cleanup old sessions every 5 min
-setInterval(() => {
-  const cutoff = Date.now() - 30 * 60_000
-  for (const [id, session] of sessions) {
-    if (session.createdAt < cutoff) sessions.delete(id)
-  }
-}, 5 * 60_000)
+/**
+ * In-memory conversation store.
+ * NOTE: On Cloudflare Workers this Map does NOT persist across isolates.
+ * Sessions may be lost if the worker recycles between requests.
+ * This is acceptable for voice anamnesis (short-lived, ~5min sessions).
+ * For persistence, migrate to Durable Objects or D1.
+ */
+const sessions = new Map<string, { turns: Array<{ role: string; text: string }>; createdAt: number }>()
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
@@ -54,7 +55,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (action === 'start') {
     // Create new session
-    const sessionId = `${context.patientId}-${Date.now()}`
+    const sessionId = crypto.randomUUID()
     sessions.set(sessionId, { turns: [], createdAt: Date.now() })
     return json({ success: true, data: { sessionId, greeting: '¿Qué te trae hoy a la consulta?' } })
   }
@@ -70,6 +71,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (action === 'message') {
     const userText = typeof raw.text === 'string' ? raw.text.trim() : ''
     if (!userText) return json({ success: false, error: 'empty_message' }, 400)
+
+    // Rate limit per session
+    const userTurns = session.turns.filter(t => t.role === 'user').length
+    if (userTurns >= MAX_SESSION_MESSAGES) {
+      return json({ success: false, error: 'session_message_limit', data: { limit: MAX_SESSION_MESSAGES } }, 429)
+    }
 
     // Add user message to conversation
     session.turns.push({ role: 'user', text: userText })

@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const patientLabel = [profile?.first_name, profile?.last_name]
       .filter(Boolean).join(' ') || 'Paciente'
 
-    // Execute extraction (Capa 6) — 30s timeout
+    // Execute extraction (Capa 6) — 60s timeout
     const extractionTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('extraction_timeout')), 60_000),
     )

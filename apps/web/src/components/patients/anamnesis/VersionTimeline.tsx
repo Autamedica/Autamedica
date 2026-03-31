@@ -28,11 +28,15 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
   useEffect(() => {
     fetch('/api/patients/anamnesis/versions', { credentials: 'include' })
       .then(r => r.json())
-      .then((resp: { data?: { versions?: VersionEntry[] } }) => {
-        setVersions(resp.data?.versions ?? []);
+      .then((resp: { versions?: VersionEntry[]; data?: { versions?: VersionEntry[] } }) => {
+        // API returns { versions: [...] } via jsonOk(), NOT wrapped in data
+        setVersions(resp.versions ?? resp.data?.versions ?? []);
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
+      .catch((err) => {
+        console.error('[VersionTimeline] Failed to load versions', err);
+        setLoaded(true);
+      });
   }, []);
 
   if (!loaded || versions.length === 0) return null;

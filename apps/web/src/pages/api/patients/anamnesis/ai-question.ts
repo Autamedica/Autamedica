@@ -96,11 +96,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
       for (let attempt = 0; attempt < models.length; attempt++) {
         const model = models[attempt]
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
 
         const resp = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: 'user', parts: [{ text: userMessage }] }],
@@ -169,12 +169,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       aiResponse = openaiResult?.choices?.[0]?.message?.content ?? ''
     }
 
-    // Parse JSON response
-    const parsed = JSON.parse(aiResponse)
+    // Parse JSON response (LLM may return non-JSON)
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(aiResponse)
+    } catch {
+      logger.warn('[ai-question] AI returned non-JSON response', { aiResponse: aiResponse.slice(0, 200) })
+      return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
+    }
     const questions = Array.isArray(parsed.questions) ? parsed.questions : []
     const detectedSections = Array.isArray(parsed.detectedSections) ? parsed.detectedSections : []
-    const urgencyLevel = ['normal', 'attention', 'urgent'].includes(parsed.urgencyLevel)
-      ? parsed.urgencyLevel
+    const rawUrgency = typeof parsed.urgencyLevel === 'string' ? parsed.urgencyLevel : ''
+    const urgencyLevel = ['normal', 'attention', 'urgent'].includes(rawUrgency)
+      ? rawUrgency
       : 'normal'
 
     logger.info('[ai-question] Generated questions', {

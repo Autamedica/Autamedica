@@ -57,6 +57,7 @@ const VALID_RESULT = {
     duplicatedNarratives: [],
     missingCriticalData: [],
   },
+  clinicalCrossReferences: [],
   clinicianQuestions: [],
   nextQuestions: [],
   safetyFlags: [],

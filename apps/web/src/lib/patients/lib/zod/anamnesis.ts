@@ -1,10 +1,22 @@
 import { z } from 'zod'
 import { KNOWN_SECTIONS } from '@/lib/patients/services/anamnesis.service'
 
+/** Allowed primitive types in section data (prevents prototype pollution & oversized payloads) */
+const SectionDataValue: z.ZodType = z.lazy(() =>
+  z.union([
+    z.string().max(5000),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(SectionDataValue).max(50),
+    z.record(z.string(), SectionDataValue),
+  ]),
+)
+
 // --- POST /api/patients/anamnesis ---
 export const SaveSectionSchema = z.object({
   stepId: z.enum(KNOWN_SECTIONS),
-  data: z.record(z.string(), z.unknown()).default({}),
+  data: z.record(z.string().max(100), SectionDataValue).default({}),
   completed: z
     .union([z.boolean(), z.literal('true'), z.literal('false')])
     .transform((v) => v === true || v === 'true'),
@@ -39,5 +51,5 @@ export const ExtractInputSchema = z.object({
     .max(24)
     .default([]),
   /** Sections modified in this revisit (empty = first visit, analyze all) */
-  modifiedSections: z.array(z.string()).optional(),
+  modifiedSections: z.array(z.enum(KNOWN_SECTIONS)).optional(),
 })
