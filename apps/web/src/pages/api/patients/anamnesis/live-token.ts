@@ -50,7 +50,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   // API key is stored as a secret in the worker, never exposed to the browser
   const sessionId = crypto.randomUUID()
   const signalingHost = import.meta.env.PUBLIC_SIGNALING_URL
-    ?? 'https://automedica-signaling-server.ecucondorsa.workers.dev'
+    ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
 
   return json({
     success: true,
