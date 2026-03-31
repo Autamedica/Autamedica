@@ -230,12 +230,28 @@ function DateField({
   const [month, setMonth] = useState('')
   const [year, setYear] = useState('')
 
+  const [dateError, setDateError] = useState('')
   const currentYear = new Date().getFullYear()
   const isComplete = day && month && year
 
   const handleSubmit = useCallback(() => {
     if (!isComplete) return
     const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    const parsed = new Date(iso + 'T00:00:00')
+    if (
+      isNaN(parsed.getTime()) ||
+      parsed.getFullYear() !== Number(year) ||
+      parsed.getMonth() + 1 !== Number(month) ||
+      parsed.getDate() !== Number(day)
+    ) {
+      setDateError('Fecha inválida. Verificá el día para el mes seleccionado.')
+      return
+    }
+    if (parsed > new Date()) {
+      setDateError('La fecha no puede ser en el futuro.')
+      return
+    }
+    setDateError('')
     onSubmit(iso)
   }, [day, month, year, isComplete, onSubmit])
 
@@ -277,6 +293,9 @@ function DateField({
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
         </div>
       </div>
+      {dateError && (
+        <p className="text-sm font-medium text-red-600">{dateError}</p>
+      )}
       <button
         onClick={handleSubmit}
         disabled={!isComplete}
@@ -324,12 +343,19 @@ function TextField({
     recognition.continuous = true
     recognition.interimResults = false
 
+    let processedResults = 0
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let transcript = ''
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript + ' '
+      let newTranscript = ''
+      for (let i = processedResults; i < event.results.length; i++) {
+        if (event.results[i]?.[0]) {
+          newTranscript += event.results[i][0].transcript + ' '
+        }
       }
-      setText(prev => prev ? `${prev} ${transcript.trim()}` : transcript.trim())
+      processedResults = event.results.length
+      const trimmed = newTranscript.trim()
+      if (trimmed) {
+        setText(prev => prev ? `${prev} ${trimmed}` : trimmed)
+      }
     }
 
     recognition.onend = () => setListening(false)

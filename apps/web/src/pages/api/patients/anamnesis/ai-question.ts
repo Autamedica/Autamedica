@@ -177,12 +177,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
       logger.warn('[ai-question] AI returned non-JSON response', { aiResponse: aiResponse.slice(0, 200) })
       return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
     }
-    const questions = Array.isArray(parsed.questions) ? parsed.questions : []
-    const detectedSections = Array.isArray(parsed.detectedSections) ? parsed.detectedSections : []
+    const rawQuestions = Array.isArray(parsed.questions) ? parsed.questions : []
+    const questions = rawQuestions.filter((q: Record<string, unknown>) =>
+      typeof q.id === 'string' &&
+      typeof q.question === 'string' && q.question.length > 0 &&
+      typeof q.type === 'string' && ['open', 'closed', 'scale', 'select'].includes(q.type as string) &&
+      typeof q.priority === 'string'
+    )
+    const detectedSections = Array.isArray(parsed.detectedSections)
+      ? (parsed.detectedSections as unknown[]).filter((s): s is string => typeof s === 'string')
+      : []
     const rawUrgency = typeof parsed.urgencyLevel === 'string' ? parsed.urgencyLevel : ''
     const urgencyLevel = ['normal', 'attention', 'urgent'].includes(rawUrgency)
       ? rawUrgency
       : 'normal'
+
+    if (questions.length < rawQuestions.length) {
+      logger.warn('[ai-question] Filtered malformed questions', {
+        total: rawQuestions.length,
+        valid: questions.length,
+      })
+    }
 
     logger.info('[ai-question] Generated questions', {
       questionsCount: questions.length,

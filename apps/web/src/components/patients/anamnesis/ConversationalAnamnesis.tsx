@@ -87,8 +87,20 @@ export function ConversationalAnamnesis({
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null)
 
   const answerCountRef = useRef(0)
+  const hasDirtyAnswers = useRef(false)
   const questionRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Protect unsaved answers on tab close / navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasDirtyAnswers.current) {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
 
   useEffect(() => {
     questionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -192,9 +204,11 @@ export function ConversationalAnamnesis({
   const handleStructuredAnswer = useCallback(async (value: AnamnesisFieldValue) => {
     answerQuestion(value)
     answerCountRef.current++
+    hasDirtyAnswers.current = true
 
     if (answerCountRef.current % SAVE_EVERY === 0) {
       await persistCurrentState()
+      hasDirtyAnswers.current = false
     }
 
     const checkpoint = shouldCheckpoint()
@@ -203,6 +217,7 @@ export function ConversationalAnamnesis({
       setShowAnalyzing(true)
       setAnalysisResult(null)
       await persistCurrentState()
+      hasDirtyAnswers.current = false
       const result = await triggerExtraction('partial')
       setAnalysisResult({
         coverage: result?.coverage ?? [],
@@ -211,6 +226,7 @@ export function ConversationalAnamnesis({
       })
     } else if (checkpoint === 'final' || isLast) {
       await persistCurrentState()
+      hasDirtyAnswers.current = false
       setPendingCheckpoint('final')
       const result = await triggerExtraction('final')
       if (result?.hasCritical) {
