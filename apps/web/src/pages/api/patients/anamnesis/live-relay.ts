@@ -132,7 +132,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       },
     })
   } catch (err) {
-    logger.error('[live-relay] Request failed', err)
-    return json({ success: false, error: 'ai_error' }, 500)
+    const msg = err instanceof Error ? err.message : String(err)
+    const name = err instanceof Error ? err.name : 'unknown'
+    logger.error('[live-relay] Request failed', { name, msg })
+    return json({ success: false, error: 'ai_error', debug: { name, msg } }, 500)
   }
 }
