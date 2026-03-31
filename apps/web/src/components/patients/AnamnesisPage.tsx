@@ -325,12 +325,13 @@ export default function AnamnesisPage() {
     setCurrentStepIndex((prev) => prev + 1);
   }, [guidance, dismissGuidance]);
 
-  const handlePrev = useCallback(() => {
+  const handlePrev = useCallback(async () => {
     if (!isFirstStep) {
+      await saveCurrentStep();
       setCurrentStepIndex((prev) => prev - 1);
       setSaveError(null);
     }
-  }, [isFirstStep]);
+  }, [isFirstStep, saveCurrentStep]);
 
   const handlePauseContinue = useCallback(() => {
     setShowPause(false);
@@ -722,6 +723,8 @@ export default function AnamnesisPage() {
           window.location.reload();
         }}
         onSwitchMode={() => switchMode('wizard')}
+        updateSection={updateSection}
+        updateAnamnesis={updateAnamnesis as (update: Record<string, unknown>) => Promise<boolean>}
       />
     );
   }

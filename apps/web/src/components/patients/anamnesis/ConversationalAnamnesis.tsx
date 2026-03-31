@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Check, Loader2, MessageCircle, Sparkles, Send, Mic } from 'lucide-react'
 import { useConversationalAnamnesis } from '@/hooks/patients/useConversationalAnamnesis'
-import { useAnamnesis } from '@/hooks/patients/useAnamnesis'
 import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance'
 import { useAiFirstQuestion, type AiQuestion } from '@/hooks/patients/useAiFirstQuestion'
 import { VoiceAnamnesis } from './VoiceAnamnesis'
@@ -18,6 +17,8 @@ interface ConversationalAnamnesisProps {
   initialData?: Record<string, Record<string, AnamnesisFieldValue>>
   onComplete: () => void
   onSwitchMode: () => void
+  updateSection: (section: AnamnesisSection, data: Record<string, AnamnesisFieldValue>) => Promise<boolean>
+  updateAnamnesis: (update: Record<string, unknown>) => Promise<boolean>
 }
 
 const SAVE_EVERY = 5
@@ -35,6 +36,8 @@ export function ConversationalAnamnesis({
   initialData,
   onComplete,
   onSwitchMode,
+  updateSection,
+  updateAnamnesis,
 }: ConversationalAnamnesisProps) {
   // Always start with AI phase — returning patients benefit from AI analyzing
   // their current complaint, even if they have prior data.
@@ -60,7 +63,6 @@ export function ConversationalAnamnesis({
     completedStepIds,
   } = useConversationalAnamnesis(initialData)
 
-  const { updateSection, updateAnamnesis } = useAnamnesis()
   const {
     guidance,
     triggerExtraction,
@@ -77,6 +79,7 @@ export function ConversationalAnamnesis({
   } = useAiFirstQuestion()
 
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [showClarification, setShowClarification] = useState(false)
   const [showAnalyzing, setShowAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<{
@@ -190,12 +193,15 @@ export function ConversationalAnamnesis({
   const persistCurrentState = useCallback(async () => {
     const formData = getFormData()
     setSaving(true)
+    setSaveError(null)
     try {
       for (const [stepId, data] of Object.entries(formData)) {
         if (completedStepIds.has(stepId) || Object.keys(data).length > 0) {
           await updateSection(stepId as AnamnesisSection, data)
         }
       }
+    } catch {
+      setSaveError('No se pudieron guardar tus respuestas. Intentá de nuevo.')
     } finally {
       setSaving(false)
     }
@@ -303,6 +309,13 @@ export function ConversationalAnamnesis({
             </span>
           </div>
         </div>
+        {saveError && (
+          <div className="mx-auto max-w-lg px-4 pb-1">
+            <p className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700">
+              {saveError}
+            </p>
+          </div>
+        )}
         <div className="mx-auto max-w-lg px-4 pb-2">
           <div className="h-1 rounded-full bg-stone-100">
             <div
