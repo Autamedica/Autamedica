@@ -644,7 +644,7 @@ async function executeGeminiExtraction(
 }
 
 /** Gemini fallback model when primary is overloaded (429/503) */
-const GEMINI_FALLBACK_MODEL = 'gemini-2.0-flash'
+const GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash'
 
 /** Retry with exponential backoff + model fallback */
 async function executeGeminiWithRetry(

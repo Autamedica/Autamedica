@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (target.providerName === 'gemini') {
       const apiKey = resolveServerEnv('GEMINI_API_KEY') ?? ''
-      const models = [target.modelName, 'gemini-2.0-flash'] // primary + fallback
+      const models = [target.modelName, 'gemini-2.5-flash'] // primary + fallback
       let geminiResult: Record<string, unknown> | null = null
 
       for (let attempt = 0; attempt < models.length; attempt++) {
