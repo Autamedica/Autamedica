@@ -21,7 +21,6 @@ import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance';
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
 import type { GuidanceQuestion } from '@/lib/patients/services/anamnesis-guidance.service';
 import { AnamnesisField as AnamnesisFieldRenderer } from '@/components/patients/anamnesis/AnamnesisField';
-import { PausaCognitiva } from '@/components/patients/anamnesis/PausaCognitiva';
 import { ClarificationStep } from '@/components/patients/anamnesis/ClarificationStep';
 import { VersionTimeline } from '@/components/patients/anamnesis/VersionTimeline';
 import { PrivacyAcceptanceScreen } from '@/components/patients/anamnesis/PrivacyAcceptanceScreen';
@@ -34,7 +33,6 @@ import type { AnamnesisSection } from '@autamedica/types';
 
 type AnamnesisMode = 'wizard' | 'conversational';
 
-const PAUSE_EVERY_N_STEPS = 4;
 const PARTIAL_CHECKPOINT_AFTER_STEP = 6; // Checkpoint 1: after step index 5 (step 6 of 13)
 
 type FormDataMap = Record<string, Record<string, AnamnesisFieldValue>>;
@@ -66,7 +64,6 @@ export default function AnamnesisPage() {
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [formData, setFormData] = useState<FormDataMap>({});
-  const [showPause, setShowPause] = useState(false);
   const [showClarification, setShowClarification] = useState(false);
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null);
   const [saving, setSaving] = useState(false);
@@ -287,11 +284,6 @@ export default function AnamnesisPage() {
       return; // User must click "Continuar" to proceed
     }
 
-    if ((nextIndex) % PAUSE_EVERY_N_STEPS === 0 && nextIndex < anamnesisSteps.length) {
-      setShowPause(true);
-      return;
-    }
-
     // Skip carry_forward steps on revisit (auto-advance)
     let target = nextIndex;
     if (isRevisit && progress?.completed_sections) {
@@ -332,11 +324,6 @@ export default function AnamnesisPage() {
       setSaveError(null);
     }
   }, [isFirstStep, saveCurrentStep]);
-
-  const handlePauseContinue = useCallback(() => {
-    setShowPause(false);
-    setCurrentStepIndex((prev) => prev + 1);
-  }, []);
 
   const handleClarificationSubmit = useCallback(async (
     answers: { question: string; answer: string }[],
@@ -940,11 +927,6 @@ export default function AnamnesisPage() {
             />
           </div>
         </div>
-      )}
-
-      {/* Cognitive pause overlay */}
-      {showPause && (
-        <PausaCognitiva stepNumber={currentStepIndex + 1} onContinue={handlePauseContinue} />
       )}
 
       {/* Guided tour (first visit) */}
