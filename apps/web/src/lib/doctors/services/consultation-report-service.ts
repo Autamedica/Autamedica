@@ -11,7 +11,7 @@ import { getServerEnvOrDefault, getAIProvider, logger, featureFlags } from '@aut
 import type { GenerateReportRequest, GenerateReportResponse, SOAPReport } from '@autamedica/types';
 
 const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
-const GEMINI_MODEL = 'gemini-2.5-flash-preview-05-20';
+const GEMINI_MODEL = 'gemini-3-flash-preview';
 
 const SYSTEM_PROMPT = `Eres un asistente de documentación médica especializado en generar notas clínicas estructuradas formato SOAP (Subjetivo, Objetivo, Evaluación, Plan).
 

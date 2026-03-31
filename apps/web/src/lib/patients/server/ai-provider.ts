@@ -1,7 +1,7 @@
 import { getServerEnvOrDefault } from '@autamedica/shared'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
-const DEFAULT_MODEL = 'gemini-3.1-flash-preview'
+const DEFAULT_MODEL = 'gemini-3-flash-preview'
 
 export type ExtractionProvider = 'gemini'
 
