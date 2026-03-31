@@ -66,19 +66,26 @@ export class GeminiLiveRoom implements DurableObject {
     this.clientWs = server
 
     // Connect to Gemini Live API (outbound WebSocket from DO)
+    // NOTE: Cloudflare Workers cannot use fetch() with wss:// URLs.
+    // Must use the standard WebSocket constructor for outbound WS connections.
     try {
       const geminiUrl = `${GEMINI_WS_BASE}?key=${apiKey}`
-      const geminiResp = await fetch(geminiUrl, {
-        headers: { Upgrade: 'websocket' },
-      })
-
-      const geminiWs = geminiResp.webSocket
-      if (!geminiWs) {
-        this.sendToClient({ type: 'error', data: 'Failed to connect to AI' })
+      let geminiWs: WebSocket
+      try {
+        geminiWs = new WebSocket(geminiUrl)
+      } catch (wsErr) {
+        const msg = wsErr instanceof Error ? wsErr.message : String(wsErr)
+        this.sendToClient({ type: 'error', data: `Gemini WS connect failed: ${msg}` })
         return new Response(null, { status: 101, webSocket: client })
       }
 
-      geminiWs.accept()
+      // Wait for Gemini WS to open
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Gemini WS open timeout')), 10000)
+        geminiWs.addEventListener('open', () => { clearTimeout(timeout); resolve() })
+        geminiWs.addEventListener('error', () => { clearTimeout(timeout); reject(new Error('Gemini WS open error')) })
+      })
+
       this.geminiWs = geminiWs
 
       // Send Gemini setup config
