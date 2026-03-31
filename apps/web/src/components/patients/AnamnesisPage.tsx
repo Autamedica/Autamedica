@@ -21,7 +21,6 @@ import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance';
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
 import type { GuidanceQuestion } from '@/lib/patients/services/anamnesis-guidance.service';
 import { AnamnesisField as AnamnesisFieldRenderer } from '@/components/patients/anamnesis/AnamnesisField';
-import { PausaCognitiva } from '@/components/patients/anamnesis/PausaCognitiva';
 import { ClarificationStep } from '@/components/patients/anamnesis/ClarificationStep';
 import { VersionTimeline } from '@/components/patients/anamnesis/VersionTimeline';
 import { PrivacyAcceptanceScreen } from '@/components/patients/anamnesis/PrivacyAcceptanceScreen';
@@ -34,11 +33,7 @@ import type { AnamnesisSection } from '@autamedica/types';
 
 type AnamnesisMode = 'wizard' | 'conversational';
 
-const PAUSE_EVERY_N_STEPS = 4;
-/** Partial checkpoint triggers when accumulated field count reaches this threshold.
- * In wizard mode, we check after each step if total fields answered so far >= threshold.
- * Aligned with PARTIAL_AFTER_N_ANSWERS in useConversationalAnamnesis.ts. */
-const PARTIAL_CHECKPOINT_FIELD_THRESHOLD = 15;
+const PARTIAL_CHECKPOINT_AFTER_STEP = 6; // Checkpoint 1: after step index 5 (step 6 of 13)
 
 type FormDataMap = Record<string, Record<string, AnamnesisFieldValue>>;
 
@@ -69,7 +64,6 @@ export default function AnamnesisPage() {
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [formData, setFormData] = useState<FormDataMap>({});
-  const [showPause, setShowPause] = useState(false);
   const [showClarification, setShowClarification] = useState(false);
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null);
   const [saving, setSaving] = useState(false);
@@ -84,7 +78,6 @@ export default function AnamnesisPage() {
     }
     return 'conversational';
   });
-  const [partialCheckpointFired, setPartialCheckpointFired] = useState(false);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null>(null);
   const initializedRef = useRef(false);
@@ -275,11 +268,8 @@ export default function AnamnesisPage() {
 
     const nextIndex = currentStepIndex + 1;
 
-    // Checkpoint 1 (partial): when accumulated fields reach threshold — BLOCKING with visible analysis
-    const answeredFields = Object.values(formData)
-      .reduce((sum, stepData) => sum + Object.keys(stepData).filter(k => stepData[k] != null && stepData[k] !== '').length, 0);
-    if (!partialCheckpointFired && answeredFields >= PARTIAL_CHECKPOINT_FIELD_THRESHOLD) {
-      setPartialCheckpointFired(true);
+    // Checkpoint 1 (partial): after step 6 — BLOCKING with visible analysis
+    if (currentStepIndex + 1 === PARTIAL_CHECKPOINT_AFTER_STEP) {
       setPendingCheckpoint('partial');
       setShowAnalyzing(true);
       setAnalysisResult(null);
@@ -292,11 +282,6 @@ export default function AnamnesisPage() {
         questions: result?.questions ?? [],
       });
       return; // User must click "Continuar" to proceed
-    }
-
-    if ((nextIndex) % PAUSE_EVERY_N_STEPS === 0 && nextIndex < anamnesisSteps.length) {
-      setShowPause(true);
-      return;
     }
 
     // Skip carry_forward steps on revisit (auto-advance)
@@ -339,11 +324,6 @@ export default function AnamnesisPage() {
       setSaveError(null);
     }
   }, [isFirstStep, saveCurrentStep]);
-
-  const handlePauseContinue = useCallback(() => {
-    setShowPause(false);
-    setCurrentStepIndex((prev) => prev + 1);
-  }, []);
 
   const handleClarificationSubmit = useCallback(async (
     answers: { question: string; answer: string }[],
@@ -947,11 +927,6 @@ export default function AnamnesisPage() {
             />
           </div>
         </div>
-      )}
-
-      {/* Cognitive pause overlay */}
-      {showPause && (
-        <PausaCognitiva stepNumber={currentStepIndex + 1} onContinue={handlePauseContinue} />
       )}
 
       {/* Guided tour (first visit) */}
