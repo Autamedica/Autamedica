@@ -180,7 +180,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                   <span className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
                     Próxima consulta
                   </span>
-                  <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />
+                  <ChevronRight className="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-1" />
                 </div>
                 <h2 className="text-lg font-bold text-gray-900">
                   {upcomingAppointment.doctor
@@ -222,7 +222,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 <span className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
                   Próxima consulta
                 </span>
-                <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />
+                <ChevronRight className="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-1" />
               </div>
               <h2 className="text-lg font-bold text-gray-900">
                 {upcomingAppointment.doctor

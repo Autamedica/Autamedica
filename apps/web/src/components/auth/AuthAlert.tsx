@@ -9,19 +9,19 @@ interface AuthAlertProps {
 
 const toneClasses: Record<AuthAlertTone, { container: string; icon: string; text: string }> = {
   error: {
-    container: 'bg-red-500/10 border-red-500/20 backdrop-blur-md',
-    icon: 'text-red-400',
-    text: 'text-red-200',
+    container: 'bg-red-50 border-red-200',
+    icon: 'text-red-600',
+    text: 'text-red-800',
   },
   success: {
-    container: 'bg-emerald-500/10 border-emerald-500/20 backdrop-blur-md',
-    icon: 'text-emerald-700',
-    text: 'text-emerald-700',
+    container: 'bg-emerald-50 border-emerald-200',
+    icon: 'text-emerald-600',
+    text: 'text-emerald-800',
   },
   info: {
-    container: 'bg-[var(--au-accent-soft)] border-[var(--au-accent)]/20 backdrop-blur-md',
-    icon: 'text-[var(--au-accent)]',
-    text: 'text-cyan-100',
+    container: 'bg-sky-50 border-sky-200',
+    icon: 'text-sky-600',
+    text: 'text-sky-800',
   },
 };
 

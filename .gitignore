@@ -171,3 +171,5 @@ ecucondor-supervisor.sh
 
 # ECUCONDORULTIMATE external tooling (tracked separately)
 ECUCONDORULTIMATE/
+storybook-static/
+dev-server.log

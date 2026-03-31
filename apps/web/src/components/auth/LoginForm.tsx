@@ -225,7 +225,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
     company_admin: {
       title: t('roles.company_admin.title'),
       subtitle: t('roles.company_admin.subtitle'),
-      accent: 'text-slate-300',
+      accent: 'text-slate-700',
       buttonLabel: t('roles.company_admin.buttonLabel'),
       icon: (
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

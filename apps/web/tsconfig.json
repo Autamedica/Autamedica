@@ -11,7 +11,13 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.astro", ".astro/types.d.ts"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.astro",
+    ".astro/types.d.ts",
+    ".storybook/*.ts"
+  ],
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../../packages/types" },

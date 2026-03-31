@@ -1,0 +1,582 @@
+---
+export const prerender = true
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Design System | AutaMedica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --au-bg: #ffffff;
+      --au-surface: #f8fbff;
+      --au-text-primary: #050505;
+      --au-text-secondary: #334155;
+      --au-text-tertiary: #64748b;
+      --au-accent: #0ea5e9;
+      --au-accent-soft: rgba(14, 165, 233, 0.10);
+      --au-border: rgba(14, 165, 233, 0.12);
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-heading: 'Source Serif 4', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--au-bg);
+      color: var(--au-text-primary);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .ds-hero {
+      background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
+      color: white;
+      padding: 80px 48px 64px;
+    }
+    .ds-hero h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 700; letter-spacing: -0.025em; }
+    .ds-hero p { font-size: 1.125rem; opacity: 0.85; margin-top: 12px; max-width: 640px; }
+    .ds-hero .meta { font-size: 0.8125rem; opacity: 0.6; margin-top: 24px; font-family: var(--font-mono); }
+
+    .ds-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--au-border);
+      padding: 12px 48px;
+      display: flex; gap: 24px; overflow-x: auto;
+    }
+    .ds-nav a {
+      font-size: 0.8125rem; font-weight: 600; text-decoration: none;
+      color: var(--au-text-tertiary); white-space: nowrap;
+      padding: 6px 12px; border-radius: 8px; transition: all 0.2s;
+    }
+    .ds-nav a:hover { color: var(--au-accent); background: var(--au-accent-soft); }
+
+    .ds-container { max-width: 1200px; margin: 0 auto; padding: 0 48px; }
+
+    .ds-section {
+      padding: 64px 0;
+      border-bottom: 1px solid rgba(14, 165, 233, 0.08);
+    }
+    .ds-section:last-child { border-bottom: none; }
+
+    .ds-section h2 {
+      font-family: var(--font-heading);
+      font-size: 1.875rem; font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 8px;
+    }
+    .ds-section .subtitle {
+      color: var(--au-text-tertiary); font-size: 0.9375rem;
+      margin-bottom: 40px; max-width: 600px;
+    }
+
+    /* ── Color Swatches ── */
+    .color-group { margin-bottom: 32px; }
+    .color-group h3 { font-size: 0.875rem; font-weight: 600; color: var(--au-text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .swatch {
+      display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .swatch:hover { transform: translateY(-2px); }
+    .swatch-color {
+      width: 72px; height: 72px; border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.06);
+      transition: box-shadow 0.2s;
+    }
+    .swatch:hover .swatch-color { box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .swatch-label { font-size: 0.6875rem; font-weight: 600; color: var(--au-text-secondary); }
+    .swatch-hex { font-size: 0.625rem; font-family: var(--font-mono); color: var(--au-text-tertiary); }
+
+    .semantic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    @media (max-width: 768px) { .semantic-grid { grid-template-columns: repeat(2, 1fr); } }
+    .semantic-card {
+      background: var(--au-surface); border-radius: 16px; padding: 20px;
+      border: 1px solid var(--au-border);
+    }
+    .semantic-card h4 { font-size: 0.8125rem; font-weight: 600; margin-bottom: 12px; }
+    .semantic-card .mini-row { display: flex; gap: 6px; }
+    .semantic-card .mini-swatch {
+      width: 48px; height: 36px; border-radius: 8px;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: 3px;
+    }
+    .semantic-card .mini-swatch span { font-size: 0.5625rem; font-family: var(--font-mono); color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+    /* ── Typography ── */
+    .typo-row {
+      display: grid; grid-template-columns: 140px 1fr auto;
+      align-items: baseline; gap: 24px;
+      padding: 16px 0; border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+    .typo-row:last-child { border-bottom: none; }
+    .typo-token {
+      font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
+      color: var(--au-accent); background: var(--au-accent-soft);
+      padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+    }
+    .typo-spec { font-size: 0.6875rem; color: var(--au-text-tertiary); font-family: var(--font-mono); white-space: nowrap; }
+
+    /* ── Spacing ── */
+    .spacing-grid { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+    .spacing-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .spacing-bar {
+      width: 40px; border-radius: 6px;
+      background: linear-gradient(180deg, rgba(14,165,233,0.15) 0%, rgba(14,165,233,0.3) 100%);
+      border: 1px solid rgba(14,165,233,0.2);
+    }
+    .spacing-item .token { font-size: 0.625rem; font-family: var(--font-mono); color: var(--au-text-tertiary); }
+    .spacing-item .value { font-size: 0.75rem; font-weight: 600; color: var(--au-text-secondary); }
+
+    /* ── Radii ── */
+    .radii-grid { display: flex; gap: 24px; flex-wrap: wrap; }
+    .radius-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .radius-box {
+      width: 72px; height: 72px;
+      background: rgba(14,165,233,0.08);
+      border: 2px solid var(--au-accent);
+    }
+
+    /* ── Glass ── */
+    .glass-demo-container {
+      background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 50%, #7DD3FC 100%);
+      border-radius: 24px; padding: 48px;
+      display: flex; gap: 32px; flex-wrap: wrap; justify-content: center;
+    }
+    .glass-card {
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(14,165,233,0.10);
+      border-radius: 16px;
+      padding: 24px; width: 280px;
+      box-shadow: 0 20px 60px rgba(14,165,233,0.08);
+    }
+    .glass-card h4 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+    .glass-card p { font-size: 0.8125rem; color: var(--au-text-secondary); }
+    .glass-card code { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--au-accent); background: var(--au-accent-soft); padding: 2px 6px; border-radius: 4px; }
+
+    /* ── Components Preview ── */
+    .components-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+    .component-card {
+      background: var(--au-surface); border: 1px solid var(--au-border);
+      border-radius: 16px; padding: 24px;
+      transition: all 0.3s;
+    }
+    .component-card:hover {
+      border-color: rgba(14,165,233,0.3);
+      box-shadow: 0 16px 32px -18px rgba(14,165,233,0.24);
+    }
+    .component-card h4 { font-size: 0.875rem; font-weight: 600; margin-bottom: 12px; }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--au-accent); color: white;
+      padding: 10px 20px; border-radius: 10px; border: none;
+      font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary:hover { background: #0284C7; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(14,165,233,0.3); }
+
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--au-text-primary);
+      padding: 10px 20px; border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--au-accent); color: var(--au-accent); }
+
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--au-accent-soft); color: var(--au-accent);
+      padding: 10px 20px; border-radius: 10px; border: none;
+      font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+
+    .input-demo {
+      width: 100%; padding: 10px 14px;
+      border: 1px solid rgba(0,0,0,0.1); border-radius: 10px;
+      font-family: var(--font-sans); font-size: 0.875rem;
+      transition: all 0.2s; outline: none;
+    }
+    .input-demo:focus { border-color: var(--au-accent); box-shadow: 0 0 0 3px rgba(14,165,233,0.12); }
+
+    .badge {
+      display: inline-flex; padding: 3px 10px; border-radius: 9999px;
+      font-size: 0.6875rem; font-weight: 600;
+    }
+    .badge-blue { background: #E0F2FE; color: #0369A1; }
+    .badge-green { background: #D1FAE5; color: #065F46; }
+    .badge-red { background: #FEE2E2; color: #991B1B; }
+    .badge-yellow { background: #FEF3C7; color: #92400E; }
+
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--au-accent); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.875rem;
+    }
+
+    .action-card {
+      background: white; border: 1px solid var(--au-border);
+      border-radius: 16px; padding: 20px;
+      display: flex; align-items: center; gap: 16px;
+      transition: all 0.3s; cursor: pointer;
+    }
+    .action-card:hover { border-color: rgba(14,165,233,0.3); box-shadow: 0 8px 24px rgba(14,165,233,0.1); }
+    .action-card .icon { width: 44px; height: 44px; border-radius: 12px; background: var(--au-accent-soft); display: flex; align-items: center; justify-content: center; color: var(--au-accent); font-size: 1.25rem; }
+    .action-card .info h5 { font-size: 0.9375rem; font-weight: 600; }
+    .action-card .info p { font-size: 0.8125rem; color: var(--au-text-tertiary); }
+
+    /* ── Dark Mode Section ── */
+    .dark-section {
+      background: #0F172A; color: white; border-radius: 24px;
+      padding: 40px; margin-top: 32px;
+    }
+    .dark-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; opacity: 0.9; }
+    .dark-swatch-row { display: flex; gap: 12px; }
+    .dark-swatch { text-align: center; }
+    .dark-swatch-color { width: 80px; height: 56px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 6px; }
+    .dark-swatch span { font-size: 0.625rem; font-family: var(--font-mono); opacity: 0.6; }
+
+    /* ── Footer ── */
+    .ds-footer {
+      text-align: center; padding: 48px;
+      color: var(--au-text-tertiary); font-size: 0.8125rem;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .ds-hero { padding: 48px 24px; }
+      .ds-hero h1 { font-size: 2rem; }
+      .ds-nav { padding: 12px 24px; }
+      .ds-container { padding: 0 24px; }
+      .typo-row { grid-template-columns: 1fr; gap: 8px; }
+    }
+
+    /* Copy toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #050505; color: white; padding: 10px 20px;
+      border-radius: 10px; font-size: 0.8125rem; font-weight: 500;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+      font-family: var(--font-mono); z-index: 100;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="ds-hero">
+  <h1>AutaMedica Design System</h1>
+  <p>Tokens, tipografía, colores y componentes base extraídos directamente del código fuente. Single source of truth para diseño y desarrollo.</p>
+  <div class="meta">v1.0 · Astro 5 + React 19 + Tailwind CSS · Actualizado {new Date().toLocaleDateString('es-AR')}</div>
+</div>
+
+<!-- Navigation -->
+<nav class="ds-nav">
+  <a href="#colors">Colores</a>
+  <a href="#typography">Tipografía</a>
+  <a href="#spacing">Espaciado</a>
+  <a href="#radii">Radii</a>
+  <a href="#glass">Glassmorphism</a>
+  <a href="#components">Componentes</a>
+  <a href="#dark">Dark Mode</a>
+</nav>
+
+<div class="ds-container">
+
+  <!-- COLORS -->
+  <section class="ds-section" id="colors">
+    <h2>Paleta de Colores</h2>
+    <p class="subtitle">White surfaces, black text, one saturated sky-blue accent compartido entre todos los portales.</p>
+
+    <div class="color-group">
+      <h3>Primary — Sky Blue</h3>
+      <div class="color-row">
+        <div class="swatch" onclick="copyColor('#F0F9FF')"><div class="swatch-color" style="background:#F0F9FF"></div><span class="swatch-label">50</span><span class="swatch-hex">#F0F9FF</span></div>
+        <div class="swatch" onclick="copyColor('#E0F2FE')"><div class="swatch-color" style="background:#E0F2FE"></div><span class="swatch-label">100</span><span class="swatch-hex">#E0F2FE</span></div>
+        <div class="swatch" onclick="copyColor('#BAE6FD')"><div class="swatch-color" style="background:#BAE6FD"></div><span class="swatch-label">200</span><span class="swatch-hex">#BAE6FD</span></div>
+        <div class="swatch" onclick="copyColor('#7DD3FC')"><div class="swatch-color" style="background:#7DD3FC"></div><span class="swatch-label">300</span><span class="swatch-hex">#7DD3FC</span></div>
+        <div class="swatch" onclick="copyColor('#38BDF8')"><div class="swatch-color" style="background:#38BDF8"></div><span class="swatch-label">400</span><span class="swatch-hex">#38BDF8</span></div>
+        <div class="swatch" onclick="copyColor('#0EA5E9')"><div class="swatch-color" style="background:#0EA5E9"></div><span class="swatch-label">500</span><span class="swatch-hex">#0EA5E9</span></div>
+        <div class="swatch" onclick="copyColor('#0284C7')"><div class="swatch-color" style="background:#0284C7"></div><span class="swatch-label">600</span><span class="swatch-hex">#0284C7</span></div>
+        <div class="swatch" onclick="copyColor('#0369A1')"><div class="swatch-color" style="background:#0369A1"></div><span class="swatch-label">700</span><span class="swatch-hex">#0369A1</span></div>
+        <div class="swatch" onclick="copyColor('#075985')"><div class="swatch-color" style="background:#075985"></div><span class="swatch-label">800</span><span class="swatch-hex">#075985</span></div>
+        <div class="swatch" onclick="copyColor('#0C4A6E')"><div class="swatch-color" style="background:#0C4A6E"></div><span class="swatch-label">900</span><span class="swatch-hex">#0C4A6E</span></div>
+      </div>
+    </div>
+
+    <div class="color-group">
+      <h3>Surfaces</h3>
+      <div class="color-row">
+        <div class="swatch" onclick="copyColor('#FFFFFF')"><div class="swatch-color" style="background:#FFFFFF"></div><span class="swatch-label">white</span><span class="swatch-hex">#FFFFFF</span></div>
+        <div class="swatch" onclick="copyColor('#F8FBFF')"><div class="swatch-color" style="background:#F8FBFF"></div><span class="swatch-label">50</span><span class="swatch-hex">#F8FBFF</span></div>
+        <div class="swatch" onclick="copyColor('#F1F7FD')"><div class="swatch-color" style="background:#F1F7FD"></div><span class="swatch-label">100</span><span class="swatch-hex">#F1F7FD</span></div>
+        <div class="swatch" onclick="copyColor('#DCE9F5')"><div class="swatch-color" style="background:#DCE9F5"></div><span class="swatch-label">200</span><span class="swatch-hex">#DCE9F5</span></div>
+        <div class="swatch" onclick="copyColor('#C5D6E6')"><div class="swatch-color" style="background:#C5D6E6"></div><span class="swatch-label">300</span><span class="swatch-hex">#C5D6E6</span></div>
+        <div class="swatch" onclick="copyColor('#8AA0B8')"><div class="swatch-color" style="background:#8AA0B8"></div><span class="swatch-label">400</span><span class="swatch-hex">#8AA0B8</span></div>
+        <div class="swatch" onclick="copyColor('#64748B')"><div class="swatch-color" style="background:#64748B"></div><span class="swatch-label">500</span><span class="swatch-hex">#64748B</span></div>
+        <div class="swatch" onclick="copyColor('#475569')"><div class="swatch-color" style="background:#475569"></div><span class="swatch-label">600</span><span class="swatch-hex">#475569</span></div>
+        <div class="swatch" onclick="copyColor('#334155')"><div class="swatch-color" style="background:#334155"></div><span class="swatch-label">700</span><span class="swatch-hex">#334155</span></div>
+        <div class="swatch" onclick="copyColor('#0F172A')"><div class="swatch-color" style="background:#0F172A"></div><span class="swatch-label">800</span><span class="swatch-hex">#0F172A</span></div>
+        <div class="swatch" onclick="copyColor('#050505')"><div class="swatch-color" style="background:#050505"></div><span class="swatch-label">900</span><span class="swatch-hex">#050505</span></div>
+      </div>
+    </div>
+
+    <div class="color-group">
+      <h3>Semantic</h3>
+      <div class="semantic-grid">
+        <div class="semantic-card">
+          <h4>Success</h4>
+          <div class="mini-row">
+            <div class="mini-swatch" style="background:#D1FAE5"><span>#D1FAE5</span></div>
+            <div class="mini-swatch" style="background:#10B981"><span>#10B981</span></div>
+            <div class="mini-swatch" style="background:#065F46"><span>#065F46</span></div>
+          </div>
+        </div>
+        <div class="semantic-card">
+          <h4>Warning</h4>
+          <div class="mini-row">
+            <div class="mini-swatch" style="background:#FEF3C7"><span style="color:#92400E">#FEF3C7</span></div>
+            <div class="mini-swatch" style="background:#F59E0B"><span>#F59E0B</span></div>
+            <div class="mini-swatch" style="background:#92400E"><span>#92400E</span></div>
+          </div>
+        </div>
+        <div class="semantic-card">
+          <h4>Danger</h4>
+          <div class="mini-row">
+            <div class="mini-swatch" style="background:#FEE2E2"><span style="color:#991B1B">#FEE2E2</span></div>
+            <div class="mini-swatch" style="background:#EF4444"><span>#EF4444</span></div>
+            <div class="mini-swatch" style="background:#991B1B"><span>#991B1B</span></div>
+          </div>
+        </div>
+        <div class="semantic-card">
+          <h4>Info</h4>
+          <div class="mini-row">
+            <div class="mini-swatch" style="background:#DBEAFE"><span style="color:#1E40AF">#DBEAFE</span></div>
+            <div class="mini-swatch" style="background:#3B82F6"><span>#3B82F6</span></div>
+            <div class="mini-swatch" style="background:#1E40AF"><span>#1E40AF</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section class="ds-section" id="typography">
+    <h2>Tipografía</h2>
+    <p class="subtitle">Plus Jakarta Sans (body/UI) + Source Serif 4 (headings) + JetBrains Mono (code)</p>
+
+    <div class="typo-row">
+      <span class="typo-token">display-lg</span>
+      <span style="font-family:var(--font-heading);font-size:2.25rem;font-weight:700;letter-spacing:-0.025em">Tu medico, sin salas de guardia.</span>
+      <span class="typo-spec">2.25rem / 700 / -0.025em</span>
+    </div>
+    <div class="typo-row">
+      <span class="typo-token">display-sm</span>
+      <span style="font-family:var(--font-heading);font-size:1.875rem;font-weight:700;letter-spacing:-0.02em">Menos burocracia. Mas medicina.</span>
+      <span class="typo-spec">1.875rem / 700 / -0.02em</span>
+    </div>
+    <div class="typo-row">
+      <span class="typo-token">heading-lg</span>
+      <span style="font-size:1.25rem;font-weight:600;letter-spacing:-0.01em">Portal de Pacientes</span>
+      <span class="typo-spec">1.25rem / 600 / -0.01em</span>
+    </div>
+    <div class="typo-row">
+      <span class="typo-token">heading-sm</span>
+      <span style="font-size:1rem;font-weight:600">Videoconsulta</span>
+      <span class="typo-spec">1rem / 600 / 0</span>
+    </div>
+    <div class="typo-row">
+      <span class="typo-token">body-lg</span>
+      <span style="font-size:1rem;font-weight:400">Conecta con tu medico en vivo desde cualquier dispositivo.</span>
+      <span class="typo-spec">1rem / 400 / 0</span>
+    </div>
+    <div class="typo-row">
+      <span class="typo-token">body-sm</span>
+      <span style="font-size:0.875rem;font-weight:400">Tus prescripciones medicas disponibles en todo momento.</span>
+      <span class="typo-spec">0.875rem / 400 / 0</span>
+    </div>
+    <div class="typo-row">
+      <span class="typo-token">caption</span>
+      <span style="font-size:0.75rem;font-weight:500;letter-spacing:0.01em">Ultima actualizacion: hace 2 horas</span>
+      <span class="typo-spec">0.75rem / 500 / 0.01em</span>
+    </div>
+    <div class="typo-row">
+      <span class="typo-token">overline</span>
+      <span style="font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em">Telemedicina hecha para LATAM</span>
+      <span class="typo-spec">0.6875rem / 600 / 0.08em / uppercase</span>
+    </div>
+  </section>
+
+  <!-- SPACING -->
+  <section class="ds-section" id="spacing">
+    <h2>Espaciado</h2>
+    <p class="subtitle">Sistema de 4px base. Variables CSS: --space-1 a --space-32</p>
+
+    <div class="spacing-grid">
+      <div class="spacing-item"><div class="spacing-bar" style="height:4px"></div><span class="value">4px</span><span class="token">--space-1</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:8px"></div><span class="value">8px</span><span class="token">--space-2</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:12px"></div><span class="value">12px</span><span class="token">--space-3</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:16px"></div><span class="value">16px</span><span class="token">--space-4</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:24px"></div><span class="value">24px</span><span class="token">--space-6</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:32px"></div><span class="value">32px</span><span class="token">--space-8</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:48px"></div><span class="value">48px</span><span class="token">--space-12</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:64px"></div><span class="value">64px</span><span class="token">--space-16</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:96px"></div><span class="value">96px</span><span class="token">--space-24</span></div>
+      <div class="spacing-item"><div class="spacing-bar" style="height:128px"></div><span class="value">128px</span><span class="token">--space-32</span></div>
+    </div>
+  </section>
+
+  <!-- RADII -->
+  <section class="ds-section" id="radii">
+    <h2>Border Radius</h2>
+    <p class="subtitle">4 niveles de redondeo para diferentes contextos.</p>
+
+    <div class="radii-grid">
+      <div class="radius-item"><div class="radius-box" style="border-radius:8px"></div><span class="value" style="font-size:0.75rem;font-weight:600">sm — 8px</span><span class="token" style="font-size:0.625rem;font-family:var(--font-mono);color:var(--au-text-tertiary)">Inputs, badges</span></div>
+      <div class="radius-item"><div class="radius-box" style="border-radius:12px"></div><span class="value" style="font-size:0.75rem;font-weight:600">md — 12px</span><span class="token" style="font-size:0.625rem;font-family:var(--font-mono);color:var(--au-text-tertiary)">Cards, modals</span></div>
+      <div class="radius-item"><div class="radius-box" style="border-radius:16px"></div><span class="value" style="font-size:0.75rem;font-weight:600">lg — 16px</span><span class="token" style="font-size:0.625rem;font-family:var(--font-mono);color:var(--au-text-tertiary)">Sections, panels</span></div>
+      <div class="radius-item"><div class="radius-box" style="border-radius:50%"></div><span class="value" style="font-size:0.75rem;font-weight:600">full — 9999px</span><span class="token" style="font-size:0.625rem;font-family:var(--font-mono);color:var(--au-text-tertiary)">Avatars, pills</span></div>
+    </div>
+  </section>
+
+  <!-- GLASSMORPHISM -->
+  <section class="ds-section" id="glass">
+    <h2>Glassmorphism</h2>
+    <p class="subtitle">Sistema de tarjetas con backdrop-blur para profundidad visual sin perder legibilidad.</p>
+
+    <div class="glass-demo-container">
+      <div class="glass-card">
+        <h4>Glass Card Default</h4>
+        <p>Background: <code>rgba(255,255,255,0.8)</code></p>
+        <p style="margin-top:8px">Border: <code>accent/10%</code></p>
+        <p style="margin-top:8px">Blur: <code>16px</code></p>
+      </div>
+      <div class="glass-card" style="background:rgba(255,255,255,0.92);border-color:rgba(14,165,233,0.22);box-shadow:0 16px 32px -18px rgba(14,165,233,0.24)">
+        <h4>Glass Card Hover</h4>
+        <p>Background: <code>rgba(255,255,255,0.92)</code></p>
+        <p style="margin-top:8px">Border: <code>accent/22%</code></p>
+        <p style="margin-top:8px">Shadow: <code>accent/24%</code></p>
+      </div>
+      <div class="glass-card" style="background:rgba(14,165,233,0.08);border-color:rgba(14,165,233,0.2)">
+        <h4>Glass Card Accent</h4>
+        <p>Background: <code>accent-soft</code></p>
+        <p style="margin-top:8px">Para estados activos y seleccion</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section class="ds-section" id="components">
+    <h2>Componentes Base</h2>
+    <p class="subtitle">UI kit funcional con los patrones mas usados en el portal.</p>
+
+    <div class="components-grid">
+      <!-- Buttons -->
+      <div class="component-card">
+        <h4>Buttons</h4>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn-primary">Buscar medico</button>
+          <button class="btn-secondary">Ya tengo cuenta</button>
+          <button class="btn-ghost">Ver mas</button>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="component-card">
+        <h4>Input</h4>
+        <div style="margin-top:12px">
+          <label style="font-size:0.8125rem;font-weight:500;display:block;margin-bottom:6px">Correo electronico</label>
+          <input class="input-demo" type="email" placeholder="usuario@autamedica.com" />
+        </div>
+      </div>
+
+      <!-- Badges -->
+      <div class="component-card">
+        <h4>Badges</h4>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <span class="badge badge-blue">Programada</span>
+          <span class="badge badge-green">Completada</span>
+          <span class="badge badge-red">Cancelada</span>
+          <span class="badge badge-yellow">Pendiente</span>
+        </div>
+      </div>
+
+      <!-- Avatar -->
+      <div class="component-card">
+        <h4>Avatar</h4>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+          <div class="avatar">P</div>
+          <div class="avatar" style="background:#10B981">D</div>
+          <div class="avatar" style="background:#F59E0B">E</div>
+          <div class="avatar" style="width:48px;height:48px;font-size:1rem;background:#0369A1">CM</div>
+        </div>
+      </div>
+
+      <!-- Action Cards -->
+      <div class="component-card" style="grid-column:span 2">
+        <h4>Action Cards (Patient Dashboard)</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+          <div class="action-card">
+            <div class="icon">&#x1F4F9;</div>
+            <div class="info"><h5>Videoconsulta</h5><p>Conecta con tu medico en vivo</p></div>
+          </div>
+          <div class="action-card">
+            <div class="icon">&#x1F4C5;</div>
+            <div class="info"><h5>Mis turnos</h5><p>Agenda y gestiona tus citas</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DARK MODE -->
+  <section class="ds-section" id="dark">
+    <h2>Dark Mode</h2>
+    <p class="subtitle">Usado en videollamadas para reducir fatiga visual durante consultas largas.</p>
+
+    <div class="dark-section">
+      <h3>Video Call Surfaces</h3>
+      <div class="dark-swatch-row">
+        <div class="dark-swatch"><div class="dark-swatch-color" style="background:#0F172A"></div><span>bg · #0F172A</span></div>
+        <div class="dark-swatch"><div class="dark-swatch-color" style="background:#1E293B"></div><span>surface · #1E293B</span></div>
+        <div class="dark-swatch"><div class="dark-swatch-color" style="background:#334155"></div><span>elevated · #334155</span></div>
+        <div class="dark-swatch"><div class="dark-swatch-color" style="background:#475569"></div><span>border · #475569</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Footer -->
+<div class="ds-footer">
+  AutaMedica Design System · Generado desde <code style="font-family:var(--font-mono);font-size:0.75rem;background:var(--au-accent-soft);padding:2px 8px;border-radius:4px;color:var(--au-accent)">packages/ui/src/tokens/</code> + <code style="font-family:var(--font-mono);font-size:0.75rem;background:var(--au-accent-soft);padding:2px 8px;border-radius:4px;color:var(--au-accent)">globals.css</code>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Copiado</div>
+
+<script>
+  function copyColor(hex) {
+    navigator.clipboard.writeText(hex);
+    const toast = document.getElementById('toast');
+    toast.textContent = `Copiado: ${hex}`;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+  }
+</script>
+
+</body>
+</html>

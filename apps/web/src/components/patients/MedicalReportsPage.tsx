@@ -61,7 +61,7 @@ export default function MedicalReportsPage() {
         {/* Empty state */}
         {reports.length === 0 && !error && (
           <div className="py-20 text-center">
-            <FileText className="mx-auto h-12 w-12 text-gray-300" />
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h2 className="mt-4 text-lg font-medium text-gray-700">Sin informes aún</h2>
             <p className="mt-2 text-sm text-gray-500">
               Después de tu primera consulta, el informe médico aparecerá acá para que puedas descargarlo como PDF.

@@ -1,0 +1,508 @@
+---
+export const prerender = true
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Showcase | AutaMedica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --au-bg: #ffffff; --au-surface: #f8fbff; --au-text-primary: #050505;
+      --au-text-secondary: #334155; --au-text-tertiary: #64748b;
+      --au-accent: #0ea5e9; --au-accent-soft: rgba(14, 165, 233, 0.10);
+      --au-border: rgba(14, 165, 233, 0.12);
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-heading: 'Source Serif 4', Georgia, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-sans); background: #050505; color: white; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+    /* ── Hero ── */
+    .showcase-hero {
+      min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; padding: 48px; position: relative;
+      background: radial-gradient(ellipse at 50% 0%, rgba(14,165,233,0.15) 0%, transparent 60%);
+    }
+    .showcase-hero::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      opacity: 0.5;
+    }
+    .hero-badge {
+      position: relative; z-index: 1;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--au-accent); background: rgba(14,165,233,0.12);
+      padding: 6px 16px; border-radius: 999px; margin-bottom: 32px;
+      border: 1px solid rgba(14,165,233,0.2);
+    }
+    .showcase-hero h1 {
+      position: relative; z-index: 1;
+      font-family: var(--font-heading); font-size: clamp(3rem, 7vw, 5.5rem);
+      font-weight: 700; letter-spacing: -0.03em; line-height: 1.05;
+      max-width: 900px;
+      background: linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.6) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .showcase-hero p {
+      position: relative; z-index: 1;
+      font-size: 1.25rem; color: rgba(255,255,255,0.5); max-width: 560px;
+      margin-top: 24px; line-height: 1.6;
+    }
+    .hero-stats {
+      position: relative; z-index: 1;
+      display: flex; gap: 48px; margin-top: 56px;
+    }
+    .hero-stat { text-align: center; }
+    .hero-stat .number { font-size: 2.5rem; font-weight: 800; color: var(--au-accent); }
+    .hero-stat .label { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .scroll-hint {
+      position: relative; z-index: 1;
+      margin-top: 64px; font-size: 0.8125rem; color: rgba(255,255,255,0.3);
+      animation: float 2s ease-in-out infinite;
+    }
+    @keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(8px) } }
+
+    /* ── Nav ── */
+    .showcase-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(5,5,5,0.85); backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 14px 48px; display: flex; gap: 8px; overflow-x: auto;
+      justify-content: center;
+    }
+    .showcase-nav a {
+      font-size: 0.8125rem; font-weight: 500; text-decoration: none;
+      color: rgba(255,255,255,0.4); padding: 8px 16px; border-radius: 8px;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    .showcase-nav a:hover, .showcase-nav a.active {
+      color: white; background: rgba(255,255,255,0.08);
+    }
+
+    /* ── Screen Section ── */
+    .screen-section {
+      padding: 120px 48px 80px;
+      max-width: 1400px; margin: 0 auto;
+    }
+    .screen-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 48px; gap: 24px; flex-wrap: wrap;
+    }
+    .screen-header .number {
+      font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
+      color: var(--au-accent); margin-bottom: 8px;
+    }
+    .screen-header h2 {
+      font-family: var(--font-heading); font-size: 2.5rem; font-weight: 700;
+      letter-spacing: -0.025em; line-height: 1.1;
+    }
+    .screen-header p { color: rgba(255,255,255,0.5); font-size: 1rem; max-width: 400px; margin-top: 8px; }
+    .screen-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .screen-tag {
+      font-size: 0.6875rem; font-weight: 500;
+      padding: 4px 12px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* ── Browser Frame ── */
+    .browser-frame {
+      background: #1a1a1a; border-radius: 16px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 40px 120px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s;
+    }
+    .browser-frame:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 60px 160px rgba(14,165,233,0.15), 0 0 0 1px rgba(14,165,233,0.12);
+    }
+    .browser-bar {
+      display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+      background: #111; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .browser-dots { display: flex; gap: 6px; }
+    .browser-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .browser-dot.red { background: #ff5f57; }
+    .browser-dot.yellow { background: #febc2e; }
+    .browser-dot.green { background: #28c840; }
+    .browser-url {
+      flex: 1; text-align: center; font-family: var(--font-mono);
+      font-size: 0.6875rem; color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.04); padding: 6px 16px;
+      border-radius: 6px; margin: 0 48px;
+    }
+    .browser-content { position: relative; overflow: hidden; }
+    .browser-content img { width: 100%; display: block; }
+
+    /* ── Device Toggle ── */
+    .device-toggle {
+      display: flex; gap: 4px; background: rgba(255,255,255,0.06);
+      padding: 4px; border-radius: 10px;
+    }
+    .device-btn {
+      padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer;
+      font-family: var(--font-sans); font-size: 0.75rem; font-weight: 500;
+      background: transparent; color: rgba(255,255,255,0.4); transition: all 0.2s;
+    }
+    .device-btn.active { background: rgba(255,255,255,0.12); color: white; }
+    .device-btn:hover { color: white; }
+
+    /* ── Feature Cards ── */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px; margin-top: 48px;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; padding: 24px; transition: all 0.3s;
+    }
+    .feature-card:hover { background: rgba(14,165,233,0.05); border-color: rgba(14,165,233,0.15); }
+    .feature-icon { font-size: 1.5rem; margin-bottom: 12px; }
+    .feature-card h4 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 6px; }
+    .feature-card p { font-size: 0.8125rem; color: rgba(255,255,255,0.4); line-height: 1.5; }
+
+    /* ── Tech Stack ── */
+    .tech-section {
+      padding: 120px 48px; max-width: 1400px; margin: 0 auto;
+      text-align: center;
+    }
+    .tech-section h2 { font-family: var(--font-heading); font-size: 2rem; font-weight: 700; margin-bottom: 48px; }
+    .tech-grid { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; }
+    .tech-item {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 24px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+      min-width: 120px; transition: all 0.3s;
+    }
+    .tech-item:hover { background: rgba(14,165,233,0.05); border-color: rgba(14,165,233,0.15); }
+    .tech-item .name { font-size: 0.8125rem; font-weight: 600; }
+    .tech-item .role { font-size: 0.6875rem; color: rgba(255,255,255,0.3); }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 120px 48px; text-align: center;
+      background: radial-gradient(ellipse at 50% 100%, rgba(14,165,233,0.1) 0%, transparent 60%);
+    }
+    .cta-section h2 { font-family: var(--font-heading); font-size: 2.5rem; font-weight: 700; margin-bottom: 16px; }
+    .cta-section p { color: rgba(255,255,255,0.5); max-width: 480px; margin: 0 auto 32px; }
+    .cta-links { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .cta-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 12px; text-decoration: none;
+      font-weight: 600; font-size: 0.9375rem; transition: all 0.3s;
+    }
+    .cta-btn.primary { background: var(--au-accent); color: white; }
+    .cta-btn.primary:hover { background: #0284C7; transform: translateY(-2px); box-shadow: 0 16px 40px rgba(14,165,233,0.3); }
+    .cta-btn.secondary { background: rgba(255,255,255,0.06); color: white; border: 1px solid rgba(255,255,255,0.12); }
+    .cta-btn.secondary:hover { background: rgba(255,255,255,0.1); }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .showcase-hero { padding: 32px 24px; min-height: 80vh; }
+      .hero-stats { gap: 24px; }
+      .hero-stat .number { font-size: 1.75rem; }
+      .screen-section { padding: 80px 24px 48px; }
+      .screen-header h2 { font-size: 1.75rem; }
+      .cta-section { padding: 80px 24px; }
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="showcase-hero">
+  <div class="hero-badge">Product Showcase 2026</div>
+  <h1>Telemedicina hecha para Latinoamerica</h1>
+  <p>Plataforma completa de salud digital: videoconsultas, historia clinica con IA, recetas electronicas y mas.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="number">4</div><div class="label">Portales</div></div>
+    <div class="hero-stat"><div class="number">133+</div><div class="label">Componentes</div></div>
+    <div class="hero-stat"><div class="number">6</div><div class="label">Paises</div></div>
+    <div class="hero-stat"><div class="number">15</div><div class="label">Especialidades</div></div>
+  </div>
+  <div class="scroll-hint">Scroll para explorar &#8595;</div>
+</section>
+
+<!-- NAV -->
+<nav class="showcase-nav">
+  <a href="#landing">Landing</a>
+  <a href="#auth">Autenticacion</a>
+  <a href="#patient">Portal Paciente</a>
+  <a href="#doctor">Portal Medico</a>
+  <a href="#features">Features</a>
+  <a href="#tech">Tech Stack</a>
+  <a href="/design-system">Design System &#8599;</a>
+</nav>
+
+<!-- LANDING -->
+<section class="screen-section" id="landing">
+  <div class="screen-header">
+    <div>
+      <div class="number">01</div>
+      <h2>Landing Page</h2>
+      <p>Hero con video, directorio de medicos, symptom checker con IA, blog SEO, FAQ.</p>
+    </div>
+    <div class="screen-tags">
+      <span class="screen-tag">Astro SSR</span>
+      <span class="screen-tag">GSAP Animations</span>
+      <span class="screen-tag">SEO Optimized</span>
+      <span class="screen-tag">i18n ES/PT</span>
+    </div>
+  </div>
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><div class="browser-dot red"></div><div class="browser-dot yellow"></div><div class="browser-dot green"></div></div>
+      <div class="browser-url">autamedica.com</div>
+    </div>
+    <div class="browser-content">
+      <img src="/showcase/landing-hero.jpg" alt="AutaMedica Landing Page" loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<!-- AUTH -->
+<section class="screen-section" id="auth">
+  <div class="screen-header">
+    <div>
+      <div class="number">02</div>
+      <h2>Autenticacion</h2>
+      <p>Login con Google OAuth, seleccion de rol (Paciente / Medico / Empresa), recuperacion de contrasena.</p>
+    </div>
+    <div class="screen-tags">
+      <span class="screen-tag">Supabase Auth</span>
+      <span class="screen-tag">Google OAuth</span>
+      <span class="screen-tag">Role-based</span>
+    </div>
+  </div>
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><div class="browser-dot red"></div><div class="browser-dot yellow"></div><div class="browser-dot green"></div></div>
+      <div class="browser-url">autamedica.com/auth/login</div>
+    </div>
+    <div class="browser-content">
+      <img src="/showcase/login.jpg" alt="AutaMedica Login" loading="lazy" />
+    </div>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F512;</div>
+      <h4>Multi-portal Auth</h4>
+      <p>Un solo login redirige al portal correcto segun el rol del usuario. Pacientes, medicos y empresas con UX diferenciada.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F310;</div>
+      <h4>Subdominios</h4>
+      <p>Cada portal tiene su subdominio: paciente.autamedica.com, doctor.autamedica.com, empresa.autamedica.com</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F6E1;</div>
+      <h4>Row Level Security</h4>
+      <p>Cada usuario solo ve sus propios datos. Politicas RLS en PostgreSQL garantizan aislamiento total.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PATIENT -->
+<section class="screen-section" id="patient">
+  <div class="screen-header">
+    <div>
+      <div class="number">03</div>
+      <h2>Portal de Pacientes</h2>
+      <p>Dashboard con acciones rapidas, videoconsulta, turnos, anamnesis conversacional con IA, historial medico, comunidad.</p>
+    </div>
+    <div class="screen-tags">
+      <span class="screen-tag">React 19 Islands</span>
+      <span class="screen-tag">WebRTC</span>
+      <span class="screen-tag">AI Anamnesis</span>
+      <span class="screen-tag">PWA</span>
+    </div>
+  </div>
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><div class="browser-dot red"></div><div class="browser-dot yellow"></div><div class="browser-dot green"></div></div>
+      <div class="browser-url">paciente.autamedica.com/dashboard</div>
+    </div>
+    <div class="browser-content">
+      <img src="/showcase/patient-dashboard.jpg" alt="Patient Dashboard" loading="lazy" />
+    </div>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4F9;</div>
+      <h4>Videoconsulta en Vivo</h4>
+      <p>WebRTC con Cloudflare Workers como servidor de señalizacion. Audio, video, screen share, chat en tiempo real.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F9E0;</div>
+      <h4>Anamnesis con IA</h4>
+      <p>Conversacion natural (texto o voz) que genera historia clinica estructurada. Powered by Claude API via Edge Functions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4CA;</div>
+      <h4>Historial Completo</h4>
+      <p>Timeline de registros medicos, prescripciones, signos vitales, resultados de laboratorio. Filtrado por tipo y fecha.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F465;</div>
+      <h4>Comunidad</h4>
+      <p>Foro moderado para pacientes. Compartir experiencias, preguntas frecuentes, soporte entre pares.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DOCTOR -->
+<section class="screen-section" id="doctor">
+  <div class="screen-header">
+    <div>
+      <div class="number">04</div>
+      <h2>Portal Medico</h2>
+      <p>Workspace completo con gestion de pacientes, videollamada integrada, diagnostico, prescripciones, ranking profesional.</p>
+    </div>
+    <div class="screen-tags">
+      <span class="screen-tag">Focus Mode</span>
+      <span class="screen-tag">Lazy Loading</span>
+      <span class="screen-tag">Doctor Onboarding</span>
+      <span class="screen-tag">Medical Records</span>
+    </div>
+  </div>
+  <div class="browser-frame">
+    <div class="browser-bar">
+      <div class="browser-dots"><div class="browser-dot red"></div><div class="browser-dot yellow"></div><div class="browser-dot green"></div></div>
+      <div class="browser-url">doctor.autamedica.com/dashboard</div>
+    </div>
+    <div class="browser-content">
+      <img src="/showcase/doctor-portal.jpg" alt="Doctor Portal" loading="lazy" />
+    </div>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F3E5;</div>
+      <h4>Gestion de Pacientes</h4>
+      <p>Lista con busqueda, filtros, tabs de informacion: datos, historial, signos vitales, prescripciones, IA.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4DD;</div>
+      <h4>Prescripciones Digitales</h4>
+      <p>Recetas electronicas con firma digital. Cumplimiento con Ley 27.553 de telemedicina argentina.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F31F;</div>
+      <h4>Ranking Profesional</h4>
+      <p>Sistema de reputacion basado en consultas completadas, reviews de pacientes, y metricas de calidad.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F393;</div>
+      <h4>Onboarding Guiado</h4>
+      <p>Wizard multi-paso: especialidad, educacion, licencia, horarios. Periodo de gracia con banner recordatorio.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="screen-section" id="features">
+  <div class="screen-header">
+    <div>
+      <div class="number">05</div>
+      <h2>Features Destacados</h2>
+      <p>Capacidades que diferencian a AutaMedica de otras plataformas de telemedicina.</p>
+    </div>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F916;</div>
+      <h4>Symptom Checker con IA</h4>
+      <p>El paciente describe sintomas en lenguaje natural. Claude API genera una evaluacion preliminar y sugiere especialidades.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4F1;</div>
+      <h4>WhatsApp Integration</h4>
+      <p>Notificaciones de turnos, recordatorios, y confirmaciones via WhatsApp usando OpenClaw. Outbound automatizado.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F3E2;</div>
+      <h4>Portal B2B (Empresas)</h4>
+      <p>Marketplace de proveedores, gestion de crisis, reportes de salud corporativa, modulo de bienestar laboral.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F30E;</div>
+      <h4>Multi-pais</h4>
+      <p>Operativo en Argentina, Colombia, Peru, Mexico, Ecuador y Chile. i18n completo en espanol y portugues.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F50D;</div>
+      <h4>SEO Medical Content</h4>
+      <p>15+ articulos de blog con contenido medico/legal optimizado. Structured data, hreflang, paginas por especialidad.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x26A1;</div>
+      <h4>Edge-first Architecture</h4>
+      <p>Cloudflare Pages + Workers + KV. Latencia sub-50ms en LATAM. 5 subdominios con zero-downtime deploys.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section class="tech-section" id="tech">
+  <h2>Tech Stack</h2>
+  <div class="tech-grid">
+    <div class="tech-item"><div class="name">Astro 5</div><div class="role">Framework</div></div>
+    <div class="tech-item"><div class="name">React 19</div><div class="role">Islands</div></div>
+    <div class="tech-item"><div class="name">Tailwind</div><div class="role">Styling</div></div>
+    <div class="tech-item"><div class="name">Supabase</div><div class="role">Backend</div></div>
+    <div class="tech-item"><div class="name">Cloudflare</div><div class="role">Infra</div></div>
+    <div class="tech-item"><div class="name">WebRTC</div><div class="role">Video</div></div>
+    <div class="tech-item"><div class="name">Claude API</div><div class="role">AI</div></div>
+    <div class="tech-item"><div class="name">Turborepo</div><div class="role">Monorepo</div></div>
+    <div class="tech-item"><div class="name">TypeScript</div><div class="role">Language</div></div>
+    <div class="tech-item"><div class="name">GSAP</div><div class="role">Animations</div></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Explora el sistema</h2>
+  <p>El design system documenta cada token, color y componente usado en la plataforma.</p>
+  <div class="cta-links">
+    <a href="/design-system" class="cta-btn primary">Ver Design System &#8599;</a>
+    <a href="/" class="cta-btn secondary">Ir al sitio &#8599;</a>
+  </div>
+</section>
+
+<!-- Smooth scroll -->
+<script>
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Active nav on scroll
+  const sections = document.querySelectorAll('.screen-section, .tech-section');
+  const navLinks = document.querySelectorAll('.showcase-nav a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.showcase-nav a[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3 });
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
