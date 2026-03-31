@@ -1,14 +1,11 @@
 /**
- * API: Server-side relay for Gemini Live audio.
- * Keeps API key server-side. Browser sends audio chunks,
- * server proxies to Gemini and returns text + audio response.
+ * API: Stateless Gemini conversation relay for voice anamnesis.
+ * Each request includes full conversation history — no server-side state.
+ * This works reliably on Cloudflare Workers (no Map persistence needed).
  *
  * POST /api/patients/anamnesis/live-relay
- * Body: { action: 'start' | 'audio' | 'end', audio?: string (base64), sessionId?: string }
- *
- * This is a simplified HTTP relay (not WebSocket) because
- * Cloudflare Workers don't support outbound WebSocket connections.
- * Uses Gemini's REST generateContent endpoint with audio input.
+ * Body: { text: string, history?: Array<{ role: 'user'|'model', text: string }> }
+ * Returns: { text: string, history: Array<...> }
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
@@ -34,125 +31,102 @@ REGLAS:
 - Después de 6-8 preguntas, hacé un resumen breve
 - Máximo 10 preguntas en total`
 
-/** Max messages per voice session (prevents abuse) */
-const MAX_SESSION_MESSAGES = 15
+/** Max turns per conversation */
+const MAX_TURNS = 30
 
-/**
- * In-memory conversation store.
- * NOTE: On Cloudflare Workers this Map does NOT persist across isolates.
- * Sessions may be lost if the worker recycles between requests.
- * This is acceptable for voice anamnesis (short-lived, ~5min sessions).
- * For persistence, migrate to Durable Objects or D1.
- */
-const sessions = new Map<string, { turns: Array<{ role: string; text: string }>; createdAt: number }>()
+interface Turn {
+  role: 'user' | 'model'
+  text: string
+}
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
   const raw = await request.json().catch(() => ({})) as Record<string, unknown>
-  const action = raw.action as string
+  const userText = typeof raw.text === 'string' ? raw.text.trim() : ''
+  const history = Array.isArray(raw.history) ? (raw.history as Turn[]).slice(-MAX_TURNS) : []
 
-  if (action === 'start') {
-    // Create new session
-    const sessionId = crypto.randomUUID()
-    sessions.set(sessionId, { turns: [], createdAt: Date.now() })
-    return json({ success: true, data: { sessionId, greeting: '¿Qué te trae hoy a la consulta?' } })
-  }
-
-  const sessionId = raw.sessionId as string
-  if (!sessionId || !sessions.has(sessionId)) {
-    return json({ success: false, error: 'invalid_session' }, 400)
-  }
-
-  const session = sessions.get(sessionId)
-  if (!session) return json({ success: false, error: 'session_expired' }, 410)
-
-  if (action === 'message') {
-    const userText = typeof raw.text === 'string' ? raw.text.trim() : ''
-    if (!userText) return json({ success: false, error: 'empty_message' }, 400)
-
-    // Rate limit per session
-    const userTurns = session.turns.filter(t => t.role === 'user').length
-    if (userTurns >= MAX_SESSION_MESSAGES) {
-      return json({ success: false, error: 'session_message_limit', data: { limit: MAX_SESSION_MESSAGES } }, 429)
-    }
-
-    // Add user message to conversation
-    session.turns.push({ role: 'user', text: userText })
-
-    // Build Gemini request with full conversation history
-    const apiKey = resolveServerEnv('GEMINI_API_KEY')
-    if (!apiKey) return json({ success: false, error: 'ai_not_configured' }, 503)
-
-    const contents = session.turns.map(t => ({
-      role: t.role === 'user' ? 'user' : 'model',
-      parts: [{ text: t.text }],
-    }))
-
-    try {
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-            contents,
-            generationConfig: {
-              temperature: 0.4,
-              maxOutputTokens: 1024,
-              thinkingConfig: { thinkingBudget: 512 },
-            },
-          }),
-        },
-      )
-
-      if (!resp.ok) {
-        const errBody = await resp.text().catch(() => 'unknown')
-        logger.error('[live-relay] Gemini error', { status: resp.status, body: errBody })
-        return json({ success: false, error: 'ai_error' }, 502)
-      }
-
-      const geminiResult = await resp.json() as Record<string, unknown>
-      const candidates = Array.isArray(geminiResult.candidates) ? geminiResult.candidates : []
-      const firstCandidate = candidates[0] as Record<string, unknown> | undefined
-      const contentObj = firstCandidate?.content as Record<string, unknown> | undefined
-      const partsArr = Array.isArray(contentObj?.parts) ? contentObj.parts : []
-      const modelText = (typeof partsArr[0]?.text === 'string' ? partsArr[0].text : '') as string
-
-      if (modelText) {
-        session.turns.push({ role: 'model', text: modelText as string })
-      }
-
-      return json({
-        success: true,
-        data: {
-          text: modelText || 'No pude entender. ¿Podrías repetirlo?',
-          turnCount: session.turns.length,
-          isComplete: session.turns.filter(t => t.role === 'model').length >= 10,
-        },
-      })
-    } catch (err) {
-      logger.error('[live-relay] Request failed', err)
-      return json({ success: false, error: 'ai_error' }, 500)
-    }
-  }
-
-  if (action === 'end') {
-    const turns = session.turns
-    sessions.delete(sessionId)
+  if (!userText) {
+    // No text = greeting request
     return json({
       success: true,
       data: {
-        transcript: turns,
-        turnCount: turns.length,
+        text: '¿Qué te trae hoy a la consulta?',
+        history: [],
+        isComplete: false,
       },
     })
   }
 
-  return json({ success: false, error: 'invalid_action' }, 400)
+  // Build conversation with user's new message
+  const turns: Turn[] = [...history, { role: 'user', text: userText }]
+
+  // Rate limit by turn count
+  const userTurns = turns.filter(t => t.role === 'user').length
+  if (userTurns > 15) {
+    return json({ success: false, error: 'conversation_too_long' }, 429)
+  }
+
+  const apiKey = resolveServerEnv('GEMINI_API_KEY')
+  if (!apiKey) return json({ success: false, error: 'ai_not_configured' }, 503)
+
+  const contents = turns.map(t => ({
+    role: t.role === 'user' ? 'user' : 'model',
+    parts: [{ text: t.text }],
+  }))
+
+  try {
+    const resp = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+          contents,
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 1024,
+          },
+        }),
+      },
+    )
+
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => 'unknown')
+      logger.error('[live-relay] Gemini error', { status: resp.status, body: errBody.slice(0, 300) })
+      return json({ success: false, error: 'ai_error' }, 502)
+    }
+
+    const geminiResult = await resp.json() as Record<string, unknown>
+    const candidates = Array.isArray(geminiResult.candidates) ? geminiResult.candidates : []
+    const firstCandidate = candidates[0] as Record<string, unknown> | undefined
+    const contentObj = firstCandidate?.content as Record<string, unknown> | undefined
+    const partsArr = Array.isArray(contentObj?.parts) ? contentObj.parts : []
+    const modelText = (typeof partsArr[0]?.text === 'string' ? partsArr[0].text : '') as string
+
+    const updatedHistory: Turn[] = [
+      ...turns,
+      ...(modelText ? [{ role: 'model' as const, text: modelText }] : []),
+    ]
+
+    const modelTurnCount = updatedHistory.filter(t => t.role === 'model').length
+
+    return json({
+      success: true,
+      data: {
+        text: modelText || 'No pude entender. ¿Podrías repetirlo?',
+        history: updatedHistory,
+        isComplete: modelTurnCount >= 10,
+        turnCount: updatedHistory.length,
+      },
+    })
+  } catch (err) {
+    logger.error('[live-relay] Request failed', err)
+    return json({ success: false, error: 'ai_error' }, 500)
+  }
 }
