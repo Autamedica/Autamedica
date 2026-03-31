@@ -1,9 +1,10 @@
 import { SignalingRoom } from './signaling-room'
+import { GeminiLiveRoom } from './gemini-live-room'
 import { corsHeaders, corsResponse } from './cors'
 import type { Env } from './types'
 
-// Re-export Durable Object class (required by Wrangler)
-export { SignalingRoom }
+// Re-export Durable Object classes (required by Wrangler)
+export { SignalingRoom, GeminiLiveRoom }
 
 function json(payload: unknown, status: number, origin?: string | null): Response {
   return new Response(JSON.stringify(payload), {
@@ -35,6 +36,17 @@ export default {
       )
     }
 
+    // Gemini Live API proxy: /gemini-live?sessionId=xxx
+    if (url.pathname === '/gemini-live') {
+      const sessionId = url.searchParams.get('sessionId')
+      if (!sessionId) {
+        return json({ type: 'error', data: 'Missing sessionId query parameter' }, 400, origin)
+      }
+      const doId = env.GEMINI_LIVE_ROOM.idFromName(sessionId)
+      const stub = env.GEMINI_LIVE_ROOM.get(doId)
+      return stub.fetch(request)
+    }
+
     // WebSocket signaling: /signaling (primary) and /connect (legacy)
     if (url.pathname === '/signaling' || url.pathname === '/connect') {
       const roomId = url.searchParams.get('roomId')
@@ -56,6 +68,7 @@ export default {
           endpoints: {
             '/signaling?roomId=xxx': 'WebSocket signaling (primary)',
             '/connect?roomId=xxx': 'WebSocket signaling (legacy)',
+            '/gemini-live?sessionId=xxx': 'Gemini Live API proxy (voice anamnesis)',
             '/health': 'Health check',
           },
         },

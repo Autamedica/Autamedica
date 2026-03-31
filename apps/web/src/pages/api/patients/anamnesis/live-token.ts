@@ -46,13 +46,18 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   logger.info('[live-token] Session authorized', { patientId: context.patientId })
 
-  // Return only public info — API key never leaves the server
+  // Return WebSocket URL to the signaling worker's Gemini Live proxy
+  // API key is stored as a secret in the worker, never exposed to the browser
+  const sessionId = crypto.randomUUID()
+  const signalingHost = import.meta.env.PUBLIC_SIGNALING_URL
+    ?? 'https://automedica-signaling-server.ecucondorsa.workers.dev'
+
   return json({
     success: true,
     data: {
-      relayUrl: '/api/patients/anamnesis/live-relay',
-      model: 'models/gemini-3.1-flash-live-preview',
-      configured: true,
+      wsUrl: `${signalingHost.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
+      sessionId,
+      model: 'gemini-3.1-flash-live-preview',
     },
   })
 }

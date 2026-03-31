@@ -12,6 +12,14 @@ port = 8787
 name = "SIGNALING_ROOM"
 class_name = "SignalingRoom"
 
+[[durable_objects.bindings]]
+name = "GEMINI_LIVE_ROOM"
+class_name = "GeminiLiveRoom"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["SignalingRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["GeminiLiveRoom"]

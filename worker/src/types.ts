@@ -25,4 +25,6 @@ export interface UserMeta {
 /** Worker environment bindings */
 export interface Env {
   SIGNALING_ROOM: DurableObjectNamespace
+  GEMINI_LIVE_ROOM: DurableObjectNamespace
+  GEMINI_API_KEY: string
 }

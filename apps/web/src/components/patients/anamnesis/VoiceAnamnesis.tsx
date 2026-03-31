@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Mic, MicOff, Loader2, Send } from 'lucide-react'
-import { logger } from '@autamedica/shared'
+import { Mic, MicOff, Loader2 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
+import { logger } from '@autamedica/shared'
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface VoiceAnamnesisProps {
@@ -22,63 +22,108 @@ interface TranscriptEntry {
   timestamp: number
 }
 
-type VoiceState = 'idle' | 'connecting' | 'listening' | 'processing' | 'responding'
+type VoiceState = 'idle' | 'connecting' | 'listening' | 'processing'
 
-// ─── Web Speech API types ────────────────────────────────────────────
-interface SpeechRecognitionEvent {
-  results: { [index: number]: { [index: number]: { transcript: string } }; length: number }
-  resultIndex: number
+// ─── Audio helpers ───────────────────────────────────────────────────
+function float32ToBase64Pcm16(float32: Float32Array): string {
+  const int16 = new Int16Array(float32.length)
+  for (let i = 0; i < float32.length; i++) {
+    const s = Math.max(-1, Math.min(1, float32[i]))
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+  }
+  const bytes = new Uint8Array(int16.buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
 }
 
-interface SpeechRecognitionInstance {
-  lang: string
-  continuous: boolean
-  interimResults: boolean
-  start: () => void
-  stop: () => void
-  abort: () => void
-  onresult: ((e: SpeechRecognitionEvent) => void) | null
-  onerror: ((e: { error: string }) => void) | null
-  onend: (() => void) | null
+function resample(buffer: Float32Array, fromRate: number, toRate: number): Float32Array {
+  if (fromRate === toRate) return buffer
+  const ratio = fromRate / toRate
+  const newLength = Math.round(buffer.length / ratio)
+  const result = new Float32Array(newLength)
+  for (let i = 0; i < newLength; i++) {
+    result[i] = buffer[Math.round(i * ratio)]
+  }
+  return result
+}
+
+function base64ToFloat32(base64: string): Float32Array {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  const int16 = new Int16Array(bytes.buffer)
+  const float32 = new Float32Array(int16.length)
+  for (let i = 0; i < int16.length; i++) {
+    float32[i] = int16[i] / 0x8000
+  }
+  return float32
 }
 
 // ─── Section detection ───────────────────────────────────────────────
 const SECTION_KEYWORDS: Record<string, string[]> = {
-  motivo_consulta: ['motivo', 'consulta', 'por qué'],
-  sintomas_actuales: ['síntoma', 'dolor', 'molestia', 'fiebre', 'mareo'],
-  antecedentes_personales: ['antecedente', 'operación', 'cirugía', 'enfermedad'],
-  medicacion_actual: ['medicamento', 'medicación', 'pastilla', 'remedio'],
+  motivo_consulta: ['motivo', 'consulta', 'por qué', 'trae'],
+  sintomas_actuales: ['síntoma', 'dolor', 'molestia', 'fiebre'],
+  antecedentes_personales: ['antecedente', 'operación', 'enfermedad'],
+  medicacion_actual: ['medicamento', 'pastilla', 'remedio'],
   alergias: ['alergia', 'alérgico'],
-  antecedentes_familiares: ['familia', 'padre', 'madre', 'hermano'],
-  habitos: ['fumás', 'alcohol', 'ejercicio', 'droga'],
 }
 
 function detectSections(text: string): string[] {
   const lower = text.toLowerCase()
   return Object.entries(SECTION_KEYWORDS)
-    .filter(([, keywords]) => keywords.some(k => lower.includes(k)))
-    .map(([section]) => section)
+    .filter(([, kw]) => kw.some(k => lower.includes(k)))
+    .map(([s]) => s)
 }
 
 // ─── Component ───────────────────────────────────────────────────────
 export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnesisProps) {
   const [state, setState] = useState<VoiceState>('idle')
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
-  const [currentInput, setCurrentInput] = useState('')
-  const [aiMessage, setAiMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [aiText, setAiText] = useState('')
 
-  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const workletRef = useRef<AudioWorkletNode | null>(null)
   const transcriptRef = useRef<TranscriptEntry[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const _playbackQueueRef = useRef<Float32Array[]>([])
 
   useEffect(() => { transcriptRef.current = transcript }, [transcript])
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [transcript, aiMessage])
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [transcript])
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
-    return () => { recognitionRef.current?.abort() }
+    return () => { cleanup() }
+  }, [])
+
+  const cleanup = useCallback(() => {
+    workletRef.current?.disconnect()
+    mediaStreamRef.current?.getTracks().forEach(t => t.stop())
+    audioContextRef.current?.close()
+    wsRef.current?.close()
+    wsRef.current = null
+    audioContextRef.current = null
+    mediaStreamRef.current = null
+    workletRef.current = null
+  }, [])
+
+  // ── Play received audio ──
+  const playAudio = useCallback((audioData: Float32Array) => {
+    const ctx = audioContextRef.current
+    if (!ctx) return
+    const buffer = ctx.createBuffer(1, audioData.length, 24000) // Gemini outputs 24kHz
+    buffer.getChannelData(0).set(audioData)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.connect(ctx.destination)
+    source.start()
   }, [])
 
   // ── Start session ──
@@ -87,179 +132,175 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
     setError(null)
 
     try {
-      const result = await fetchApi<{ sessionId: string; greeting: string }>(
-        '/api/patients/anamnesis/live-relay',
-        { method: 'POST', body: { action: 'start' } },
+      // 1. Get WS URL from our API (server generates sessionId, returns worker URL)
+      const tokenData = await fetchApi<{ wsUrl: string; sessionId: string; model: string }>(
+        '/api/patients/anamnesis/live-token',
       )
 
-      if (!result?.sessionId) throw new Error('No se pudo iniciar la sesión')
+      if (!tokenData?.wsUrl) throw new Error('No se pudo obtener la sesión de voz')
 
-      setSessionId(result.sessionId)
-      setAiMessage(result.greeting)
-      setTranscript([{ role: 'assistant', text: result.greeting, timestamp: Date.now() }])
-      setState('idle')
+      // 2. Connect WebSocket to our Durable Object proxy
+      const ws = new WebSocket(tokenData.wsUrl)
+      wsRef.current = ws
 
-      // Use TTS for greeting
-      speak(result.greeting)
+      ws.onopen = () => {
+        logger.info('[VoiceAnamnesis] WebSocket connected to DO proxy')
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+
+          if (msg.type === 'connected') {
+            setState('listening')
+            startMicrophone()
+            return
+          }
+
+          if (msg.type === 'error') {
+            setError(typeof msg.data === 'string' ? msg.data : 'Error de conexión')
+            setState('idle')
+            return
+          }
+
+          if (msg.type === 'session-end') {
+            finishConversation()
+            return
+          }
+
+          // Gemini Live API response: serverContent with audio or text
+          if (msg.serverContent?.modelTurn?.parts) {
+            for (const part of msg.serverContent.modelTurn.parts) {
+              // Audio response
+              if (part.inlineData?.data) {
+                const audioFloat32 = base64ToFloat32(part.inlineData.data)
+                playAudio(audioFloat32)
+              }
+              // Text transcript (inputTranscription or outputTranscription)
+              if (part.text) {
+                setAiText(part.text)
+                setTranscript(prev => [...prev, {
+                  role: 'assistant',
+                  text: part.text,
+                  timestamp: Date.now(),
+                }])
+              }
+            }
+          }
+
+          // Input transcription (what the user said)
+          if (msg.serverContent?.inputTranscription) {
+            const userText = msg.serverContent.inputTranscription
+            setTranscript(prev => [...prev, {
+              role: 'user',
+              text: userText,
+              timestamp: Date.now(),
+            }])
+          }
+
+          // Output transcription
+          if (msg.serverContent?.outputTranscription) {
+            setAiText(msg.serverContent.outputTranscription)
+          }
+        } catch (err) {
+          logger.warn('[VoiceAnamnesis] Failed to parse WS message', err)
+        }
+      }
+
+      ws.onerror = () => {
+        setError('Error de conexión con el asistente de voz')
+        setState('idle')
+      }
+
+      ws.onclose = () => {
+        if (state !== 'idle') {
+          setState('idle')
+        }
+      }
     } catch (err) {
       logger.error('[VoiceAnamnesis] Start failed', err)
-      setError('No se pudo conectar con el asistente de voz')
+      setError('No se pudo iniciar la sesión de voz')
       setState('idle')
     }
-  }, [])
+  }, [playAudio, state])
 
-  // ── TTS (Web Speech Synthesis) ──
-  const speak = useCallback((text: string) => {
-    if (!('speechSynthesis' in window)) return
-    setState('responding')
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'es-AR'
-    utterance.rate = 1.05
-    utterance.onend = () => setState('idle')
-    utterance.onerror = () => setState('idle')
-    window.speechSynthesis.speak(utterance)
-  }, [])
-
-  // ── Start listening (STT) ──
-  const startListening = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const win = window as any
-    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition
-
-    if (!SpeechRecognition) {
-      setError('Tu navegador no soporta reconocimiento de voz')
-      return
-    }
-
-    const recognition = new (SpeechRecognition as new () => SpeechRecognitionInstance)()
-    recognition.lang = 'es-AR'
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognitionRef.current = recognition
-
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        interim += e.results[i][0].transcript
-      }
-      setCurrentInput(interim)
-    }
-
-    recognition.onerror = (e) => {
-      if (e.error !== 'aborted') {
-        logger.warn('[VoiceAnamnesis] Speech recognition error', e.error)
-      }
-    }
-
-    recognition.onend = () => {
-      setState(prev => prev === 'listening' ? 'idle' : prev)
-    }
-
-    recognition.start()
-    setState('listening')
-  }, [])
-
-  // ── Stop listening and send to AI ──
-  const stopAndSend = useCallback(async () => {
-    recognitionRef.current?.stop()
-    recognitionRef.current = null
-
-    const text = currentInput.trim()
-    if (!text || !sessionId) {
-      setState('idle')
-      return
-    }
-
-    // Add user message
-    setTranscript(prev => [...prev, { role: 'user', text, timestamp: Date.now() }])
-    setCurrentInput('')
-    setState('processing')
-
+  // ── Microphone capture ──
+  const startMicrophone = useCallback(async () => {
     try {
-      const result = await fetchApi<{ text: string; turnCount: number; isComplete: boolean }>(
-        '/api/patients/anamnesis/live-relay',
-        { method: 'POST', body: { action: 'message', sessionId, text } },
-      )
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true },
+      })
+      mediaStreamRef.current = stream
 
-      if (!result?.text) throw new Error('Sin respuesta del asistente')
+      const ctx = new AudioContext({ sampleRate: 16000 })
+      audioContextRef.current = ctx
 
-      setTranscript(prev => [...prev, { role: 'assistant', text: result.text, timestamp: Date.now() }])
-      setAiMessage(result.text)
+      const source = ctx.createMediaStreamSource(stream)
 
-      if (result.isComplete) {
-        finishConversation()
-        return
+      // Use ScriptProcessorNode (AudioWorklet needs separate file)
+      const processor = ctx.createScriptProcessor(4096, 1, 1)
+      processor.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0)
+        const resampled = resample(input, ctx.sampleRate, 16000)
+        const base64 = float32ToBase64Pcm16(resampled)
+
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            realtimeInput: {
+              mediaChunks: [{
+                data: base64,
+                mimeType: 'audio/pcm;rate=16000',
+              }],
+            },
+          }))
+        }
       }
 
-      // Speak the response
-      speak(result.text)
+      source.connect(processor)
+      processor.connect(ctx.destination)
     } catch (err) {
-      logger.error('[VoiceAnamnesis] Send failed', err)
-      setError('No se pudo enviar tu mensaje. Intentá de nuevo.')
+      logger.error('[VoiceAnamnesis] Microphone failed', err)
+      setError('No se pudo acceder al micrófono')
       setState('idle')
     }
-  }, [currentInput, sessionId, speak])
+  }, [])
 
-  // ── Finish and extract data ──
-  const finishConversation = useCallback(async () => {
-    recognitionRef.current?.abort()
-    recognitionRef.current = null
-    window.speechSynthesis?.cancel()
-
-    if (sessionId) {
-      await fetchApi('/api/patients/anamnesis/live-relay', {
-        method: 'POST',
-        body: { action: 'end', sessionId },
-      }).catch(() => {})
-    }
-
+  // ── Finish ──
+  const finishConversation = useCallback(() => {
+    cleanup()
     const entries = transcriptRef.current
-    const firstUserMsg = entries.find(e => e.role === 'user')
+    const firstUser = entries.find(e => e.role === 'user')
     const fullText = entries.map(e => e.text).join(' ')
 
     onDataExtracted({
-      chiefComplaint: firstUserMsg?.text ?? '',
+      chiefComplaint: firstUser?.text ?? '',
       transcript: entries,
       detectedSections: detectSections(fullText),
     })
 
     setState('idle')
-    setSessionId(null)
-  }, [sessionId, onDataExtracted])
+  }, [cleanup, onDataExtracted])
 
-  // ── Manual text send (keyboard fallback) ──
-  const sendTextManually = useCallback(async () => {
-    if (!currentInput.trim() || !sessionId) return
-    await stopAndSend()
-  }, [currentInput, sessionId, stopAndSend])
-
-  const isActive = sessionId !== null
-  const isListening = state === 'listening'
+  const isActive = state === 'listening' || state === 'processing'
 
   return (
     <div className="space-y-4">
-      {/* AI greeting / status */}
-      {!isActive ? (
+      {!isActive && state !== 'connecting' ? (
         <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 text-center">
           <p className="text-sm text-stone-500 mb-4">
-            Contale a AutaMedica qué te trae a la consulta. La IA te va a hacer preguntas de seguimiento.
+            Contale a AutaMedica qué te trae a la consulta. La IA te va a hacer preguntas de seguimiento por voz.
           </p>
           <button
             onClick={startSession}
-            disabled={state === 'connecting'}
-            className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:bg-sky-700 disabled:opacity-50"
+            className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:bg-sky-700"
           >
-            {state === 'connecting' ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Mic className="h-5 w-5" />
-            )}
-            Iniciar conversación
+            <Mic className="h-5 w-5" />
+            Iniciar conversación por voz
           </button>
         </div>
       ) : (
         <>
-          {/* Chat transcript */}
+          {/* Transcript */}
           <div className="space-y-3 max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-4">
             {transcript.map((entry, i) => (
               <div key={i} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -273,83 +314,43 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
               </div>
             ))}
 
-            {state === 'processing' && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl bg-stone-100 px-4 py-2.5">
-                  <Loader2 className="h-4 w-4 animate-spin text-stone-400" />
-                </div>
+            {state === 'connecting' && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-sky-400" />
               </div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-          {/* Live input */}
-          {currentInput && (
+          {/* AI current text */}
+          {aiText && (
             <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
-              <p className="text-sm text-sky-700 italic">{currentInput}</p>
+              <p className="text-sm text-sky-700">{aiText}</p>
             </div>
           )}
 
-          {/* Controls */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={isListening ? stopAndSend : startListening}
-              disabled={state === 'processing' || state === 'responding'}
-              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all ${
-                isListening
-                  ? 'bg-red-500 shadow-lg shadow-red-200 animate-pulse'
-                  : 'bg-sky-500 shadow-lg shadow-sky-200 hover:bg-sky-600'
-              } disabled:opacity-40 disabled:animate-none`}
-            >
-              {isListening ? (
-                <MicOff className="h-6 w-6 text-white" />
-              ) : state === 'processing' ? (
-                <Loader2 className="h-6 w-6 text-white animate-spin" />
-              ) : (
-                <Mic className="h-6 w-6 text-white" />
-              )}
-            </button>
-
-            {/* Text input fallback */}
-            <input
-              type="text"
-              value={currentInput}
-              onChange={e => setCurrentInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') sendTextManually() }}
-              placeholder={isListening ? 'Escuchando...' : 'O escribí tu respuesta'}
-              className="flex-1 rounded-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm focus:border-sky-400 focus:outline-none"
-            />
-
-            <button
-              onClick={sendTextManually}
-              disabled={!currentInput.trim() || state === 'processing'}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-600 text-white disabled:opacity-30"
-            >
-              <Send className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Finish / status */}
+          {/* Mic indicator + controls */}
           <div className="flex items-center justify-between">
-            <p className="text-xs text-stone-400">
-              {state === 'listening' && 'Escuchando...'}
-              {state === 'processing' && 'Procesando...'}
-              {state === 'responding' && 'Respondiendo...'}
-              {state === 'idle' && isActive && 'Tocá el micrófono para hablar'}
-            </p>
+            <div className="flex items-center gap-2">
+              <div className={`h-3 w-3 rounded-full ${
+                state === 'listening' ? 'bg-red-500 animate-pulse' : 'bg-stone-300'
+              }`} />
+              <span className="text-xs text-stone-500">
+                {state === 'listening' ? 'Escuchando...' : state === 'connecting' ? 'Conectando...' : 'Procesando...'}
+              </span>
+            </div>
             <button
               onClick={finishConversation}
-              className="text-xs font-medium text-sky-600 hover:text-sky-800"
+              className="flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-stone-700"
             >
-              Finalizar conversación
+              <MicOff className="h-3 w-3" />
+              Finalizar
             </button>
           </div>
         </>
       )}
 
-      {error && (
-        <p className="text-xs text-red-500 text-center">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500 text-center">{error}</p>}
 
       <button
         onClick={onSwitchToText}
