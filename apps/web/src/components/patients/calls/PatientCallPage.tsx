@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import { useCallSession } from '@/hooks/calls/useCallSession'
+import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
 import { respondCallBrowserService } from '@/lib/calls/services/respond-call.browser'
 
@@ -137,23 +138,32 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   }, [session, typedProfile])
 
   if (callSessionError) {
+    const errorInfo = translateCallError(callSessionError)
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
-          <h1 className="text-xl font-semibold text-white">No pudimos preparar la videollamada</h1>
-          <p className="mt-3 text-sm text-slate-300">{callSessionError}</p>
+        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20">
+            <svg className="h-7 w-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-white">{errorInfo.title}</h1>
+          <p className="mt-3 text-sm text-slate-300">{errorInfo.description}</p>
+          {errorInfo.retryHint && (
+            <p className="mt-2 text-sm text-amber-400">{errorInfo.retryHint}</p>
+          )}
           <div className="mt-6 flex flex-col gap-3">
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-lg bg-green-500 px-4 py-3 text-sm font-semibold text-white"
+              className="rounded-lg bg-green-500 px-4 py-3 text-sm font-semibold text-white hover:bg-green-400 transition-colors"
             >
               Reintentar
             </button>
             <button
               type="button"
-              onClick={() => { window.location.href = '/dashboard' }}
-              className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200"
+              onClick={() => { window.location.href = '/patients' }}
+              className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/5 transition-colors"
             >
               Volver al panel
             </button>

@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react'
 import { logger } from '@autamedica/shared'
 import { startCallBrowserService } from '@/lib/calls/services/start-call.browser'
+import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 
 interface UseStartCallOptions {
   doctorId: string
@@ -40,16 +41,13 @@ export function useStartCall({ doctorId, patientId, appointmentId }: UseStartCal
     } catch (err) {
       logger.error('Failed to start call:', err)
 
-      let errorMessage = 'Error al iniciar la llamada'
-      if (err instanceof Error) {
-        errorMessage = err.message
-      } else if (typeof err === 'string') {
-        errorMessage = err
-      } else if (err && typeof err === 'object') {
-        errorMessage = JSON.stringify(err)
-      }
-
-      setError(errorMessage)
+      const translated = translateCallError(
+        err instanceof Error ? err.message : String(err),
+      )
+      setError(
+        translated.title +
+          (translated.description ? `: ${translated.description}` : ''),
+      )
     } finally {
       setIsStarting(false)
     }

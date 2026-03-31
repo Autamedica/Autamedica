@@ -1,6 +1,8 @@
 'use client'
 
+import { Clock } from 'lucide-react'
 import { useStartCall } from '@/hooks/doctors/useStartCall'
+import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 
 interface StartCallButtonProps {
   doctorId: string
@@ -8,7 +10,7 @@ interface StartCallButtonProps {
   patientName?: string
   appointmentId?: string
   disabled?: boolean
-  disabledMessage?: string
+  callWindowMessage?: string
   className?: string
 }
 
@@ -18,7 +20,7 @@ export function StartCallButton({
   patientName = 'Paciente',
   appointmentId,
   disabled = false,
-  disabledMessage,
+  callWindowMessage,
   className = "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
 }: StartCallButtonProps) {
   const { startCall, isStarting, error } = useStartCall({ doctorId, patientId, appointmentId })
@@ -70,15 +72,20 @@ export function StartCallButton({
       </button>
 
       {error && (
-        <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
-          {error}
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+          <p className="text-sm font-medium text-red-700">{translateCallError(error).title}</p>
+          <p className="mt-1 text-xs text-red-600">{translateCallError(error).description}</p>
+          {translateCallError(error).retryHint && (
+            <p className="mt-1 text-xs text-amber-600">{translateCallError(error).retryHint}</p>
+          )}
         </div>
       )}
 
-      {!error && disabled && disabledMessage && (
-        <p className="text-xs text-stone-500">
-          {disabledMessage}
-        </p>
+      {!error && disabled && callWindowMessage && (
+        <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+          <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+          <p className="text-xs text-amber-700">{callWindowMessage}</p>
+        </div>
       )}
 
       {!error && !disabled && hasDoctor && hasPatient && (

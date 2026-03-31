@@ -7,6 +7,7 @@ import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
+import { getCallWindowStatus } from '@/lib/calls/lib/call-error-messages'
 import { StartCallButton } from '../calls/StartCallButton'
 
 interface AppointmentsPanelProps {
@@ -236,10 +237,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
         ) : (
           <div className="h-full overflow-auto">
             <div className="grid gap-4">
-              {sortedAppointments.map((appointment) => {
-                const isCallEnabled = canStartTelemedicineCall(appointment)
-
-                return (
+              {sortedAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
                   className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm transition-all duration-am-fast ease-am-ease hover:-translate-y-0.5 hover:shadow-am-card-hover hover:border-am-surface-300"
@@ -276,21 +274,20 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                     </div>
 
                     <div className="flex items-center gap-2 self-start shrink-0 sm:self-auto">
-                      {appointment.type === 'telemedicine' && resolvedDoctorId && appointment.patient_id && (
-                        <StartCallButton
-                          doctorId={resolvedDoctorId}
-                          patientId={appointment.patient_id}
-                          patientName={patientNames[appointment.patient_id] || 'Paciente'}
-                          appointmentId={appointment.id}
-                          disabled={!isCallEnabled}
-                          disabledMessage={
-                            isCallEnabled
-                              ? undefined
-                              : 'Solo puedes iniciar la videollamada cerca del horario real del turno.'
-                          }
-                          className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-green-700"
-                        />
-                      )}
+                      {appointment.type === 'telemedicine' && resolvedDoctorId && appointment.patient_id && (() => {
+                        const windowStatus = getCallWindowStatus(appointment)
+                        return (
+                          <StartCallButton
+                            doctorId={resolvedDoctorId}
+                            patientId={appointment.patient_id}
+                            patientName={patientNames[appointment.patient_id] || 'Paciente'}
+                            appointmentId={appointment.id}
+                            disabled={!windowStatus.isOpen}
+                            callWindowMessage={windowStatus.isOpen ? undefined : windowStatus.message}
+                            className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-green-700"
+                          />
+                        )
+                      })()}
                       <button
                         type="button"
                         className="rounded-lg bg-white border border-am-surface-300 px-3 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100"
@@ -300,8 +297,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                     </div>
                   </div>
                 </div>
-                )
-              })}
+              ))}
             </div>
           </div>
         )}
