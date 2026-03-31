@@ -176,6 +176,11 @@ export class PeerConnectionFactory {
           backoffMs,
         })
         this.callLogger?.warn('ice', 'ice_restart', { peerId: userId, attempt: peerState.iceRestartCount, backoffMs: Math.round(backoffMs) })
+        this.callbacks.emit('reconnecting', {
+          peerId: userId,
+          attempt: peerState.iceRestartCount,
+          maxAttempts: MAX_ICE_RESTART_ATTEMPTS,
+        })
         setTimeout(() => {
           if (peerConnections.has(userId) && pc.iceConnectionState === 'failed') {
             this.callLogger?.info('ice', 'ice_restart_attempted', { peerId: userId, attempt: peerState?.iceRestartCount })
@@ -184,6 +189,12 @@ export class PeerConnectionFactory {
         }, backoffMs)
       }
       if (iceState === 'connected' && peerState) {
+        if (peerState.iceRestartCount > 0) {
+          this.callbacks.emit('reconnected', {
+            peerId: userId,
+            afterAttempts: peerState.iceRestartCount,
+          })
+        }
         peerState.iceRestartCount = 0
       }
     }

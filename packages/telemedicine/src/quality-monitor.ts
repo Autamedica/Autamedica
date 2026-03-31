@@ -6,6 +6,37 @@
 
 export type StreamQualityLevel = 'unknown' | 'excellent' | 'good' | 'fair' | 'poor'
 
+export interface CallQualityTimelineEntry {
+  timestamp: number
+  level: StreamQualityLevel
+  durationMs: number
+}
+
+export interface CallQualityAverageMetrics {
+  packetsLostPct: number | null
+  jitterMs: number | null
+  roundTripTimeMs: number | null
+  inboundVideoBitrateKbps: number | null
+}
+
+export interface CallQualityWorstMetrics {
+  packetsLostPct: number | null
+  jitterMs: number | null
+  roundTripTimeMs: number | null
+  inboundVideoBitrateKbps: number | null
+  framesPerSecond: number | null
+}
+
+export interface CallQualitySummary {
+  totalDurationMs: number
+  qualityBreakdown: Record<StreamQualityLevel, number>
+  timeline: CallQualityTimelineEntry[]
+  worstMetrics: CallQualityWorstMetrics
+  averageMetrics: CallQualityAverageMetrics
+  iceRestartCount: number
+  audioOnlyPeriods: number
+}
+
 export interface StreamQualityMetrics {
   userId: string
   level: StreamQualityLevel
@@ -60,6 +91,30 @@ export class QualityMonitor {
   private callLogger?: import('./logging/call-logger').CallLogger
   onQualitySummary: ((summary: StreamQualitySummary) => void) | null = null
 
+  // --- call summary tracking ---
+  private monitoringStartedAt: number | null = null
+  private summaryTimeline: CallQualityTimelineEntry[] = []
+  private lastOverallLevel: StreamQualityLevel = 'unknown'
+  private lastLevelTimestamp: number = 0
+  private audioOnlyPeriodCount = 0
+
+  // Running worst metrics (worst = highest loss/jitter/rtt, lowest bitrate/fps)
+  private worstPacketsLostPct: number | null = null
+  private worstJitterMs: number | null = null
+  private worstRoundTripTimeMs: number | null = null
+  private worstInboundVideoBitrateKbps: number | null = null
+  private worstFramesPerSecond: number | null = null
+
+  // Running sums for averages
+  private sumPacketsLostPct = 0
+  private sumJitterMs = 0
+  private sumRoundTripTimeMs = 0
+  private sumInboundVideoBitrateKbps = 0
+  private countPacketsLostPct = 0
+  private countJitterMs = 0
+  private countRoundTripTimeMs = 0
+  private countInboundVideoBitrateKbps = 0
+
   constructor(opts: { logger: QualityLogger; roomId: string; callLogger?: import('./logging/call-logger').CallLogger }) {
     this.logger = opts.logger
     this.roomId = opts.roomId
@@ -72,6 +127,10 @@ export class QualityMonitor {
     if (this.qualityInterval) {
       return
     }
+
+    this.monitoringStartedAt = Date.now()
+    this.lastLevelTimestamp = this.monitoringStartedAt
+    this.lastOverallLevel = 'unknown'
 
     const collect = () => {
       void this.collectQualityMetrics()
@@ -94,6 +153,28 @@ export class QualityMonitor {
     this.peerStatsSamples.clear()
     this.latestQualityByPeer.clear()
     this.qualityLogState.clear()
+    this.resetSummaryState()
+  }
+
+  private resetSummaryState(): void {
+    this.monitoringStartedAt = null
+    this.summaryTimeline = []
+    this.lastOverallLevel = 'unknown'
+    this.lastLevelTimestamp = 0
+    this.audioOnlyPeriodCount = 0
+    this.worstPacketsLostPct = null
+    this.worstJitterMs = null
+    this.worstRoundTripTimeMs = null
+    this.worstInboundVideoBitrateKbps = null
+    this.worstFramesPerSecond = null
+    this.sumPacketsLostPct = 0
+    this.sumJitterMs = 0
+    this.sumRoundTripTimeMs = 0
+    this.sumInboundVideoBitrateKbps = 0
+    this.countPacketsLostPct = 0
+    this.countJitterMs = 0
+    this.countRoundTripTimeMs = 0
+    this.countInboundVideoBitrateKbps = 0
   }
 
   deletePeer(userId: string): void {
@@ -105,6 +186,120 @@ export class QualityMonitor {
   /** Trigger an immediate collection pass (e.g. when a new peer joins). */
   collectNow(): void {
     void this.collectQualityMetrics()
+  }
+
+  /** Call from outside when an audio-only fallback occurs. */
+  recordAudioOnlyFallback(): void {
+    this.audioOnlyPeriodCount++
+  }
+
+  /**
+   * Returns an aggregated quality summary for the entire call.
+   * Call this before cleanup/clearState — it's a snapshot.
+   */
+  getCallSummary(iceRestartCount = 0): CallQualitySummary {
+    const now = Date.now()
+    const totalDurationMs = this.monitoringStartedAt ? now - this.monitoringStartedAt : 0
+
+    // Finalize the current level's duration into the timeline
+    const timeline = [...this.summaryTimeline]
+    if (this.lastLevelTimestamp > 0 && totalDurationMs > 0) {
+      timeline.push({
+        timestamp: this.lastLevelTimestamp,
+        level: this.lastOverallLevel,
+        durationMs: now - this.lastLevelTimestamp,
+      })
+    }
+
+    // Build quality breakdown (percentage of time at each level)
+    const breakdown: Record<StreamQualityLevel, number> = {
+      unknown: 0,
+      excellent: 0,
+      good: 0,
+      fair: 0,
+      poor: 0,
+    }
+
+    if (totalDurationMs > 0) {
+      for (const entry of timeline) {
+        breakdown[entry.level] += entry.durationMs
+      }
+      for (const level of Object.keys(breakdown) as StreamQualityLevel[]) {
+        breakdown[level] = Math.round((breakdown[level] / totalDurationMs) * 10000) / 100
+      }
+    }
+
+    const avg = (sum: number, count: number): number | null =>
+      count > 0 ? Math.round((sum / count) * 100) / 100 : null
+
+    return {
+      totalDurationMs,
+      qualityBreakdown: breakdown,
+      timeline,
+      worstMetrics: {
+        packetsLostPct: this.worstPacketsLostPct,
+        jitterMs: this.worstJitterMs,
+        roundTripTimeMs: this.worstRoundTripTimeMs,
+        inboundVideoBitrateKbps: this.worstInboundVideoBitrateKbps,
+        framesPerSecond: this.worstFramesPerSecond,
+      },
+      averageMetrics: {
+        packetsLostPct: avg(this.sumPacketsLostPct, this.countPacketsLostPct),
+        jitterMs: avg(this.sumJitterMs, this.countJitterMs),
+        roundTripTimeMs: avg(this.sumRoundTripTimeMs, this.countRoundTripTimeMs),
+        inboundVideoBitrateKbps: avg(this.sumInboundVideoBitrateKbps, this.countInboundVideoBitrateKbps),
+      },
+      iceRestartCount,
+      audioOnlyPeriods: this.audioOnlyPeriodCount,
+    }
+  }
+
+  /** Update worst and running-average trackers from a single peer's metrics. */
+  private updateSummaryMetrics(metrics: StreamQualityMetrics): void {
+    // Worst: higher is worse for loss/jitter/rtt, lower is worse for bitrate/fps
+    if (metrics.packetsLostPct !== null) {
+      this.worstPacketsLostPct = Math.max(this.worstPacketsLostPct ?? -Infinity, metrics.packetsLostPct)
+      this.sumPacketsLostPct += metrics.packetsLostPct
+      this.countPacketsLostPct++
+    }
+    if (metrics.jitterMs !== null) {
+      this.worstJitterMs = Math.max(this.worstJitterMs ?? -Infinity, metrics.jitterMs)
+      this.sumJitterMs += metrics.jitterMs
+      this.countJitterMs++
+    }
+    if (metrics.roundTripTimeMs !== null) {
+      this.worstRoundTripTimeMs = Math.max(this.worstRoundTripTimeMs ?? -Infinity, metrics.roundTripTimeMs)
+      this.sumRoundTripTimeMs += metrics.roundTripTimeMs
+      this.countRoundTripTimeMs++
+    }
+    if (metrics.inboundVideoBitrateKbps !== null) {
+      this.worstInboundVideoBitrateKbps =
+        this.worstInboundVideoBitrateKbps === null
+          ? metrics.inboundVideoBitrateKbps
+          : Math.min(this.worstInboundVideoBitrateKbps, metrics.inboundVideoBitrateKbps)
+      this.sumInboundVideoBitrateKbps += metrics.inboundVideoBitrateKbps
+      this.countInboundVideoBitrateKbps++
+    }
+    if (metrics.framesPerSecond !== null) {
+      this.worstFramesPerSecond =
+        this.worstFramesPerSecond === null
+          ? metrics.framesPerSecond
+          : Math.min(this.worstFramesPerSecond, metrics.framesPerSecond)
+    }
+  }
+
+  /** Record a quality level transition in the timeline. */
+  private recordLevelTransition(newLevel: StreamQualityLevel): void {
+    const now = Date.now()
+    if (this.lastLevelTimestamp > 0) {
+      this.summaryTimeline.push({
+        timestamp: this.lastLevelTimestamp,
+        level: this.lastOverallLevel,
+        durationMs: now - this.lastLevelTimestamp,
+      })
+    }
+    this.lastOverallLevel = newLevel
+    this.lastLevelTimestamp = now
   }
 
   // --- stat extraction helpers ---
@@ -488,9 +683,21 @@ export class QualityMonitor {
       }
     }
 
+    // Track per-sample metrics for call summary
+    for (const metrics of peers) {
+      this.updateSummaryMetrics(metrics)
+    }
+
+    const overallLevel = this.getOverallQualityLevel(peers)
+
+    // Record timeline transition if level changed
+    if (overallLevel !== this.lastOverallLevel) {
+      this.recordLevelTransition(overallLevel)
+    }
+
     this.onQualitySummary?.({
       roomId: this.roomId,
-      overallLevel: this.getOverallQualityLevel(peers),
+      overallLevel,
       peers,
     })
   }

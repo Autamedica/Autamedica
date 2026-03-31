@@ -49,7 +49,16 @@ export {
 
 // Legacy WebRTC Core (keep for compatibility)
 export { WebRTCClient } from './webrtc-client'
-export type { WebRTCConfig, WebRTCEvents, DeviceInfo, WarmUpResult } from './webrtc-client'
+export type {
+  WebRTCConfig,
+  WebRTCEvents,
+  DeviceInfo,
+  WarmUpResult,
+  CallQualitySummary,
+  CallQualityTimelineEntry,
+  CallQualityWorstMetrics,
+  CallQualityAverageMetrics,
+} from './webrtc-client'
 
 // Cloudflare Calls SFU (streaming relay via Cloudflare edge)
 export { CloudflareCallsClient, CloudflareCallsSession } from './cloudflare-calls'
@@ -65,6 +74,8 @@ export { UnifiedVideoCall } from './unified-video-call'
 export type { UnifiedVideoCallProps } from './unified-video-call'
 export { TelemedicineDebugPanel } from './telemedicine-debug-panel'
 export type { TelemedicineDebugPanelProps } from './telemedicine-debug-panel'
+export { ReconnectingOverlay } from './components/ReconnectingOverlay'
+export type { ReconnectingOverlayProps } from './components/ReconnectingOverlay'
 export type { CallSessionBootstrap, CallSessionRole, CallSessionRuntime } from './call-session/types'
 
 // Types

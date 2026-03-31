@@ -269,3 +269,113 @@ describe('PeerConnectionFactory — ICE restart logic', () => {
     })
   })
 })
+
+describe('PeerConnectionFactory — reconnection events', () => {
+  let factory: PeerConnectionFactory
+  let callbacks: PeerConnectionFactoryCallbacks
+  let peerConnections: Map<string, PeerState>
+  let pcInstances: any[]
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    const { instances } = mockRTCPeerConnection()
+    pcInstances = instances
+
+    callbacks = createMockCallbacks()
+    factory = new PeerConnectionFactory(
+      createMockLogger(),
+      'session-1',
+      createMockMedia(),
+      createMockQualityMonitor(),
+      callbacks,
+    )
+    peerConnections = new Map()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  const ICE_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.example.com' }]
+
+  function createPeer() {
+    return factory.ensurePeerConnection('remote-1', ICE_SERVERS, 'local-1', 'doctor', peerConnections)
+  }
+
+  it('should emit reconnecting event when ICE restart is scheduled', () => {
+    createPeer()
+    const pc = pcInstances[0]
+
+    pc.iceConnectionState = 'failed'
+    pc.oniceconnectionstatechange()
+
+    expect(callbacks.emit).toHaveBeenCalledWith('reconnecting', {
+      peerId: 'remote-1',
+      attempt: 1,
+      maxAttempts: 5,
+    })
+  })
+
+  it('should emit reconnected event when ICE recovers after restart', () => {
+    createPeer()
+    const pc = pcInstances[0]
+
+    // Trigger ICE failure first (sets iceRestartCount to 1)
+    pc.iceConnectionState = 'failed'
+    pc.oniceconnectionstatechange()
+
+    // ICE recovers
+    pc.iceConnectionState = 'connected'
+    pc.oniceconnectionstatechange()
+
+    expect(callbacks.emit).toHaveBeenCalledWith('reconnected', {
+      peerId: 'remote-1',
+      afterAttempts: 1,
+    })
+  })
+
+  it('should NOT emit reconnected if no ICE restart was needed (normal first connect)', () => {
+    createPeer()
+    const pc = pcInstances[0]
+
+    // Direct connection without any prior failure
+    pc.iceConnectionState = 'connected'
+    pc.oniceconnectionstatechange()
+
+    expect(callbacks.emit).not.toHaveBeenCalledWith('reconnected', expect.anything())
+  })
+
+  it('should emit correct attempt count across multiple reconnection cycles', () => {
+    createPeer()
+    const pc = pcInstances[0]
+
+    // Trigger 3 ICE failures
+    for (let i = 0; i < 3; i++) {
+      pc.iceConnectionState = 'failed'
+      pc.oniceconnectionstatechange()
+    }
+
+    // Recover — afterAttempts should be 3
+    pc.iceConnectionState = 'connected'
+    pc.oniceconnectionstatechange()
+
+    expect(callbacks.emit).toHaveBeenCalledWith('reconnected', {
+      peerId: 'remote-1',
+      afterAttempts: 3,
+    })
+
+    // Clear mock to isolate next assertions
+    ;(callbacks.emit as ReturnType<typeof vi.fn>).mockClear()
+
+    // Fail again — counter was reset, so attempt should be 1
+    pc.iceConnectionState = 'failed'
+    pc.oniceconnectionstatechange()
+
+    expect(callbacks.emit).toHaveBeenCalledWith('reconnecting', {
+      peerId: 'remote-1',
+      attempt: 1,
+      maxAttempts: 5,
+    })
+  })
+})

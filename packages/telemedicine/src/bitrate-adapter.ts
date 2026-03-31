@@ -5,6 +5,7 @@
  */
 
 import type { createTelemedicineLogger } from './debug'
+import type { StreamQualityLevel } from './quality-monitor'
 
 // Progressive bitrate constants
 export const INITIAL_VIDEO_BITRATE = 500_000   // Start conservative: 500kbps
@@ -25,6 +26,8 @@ export class BitrateAdapter {
   private bitrateRampStartMs: number | null = null
   private networkChangeCleanup: (() => void) | null = null
   private onlineOfflineCleanup: (() => void) | null = null
+  private lastBweAdjustMs = 0
+  private lastQualityDegradationMs = 0
 
   constructor(
     private readonly logger: ReturnType<typeof createTelemedicineLogger>,
@@ -200,6 +203,91 @@ export class BitrateAdapter {
     this.onlineOfflineCleanup = () => {
       window.removeEventListener('offline', onOffline)
       window.removeEventListener('online', onOnline)
+    }
+  }
+
+  /** Proactively adjust bitrate based on browser's bandwidth estimate */
+  adaptToBandwidthEstimate(peerConnections: PeerConnectionMap, availableBitrateKbps: number): void {
+    const now = Date.now()
+    if (now - this.lastBweAdjustMs < 3_000) return
+    this.lastBweAdjustMs = now
+
+    // Cap at 85% of available to leave headroom for audio + overhead
+    const targetBps = Math.round(availableBitrateKbps * 1000 * 0.85)
+    // Never go below the floor
+    const cappedBps = Math.max(targetBps, INITIAL_VIDEO_BITRATE)
+
+    for (const [peerId, peerState] of peerConnections.entries()) {
+      for (const sender of peerState.pc.getSenders()) {
+        if (sender.track?.kind !== 'video') continue
+        const params = sender.getParameters()
+        const current = params.encodings?.[0]?.maxBitrate
+        if (!current || !params.encodings?.[0]) continue
+
+        // Only reduce — don't increase beyond what the ramp would set
+        if (current > cappedBps) {
+          params.encodings[0].maxBitrate = cappedBps
+          sender.setParameters(params).catch(() => { /* ignore */ })
+          this.logInfo('BWE adaptation: capped bitrate to available bandwidth', {
+            peerId,
+            availableKbps: Math.round(availableBitrateKbps),
+            fromKbps: Math.round(current / 1000),
+            toKbps: Math.round(cappedBps / 1000),
+          })
+        }
+      }
+    }
+  }
+
+  /** Proactively reduce bitrate when quality metrics indicate trouble, BEFORE packet loss spikes */
+  handleQualityDegradation(
+    peerConnections: PeerConnectionMap,
+    level: StreamQualityLevel,
+    metrics: { packetsLostPct: number | null; roundTripTimeMs: number | null },
+  ): void {
+    if (level === 'excellent' || level === 'good' || level === 'unknown') return
+
+    const now = Date.now()
+    if (now - this.lastQualityDegradationMs < 3_000) return
+    this.lastQualityDegradationMs = now
+
+    const isFair = level === 'fair'
+    const isPoor = level === 'poor'
+
+    // Fair: preemptive reduction when early warning signs present
+    const fairWarning = isFair && (
+      (metrics.packetsLostPct !== null && metrics.packetsLostPct >= 3 && metrics.packetsLostPct <= 6) ||
+      (metrics.roundTripTimeMs !== null && metrics.roundTripTimeMs >= 220 && metrics.roundTripTimeMs <= 350)
+    )
+
+    if (!fairWarning && !isPoor) return
+
+    const factor = isPoor ? 0.4 : 0.7
+
+    for (const [peerId, peerState] of peerConnections.entries()) {
+      for (const sender of peerState.pc.getSenders()) {
+        if (sender.track?.kind !== 'video') continue
+        const params = sender.getParameters()
+        const current = params.encodings?.[0]?.maxBitrate
+        if (!current || !params.encodings?.[0]) continue
+
+        const reduced = Math.max(Math.round(current * factor), INITIAL_VIDEO_BITRATE)
+        if (reduced < current) {
+          params.encodings[0].maxBitrate = reduced
+          if (isPoor) {
+            params.encodings[0].maxFramerate = 15
+          }
+          sender.setParameters(params).catch(() => { /* ignore */ })
+          this.logWarn('Quality degradation: preemptive bitrate reduction', {
+            peerId,
+            level,
+            packetsLostPct: metrics.packetsLostPct,
+            roundTripTimeMs: metrics.roundTripTimeMs,
+            fromKbps: Math.round(current / 1000),
+            toKbps: Math.round(reduced / 1000),
+          })
+        }
+      }
     }
   }
 

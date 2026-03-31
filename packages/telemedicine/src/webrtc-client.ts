@@ -9,11 +9,11 @@ import { openSignalingSocket } from './signaling-socket'
 import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
 import { MediaManager } from './media-manager'
-import { QualityMonitor, type StreamQualitySummary } from './quality-monitor'
+import { QualityMonitor, type StreamQualitySummary, type CallQualitySummary } from './quality-monitor'
 import { BitrateAdapter } from './bitrate-adapter'
 import { TurnManager } from './turn-manager'
 import { PeerConnectionFactory, type PeerState, type ChatMessage } from './peer-connection-factory'
-export type { StreamQualityLevel, StreamQualityMetrics, StreamQualitySummary } from './quality-monitor'
+export type { StreamQualityLevel, StreamQualityMetrics, StreamQualitySummary, CallQualitySummary, CallQualityTimelineEntry, CallQualityWorstMetrics, CallQualityAverageMetrics } from './quality-monitor'
 export type { ChatMessage } from './peer-connection-factory'
 
 export interface WebRTCConfig {
@@ -48,6 +48,9 @@ export interface WebRTCEvents {
   'signaling-connected': (info: { latencyMs: number }) => void
   'ice-state-change': (info: { peerId: string; state: string }) => void
   'peer-connected': (info: { peerId: string; connectionState: string; iceConnectionState: string }) => void
+  'call-quality-summary': (summary: CallQualitySummary) => void
+  'reconnecting': (info: { peerId: string; attempt: number; maxAttempts: number }) => void
+  'reconnected': (info: { peerId: string; afterAttempts: number }) => void
 }
 
 type ServerSignalingMessage =
@@ -118,6 +121,25 @@ export class WebRTCClient {
     })
     this.qualityMonitor.onQualitySummary = (summary) => {
       this.emit('stream-quality', summary)
+
+      // BWE feedback loop: adapt bitrate based on available bandwidth
+      for (const peer of summary.peers) {
+        if (peer.availableOutgoingBitrateKbps !== null && peer.availableOutgoingBitrateKbps > 0) {
+          this.bitrateAdapter.adaptToBandwidthEstimate(this.peerConnections, peer.availableOutgoingBitrateKbps)
+          break // One BWE estimate is enough — all peers share the same uplink
+        }
+      }
+
+      // Proactive quality degradation: reduce bitrate on early warning signs
+      for (const peer of summary.peers) {
+        if (peer.level === 'fair' || peer.level === 'poor') {
+          this.bitrateAdapter.handleQualityDegradation(this.peerConnections, peer.level, {
+            packetsLostPct: peer.packetsLostPct,
+            roundTripTimeMs: peer.roundTripTimeMs,
+          })
+          break // Apply once per summary cycle
+        }
+      }
     }
 
     const emitCallback = {
@@ -148,6 +170,11 @@ export class WebRTCClient {
     // Promote to 'connected' when any peer's RTCPeerConnection actually connects
     this.on('peer-connected', () => {
       this.setConnectionState('connected')
+    })
+
+    // Track audio-only fallbacks for call summary
+    this.on('audio-only-fallback', () => {
+      this.qualityMonitor.recordAudioOnlyFallback()
     })
   }
 
@@ -388,6 +415,20 @@ export class WebRTCClient {
 
   async disconnect(): Promise<void> {
     this.logInfo('Disconnect requested')
+
+    // Emit call quality summary before cleanup destroys the data
+    const iceRestartCount = this.getTotalIceRestartCount()
+    const summary = this.qualityMonitor.getCallSummary(iceRestartCount)
+    if (summary.totalDurationMs > 0) {
+      this.emit('call-quality-summary', summary)
+      this.logInfo('Call quality summary emitted', {
+        totalDurationMs: summary.totalDurationMs,
+        qualityBreakdown: summary.qualityBreakdown,
+        iceRestartCount: summary.iceRestartCount,
+        audioOnlyPeriods: summary.audioOnlyPeriods,
+      })
+    }
+
     this.setConnectionState('disconnected')
 
     if (this.ws) {
@@ -397,6 +438,14 @@ export class WebRTCClient {
     }
 
     this.cleanup()
+  }
+
+  private getTotalIceRestartCount(): number {
+    let total = 0
+    for (const [, peerState] of this.peerConnections) {
+      total += peerState.iceRestartCount
+    }
+    return total
   }
 
   private cleanup(): void {
