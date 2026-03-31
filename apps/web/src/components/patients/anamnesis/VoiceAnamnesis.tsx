@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Mic, MicOff, Loader2, Send, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Mic, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import { sanitizeForTTS } from '@/lib/patients/utils/tts-sanitizer'
 import { logger } from '@autamedica/shared'
@@ -23,7 +23,8 @@ interface TranscriptEntry {
   timestamp: number
 }
 
-type VoiceState = 'idle' | 'connecting' | 'listening' | 'processing' | 'speaking' | 'completed'
+type VoiceState = 'idle' | 'connecting' | 'live' | 'listening' | 'processing' | 'speaking' | 'completed'
+type ConnectionMode = 'live' | 'relay'
 
 interface RelayResponse {
   text: string
@@ -36,8 +37,40 @@ interface RelayResponse {
 
 const TOTAL_BLOCKS = 8
 
+function resample(buf: Float32Array, from: number, to: number): Float32Array {
+  if (from === to) return buf
+  const ratio = from / to
+  const len = Math.round(buf.length / ratio)
+  const out = new Float32Array(len)
+  for (let i = 0; i < len; i++) out[i] = buf[Math.round(i * ratio)]
+  return out
+}
+
+function float32ToBase64Pcm16(f32: Float32Array): string {
+  const i16 = new Int16Array(f32.length)
+  for (let i = 0; i < f32.length; i++) {
+    const s = Math.max(-1, Math.min(1, f32[i]))
+    i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+  }
+  const bytes = new Uint8Array(i16.buffer)
+  let bin = ''
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return btoa(bin)
+}
+
+function base64ToFloat32(b64: string): Float32Array {
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  const i16 = new Int16Array(bytes.buffer)
+  const f32 = new Float32Array(i16.length)
+  for (let i = 0; i < i16.length; i++) f32[i] = i16[i] / 0x8000
+  return f32
+}
+
 export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnesisProps) {
   const [state, setState] = useState<VoiceState>('idle')
+  const [mode, setMode] = useState<ConnectionMode | null>(null)
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const [relayHistory, setRelayHistory] = useState<Array<{ role: 'user' | 'model'; text: string }>>([])
   const [currentInput, setCurrentInput] = useState('')
@@ -49,6 +82,9 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
+  const wsRef = useRef<WebSocket | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const mediaStreamRef = useRef<MediaStream | null>(null)
   const transcriptRef = useRef<TranscriptEntry[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
   const currentInputRef = useRef('')
@@ -56,107 +92,202 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
   useEffect(() => { transcriptRef.current = transcript }, [transcript])
   useEffect(() => { currentInputRef.current = currentInput }, [currentInput])
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [transcript])
-  useEffect(() => { return () => { recognitionRef.current?.abort(); window.speechSynthesis?.cancel() } }, [])
+  useEffect(() => { return () => cleanup() }, [])
+
+  const cleanup = useCallback(() => {
+    recognitionRef.current?.abort()
+    mediaStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop())
+    audioCtxRef.current?.close().catch(() => {})
+    wsRef.current?.close()
+    window.speechSynthesis?.cancel()
+    wsRef.current = null; audioCtxRef.current = null; mediaStreamRef.current = null
+  }, [])
 
   const addEntry = useCallback((role: 'user' | 'assistant', text: string) => {
     setTranscript(prev => [...prev, { role, text, timestamp: Date.now() }])
   }, [])
 
-  // ── TTS with sanitization + auto-listen after ──
-  const speak = useCallback((text: string, autoListenAfter = true) => {
-    if (!('speechSynthesis' in window)) {
-      setState('idle')
-      return
-    }
-    setState('speaking')
-    const sanitized = sanitizeForTTS(text)
-    const u = new SpeechSynthesisUtterance(sanitized)
-    u.lang = 'es-AR'
-    u.rate = 1.0
-    u.onend = () => {
-      if (autoListenAfter) {
-        startListening()
-      } else {
-        setState('idle')
-      }
-    }
-    u.onerror = () => setState('idle')
-    window.speechSynthesis.speak(u)
+  const playAudio = useCallback((data: Float32Array) => {
+    const ctx = audioCtxRef.current
+    if (!ctx) return
+    const buf = ctx.createBuffer(1, data.length, 24000)
+    buf.getChannelData(0).set(data)
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(ctx.destination)
+    src.start()
   }, [])
 
-  // ── STT — auto-starts after TTS finishes ──
-  const startListening = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) {
-      setState('idle')
-      return
-    }
-
-    const recognition = new SR()
-    recognition.lang = 'es-AR'
-    recognition.continuous = false // Stop automatically when patient stops speaking
-    recognition.interimResults = true
-    recognitionRef.current = recognition
-
-    let finalTranscript = ''
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (e: any) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const text = e.results[i][0].transcript
-        if (e.results[i].isFinal) {
-          finalTranscript += text
-        } else {
-          interim = text
-        }
-      }
-      setCurrentInput(finalTranscript || interim)
-      currentInputRef.current = finalTranscript || interim
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onerror = (e: any) => {
-      if (e.error !== 'aborted' && e.error !== 'no-speech') logger.warn('[Voice] STT error', e.error)
-      setState('idle')
-    }
-    recognition.onend = () => {
-      // Auto-send: patient stopped speaking → send immediately
-      const input = (finalTranscript || currentInputRef.current).trim()
-      if (input) {
-        sendMessage(input)
-      } else {
-        setState('idle')
-      }
-    }
-
-    recognition.start()
-    setState('listening')
-  }, [currentInput])
-
-  // ── Start conversation ──
+  // ══════════════════════════════════════════════
+  // START — Try Gemini Live first, fallback to relay
+  // ══════════════════════════════════════════════
   const start = useCallback(async () => {
     setState('connecting')
     setError(null)
+
+    // Step 1: Request mic BEFORE connecting WebSocket
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true },
+      })
+      mediaStreamRef.current = stream
+    } catch {
+      logger.warn('[Voice] Mic denied, falling back to relay')
+      await startRelayMode()
+      return
+    }
+
+    // Step 2: Get WS URL
+    try {
+      const tokenData = await fetchApi<{ wsUrl: string; sessionId: string }>(
+        '/api/patients/anamnesis/live-token',
+      )
+      if (!tokenData?.wsUrl) throw new Error('No wsUrl')
+
+      // Step 3: Connect WebSocket
+      const ws = new WebSocket(tokenData.wsUrl)
+      wsRef.current = ws
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => { ws.close(); reject(new Error('timeout')) }, 8000)
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data)
+            if (msg.type === 'connected') { clearTimeout(timeout); resolve(); return }
+            if (msg.type === 'error') { clearTimeout(timeout); reject(new Error(msg.data || 'WS error')); return }
+          } catch { /* ignore parse errors during setup */ }
+        }
+        ws.onerror = () => { clearTimeout(timeout); reject(new Error('WS error')) }
+      })
+
+      // Step 4: WS connected — setup audio pipeline
+      const ctx = new AudioContext({ sampleRate: 16000 })
+      audioCtxRef.current = ctx
+      const source = ctx.createMediaStreamSource(stream)
+      const processor = ctx.createScriptProcessor(4096, 1, 1)
+
+      processor.onaudioprocess = (e) => {
+        const resampled = resample(e.inputBuffer.getChannelData(0), ctx.sampleRate, 16000)
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            realtimeInput: {
+              mediaChunks: [{ data: float32ToBase64Pcm16(resampled), mimeType: 'audio/pcm;rate=16000' }],
+            },
+          }))
+        }
+      }
+      source.connect(processor)
+      processor.connect(ctx.destination)
+
+      // Step 5: Handle Gemini Live responses
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'session-end') { finish(); return }
+
+          if (msg.serverContent?.modelTurn?.parts) {
+            for (const part of msg.serverContent.modelTurn.parts) {
+              if (part.inlineData?.data) playAudio(base64ToFloat32(part.inlineData.data))
+              if (part.text) addEntry('assistant', part.text)
+            }
+          }
+          if (msg.serverContent?.inputTranscription) {
+            addEntry('user', msg.serverContent.inputTranscription)
+          }
+        } catch { /* ignore */ }
+      }
+      ws.onclose = () => { if (state !== 'completed') setState('idle') }
+
+      setMode('live')
+      setStarted(true)
+      setState('live')
+      logger.info('[Voice] Gemini Live connected — real-time audio active')
+    } catch (err) {
+      logger.warn('[Voice] Live mode failed, falling back to relay', err)
+      // Stop mic tracks — relay will use STT instead
+      stream.getTracks().forEach(t => t.stop())
+      mediaStreamRef.current = null
+      wsRef.current = null
+      await startRelayMode()
+    }
+  }, [addEntry, playAudio])
+
+  // ══════════════════════════════════════════════
+  // RELAY MODE (fallback)
+  // ══════════════════════════════════════════════
+  const startRelayMode = useCallback(async () => {
+    setState('processing')
     try {
       const result = await fetchApi<RelayResponse>(
         '/api/patients/anamnesis/live-relay',
         { method: 'POST', body: { text: '', patientContext: true } },
       )
       if (!result?.text) throw new Error('No response')
+      setMode('relay')
       setStarted(true)
       setModelTurns(1)
       addEntry('assistant', result.text)
-      speak(result.text, true) // auto-listen after greeting
+      speakTTS(result.text, true)
     } catch (err) {
-      logger.error('[Voice] Start failed', err)
+      logger.error('[Voice] Relay start failed', err)
       setError('No se pudo conectar con el asistente')
       setState('idle')
     }
-  }, [addEntry, speak])
+  }, [addEntry])
 
-  // ── Send message to relay ──
-  const sendMessage = useCallback(async (text: string) => {
+  // ── TTS (relay mode only) ──
+  const speakTTS = useCallback((text: string, autoListen = true) => {
+    if (!('speechSynthesis' in window)) { setState('idle'); return }
+    setState('speaking')
+    const u = new SpeechSynthesisUtterance(sanitizeForTTS(text))
+    u.lang = 'es-AR'
+    u.rate = 1.0
+    u.onend = () => { if (autoListen) startSTT(); else setState('idle') }
+    u.onerror = () => setState('idle')
+    window.speechSynthesis.speak(u)
+  }, [])
+
+  // ── STT (relay mode only) — auto-sends when patient stops ──
+  const startSTT = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { setState('idle'); return }
+
+    const r = new SR()
+    r.lang = 'es-AR'
+    r.continuous = false
+    r.interimResults = true
+    recognitionRef.current = r
+
+    let finalText = ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    r.onresult = (e: any) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript
+        else interim = e.results[i][0].transcript
+      }
+      setCurrentInput(finalText || interim)
+      currentInputRef.current = finalText || interim
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    r.onerror = (e: any) => {
+      if (e.error !== 'aborted' && e.error !== 'no-speech') logger.warn('[Voice] STT error', e.error)
+      setState('idle')
+    }
+    r.onend = () => {
+      const input = (finalText || currentInputRef.current).trim()
+      if (input) sendRelayMessage(input)
+      else setState('idle')
+    }
+    r.start()
+    setState('listening')
+  }, [])
+
+  // ── Send to relay ──
+  const sendRelayMessage = useCallback(async (text: string) => {
     if (!text.trim()) return
     recognitionRef.current?.stop()
     recognitionRef.current = null
@@ -178,43 +309,22 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
       addEntry('assistant', result.text)
 
       if (result.isComplete) {
-        // Auto-finish: show summary, persist data
         setSummaryText(result.text)
         if (result.extractedFields) setExtractedFields(result.extractedFields)
-        speak(result.text, false) // don't auto-listen after final message
+        speakTTS(result.text, false)
         setState('completed')
         return
       }
-
-      speak(result.text, true) // auto-listen after AI speaks
-    } catch (err) {
-      logger.error('[Voice] Send failed', err)
+      speakTTS(result.text, true)
+    } catch {
       setError('No se pudo enviar. Intentá de nuevo.')
       setState('idle')
     }
-  }, [relayHistory, speak, addEntry])
+  }, [relayHistory, speakTTS, addEntry])
 
-  // ── Manual send (text input) ──
-  const handleManualSend = useCallback(() => {
-    if (currentInput.trim()) {
-      recognitionRef.current?.stop()
-      recognitionRef.current = null
-      sendMessage(currentInput)
-    }
-  }, [currentInput, sendMessage])
-
-  // ── Stop listening and send ──
-  const stopAndSend = useCallback(() => {
-    recognitionRef.current?.stop()
-    recognitionRef.current = null
-    if (currentInput.trim()) sendMessage(currentInput)
-    else setState('idle')
-  }, [currentInput, sendMessage])
-
-  // ── Finish (called from completed state or early exit) ──
+  // ── Finish ──
   const finish = useCallback(() => {
-    recognitionRef.current?.abort()
-    window.speechSynthesis?.cancel()
+    cleanup()
     const entries = transcriptRef.current
     onDataExtracted({
       chiefComplaint: entries.find(e => e.role === 'user')?.text ?? '',
@@ -222,19 +332,14 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
       detectedSections: [],
       extractedFields: extractedFields ?? undefined,
     })
-  }, [onDataExtracted, extractedFields])
+  }, [cleanup, onDataExtracted, extractedFields])
 
-  // ── Early exit ──
-  const earlyExit = useCallback(() => {
-    recognitionRef.current?.abort()
-    window.speechSynthesis?.cancel()
-    onSwitchToText()
-  }, [onSwitchToText])
+  const earlyExit = useCallback(() => { cleanup(); onSwitchToText() }, [cleanup, onSwitchToText])
 
-  const isListening = state === 'listening'
+  const isLive = mode === 'live'
   const progress = Math.min(Math.round((modelTurns / TOTAL_BLOCKS) * 100), 100)
 
-  // ══════════ COMPLETED STATE ══════════
+  // ══════════ COMPLETED ══════════
   if (state === 'completed') {
     return (
       <div className="space-y-6">
@@ -243,18 +348,11 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
             <CheckCircle2 className="h-8 w-8 text-sky-600" />
           </div>
           <h3 className="text-lg font-bold text-stone-900 mb-2">Anamnesis completada</h3>
-          <p className="text-sm text-stone-500 mb-4">Tus respuestas fueron registradas correctamente.</p>
-
+          <p className="text-sm text-stone-500 mb-4">Tus respuestas fueron registradas.</p>
           {summaryText && (
-            <div className="rounded-xl border border-stone-200 bg-white p-4 text-left text-sm text-stone-700 mb-4">
-              {summaryText}
-            </div>
+            <div className="rounded-xl border border-stone-200 bg-white p-4 text-left text-sm text-stone-700 mb-4">{summaryText}</div>
           )}
-
-          <button
-            onClick={finish}
-            className="w-full rounded-xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white hover:bg-sky-700"
-          >
+          <button onClick={finish} className="w-full rounded-xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white hover:bg-sky-700">
             Guardar y volver
           </button>
         </div>
@@ -271,14 +369,8 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
             <Mic className="h-8 w-8 text-sky-600" />
           </div>
           <h3 className="text-lg font-bold text-stone-900 mb-2">Anamnesis por voz</h3>
-          <p className="text-sm text-stone-500 mb-5">
-            El asistente te va a hacer ~8 preguntas sobre tu salud. Respondé naturalmente, como si hablaras con tu médico.
-          </p>
-          <button
-            onClick={start}
-            disabled={state === 'connecting'}
-            className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50"
-          >
+          <p className="text-sm text-stone-500 mb-5">Hablá naturalmente. El asistente te hace ~8 preguntas y cierra solo.</p>
+          <button onClick={start} disabled={state === 'connecting'} className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50">
             {state === 'connecting' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
             Iniciar
           </button>
@@ -291,10 +383,46 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
     )
   }
 
-  // ══════════ ACTIVE CONVERSATION ══════════
+  // ══════════ LIVE MODE (Gemini 3.1 Flash Live) ══════════
+  if (isLive) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-center gap-2 text-xs text-sky-600">
+          <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
+          Gemini Live — audio en tiempo real
+        </div>
+
+        {/* Transcript */}
+        <div className="space-y-3 max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-4">
+          {transcript.map((entry, i) => (
+            <div key={i} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                entry.role === 'user' ? 'bg-sky-500 text-white' : 'bg-stone-100 text-stone-800'
+              }`}>{entry.text}</div>
+            </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Live indicator */}
+        <div className="flex flex-col items-center gap-3 py-4">
+          <div className="h-20 w-20 rounded-full bg-sky-500 flex items-center justify-center animate-pulse shadow-lg shadow-sky-200">
+            <Mic className="h-10 w-10 text-white" />
+          </div>
+          <p className="text-sm text-stone-500">Hablá libremente — Gemini te escucha en tiempo real</p>
+        </div>
+
+        <div className="flex justify-center">
+          <button onClick={earlyExit} className="text-xs text-stone-400 hover:text-stone-600">Salir</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ══════════ RELAY MODE (fallback) ══════════
   return (
     <div className="space-y-4">
-      {/* Progress bar */}
+      {/* Progress */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs text-stone-400">
           <span>Pregunta {modelTurns} de ~{TOTAL_BLOCKS}</span>
@@ -311,9 +439,7 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
           <div key={i} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
               entry.role === 'user' ? 'bg-sky-500 text-white' : 'bg-stone-100 text-stone-800'
-            }`}>
-              {entry.text}
-            </div>
+            }`}>{entry.text}</div>
           </div>
         ))}
         {state === 'processing' && (
@@ -324,55 +450,31 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
         <div ref={chatEndRef} />
       </div>
 
-      {/* Live input preview */}
       {currentInput && (
         <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
           <p className="text-sm text-sky-700 italic">{currentInput}</p>
         </div>
       )}
 
-      {/* Controls */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={isListening ? stopAndSend : startListening}
-          disabled={state === 'processing' || state === 'speaking'}
-          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all ${
-            isListening ? 'bg-red-500 shadow-lg shadow-red-200 animate-pulse' : 'bg-sky-500 shadow-lg shadow-sky-200 hover:bg-sky-600'
-          } disabled:opacity-40 disabled:animate-none`}
-        >
-          {isListening ? <MicOff className="h-6 w-6 text-white" />
-            : state === 'processing' ? <Loader2 className="h-6 w-6 text-white animate-spin" />
-            : <Mic className="h-6 w-6 text-white" />}
-        </button>
-        <input
-          type="text"
-          value={currentInput}
-          onChange={e => setCurrentInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleManualSend() }}
-          placeholder={isListening ? 'Escuchando...' : state === 'speaking' ? 'Respondiendo...' : 'O escribí tu respuesta'}
-          disabled={state === 'processing' || state === 'speaking'}
-          className="flex-1 rounded-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm focus:border-sky-400 focus:outline-none disabled:opacity-50"
-        />
-        <button
-          onClick={handleManualSend}
-          disabled={!currentInput.trim() || state === 'processing' || state === 'speaking'}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-600 text-white disabled:opacity-30"
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Status */}
-      <div className="flex items-center justify-between">
+      {/* Status indicator */}
+      <div className="flex flex-col items-center gap-2 py-2">
+        <div className={`h-14 w-14 rounded-full flex items-center justify-center transition-all ${
+          state === 'listening' ? 'bg-red-500 animate-pulse shadow-lg shadow-red-200'
+          : state === 'speaking' ? 'bg-sky-400 animate-pulse'
+          : 'bg-stone-200'
+        }`}>
+          <Mic className="h-7 w-7 text-white" />
+        </div>
         <p className="text-xs text-stone-400">
           {state === 'listening' && 'Escuchando...'}
           {state === 'processing' && 'Procesando...'}
           {state === 'speaking' && 'Respondiendo...'}
-          {state === 'idle' && 'Tocá el micrófono o escribí'}
+          {state === 'idle' && 'Esperando...'}
         </p>
-        <button onClick={earlyExit} className="text-xs text-stone-400 hover:text-stone-600">
-          Salir
-        </button>
+      </div>
+
+      <div className="flex justify-center">
+        <button onClick={earlyExit} className="text-xs text-stone-400 hover:text-stone-600">Salir</button>
       </div>
 
       {error && <p className="text-xs text-red-500 text-center">{error}</p>}
