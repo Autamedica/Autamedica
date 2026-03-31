@@ -74,9 +74,9 @@ export default function AnamnesisPage() {
   const [showVoiceChat, setShowVoiceChat] = useState(false);
   const [anamnesisMode, setAnamnesisMode] = useState<AnamnesisMode>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('autamedica:anamnesis-mode') as AnamnesisMode) || 'conversational';
+      return (localStorage.getItem('autamedica:anamnesis-mode') as AnamnesisMode) || 'wizard';
     }
-    return 'conversational';
+    return 'wizard';
   });
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<{ coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null>(null);
