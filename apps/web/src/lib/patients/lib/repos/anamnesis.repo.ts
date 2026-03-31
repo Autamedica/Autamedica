@@ -138,6 +138,7 @@ export const anamnesisRepo = {
           data,
           completed,
           completed_at: completed ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString(),
         } as never,
         { onConflict: 'anamnesis_id,section' },
       )

@@ -23,17 +23,15 @@ export {
 export {
   isJsonObject,
   parseStructuredExtractionPayload,
-  extractOpenAiStructuredOutput,
   extractGeminiStructuredOutput,
 } from './extraction-parser'
 export {
   deduplicateBodySelections,
   extractBodySelectionsFromSections,
 } from './body-selection'
-import { extractOpenAiStructuredOutput, extractGeminiStructuredOutput } from './extraction-parser'
+import { extractGeminiStructuredOutput } from './extraction-parser'
 import { extractBodySelectionsFromSections } from './body-selection'
 
-const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses'
 const GEMINI_GENERATE_CONTENT_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
 export const ANAMNESIS_EXTRACTION_PROMPT_VERSION = 'argente_interrogator_v5'
 
@@ -506,66 +504,6 @@ export function buildAnamnesisExtractionRequest(input: {
   }
 }
 
-async function executeOpenAiExtraction(
-  target: ExtractionTarget,
-  request: AnamnesisExtractionRequest,
-): Promise<{
-  providerName: ExtractionProvider
-  modelName: string
-  result: AnamnesisExtractionResult
-  rawResponse: Json
-}> {
-  const apiKey = resolveServerEnv('OPENAI_API_KEY')
-  if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
-  const response = await fetch(OPENAI_RESPONSES_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: target.modelName,
-      temperature: 0,
-      store: false,
-      input: [
-        {
-          role: 'system',
-          content: buildAnamnesisExtractionSystemPrompt(),
-        },
-        {
-          role: 'user',
-          content: JSON.stringify(request),
-        },
-      ],
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'anamnesis_extraction',
-          strict: true,
-          schema: getAnamnesisExtractionResponseSchema(),
-        },
-      },
-    }),
-  })
-
-  const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>
-  if (!response.ok) {
-    logger.error('[executeOpenAiExtraction] OpenAI request failed', payload)
-    throw new Error(
-      typeof payload.error === 'object' && payload.error && 'message' in payload.error
-        ? String((payload.error as { message?: string }).message)
-        : 'No fue posible obtener la extraccion de anamnesis',
-    )
-  }
-
-  return {
-    providerName: target.providerName,
-    modelName: target.modelName,
-    result: extractOpenAiStructuredOutput(payload),
-    rawResponse: payload as Json,
-  }
-}
-
 async function executeGeminiExtraction(
   target: ExtractionTarget,
   request: AnamnesisExtractionRequest,
@@ -610,9 +548,8 @@ async function executeGeminiExtraction(
           seed: 1,
           maxOutputTokens: 65536,
           responseMimeType: 'application/json',
-          // Gemini 2.5 Pro: limit internal "thinking" tokens so output budget
-          // is reserved for the actual JSON response, not consumed by reasoning.
-          // Keep low — structured JSON extraction doesn't need deep reasoning.
+          // Limit internal "thinking" tokens so output budget is reserved
+          // for the actual JSON response, not consumed by reasoning.
           thinkingConfig: { thinkingBudget: 1024 },
         },
       }),
@@ -644,7 +581,7 @@ async function executeGeminiExtraction(
 }
 
 /** Gemini fallback model when primary is overloaded (429/503) */
-const GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash'
+const GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash-preview-05-20'
 
 /** Retry with exponential backoff + model fallback */
 async function executeGeminiWithRetry(
@@ -697,9 +634,5 @@ export async function executeAnamnesisExtraction(
     throw new Error('No hay un proveedor IA configurado para la extraccion de anamnesis')
   }
 
-  if (target.providerName === 'gemini') {
-    return executeGeminiWithRetry(target, request)
-  }
-
-  return executeOpenAiExtraction(target, request)
+  return executeGeminiWithRetry(target, request)
 }

@@ -44,7 +44,7 @@ export function ConversationalAnamnesis({
   const [phase, setPhase] = useState<Phase>('chief_complaint')
   const [chiefComplaint, setChiefComplaint] = useState('')
   const [aiQuestionIndex, setAiQuestionIndex] = useState(0)
-  const [_aiAnswers, setAiAnswers] = useState<Record<string, string>>({})
+  // AI answers are persisted to DB via updateSection — no local tracking needed
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
 
   const {
@@ -171,8 +171,6 @@ export function ConversationalAnamnesis({
   const handleAiAnswer = useCallback(async (answer: string) => {
     const q = aiQuestions[aiQuestionIndex]
     if (!q) return
-
-    setAiAnswers(prev => ({ ...prev, [q.id]: answer }))
 
     // Save AI answers into the target section
     if (q.targetSection) {

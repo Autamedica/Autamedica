@@ -2,7 +2,8 @@ import { AnamnesisExtractionResultSchema } from '@/lib/patients/lib/zod/anamnesi
 import type { AnamnesisExtractionResult } from '@/lib/patients/types/anamnesis-extraction'
 import { logger } from '@autamedica/shared'
 import type { Json } from '@autamedica/types'
-import type { ExtractionProvider } from './ai-provider'
+/** Provider label for logging — accepts any string for backwards compat with stored data */
+type ParserProviderLabel = string
 
 export function isJsonObject(value: Json): value is Record<string, Json> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -10,7 +11,7 @@ export function isJsonObject(value: Json): value is Record<string, Json> {
 
 export function parseStructuredExtractionPayload(
   rawPayload: string,
-  providerName: ExtractionProvider,
+  providerName: ParserProviderLabel,
 ): AnamnesisExtractionResult {
   let parsedPayload: unknown
 

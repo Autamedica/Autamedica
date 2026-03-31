@@ -102,7 +102,7 @@ describe('parseStructuredExtractionPayload', () => {
     // Missing required fields — Zod will fail and function MUST throw
     const payload = JSON.stringify({ unexpected: 'data' })
     expect(() =>
-      parseStructuredExtractionPayload(payload, 'openai'),
+      parseStructuredExtractionPayload(payload, 'gemini'),
     ).toThrow(/Validación de datos fallida/)
   })
 

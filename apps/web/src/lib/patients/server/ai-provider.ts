@@ -1,23 +1,13 @@
 import { getServerEnvOrDefault } from '@autamedica/shared'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
-const DEFAULT_OPENAI_MODEL = 'gpt-5.4-2026-03-05'
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro'
+const DEFAULT_MODEL = 'gemini-3.1-flash-preview'
 
-export type ExtractionProvider = 'openai' | 'gemini'
-type ExtractionProviderPreference = ExtractionProvider | 'auto'
+export type ExtractionProvider = 'gemini'
 
 export interface ExtractionTarget {
   providerName: ExtractionProvider
   modelName: string
-}
-
-export function normalizeProviderPreference(value: string | null | undefined): ExtractionProviderPreference {
-  if (value === 'openai' || value === 'gemini') {
-    return value
-  }
-
-  return 'auto'
 }
 
 /**
@@ -43,60 +33,19 @@ export function resolveServerEnv(name: string): string | undefined {
   return undefined
 }
 
-export function hasOpenAiKey(): boolean {
-  return Boolean(resolveServerEnv('OPENAI_API_KEY'))
-}
-
 export function hasGeminiKey(): boolean {
   return Boolean(resolveServerEnv('GEMINI_API_KEY'))
 }
 
 export function resolveExtractionTarget(): ExtractionTarget | null {
-  const preferredProvider = normalizeProviderPreference(
-    resolveServerEnv('ANAMNESIS_AI_PROVIDER') ?? resolveServerEnv('PATIENT_AI_PROVIDER'),
-  )
+  if (!hasGeminiKey()) return null
 
-  if (preferredProvider === 'openai') {
-    return hasOpenAiKey()
-      ? {
-          providerName: 'openai',
-          modelName:
-            resolveServerEnv('ANAMNESIS_AI_OPENAI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-            DEFAULT_OPENAI_MODEL,
-        }
-      : null
+  return {
+    providerName: 'gemini',
+    modelName:
+      resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
+      DEFAULT_MODEL,
   }
-
-  if (preferredProvider === 'gemini') {
-    return hasGeminiKey()
-      ? {
-          providerName: 'gemini',
-          modelName:
-            resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-            DEFAULT_GEMINI_MODEL,
-        }
-      : null
-  }
-
-  if (hasOpenAiKey()) {
-    return {
-      providerName: 'openai',
-      modelName:
-        resolveServerEnv('ANAMNESIS_AI_OPENAI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-        DEFAULT_OPENAI_MODEL,
-    }
-  }
-
-  if (hasGeminiKey()) {
-    return {
-      providerName: 'gemini',
-      modelName:
-        resolveServerEnv('ANAMNESIS_AI_GEMINI_MODEL') ?? resolveServerEnv('ANAMNESIS_AI_MODEL') ??
-        DEFAULT_GEMINI_MODEL,
-    }
-  }
-
-  return null
 }
 
 export function isAnamnesisExtractionConfigured(): boolean {
@@ -108,5 +57,5 @@ export function getAnamnesisExtractionProviderName(): ExtractionProvider | null 
 }
 
 export function getAnamnesisExtractionModelName(): string {
-  return resolveExtractionTarget()?.modelName ?? DEFAULT_OPENAI_MODEL
+  return resolveExtractionTarget()?.modelName ?? DEFAULT_MODEL
 }
