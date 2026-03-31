@@ -2,6 +2,7 @@ import { getServerEnvOrDefault } from '@autamedica/shared'
 import { getRuntimeEnvValue } from '@/lib/runtime-env'
 
 const DEFAULT_MODEL = 'gemini-3-flash-preview'
+const QUESTIONS_MODEL = 'gemini-3.1-flash-lite-preview'
 
 export type ExtractionProvider = 'gemini'
 
@@ -58,4 +59,17 @@ export function getAnamnesisExtractionProviderName(): ExtractionProvider | null 
 
 export function getAnamnesisExtractionModelName(): string {
   return resolveExtractionTarget()?.modelName ?? DEFAULT_MODEL
+}
+
+/** Lightweight model for medical validation questions (checkpoints, ai-question) */
+export function resolveQuestionsTarget(): ExtractionTarget | null {
+  if (!hasGeminiKey()) return null
+  return {
+    providerName: 'gemini',
+    modelName: resolveServerEnv('ANAMNESIS_AI_QUESTIONS_MODEL') ?? QUESTIONS_MODEL,
+  }
+}
+
+export function getQuestionsModelName(): string {
+  return resolveQuestionsTarget()?.modelName ?? QUESTIONS_MODEL
 }

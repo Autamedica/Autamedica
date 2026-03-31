@@ -9,7 +9,7 @@
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-import { resolveServerEnv } from '@/lib/patients/server/ai-provider'
+import { resolveServerEnv, getQuestionsModelName } from '@/lib/patients/server/ai-provider'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 
@@ -161,7 +161,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const timeout = setTimeout(() => controller.abort(), 25_000)
 
     const resp = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent',
+      `https://generativelanguage.googleapis.com/v1beta/models/${getQuestionsModelName()}:generateContent`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
