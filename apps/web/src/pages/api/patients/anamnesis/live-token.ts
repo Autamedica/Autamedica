@@ -49,13 +49,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
   // Return WebSocket URL to the signaling worker's Gemini Live proxy
   // API key is stored as a secret in the worker, never exposed to the browser
   const sessionId = crypto.randomUUID()
-  const signalingHost = import.meta.env.PUBLIC_SIGNALING_URL
+  // Extract just the origin (host) from PUBLIC_SIGNALING_URL which may include /signaling path
+  const rawUrl = import.meta.env.PUBLIC_SIGNALING_URL
     ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
+  const signalingOrigin = new URL(rawUrl).origin
 
   return json({
     success: true,
     data: {
-      wsUrl: `${signalingHost.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
+      wsUrl: `${signalingOrigin.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
       sessionId,
       model: 'gemini-3.1-flash-live-preview',
     },
