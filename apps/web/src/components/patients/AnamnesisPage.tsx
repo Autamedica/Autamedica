@@ -482,12 +482,43 @@ export default function AnamnesisPage() {
       return (
         <div className="min-h-screen bg-gradient-to-br from-stone-50 to-sky-50 p-4">
           <div className="mx-auto max-w-lg pt-8">
-            <h2 className="mb-6 text-center text-xl font-bold text-stone-900">
-              Conversación con IA
-            </h2>
             <VoiceAnamnesis
-              onDataExtracted={(_data) => {
-                // Save voice conversation data then go back
+              onDataExtracted={async (data) => {
+                // Persist extracted fields to anamnesis sections
+                if (data.extractedFields) {
+                  const fieldMap: Record<string, { section: string; field: string }> = {
+                    motivo_principal: { section: 'motivo_consulta', field: 'sintoma_principal' },
+                    cuando_empezo: { section: 'motivo_consulta', field: 'cuando_empezo' },
+                    intensidad: { section: 'motivo_consulta', field: 'intensidad_sintoma' },
+                    medicamentos: { section: 'medicamentos', field: 'lista_medicamentos' },
+                    alergias: { section: 'alergias', field: 'lista_alergias' },
+                    enfermedades_previas: { section: 'enfermedades_previas', field: 'enfermedades_cronicas' },
+                  };
+
+                  // Group by section
+                  const sectionUpdates: Record<string, Record<string, string>> = {};
+                  for (const [key, value] of Object.entries(data.extractedFields)) {
+                    const mapping = fieldMap[key];
+                    if (mapping && value) {
+                      if (!sectionUpdates[mapping.section]) sectionUpdates[mapping.section] = {};
+                      sectionUpdates[mapping.section][mapping.field] = value;
+                    }
+                  }
+
+                  // Save each section
+                  for (const [section, fields] of Object.entries(sectionUpdates)) {
+                    await updateSection(section as AnamnesisSection, fields).catch(() => {});
+                  }
+
+                  // Create version
+                  await fetch('/api/patients/anamnesis/versions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ notes: 'Actualización por conversación de voz con IA' }),
+                  }).catch(() => {});
+                }
+
                 setShowVoiceChat(false);
                 window.location.reload();
               }}
