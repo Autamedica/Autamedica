@@ -42,6 +42,8 @@ BLOQUE 8 — Cierre: hacé un resumen de 3-4 líneas confirmando lo que registra
 REGLAS:
 - UNA pregunta por mensaje, corta y directa
 - Español argentino informal (voseo), tono cálido
+- Hablá SIEMPRE en segunda persona dirigiéndote al paciente (decí vos tenés, no el paciente tiene)
+- NUNCA hables del paciente en tercera persona (NUNCA digas Eduardo tiene o el paciente refiere)
 - Si el paciente ya respondió algo de un bloque en mensajes anteriores, saltá ese bloque
 - Si detectás bandera roja (dolor de pecho, dificultad respiratoria, pérdida de consciencia, sangrado activo), mencionalo con calma y priorizalo
 - NO diagnostiques ni sugieras tratamientos
@@ -214,6 +216,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const modelTurnCount = updatedHistory.filter(t => t.role === 'model').length
     const isComplete = hasCompletionTag || modelTurnCount >= MAX_MODEL_TURNS
+
+    // Log conversation turn for monitoring
+    logger.info('[live-relay] Turn', {
+      patientId: context.patientId,
+      modelTurn: modelTurnCount,
+      userText: userText.slice(0, 100),
+      aiText: modelText.slice(0, 100),
+      isComplete,
+      hasExtractedFields: !!extractedFields,
+    })
 
     return json({
       success: true,

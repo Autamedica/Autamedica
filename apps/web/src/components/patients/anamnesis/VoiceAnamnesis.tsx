@@ -51,8 +51,10 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
   const recognitionRef = useRef<any>(null)
   const transcriptRef = useRef<TranscriptEntry[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const currentInputRef = useRef('')
 
   useEffect(() => { transcriptRef.current = transcript }, [transcript])
+  useEffect(() => { currentInputRef.current = currentInput }, [currentInput])
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [transcript])
   useEffect(() => { return () => { recognitionRef.current?.abort(); window.speechSynthesis?.cancel() } }, [])
 
@@ -93,15 +95,25 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
 
     const recognition = new SR()
     recognition.lang = 'es-AR'
-    recognition.continuous = true
+    recognition.continuous = false // Stop automatically when patient stops speaking
     recognition.interimResults = true
     recognitionRef.current = recognition
 
+    let finalTranscript = ''
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (e: any) => {
-      let text = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) text += e.results[i][0].transcript
-      setCurrentInput(text)
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const text = e.results[i][0].transcript
+        if (e.results[i].isFinal) {
+          finalTranscript += text
+        } else {
+          interim = text
+        }
+      }
+      setCurrentInput(finalTranscript || interim)
+      currentInputRef.current = finalTranscript || interim
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (e: any) => {
@@ -109,8 +121,8 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
       setState('idle')
     }
     recognition.onend = () => {
-      // Auto-send if there's text and we were listening
-      const input = currentInput.trim()
+      // Auto-send: patient stopped speaking → send immediately
+      const input = (finalTranscript || currentInputRef.current).trim()
       if (input) {
         sendMessage(input)
       } else {
