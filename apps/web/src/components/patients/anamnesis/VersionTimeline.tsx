@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
+import { logger } from '@autamedica/shared';
 
 const RELEVANCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   routine: { label: 'Rutina', color: 'text-stone-600', bg: 'bg-stone-100' },
@@ -26,17 +27,26 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/api/patients/anamnesis/versions', { credentials: 'include' })
+    const controller = new AbortController();
+
+    fetch('/api/patients/anamnesis/versions', {
+      credentials: 'include',
+      signal: controller.signal,
+    })
       .then(r => r.json())
       .then((resp: { versions?: VersionEntry[]; data?: { versions?: VersionEntry[] } }) => {
-        // API returns { versions: [...] } via jsonOk(), NOT wrapped in data
-        setVersions(resp.versions ?? resp.data?.versions ?? []);
+        if (controller.signal.aborted) return;
+        const list = resp.versions ?? resp.data?.versions ?? [];
+        setVersions(Array.isArray(list) ? list : []);
         setLoaded(true);
       })
       .catch((err) => {
-        console.error('[VersionTimeline] Failed to load versions', err);
+        if (controller.signal.aborted) return;
+        logger.warn('[VersionTimeline] Failed to load versions', err);
         setLoaded(true);
       });
+
+    return () => controller.abort();
   }, []);
 
   if (!loaded || versions.length === 0) return null;

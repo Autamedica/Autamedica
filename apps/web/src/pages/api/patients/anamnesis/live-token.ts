@@ -23,7 +23,20 @@ function json(data: unknown, status = 200) {
 
 /** In-memory rate limit: 3 live sessions per patient per hour */
 const LIVE_LIMIT = 3
+const RATE_WINDOW_MS = 3_600_000
 const liveRateMap = new Map<string, { count: number; resetAt: number }>()
+
+/** Evict expired entries periodically to prevent unbounded growth */
+function evictExpiredEntries() {
+  const now = Date.now()
+  for (const [key, entry] of liveRateMap) {
+    if (now >= entry.resetAt) liveRateMap.delete(key)
+  }
+}
+// Run eviction every 10 minutes
+if (typeof globalThis !== 'undefined') {
+  setInterval(evictExpiredEntries, 600_000).unref?.()
+}
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
@@ -35,7 +48,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: 'rate_limit_exceeded' }, 429)
   }
   if (!entry || now >= (entry?.resetAt ?? 0)) {
-    liveRateMap.set(context.patientId, { count: 1, resetAt: now + 3_600_000 })
+    liveRateMap.set(context.patientId, { count: 1, resetAt: now + RATE_WINDOW_MS })
   } else {
     entry.count++
   }

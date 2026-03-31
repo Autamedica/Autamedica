@@ -172,6 +172,7 @@ export const anamnesisVersionService = {
 
     // 3. Get previous version for diff
     const prevVersion = await anamnesisVersionsRepo.getLatest(supabase, anamnesisId)
+      .catch(() => null)
     const nextVersionNumber = prevVersion ? prevVersion.version_number + 1 : 1
 
     // 4. Compute diff
