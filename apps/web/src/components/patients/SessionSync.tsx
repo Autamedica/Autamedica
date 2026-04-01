@@ -10,5 +10,5 @@ export function SessionSync() {
 
   if (!patient?.id) return null;
 
-  return <IncomingCallHandler patientId={patient.id} patientName={profile?.first_name || 'Paciente'} />;
+  return <IncomingCallHandler patientId={patient.id} patientName={profile?.firstName || 'Paciente'} />;
 }

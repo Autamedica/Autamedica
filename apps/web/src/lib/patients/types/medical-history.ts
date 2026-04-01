@@ -71,3 +71,18 @@ export interface MedicalHistorySummary {
     chronic_conditions: string[];
     current_medications: string[];
 }
+
+export interface PatientPrescription {
+    id: string;
+    medication_name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+    instructions: string;
+    notes: string | null;
+    status: string;
+    prescribed_date: string;
+    start_date: string;
+    end_date: string | null;
+    side_effects_warning: string | null;
+}

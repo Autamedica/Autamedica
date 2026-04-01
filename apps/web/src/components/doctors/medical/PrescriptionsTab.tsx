@@ -6,7 +6,8 @@
 
 import { formatDate } from '@/lib/date-utils'
 import { usePrescriptions } from '@/hooks/doctors/usePrescriptions'
-import type { PrescriptionStatus, UUID } from '@/types/medical'
+import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal'
+import type { Prescription, PrescriptionStatus, UUID } from '@/types/medical'
 import {
     AlertTriangle,
     Calendar,
@@ -58,8 +59,10 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<PrescriptionStatus | ''>('')
   const [showActiveOnly, setShowActiveOnly] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [editingPrescription, setEditingPrescription] = useState<Prescription | null>(null)
 
-  const { prescriptions, loading, error, addPrescription: _addPrescription, updatePrescription: _updatePrescription } = usePrescriptions(patientId, {
+  const { prescriptions, loading, error, addPrescription, updatePrescription } = usePrescriptions(patientId, {
     filters: {
       medication_name: searchTerm || undefined,
       status: selectedStatus || undefined,
@@ -131,7 +134,10 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
             </p>
           </div>
 
-          <button className="flex items-center gap-2 rounded-lg border border-am-doctor-600 bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white hover:bg-am-doctor-700 transition">
+          <button
+            onClick={() => { setEditingPrescription(null); setShowModal(true) }}
+            className="flex items-center gap-2 rounded-lg border border-am-doctor-600 bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white hover:bg-am-doctor-700 transition"
+          >
             <Plus className="h-4 w-4" />
             Nueva Prescripción
           </button>
@@ -188,7 +194,10 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                   : 'Este paciente aún no tiene prescripciones'
                 }
               </p>
-              <button className="flex items-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white hover:bg-am-doctor-700 transition mx-auto">
+              <button
+                onClick={() => { setEditingPrescription(null); setShowModal(true) }}
+                className="flex items-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white hover:bg-am-doctor-700 transition mx-auto"
+              >
                 <Plus className="h-4 w-4" />
                 Crear Primera Prescripción
               </button>
@@ -220,10 +229,18 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <button className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition">
+                      <button
+                        onClick={() => { setEditingPrescription(prescription); setShowModal(true) }}
+                        title="Editar"
+                        className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition"
+                      >
                         <Edit3 className="h-3 w-3" />
                       </button>
-                      <button className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition">
+                      <button
+                        onClick={() => { setEditingPrescription(prescription); setShowModal(true) }}
+                        title="Ver detalle"
+                        className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition"
+                      >
                         <Eye className="h-3 w-3" />
                       </button>
                     </div>
@@ -310,6 +327,17 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
           </div>
         )}
       </div>
+
+      {showModal && patientId && (
+        <PrescriptionCreateModal
+          patientId={patientId}
+          onClose={() => { setShowModal(false); setEditingPrescription(null) }}
+          onSaved={() => { setShowModal(false); setEditingPrescription(null) }}
+          addPrescription={addPrescription}
+          updatePrescription={updatePrescription}
+          editingPrescription={editingPrescription}
+        />
+      )}
     </div>
   )
 }

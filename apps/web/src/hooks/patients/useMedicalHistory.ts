@@ -1,6 +1,7 @@
 import type {
   MedicalHistorySummary,
   MedicalHistoryTimeline,
+  PatientPrescription,
 } from '@/lib/patients/types/medical-history'
 import { fetchApi } from '@/lib/api-client'
 import { buildMedicalHistorySummary, buildMedicalHistoryTimeline } from '@/lib/patients/services/medical-history.frontend'
@@ -20,6 +21,7 @@ interface MedicalHistoryApiResponse {
 export function useMedicalHistory(patientId?: string) {
   const [summary, setSummary] = useState<MedicalHistorySummary | null>(null)
   const [timeline, setTimeline] = useState<MedicalHistoryTimeline | null>(null)
+  const [prescriptions, setPrescriptions] = useState<PatientPrescription[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,6 +44,30 @@ export function useMedicalHistory(patientId?: string) {
       const effectivePatientId = (patientId ?? '') as import('@autamedica/types').PatientId
       setSummary(buildMedicalHistorySummary(effectivePatientId, allRecords))
       setTimeline(buildMedicalHistoryTimeline(effectivePatientId, timelineRecords))
+
+      const rawMeds = (data.summary.medications ?? []) as Array<{ id: unknown; title: unknown; content: unknown; created_at: unknown }>
+      setPrescriptions(rawMeds.map((r) => {
+        const c: Record<string, unknown> = (r.content && typeof r.content === 'object' && !Array.isArray(r.content))
+          ? r.content as Record<string, unknown>
+          : {}
+        const fallback = typeof r.created_at === 'string' ? r.created_at : new Date().toISOString()
+        return {
+          id: String(r.id ?? ''),
+          medication_name: typeof c.medication_name === 'string'
+            ? c.medication_name
+            : String(r.title ?? '').replace(/^Prescripci[oó]n:\s*/i, '') || 'Prescripción médica',
+          dosage: typeof c.dosage === 'string' ? c.dosage : '',
+          frequency: typeof c.frequency === 'string' ? c.frequency : '',
+          duration: typeof c.duration === 'string' ? c.duration : '',
+          instructions: typeof c.instructions === 'string' ? c.instructions : '',
+          notes: typeof c.notes === 'string' ? c.notes : null,
+          status: typeof c.status === 'string' ? c.status : 'activa',
+          prescribed_date: typeof c.prescribed_date === 'string' ? c.prescribed_date : fallback,
+          start_date: typeof c.start_date === 'string' ? c.start_date : fallback,
+          end_date: typeof c.end_date === 'string' ? c.end_date : null,
+          side_effects_warning: typeof c.side_effects_warning === 'string' ? c.side_effects_warning : null,
+        }
+      }))
     } catch (err) {
       logger.error('Error fetching medical history:', err)
       setError(err instanceof Error ? err.message : 'Error loading medical history')
@@ -116,6 +142,7 @@ export function useMedicalHistory(patientId?: string) {
   return {
     summary,
     timeline,
+    prescriptions,
     loading,
     error,
     refresh: fetchMedicalHistory,
