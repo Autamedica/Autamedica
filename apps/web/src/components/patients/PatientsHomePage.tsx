@@ -157,7 +157,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     ((profile?.firstName ? 15 : 0) +
     (profile?.lastName ? 15 : 0) +
     (patient.gender ? 10 : 0) +
-    (patient.dateOfBirth ? 10 : 0) +
+    (patient.birthDate ? 10 : 0) +
     (completedCount > 0 ? 25 : 0) +
     (patient.freeConsultationsRemaining !== undefined ? 25 : 0)),
     100
@@ -169,14 +169,14 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     (profile.email ? 20 : 0) +
     (profile.phone ? 20 : 0) +
     (patient?.gender ? 10 : 0) +
-    (patient?.dateOfBirth ? 10 : 0)),
+    (patient?.birthDate ? 10 : 0)),
     100
   ) : 0
 
   const checklistItems = useMemo(() => [
     { key: 'name', label: 'Nombre y apellido', completed: !!(profile?.firstName && profile?.lastName), href: '/patients/profile' },
     { key: 'email', label: 'Email verificado', completed: !!profile?.email, href: '/patients/settings' },
-    { key: 'dob', label: 'Fecha de nacimiento', completed: !!patient?.dateOfBirth, href: '/patients/profile' },
+    { key: 'dob', label: 'Fecha de nacimiento', completed: !!patient?.birthDate, href: '/patients/profile' },
     { key: 'phone', label: 'Telefono de contacto', completed: !!profile?.phone, href: '/patients/profile' },
     { key: 'gender', label: 'Genero', completed: !!patient?.gender, href: '/patients/profile' },
     { key: 'anamnesis', label: 'Completar anamnesis', completed: anamnesisProgress >= 80, href: '/patients/anamnesis' },
