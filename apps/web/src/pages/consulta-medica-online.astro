@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
+import '../styles/seo-landing.css';
 ---
 
 <Layout
@@ -15,55 +16,51 @@ import Footer from '../components/Footer.astro';
   <Navbar />
   <main class="min-h-screen">
     <!-- Hero -->
-    <section class="hero-section">
-      <div class="container">
-        <div class="hero-content">
-          <span class="badge">Medicina Digital</span>
-          <h1>Consulta Médica Online en 15 Minutos</h1>
-          <p class="subtitle">
-            Videollamada segura con doctores certificados. Sin esperas, sin traslados, con receta digital.
-          </p>
-          <div class="cta-buttons">
-            <a href="/auth/register" class="btn-primary">Agendar Ahora</a>
-            <a href="/patients" class="btn-secondary">Explorar Médicos</a>
-          </div>
-          <p class="trust-text">✓ Profesionales verificados • ✓ Encriptado HIPAA • ✓ Disponible 24/7</p>
-        </div>
+    <section class="seo-hero">
+      <span class="seo-badge">Medicina Digital</span>
+      <h1>Consulta Médica Online en 15 Minutos</h1>
+      <p class="seo-subtitle">
+        Videollamada segura con doctores certificados. Sin esperas, sin traslados, con receta digital.
+      </p>
+      <div class="seo-ctas">
+        <a href="/auth/register" class="seo-btn-primary">Agendar Ahora</a>
+        <a href="/patients" class="seo-btn-secondary">Explorar Médicos</a>
       </div>
+      <p class="seo-trust">Profesionales verificados · Encriptado HIPAA · Disponible 24/7</p>
     </section>
 
     <!-- How It Works -->
-    <section class="how-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Cómo Funciona</h2>
-        <div class="how-grid">
-          <div class="how-item">
-            <div class="how-icon">1️⃣</div>
+        <div class="seo-grid-3">
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">1</span>
             <h3>Registro Rápido</h3>
             <p>Crea tu cuenta en menos de 2 minutos con email o teléfono</p>
           </div>
-          <div class="how-item">
-            <div class="how-icon">2️⃣</div>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">2</span>
             <h3>Elige Médico</h3>
             <p>Selecciona entre cientos de especialistas certificados</p>
           </div>
-          <div class="how-item">
-            <div class="how-icon">3️⃣</div>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">3</span>
             <h3>Reserva Turno</h3>
             <p>Elige fecha y hora disponibles del médico elegido</p>
           </div>
-          <div class="how-item">
-            <div class="how-icon">4️⃣</div>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">4</span>
             <h3>Videoconsulta</h3>
             <p>Llamada HD con el médico desde tu dispositivo</p>
           </div>
-          <div class="how-item">
-            <div class="how-icon">5️⃣</div>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">5</span>
             <h3>Receta Digital</h3>
             <p>Recibe prescripción digital enviada a tu farmacia</p>
           </div>
-          <div class="how-item">
-            <div class="how-icon">6️⃣</div>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">6</span>
             <h3>Seguimiento</h3>
             <p>Acceso a historial, estudios y continuidad de atención</p>
           </div>
@@ -72,37 +69,49 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- Why Choose Online Consultation -->
-    <section class="why-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>¿Por Qué Elegir Consulta Médica Online?</h2>
-        <div class="benefits">
-          <div class="benefit">
-            <span class="icon">⏱️</span>
+        <div class="seo-grid-2">
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
             <h3>Ahorra Tiempo</h3>
             <p>Sin viajes al consultorio. Desde casa, oficina o donde estés. 15-30 minutos completos contigo.</p>
           </div>
-          <div class="benefit">
-            <span class="icon">💰</span>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
             <h3>Más Económico</h3>
             <p>Consultas desde $800 ARS. Sin gastos extra de transporte o estacionamiento.</p>
           </div>
-          <div class="benefit">
-            <span class="icon">📅</span>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
             <h3>24/7 Disponible</h3>
             <p>Turnos matutinos, vespertinos y nocturnos. Todos los días, hasta finales de semana.</p>
           </div>
-          <div class="benefit">
-            <span class="icon">🔒</span>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
             <h3>Privacidad Total</h3>
             <p>Encriptación HIPAA. Sin compartir historiales con terceros. GDPR y Ley 25.326 cumplidas.</p>
           </div>
-          <div class="benefit">
-            <span class="icon">👨‍⚕️</span>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+            </div>
             <h3>Médicos Verificados</h3>
             <p>Todos nuestros doctores tienen matrícula vigente. Podés verificar su cédula profesional.</p>
           </div>
-          <div class="benefit">
-            <span class="icon">📱</span>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
             <h3>Acceso Inmediato</h3>
             <p>Histórico clínico, recetas y resultados en tu perfil. Disponible siempre desde tu celular.</p>
           </div>
@@ -111,55 +120,55 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- Conditions Treated -->
-    <section class="conditions-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>¿Para Qué Problemas de Salud Puedo Consultar Online?</h2>
-        <p class="intro-text">
+        <p style="text-align:center; max-width:700px; margin:0 auto var(--space-8);">
           La mayoría de condiciones médicas pueden evaluarse por consulta virtual. Algunos ejemplos:
         </p>
-        <div class="conditions-grid">
-          <div class="condition">
-            <strong>Síntomas de Gripe</strong>
+        <div class="seo-grid-4">
+          <div class="seo-card">
+            <h3>Síntomas de Gripe</h3>
             <p>Resfriado, fiebre, tos</p>
           </div>
-          <div class="condition">
-            <strong>Dermatología</strong>
+          <div class="seo-card">
+            <h3>Dermatología</h3>
             <p>Acné, eccema, dermatitis</p>
           </div>
-          <div class="condition">
-            <strong>Alergias</strong>
+          <div class="seo-card">
+            <h3>Alergias</h3>
             <p>Rinitis, asma, medicamentos</p>
           </div>
-          <div class="condition">
-            <strong>Problemas Digestivos</strong>
+          <div class="seo-card">
+            <h3>Problemas Digestivos</h3>
             <p>Gastritis, intoxicación, diarrea</p>
           </div>
-          <div class="condition">
-            <strong>Salud Mental</strong>
+          <div class="seo-card">
+            <h3>Salud Mental</h3>
             <p>Ansiedad, estrés, depresión</p>
           </div>
-          <div class="condition">
-            <strong>Control de Enfermedades</strong>
+          <div class="seo-card">
+            <h3>Control de Enfermedades</h3>
             <p>Hipertensión, diabetes, colesterol</p>
           </div>
-          <div class="condition">
-            <strong>Cefaleas y Migrañas</strong>
+          <div class="seo-card">
+            <h3>Cefaleas y Migrañas</h3>
             <p>Dolores de cabeza persistentes</p>
           </div>
-          <div class="condition">
-            <strong>Problemas del Sueño</strong>
+          <div class="seo-card">
+            <h3>Problemas del Sueño</h3>
             <p>Insomnio, apnea, parasomnia</p>
           </div>
-          <div class="condition">
-            <strong>Ginecología</strong>
+          <div class="seo-card">
+            <h3>Ginecología</h3>
             <p>Consulta sobre anticonceptivos</p>
           </div>
-          <div class="condition">
-            <strong>Pediatría</strong>
+          <div class="seo-card">
+            <h3>Pediatría</h3>
             <p>Evaluación de síntomas en menores</p>
           </div>
         </div>
-        <p class="note">
+        <p class="conditions-note">
           <strong>Nota:</strong> Algunas condiciones requieren evaluación presencial (traumatismo, cirugía).
           El médico evaluará si tu caso necesita consulta en persona.
         </p>
@@ -167,46 +176,54 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- Doctors On Platform -->
-    <section class="doctors-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Especialistas Disponibles 24/7</h2>
-        <div class="specialties">
-          <span class="specialty">Medicina General</span>
-          <span class="specialty">Cardiología</span>
-          <span class="specialty">Dermatología</span>
-          <span class="specialty">Psicología</span>
-          <span class="specialty">Pediatría</span>
-          <span class="specialty">Ginecología</span>
-          <span class="specialty">Gastroenterología</span>
-          <span class="specialty">Neumología</span>
-          <span class="specialty">Neurología</span>
-          <span class="specialty">Nutrición</span>
+        <div class="specialties-tags">
+          <span class="specialty-tag">Medicina General</span>
+          <span class="specialty-tag">Cardiología</span>
+          <span class="specialty-tag">Dermatología</span>
+          <span class="specialty-tag">Psicología</span>
+          <span class="specialty-tag">Pediatría</span>
+          <span class="specialty-tag">Ginecología</span>
+          <span class="specialty-tag">Gastroenterología</span>
+          <span class="specialty-tag">Neumología</span>
+          <span class="specialty-tag">Neurología</span>
+          <span class="specialty-tag">Nutrición</span>
         </div>
       </div>
     </section>
 
     <!-- Requirements -->
-    <section class="requirements-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Qué Necesitas para tu Consulta Online</h2>
-        <div class="requirements-grid">
-          <div class="req">
-            <div class="req-icon">📱</div>
+        <div class="seo-grid-4">
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
             <h3>Dispositivo</h3>
             <p>Celular, tablet o computadora con cámara</p>
           </div>
-          <div class="req">
-            <div class="req-icon">📶</div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            </div>
             <h3>Internet</h3>
             <p>Conexión estable (WiFi o 4G)</p>
           </div>
-          <div class="req">
-            <div class="req-icon">🔐</div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
             <h3>Privacidad</h3>
             <p>Lugar tranquilo para la consulta</p>
           </div>
-          <div class="req">
-            <div class="req-icon">🆔</div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
             <h3>Documento</h3>
             <p>DNI o documento válido para registro</p>
           </div>
@@ -215,19 +232,19 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- Pricing -->
-    <section class="pricing-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Precios Consultas</h2>
-        <div class="pricing-info">
+        <div class="pricing-box">
           <p>
             Las consultas médicas online en AutaMedica varían según la especialidad y experiencia del profesional:
           </p>
-          <ul class="pricing-list">
+          <ul class="seo-checklist">
             <li><strong>Medicina General:</strong> $800 - $1,200 ARS</li>
             <li><strong>Especialidades:</strong> $1,500 - $3,000 ARS</li>
             <li><strong>Subespecialidades:</strong> $2,000 - $4,000 ARS</li>
           </ul>
-          <p class="pricing-note">
+          <p class="seo-trust">
             <strong>Sin cargos ocultos.</strong> El precio que ves es el final. Podés cancelar con tarjeta,
             transferencia bancaria o billetera virtual.
           </p>
@@ -236,54 +253,50 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- FAQ -->
-    <section class="faq-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Preguntas Frecuentes</h2>
-
-        <div class="faq">
-          <h3>¿Qué pasa si mi consulta requiere presencialidad?</h3>
-          <p>
-            El médico evaluará tu caso. Si necesita verte presencialmente, te lo dirá en la consulta y
-            podrá derivarte a un profesional cercano.
-          </p>
-        </div>
-
-        <div class="faq">
-          <h3>¿Puedo conseguir receta digital?</h3>
-          <p>
-            Sí. Si el médico lo considera necesario, recibirás la receta digital tras la consulta.
-            Puedes enviarla a cualquier farmacia o presentarla en PDF.
-          </p>
-        </div>
-
-        <div class="faq">
-          <h3>¿Es seguro compartir información médica?</h3>
-          <p>
-            Completamente. Usamos encriptación HIPAA, cumplimos Ley 25.326 y no compartimos datos con
-            terceros sin consentimiento explícito.
-          </p>
-        </div>
-
-        <div class="faq">
-          <h3>¿Cuánto dura una consulta online?</h3>
-          <p>
-            Típicamente 15-30 minutos. El médico dedica tiempo completo contigo, sin interrupciones.
-          </p>
-        </div>
-
-        <div class="faq">
-          <h3>¿Puedo cambiar de médico si no me conforma?</h3>
-          <p>
-            Sí. Tienes libertad de elegir otro médico en cualquier momento. Sin compromisos.
-          </p>
-        </div>
-
-        <div class="faq">
-          <h3>¿Cómo agendo si no tengo experiencia con tecnología?</h3>
-          <p>
-            Es muy simple. Nuestro flujo está diseñado para ser intuitivo. Si necesitas ayuda, nuestro
-            equipo está disponible por chat o teléfono.
-          </p>
+        <div class="seo-faq">
+          <details>
+            <summary>¿Qué pasa si mi consulta requiere presencialidad?</summary>
+            <p>
+              El médico evaluará tu caso. Si necesita verte presencialmente, te lo dirá en la consulta y
+              podrá derivarte a un profesional cercano.
+            </p>
+          </details>
+          <details>
+            <summary>¿Puedo conseguir receta digital?</summary>
+            <p>
+              Sí. Si el médico lo considera necesario, recibirás la receta digital tras la consulta.
+              Puedes enviarla a cualquier farmacia o presentarla en PDF.
+            </p>
+          </details>
+          <details>
+            <summary>¿Es seguro compartir información médica?</summary>
+            <p>
+              Completamente. Usamos encriptación HIPAA, cumplimos Ley 25.326 y no compartimos datos con
+              terceros sin consentimiento explícito.
+            </p>
+          </details>
+          <details>
+            <summary>¿Cuánto dura una consulta online?</summary>
+            <p>
+              Típicamente 15-30 minutos. El médico dedica tiempo completo contigo, sin interrupciones.
+            </p>
+          </details>
+          <details>
+            <summary>¿Puedo cambiar de médico si no me conforma?</summary>
+            <p>
+              Sí. Tienes libertad de elegir otro médico en cualquier momento. Sin compromisos.
+            </p>
+          </details>
+          <details>
+            <summary>¿Cómo agendo si no tengo experiencia con tecnología?</summary>
+            <p>
+              Es muy simple. Nuestro flujo está diseñado para ser intuitivo. Si necesitas ayuda, nuestro
+              equipo está disponible por chat o teléfono.
+            </p>
+          </details>
         </div>
       </div>
     </section>
@@ -300,306 +313,43 @@ import Footer from '../components/Footer.astro';
 </Layout>
 
 <style>
-  .hero-section {
-    padding: 6rem var(--section-px) 4rem;
-    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(6,78,140,0.3));
-    border-bottom: 1px solid var(--au-border);
-  }
-
-  .container {
-    max-width: 1120px;
-    margin: 0 auto;
-  }
-
-  .hero-content {
-    text-align: center;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 2rem;
-    font-size: 0.875rem;
-    color: #3b82f6;
-    margin-bottom: 1.5rem;
-  }
-
-  h1 {
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    color: white;
-    margin-bottom: 1.5rem;
-    line-height: 1.2;
-  }
-
-  .subtitle {
-    font-size: 1.125rem;
-    color: #a1a1a1;
-    margin-bottom: 2rem;
-    max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .cta-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-bottom: 2rem;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    padding: 0.875rem 2rem;
-    border-radius: 0.5rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    display: inline-block;
-  }
-
-  .btn-primary {
-    background: white;
-    color: black;
-  }
-
-  .btn-primary:hover {
-    background: #f0f0f0;
-    transform: translateY(-2px);
-  }
-
-  .btn-secondary {
-    border: 1px solid white;
-    color: white;
-  }
-
-  .btn-secondary:hover {
-    background: rgba(255,255,255,0.1);
-  }
-
-  .trust-text {
-    font-size: 0.95rem;
-    color: #10b981;
-    margin-top: 1rem;
-  }
-
-  .how-section,
-  .why-section,
-  .conditions-section,
-  .doctors-section,
-  .requirements-section,
-  .pricing-section,
-  .faq-section {
-    padding: 4rem var(--section-px);
-    border-bottom: 1px solid var(--au-border);
-  }
-
-  h2 {
-    font-size: 2.25rem;
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    color: white;
-    margin-bottom: 2.5rem;
-    text-align: center;
-  }
-
-  .how-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 2rem;
-  }
-
-  .how-item {
-    text-align: center;
-  }
-
-  .how-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .how-item h3 {
-    color: white;
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .how-item p {
-    color: #a1a1a1;
-    font-size: 0.95rem;
-  }
-
-  .benefits {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
-  }
-
-  .benefit {
-    background: rgba(59, 130, 246, 0.05);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 0.75rem;
-    padding: 2rem;
-  }
-
-  .benefit .icon {
-    font-size: 2rem;
-    display: block;
-    margin-bottom: 1rem;
-  }
-
-  .benefit h3 {
-    color: white;
-    margin-bottom: 0.75rem;
-  }
-
-  .benefit p {
-    color: #a1a1a1;
-    font-size: 0.95rem;
-    line-height: 1.6;
-  }
-
-  .intro-text {
-    text-align: center;
-    font-size: 1.05rem;
-    color: #a1a1a1;
-    max-width: 700px;
-    margin: 0 auto 2rem;
-  }
-
-  .conditions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-
-  .condition {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid var(--au-border);
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-  }
-
-  .condition strong {
-    color: white;
-    display: block;
-    margin-bottom: 0.5rem;
-  }
-
-  .condition p {
-    color: #a1a1a1;
-    font-size: 0.9rem;
-  }
-
-  .note {
-    text-align: center;
-    color: #a1a1a1;
-    margin-top: 2rem;
-    padding: 1rem;
-    background: rgba(255,255,255,0.02);
-    border-radius: 0.5rem;
-  }
-
-  .specialties {
+  /* Page-specific: specialty tags */
+  .specialties-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: var(--space-3);
     justify-content: center;
   }
 
-  .specialty {
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    padding: 0.75rem 1.5rem;
-    border-radius: 2rem;
-    color: white;
-    font-size: 0.95rem;
+  .specialty-tag {
+    background: var(--au-accent-soft);
+    border: 1px solid var(--au-border-hover);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-full);
+    color: var(--au-text-primary);
+    font-size: var(--text-sm);
   }
 
-  .requirements-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
-  }
-
-  .req {
-    text-align: center;
-    background: rgba(255,255,255,0.02);
-    padding: 2rem 1.5rem;
-    border-radius: 0.75rem;
-  }
-
-  .req-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .req h3 {
-    color: white;
-    margin-bottom: 0.5rem;
-  }
-
-  .req p {
-    color: #a1a1a1;
-    font-size: 0.9rem;
-  }
-
-  .pricing-info {
-    background: rgba(59, 130, 246, 0.05);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 0.75rem;
-    padding: 2rem;
+  /* Page-specific: pricing box */
+  .pricing-box {
     max-width: 600px;
     margin: 0 auto;
+    background: var(--au-glass-bg);
+    border: 1px solid var(--au-glass-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-8);
   }
 
-  .pricing-info p {
-    color: #a1a1a1;
-    margin-bottom: 1rem;
+  .pricing-box p {
+    margin-bottom: var(--space-4);
   }
 
-  .pricing-list {
-    list-style: none;
-    padding: 0;
-    margin-bottom: 1.5rem;
-  }
-
-  .pricing-list li {
-    color: white;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-  }
-
-  .pricing-note {
-    color: #10b981;
-    font-size: 0.95rem;
-    margin: 0;
-  }
-
-  .faq {
-    background: rgba(255,255,255,0.02);
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .faq h3 {
-    color: white;
-    margin-bottom: 0.75rem;
-    font-size: 1.05rem;
-  }
-
-  .faq p {
-    color: #a1a1a1;
-    line-height: 1.6;
-  }
-
-  p {
-    color: #a1a1a1;
-    line-height: 1.6;
+  /* Page-specific: conditions note */
+  .conditions-note {
+    text-align: center;
+    margin-top: var(--space-8);
+    padding: var(--space-4);
+    background: var(--au-surface);
+    border-radius: var(--radius-sm);
   }
 </style>

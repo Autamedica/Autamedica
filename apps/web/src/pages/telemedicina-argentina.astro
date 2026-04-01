@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import CTAFinal from '../components/CTAFinal.astro';
 import Footer from '../components/Footer.astro';
+import '../styles/seo-landing.css';
 ---
 
 <Layout
@@ -15,54 +16,68 @@ import Footer from '../components/Footer.astro';
   <Navbar />
   <main class="min-h-screen">
     <!-- Hero Section -->
-    <section class="hero-section">
-      <div class="container">
-        <div class="hero-content">
-          <span class="badge">Telemedicina Moderna</span>
-          <h1>Telemedicina en Argentina Sin Fricciones</h1>
-          <p class="subtitle">
-            Consulta con médicos certificados desde tu hogar. Teleconsultas seguras, recetas digitales
-            e historia clínica integral en una sola plataforma.
-          </p>
-          <div class="cta-buttons">
-            <a href="/auth/register" class="btn-primary">Comenzar Consulta Médica</a>
-            <a href="/doctors" class="btn-secondary">Ver Médicos Disponibles</a>
-          </div>
-        </div>
+    <section class="seo-hero">
+      <span class="seo-badge">Telemedicina Moderna</span>
+      <h1>Telemedicina en Argentina Sin Fricciones</h1>
+      <p class="seo-subtitle">
+        Consulta con médicos certificados desde tu hogar. Teleconsultas seguras, recetas digitales
+        e historia clínica integral en una sola plataforma.
+      </p>
+      <div class="seo-ctas">
+        <a href="/auth/register" class="seo-btn-primary">Comenzar Consulta Médica</a>
+        <a href="/doctors" class="seo-btn-secondary">Ver Médicos Disponibles</a>
       </div>
     </section>
 
     <!-- What is Telemedicine -->
-    <section class="content-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>¿Qué es la Telemedicina?</h2>
-        <p>
+        <p style="text-align:center; max-width:700px; margin:0 auto var(--space-8);">
           La telemedicina es la prestación de servicios médicos a través de tecnología digital.
           En Argentina, la telemedicina es legal, regulada y reconocida por el sistema de salud.
         </p>
-        <div class="features-grid">
-          <div class="feature">
-            <h3>📱 Acceso 24/7</h3>
+        <div class="seo-grid-3">
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <h3>Acceso 24/7</h3>
             <p>Consulta médica desde cualquier dispositivo, a cualquier hora del día</p>
           </div>
-          <div class="feature">
-            <h3>🔒 Seguridad HIPAA</h3>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3>Seguridad HIPAA</h3>
             <p>Tus datos de salud están cifrados y protegidos según estándares internacionales</p>
           </div>
-          <div class="feature">
-            <h3>💻 Videollamada HD</h3>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </div>
+            <h3>Videollamada HD</h3>
             <p>Consultas por video de alta calidad con médicos certificados</p>
           </div>
-          <div class="feature">
-            <h3>📋 Recetas Digitales</h3>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <h3>Recetas Digitales</h3>
             <p>Recibe recetas digitales directamente en tu farmacia</p>
           </div>
-          <div class="feature">
-            <h3>📊 Historia Clínica Digital</h3>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <h3>Historia Clínica Digital</h3>
             <p>Acceso a tu historial completo de consultas y estudios</p>
           </div>
-          <div class="feature">
-            <h3>⚡ Sin Esperas</h3>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <h3>Sin Esperas</h3>
             <p>Consulta inmediata sin hacer fila en la sala de espera</p>
           </div>
         </div>
@@ -70,68 +85,82 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- Benefits -->
-    <section class="benefits-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Ventajas de la Consulta Médica Online</h2>
-
-        <div class="benefit-card">
-          <h3>🏥 Cobertura Médica Completa</h3>
-          <p>
-            Acceso a diferentes especialidades médicas: médicos generales, cardiólogos, dermatólogos,
-            psicólogos, ginecólogos y más. Todos con matrícula verificada.
-          </p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>⏰ Ahorro de Tiempo</h3>
-          <p>
-            Sin traslados, sin esperas. Una consulta médica online dura 15-30 minutos y podés hacerla
-            desde tu casa, oficina o donde estés.
-          </p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>💰 Más Económica</h3>
-          <p>
-            Consultas médicas online a menor costo que consultas presenciales. Sin gastos de traslado
-            ni estacionamiento.
-          </p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>🔒 Privacidad Garantizada</h3>
-          <p>
-            Conexión segura, cifrada, sin grabaciones sin consentimiento. Cumplimiento con Ley 25.326
-            de Protección de Datos Personales de Argentina.
-          </p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>👨‍⚕️ Profesionales Certificados</h3>
-          <p>
-            Todos nuestros médicos están registrados ante la Superintendencia de Servicios de Salud (SUSS)
-            y poseen matrícula vigente en Argentina.
-          </p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>📞 Continuidad de Atención</h3>
-          <p>
-            Seguimiento médico continuo. Acceso a registros previos, resultados de estudios y seguimiento
-            de tratamientos.
-          </p>
+        <div class="seo-grid-2">
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <h3>Cobertura Médica Completa</h3>
+            <p>
+              Acceso a diferentes especialidades médicas: médicos generales, cardiólogos, dermatólogos,
+              psicólogos, ginecólogos y más. Todos con matrícula verificada.
+            </p>
+          </div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h3>Ahorro de Tiempo</h3>
+            <p>
+              Sin traslados, sin esperas. Una consulta médica online dura 15-30 minutos y podés hacerla
+              desde tu casa, oficina o donde estés.
+            </p>
+          </div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <h3>Más Económica</h3>
+            <p>
+              Consultas médicas online a menor costo que consultas presenciales. Sin gastos de traslado
+              ni estacionamiento.
+            </p>
+          </div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3>Privacidad Garantizada</h3>
+            <p>
+              Conexión segura, cifrada, sin grabaciones sin consentimiento. Cumplimiento con Ley 25.326
+              de Protección de Datos Personales de Argentina.
+            </p>
+          </div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+            </div>
+            <h3>Profesionales Certificados</h3>
+            <p>
+              Todos nuestros médicos están registrados ante la Superintendencia de Servicios de Salud (SUSS)
+              y poseen matrícula vigente en Argentina.
+            </p>
+          </div>
+          <div class="seo-card">
+            <div class="seo-card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <h3>Continuidad de Atención</h3>
+            <p>
+              Seguimiento médico continuo. Acceso a registros previos, resultados de estudios y seguimiento
+              de tratamientos.
+            </p>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Legal Framework -->
-    <section class="legal-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Marco Legal en Argentina</h2>
-        <p>
+        <p style="text-align:center; max-width:700px; margin:0 auto var(--space-8);">
           La telemedicina en Argentina está respaldada por normativa nacional e internacional:
         </p>
-        <ul class="legal-list">
+        <ul class="seo-checklist" style="max-width:600px; margin:0 auto;">
           <li><strong>Ley 25.326:</strong> Protección de Datos Personales y medicina digital</li>
           <li><strong>Resolución 2301/2002:</strong> Marco legal para telemedicina en Argentina</li>
           <li><strong>Estándares HIPAA:</strong> Protección de datos de salud a nivel internacional</li>
@@ -141,32 +170,32 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- Process Section -->
-    <section class="process-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Cómo Funciona una Consulta Médica Online</h2>
-        <div class="steps">
-          <div class="step">
-            <span class="step-number">1</span>
+        <div class="seo-grid-3">
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">1</span>
             <h3>Registrate o Ingresa</h3>
             <p>Crea tu cuenta en AutaMedica en 2 minutos</p>
           </div>
-          <div class="step">
-            <span class="step-number">2</span>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">2</span>
             <h3>Busca un Médico</h3>
             <p>Elige entre cientos de profesionales certificados</p>
           </div>
-          <div class="step">
-            <span class="step-number">3</span>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">3</span>
             <h3>Reserva tu Turno</h3>
             <p>Selecciona fecha y hora disponible</p>
           </div>
-          <div class="step">
-            <span class="step-number">4</span>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">4</span>
             <h3>Videoconferencia</h3>
             <p>Consulta segura por video HD con el médico</p>
           </div>
-          <div class="step">
-            <span class="step-number">5</span>
+          <div class="seo-card seo-step-card">
+            <span class="seo-step-number">5</span>
             <h3>Receta y Seguimiento</h3>
             <p>Recibe receta digital e historial en tu perfil</p>
           </div>
@@ -175,73 +204,69 @@ import Footer from '../components/Footer.astro';
     </section>
 
     <!-- Specialties -->
-    <section class="specialties-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Especialidades Médicas Disponibles</h2>
-        <div class="specialties-grid">
-          <div class="specialty"><strong>Medicina General</strong></div>
-          <div class="specialty"><strong>Cardiología</strong></div>
-          <div class="specialty"><strong>Dermatología</strong></div>
-          <div class="specialty"><strong>Psicología</strong></div>
-          <div class="specialty"><strong>Ginecología</strong></div>
-          <div class="specialty"><strong>Pediatría</strong></div>
-          <div class="specialty"><strong>Neurology</strong></div>
-          <div class="specialty"><strong>Nutrición</strong></div>
+        <div class="seo-grid-4">
+          <div class="seo-card" style="text-align:center"><h3>Medicina General</h3></div>
+          <div class="seo-card" style="text-align:center"><h3>Cardiología</h3></div>
+          <div class="seo-card" style="text-align:center"><h3>Dermatología</h3></div>
+          <div class="seo-card" style="text-align:center"><h3>Psicología</h3></div>
+          <div class="seo-card" style="text-align:center"><h3>Ginecología</h3></div>
+          <div class="seo-card" style="text-align:center"><h3>Pediatría</h3></div>
+          <div class="seo-card" style="text-align:center"><h3>Neurología</h3></div>
+          <div class="seo-card" style="text-align:center"><h3>Nutrición</h3></div>
         </div>
       </div>
     </section>
 
     <!-- FAQ -->
-    <section class="faq-section">
-      <div class="container">
+    <section class="seo-section">
+      <div class="seo-container">
         <h2>Preguntas Frecuentes sobre Telemedicina</h2>
-
-        <div class="faq-item">
-          <h3>¿Es segura una consulta médica online?</h3>
-          <p>
-            Sí. Las consultas en AutaMedica usan encriptación de nivel militar (TLS 1.3), cumplen
-            con HIPAA y están reguladas por la legislación argentina. Tus datos están protegidos.
-          </p>
-        </div>
-
-        <div class="faq-item">
-          <h3>¿Cuál es el costo de una consulta médica virtual?</h3>
-          <p>
-            El precio varía según el especialista (típicamente entre $800 y $3000 ARS).
-            No hay cargos adicionales ocultos.
-          </p>
-        </div>
-
-        <div class="faq-item">
-          <h3>¿Me atienden médicos de verdad?</h3>
-          <p>
-            Todos nuestros médicos son profesionales certificados con matrícula vigente en Argentina.
-            Puedes verificar su cédula profesional antes de la consulta.
-          </p>
-        </div>
-
-        <div class="faq-item">
-          <h3>¿Qué necesito para una consulta online?</h3>
-          <p>
-            Solo necesitas: conexión a internet, un dispositivo con cámara (PC, tablet o smartphone),
-            y un lugar privado para la consulta.
-          </p>
-        </div>
-
-        <div class="faq-item">
-          <h3>¿Puedo tener historia clínica digital?</h3>
-          <p>
-            Sí. En AutaMedica mantenemos tu historial completo: consultas, recetas, resultados de
-            estudios y seguimiento de tratamientos.
-          </p>
-        </div>
-
-        <div class="faq-item">
-          <h3>¿Cómo funciona una receta digital?</h3>
-          <p>
-            El médico te envía la receta digital tras la consulta. Puedes enviarla a cualquier farmacia
-            o descargarla en PDF para presentarla en persona.
-          </p>
+        <div class="seo-faq">
+          <details>
+            <summary>¿Es segura una consulta médica online?</summary>
+            <p>
+              Sí. Las consultas en AutaMedica usan encriptación de nivel militar (TLS 1.3), cumplen
+              con HIPAA y están reguladas por la legislación argentina. Tus datos están protegidos.
+            </p>
+          </details>
+          <details>
+            <summary>¿Cuál es el costo de una consulta médica virtual?</summary>
+            <p>
+              El precio varía según el especialista (típicamente entre $800 y $3000 ARS).
+              No hay cargos adicionales ocultos.
+            </p>
+          </details>
+          <details>
+            <summary>¿Me atienden médicos de verdad?</summary>
+            <p>
+              Todos nuestros médicos son profesionales certificados con matrícula vigente en Argentina.
+              Puedes verificar su cédula profesional antes de la consulta.
+            </p>
+          </details>
+          <details>
+            <summary>¿Qué necesito para una consulta online?</summary>
+            <p>
+              Solo necesitas: conexión a internet, un dispositivo con cámara (PC, tablet o smartphone),
+              y un lugar privado para la consulta.
+            </p>
+          </details>
+          <details>
+            <summary>¿Puedo tener historia clínica digital?</summary>
+            <p>
+              Sí. En AutaMedica mantenemos tu historial completo: consultas, recetas, resultados de
+              estudios y seguimiento de tratamientos.
+            </p>
+          </details>
+          <details>
+            <summary>¿Cómo funciona una receta digital?</summary>
+            <p>
+              El médico te envía la receta digital tras la consulta. Puedes enviarla a cualquier farmacia
+              o descargarla en PDF para presentarla en persona.
+            </p>
+          </details>
         </div>
       </div>
     </section>
@@ -256,239 +281,3 @@ import Footer from '../components/Footer.astro';
   </main>
   <Footer />
 </Layout>
-
-<style>
-  .hero-section {
-    padding: 6rem var(--section-px) 4rem;
-    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(6,78,140,0.3));
-    border-bottom: 1px solid var(--au-border);
-  }
-
-  .container {
-    max-width: 1120px;
-    margin: 0 auto;
-  }
-
-  .hero-content {
-    text-align: center;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 2rem;
-    font-size: 0.875rem;
-    color: #3b82f6;
-    margin-bottom: 1.5rem;
-  }
-
-  h1 {
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    color: white;
-    margin-bottom: 1.5rem;
-    line-height: 1.2;
-  }
-
-  .subtitle {
-    font-size: 1.125rem;
-    color: #a1a1a1;
-    margin-bottom: 2rem;
-    max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .cta-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-
-  .btn-primary,
-  .btn-secondary {
-    padding: 0.875rem 2rem;
-    border-radius: 0.5rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    display: inline-block;
-  }
-
-  .btn-primary {
-    background: white;
-    color: black;
-  }
-
-  .btn-primary:hover {
-    background: #f0f0f0;
-    transform: translateY(-2px);
-  }
-
-  .btn-secondary {
-    border: 1px solid white;
-    color: white;
-  }
-
-  .btn-secondary:hover {
-    background: rgba(255,255,255,0.1);
-  }
-
-  .content-section,
-  .benefits-section,
-  .legal-section,
-  .process-section,
-  .specialties-section,
-  .faq-section {
-    padding: 4rem var(--section-px);
-    border-bottom: 1px solid var(--au-border);
-  }
-
-  h2 {
-    font-size: 2.25rem;
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    color: white;
-    margin-bottom: 2.5rem;
-    text-align: center;
-  }
-
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 2rem;
-    margin-top: 2rem;
-  }
-
-  .feature {
-    background: rgba(59, 130, 246, 0.05);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-  }
-
-  .feature h3 {
-    font-size: 1.25rem;
-    color: white;
-    margin-bottom: 0.75rem;
-  }
-
-  .feature p {
-    color: #a1a1a1;
-    font-size: 0.95rem;
-  }
-
-  .benefit-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--au-border);
-    border-radius: 0.75rem;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .benefit-card h3 {
-    font-size: 1.25rem;
-    color: white;
-    margin-bottom: 1rem;
-  }
-
-  .benefit-card p {
-    color: #a1a1a1;
-    line-height: 1.6;
-  }
-
-  .legal-list {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    gap: 1rem;
-  }
-
-  .legal-list li {
-    padding: 1rem;
-    background: rgba(59, 130, 246, 0.05);
-    border-left: 3px solid #3b82f6;
-    color: #a1a1a1;
-  }
-
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 2rem;
-    margin-top: 2rem;
-  }
-
-  .step {
-    text-align: center;
-  }
-
-  .step-number {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 3rem;
-    height: 3rem;
-    background: #3b82f6;
-    color: white;
-    border-radius: 50%;
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .step h3 {
-    font-size: 1.1rem;
-    color: white;
-    margin-bottom: 0.5rem;
-  }
-
-  .step p {
-    color: #a1a1a1;
-    font-size: 0.95rem;
-  }
-
-  .specialties-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-
-  .specialty {
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    text-align: center;
-    color: white;
-    font-weight: 500;
-  }
-
-  .faq-item {
-    margin-bottom: 2rem;
-    background: rgba(255,255,255,0.02);
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-  }
-
-  .faq-item h3 {
-    font-size: 1.125rem;
-    color: white;
-    margin-bottom: 0.75rem;
-  }
-
-  .faq-item p {
-    color: #a1a1a1;
-    line-height: 1.6;
-  }
-
-  p {
-    color: #a1a1a1;
-    line-height: 1.6;
-  }
-</style>

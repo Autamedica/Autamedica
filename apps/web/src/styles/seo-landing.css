@@ -1,0 +1,437 @@
+/**
+ * Shared styles for all SEO landing pages.
+ * Uses AutaMedica design tokens from globals.css.
+ * Light theme — white backgrounds, brand sky-blue accents.
+ *
+ * Usage: <style>@import '../styles/seo-landing.css';</style>
+ * Or:    import '../styles/seo-landing.css' in frontmatter
+ */
+
+/* ═══════════════════════════════════════════
+   Layout
+   ═══════════════════════════════════════════ */
+
+.seo-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: var(--section-px);
+  padding-right: var(--section-px);
+}
+
+/* ═══════════════════════════════════════════
+   Hero
+   ═══════════════════════════════════════════ */
+
+.seo-hero {
+  padding: clamp(7rem, 16vh, 10rem) var(--section-px) var(--space-16);
+  background:
+    linear-gradient(
+      135deg,
+      var(--au-surface) 0%,
+      rgba(14, 165, 233, 0.04) 50%,
+      var(--au-bg) 100%
+    );
+  border-bottom: 1px solid var(--au-border);
+  text-align: center;
+}
+
+.seo-hero .seo-badge {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  background: var(--au-accent-soft);
+  border: 1px solid var(--au-border-hover);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--au-accent);
+  margin-bottom: var(--space-6);
+}
+
+.seo-hero h1 {
+  font-family: var(--font-heading);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  letter-spacing: -0.03em;
+  color: var(--au-text-primary);
+  margin: 0 auto var(--space-6);
+  max-width: 20ch;
+  line-height: 1.15;
+}
+
+.seo-hero .seo-subtitle {
+  font-size: var(--text-lg);
+  line-height: 1.7;
+  color: var(--au-text-secondary);
+  margin: 0 auto var(--space-8);
+  max-width: 42ch;
+}
+
+.seo-hero .seo-trust {
+  font-size: var(--text-sm);
+  color: var(--au-success);
+  font-weight: var(--font-medium);
+  margin-top: var(--space-4);
+}
+
+/* ═══════════════════════════════════════════
+   CTAs
+   ═══════════════════════════════════════════ */
+
+.seo-ctas {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.seo-btn-primary,
+.seo-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-8);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
+}
+
+.seo-btn-primary {
+  background: var(--au-accent);
+  color: white;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);
+}
+
+.seo-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.35);
+}
+
+.seo-btn-secondary {
+  border: 1px solid var(--au-border-hover);
+  color: var(--au-text-primary);
+  background: var(--au-bg);
+}
+
+.seo-btn-secondary:hover {
+  border-color: var(--au-accent);
+  background: var(--au-accent-soft);
+  transform: translateY(-1px);
+}
+
+/* ═══════════════════════════════════════════
+   Sections
+   ═══════════════════════════════════════════ */
+
+.seo-section {
+  padding: var(--section-py) var(--section-px);
+  border-bottom: 1px solid var(--au-border);
+}
+
+.seo-section:nth-child(even) {
+  background: var(--au-surface);
+}
+
+.seo-section h2 {
+  font-family: var(--font-heading);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--au-text-primary);
+  text-align: center;
+  margin: 0 0 var(--space-12);
+  letter-spacing: -0.02em;
+}
+
+.seo-section h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--au-text-primary);
+  margin: 0 0 var(--space-2);
+}
+
+.seo-section p {
+  color: var(--au-text-secondary);
+  line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════
+   Grid Layouts
+   ═══════════════════════════════════════════ */
+
+.seo-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.seo-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.seo-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-6);
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* ═══════════════════════════════════════════
+   Cards
+   ═══════════════════════════════════════════ */
+
+.seo-card {
+  background: var(--au-glass-bg);
+  border: 1px solid var(--au-glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-8);
+  transition:
+    transform var(--au-transition-smooth),
+    border-color var(--au-transition-smooth),
+    box-shadow var(--au-transition-smooth);
+}
+
+.seo-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--au-glass-border-hover);
+  box-shadow: var(--au-glass-shadow-hover);
+}
+
+.seo-card .seo-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--au-accent-soft);
+  color: var(--au-accent);
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-4);
+}
+
+.seo-card h3 {
+  margin-bottom: var(--space-2);
+}
+
+.seo-card p {
+  font-size: var(--text-sm);
+}
+
+/* Step card variant (numbered) */
+.seo-step-card {
+  position: relative;
+  padding-left: calc(var(--space-8) + 48px);
+}
+
+.seo-step-card .seo-step-number {
+  position: absolute;
+  left: var(--space-8);
+  top: var(--space-8);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--au-accent);
+  color: white;
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+}
+
+/* ═══════════════════════════════════════════
+   FAQ Accordion
+   ═══════════════════════════════════════════ */
+
+.seo-faq {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.seo-faq details {
+  border-bottom: 1px solid var(--au-border);
+}
+
+.seo-faq summary {
+  padding: var(--space-4) 0;
+  font-weight: var(--font-semibold);
+  color: var(--au-text-primary);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  transition: color var(--transition-fast);
+}
+
+.seo-faq summary:hover {
+  color: var(--au-accent);
+}
+
+.seo-faq summary::after {
+  content: '+';
+  font-size: var(--text-xl);
+  font-weight: var(--font-normal);
+  color: var(--au-text-tertiary);
+  transition: transform var(--transition-base);
+}
+
+.seo-faq details[open] summary::after {
+  content: '−';
+  color: var(--au-accent);
+}
+
+.seo-faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.seo-faq details p {
+  padding: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--au-text-secondary);
+  line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════
+   Editorial Layout (sidebar pages)
+   ═══════════════════════════════════════════ */
+
+.seo-editorial {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 0.9fr);
+  gap: var(--space-12);
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--section-py) var(--section-px);
+}
+
+.seo-editorial article h2 {
+  text-align: left;
+  margin-bottom: var(--space-4);
+}
+
+.seo-editorial article section {
+  margin-bottom: var(--space-12);
+}
+
+.seo-sidebar {
+  position: sticky;
+  top: 6rem;
+  align-self: start;
+}
+
+.seo-sidebar-card {
+  background: var(--au-surface);
+  border: 1px solid var(--au-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.seo-sidebar-card h3 {
+  font-size: var(--text-base);
+  margin-bottom: var(--space-4);
+}
+
+.seo-sidebar-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.seo-sidebar-card li {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--au-border);
+  font-size: var(--text-sm);
+  color: var(--au-text-secondary);
+}
+
+.seo-sidebar-card li:last-child {
+  border-bottom: none;
+}
+
+.seo-sidebar-card a {
+  color: var(--au-accent);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+  transition: color var(--transition-fast);
+}
+
+.seo-sidebar-card a:hover {
+  color: var(--au-text-primary);
+}
+
+/* ═══════════════════════════════════════════
+   Check lists
+   ═══════════════════════════════════════════ */
+
+.seo-checklist {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0;
+}
+
+.seo-checklist li {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--au-text-secondary);
+  line-height: 1.6;
+}
+
+.seo-checklist li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--au-success);
+  font-weight: var(--font-bold);
+}
+
+/* ═══════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .seo-editorial {
+    grid-template-columns: 1fr;
+  }
+
+  .seo-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 480px) {
+  .seo-ctas {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .seo-btn-primary,
+  .seo-btn-secondary {
+    justify-content: center;
+  }
+
+  .seo-step-card {
+    padding-left: var(--space-8);
+    padding-top: calc(var(--space-8) + 44px);
+  }
+
+  .seo-step-card .seo-step-number {
+    top: var(--space-8);
+    left: var(--space-8);
+  }
+}

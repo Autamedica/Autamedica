@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
+import '../styles/seo-landing.css';
 
 const canonicalUrl = 'https://www.autamedica.com/receta-electronica';
 ---
@@ -14,72 +15,51 @@ const canonicalUrl = 'https://www.autamedica.com/receta-electronica';
   robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
 >
   <Navbar />
-  <main class="editorial-page">
-    <section class="hero">
-      <div class="wrap">
-        <span class="eyebrow">Regulación y práctica clínica</span>
-        <h1>La receta electrónica no es un detalle técnico. Es parte de que el tratamiento continúe.</h1>
-        <p class="lede">
-          Una consulta puede estar bien hecha y aun así fracasar si el paciente sale de ella con indicaciones
-          confusas, papel perdido o una receta difícil de usar. La receta electrónica reduce esa fricción y hace
-          más simple algo básico: que el tratamiento empiece.
-        </p>
-      </div>
+  <main>
+    <section class="seo-hero">
+      <span class="seo-badge">Regulación y práctica clínica</span>
+      <h1>La receta electrónica no es un detalle técnico. Es parte de que el tratamiento continúe.</h1>
+      <p class="seo-subtitle">
+        Una consulta puede estar bien hecha y aun así fracasar si el paciente sale de ella con indicaciones
+        confusas, papel perdido o una receta difícil de usar. La receta electrónica reduce esa fricción y hace
+        más simple algo básico: que el tratamiento empiece.
+      </p>
     </section>
-    <section class="content">
-      <div class="wrap grid">
-        <article class="main">
-          <section>
-            <h2>Qué resuelve de verdad</h2>
-            <p>
-              Mejora legibilidad, trazabilidad y acceso. También reduce errores evitables: nombres mal escritos,
-              duplicaciones, dificultad para reenviar una indicación o pérdida del documento entre la consulta y la farmacia.
-            </p>
-          </section>
-          <section>
-            <h2>Por qué es especialmente importante en telemedicina</h2>
-            <p>
-              En una consulta virtual, la experiencia completa depende de que el circuito posterior funcione. La receta
-              electrónica conecta diagnóstico, indicación y continuidad. Sin esa pieza, la consulta online queda incompleta.
-            </p>
-          </section>
-          <section>
-            <h2>Qué sigue importando aunque la receta sea digital</h2>
-            <p>
-              La claridad clínica. Qué medicación, por cuánto tiempo, con qué controles y en qué contexto debe suspenderse
-              o reevaluarse. Digitalizar no reemplaza el criterio médico; lo hace más ejecutable.
-            </p>
-          </section>
-        </article>
-        <aside class="rail">
-          <div class="rail-card">
-            <p class="rail-title">Relacionado</p>
-            <a href="/medico-online">Médico online</a>
-            <a href="/consulta-medica-online">Consulta médica online</a>
-            <a href="/ley-27553-telemedicina">Ley 27553</a>
-          </div>
-        </aside>
-      </div>
-    </section>
+    <div class="seo-editorial">
+      <article>
+        <section>
+          <h2>Qué resuelve de verdad</h2>
+          <p>
+            Mejora legibilidad, trazabilidad y acceso. También reduce errores evitables: nombres mal escritos,
+            duplicaciones, dificultad para reenviar una indicación o pérdida del documento entre la consulta y la farmacia.
+          </p>
+        </section>
+        <section>
+          <h2>Por qué es especialmente importante en telemedicina</h2>
+          <p>
+            En una consulta virtual, la experiencia completa depende de que el circuito posterior funcione. La receta
+            electrónica conecta diagnóstico, indicación y continuidad. Sin esa pieza, la consulta online queda incompleta.
+          </p>
+        </section>
+        <section>
+          <h2>Qué sigue importando aunque la receta sea digital</h2>
+          <p>
+            La claridad clínica. Qué medicación, por cuánto tiempo, con qué controles y en qué contexto debe suspenderse
+            o reevaluarse. Digitalizar no reemplaza el criterio médico; lo hace más ejecutable.
+          </p>
+        </section>
+      </article>
+      <aside class="seo-sidebar">
+        <div class="seo-sidebar-card">
+          <h3>Relacionado</h3>
+          <ul>
+            <li><a href="/medico-online">Médico online</a></li>
+            <li><a href="/consulta-medica-online">Consulta médica online</a></li>
+            <li><a href="/ley-27553-telemedicina">Ley 27553</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
   </main>
   <Footer />
 </Layout>
-
-<style>
-  .editorial-page { min-height: 100vh; background: var(--au-bg); }
-  .wrap { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
-  .hero { padding: 5rem 0 3rem; border-bottom: 1px solid var(--au-border); background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent); }
-  .eyebrow { display: inline-block; margin-bottom: 1rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
-  h1 { max-width: 920px; margin: 0; color: white; font-size: clamp(2.4rem, 6vw, 4.7rem); line-height: 1.02; font-weight: 600; letter-spacing: -0.04em; }
-  .lede { max-width: 760px; margin-top: 1.5rem; color: #d1d5db; font-size: 1.15rem; line-height: 1.8; }
-  .content { padding: 3rem 0 5rem; }
-  .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 0.9fr); gap: 2rem; }
-  .main section { margin-bottom: 2.5rem; }
-  h2 { color: white; font-size: 1.8rem; margin-bottom: 1rem; }
-  p { color: #cbd5e1; line-height: 1.85; font-size: 1.04rem; }
-  .rail { position: sticky; top: 1rem; }
-  .rail-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; background: rgba(255,255,255,0.03); padding: 1rem; }
-  .rail-title { color: white; font-weight: 600; }
-  .rail-card a { display: block; color: #93c5fd; text-decoration: none; margin-top: 0.8rem; }
-  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .rail { position: static; } }
-</style>
