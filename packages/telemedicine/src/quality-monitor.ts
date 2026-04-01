@@ -4,6 +4,8 @@
  * scoring, and reporting into a single-responsibility class.
  */
 
+import { computeMOS } from './quality/scorer'
+
 export type StreamQualityLevel = 'unknown' | 'excellent' | 'good' | 'fair' | 'poor'
 
 export interface CallQualityTimelineEntry {
@@ -52,6 +54,11 @@ export interface StreamQualityMetrics {
   frameWidth: number | null
   frameHeight: number | null
   availableOutgoingBitrateKbps: number | null
+  mosScore: number | null
+  concealedSamplesRatio: number | null
+  freezeCount: number | null
+  totalFreezesDurationMs: number | null
+  remoteAudioLevel: number | null
 }
 
 export interface StreamQualitySummary {
@@ -104,6 +111,17 @@ export class QualityMonitor {
   private worstRoundTripTimeMs: number | null = null
   private worstInboundVideoBitrateKbps: number | null = null
   private worstFramesPerSecond: number | null = null
+
+  // Audio silence detection: track when remote audio is near-zero
+  private audioSilentSince = new Map<string, number>()
+  private static readonly AUDIO_SILENT_THRESHOLD = 0.01 // audioLevel below this = silent
+  private static readonly AUDIO_SILENT_ALERT_MS = 10_000 // alert after 10s of silence
+
+  // Callback for remote-audio-silent events
+  onRemoteAudioSilent: ((info: { userId: string; durationMs: number }) => void) | null = null
+
+  // Callback for per-sample quality reports (for backend persistence)
+  onQualityReport: ((metrics: StreamQualityMetrics) => void) | null = null
 
   // Running sums for averages
   private sumPacketsLostPct = 0
@@ -300,6 +318,27 @@ export class QualityMonitor {
     }
     this.lastOverallLevel = newLevel
     this.lastLevelTimestamp = now
+  }
+
+  /** Detect prolonged audio silence from a remote peer and emit alert. */
+  private checkAudioSilence(metrics: StreamQualityMetrics): void {
+    const { userId, remoteAudioLevel } = metrics
+    if (remoteAudioLevel === null) return
+
+    const now = Date.now()
+
+    if (remoteAudioLevel < QualityMonitor.AUDIO_SILENT_THRESHOLD) {
+      if (!this.audioSilentSince.has(userId)) {
+        this.audioSilentSince.set(userId, now)
+      }
+      const silentSince = this.audioSilentSince.get(userId) ?? now
+      const durationMs = now - silentSince
+      if (durationMs >= QualityMonitor.AUDIO_SILENT_ALERT_MS) {
+        this.onRemoteAudioSilent?.({ userId, durationMs })
+      }
+    } else {
+      this.audioSilentSince.delete(userId)
+    }
   }
 
   // --- stat extraction helpers ---
@@ -512,6 +551,12 @@ export class QualityMonitor {
     let frameWidth: number | null = null
     let frameHeight: number | null = null
     let availableOutgoingBitrateKbps: number | null = null
+    // Extended metrics
+    let concealedSamples: number | null = null
+    let totalSamplesReceived: number | null = null
+    let freezeCount: number | null = null
+    let totalFreezesDurationS: number | null = null
+    let remoteAudioLevel: number | null = null
 
     stats.forEach((stat) => {
       if (stat.type === 'outbound-rtp') {
@@ -548,6 +593,28 @@ export class QualityMonitor {
           if (jitterSeconds !== null) {
             jitterMs = jitterSeconds * 1000
           }
+
+          // Video freeze metrics
+          const fc = this.getStatNumber(stat, 'freezeCount')
+          const tfd = this.getStatNumber(stat, 'totalFreezesDuration')
+          const fps = this.getStatNumber(stat, 'framesPerSecond')
+          const fw = this.getStatNumber(stat, 'frameWidth')
+          const fh = this.getStatNumber(stat, 'frameHeight')
+          if (fc !== null) freezeCount = (freezeCount ?? 0) + fc
+          if (tfd !== null) totalFreezesDurationS = (totalFreezesDurationS ?? 0) + tfd
+          if (fps !== null) framesPerSecond = fps
+          if (fw !== null) frameWidth = fw
+          if (fh !== null) frameHeight = fh
+        }
+
+        if (kind === 'audio') {
+          // Concealed samples: how many times the decoder had to invent audio (PLC)
+          const cs = this.getStatNumber(stat, 'concealedSamples')
+          const tsr = this.getStatNumber(stat, 'totalSamplesReceived')
+          const al = this.getStatNumber(stat, 'audioLevel')
+          if (cs !== null) concealedSamples = (concealedSamples ?? 0) + cs
+          if (tsr !== null) totalSamplesReceived = (totalSamplesReceived ?? 0) + tsr
+          if (al !== null) remoteAudioLevel = al
         }
         return
       }
@@ -639,6 +706,12 @@ export class QualityMonitor {
       packetsReceived,
     })
 
+    // Compute concealed samples ratio (0-1 range, higher = more audio glitches)
+    let concealedSamplesRatio: number | null = null
+    if (concealedSamples !== null && totalSamplesReceived !== null && totalSamplesReceived > 0) {
+      concealedSamplesRatio = concealedSamples / totalSamplesReceived
+    }
+
     const normalizedMetrics = {
       outboundVideoBitrateKbps: this.roundMetric(outboundVideoBitrateKbps),
       outboundAudioBitrateKbps: this.roundMetric(outboundAudioBitrateKbps),
@@ -651,13 +724,28 @@ export class QualityMonitor {
       frameWidth: frameWidth !== null ? Math.round(frameWidth) : null,
       frameHeight: frameHeight !== null ? Math.round(frameHeight) : null,
       availableOutgoingBitrateKbps: this.roundMetric(availableOutgoingBitrateKbps),
+      concealedSamplesRatio: this.roundMetric(concealedSamplesRatio, 4),
+      freezeCount: freezeCount,
+      totalFreezesDurationMs: totalFreezesDurationS !== null ? this.roundMetric(totalFreezesDurationS * 1000) : null,
+      remoteAudioLevel: this.roundMetric(remoteAudioLevel, 3),
+    }
+
+    const mosScore = computeMOS(
+      normalizedMetrics.roundTripTimeMs,
+      normalizedMetrics.jitterMs,
+      normalizedMetrics.packetsLostPct,
+    )
+
+    const fullMetrics = {
+      ...normalizedMetrics,
+      mosScore,
     }
 
     return {
       userId,
-      level: this.classifyQualityLevel(normalizedMetrics),
+      level: this.classifyQualityLevel(fullMetrics),
       timestamp: now,
-      ...normalizedMetrics,
+      ...fullMetrics,
     }
   }
 
@@ -683,9 +771,15 @@ export class QualityMonitor {
       }
     }
 
-    // Track per-sample metrics for call summary
+    // Track per-sample metrics for call summary + backend reporting + audio silence
     for (const metrics of peers) {
       this.updateSummaryMetrics(metrics)
+
+      // Emit quality report for backend persistence
+      this.onQualityReport?.(metrics)
+
+      // Audio silence detection
+      this.checkAudioSilence(metrics)
     }
 
     const overallLevel = this.getOverallQualityLevel(peers)

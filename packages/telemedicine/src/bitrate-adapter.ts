@@ -70,13 +70,20 @@ export class BitrateAdapter {
         for (const sender of peerState.pc.getSenders()) {
           if (sender.track?.kind !== 'video') continue
           const params = sender.getParameters()
-          if (params.encodings?.[0]) {
-            params.encodings[0].maxBitrate = currentBitrate
-            if (progress >= 0.5) {
-              params.encodings[0].maxFramerate = 30
+          if (!params.encodings?.length) continue
+
+          // Simulcast: scale each layer proportionally
+          for (const encoding of params.encodings) {
+            if (encoding.rid === 'high' || params.encodings.length === 1) {
+              encoding.maxBitrate = currentBitrate
+              if (progress >= 0.5) encoding.maxFramerate = 30
+            } else if (encoding.rid === 'mid') {
+              encoding.maxBitrate = Math.round(currentBitrate * 0.3)
+              if (progress >= 0.5) encoding.maxFramerate = 24
             }
-            sender.setParameters(params).catch(() => { /* ignore */ })
+            // 'low' layer stays fixed at 150kbps
           }
+          sender.setParameters(params).catch(() => { /* ignore */ })
         }
       }
 

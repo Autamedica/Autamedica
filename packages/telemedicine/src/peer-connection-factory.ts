@@ -22,6 +22,14 @@ export interface ChatMessage {
   timestamp: number
 }
 
+export interface DataChannelControlMessage {
+  _control: true
+  type: 'clinical-mode' | 'audio-level-alert'
+  payload: Record<string, unknown>
+  senderId: string
+  timestamp: number
+}
+
 export interface PeerState {
   pc: RTCPeerConnection
   pendingIceCandidates: RTCIceCandidateInit[]
@@ -237,7 +245,11 @@ export class PeerConnectionFactory {
           }
 
           peerState.isMakingOffer = true
-          await pc.setLocalDescription()
+          const offer = await pc.createOffer()
+          const { mungeOpusSdp } = await import('./utils/sdp-helpers')
+          const mungedSdp = mungeOpusSdp(offer.sdp || '')
+          
+          await pc.setLocalDescription({ type: offer.type, sdp: mungedSdp })
 
           if (pc.localDescription) {
             this.callbacks.sendSignalingMessage({
@@ -317,11 +329,23 @@ export class PeerConnectionFactory {
       }
 
       try {
-        const parsed = JSON.parse(event.data) as ChatMessage
-        if (!parsed || parsed.senderId === localUserId || typeof parsed.text !== 'string') {
+        const parsed = JSON.parse(event.data)
+        if (!parsed) return
+
+        // Control messages (clinical-mode, audio-level-alert, etc.)
+        if (parsed._control === true) {
+          const control = parsed as DataChannelControlMessage
+          if (control.senderId === localUserId) return
+          this.callbacks.emit('control-message', control)
           return
         }
-        this.callbacks.emit('chat-message', parsed)
+
+        // Regular chat messages
+        const chat = parsed as ChatMessage
+        if (chat.senderId === localUserId || typeof chat.text !== 'string') {
+          return
+        }
+        this.callbacks.emit('chat-message', chat)
       } catch (error) {
         this.logWarn('Ignoring invalid chat payload', { error, remoteUserId })
       }

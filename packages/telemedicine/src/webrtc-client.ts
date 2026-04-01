@@ -12,9 +12,9 @@ import { MediaManager } from './media-manager'
 import { QualityMonitor, type StreamQualitySummary, type CallQualitySummary } from './quality-monitor'
 import { BitrateAdapter } from './bitrate-adapter'
 import { TurnManager } from './turn-manager'
-import { PeerConnectionFactory, type PeerState, type ChatMessage } from './peer-connection-factory'
+import { PeerConnectionFactory, type PeerState, type ChatMessage, type DataChannelControlMessage } from './peer-connection-factory'
 export type { StreamQualityLevel, StreamQualityMetrics, StreamQualitySummary, CallQualitySummary, CallQualityTimelineEntry, CallQualityWorstMetrics, CallQualityAverageMetrics } from './quality-monitor'
-export type { ChatMessage } from './peer-connection-factory'
+export type { ChatMessage, DataChannelControlMessage } from './peer-connection-factory'
 
 export interface WebRTCConfig {
   signalingUrl: string
@@ -39,6 +39,7 @@ export interface WebRTCEvents {
   'user-joined': (userId: string, userType: string) => void
   'user-left': (userId: string) => void
   'chat-message': (message: ChatMessage) => void
+  'control-message': (message: DataChannelControlMessage) => void
   'chat-ready': (ready: boolean) => void
   'stream-quality': (summary: StreamQualitySummary) => void
   'audio-only-fallback': (info: { reason: string; error: unknown }) => void
@@ -51,6 +52,9 @@ export interface WebRTCEvents {
   'call-quality-summary': (summary: CallQualitySummary) => void
   'reconnecting': (info: { peerId: string; attempt: number; maxAttempts: number }) => void
   'reconnected': (info: { peerId: string; afterAttempts: number }) => void
+  'clinical-mode-changed': (info: { enabled: boolean; source: 'local' | 'remote' }) => void
+  'remote-audio-silent': (info: { durationMs: number; userId: string }) => void
+  'quality-report': (metrics: import('./quality-monitor').StreamQualityMetrics) => void
 }
 
 type ServerSignalingMessage =
@@ -119,6 +123,15 @@ export class WebRTCClient {
       logger: loggerProxy,
       roomId: this.config.roomId || 'default-room',
     })
+    this.qualityMonitor.onRemoteAudioSilent = (info) => {
+      this.emit('remote-audio-silent', info)
+      this.logWarn('Remote audio silent', info)
+    }
+
+    this.qualityMonitor.onQualityReport = (metrics) => {
+      this.emit('quality-report', metrics)
+    }
+
     this.qualityMonitor.onQualitySummary = (summary) => {
       this.emit('stream-quality', summary)
 
@@ -175,6 +188,11 @@ export class WebRTCClient {
     // Track audio-only fallbacks for call summary
     this.on('audio-only-fallback', () => {
       this.qualityMonitor.recordAudioOnlyFallback()
+    })
+
+    // Handle incoming control messages (clinical-mode, etc.)
+    this.on('control-message', (msg) => {
+      this.handleControlMessage(msg)
     })
   }
 
@@ -562,8 +580,11 @@ export class WebRTCClient {
       peerState.isSettingRemoteAnswerPending = false
       await pc.setRemoteDescription(offer)
 
-      // setLocalDescription() without args auto-creates the correct answer
-      await pc.setLocalDescription()
+      const answer = await pc.createAnswer()
+      const { mungeOpusSdp } = await import('./utils/sdp-helpers')
+      const mungedSdp = mungeOpusSdp(answer.sdp || '')
+      
+      await pc.setLocalDescription({ type: answer.type, sdp: mungedSdp })
 
       if (pc.localDescription) {
         this.sendSignalingMessage({ type: 'answer', to: userId, data: pc.localDescription })
@@ -689,6 +710,64 @@ export class WebRTCClient {
     return false
   }
 
+  /**
+   * Toggle clinical mode on the LOCAL audio track.
+   * When called by the patient's client (e.g. in response to a remote request),
+   * it disables all audio processing so the doctor receives raw clinical audio.
+   */
+  async setClinicalMode(enabled: boolean): Promise<void> {
+    await this.media.setClinicalMode(enabled, this.peerConnections)
+    this.emit('clinical-mode-changed', { enabled, source: 'local' })
+  }
+
+  /**
+   * Doctor-side: request the remote patient to switch their audio to clinical mode.
+   * Sends a control message via DataChannel. The patient's client auto-responds
+   * by toggling their local audio processing.
+   * Doctor's own audio is NOT affected — always stays processed.
+   */
+  requestRemoteClinicalMode(enabled: boolean): boolean {
+    return this.sendControlMessage({
+      type: 'clinical-mode',
+      payload: { enabled },
+    })
+  }
+
+  private sendControlMessage(msg: Omit<DataChannelControlMessage, '_control' | 'senderId' | 'timestamp'>): boolean {
+    const payload: DataChannelControlMessage = {
+      _control: true,
+      type: msg.type,
+      payload: msg.payload,
+      senderId: this.config.userId,
+      timestamp: Date.now(),
+    }
+
+    let delivered = false
+    for (const [remoteUserId, peerState] of this.peerConnections) {
+      const channel = peerState.dataChannel
+      if (channel?.readyState !== 'open') continue
+      try {
+        channel.send(JSON.stringify(payload))
+        delivered = true
+      } catch (error) {
+        this.logError('Failed sending control message', error, { remoteUserId })
+      }
+    }
+    return delivered
+  }
+
+  private handleControlMessage(msg: DataChannelControlMessage): void {
+    this.logInfo('Received control message', { type: msg.type, from: msg.senderId })
+
+    if (msg.type === 'clinical-mode') {
+      const enabled = msg.payload.enabled === true
+      // Auto-apply: remote requested us to change our audio processing
+      void this.setClinicalMode(enabled).then(() => {
+        this.emit('clinical-mode-changed', { enabled, source: 'remote' })
+      })
+    }
+  }
+
   toggleVideo(enabled?: boolean): boolean {
     const localStream = this.media.getLocalStream()
     if (!localStream) return false
@@ -751,5 +830,26 @@ export class WebRTCClient {
     if (!audioTrack) return true
     const settings = audioTrack.getSettings()
     return settings.noiseSuppression !== false
+  }
+
+  /**
+   * Tune the jitter buffer target delay for audio receivers.
+   * Lower values = less latency (better for real-time auscultation).
+   * Higher values = smoother playback (better for poor networks).
+   *
+   * Recommended: 50-80ms for clinical/auscultation, 100-150ms for conversation on poor networks.
+   * Pass null to reset to browser default (adaptive).
+   */
+  setJitterBufferTarget(targetMs: number | null): void {
+    for (const [peerId, peerState] of this.peerConnections) {
+      for (const receiver of peerState.pc.getReceivers()) {
+        if (receiver.track?.kind !== 'audio') continue
+        if ('jitterBufferTarget' in receiver) {
+          (receiver as RTCRtpReceiver & { jitterBufferTarget: number | null }).jitterBufferTarget =
+            targetMs !== null ? targetMs / 1000 : null
+          this.logInfo('Jitter buffer target set', { peerId, targetMs })
+        }
+      }
+    }
   }
 }

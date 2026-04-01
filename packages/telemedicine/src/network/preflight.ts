@@ -14,6 +14,8 @@ export interface PreflightResult {
   latencyMs: number
   recommendation: PreflightRecommendation
   details: string
+  /** Whether the mic echo test passed (audio was captured and played back). null if skipped. */
+  echoTestPassed: boolean | null
 }
 
 const PREFLIGHT_TIMEOUT_MS = 10_000
@@ -53,6 +55,50 @@ export class NetworkPreflight {
    * Run the preflight test.
    * Resolves with a PreflightResult. Never rejects — returns 'unreachable' on failure.
    */
+  /**
+   * Run a quick mic echo test: record 2s of audio, check if signal was captured.
+   * Returns true if mic is working and capturing audio above silence threshold.
+   */
+  async runEchoTest(): Promise<boolean> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: false },
+      })
+      const audioCtx = new AudioContext()
+      const source = audioCtx.createMediaStreamSource(stream)
+      const analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 256
+      source.connect(analyser)
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      let maxAmplitude = 0
+
+      // Sample for 2 seconds
+      const result = await new Promise<boolean>((resolve) => {
+        let samples = 0
+        const interval = setInterval(() => {
+          analyser.getByteTimeDomainData(dataArray)
+          for (const sample of dataArray) {
+            const amplitude = Math.abs(sample - 128)
+            if (amplitude > maxAmplitude) maxAmplitude = amplitude
+          }
+          samples++
+          if (samples >= 20) { // 20 * 100ms = 2s
+            clearInterval(interval)
+            // If max amplitude > 5 (out of 128), mic is capturing real audio
+            resolve(maxAmplitude > 5)
+          }
+        }, 100)
+      })
+
+      stream.getTracks().forEach(t => t.stop())
+      await audioCtx.close()
+      return result
+    } catch {
+      return false
+    }
+  }
+
   async run(iceServers: RTCIceServer[]): Promise<PreflightResult> {
     this.aborted = false
 
@@ -93,10 +139,20 @@ export class NetworkPreflight {
 
       if (this.aborted) return this.unreachableResult('Prueba cancelada')
 
+      // Run echo test in parallel with bandwidth estimation when possible
+      let echoTestPassed: boolean | null = null
+      try {
+        echoTestPassed = await this.runEchoTest()
+      } catch {
+        echoTestPassed = null
+      }
+
+      if (this.aborted) return this.unreachableResult('Prueba cancelada')
+
       const recommendation = buildRecommendation(stunReachable, turnReachable, bandwidthKbps)
       const details = buildDetails(recommendation, bandwidthKbps, latencyMs)
 
-      return { stunReachable, turnReachable, estimatedBandwidthKbps: bandwidthKbps, latencyMs, recommendation, details }
+      return { stunReachable, turnReachable, estimatedBandwidthKbps: bandwidthKbps, latencyMs, recommendation, details, echoTestPassed }
     } catch {
       return this.unreachableResult('Error durante la prueba de red')
     } finally {
@@ -256,6 +312,7 @@ export class NetworkPreflight {
       latencyMs: 0,
       recommendation: 'unreachable',
       details,
+      echoTestPassed: null,
     }
   }
 }

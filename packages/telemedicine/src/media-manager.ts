@@ -3,7 +3,7 @@
  * Extracted from WebRTCClient to keep media concerns isolated.
  */
 
-import { getAdaptiveConstraints, getPreferredCodecs, detectBrowser } from './media-optimizations'
+import { getAdaptiveConstraints, getPreferredVideoCodecs, getPreferredAudioCodecs, detectBrowser } from './media-optimizations'
 import type { createTelemedicineLogger } from './debug'
 import type { DeviceInfo, MediaConstraints } from './webrtc-client'
 import { INITIAL_VIDEO_BITRATE } from './bitrate-adapter'
@@ -179,6 +179,71 @@ export class MediaManager {
     this.logInfo('Video track replaced', { trackLabel: newTrack.label })
   }
 
+  /**
+   * Toggle clinical audio mode on the LOCAL microphone track.
+   *
+   * When enabled: disables noiseSuppression, echoCancellation, autoGainControl
+   * so the remote side receives raw clinical audio (sibilances, lung sounds, etc.).
+   *
+   * When disabled: re-enables all processing for clean conversational audio.
+   *
+   * NOTE: This changes what THIS client SENDS. In the asymmetric telemedicine model:
+   * - Patient calls this when doctor requests clinical mode (via DataChannel control msg)
+   * - Doctor should NOT call this directly — use requestRemoteClinicalMode() instead
+   */
+  async setClinicalMode(
+    enabled: boolean,
+    peerConnections: Map<string, { pc: RTCPeerConnection }>
+  ): Promise<void> {
+    if (!this.localStream) return
+
+    const currentAudioTrack = this.localStream.getAudioTracks()[0]
+    if (!currentAudioTrack) return
+
+    const deviceId = currentAudioTrack.getSettings().deviceId
+
+    const constraints: MediaStreamConstraints = {
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation: !enabled,
+        noiseSuppression: !enabled,
+        autoGainControl: !enabled,
+        sampleRate: { ideal: 48000 },
+        channelCount: { ideal: 1 },
+      }
+    }
+
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints)
+      const newTrack = newStream.getAudioTracks()[0]
+      if (!newTrack) return
+
+      // Set content hint based on mode
+      if ('contentHint' in newTrack) {
+        newTrack.contentHint = enabled ? 'music' : 'speech'
+      }
+
+      for (const old of this.localStream.getAudioTracks()) {
+        this.localStream.removeTrack(old)
+        old.stop()
+      }
+      this.localStream.addTrack(newTrack)
+
+      for (const [, peerState] of peerConnections) {
+        const sender = peerState.pc.getSenders().find((s) => s.track?.kind === 'audio')
+        if (sender) {
+          await sender.replaceTrack(newTrack)
+        }
+      }
+
+      this.callbacks.emit('local-stream', this.localStream)
+      this.logInfo('Clinical mode toggled', { enabled, deviceId, contentHint: enabled ? 'music' : 'speech' })
+    } catch (error) {
+      this.logError('Failed to toggle clinical mode', error, { enabled })
+      throw error
+    }
+  }
+
   attachLocalTracks(pc: RTCPeerConnection): void {
     const stream = this.localStream
     if (!stream) {
@@ -194,26 +259,28 @@ export class MediaManager {
 
     stream.getTracks().forEach(track => {
       if (!existingTrackIds.has(track.id)) {
-        const sender = pc.addTrack(track, stream)
-
         if (track.kind === 'video') {
-          const params = sender.getParameters()
-          if (!params.encodings) {
-            params.encodings = [{}]
-          }
-          params.encodings[0].maxBitrate = INITIAL_VIDEO_BITRATE
-          params.encodings[0].maxFramerate = 24
-
-          sender.setParameters(params).catch(e => {
-            this.logWarn('Failed to set video encoding parameters', { error: e, trackId: track.id })
+          // Use addTransceiver for video to enable simulcast with 3 encoding layers.
+          // Simulcast lets the SFU/receiver pick the best layer for their bandwidth.
+          // Medical context: prioritize resolution over framerate (skin lesions, mucosa color).
+          pc.addTransceiver(track, {
+            direction: 'sendrecv',
+            streams: [stream],
+            sendEncodings: [
+              { rid: 'low', maxBitrate: 150_000, scaleResolutionDownBy: 4, maxFramerate: 15 },
+              { rid: 'mid', maxBitrate: 500_000, scaleResolutionDownBy: 2, maxFramerate: 24 },
+              { rid: 'high', maxBitrate: INITIAL_VIDEO_BITRATE, maxFramerate: 30 },
+            ],
           })
-
           this.callbacks.onBitrateRampNeeded()
+        } else {
+          pc.addTrack(track, stream)
         }
 
         this.logInfo('Attached local track to peer connection', {
           trackId: track.id,
           trackKind: track.kind,
+          simulcast: track.kind === 'video',
           peerConnectionSignalingState: pc.signalingState,
         })
       }
@@ -261,12 +328,16 @@ export class MediaManager {
     if (!('getTransceivers' in pc)) return
 
     try {
-      const preferred = getPreferredCodecs()
+      const preferredVideo = getPreferredVideoCodecs()
+      const preferredAudio = getPreferredAudioCodecs()
+      
       const transceivers = pc.getTransceivers()
       for (const transceiver of transceivers) {
-        if (transceiver.sender.track?.kind !== 'video') continue
+        const kind = transceiver.sender.track?.kind
+        if (!kind) continue
 
-        const codecs = RTCRtpSender.getCapabilities?.('video')?.codecs
+        const preferred = kind === 'video' ? preferredVideo : preferredAudio
+        const codecs = RTCRtpSender.getCapabilities?.(kind)?.codecs
         if (!codecs) continue
 
         const sorted = [...codecs].sort((a, b) => {
@@ -278,6 +349,7 @@ export class MediaManager {
         if ('setCodecPreferences' in transceiver) {
           transceiver.setCodecPreferences(sorted)
           this.logInfo('Codec preference set', {
+            kind,
             preferred: sorted[0]?.mimeType ?? 'unknown',
             browser: detectBrowser(),
           })

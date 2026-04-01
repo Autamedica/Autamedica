@@ -58,6 +58,7 @@ export type {
   CallQualityTimelineEntry,
   CallQualityWorstMetrics,
   CallQualityAverageMetrics,
+  DataChannelControlMessage,
 } from './webrtc-client'
 
 // Cloudflare Calls SFU (streaming relay via Cloudflare edge)
@@ -155,7 +156,8 @@ export {
   setupWakeLockVisibilityHandler,
   setupVisibilityVideoPause,
   detectBrowser,
-  getPreferredCodecs,
+  getPreferredVideoCodecs,
+  getPreferredAudioCodecs,
   patchVideoPlayback,
 } from './media-optimizations'
 export type { BrowserCapabilities } from './media-optimizations'

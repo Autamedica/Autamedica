@@ -38,17 +38,29 @@ export function detectBrowser(): BrowserCapabilities {
   }
 }
 
-export function getPreferredCodecs(): string[] {
+export function getPreferredVideoCodecs(): string[] {
   const { isSafari, supportsVP9 } = detectBrowser()
   if (isSafari) return ['video/H264', 'video/VP8']
 
-  // Check for H.265/HEVC hardware support (Chrome 136+, ~50% bandwidth savings)
   const codecs = RTCRtpSender.getCapabilities?.('video')?.codecs ?? []
   const supportsH265 = codecs.some(c => c.mimeType === 'video/H265')
+  const supportsAV1 = codecs.some(c => c.mimeType === 'video/AV1')
 
-  if (supportsH265 && supportsVP9) return ['video/H265', 'video/VP9', 'video/VP8', 'video/H264']
-  if (supportsVP9) return ['video/VP9', 'video/VP8', 'video/H264']
-  return ['video/H264', 'video/VP8']
+  // AV1 > H.265 > VP9 > VP8 > H.264
+  // AV1: 30-50% better compression than VP9, native SVC support
+  // H.265: ~50% bandwidth savings over H.264
+  const preferred: string[] = []
+  if (supportsAV1) preferred.push('video/AV1')
+  if (supportsH265) preferred.push('video/H265')
+  if (supportsVP9) preferred.push('video/VP9')
+  preferred.push('video/VP8', 'video/H264')
+  return preferred
+}
+
+export function getPreferredAudioCodecs(): string[] {
+  // RED (Redundant Audio) is highly recommended for telemedicine to handle packet loss.
+  // It wraps Opus. If supported, it should be first.
+  return ['audio/red', 'audio/opus']
 }
 
 /**

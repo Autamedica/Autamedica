@@ -16,6 +16,14 @@ export interface StreamQualityMetrics {
   frameHeight: number | null
   availableOutgoingBitrateKbps: number | null
   mosScore: number | null
+  /** Ratio of concealed (PLC-generated) audio samples to total. Higher = more glitches heard. */
+  concealedSamplesRatio: number | null
+  /** Number of video freeze events since last sample. */
+  freezeCount: number | null
+  /** Total freeze duration in ms since last sample. */
+  totalFreezesDurationMs: number | null
+  /** Remote audio level (0-1). Near-zero for extended period = patient may be muted/silent. */
+  remoteAudioLevel: number | null
 }
 
 export interface StreamQualitySummary {
