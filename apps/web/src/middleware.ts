@@ -348,11 +348,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     // Protected routes: redirect unauthenticated users to login
     const isProtectedRoute = isProtectedPath(pathname) || isPortalHostRoot;
-    const isDevMode = !import.meta.env.PROD;
+    const AUTH_BYPASS_ENABLED = import.meta.env.AUTH_BYPASS === 'true';
 
     if (!isAuthenticated && isProtectedRoute) {
-      if (isDevMode) {
-        logger.warn('[MODODEV] Bypass activado para ruta protegida sin sesion valida', {
+      if (AUTH_BYPASS_ENABLED) {
+        logger.warn('[AUTH_BYPASS] Bypass enabled for protected route without valid session', {
           pathname,
           portal,
           ...authCookieDebug,
@@ -381,11 +381,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Role-based access control for protected routes
     if (isAuthenticated && isProtectedRoute) {
       const userRole = extractRole(user.user_metadata as Record<string, unknown>);
-
-      // Permite acceso sin rol en modo dev (evita redirect loops)
-      if (isDevMode && !userRole) {
-        return next();
-      }
 
       if (!userRole) {
         return context.redirect('/auth/select-role');

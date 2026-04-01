@@ -108,7 +108,9 @@ export function AutaChatbot() {
                   }
                 }
               }
-            } catch {}
+            } catch (e) {
+              logger.warn('Failed to load server context for chatbot', e);
+            }
           }
         }
       } catch (e) {

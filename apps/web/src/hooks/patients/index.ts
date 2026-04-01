@@ -8,20 +8,16 @@
 // Core hooks
 export { useAnamnesis } from './useAnamnesis';
 export { useTelemedicine } from './useTelemedicine';
-export { useCommunity, useCommunityGroups, useCommunityPosts, useAutoJoinGroup } from './useCommunity';
+export { useCommunity, useCommunityGroups, useCommunityPosts } from './useCommunity';
 export { usePatientScreenings } from './usePatientScreenings';
 export { useMedicalHistory } from './useMedicalHistory';
 export { usePreventiveScreenings } from './usePreventiveScreenings';
 
 // Reproductive health hooks
 export { useReproductiveHealthSpecialists } from './useReproductiveHealthSpecialists';
-export { useReproductiveHealthAppointments } from './useReproductiveHealthAppointments';
-export { useHealthCentersGeolocation } from './useHealthCentersGeolocation';
-export { useMedicalChats, useChatMessages } from './useMedicalChat';
 
 // Telemedicine hooks
 export { useTelemedicineSignaling } from './useTelemedicineSignaling';
-export { useVideoCall } from './useVideoCall';
 
 // Session hooks
 export { usePatientSession } from './usePatientSession';

@@ -12,51 +12,46 @@ import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
-import { useDoctorPatients } from '@/hooks/doctors/useRealPatients'
-import { Calendar, Clock, FileText, Phone, RefreshCw, Search, UserCheck, UserPlus, Users, Video } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useRealPatients } from '@/hooks/doctors/useRealPatients'
+import { Calendar, Clock, Video, User, Users, FileText, Phone, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
+import { updateAppointment } from '@/lib/doctors/lib/repos/appointments'
+import { logger } from '@autamedica/shared'
 
-export interface PatientsPanelProps {
+interface PatientsPanelProps {
   doctorUserId?: string
   onSelectPatient?: (patientId: string) => void
-}
-
-function getInitials(firstName?: string | null, lastName?: string | null): string {
-  const f = firstName?.[0]?.toUpperCase() ?? ''
-  const l = lastName?.[0]?.toUpperCase() ?? ''
-  return (f + l) || '?'
-}
-
-function getDisplayName(profile?: { first_name?: string | null; last_name?: string | null; email?: string | null }): { name: string; isEmail: boolean } {
-  const first = profile?.first_name?.trim()
-  const last = profile?.last_name?.trim()
-  if (first || last) return { name: [first, last].filter(Boolean).join(' '), isEmail: false }
-  if (profile?.email) return { name: profile.email, isEmail: true }
-  return { name: 'Paciente sin datos', isEmail: true }
-}
-
-const AVATAR_COLORS = [
-  'bg-sky-100 text-sky-700 border-sky-200',
-  'bg-emerald-100 text-emerald-700 border-emerald-200',
-  'bg-violet-100 text-violet-700 border-violet-200',
-  'bg-amber-100 text-amber-700 border-amber-200',
-  'bg-rose-100 text-rose-700 border-rose-200',
-  'bg-cyan-100 text-cyan-700 border-cyan-200',
-]
-
-function getAvatarColor(id: string): string {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
 export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const { patients, loading, error, refetch } = useDoctorPatients(doctorUserId ?? '')
+  const { patients, loading, error, refetch } = useRealPatients()
 
   const { user } = useAuthenticatedUser()
   const { appointments } = useDoctorAppointments(user?.doctorProfileId)
+
+  const startConsultation = async (patientId: string, appointment: { id: string; start_time: string; type: string | null }) => {
+    try {
+      const response = await fetch(`/api/doctors/appointments/${appointment.id}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'in_progress' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      refetch();
+      window.location.href = `/doctors/consultations/${appointment.id}`;
+    } catch (error) {
+      logger.error('Failed to start consultation', error);
+    }
+  };
 
   const upcomingAppointmentsCount = useMemo(() => {
     const now = Date.now()
@@ -69,13 +64,13 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
   // Map patient_id → next appointment for that patient
   const nextAppointmentByPatient = useMemo(() => {
     const now = Date.now()
-    const map = new Map<string, { start_time: string; type: string | null }>()
+    const map = new Map<string, { id: string; start_time: string; type: string | null }>()
     const future = appointments
       .filter(a => (a.status === 'scheduled' || a.status === 'confirmed') && Date.parse(a.start_time) > now)
       .sort((a, b) => Date.parse(a.start_time) - Date.parse(b.start_time))
     for (const a of future) {
       if (a.patient_id && !map.has(a.patient_id)) {
-        map.set(a.patient_id, { start_time: a.start_time, type: a.type })
+        map.set(a.patient_id, { id: a.id, start_time: a.start_time, type: a.type })
       }
     }
     return map
@@ -151,8 +146,8 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
             <Users className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Mis Pacientes</h1>
-            <p className="text-sm text-muted-foreground">{patients.length} asignados</p>
+            <h1 className="text-2xl font-bold tracking-tight">Pacientes</h1>
+            <p className="text-sm text-muted-foreground">{patients.length} pacientes en plataforma</p>
           </div>
         </div>
         <button
@@ -169,7 +164,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
         <div className="flex items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 px-4 py-3">
           <Users className="h-5 w-5 text-primary" />
           <div>
-            <p className="text-xs text-muted-foreground">Propios</p>
+            <p className="text-xs text-muted-foreground">Total</p>
             <p className="text-lg font-bold">{patients.length}</p>
           </div>
         </div>
@@ -284,6 +279,18 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
 
                   {/* Actions */}
                   <div className="flex border-t border-muted/50">
+                    {/* Add Start Consultation button if appointment is today */}
+                    {nextAppt && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); startConsultation(patient.id, nextAppt) }}
+                        className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors"
+                      >
+                        <Video className="h-3.5 w-3.5" />
+                        Iniciar
+                      </button>
+                    )}
+                    <div className="w-px bg-muted/50" />
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onSelectPatient?.(patient.id) }}
@@ -291,15 +298,6 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                     >
                       <FileText className="h-3.5 w-3.5" />
                       Historial
-                    </button>
-                    <div className="w-px bg-muted/50" />
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onSelectPatient?.(patient.id) }}
-                      className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
-                    >
-                      <Phone className="h-3.5 w-3.5" />
-                      Llamar
                     </button>
                     <div className="w-px bg-muted/50" />
                     <button

@@ -43,6 +43,16 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204 })
   }
 
+  const authHeader = req.headers.get('Authorization')
+  const expectedToken = Deno.env.get('CRON_SECRET') ?? ''
+
+  if (!authHeader || !authHeader.includes(expectedToken)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
