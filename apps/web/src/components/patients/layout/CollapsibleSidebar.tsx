@@ -69,10 +69,10 @@ export function CollapsibleSidebar() {
     setPathname(window.location.pathname)
   }, [])
 
-  const userName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Paciente'
+  const userName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Paciente'
   const userInitials = (() => {
-    const first = profile?.first_name?.[0] ?? ''
-    const last = profile?.last_name?.[0] ?? ''
+    const first = profile?.firstName?.[0] ?? ''
+    const last = profile?.lastName?.[0] ?? ''
     return (first + last).toUpperCase() || 'P'
   })()
 

@@ -1,5 +1,6 @@
 import type { StorybookConfig } from '@storybook/react-vite';
-import { mergeConfig } from 'vite';
+// @ts-expect-error — vite is provided by @storybook/react-vite at runtime
+import { mergeConfig } from 'vite'
 import path from 'node:path';
 
 const config: StorybookConfig = {

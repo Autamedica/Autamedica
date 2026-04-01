@@ -106,7 +106,7 @@ export const HoverGlow: Story = {
 
 export const TarjetaDeTurno: Story = {
   render: () => (
-    <Card variant="elevated" hover="lift" padding="md" as="article" style={{ width: '380px' } as React.CSSProperties}>
+    <Card variant="elevated" hover="lift" padding="md" as="article" className="w-[380px]">
       <div className="flex items-start justify-between mb-3">
         <Badge variant="primary">Programada</Badge>
         <span className="text-xs text-am-surface-400">14 abr 2026</span>

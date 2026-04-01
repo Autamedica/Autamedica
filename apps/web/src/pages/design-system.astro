@@ -569,7 +569,7 @@ export const prerender = true
 <div class="toast" id="toast">Copiado</div>
 
 <script>
-  function copyColor(hex) {
+  function copyColor(hex: string) {
     navigator.clipboard.writeText(hex);
     const toast = document.getElementById('toast');
     toast.textContent = `Copiado: ${hex}`;
