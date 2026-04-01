@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { AppointmentsTable } from '@/components/patients/appointments/AppointmentsTable'
 import { CreateAppointmentModal } from '@/components/patients/appointments/CreateAppointmentModal'
 import { ReviewModal } from '@/components/patients/appointments/ReviewModal'
-import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
 import { useReviews } from '@/hooks/patients/useReviews'
@@ -54,7 +53,7 @@ export default function AppointmentsPage({
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [reviewTarget, setReviewTarget] = useState<AppointmentWithDoctor | null>(null)
-  const [patientProfileId, setPatientProfileId] = useState<string | null>(null)
+  const [_patientProfileId, setPatientProfileId] = useState<string | null>(null)
   const {
     appointments,
     loading,
@@ -85,7 +84,7 @@ export default function AppointmentsPage({
           success?: boolean
           data?: {
             role?: string
-            patientProfileId?: string
+            _patientProfileId?: string
           } | null
         }
 
@@ -93,7 +92,7 @@ export default function AppointmentsPage({
           return
         }
 
-        setPatientProfileId(payload.data.patientProfileId ?? null)
+        setPatientProfileId(payload.data._patientProfileId ?? null)
       } catch {
         // Non-blocking enhancement only.
       }
@@ -160,7 +159,7 @@ export default function AppointmentsPage({
     )[0] ?? null
   }, [focusAppointmentId, isTelemedicineView, visibleAppointments])
 
-  const incomingCallFocusAppointmentId = useMemo(() => {
+  const _incomingCallFocusAppointmentId = useMemo(() => {
     if (!isTelemedicineView) {
       return null
     }
@@ -390,13 +389,6 @@ export default function AppointmentsPage({
           onSubmit={submitReview}
           submitting={reviewSubmitting}
           error={reviewError}
-        />
-      )}
-
-      {patientProfileId && (
-        <IncomingCallHandler
-          patientId={patientProfileId}
-          focusAppointmentId={incomingCallFocusAppointmentId}
         />
       )}
     </div>

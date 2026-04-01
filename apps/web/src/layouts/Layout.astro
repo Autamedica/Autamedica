@@ -9,6 +9,7 @@ import SeoScrollAnimations from '../components/SeoScrollAnimations.astro';
 import FadeInObserver from '../components/FadeInObserver.astro';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
+import { SessionSync as PatientSessionSync } from '../components/patients/SessionSync';
 
 interface Props {
   title?: string;
@@ -37,6 +38,23 @@ const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`
 const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
   Astro.locals.runtime?.env,
 );
+
+const devPortal = import.meta.env.DEV ? Astro.url.searchParams.get('portal') : null;
+const isDoctorHost =
+  Astro.url.hostname === 'doctor.autamedica.com' ||
+  Astro.url.hostname === 'doctors.autamedica.com' ||
+  Astro.url.pathname.startsWith('/doctors') ||
+  devPortal === 'doctor';
+const isPatientHost =
+  Astro.url.hostname === 'paciente.autamedica.com' ||
+  Astro.url.hostname === 'patients.autamedica.com' ||
+  Astro.url.pathname.startsWith('/patients') ||
+  devPortal === 'patient';
+const isCompanyHost =
+  Astro.url.hostname === 'empresa.autamedica.com' ||
+  Astro.url.hostname === 'companies.autamedica.com' ||
+  Astro.url.pathname.startsWith('/companies') ||
+  devPortal === 'company';
 ---
 
 <!doctype html>
@@ -139,5 +157,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
     <CookieBanner />
     <SeoScrollAnimations />
     <FadeInObserver />
+
+    {isPatientHost && <PatientSessionSync client:load />}
   </body>
 </html>

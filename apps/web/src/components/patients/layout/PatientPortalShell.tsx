@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState } from 'react';
+import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler';
+import { usePatientSession } from '@/hooks/patients/usePatientSession';
 
 interface PatientPortalContextType {
   isFocusMode: boolean;
@@ -53,6 +55,7 @@ interface PatientPortalShellProps {
 
 export function PatientPortalShell({ children, className = '' }: PatientPortalShellProps) {
   const { isFocusMode } = usePatientPortal();
+  const { patient } = usePatientSession();
 
   return (
     <div
@@ -68,6 +71,9 @@ export function PatientPortalShell({ children, className = '' }: PatientPortalSh
       {isFocusMode && (
         <div className="fixed inset-0 z-40 pointer-events-none bg-sky-500/8 backdrop-blur-sm" />
       )}
+      
+      {/* Global Call Handler */}
+      {patient?.id && <IncomingCallHandler patientId={patient.id} patientName={patient.profile?.first_name || 'Paciente'} />}
     </div>
   );
 }

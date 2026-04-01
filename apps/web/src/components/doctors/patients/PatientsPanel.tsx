@@ -15,6 +15,7 @@ import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { Calendar, Clock, Video, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
 import { useState, useMemo } from 'react'
+import { startCallBrowserService } from '@/lib/calls/services/start-call.browser'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
 import { logger } from '@autamedica/shared'
 
@@ -33,20 +34,13 @@ export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
 
   const startConsultation = async (patientId: string, appointment: { id: string; start_time: string; type: string | null }) => {
     try {
-      const response = await fetch(`/api/doctors/appointments/${appointment.id}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'in_progress' }),
+      const call = await startCallBrowserService.startCall({
+        patientId,
+        appointmentId: appointment.id,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
       refetch();
-      window.location.href = `/doctors/consultations/${appointment.id}`;
+      window.location.href = `/doctors/call/${call.roomId}?callId=${call.callId}`;
     } catch (error) {
       logger.error('Failed to start consultation', error);
     }

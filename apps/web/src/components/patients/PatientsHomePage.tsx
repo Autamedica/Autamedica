@@ -20,7 +20,6 @@ import {
   Video,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
 import OnboardingChecklist from '@/components/patients/OnboardingChecklist'
 import PreConsultationReminder from '@/components/patients/PreConsultationReminder'
 import BottomNav from '@/components/patients/layout/BottomNav'
@@ -396,9 +395,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             </section>
           </main>
 
-          <BottomNav activeTab="inicio" />
-
-          {patient?.id && <IncomingCallHandler patientId={patient.id} />}
         </>
       )}
     </div>
