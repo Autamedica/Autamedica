@@ -1,0 +1,136 @@
+---
+// Auto-discovers SEO landing page elements by CSS class and applies scroll-triggered GSAP animations.
+// No props needed. Added to Layout.astro — skips homepage (has its own GSAP).
+---
+
+<script>
+  async function initSeoAnimations() {
+    // Skip homepage — has its own GSAP animations
+    if (document.querySelector('.hero')) return;
+
+    // Respect reduced motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Only init if there are SEO elements on the page
+    if (!document.querySelector('.seo-hero, .seo-section, .seo-editorial, .blog-prose')) return;
+
+    const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+      import('gsap'),
+      import('gsap/ScrollTrigger'),
+    ]);
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Hero entrance (no scroll trigger — immediate)
+    const hero = document.querySelector('.seo-hero');
+    if (hero) {
+      const tl = gsap.timeline({ delay: 0.1 });
+      tl.from('.seo-hero .seo-badge', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' })
+        .from('.seo-hero h1', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, '-=0.3')
+        .from('.seo-hero .seo-subtitle', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' }, '-=0.3')
+        .from('.seo-hero .seo-ctas', { opacity: 0, y: 10, duration: 0.4, ease: 'power2.out' }, '-=0.2')
+        .from('.seo-hero .seo-trust', { opacity: 0, duration: 0.3 }, '-=0.1');
+    }
+
+    // Section headings — slide up on scroll
+    gsap.utils.toArray('.seo-section h2').forEach((el) => {
+      gsap.from(el as Element, {
+        opacity: 0,
+        y: 25,
+        duration: 0.6,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: el as Element,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+    });
+
+    // Cards — stagger fade in
+    document.querySelectorAll('.seo-grid-2, .seo-grid-3, .seo-grid-4').forEach((grid) => {
+      const cards = grid.querySelectorAll('.seo-card');
+      if (cards.length === 0) return;
+      gsap.from(Array.from(cards), {
+        opacity: 0,
+        y: 20,
+        scale: 0.97,
+        duration: 0.5,
+        stagger: 0.08,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: grid,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+    });
+
+    // FAQ items — stagger
+    document.querySelectorAll('.seo-faq').forEach((faq) => {
+      const items = faq.querySelectorAll('details');
+      if (items.length === 0) return;
+      gsap.from(Array.from(items), {
+        opacity: 0,
+        x: -10,
+        duration: 0.4,
+        stagger: 0.06,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: faq,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+    });
+
+    // Editorial content sections
+    document.querySelectorAll('.seo-editorial article section').forEach((section) => {
+      gsap.from(section as Element, {
+        opacity: 0,
+        y: 15,
+        duration: 0.5,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: section as Element,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+    });
+
+    // Blog prose sections
+    document.querySelectorAll('.blog-prose section, .blog-prose h2').forEach((el) => {
+      gsap.from(el as Element, {
+        opacity: 0,
+        y: 15,
+        duration: 0.5,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: el as Element,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+    });
+
+    // Sidebar cards
+    document.querySelectorAll('.seo-sidebar-card').forEach((card) => {
+      gsap.from(card as Element, {
+        opacity: 0,
+        x: 15,
+        duration: 0.5,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: card as Element,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+    });
+  }
+
+  // Init on load and on Astro view transitions
+  initSeoAnimations();
+  document.addEventListener('astro:after-swap', initSeoAnimations);
+</script>

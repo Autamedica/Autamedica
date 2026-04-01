@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './interactions.css';
+
 .skip-nav {
   position: absolute;
   top: -100%;

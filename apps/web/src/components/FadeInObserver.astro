@@ -1,0 +1,17 @@
+<script>
+function initFadeIn() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('au-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.au-fade-in').forEach(el => observer.observe(el));
+}
+
+initFadeIn();
+document.addEventListener('astro:after-swap', initFadeIn);
+</script>

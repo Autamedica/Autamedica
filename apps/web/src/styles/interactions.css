@@ -1,0 +1,149 @@
+/* ═══════════════════════════════════════════
+   Micro-Interactions — Consistent interaction
+   utilities across AutaMedica.
+   Prefix: au-
+   ═══════════════════════════════════════════ */
+
+/* ── 1. Interactive Surfaces ──────────────── */
+
+.au-interactive {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.au-interactive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.au-interactive:active {
+  transform: scale(0.98) translateY(0);
+}
+
+.au-interactive-strong {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.au-interactive-strong:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.12);
+}
+
+.au-interactive-strong:active {
+  transform: scale(0.97) translateY(0);
+}
+
+/* ── 2. Focus Rings ───────────────────────── */
+
+.au-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px white, 0 0 0 4px rgba(14, 165, 233, 0.5);
+}
+
+.au-focus-ring-dark:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2), 0 0 0 4px rgba(14, 165, 233, 0.6);
+}
+
+/* ── 3. Link Styles ───────────────────────── */
+
+.au-link {
+  color: var(--au-accent, #0ea5e9);
+  text-decoration: none;
+  background-image: linear-gradient(var(--au-accent, #0ea5e9), var(--au-accent, #0ea5e9));
+  background-size: 0% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s ease;
+}
+
+.au-link:hover {
+  background-size: 100% 1px;
+}
+
+/* ── 4. Button Press Feedback ─────────────── */
+
+.au-press {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.au-press:active {
+  transform: scale(0.96);
+}
+
+/* ── 5. Fade-In Utilities ─────────────────── */
+
+.au-fade-in {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.au-fade-in.au-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.au-stagger > .au-fade-in:nth-child(1) { transition-delay: 0s; }
+.au-stagger > .au-fade-in:nth-child(2) { transition-delay: 0.06s; }
+.au-stagger > .au-fade-in:nth-child(3) { transition-delay: 0.12s; }
+.au-stagger > .au-fade-in:nth-child(4) { transition-delay: 0.18s; }
+.au-stagger > .au-fade-in:nth-child(5) { transition-delay: 0.24s; }
+.au-stagger > .au-fade-in:nth-child(6) { transition-delay: 0.30s; }
+
+/* ── 6. Disabled State ────────────────────── */
+
+.au-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── 7. Loading Shimmer ───────────────────── */
+
+.au-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: au-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes au-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Reduced Motion ───────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .au-interactive,
+  .au-interactive-strong,
+  .au-press {
+    transition: none;
+  }
+
+  .au-interactive:hover,
+  .au-interactive-strong:hover {
+    transform: none;
+  }
+
+  .au-interactive:active,
+  .au-interactive-strong:active,
+  .au-press:active {
+    transform: none;
+  }
+
+  .au-fade-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .au-shimmer {
+    animation: none;
+  }
+}
