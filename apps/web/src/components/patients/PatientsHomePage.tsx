@@ -1,5 +1,6 @@
 'use client'
 
+import { Skeleton, SkeletonDashboard } from '@/components/ui/Skeleton'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
@@ -20,6 +21,8 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
+import OnboardingChecklist from '@/components/patients/OnboardingChecklist'
+import PreConsultationReminder from '@/components/patients/PreConsultationReminder'
 import BottomNav from '@/components/patients/layout/BottomNav'
 import {
   buildPatientTelemedicineEntryUrl,
@@ -36,6 +39,11 @@ function getFirstName(
   const fullName = typeof metadata?.full_name === 'string' ? metadata.full_name : undefined
   if (fullName) return fullName.split(' ')[0]
   return user?.email?.split('@')[0] ?? 'Paciente'
+}
+
+function isWithin2Hours(scheduledAt: string): boolean {
+  const diff = new Date(scheduledAt).getTime() - Date.now()
+  return diff > 0 && diff <= 2 * 60 * 60 * 1000
 }
 
 function getTimeGreeting(): string {
@@ -118,6 +126,32 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const upcomingTelemedicine = upcomingAppointment && isTelemedicineAppointment(upcomingAppointment) ? upcomingAppointment : null
   const canJoinUpcomingTelemedicine = upcomingTelemedicine ? isJoinableTelemedicineAppointment(upcomingTelemedicine) : false
 
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-white">
+        <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
+            <div className="flex items-center gap-3">
+              <Skeleton circle className="h-9 w-9" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-2.5 w-20" />
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <Skeleton circle className="h-9 w-9" />
+              <Skeleton circle className="h-9 w-9" />
+            </div>
+          </div>
+        </header>
+        <div className="mx-auto max-w-2xl">
+          <SkeletonDashboard />
+        </div>
+        <BottomNav activeTab="inicio" />
+      </div>
+    )
+  }
+
   // Anamnesis progress (rough proxy from profile completeness)
   const anamnesisProgress = patient ? Math.min(
     ((profile?.firstName ? 15 : 0) +
@@ -138,6 +172,18 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     (patient?.dateOfBirth ? 10 : 0)),
     100
   ) : 0
+
+  const checklistItems = useMemo(() => [
+    { key: 'name', label: 'Nombre y apellido', completed: !!(profile?.firstName && profile?.lastName), href: '/patients/profile' },
+    { key: 'email', label: 'Email verificado', completed: !!profile?.email, href: '/patients/settings' },
+    { key: 'dob', label: 'Fecha de nacimiento', completed: !!patient?.dateOfBirth, href: '/patients/profile' },
+    { key: 'phone', label: 'Telefono de contacto', completed: !!profile?.phone, href: '/patients/profile' },
+    { key: 'gender', label: 'Genero', completed: !!patient?.gender, href: '/patients/profile' },
+    { key: 'anamnesis', label: 'Completar anamnesis', completed: anamnesisProgress >= 80, href: '/patients/anamnesis' },
+  ], [profile, patient, anamnesisProgress])
+
+  const checklistCompleted = checklistItems.filter(i => i.completed).length
+  const hasIncompleteChecklist = checklistItems.some(i => !i.completed)
 
   const ACTIONS = [
     { key: 'video', label: 'Videoconsulta', sub: 'Conectá en vivo', href: '/patients/appointments?type=telemedicine', icon: Video, color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100 hover:border-sky-200' },
@@ -285,6 +331,21 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           </section>
         )}
 
+        {/* ═══ PRE-CONSULTATION REMINDER ═══ */}
+        {upcomingTelemedicine && isWithin2Hours(upcomingTelemedicine.scheduled_at) && (
+          <PreConsultationReminder
+            doctorName={
+              upcomingTelemedicine.doctor
+                ? `Dr. ${upcomingTelemedicine.doctor.first_name ?? ''} ${upcomingTelemedicine.doctor.last_name ?? ''}`.trim()
+                : 'Tu médico'
+            }
+            specialty={upcomingTelemedicine.doctor?.specialty ?? 'General'}
+            scheduledAt={upcomingTelemedicine.scheduled_at}
+            appointmentId={upcomingTelemedicine.id}
+            locale={dateLocale}
+          />
+        )}
+
         {/* ═══ PROGRESS ═══ */}
         <section className="mb-6">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Tu progreso</h2>
@@ -312,6 +373,15 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
             </div>
           </div>
         </section>
+
+        {/* ═══ ONBOARDING CHECKLIST ═══ */}
+        {hasIncompleteChecklist && (
+          <OnboardingChecklist
+            items={checklistItems}
+            completedCount={checklistCompleted}
+            totalCount={checklistItems.length}
+          />
+        )}
 
         {/* ═══ QUICK ACTIONS ═══ */}
         <section>
