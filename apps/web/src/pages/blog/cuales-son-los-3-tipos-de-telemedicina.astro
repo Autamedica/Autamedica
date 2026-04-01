@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import '../../styles/seo-landing.css';
 
 const canonicalUrl = 'https://www.autamedica.com/blog/cuales-son-los-3-tipos-de-telemedicina';
 const publishedTime = '2026-03-26T00:00:00Z';
@@ -150,26 +151,26 @@ const articleSchema = {
 >
   <script type="application/ld+json" is:inline set:html={JSON.stringify(articleSchema)} />
   <Navbar />
-  <main class="article-container">
+  <main>
 
-    <div class="article-hero">
-      <div class="container">
-        <a href="/blog" class="back-link">← Volver al blog</a>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
         <h1>{article.title}</h1>
-        <div class="article-meta">
-          <span class="category">{article.category}</span>
-          <span class="read-time">{article.readTime} de lectura</span>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
         </div>
       </div>
     </div>
 
-    <div class="article-image-section">
+    <div class="blog-image">
       <img src={article.image} alt={article.title} loading="eager" />
     </div>
 
-    <article class="article-content">
-      <div class="container">
-        <div class="article-body">
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
 
           <section>
             <h2>La respuesta directa</h2>
@@ -178,17 +179,17 @@ const articleSchema = {
               tiempo real), la telemedicina asincrónica o store-and-forward (en diferido), y el telemonitoreo
               (seguimiento remoto de signos vitales). Cada modalidad resuelve necesidades clínicas distintas.
             </p>
-            <div class="highlight-box">
+            <blockquote>
               Esta clasificación es adoptada por la OMS, la OPS y el Ministerio de Salud de Argentina en el
               marco regulatorio de la Ley 27553 de Telemedicina (2020).
-            </div>
+            </blockquote>
           </section>
 
           <section>
             <h2>Los 3 tipos en detalle</h2>
 
             <div class="tipo-card tipo-1">
-              <div class="tipo-numero">Tipo 1 · Sincrónica · En tiempo real</div>
+              <div class="tipo-numero">Tipo 1 -- Sincrónica -- En tiempo real</div>
               <h3>Teleconsulta</h3>
               <p>
                 El médico y el paciente se comunican en tiempo real a través de videollamada, llamada de audio
@@ -203,7 +204,7 @@ const articleSchema = {
             </div>
 
             <div class="tipo-card tipo-2">
-              <div class="tipo-numero">Tipo 2 · Asincrónica · En diferido</div>
+              <div class="tipo-numero">Tipo 2 -- Asincrónica -- En diferido</div>
               <h3>Store-and-Forward</h3>
               <p>
                 El paciente envía datos, imágenes o resultados, y el médico los evalúa y responde en un
@@ -218,7 +219,7 @@ const articleSchema = {
             </div>
 
             <div class="tipo-card tipo-3">
-              <div class="tipo-numero">Tipo 3 · Continua · Monitoreo remoto</div>
+              <div class="tipo-numero">Tipo 3 -- Continua -- Monitoreo remoto</div>
               <h3>Telemonitoreo</h3>
               <p>
                 Dispositivos conectados registran y transmiten parámetros vitales del paciente (presión
@@ -242,11 +243,11 @@ const articleSchema = {
                   <tr><th>Situación</th><th>Teleconsulta</th><th>Store-and-Forward</th><th>Telemonitoreo</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>Urgencia no grave (fiebre, dolor)</td><td class="si">✓ Ideal</td><td class="no">✗</td><td class="no">✗</td></tr>
-                  <tr><td>Diagnóstico por imagen</td><td class="parcial">◐ Parcial</td><td class="si">✓ Ideal</td><td class="no">✗</td></tr>
-                  <tr><td>Control de hipertensión crónica</td><td class="parcial">◐</td><td class="parcial">◐</td><td class="si">✓ Ideal</td></tr>
-                  <tr><td>Segunda opinión médica</td><td class="si">✓ Sí</td><td class="si">✓ Ideal</td><td class="no">✗</td></tr>
-                  <tr><td>Salud mental / psicología</td><td class="si">✓ Ideal</td><td class="no">✗</td><td class="no">✗</td></tr>
+                  <tr><td>Urgencia no grave (fiebre, dolor)</td><td class="tabla-si">Ideal</td><td class="tabla-no">--</td><td class="tabla-no">--</td></tr>
+                  <tr><td>Diagnóstico por imagen</td><td class="tabla-parcial">Parcial</td><td class="tabla-si">Ideal</td><td class="tabla-no">--</td></tr>
+                  <tr><td>Control de hipertensión crónica</td><td class="tabla-parcial">Parcial</td><td class="tabla-parcial">Parcial</td><td class="tabla-si">Ideal</td></tr>
+                  <tr><td>Segunda opinión médica</td><td class="tabla-si">Sí</td><td class="tabla-si">Ideal</td><td class="tabla-no">--</td></tr>
+                  <tr><td>Salud mental / psicología</td><td class="tabla-si">Ideal</td><td class="tabla-no">--</td><td class="tabla-no">--</td></tr>
                 </tbody>
               </table>
             </div>
@@ -286,9 +287,9 @@ const articleSchema = {
 
           <section aria-labelledby="faq-title">
             <h2 id="faq-title">Preguntas frecuentes sobre telemedicina</h2>
-            <div class="faq-list">
+            <div class="seo-faq">
               {faqItems.map((item) => (
-                <details class="faq-item">
+                <details>
                   <summary>{item.question}</summary>
                   <p>{item.answer}</p>
                 </details>
@@ -296,18 +297,18 @@ const articleSchema = {
             </div>
           </section>
 
-          <div class="cta-block">
-            <p class="cta-title">AutaMédica integra los 3 tipos de telemedicina</p>
-            <p class="cta-desc">Teleconsulta en tiempo real, seguimiento asincrónico y monitoreo. Todo en una sola plataforma, con médicos verificados.</p>
-            <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
+          <div class="blog-cta">
+            <p class="blog-cta-title">AutaMédica integra los 3 tipos de telemedicina</p>
+            <p class="blog-cta-desc">Teleconsulta en tiempo real, seguimiento asincrónico y monitoreo. Todo en una sola plataforma, con médicos verificados.</p>
+            <a href="https://www.autamedica.com" class="seo-btn-primary">Consultar ahora</a>
           </div>
 
-          <div class="related-articles">
+          <div class="blog-related">
             <h3>Artículos relacionados</h3>
-            <div class="related-grid">
+            <div class="seo-grid-3">
               {relatedArticles.map((relatedArticle) => (
-                <a href={relatedArticle.href} class="related-card">
-                  <span class="category">{relatedArticle.category}</span>
+                <a href={relatedArticle.href} class="seo-card">
+                  <span class="seo-badge">{relatedArticle.category}</span>
                   <h4>{relatedArticle.title}</h4>
                 </a>
               ))}
@@ -323,54 +324,40 @@ const articleSchema = {
 </Layout>
 
 <style>
-  .article-container { min-height: 100vh; background: var(--au-bg); }
-  .article-hero { padding: 4rem var(--section-px) 2rem; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2)); border-bottom: 1px solid var(--au-border); }
-  .container { max-width: 800px; margin: 0 auto; }
-  .back-link { color: #3b82f6; text-decoration: none; font-size: 0.95rem; display: inline-block; margin-bottom: 1.5rem; }
-  h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 300; letter-spacing: -0.02em; color: white; margin-bottom: 1.5rem; line-height: 1.2; }
-  .article-meta { display: flex; gap: 1rem; align-items: center; }
-  .category { background: rgba(59,130,246,0.2); color: #3b82f6; padding: 0.35rem 0.75rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-  .read-time { color: #a1a1a1; font-size: 0.9rem; }
-  .article-image-section { width: 100%; max-height: 500px; overflow: hidden; }
-  .article-image-section img { width: 100%; height: 100%; object-fit: cover; }
-  .article-content { padding: 4rem var(--section-px); }
-  .article-body { max-width: 800px; margin: 0 auto; }
-  section { margin-bottom: 3rem; }
-  h2 { font-size: 1.75rem; font-weight: 400; color: white; margin-bottom: 1rem; margin-top: 2rem; }
-  p { color: #c1c1c1; line-height: 1.8; margin-bottom: 1rem; font-size: 1.05rem; }
-  a { color: #7dd3fc; }
-  a:hover { color: #bae6fd; }
-  ul { list-style: none; padding: 0; margin: 1rem 0 0; }
-  li { color: #a1a1a1; padding: 0.5rem 0; padding-left: 1.5rem; position: relative; font-size: 0.92rem; line-height: 1.5; border-bottom: 1px solid rgba(255,255,255,0.04); }
-  li::before { content: '→'; position: absolute; left: 0; color: #17C8D4; }
-  .highlight-box { border-left: 3px solid #17C8D4; padding: 1rem 1.5rem; background: rgba(23,200,212,0.08); border-radius: 0 8px 8px 0; color: #a0f0f5; font-size: 0.95rem; line-height: 1.7; margin: 1.5rem 0; }
-  .italic-note { font-style: italic; color: #17C8D4; font-size: 0.95rem; }
-  .tipo-card { border-radius: 12px; padding: 1.5rem 1.75rem; margin: 1.25rem 0; }
-  .tipo-1 { background: rgba(255,255,255,0.04); border: 1px solid rgba(23,200,212,0.3); }
-  .tipo-2 { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); }
-  .tipo-3 { background: rgba(23,200,212,0.06); border: 1px solid rgba(23,200,212,0.2); }
-  .tipo-numero { font-size: 0.75rem; font-weight: 600; color: #17C8D4; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
-  .tipo-card h3 { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.75rem; margin-top: 0; }
-  .tabla-wrapper { overflow-x: auto; margin: 1.5rem 0; }
-  .tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-  .tabla th { background: rgba(255,255,255,0.08); color: white; padding: 10px 12px; text-align: left; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-  .tabla td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); color: #c1c1c1; }
-  .si { color: #4ade80; font-weight: 600; }
-  .no { color: #f87171; }
-  .parcial { color: #fbbf24; }
-  .cta-block { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; margin-top: 3rem; text-align: center; }
-  .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
-  .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
-  .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
-  .faq-list { display: grid; gap: 0.75rem; }
-  .faq-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem 1.25rem; }
-  .faq-item summary { cursor: pointer; color: white; font-weight: 600; list-style: none; }
-  .faq-item summary::-webkit-details-marker { display: none; }
-  .faq-item p { margin: 0.9rem 0 0; font-size: 0.98rem; }
-  .related-articles { margin-top: 3rem; }
-  .related-articles h3 { font-size: 1.4rem; font-weight: 400; color: white; margin-bottom: 1rem; }
-  .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-  .related-card { display: block; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; transition: transform 0.2s ease, border-color 0.2s ease; }
-  .related-card:hover { transform: translateY(-2px); border-color: rgba(23,200,212,0.45); }
-  .related-card h4 { color: white; font-size: 1rem; line-height: 1.4; margin-top: 0.75rem; }
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-prose a { color: var(--au-accent); }
+  .blog-prose a:hover { color: var(--au-text-primary); }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .italic-note { font-style: italic; color: var(--au-accent); font-size: var(--text-sm); }
+  .tipo-card { border-radius: var(--radius-md); padding: var(--space-6); margin: var(--space-4) 0; }
+  .tipo-1 { background: var(--au-glass-bg); border: 1px solid var(--au-accent); }
+  .tipo-2 { background: var(--au-glass-bg); border: 1px solid var(--au-glass-border); }
+  .tipo-3 { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); }
+  .tipo-numero { font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--au-accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--space-2); }
+  .tipo-card h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin-bottom: var(--space-3); margin-top: 0; }
+  .tabla-wrapper { overflow-x: auto; margin: var(--space-6) 0; }
+  .tabla { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+  .tabla th { background: var(--au-surface); color: var(--au-text-primary); padding: var(--space-3); text-align: left; font-size: var(--text-xs); font-weight: var(--font-semibold); text-transform: uppercase; letter-spacing: 0.04em; }
+  .tabla td { padding: var(--space-3); border-bottom: 1px solid var(--au-border); color: var(--au-text-secondary); }
+  .tabla-si { color: var(--au-success); font-weight: var(--font-semibold); }
+  .tabla-no { color: var(--au-text-tertiary); }
+  .tabla-parcial { color: var(--au-warning, #eab308); }
+  .blog-cta { background: var(--au-surface); border: 1px solid var(--au-border); border-radius: var(--radius-md); padding: var(--space-8); margin-top: var(--space-12); text-align: center; }
+  .blog-cta-title { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin-bottom: var(--space-2); }
+  .blog-cta-desc { color: var(--au-text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-6); }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
 </style>

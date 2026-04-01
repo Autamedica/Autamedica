@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import '../../styles/seo-landing.css';
 
 const articles = [
   {
@@ -105,16 +106,6 @@ const articles = [
     image: '/images/hero_doctor.webp',
   },
 ];
-
-const categoryColors = {
-  'Infectología': '#f59e0b',
-  'Telemedicina': '#3b82f6',
-  'Cardiología': '#ef4444',
-  'Salud Mental': '#8b5cf6',
-  'Dermatología': '#ec4899',
-  'Tecnología Médica': '#06b6d4',
-  'Guía Práctica': '#10b981',
-};
 ---
 
 <Layout
@@ -125,44 +116,37 @@ const categoryColors = {
   robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
 >
   <Navbar />
-  <main class="min-h-screen">
+  <main>
     <!-- Hero -->
-    <section class="hero-section">
-      <div class="container">
-        <h1>Blog de Salud</h1>
-        <p class="subtitle">
-          Artículos confiables sobre telemedicina, bienestar y salud, escritos por profesionales médicos certificados.
-        </p>
-      </div>
+    <section class="seo-hero">
+      <h1>Blog de Salud</h1>
+      <p class="seo-subtitle">
+        Artículos confiables sobre telemedicina, bienestar y salud, escritos por profesionales médicos certificados.
+      </p>
     </section>
 
     <!-- Articles Grid -->
-    <section class="blog-section">
-      <div class="container">
-        <div class="blog-grid">
+    <section class="seo-section">
+      <div class="seo-container">
+        <div class="seo-grid-3">
           {articles.map((article) => (
-            <article class="blog-card">
-              <div class="blog-image">
+            <article class="seo-card blog-card">
+              <div class="blog-card-image">
                 <img src={article.image} alt={article.title} loading="lazy" decoding="async" />
               </div>
-              <div class="blog-content">
-                <div class="blog-header">
-                  <span
-                    class="category"
-                    style={`background-color: ${categoryColors[article.category] || '#3b82f6'}33; color: ${categoryColors[article.category] || '#3b82f6'};`}
-                  >
-                    {article.category}
-                  </span>
-                  <span class="read-time">{article.readTime}</span>
+              <div class="blog-card-content">
+                <div class="blog-card-header">
+                  <span class="seo-badge">{article.category}</span>
+                  <span class="blog-read-time">{article.readTime}</span>
                 </div>
-                <h2 class="blog-title">{article.title}</h2>
-                <p class="blog-excerpt">{article.excerpt}</p>
-                <div class="blog-footer">
-                  <div class="blog-meta">
-                    <span class="author">{article.author}</span>
-                    <span class="date">{article.date}</span>
+                <h2 class="blog-card-title">{article.title}</h2>
+                <p class="blog-card-excerpt">{article.excerpt}</p>
+                <div class="blog-card-footer">
+                  <div class="blog-card-meta">
+                    <span class="blog-card-author">{article.author}</span>
+                    <span class="blog-card-date">{article.date}</span>
                   </div>
-                  <a href={`/blog/${article.slug}`} class="read-more">Leer artículo →</a>
+                  <a href={`/blog/${article.slug}`} class="blog-read-more">Leer artículo →</a>
                 </div>
               </div>
             </article>
@@ -172,19 +156,19 @@ const categoryColors = {
     </section>
 
     <!-- Newsletter CTA -->
-    <section class="newsletter-section">
-      <div class="container">
-        <div class="newsletter-content">
+    <section class="seo-section blog-newsletter">
+      <div class="seo-container">
+        <div class="blog-newsletter-content">
           <h2>Recibe Artículos de Salud Cada Semana</h2>
           <p>Suscríbete a nuestro newsletter para recibir contenido médico confiable, directamente en tu email.</p>
-          <form class="newsletter-form">
+          <form class="blog-newsletter-form">
             <input
               type="email"
               placeholder="Tu email"
               required
               aria-label="Email para suscripción"
             />
-            <button type="submit">Suscribirse</button>
+            <button type="submit" class="seo-btn-primary">Suscribirse</button>
           </form>
         </div>
       </div>
@@ -194,216 +178,130 @@ const categoryColors = {
 </Layout>
 
 <style>
-  .hero-section {
-    padding: 6rem var(--section-px) 4rem;
-    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(6,78,140,0.3));
-    border-bottom: 1px solid var(--au-border);
-    text-align: center;
-  }
+  /* Blog index card specifics */
+  .blog-card { padding: 0; overflow: hidden; }
 
-  .container {
-    max-width: 1120px;
-    margin: 0 auto;
-  }
-
-  h1 {
-    font-size: clamp(2rem, 5vw, 3.5rem);
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    color: white;
-    margin-bottom: 1rem;
-  }
-
-  .subtitle {
-    font-size: 1.125rem;
-    color: #a1a1a1;
-    max-width: 700px;
-    margin: 0 auto;
-  }
-
-  .blog-section {
-    padding: 4rem var(--section-px);
-  }
-
-  .blog-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 2rem;
-  }
-
-  .blog-card {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(255,255,255,0.02));
-    border: 1px solid var(--au-border);
-    border-radius: 0.75rem;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
-
-  .blog-card:hover {
-    border-color: #3b82f6;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
-    transform: translateY(-4px);
-  }
-
-  .blog-image {
+  .blog-card-image {
     width: 100%;
     height: 200px;
     overflow: hidden;
-    background: rgba(255,255,255,0.05);
+    background: var(--au-surface);
   }
 
-  .blog-image img {
+  .blog-card-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
+    transition: transform var(--au-transition-smooth);
   }
 
-  .blog-card:hover .blog-image img {
+  .blog-card:hover .blog-card-image img {
     transform: scale(1.05);
   }
 
-  .blog-content {
-    padding: 2rem;
-  }
+  .blog-card-content { padding: var(--space-6); }
 
-  .blog-header {
+  .blog-card-header {
     display: flex;
-    gap: 1rem;
+    gap: var(--space-4);
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-3);
   }
 
-  .category {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.35rem 0.75rem;
-    border-radius: 2rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .read-time {
-    font-size: 0.85rem;
-    color: #888;
+  .blog-read-time {
+    font-size: var(--text-sm);
+    color: var(--au-text-tertiary);
     margin-left: auto;
   }
 
-  .blog-title {
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: white;
-    margin-bottom: 0.75rem;
+  .blog-card-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    margin-bottom: var(--space-2);
     line-height: 1.4;
   }
 
-  .blog-excerpt {
-    color: #a1a1a1;
-    font-size: 0.95rem;
+  .blog-card-excerpt {
+    color: var(--au-text-secondary);
+    font-size: var(--text-sm);
     line-height: 1.6;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-4);
   }
 
-  .blog-footer {
+  .blog-card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid rgba(255,255,255,0.05);
-    padding-top: 1.5rem;
+    border-top: 1px solid var(--au-border);
+    padding-top: var(--space-4);
   }
 
-  .blog-meta {
+  .blog-card-meta {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-1);
   }
 
-  .author {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: white;
+  .blog-card-author {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--au-text-primary);
   }
 
-  .date {
-    font-size: 0.8rem;
-    color: #888;
+  .blog-card-date {
+    font-size: var(--text-xs);
+    color: var(--au-text-tertiary);
   }
 
-  .read-more {
-    color: #3b82f6;
+  .blog-read-more {
+    color: var(--au-accent);
     text-decoration: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
+    font-weight: var(--font-medium);
+    font-size: var(--text-sm);
+    transition: color var(--transition-fast);
   }
 
-  .read-more:hover {
-    color: #1f2937;
-    gap: 0.5rem;
+  .blog-read-more:hover {
+    color: var(--au-text-primary);
   }
 
-  .newsletter-section {
-    padding: 4rem var(--section-px);
-    background: rgba(59, 130, 246, 0.05);
-    border-top: 1px solid var(--au-border);
-  }
-
-  .newsletter-content {
+  /* Newsletter */
+  .blog-newsletter-content {
     text-align: center;
     max-width: 600px;
     margin: 0 auto;
   }
 
-  .newsletter-content h2 {
-    font-size: 2rem;
-    font-weight: 300;
-    color: white;
-    margin-bottom: 1rem;
-  }
-
-  .newsletter-content p {
-    color: #a1a1a1;
-    margin-bottom: 2rem;
-  }
-
-  .newsletter-form {
+  .blog-newsletter-form {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-2);
+    margin-top: var(--space-6);
   }
 
-  .newsletter-form input {
+  .blog-newsletter-form input {
     flex: 1;
-    padding: 0.875rem 1.25rem;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 0.5rem;
-    color: white;
-    font-size: 1rem;
+    padding: var(--space-3) var(--space-4);
+    background: var(--au-bg);
+    border: 1px solid var(--au-border-hover);
+    border-radius: var(--radius-sm);
+    color: var(--au-text-primary);
+    font-size: var(--text-base);
   }
 
-  .newsletter-form input::placeholder {
-    color: #888;
+  .blog-newsletter-form input::placeholder {
+    color: var(--au-text-tertiary);
   }
 
-  .newsletter-form input:focus {
+  .blog-newsletter-form input:focus {
     outline: none;
-    border-color: #3b82f6;
-    background: rgba(255,255,255,0.12);
+    border-color: var(--au-accent);
   }
 
-  .newsletter-form button {
-    padding: 0.875rem 2rem;
-    background: white;
-    color: black;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-  }
-
-  .newsletter-form button:hover {
-    background: #f0f0f0;
-    transform: translateY(-2px);
+  @media (max-width: 480px) {
+    .blog-newsletter-form {
+      flex-direction: column;
+    }
   }
 </style>

@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import '../../styles/seo-landing.css';
 
 const article = {
   title: 'Acceso a Especialistas en Provincias: La Brecha Que la Telemedicina Cierra',
@@ -24,28 +25,28 @@ const article = {
   robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
 >
   <Navbar />
-  <main class="article-container">
+  <main>
     <!-- Article Header -->
-    <div class="article-hero">
-      <div class="container">
-        <a href="/blog" class="back-link">← Volver al blog</a>
+    <section class="seo-hero" style="text-align:left;">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">← Volver al blog</a>
         <h1>{article.title}</h1>
-        <div class="article-meta">
-          <span class="category">{article.category}</span>
-          <span class="read-time">{article.readTime} de lectura</span>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span class="blog-read-time">{article.readTime} de lectura</span>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Article Image -->
-    <div class="article-image-section">
+    <div class="blog-image">
       <img src={article.image} alt={article.title} loading="eager" />
     </div>
 
     <!-- Article Content -->
-    <article class="article-content">
-      <div class="container">
-        <div class="article-body">
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
           <section>
             <h2>Introducción: Una Crisis de Acceso Silenciosa</h2>
             <p>
@@ -229,34 +230,28 @@ const article = {
         </div>
 
         <!-- Author Section -->
-        <div class="article-author">
-          <div class="author-content">
-            <h3>Sobre el Equipo</h3>
-            <p>
-              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina general.
-            </p>
-          </div>
+        <div class="seo-sidebar-card blog-author-card">
+          <h3>Sobre el Equipo</h3>
+          <p>
+            <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina general.
+          </p>
         </div>
 
         <!-- Related Articles -->
-        <div class="related-articles">
+        <div class="blog-related">
           <h3>Artículos Relacionados</h3>
-          <div class="related-grid">
-            <a href="/blog/cuales-son-los-3-tipos-de-telemedicina" class="related-card">
-              <span class="category">Telemedicina</span>
+          <div class="seo-grid-3">
+            <a href="/blog/cuales-son-los-3-tipos-de-telemedicina" class="seo-card blog-related-card">
+              <span class="seo-badge">Telemedicina</span>
               <h4>¿Cuáles son los 3 tipos de telemedicina?</h4>
             </a>
-            <a href="/blog/telemedicina-revolucion-salud" class="related-card">
-              <span class="category">Telemedicina</span>
+            <a href="/blog/telemedicina-revolucion-salud" class="seo-card blog-related-card">
+              <span class="seo-badge">Telemedicina</span>
               <h4>¿Por Qué la Telemedicina es la Revolución de la Salud?</h4>
             </a>
-            <a href="/blog/guia-consulta-medica-online" class="related-card">
-              <span class="category">Guía Práctica</span>
+            <a href="/blog/guia-consulta-medica-online" class="seo-card blog-related-card">
+              <span class="seo-badge">Guía Práctica</span>
               <h4>Guía Completa: Cómo Hacer una Consulta Médica Online</h4>
-            </a>
-            <a href="/blog/historia-clinica-digital" class="related-card">
-              <span class="category">Tecnología Médica</span>
-              <h4>Historia Clínica Digital: Por Qué es Crucial</h4>
             </a>
           </div>
         </div>
@@ -267,196 +262,21 @@ const article = {
 </Layout>
 
 <style>
-  .article-container {
-    min-height: 100vh;
-    background: var(--au-bg);
-  }
-
-  .article-hero {
-    padding: 4rem var(--section-px) 2rem;
-    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2));
-    border-bottom: 1px solid var(--au-border);
-  }
-
-  .container {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-
-  .back-link {
-    color: #3b82f6;
-    text-decoration: none;
-    font-size: 0.95rem;
-    display: inline-block;
-    margin-bottom: 1.5rem;
-    transition: color 0.3s;
-  }
-
-  .back-link:hover {
-    color: #1f2937;
-  }
-
-  h1 {
-    font-size: clamp(1.75rem, 4vw, 2.5rem);
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    color: white;
-    margin-bottom: 1.5rem;
-    line-height: 1.2;
-  }
-
-  .article-meta {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .category {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    padding: 0.35rem 0.75rem;
-    border-radius: 2rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .read-time {
-    color: #a1a1a1;
-    font-size: 0.9rem;
-  }
-
-  .article-image-section {
-    width: 100%;
-    max-height: 500px;
-    overflow: hidden;
-    background: rgba(255,255,255,0.05);
-  }
-
-  .article-image-section img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .article-content {
-    padding: 4rem var(--section-px);
-  }
-
-  .article-body {
-    max-width: 800px;
-    margin: 0 auto;
-  }
-
-  section {
-    margin-bottom: 3rem;
-  }
-
-  h2 {
-    font-size: 1.75rem;
-    font-weight: 400;
-    color: white;
-    margin-bottom: 1rem;
-    margin-top: 2rem;
-  }
-
-  section:first-child h2 {
-    margin-top: 0;
-  }
-
-  p {
-    color: #c1c1c1;
-    line-height: 1.8;
-    margin-bottom: 1rem;
-    font-size: 1.05rem;
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 1.5rem 0;
-  }
-
-  li {
-    color: #c1c1c1;
-    padding: 0.75rem 0;
-    padding-left: 1.5rem;
-    position: relative;
-    line-height: 1.6;
-  }
-
-  li::before {
-    content: '→';
-    position: absolute;
-    left: 0;
-    color: #3b82f6;
-    font-weight: bold;
-  }
-
-  .article-author {
-    background: rgba(59, 130, 246, 0.05);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 0.75rem;
-    padding: 2rem;
-    margin: 3rem auto;
-    max-width: 800px;
-  }
-
-  .author-content h3 {
-    font-size: 1.25rem;
-    color: white;
-    margin-bottom: 0.75rem;
-  }
-
-  .author-content p {
-    color: #a1a1a1;
-    margin: 0;
-  }
-
-  .related-articles {
-    max-width: 800px;
-    margin: 4rem auto;
-    padding: 0 var(--section-px);
-  }
-
-  .related-articles h3 {
-    font-size: 1.5rem;
-    color: white;
-    margin-bottom: 2rem;
-  }
-
-  .related-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .related-card {
-    background: rgba(59, 130, 246, 0.05);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    text-decoration: none;
-    transition: all 0.3s;
-  }
-
-  .related-card:hover {
-    border-color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
-    transform: translateY(-2px);
-  }
-
-  .related-card .category {
-    display: inline-block;
-    margin-bottom: 0.75rem;
-  }
-
-  .related-card h4 {
-    color: white;
-    font-size: 1rem;
-    font-weight: 500;
-    line-height: 1.4;
-    margin: 0;
-  }
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-read-time { font-size: var(--text-sm); color: var(--au-text-tertiary); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author-card { max-width: 720px; margin: var(--space-12) auto; }
+  .blog-related { max-width: 720px; margin: var(--space-12) auto 0; }
+  .blog-related h3 { font-family: var(--font-heading); font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related-card { text-decoration: none; display: block; }
+  .blog-related-card h4 { font-size: var(--text-base); font-weight: var(--font-medium); color: var(--au-text-primary); margin: var(--space-3) 0 0; line-height: 1.4; }
 </style>

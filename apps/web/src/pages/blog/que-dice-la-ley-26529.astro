@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import '../../styles/seo-landing.css';
 
 const article = {
   title: '¿Qué dice la ley 26529?',
@@ -24,26 +25,26 @@ const article = {
   robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
 >
   <Navbar />
-  <main class="article-container">
+  <main>
 
-    <div class="article-hero">
-      <div class="container">
-        <a href="/blog" class="back-link">← Volver al blog</a>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
         <h1>{article.title}</h1>
-        <div class="article-meta">
-          <span class="category">{article.category}</span>
-          <span class="read-time">{article.readTime} de lectura</span>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
         </div>
       </div>
     </div>
 
-    <div class="article-image-section">
+    <div class="blog-image">
       <img src={article.image} alt={article.title} loading="eager" />
     </div>
 
-    <article class="article-content">
-      <div class="container">
-        <div class="article-body">
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
 
           <section>
             <h2>¿Qué es la ley 26529?</h2>
@@ -58,10 +59,10 @@ const article = {
               Fue complementada en 2012 por la <strong>Ley 26742</strong>, conocida como la ley de "muerte
               digna", que amplió los derechos relacionados con el rechazo de tratamientos en situaciones terminales.
             </p>
-            <div class="highlight-box">
+            <blockquote>
               La ley 26529 es la "carta de derechos" del paciente argentino. Toda consulta médica —
               presencial o digital — debe cumplirla.
-            </div>
+            </blockquote>
           </section>
 
           <section>
@@ -168,25 +169,25 @@ const article = {
             </p>
           </section>
 
-          <div class="cta-block">
-            <p class="cta-title">AutaMédica cumple con la ley 26529 en cada consulta</p>
-            <p class="cta-desc">Consentimiento informado digital, historia clínica accesible y confidencialidad garantizada.</p>
-            <a href="https://www.autamedica.com" class="cta-btn">Consultar ahora →</a>
+          <div class="blog-cta">
+            <p class="blog-cta-title">AutaMédica cumple con la ley 26529 en cada consulta</p>
+            <p class="blog-cta-desc">Consentimiento informado digital, historia clínica accesible y confidencialidad garantizada.</p>
+            <a href="https://www.autamedica.com" class="seo-btn-primary">Consultar ahora</a>
           </div>
 
-          <div class="related-articles">
+          <div class="blog-related">
             <h3>Artículos relacionados</h3>
-            <div class="related-grid">
-              <a href="/blog/cuales-son-los-3-tipos-de-telemedicina" class="related-card">
-                <span class="category">Telemedicina</span>
+            <div class="seo-grid-3">
+              <a href="/blog/cuales-son-los-3-tipos-de-telemedicina" class="seo-card">
+                <span class="seo-badge">Telemedicina</span>
                 <h4>¿Cuáles son los 3 tipos de telemedicina?</h4>
               </a>
-              <a href="/blog/telemedicina-revolucion-salud" class="related-card">
-                <span class="category">Telemedicina</span>
+              <a href="/blog/telemedicina-revolucion-salud" class="seo-card">
+                <span class="seo-badge">Telemedicina</span>
                 <h4>¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina?</h4>
               </a>
-              <a href="/blog/guia-consulta-medica-online" class="related-card">
-                <span class="category">Guía Práctica</span>
+              <a href="/blog/guia-consulta-medica-online" class="seo-card">
+                <span class="seo-badge">Guía Práctica</span>
                 <h4>Guía Completa: Cómo Hacer una Consulta Médica Online</h4>
               </a>
             </div>
@@ -201,38 +202,31 @@ const article = {
 </Layout>
 
 <style>
-  .article-container { min-height: 100vh; background: var(--au-bg); }
-  .article-hero { padding: 4rem var(--section-px) 2rem; background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(6,78,140,0.2)); border-bottom: 1px solid var(--au-border); }
-  .container { max-width: 800px; margin: 0 auto; }
-  .back-link { color: #3b82f6; text-decoration: none; font-size: 0.95rem; display: inline-block; margin-bottom: 1.5rem; }
-  h1 { font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 300; letter-spacing: -0.02em; color: white; margin-bottom: 1.5rem; line-height: 1.2; }
-  .article-meta { display: flex; gap: 1rem; align-items: center; }
-  .category { background: rgba(59,130,246,0.2); color: #3b82f6; padding: 0.35rem 0.75rem; border-radius: 2rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-  .read-time { color: #a1a1a1; font-size: 0.9rem; }
-  .article-image-section { width: 100%; max-height: 500px; overflow: hidden; }
-  .article-image-section img { width: 100%; height: 100%; object-fit: cover; }
-  .article-content { padding: 4rem var(--section-px); }
-  .article-body { max-width: 800px; margin: 0 auto; }
-  section { margin-bottom: 3rem; }
-  h2 { font-size: 1.75rem; font-weight: 400; color: white; margin-bottom: 1rem; margin-top: 2rem; }
-  h3 { font-size: 1.25rem; font-weight: 400; color: #e0e0e0; margin: 1.5rem 0 0.75rem; }
-  p { color: #c1c1c1; line-height: 1.8; margin-bottom: 1rem; font-size: 1.05rem; }
-  .ley-badge { display: inline-block; background: rgba(23,200,212,0.15); color: #17C8D4; font-size: 1.1rem; font-weight: 700; padding: 4px 14px; border-radius: 6px; margin-bottom: 1rem; }
-  .highlight-box { border-left: 3px solid #17C8D4; padding: 1rem 1.5rem; background: rgba(23,200,212,0.08); border-radius: 0 8px 8px 0; color: #a0f0f5; font-size: 0.95rem; line-height: 1.7; margin: 1.5rem 0; }
-  .italic-note { font-style: italic; color: #17C8D4; font-size: 0.95rem; }
-  .derechos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 1.5rem 0; }
-  .derecho-card { display: flex; gap: 12px; align-items: flex-start; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px 16px; }
-  .num { font-size: 1.4rem; font-weight: 700; color: #17C8D4; min-width: 28px; line-height: 1; padding-top: 2px; }
-  .titulo { font-size: 0.9rem; font-weight: 600; color: white; margin-bottom: 4px !important; }
-  .derecho-card p { font-size: 0.85rem; color: #a1a1a1; margin: 0; line-height: 1.5; }
-  .cta-block { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 2rem; margin-top: 3rem; text-align: center; }
-  .cta-title { font-size: 1.2rem; font-weight: 600; color: white; margin-bottom: 0.5rem; }
-  .cta-desc { color: #a1a1a1; font-size: 0.95rem; margin-bottom: 1.5rem; }
-  .cta-btn { display: inline-block; background: #17C8D4; color: #0f0f0f; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; }
-  .related-articles { margin-top: 3rem; }
-  .related-articles h3 { font-size: 1.4rem; font-weight: 400; color: white; margin-bottom: 1rem; }
-  .related-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-  .related-card { display: block; text-decoration: none; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1rem; transition: transform 0.2s ease, border-color 0.2s ease; }
-  .related-card:hover { transform: translateY(-2px); border-color: rgba(23,200,212,0.45); }
-  .related-card h4 { color: white; font-size: 1rem; line-height: 1.4; margin-top: 0.75rem; }
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .italic-note { font-style: italic; color: var(--au-accent); font-size: var(--text-sm); }
+  .ley-badge { display: inline-block; background: var(--au-accent-soft); color: var(--au-accent); font-size: var(--text-base); font-weight: var(--font-bold); padding: var(--space-1) var(--space-4); border-radius: var(--radius-sm); margin-bottom: var(--space-4); }
+  .derechos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); margin: var(--space-6) 0; }
+  .derecho-card { display: flex; gap: var(--space-3); align-items: flex-start; background: var(--au-glass-bg); border: 1px solid var(--au-glass-border); border-radius: var(--radius-md); padding: var(--space-4); }
+  .num { font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--au-accent); min-width: 28px; line-height: 1; padding-top: 2px; }
+  .titulo { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--au-text-primary); margin-bottom: 4px; }
+  .derecho-card p { font-size: var(--text-xs); color: var(--au-text-secondary); margin: 0; line-height: 1.5; }
+  .blog-cta { background: var(--au-surface); border: 1px solid var(--au-border); border-radius: var(--radius-md); padding: var(--space-8); margin-top: var(--space-12); text-align: center; }
+  .blog-cta-title { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin-bottom: var(--space-2); }
+  .blog-cta-desc { color: var(--au-text-secondary); font-size: var(--text-sm); margin-bottom: var(--space-6); }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
 </style>
