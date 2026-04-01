@@ -78,7 +78,7 @@ export function DoctorDailySummary({ onActivateCamera, isBlocked }: DoctorDailyS
       new Set(
         todayAppointments
           .map((a) => a.patient_id)
-          .filter((id): id is string => id !== null)
+          .filter(Boolean)
       )
     )
     if (ids.length === 0) return
