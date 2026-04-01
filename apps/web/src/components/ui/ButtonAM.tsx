@@ -1,30 +1,41 @@
 'use client'
 import { forwardRef } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from '@/lib/utils'
 
-export interface ButtonAMProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
-  size?: 'sm' | 'md' | 'lg'
+const buttonVariants = cva(
+  'inline-flex items-center justify-center font-semibold transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2',
+  {
+    variants: {
+      variant: {
+        primary: 'bg-sky-500 text-white hover:bg-sky-600 shadow-sm shadow-sky-500/20',
+        secondary: 'border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 hover:border-gray-300',
+        ghost: 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+        danger: 'bg-red-500 text-white hover:bg-red-600',
+      },
+      size: {
+        sm: 'h-8 px-3 text-xs rounded-lg gap-1.5',
+        md: 'h-10 px-4 text-sm rounded-lg gap-2',
+        lg: 'h-12 px-6 text-base rounded-xl gap-2.5',
+      },
+      fullWidth: {
+        true: 'w-full',
+      }
+    },
+    defaultVariants: {
+      variant: 'primary',
+      size: 'md',
+    },
+  }
+)
+
+export interface ButtonAMProps 
+  extends ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
   loading?: boolean
   icon?: ReactNode
-  fullWidth?: boolean
 }
-
-const variantStyles: Record<NonNullable<ButtonAMProps['variant']>, string> = {
-  primary: 'bg-sky-500 text-white hover:bg-sky-600 shadow-sm shadow-sky-500/20',
-  secondary: 'border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 hover:border-gray-300',
-  ghost: 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
-  danger: 'bg-red-500 text-white hover:bg-red-600',
-}
-
-const sizeStyles: Record<NonNullable<ButtonAMProps['size']>, string> = {
-  sm: 'h-8 px-3 text-xs rounded-lg gap-1.5',
-  md: 'h-10 px-4 text-sm rounded-lg gap-2',
-  lg: 'h-12 px-6 text-base rounded-xl gap-2.5',
-}
-
-const baseStyles =
-  'inline-flex items-center justify-center font-semibold transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed'
 
 function Spinner() {
   return (
@@ -46,13 +57,13 @@ function Spinner() {
 }
 
 export const ButtonAM = forwardRef<HTMLButtonElement, ButtonAMProps>(function ButtonAM(
-  { variant = 'primary', size = 'md', loading = false, icon, fullWidth = false, className = '', disabled, children, ...rest },
+  { variant, size, fullWidth, loading = false, icon, className, disabled, children, ...rest },
   ref,
 ) {
   return (
     <button
       ref={ref}
-      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={cn(buttonVariants({ variant, size, fullWidth, className }))}
       disabled={disabled || loading}
       {...rest}
     >
@@ -63,7 +74,7 @@ export const ButtonAM = forwardRef<HTMLButtonElement, ButtonAMProps>(function Bu
         </>
       ) : (
         <>
-          {icon && <span className="shrink-0">{icon}</span>}
+          {icon && <span className="shrink-0" aria-hidden="true">{icon}</span>}
           {children}
         </>
       )}
