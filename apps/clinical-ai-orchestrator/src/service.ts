@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { z } from 'zod';
 import type { AppConfig } from './config.js';
 import { logger } from './logger.js';
 import { LocalArtifactStorage } from './artifact-storage.js';
@@ -60,10 +61,6 @@ function buildStageIdempotencyKey(sessionId: string, stage: JobStage, mediaItemI
   return `session:${sessionId}:${stage}:v1`;
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -74,6 +71,97 @@ function resolveSessionLanguageCode(
 ): string {
   return fallback || session?.languageCode || 'es-AR';
 }
+
+const MediaFetchPayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  media_item_id: z.string(),
+  provider: z.string(),
+  provider_message_id: z.string(),
+  provider_media_index: z.number(),
+});
+
+const AudioPrepPayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  media_item_id: z.string(),
+  storage_uri_raw: z.string(),
+});
+
+const SttSubmitPayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  doctor_profile_id: z.string(),
+  language_code: z.string(),
+  media_items: z.array(z.object({
+    media_item_id: z.string(),
+    storage_uri_normalized: z.string(),
+  })).nonempty(),
+  stt_config: z.object({
+    provider: z.string(),
+    diarization_enabled: z.boolean(),
+    multi_channel_enabled: z.boolean(),
+    phrase_set_key: z.string(),
+  }),
+});
+
+const SttFinalizePayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  provider: z.string(),
+  provider_operation_ref: z.string(),
+  language_code: z.string().optional(),
+  diarization_enabled: z.boolean().optional(),
+  multi_channel_enabled: z.boolean().optional(),
+});
+
+const NormalizePayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  transcript_id: z.string(),
+  normalizer_version: z.string(),
+});
+
+const ReasonPayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  normalized_transcript_id: z.string(),
+  context_snapshot_id: z.string(),
+  prompt_version: z.string(),
+  schema_name: z.string(),
+  model_name: z.string(),
+  model_version: z.string(),
+});
+
+const ValidatePayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  output_id: z.string(),
+  validator_version: z.string(),
+});
+
+const DeliverPayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  output_id: z.string(),
+  channel: z.string(),
+  provider: z.string(),
+});
+
+const CleanupPayloadSchema = z.object({
+  schema_version: z.string(),
+  job_id: z.string(),
+  session_id: z.string(),
+  reason: z.string(),
+});
 
 export class ClinicalAiPipelineService {
   constructor(
@@ -279,6 +367,8 @@ export class ClinicalAiPipelineService {
         return this.runSttSubmitJob(job, parsedPayload as StagePayloadMap['stt-submit']);
       case 'stt-finalize':
         return this.runSttFinalizeJob(job, parsedPayload as StagePayloadMap['stt-finalize']);
+      case 'reason':
+        return this.runReasonJob(job, parsedPayload as StagePayloadMap['reason']);
       default:
         return {
           accepted: true,
@@ -568,6 +658,47 @@ export class ClinicalAiPipelineService {
     }
   }
 
+  private async runReasonJob(
+    job: ClinicalAiJobRecord,
+    payload: StagePayloadMap['reason']
+  ): Promise<InternalJobExecutionResult> {
+    await this.store.updateJob(job.id, {
+      status: 'RUNNING',
+      startedAt: nowIso(),
+    });
+
+    try {
+      // Mock logic: In a real system, this calls the LLM with the transcript
+      const transcripts = await this.store.listTranscriptsBySession(job.sessionId);
+      const transcript = transcripts.find(t => t.id === payload.normalized_transcript_id);
+      
+      if (!transcript) {
+        throw new Error('Transcript not found');
+      }
+
+      // Store in a hypothetical "output" store
+      // For now, update job status to SUCCEEDED
+      const completedJob = await this.store.updateJob(job.id, {
+        status: 'SUCCEEDED',
+        completedAt: nowIso(),
+      });
+
+      return {
+        accepted: true,
+        duplicate: false,
+        stage: completedJob.stage,
+        queueName: completedJob.queueName,
+        jobId: completedJob.id,
+        sessionId: completedJob.sessionId,
+        jobStatus: completedJob.status,
+        message: 'Anamnesis extraction completed.',
+      };
+    } catch (error) {
+      await this.failJob(job, undefined, 'REASON_FAILED', error);
+      throw new PipelineExecutionError(error instanceof Error ? error.message : 'Reasoning failed');
+    }
+  }
+
   private async failJob(
     job: ClinicalAiJobRecord,
     mediaItem: ClinicalAiMediaItemRecord | undefined,
@@ -716,105 +847,34 @@ export class ClinicalAiPipelineService {
     stageSlug: Stage,
     payload: unknown
   ): StagePayloadMap[Stage] {
-    if (!payload || typeof payload !== 'object') {
-      throw new InvalidInternalPayloadError(`Invalid payload for ${stageSlug}`);
-    }
-
-    const candidate = payload as Record<string, unknown>;
-    const schemaVersion = candidate.schema_version;
-    const jobId = candidate.job_id;
-    const sessionId = candidate.session_id;
-
-    if (!isNonEmptyString(schemaVersion) || !isNonEmptyString(jobId) || !isNonEmptyString(sessionId)) {
-      throw new InvalidInternalPayloadError(`schema_version, job_id and session_id are required for ${stageSlug}`);
-    }
-
-    switch (stageSlug) {
-      case 'media-fetch': {
-        if (
-          !isNonEmptyString(candidate.media_item_id) ||
-          !isNonEmptyString(candidate.provider) ||
-          !isNonEmptyString(candidate.provider_message_id) ||
-          typeof candidate.provider_media_index !== 'number'
-        ) {
-          throw new InvalidInternalPayloadError('Invalid media-fetch payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
+    try {
+      switch (stageSlug) {
+        case 'media-fetch':
+          return MediaFetchPayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'audio-prep':
+          return AudioPrepPayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'stt-submit':
+          return SttSubmitPayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'stt-finalize':
+          return SttFinalizePayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'normalize':
+          return NormalizePayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'reason':
+          return ReasonPayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'validate':
+          return ValidatePayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'deliver':
+          return DeliverPayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        case 'cleanup':
+          return CleanupPayloadSchema.parse(payload) as StagePayloadMap[Stage];
+        default:
+          throw new InvalidInternalPayloadError(`Unsupported stage ${stageSlug satisfies never}`);
       }
-      case 'audio-prep': {
-        if (!isNonEmptyString(candidate.media_item_id) || !isNonEmptyString(candidate.storage_uri_raw)) {
-          throw new InvalidInternalPayloadError('Invalid audio-prep payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        throw new InvalidInternalPayloadError(`Invalid payload for ${stageSlug}: ${e.message}`);
       }
-      case 'stt-submit': {
-        if (
-          !isNonEmptyString(candidate.doctor_profile_id) ||
-          !isNonEmptyString(candidate.language_code) ||
-          !Array.isArray(candidate.media_items) ||
-          candidate.media_items.length === 0 ||
-          !candidate.stt_config ||
-          typeof candidate.stt_config !== 'object'
-        ) {
-          throw new InvalidInternalPayloadError('Invalid stt-submit payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
-      }
-      case 'stt-finalize': {
-        if (!isNonEmptyString(candidate.provider) || !isNonEmptyString(candidate.provider_operation_ref)) {
-          throw new InvalidInternalPayloadError('Invalid stt-finalize payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
-      }
-      case 'normalize': {
-        if (!isNonEmptyString(candidate.transcript_id) || !isNonEmptyString(candidate.normalizer_version)) {
-          throw new InvalidInternalPayloadError('Invalid normalize payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
-      }
-      case 'reason': {
-        if (
-          !isNonEmptyString(candidate.normalized_transcript_id) ||
-          !isNonEmptyString(candidate.context_snapshot_id) ||
-          !isNonEmptyString(candidate.prompt_version) ||
-          !isNonEmptyString(candidate.schema_name) ||
-          !isNonEmptyString(candidate.model_name) ||
-          !isNonEmptyString(candidate.model_version)
-        ) {
-          throw new InvalidInternalPayloadError('Invalid reason payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
-      }
-      case 'validate': {
-        if (!isNonEmptyString(candidate.output_id) || !isNonEmptyString(candidate.validator_version)) {
-          throw new InvalidInternalPayloadError('Invalid validate payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
-      }
-      case 'deliver': {
-        if (!isNonEmptyString(candidate.output_id) || !isNonEmptyString(candidate.channel) || !isNonEmptyString(candidate.provider)) {
-          throw new InvalidInternalPayloadError('Invalid deliver payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
-      }
-      case 'cleanup': {
-        if (!isNonEmptyString(candidate.reason)) {
-          throw new InvalidInternalPayloadError('Invalid cleanup payload');
-        }
-
-        return candidate as StagePayloadMap[Stage];
-      }
-      default: {
-        throw new InvalidInternalPayloadError(`Unsupported stage ${stageSlug satisfies never}`);
-      }
+      throw e;
     }
   }
 }
