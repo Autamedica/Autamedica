@@ -126,33 +126,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const upcomingTelemedicine = upcomingAppointment && isTelemedicineAppointment(upcomingAppointment) ? upcomingAppointment : null
   const canJoinUpcomingTelemedicine = upcomingTelemedicine ? isJoinableTelemedicineAppointment(upcomingTelemedicine) : false
 
-  if (!hasHydrated) {
-    return (
-      <div className="min-h-screen bg-white">
-        <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
-            <div className="flex items-center gap-3">
-              <Skeleton circle className="h-9 w-9" />
-              <div className="space-y-1.5">
-                <Skeleton className="h-3.5 w-32" />
-                <Skeleton className="h-2.5 w-20" />
-              </div>
-            </div>
-            <div className="flex gap-1">
-              <Skeleton circle className="h-9 w-9" />
-              <Skeleton circle className="h-9 w-9" />
-            </div>
-          </div>
-        </header>
-        <div className="mx-auto max-w-2xl">
-          <SkeletonDashboard />
-        </div>
-        <BottomNav activeTab="inicio" />
-      </div>
-    )
-  }
-
-  // Anamnesis progress (rough proxy from profile completeness)
   const anamnesisProgress = patient ? Math.min(
     ((profile?.firstName ? 15 : 0) +
     (profile?.lastName ? 15 : 0) +
@@ -196,219 +169,238 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      {/* Header — compact */}
-      <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white shadow-sm shadow-sky-500/20">
-              {firstName.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{greeting}, {firstName}</p>
-              <p className="text-[11px] text-gray-400">Tu salud, tu control</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
-              aria-label="Notificaciones"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              {upcomingCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                  {upcomingCount}
-                </span>
-              )}
-            </button>
-            <div className="relative" ref={menuRef}>
-              <button
-                type="button"
-                onClick={() => setShowMenu(prev => !prev)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
-                aria-label="Menú de usuario"
-              >
-                <User className="h-[18px] w-[18px]" />
-              </button>
-              {showMenu && (
-                <div className="absolute right-0 top-11 z-50 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-                  <a href="/patients/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    <User className="h-4 w-4 text-gray-400" /> Perfil
-                  </a>
-                  <a href="/patients/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                    <Settings className="h-4 w-4 text-gray-400" /> Configuración
-                  </a>
-                  <div className="mx-3 my-1 border-t border-gray-100" />
-                  <button type="button" onClick={handleSignOut} disabled={signingOut} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                    <LogOut className="h-4 w-4" /> {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
-                  </button>
+      {!hasHydrated ? (
+        <div className="min-h-screen bg-white">
+          <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
+            <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
+              <div className="flex items-center gap-3">
+                <Skeleton circle className="h-9 w-9" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3.5 w-32" />
+                  <Skeleton className="h-2.5 w-20" />
                 </div>
-              )}
+              </div>
+              <div className="flex gap-1">
+                <Skeleton circle className="h-9 w-9" />
+                <Skeleton circle className="h-9 w-9" />
+              </div>
             </div>
+          </header>
+          <div className="mx-auto max-w-2xl">
+            <SkeletonDashboard />
           </div>
+          <BottomNav activeTab="inicio" />
         </div>
-      </header>
-
-      <main className="mx-auto max-w-2xl px-5 pb-28 pt-5">
-
-        {/* ═══ HERO: Próxima consulta ═══ */}
-        {upcomingAppointment ? (
-          <section className="mb-6">
-            {canJoinUpcomingTelemedicine ? (
-              <button
-                type="button"
-                onClick={() => { if (!upcomingTelemedicine) return; clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
-                disabled={joiningAppointmentId === upcomingTelemedicine?.id}
-                className="group block w-full overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 text-left shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    HOY
-                  </span>
-                  <span className="text-sm text-sky-100">
-                    {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
-                  </span>
+      ) : (
+        <>
+          <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
+            <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white shadow-sm shadow-sky-500/20">
+                  {firstName.charAt(0).toUpperCase()}
                 </div>
-                <h2 className="text-xl font-bold text-white">
-                  {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
-                </h2>
-                <p className="mt-0.5 text-sm text-sky-100">
-                  {upcomingAppointment.doctor?.specialty ?? 'General'} · Videoconsulta
-                </p>
-                <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-sky-600 transition-colors group-hover:bg-sky-50">
-                  <Video className="h-4 w-4" />
-                  {joiningAppointmentId === upcomingTelemedicine?.id ? 'Abriendo sala...' : 'Entrar a la consulta'}
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{greeting}, {firstName}</p>
+                  <p className="text-[11px] text-gray-400">Tu salud, tu control</p>
                 </div>
-              </button>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+                  aria-label="Notificaciones"
+                >
+                  <Bell className="h-[18px] w-[18px]" />
+                  {upcomingCount > 0 && (
+                    <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                      {upcomingCount}
+                    </span>
+                  )}
+                </button>
+                <div className="relative" ref={menuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowMenu(prev => !prev)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+                    aria-label="Menú de usuario"
+                  >
+                    <User className="h-[18px] w-[18px]" />
+                  </button>
+                  {showMenu && (
+                    <div className="absolute right-0 top-11 z-50 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                      <a href="/patients/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <User className="h-4 w-4 text-gray-400" /> Perfil
+                      </a>
+                      <a href="/patients/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Settings className="h-4 w-4 text-gray-400" /> Configuración
+                      </a>
+                      <div className="mx-3 my-1 border-t border-gray-100" />
+                      <button type="button" onClick={handleSignOut} disabled={signingOut} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                        <LogOut className="h-4 w-4" /> {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="mx-auto max-w-2xl px-5 pb-28 pt-5">
+            {upcomingAppointment ? (
+              <section className="mb-6">
+                {canJoinUpcomingTelemedicine ? (
+                  <button
+                    type="button"
+                    onClick={() => { if (!upcomingTelemedicine) return; clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
+                    disabled={joiningAppointmentId === upcomingTelemedicine?.id}
+                    className="group block w-full overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 text-left shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        HOY
+                      </span>
+                      <span className="text-sm text-sky-100">
+                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-bold text-white">
+                      {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
+                    </h2>
+                    <p className="mt-0.5 text-sm text-sky-100">
+                      {upcomingAppointment.doctor?.specialty ?? 'General'} · Videoconsulta
+                    </p>
+                    <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-sky-600 transition-colors group-hover:bg-sky-50">
+                      <Video className="h-4 w-4" />
+                      {joiningAppointmentId === upcomingTelemedicine?.id ? 'Abriendo sala...' : 'Entrar a la consulta'}
+                    </div>
+                  </button>
+                ) : (
+                  <a
+                    href={upcomingTelemedicine ? buildPatientTelemedicineEntryUrl(upcomingTelemedicine.id) : '/patients/appointments'}
+                    className="group block overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98]"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                        Próxima consulta
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-sky-200 transition-transform group-hover:translate-x-1" />
+                    </div>
+                    <h2 className="text-xl font-bold text-white">
+                      {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
+                    </h2>
+                    <p className="mt-0.5 text-sm text-sky-100">
+                      {upcomingAppointment.doctor?.specialty ?? 'General'}
+                      {upcomingTelemedicine ? ' · Videoconsulta' : ''}
+                    </p>
+                    <div className="mt-3 flex items-center gap-4 text-sm text-sky-100">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.scheduled_at))}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
+                      </span>
+                    </div>
+                  </a>
+                )}
+                {joinError && canJoinUpcomingTelemedicine && (
+                  <p className="mt-3 text-sm text-red-600">{joinError}</p>
+                )}
+              </section>
             ) : (
-              <a
-                href={upcomingTelemedicine ? buildPatientTelemedicineEntryUrl(upcomingTelemedicine.id) : '/patients/appointments'}
-                className="group block overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98]"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                    Próxima consulta
-                  </span>
-                  <ChevronRight className="h-4 w-4 text-sky-200 transition-transform group-hover:translate-x-1" />
-                </div>
-                <h2 className="text-xl font-bold text-white">
-                  {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
-                </h2>
-                <p className="mt-0.5 text-sm text-sky-100">
-                  {upcomingAppointment.doctor?.specialty ?? 'General'}
-                  {upcomingTelemedicine ? ' · Videoconsulta' : ''}
-                </p>
-                <div className="mt-3 flex items-center gap-4 text-sm text-sky-100">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.scheduled_at))}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" />
-                    {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
-                  </span>
-                </div>
-              </a>
+              <section className="mb-6">
+                <a href="/patients/anamnesis" className="block rounded-2xl border border-gray-100 bg-gray-50/50 p-5 transition-all hover:border-gray-200 active:scale-[0.98]">
+                  <p className="text-base leading-relaxed text-gray-500">
+                    <span className="font-semibold text-gray-900">{firstName}</span>, completá tu historia clínica para que tu próximo médico te atienda{' '}
+                    <span className="font-semibold text-gray-900">conociendo tu historia desde el primer minuto</span>.
+                  </p>
+                  {freeConsults > 0 && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      🎁 {freeConsults} {freeConsults === 1 ? 'consulta gratuita' : 'consultas gratuitas'}
+                    </div>
+                  )}
+                </a>
+              </section>
             )}
-            {joinError && canJoinUpcomingTelemedicine && (
-              <p className="mt-3 text-sm text-red-600">{joinError}</p>
+
+            {upcomingTelemedicine && isWithin2Hours(upcomingTelemedicine.scheduled_at) && (
+              <PreConsultationReminder
+                doctorName={
+                  upcomingTelemedicine.doctor
+                    ? `Dr. ${upcomingTelemedicine.doctor.first_name ?? ''} ${upcomingTelemedicine.doctor.last_name ?? ''}`.trim()
+                    : 'Tu médico'
+                }
+                specialty={upcomingTelemedicine.doctor?.specialty ?? 'General'}
+                scheduledAt={upcomingTelemedicine.scheduled_at}
+                appointmentId={upcomingTelemedicine.id}
+                locale={dateLocale}
+              />
             )}
-          </section>
-        ) : (
-          <section className="mb-6">
-            <a href="/patients/anamnesis" className="block rounded-2xl border border-gray-100 bg-gray-50/50 p-5 transition-all hover:border-gray-200 active:scale-[0.98]">
-              <p className="text-base leading-relaxed text-gray-500">
-                <span className="font-semibold text-gray-900">{firstName}</span>, completá tu historia clínica para que tu próximo médico te atienda{' '}
-                <span className="font-semibold text-gray-900">conociendo tu historia desde el primer minuto</span>.
-              </p>
-              {freeConsults > 0 && (
-                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  🎁 {freeConsults} {freeConsults === 1 ? 'consulta gratuita' : 'consultas gratuitas'}
+
+            <section className="mb-6">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Tu progreso</h2>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
+                  <p className="text-[11px] font-medium text-gray-400">Anamnesis</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900">{anamnesisProgress}%</p>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-sky-100">
+                    <div className="h-full rounded-full bg-sky-500 transition-all duration-700" style={{ width: `${anamnesisProgress}%` }} />
+                  </div>
                 </div>
-              )}
-            </a>
-          </section>
-        )}
-
-        {/* ═══ PRE-CONSULTATION REMINDER ═══ */}
-        {upcomingTelemedicine && isWithin2Hours(upcomingTelemedicine.scheduled_at) && (
-          <PreConsultationReminder
-            doctorName={
-              upcomingTelemedicine.doctor
-                ? `Dr. ${upcomingTelemedicine.doctor.first_name ?? ''} ${upcomingTelemedicine.doctor.last_name ?? ''}`.trim()
-                : 'Tu médico'
-            }
-            specialty={upcomingTelemedicine.doctor?.specialty ?? 'General'}
-            scheduledAt={upcomingTelemedicine.scheduled_at}
-            appointmentId={upcomingTelemedicine.id}
-            locale={dateLocale}
-          />
-        )}
-
-        {/* ═══ PROGRESS ═══ */}
-        <section className="mb-6">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Tu progreso</h2>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
-              <p className="text-[11px] font-medium text-gray-400">Anamnesis</p>
-              <p className="mt-1 text-xl font-bold text-gray-900">{anamnesisProgress}%</p>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-sky-100">
-                <div className="h-full rounded-full bg-sky-500 transition-all duration-700" style={{ width: `${anamnesisProgress}%` }} />
-              </div>
-            </div>
-            <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
-              <p className="text-[11px] font-medium text-gray-400">Perfil</p>
-              <p className="mt-1 text-xl font-bold text-gray-900">{profileProgress}%</p>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-amber-100">
-                <div className="h-full rounded-full bg-amber-500 transition-all duration-700" style={{ width: `${profileProgress}%` }} />
-              </div>
-            </div>
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
-              <p className="text-[11px] font-medium text-gray-400">Consultas</p>
-              <p className="mt-1 text-xl font-bold text-gray-900">{freeConsults > 0 ? `${freeConsults} gratis` : `${completedCount}`}</p>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-emerald-100">
-                <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: freeConsults > 0 ? '100%' : `${Math.min(completedCount * 20, 100)}%` }} />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══ ONBOARDING CHECKLIST ═══ */}
-        {hasIncompleteChecklist && (
-          <OnboardingChecklist
-            items={checklistItems}
-            completedCount={checklistCompleted}
-            totalCount={checklistItems.length}
-          />
-        )}
-
-        {/* ═══ QUICK ACTIONS ═══ */}
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Acciones rápidas</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {ACTIONS.map(({ key, label, sub, href, icon: Icon, color, bg, border }) => (
-              <a
-                key={key}
-                href={href}
-                className={`group flex items-start gap-3 rounded-xl border p-4 transition-all hover:shadow-sm active:scale-[0.97] ${border}`}
-              >
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
-                  <Icon className={`h-[18px] w-[18px] ${color}`} />
+                <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
+                  <p className="text-[11px] font-medium text-gray-400">Perfil</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900">{profileProgress}%</p>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-amber-100">
+                    <div className="h-full rounded-full bg-amber-500 transition-all duration-700" style={{ width: `${profileProgress}%` }} />
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{label}</p>
-                  <p className="mt-0.5 text-[11px] text-gray-400">{sub}</p>
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+                  <p className="text-[11px] font-medium text-gray-400">Consultas</p>
+                  <p className="mt-1 text-xl font-bold text-gray-900">{freeConsults > 0 ? `${freeConsults} gratis` : `${completedCount}`}</p>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-emerald-100">
+                    <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: freeConsults > 0 ? '100%' : `${Math.min(completedCount * 20, 100)}%` }} />
+                  </div>
                 </div>
-              </a>
-            ))}
-          </div>
-        </section>
-      </main>
+              </div>
+            </section>
 
-      <BottomNav activeTab="inicio" />
+            {hasIncompleteChecklist && (
+              <OnboardingChecklist
+                items={checklistItems}
+                completedCount={checklistCompleted}
+                totalCount={checklistItems.length}
+              />
+            )}
 
-      {patient?.id && <IncomingCallHandler patientId={patient.id} />}
+            <section>
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Acciones rápidas</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {ACTIONS.map(({ key, label, sub, href, icon: Icon, color, bg, border }) => (
+                  <a
+                    key={key}
+                    href={href}
+                    className={`group flex items-start gap-3 rounded-xl border p-4 transition-all hover:shadow-sm active:scale-[0.97] ${border}`}
+                  >
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
+                      <Icon className={`h-[18px] w-[18px] ${color}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{label}</p>
+                      <p className="mt-0.5 text-[11px] text-gray-400">{sub}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </section>
+          </main>
+
+          <BottomNav activeTab="inicio" />
+
+          {patient?.id && <IncomingCallHandler patientId={patient.id} />}
+        </>
+      )}
     </div>
   )
 }
