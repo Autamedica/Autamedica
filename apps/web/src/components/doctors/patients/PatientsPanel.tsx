@@ -13,10 +13,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
-import { Calendar, Clock, Video, User, Users, FileText, Phone, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
-import { useState, useMemo, useCallback } from 'react'
+import { Calendar, Clock, Video, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
+import { useState, useMemo } from 'react'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
-import { updateAppointment } from '@/lib/doctors/lib/repos/appointments'
 import { logger } from '@autamedica/shared'
 
 interface PatientsPanelProps {
@@ -24,7 +23,7 @@ interface PatientsPanelProps {
   onSelectPatient?: (patientId: string) => void
 }
 
-export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelProps) {
+export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const { patients, loading, error, refetch } = useRealPatients()

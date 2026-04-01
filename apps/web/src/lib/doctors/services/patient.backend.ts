@@ -3,17 +3,19 @@
  * Orchestrates repository access for API Controllers.
  */
 import { patientsRepo } from '@/lib/doctors/lib/repos/patients'
-import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
-import type { PatientWithProfile, UUID } from '@autamedica/types'
+import type { PatientWithProfile } from '@autamedica/types'
+import { GetRelevantPatientsUseCase } from '../usecases/GetRelevantPatientsUseCase'
+import { GetAllRelevantPatientsUseCase } from '../usecases/GetAllRelevantPatientsUseCase'
 
 export const patientBackendService = {
   /**
-   * List all patients available for the requesting user context.
+   * Resolve all active patients in the platform using relevance use case.
    */
   async getActivePatients(): Promise<PatientWithProfile[]> {
     try {
-      return await patientsRepo.findAllActive(createAstroAdminClient())
+      const useCase = new GetAllRelevantPatientsUseCase(patientsRepo)
+      return await useCase.execute()
     } catch (error) {
       logger.error('[patientBackendService] getActivePatients failed', error)
       throw error
@@ -21,23 +23,12 @@ export const patientBackendService = {
   },
 
   /**
-   * Get formatted patient detail.
-   */
-  async getPatientById(id: UUID): Promise<PatientWithProfile | null> {
-    try {
-      return await patientsRepo.findById(id, createAstroAdminClient())
-    } catch (error) {
-      logger.error('[patientBackendService] getPatientById failed', { id, error })
-      throw error
-    }
-  },
-
-  /**
-   * Resolve patients assigned to a doctor.
+   * Resolve patients assigned to a doctor using the relevance use case.
    */
   async getAssignedPatients(doctorUserId: string): Promise<PatientWithProfile[]> {
     try {
-      return await patientsRepo.findByDoctorUserId(doctorUserId, createAstroAdminClient())
+      const useCase = new GetRelevantPatientsUseCase(patientsRepo)
+      return await useCase.execute(doctorUserId)
     } catch (error) {
       logger.error('[patientBackendService] getAssignedPatients failed', { doctorUserId, error })
       throw error
