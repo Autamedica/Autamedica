@@ -44,6 +44,7 @@ export type { Portal } from './roles'
 export {
   createBrowserClient,
   getSupabaseClient,
+  resetAuthCircuitBreaker,
   signOutGlobally
 } from './client/supabase'
 

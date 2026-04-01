@@ -11,6 +11,15 @@ let supabaseClient: SupabaseClient<Database> | null = null
 const authLockQueue = new Map<string, Promise<void>>()
 
 /**
+ * Circuit breaker: after a definitive refresh-token failure (400 — token
+ * revoked/expired/not found), stop queuing further auth operations and
+ * clear the corrupted local session once.
+ *
+ * Resets on a successful auth operation so normal login flow isn't blocked.
+ */
+let authCircuitOpen = false
+
+/**
  * Serialize auth operations without relying on the browser Web Locks API.
  *
  * We previously used a no-op lock to avoid `AbortError` issues from `navigator.locks`,
@@ -25,6 +34,12 @@ export async function runWithSerializedAuthLock<T>(
   _acquireTimeout: number,
   fn: () => Promise<T>,
 ): Promise<T> {
+  // Circuit breaker: if a previous refresh already failed definitively,
+  // skip further queued operations to prevent the 400-spam loop.
+  if (authCircuitOpen) {
+    throw new Error('Auth circuit breaker open: refresh token is invalid')
+  }
+
   const previous = authLockQueue.get(name) ?? Promise.resolve()
   let releaseCurrent!: () => void
 
@@ -38,7 +53,20 @@ export async function runWithSerializedAuthLock<T>(
   await previous.catch(() => undefined)
 
   try {
-    return await fn()
+    const result = await fn()
+    // Successful operation — close the circuit breaker if it was tripped.
+    authCircuitOpen = false
+    return result
+  } catch (error) {
+    // Detect definitive refresh-token failure and trip the breaker.
+    if (
+      error instanceof Error &&
+      /refresh.token|invalid.*token/i.test(error.message) &&
+      ('status' in error && (error as { status: number }).status === 400)
+    ) {
+      authCircuitOpen = true
+    }
+    throw error
   } finally {
     releaseCurrent()
 
@@ -46,6 +74,11 @@ export async function runWithSerializedAuthLock<T>(
       authLockQueue.delete(name)
     }
   }
+}
+
+/** Reset the auth circuit breaker (e.g. after a successful sign-in). */
+export function resetAuthCircuitBreaker(): void {
+  authCircuitOpen = false
 }
 
 /**
@@ -105,6 +138,8 @@ export function getSupabaseClient(): SupabaseClient<Database> {
  * Sign out and clear all sessions across apps
  */
 export async function signOutGlobally(): Promise<void> {
+  // Reset circuit breaker so the next login attempt works normally.
+  authCircuitOpen = false
   const client = getSupabaseClient()
   const domainConfig = getDomainConfig()
 

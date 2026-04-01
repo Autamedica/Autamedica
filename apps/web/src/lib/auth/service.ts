@@ -9,7 +9,7 @@
  * Nunca instanciar Supabase directamente en componentes ni hooks.
  * Siempre pasar por aquí.
  */
-import { createBrowserClient } from '@autamedica/auth'
+import { createBrowserClient, resetAuthCircuitBreaker } from '@autamedica/auth'
 import { logger } from '@autamedica/shared'
 
 export interface SignInResult {
@@ -111,6 +111,8 @@ export async function signInWithPassword(
   email: string,
   password: string
 ): Promise<SignInResult> {
+  // Reset circuit breaker so a fresh login isn't blocked by a prior bad refresh.
+  resetAuthCircuitBreaker()
   const supabase = createBrowserClient()
 
   let { error } = await supabase.auth.signInWithPassword({ email, password })

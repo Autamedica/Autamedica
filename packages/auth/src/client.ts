@@ -10,9 +10,9 @@
 
 import { ensureClientEnv } from "@autamedica/shared";
 import type { Provider } from "@supabase/supabase-js";
-import { createBrowserClient, getSupabaseClient, signOutGlobally } from "./client/supabase";
+import { createBrowserClient, getSupabaseClient, resetAuthCircuitBreaker, signOutGlobally } from "./client/supabase";
 
-export { createBrowserClient, getSupabaseClient, signOutGlobally };
+export { createBrowserClient, getSupabaseClient, resetAuthCircuitBreaker, signOutGlobally };
 
 /**
  * Inicia sesión con OAuth usando URLs de producción correctas
