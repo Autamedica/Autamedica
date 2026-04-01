@@ -721,72 +721,90 @@ export default function AnamnesisPage() {
   if (!currentStep) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-stone-50 to-sky-50">
+    <div className="flex min-h-screen flex-col bg-[#f7f8fa]">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <span className="text-sm font-semibold text-emerald-700">AutaMedica</span>
-          <span className="flex items-center gap-1.5 text-xs text-stone-500">
-            {isExtracting && (
-              <Loader2 className="h-3 w-3 animate-spin text-sky-700" />
-            )}
-            Paso {currentStepIndex + 1} de {anamnesisSteps.length}
-          </span>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => switchMode('conversational')}
-              className="text-xs text-emerald-600 transition-colors hover:text-emerald-700"
-              title="Modo conversacional — una pregunta a la vez"
-            >
-              <MessageCircle className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => { if (editMode) { setEditMode(false); } else { window.location.href = '/'; } }}
-              className="text-xs text-stone-500 transition-colors hover:text-stone-600"
-            >
-              {editMode ? 'Volver al resumen' : 'Guardar y salir'}
-            </button>
+      <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="mx-auto max-w-2xl px-5 pb-4 pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold tracking-tight text-stone-900">AutaMedica</span>
+            <div className="flex items-center gap-3">
+              {isExtracting && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+              )}
+              <button
+                onClick={() => switchMode('conversational')}
+                className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600"
+                title="Modo conversacional — una pregunta a la vez"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => { if (editMode) { setEditMode(false); } else { window.location.href = '/'; } }}
+                className="text-xs font-medium text-stone-400 transition-colors hover:text-stone-600"
+              >
+                {editMode ? 'Volver al resumen' : 'Guardar y salir'}
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Progress bar */}
-        <div className="h-1 bg-stone-100" data-tour="anamnesis-progress">
-          <div
-            className="h-full bg-emerald-500 transition-all duration-500 ease-out"
-            style={{ width: `${completionPct}%` }}
-          />
+          {/* Progress indicator */}
+          <div className="mt-4 flex items-center gap-3.5" data-tour="anamnesis-progress">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-900 text-xs font-bold tabular-nums text-white">
+              {currentStepIndex + 1}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">
+                  Paso {currentStepIndex + 1} de {anamnesisSteps.length}
+                </p>
+                <span className="text-[11px] font-medium tabular-nums text-stone-300">
+                  {Math.round(completionPct)}%
+                </span>
+              </div>
+              <div className="mt-1.5 h-[5px] w-full overflow-hidden rounded-full bg-stone-100">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+                  style={{ width: `${completionPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8">
         <div data-tour="anamnesis-section">
           {/* Educational story */}
           {currentStep.story && (
-            <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 p-5" data-tour="educational-media">
-              <p className="text-sm leading-relaxed text-sky-900">{currentStep.story.intro}</p>
-              {currentStep.story.why && (
-                <p className="mt-3 text-sm leading-relaxed text-sky-800">{currentStep.story.why}</p>
-              )}
+            <div className="mb-8 overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
+              <div className="px-6 py-5">
+                <p className="text-[15px] leading-relaxed text-stone-700">{currentStep.story.intro}</p>
+                {currentStep.story.why && (
+                  <p className="mt-3 text-sm leading-relaxed text-stone-500">{currentStep.story.why}</p>
+                )}
+              </div>
               {currentStep.story.example && (
-                <div className="mt-3 whitespace-pre-line rounded-lg bg-white/60 p-3 text-xs text-sky-700">
-                  {currentStep.story.example}
+                <div className="border-t border-stone-100 bg-stone-50/50 px-6 py-4">
+                  <p className="whitespace-pre-line text-[13px] leading-relaxed text-stone-500">{currentStep.story.example}</p>
                 </div>
               )}
               {currentStep.story.didYouKnow && (
-                <p className="mt-3 text-xs italic text-sky-700">{currentStep.story.didYouKnow}</p>
+                <div className="border-t border-stone-100 px-6 py-3">
+                  <p className="text-xs italic text-stone-400">{currentStep.story.didYouKnow}</p>
+                </div>
               )}
             </div>
           )}
 
           {/* Video */}
           {currentStep.mediaUrl && (
-            <div className="mb-6 overflow-hidden rounded-xl" data-tour="educational-media">
+            <div className="mb-8 overflow-hidden rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
               <video
                 src={currentStep.mediaUrl}
                 controls
                 preload="metadata"
-                className="w-full rounded-xl"
+                className="w-full"
               >
                 <track kind="captions" />
               </video>
@@ -794,28 +812,30 @@ export default function AnamnesisPage() {
           )}
 
           {/* Step title */}
-          <h1 className="text-xl font-bold text-stone-900 sm:text-2xl">{currentStep.title}</h1>
-          <p className="mt-1 text-sm text-stone-500">{currentStep.subtitle}</p>
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-stone-900 sm:text-[28px]">{currentStep.title}</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-stone-400">{currentStep.subtitle}</p>
 
           {/* Revisit: carried-forward preview */}
           {isStepCarriedForward && !editingCarriedStep ? (
-            <div className="mt-6 space-y-4">
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-                <p className="text-sm font-medium text-emerald-800 mb-3">
-                  {currentStep.mutability === 'carry_forward_additive'
-                    ? 'Datos anteriores — ¿hay algo nuevo?'
-                    : 'Datos anteriores — ¿cambió algo?'}
-                </p>
-                <div className="space-y-2">
+            <div className="mt-8 space-y-5">
+              <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]">
+                <div className="border-b border-stone-100 px-6 py-4">
+                  <p className="text-[13px] font-semibold text-stone-800">
+                    {currentStep.mutability === 'carry_forward_additive'
+                      ? 'Datos anteriores — ¿hay algo nuevo?'
+                      : 'Datos anteriores — ¿cambió algo?'}
+                  </p>
+                </div>
+                <div className="divide-y divide-stone-100/70 px-6">
                   {currentStep.fields.filter(f => formData[currentStep.id]?.[f.id] != null).map(f => {
                     const val = formData[currentStep.id]?.[f.id];
                     const display = val === true ? 'Sí' : val === false ? 'No'
                       : Array.isArray(val) ? (val as string[]).join(', ') || 'Ninguno'
                       : String(val ?? '');
                     return (
-                      <div key={f.id} className="flex justify-between text-sm">
-                        <span className="text-stone-600">{f.label}</span>
-                        <span className="font-medium text-stone-900 max-w-[60%] text-right truncate">{display}</span>
+                      <div key={f.id} className="flex items-center justify-between py-3.5">
+                        <span className="text-sm text-stone-500">{f.label}</span>
+                        <span className="max-w-[55%] truncate text-right text-sm font-semibold text-stone-900">{display}</span>
                       </div>
                     );
                   })}
@@ -824,13 +844,13 @@ export default function AnamnesisPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setEditingCarriedStep(true)}
-                  className="flex-1 rounded-xl border-2 border-stone-200 px-4 py-3 text-sm font-medium text-stone-600 hover:border-stone-300 hover:bg-stone-50"
+                  className="flex-1 rounded-xl border border-stone-200 bg-white px-5 py-3.5 text-sm font-semibold text-stone-700 shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
                 >
                   {currentStep.mutability === 'carry_forward_additive' ? 'Sí, agregar datos' : 'Sí, actualizar'}
                 </button>
                 <button
                   onClick={handleNext}
-                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700"
+                  className="flex-1 rounded-xl bg-stone-900 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.98]"
                 >
                   No cambió nada
                 </button>
@@ -838,7 +858,7 @@ export default function AnamnesisPage() {
             </div>
           ) : (
           /* Fields — normal edit mode */
-          <div className="mt-6 space-y-5" data-tour="anamnesis-field">
+          <div className="mt-8 space-y-6" data-tour="anamnesis-field">
             {visibleFields.map((field) => (
               <AnamnesisFieldRenderer
                 key={field.id}
@@ -859,14 +879,14 @@ export default function AnamnesisPage() {
 
       {/* Navigation */}
       <footer
-        className="sticky bottom-0 border-t border-stone-200 bg-white/80 backdrop-blur-sm"
+        className="sticky bottom-0 bg-white shadow-[0_-1px_3px_rgba(0,0,0,0.04)]"
         data-tour="navigation-buttons"
       >
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
           <button
             onClick={handlePrev}
             disabled={isFirstStep || saving}
-            className="inline-flex items-center gap-1.5 rounded-lg border-2 border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition-colors hover:border-stone-300 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-30"
+            className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium text-stone-400 transition-all hover:bg-stone-50 hover:text-stone-600 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ArrowLeft className="h-4 w-4" />
             Anterior
@@ -875,7 +895,7 @@ export default function AnamnesisPage() {
           <button
             onClick={handleNext}
             disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-7 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.97] disabled:opacity-50"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />

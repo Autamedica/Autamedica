@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle, HelpCircle, Mic, MicOff } from 'lucide-react';
+import { Check, CheckCircle, HelpCircle, Mic, MicOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnamnesisFieldValue, AnamnesisField as FieldType } from '@/lib/patients/types/anamnesis';
 
@@ -98,10 +98,10 @@ function VoiceMicButton({ onResult, currentValue }: { onResult: (text: string) =
     <button
       type="button"
       onClick={toggle}
-      className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all ${
+      className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 transition-all ${
         listening
           ? 'bg-red-100 text-red-600 animate-pulse'
-          : 'bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-700'
+          : 'text-stone-300 hover:bg-stone-100 hover:text-stone-500'
       }`}
       title={listening ? 'Detener grabación' : 'Hablar para completar'}
     >
@@ -157,7 +157,7 @@ function BirthDatePicker({ value, onChange }: { value: string; onChange: (v: str
     });
   }, [onChange]);
 
-  const selectClass = 'flex-1 px-3 py-2.5 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900 bg-white cursor-pointer';
+  const selectClass = 'flex-1 rounded-xl border border-stone-200 bg-white px-3 py-3 text-[15px] text-stone-900 shadow-sm outline-none transition-all focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5 cursor-pointer';
 
   return (
     <div className="flex gap-2">
@@ -217,6 +217,8 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
     }
   };
 
+  const inputBase = 'w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-[15px] text-stone-900 shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:ring-2 focus:ring-stone-900/5';
+
   const renderField = () => {
     switch (field.type) {
       case 'text':
@@ -228,7 +230,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
               onChange={(e) => updateFieldValue(e.target.value)}
               placeholder={field.placeholder}
               required={field.required}
-              className="w-full px-3 pr-10 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
+              className={`${inputBase} pr-11`}
             />
             <VoiceMicButton
               currentValue={String(toInputValue(value) || '')}
@@ -247,7 +249,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
             required={field.required}
             min={field.validation?.min}
             max={field.validation?.max}
-            className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
+            className={inputBase}
           />
         );
 
@@ -260,11 +262,11 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
             placeholder={field.placeholder}
             required={field.required}
             rows={4}
-            className="w-full px-3 pb-2 pt-2 pr-10 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900 resize-none"
+            className={`${inputBase} resize-none pr-11`}
           />
           <button
             type="button"
-            className="absolute right-2 top-2 p-1.5 rounded-full bg-stone-100 text-stone-500 hover:bg-emerald-100 hover:text-emerald-700 transition-all"
+            className="absolute right-3 top-3 rounded-full p-1.5 text-stone-300 transition-all hover:bg-stone-100 hover:text-stone-500"
             title="Hablar para completar"
             onClick={() => {
               const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -290,9 +292,9 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
             value={toInputValue(value) || ''}
             onChange={(e) => updateFieldValue(e.target.value)}
             required={field.required}
-            className="w-full px-3 py-2 text-sm border-2 border-stone-300 rounded-lg focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none transition-all text-stone-900"
+            className={`${inputBase} cursor-pointer`}
           >
-            <option value="">Selecciona una opción</option>
+            <option value="">Selecciona una opcion</option>
             {field.options?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -303,34 +305,30 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
 
       case 'multiselect':
         return (
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid gap-2.5 md:grid-cols-2">
             {field.options?.map((option) => {
               const currentArr = Array.isArray(value) ? value as string[] : [];
               const isSelected = currentArr.includes(option.value);
               return (
                 <label
                   key={option.value}
-                  className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all hover:shadow-sm ${
+                  className={`group flex cursor-pointer items-start gap-3.5 rounded-xl border bg-white px-4 py-3.5 shadow-sm transition-all active:scale-[0.98] ${
                     isSelected
-                      ? 'border-sky-300 bg-sky-100'
-                      : 'border-stone-200 hover:border-stone-300'
+                      ? 'border-stone-900 ring-1 ring-stone-900'
+                      : 'border-stone-200 hover:border-stone-300 hover:shadow-md'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => {
-                      const newValue = e.target.checked
-                        ? [...currentArr, option.value]
-                        : currentArr.filter((v) => v !== option.value);
-                      updateFieldValue(newValue);
-                    }}
-                    className="mt-0.5 h-4 w-4 text-sky-700 border-stone-300 rounded focus:ring-sky-500"
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-stone-900">{option.label}</p>
+                  <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
+                    isSelected
+                      ? 'border-stone-900 bg-stone-900 text-white'
+                      : 'border-stone-300 group-hover:border-stone-400'
+                  }`}>
+                    {isSelected && <Check className="h-3 w-3" strokeWidth={3} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-stone-800">{option.label}</p>
                     {option.explanation && (
-                      <p className="text-sm text-stone-500 mt-1">{option.explanation}</p>
+                      <p className="mt-0.5 text-[13px] leading-snug text-stone-400">{option.explanation}</p>
                     )}
                   </div>
                 </label>
@@ -342,46 +340,48 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
       case 'boolean':
         return (
           <div className="flex gap-3">
-            <label className={`flex-1 p-3 border-2 rounded-lg cursor-pointer transition-all text-center ${
-              value === true ? 'border-green-500 bg-green-50' : 'border-stone-200 hover:border-stone-300'
-            }`}>
-              <input
-                type="radio"
-                checked={value === true}
-                onChange={() => updateFieldValue(true)}
-                className="sr-only"
-              />
-              <span className="text-sm font-semibold text-stone-900">✓ Sí</span>
-            </label>
-            <label className={`flex-1 p-3 border-2 rounded-lg cursor-pointer transition-all text-center ${
-              value === false ? 'border-red-500 bg-red-50' : 'border-stone-200 hover:border-stone-300'
-            }`}>
-              <input
-                type="radio"
-                checked={value === false}
-                onChange={() => updateFieldValue(false)}
-                className="sr-only"
-              />
-              <span className="text-sm font-semibold text-stone-900">✗ No</span>
-            </label>
+            <button
+              type="button"
+              onClick={() => updateFieldValue(true)}
+              className={`flex-1 rounded-xl border px-4 py-3.5 text-sm font-bold transition-all active:scale-[0.97] ${
+                value === true
+                  ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
+                  : 'border-stone-200 bg-white text-stone-600 shadow-sm hover:border-stone-300 hover:shadow-md'
+              }`}
+            >
+              Si
+            </button>
+            <button
+              type="button"
+              onClick={() => updateFieldValue(false)}
+              className={`flex-1 rounded-xl border px-4 py-3.5 text-sm font-bold transition-all active:scale-[0.97] ${
+                value === false
+                  ? 'border-stone-900 bg-stone-900 text-white shadow-sm'
+                  : 'border-stone-200 bg-white text-stone-600 shadow-sm hover:border-stone-300 hover:shadow-md'
+              }`}
+            >
+              No
+            </button>
           </div>
         );
 
       case 'scale':
         return (
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="flex items-center justify-center">
+              <span className="text-3xl font-bold tabular-nums text-stone-900">{toInputValue(value) || field.validation?.min || 1}</span>
+            </div>
             <input
               type="range"
               min={field.validation?.min || 1}
               max={field.validation?.max || 10}
               value={toInputValue(value) || field.validation?.min || 1}
               onChange={(e) => updateFieldValue(Number(e.target.value))}
-              className="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+              className="w-full h-2 cursor-pointer appearance-none rounded-full bg-stone-200 accent-stone-900"
             />
-            <div className="flex justify-between text-sm text-stone-600">
-              <span>1 (Leve)</span>
-              <span className="text-lg font-bold text-stone-900">{toInputValue(value) || field.validation?.min || 1}</span>
-              <span>10 (Insoportable)</span>
+            <div className="flex justify-between text-xs font-medium text-stone-400">
+              <span>Leve</span>
+              <span>Insoportable</span>
             </div>
           </div>
         );
@@ -395,12 +395,12 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {/* Label con tooltip */}
       <div className="flex items-start justify-between gap-2">
-        <label className="text-sm font-medium text-stone-700 flex-1">
+        <label className="text-[13px] font-semibold text-stone-600 flex-1">
           {field.label}
-          {field.required && <span className="text-red-600 ml-1">*</span>}
+          {field.required && <span className="text-red-400 ml-0.5">*</span>}
         </label>
         {field.tooltip && (
           <div className="relative">
@@ -408,14 +408,14 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
               type="button"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
-              className="text-stone-500 hover:text-stone-700 transition-colors"
+              className="text-stone-300 hover:text-stone-500 transition-colors"
             >
               <HelpCircle className="h-4 w-4" />
             </button>
             {showTooltip && (
-              <div className="absolute right-0 top-6 z-10 w-64 p-3 bg-stone-900 text-white text-sm rounded-lg shadow-xl">
+              <div className="absolute right-0 top-7 z-10 w-72 rounded-xl bg-stone-900 p-4 text-[13px] leading-relaxed text-white shadow-xl">
                 <p className="whitespace-pre-line">{field.tooltip}</p>
-                <div className="absolute -top-1 right-2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-stone-900"></div>
+                <div className="absolute -top-1 right-3 h-2 w-2 rotate-45 bg-stone-900"></div>
               </div>
             )}
           </div>
@@ -427,12 +427,12 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
 
       {/* Nota educativa al completar */}
       {showEducationalNote && field.educationalNote && (
-        <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded-r-lg animate-fade-in">
-          <div className="flex items-start gap-2">
-            <CheckCircle className="h-5 w-5 text-green-700 flex-shrink-0 mt-0.5" />
+        <div className="overflow-hidden rounded-xl bg-emerald-50 ring-1 ring-emerald-100">
+          <div className="flex items-start gap-3 px-4 py-3.5">
+            <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-green-900 font-medium mb-1">¡Excelente!</p>
-              <p className="text-sm text-green-800">{field.educationalNote}</p>
+              <p className="text-[13px] font-semibold text-emerald-900">Excelente</p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-emerald-700">{field.educationalNote}</p>
             </div>
           </div>
         </div>
