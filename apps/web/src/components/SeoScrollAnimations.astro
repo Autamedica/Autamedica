@@ -34,13 +34,13 @@
 
     // Section headings — slide up on scroll
     gsap.utils.toArray('.seo-section h2').forEach((el) => {
-      gsap.from(el as Element, {
+      gsap.from(el, {
         opacity: 0,
         y: 25,
         duration: 0.6,
         ease: 'power2.out',
         scrollTrigger: {
-          trigger: el as Element,
+          trigger: el,
           start: 'top 85%',
           once: true,
         },
@@ -86,13 +86,13 @@
 
     // Editorial content sections
     document.querySelectorAll('.seo-editorial article section').forEach((section) => {
-      gsap.from(section as Element, {
+      gsap.from(section, {
         opacity: 0,
         y: 15,
         duration: 0.5,
         ease: 'power2.out',
         scrollTrigger: {
-          trigger: section as Element,
+          trigger: section,
           start: 'top 85%',
           once: true,
         },
@@ -101,13 +101,13 @@
 
     // Blog prose sections
     document.querySelectorAll('.blog-prose section, .blog-prose h2').forEach((el) => {
-      gsap.from(el as Element, {
+      gsap.from(el, {
         opacity: 0,
         y: 15,
         duration: 0.5,
         ease: 'power2.out',
         scrollTrigger: {
-          trigger: el as Element,
+          trigger: el,
           start: 'top 85%',
           once: true,
         },
@@ -116,13 +116,13 @@
 
     // Sidebar cards
     document.querySelectorAll('.seo-sidebar-card').forEach((card) => {
-      gsap.from(card as Element, {
+      gsap.from(card, {
         opacity: 0,
         x: 15,
         duration: 0.5,
         ease: 'power2.out',
         scrollTrigger: {
-          trigger: card as Element,
+          trigger: card,
           start: 'top 85%',
           once: true,
         },

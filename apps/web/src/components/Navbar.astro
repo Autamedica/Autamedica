@@ -260,8 +260,8 @@ const navLinks = [
 
     document.addEventListener('click', (e) => {
       if (!menu.classList.contains('is-open')) return;
-      const target = e.target as HTMLElement;
-      if (!menu.contains(target) && !btn.contains(target)) {
+      const target = e.target;
+      if (target instanceof Node && !menu.contains(target) && !btn.contains(target)) {
         menu.classList.remove('is-open');
         btn.setAttribute('aria-expanded', 'false');
         menu.setAttribute('aria-hidden', 'true');
@@ -269,8 +269,8 @@ const navLinks = [
     });
 
     menu.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'A') {
+      const target = e.target;
+      if (target instanceof HTMLAnchorElement) {
         menu.classList.remove('is-open');
         btn.setAttribute('aria-expanded', 'false');
         menu.setAttribute('aria-hidden', 'true');
