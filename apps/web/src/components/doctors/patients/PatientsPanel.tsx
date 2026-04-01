@@ -218,11 +218,15 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
             const completedCount = completedByPatient.get(patient.id) ?? 0
 
             return (
-              <Card
+              <div
                 key={patient.id}
-                className="group overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                className="group cursor-pointer"
                 onClick={() => onSelectPatient?.(patient.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter') onSelectPatient?.(patient.id) }}
               >
+              <Card className="overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:-translate-y-0.5 group-hover:border-primary/30">
                 <CardContent className="p-0">
                   {/* Patient identity */}
                   <div className="flex items-center gap-3 px-5 pt-5 pb-3">
@@ -309,6 +313,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                   </div>
                 </CardContent>
               </Card>
+              </div>
             )
           })}
         </div>
