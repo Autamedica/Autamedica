@@ -9,19 +9,15 @@ import {
   Calendar,
   ChevronRight,
   Clock,
+  ClipboardList,
+  FileText,
   LogOut,
+  MessageCircle,
+  Pill,
   Settings,
   User,
   Video,
 } from 'lucide-react'
-import {
-  IconVideoconsulta,
-  IconTurnos,
-  IconAnamnesis,
-  IconRecetas,
-  IconHistorial,
-  IconComunidad,
-} from '@/components/patients/icons/FeatureIcons'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
 import BottomNav from '@/components/patients/layout/BottomNav'
@@ -49,18 +45,6 @@ function getTimeGreeting(): string {
   return 'Buenas noches'
 }
 
-const CONSULTAS = [
-  { key: 'videoconsulta', label: 'Videoconsulta', sub: 'Conectá con tu médico en vivo', href: '/patients/appointments?type=telemedicine', icon: IconVideoconsulta, color: '#10B981', bgClass: 'bg-emerald-50' },
-  { key: 'agenda', label: 'Mis turnos', sub: 'Agendá y gestioná tus citas', href: '/patients/appointments', icon: IconTurnos, color: '#0EA5E9', bgClass: 'bg-sky-50' },
-  { key: 'anamnesis', label: 'Anamnesis', sub: 'Completá tu historia clínica', href: '/patients/anamnesis', icon: IconAnamnesis, color: '#F59E0B', bgClass: 'bg-amber-50' },
-] as const
-
-const SALUD = [
-  { key: 'recetas', label: 'Recetas', sub: 'Tus prescripciones médicas', href: '/patients/medical-history?tab=prescriptions', icon: IconRecetas, color: '#8B5CF6', bgClass: 'bg-violet-50' },
-  { key: 'historial', label: 'Historial', sub: 'Registros y transcripciones', href: '/patients/medical-history', icon: IconHistorial, color: '#64748B', bgClass: 'bg-slate-50' },
-  { key: 'comunidad', label: 'Comunidad', sub: 'Conectá con otros pacientes', href: '/patients/community', icon: IconComunidad, color: '#F43F5E', bgClass: 'bg-rose-50' },
-] as const
-
 interface PatientsHomePageProps {
   locale?: Locale
 }
@@ -79,7 +63,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const [signingOut, setSigningOut] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Close menu on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false)
@@ -97,35 +80,24 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
       setSigningOut(false)
     }
   }, [signOut])
+
   const firstName = getFirstName(profile, user)
-  const uniqueDoctorsCount = useMemo(() => {
-    const doctorIds = new Set(
-      appointments
-        .filter(a => a.status === 'completed')
-        .map(a => a.doctor_id)
-        .filter(Boolean)
-    )
-    return doctorIds.size
-  }, [appointments])
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
+
+  const completedCount = useMemo(() => {
+    return appointments.filter(a => a.status === 'completed').length
+  }, [appointments])
 
   useEffect(() => {
     setHasHydrated(true)
   }, [])
 
   const upcomingAppointment = useMemo(() => {
-    if (!hasHydrated) {
-      return null
-    }
-
-    const liveAppointment = appointments
+    if (!hasHydrated) return null
+    const live = appointments
       .filter(a => a.status === 'in_progress')
       .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] ?? null
-
-    if (liveAppointment) {
-      return liveAppointment
-    }
-
+    if (live) return live
     const now = new Date()
     return appointments
       .filter(a => a.status === 'scheduled' || a.status === 'confirmed')
@@ -134,10 +106,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   }, [appointments, hasHydrated])
 
   const upcomingCount = useMemo(() => {
-    if (!hasHydrated) {
-      return 0
-    }
-
+    if (!hasHydrated) return 0
     const now = new Date()
     return appointments.filter(a =>
       (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.scheduled_at) > now
@@ -146,38 +115,62 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   const dateLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
   const greeting = hasHydrated ? getTimeGreeting() : 'Hola'
-  const upcomingTelemedicine = upcomingAppointment && isTelemedicineAppointment(upcomingAppointment)
-    ? upcomingAppointment
-    : null
-  const canJoinUpcomingTelemedicine = upcomingTelemedicine
-    ? isJoinableTelemedicineAppointment(upcomingTelemedicine)
-    : false
+  const upcomingTelemedicine = upcomingAppointment && isTelemedicineAppointment(upcomingAppointment) ? upcomingAppointment : null
+  const canJoinUpcomingTelemedicine = upcomingTelemedicine ? isJoinableTelemedicineAppointment(upcomingTelemedicine) : false
+
+  // Anamnesis progress (rough proxy from profile completeness)
+  const anamnesisProgress = patient ? Math.min(
+    ((profile?.firstName ? 15 : 0) +
+    (profile?.lastName ? 15 : 0) +
+    (patient.gender ? 10 : 0) +
+    (patient.dateOfBirth ? 10 : 0) +
+    (completedCount > 0 ? 25 : 0) +
+    (patient.freeConsultationsRemaining !== undefined ? 25 : 0)),
+    100
+  ) : 0
+
+  const profileProgress = profile ? Math.min(
+    ((profile.firstName ? 20 : 0) +
+    (profile.lastName ? 20 : 0) +
+    (profile.email ? 20 : 0) +
+    (profile.phone ? 20 : 0) +
+    (patient?.gender ? 10 : 0) +
+    (patient?.dateOfBirth ? 10 : 0)),
+    100
+  ) : 0
+
+  const ACTIONS = [
+    { key: 'video', label: 'Videoconsulta', sub: 'Conectá en vivo', href: '/patients/appointments?type=telemedicine', icon: Video, color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100 hover:border-sky-200' },
+    { key: 'turnos', label: 'Mis turnos', sub: 'Agendá citas', href: '/patients/appointments', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100 hover:border-violet-200' },
+    { key: 'recetas', label: 'Recetas', sub: 'Prescripciones', href: '/patients/medical-history?tab=prescriptions', icon: Pill, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100 hover:border-emerald-200' },
+    { key: 'historial', label: 'Historial', sub: 'Registros médicos', href: '/patients/medical-history', icon: FileText, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200 hover:border-slate-300' },
+    { key: 'anamnesis', label: 'Anamnesis', sub: 'Historia clínica', href: '/patients/anamnesis', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-200' },
+    { key: 'comunidad', label: 'Comunidad', sub: 'Otros pacientes', href: '/patients/community', icon: MessageCircle, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
+  ] as const
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      {/* Header */}
+      {/* Header — compact */}
       <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white shadow-sm shadow-sky-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white shadow-sm shadow-sky-500/20">
               {firstName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="font-heading text-sm font-semibold text-gray-900">
-                {greeting}, {firstName}
-              </p>
-              <p className="text-xs text-gray-400">Tu salud, tu control</p>
+              <p className="text-sm font-semibold text-gray-900">{greeting}, {firstName}</p>
+              <p className="text-[11px] text-gray-400">Tu salud, tu control</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-600"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
               aria-label="Notificaciones"
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-[18px] w-[18px]" />
               {upcomingCount > 0 && (
-                <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
                   {upcomingCount}
                 </span>
               )}
@@ -186,36 +179,22 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               <button
                 type="button"
                 onClick={() => setShowMenu(prev => !prev)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-600"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
                 aria-label="Menú de usuario"
               >
-                <User className="h-5 w-5" />
+                <User className="h-[18px] w-[18px]" />
               </button>
               {showMenu && (
-                <div className="absolute right-0 top-12 z-50 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-                  <a
-                    href="/patients/profile"
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <User className="h-4 w-4 text-gray-400" />
-                    Perfil
+                <div className="absolute right-0 top-11 z-50 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                  <a href="/patients/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    <User className="h-4 w-4 text-gray-400" /> Perfil
                   </a>
-                  <a
-                    href="/patients/settings"
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <Settings className="h-4 w-4 text-gray-400" />
-                    Configuración
+                  <a href="/patients/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    <Settings className="h-4 w-4 text-gray-400" /> Configuración
                   </a>
                   <div className="mx-3 my-1 border-t border-gray-100" />
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    disabled={signingOut}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
+                  <button type="button" onClick={handleSignOut} disabled={signingOut} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                    <LogOut className="h-4 w-4" /> {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
                   </button>
                 </div>
               )}
@@ -224,170 +203,132 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 pb-28 pt-6">
-        {/* Próxima cita */}
+      <main className="mx-auto max-w-2xl px-5 pb-28 pt-5">
+
+        {/* ═══ HERO: Próxima consulta ═══ */}
         {upcomingAppointment ? (
-          <section className="mb-8">
+          <section className="mb-6">
             {canJoinUpcomingTelemedicine ? (
               <button
                 type="button"
-                onClick={() => {
-                  if (!upcomingTelemedicine) return
-                  clearJoinError()
-                  void joinAppointment(upcomingTelemedicine.id)
-                }}
+                onClick={() => { if (!upcomingTelemedicine) return; clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
                 disabled={joiningAppointmentId === upcomingTelemedicine?.id}
-                className="group block w-full rounded-2xl border border-sky-100 bg-sky-50/40 p-5 text-left transition-all hover:border-sky-200 hover:shadow-sm disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
+                className="group block w-full overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 text-left shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
               >
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
-                    Próxima consulta
+                  <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    HOY
                   </span>
-                  <ChevronRight className="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-1" />
-                </div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {upcomingAppointment.doctor
-                    ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`
-                    : 'Consulta programada'}
-                </h2>
-                {upcomingAppointment.doctor?.specialty && (
-                  <p className="mt-0.5 text-sm text-gray-500">{upcomingAppointment.doctor.specialty}</p>
-                )}
-                <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4" />
-                    {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.scheduled_at))}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" />
+                  <span className="text-sm text-sky-100">
                     {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
                   </span>
-                  <span className="flex items-center gap-1.5 text-gray-900">
-                    <Video className="h-4 w-4" />
-                    Videoconsulta
-                  </span>
                 </div>
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700">
+                <h2 className="text-xl font-bold text-white">
+                  {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
+                </h2>
+                <p className="mt-0.5 text-sm text-sky-100">
+                  {upcomingAppointment.doctor?.specialty ?? 'General'} · Videoconsulta
+                </p>
+                <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-sky-600 transition-colors group-hover:bg-sky-50">
                   <Video className="h-4 w-4" />
-                  {joiningAppointmentId === upcomingTelemedicine?.id
-                    ? 'Abriendo sala...'
-                    : 'Entrar a la videollamada'}
+                  {joiningAppointmentId === upcomingTelemedicine?.id ? 'Abriendo sala...' : 'Entrar a la consulta'}
                 </div>
               </button>
             ) : (
-            <a
-              href={upcomingTelemedicine
-                ? buildPatientTelemedicineEntryUrl(upcomingTelemedicine.id)
-                : '/patients/appointments'}
-              className="group block rounded-2xl border border-sky-100 bg-sky-50/40 p-5 transition-all hover:border-sky-200 hover:shadow-sm active:scale-[0.98]"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <span className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
-                  Próxima consulta
-                </span>
-                <ChevronRight className="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-1" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900">
-                {upcomingAppointment.doctor
-                  ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`
-                  : 'Consulta programada'}
-              </h2>
-              {upcomingAppointment.doctor?.specialty && (
-                <p className="mt-0.5 text-sm text-gray-500">{upcomingAppointment.doctor.specialty}</p>
-              )}
-              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
-                  {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.scheduled_at))}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4" />
-                  {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
-                </span>
-                {upcomingTelemedicine && (
-                  <span className="flex items-center gap-1.5 text-gray-900">
-                    <Video className="h-4 w-4" />
-                    Videoconsulta
+              <a
+                href={upcomingTelemedicine ? buildPatientTelemedicineEntryUrl(upcomingTelemedicine.id) : '/patients/appointments'}
+                className="group block overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98]"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                    Próxima consulta
                   </span>
-                )}
-              </div>
-            </a>
+                  <ChevronRight className="h-4 w-4 text-sky-200 transition-transform group-hover:translate-x-1" />
+                </div>
+                <h2 className="text-xl font-bold text-white">
+                  {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
+                </h2>
+                <p className="mt-0.5 text-sm text-sky-100">
+                  {upcomingAppointment.doctor?.specialty ?? 'General'}
+                  {upcomingTelemedicine ? ' · Videoconsulta' : ''}
+                </p>
+                <div className="mt-3 flex items-center gap-4 text-sm text-sky-100">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.scheduled_at))}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
+                  </span>
+                </div>
+              </a>
             )}
             {joinError && canJoinUpcomingTelemedicine && (
               <p className="mt-3 text-sm text-red-600">{joinError}</p>
             )}
           </section>
         ) : (
-          <a
-            href="/patients/anamnesis"
-            className="group mb-8 block py-4 transition-opacity active:opacity-80"
-          >
-            <p className="text-lg leading-relaxed text-gray-500">
-              <span className="font-semibold text-gray-900">{firstName}</span>
-              , <span className="font-semibold text-gray-900">{uniqueDoctorsCount}</span> {uniqueDoctorsCount === 1 ? 'profesional revisó' : 'profesionales revisaron'} tu
-              historial clínico. Cada dato que cargás permite que tu próximo médico te atienda{' '}
-              <span className="text-gray-900">conociendo tu historia desde el primer minuto</span>.
-            </p>
-            {freeConsults > 0 && (
-              <p className="mt-3 text-sm text-gray-400">
-                Tenés <span className="font-semibold text-gray-900">{freeConsults} {freeConsults === 1 ? 'consulta gratuita' : 'consultas gratuitas'}</span> para empezar.
+          <section className="mb-6">
+            <a href="/patients/anamnesis" className="block rounded-2xl border border-gray-100 bg-gray-50/50 p-5 transition-all hover:border-gray-200 active:scale-[0.98]">
+              <p className="text-base leading-relaxed text-gray-500">
+                <span className="font-semibold text-gray-900">{firstName}</span>, completá tu historia clínica para que tu próximo médico te atienda{' '}
+                <span className="font-semibold text-gray-900">conociendo tu historia desde el primer minuto</span>.
               </p>
-            )}
-          </a>
+              {freeConsults > 0 && (
+                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  🎁 {freeConsults} {freeConsults === 1 ? 'consulta gratuita' : 'consultas gratuitas'}
+                </div>
+              )}
+            </a>
+          </section>
         )}
 
-        {/* Carousel: Consultas */}
+        {/* ═══ PROGRESS ═══ */}
         <section className="mb-6">
-          <h2 className="mb-3 text-sm font-medium text-gray-500">Consultas</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {CONSULTAS.map(({ key, label, sub, href, icon: Icon, color, bgClass }, i) => (
-              <a
-                key={key}
-                href={href}
-                className={`group flex shrink-0 items-start gap-3 rounded-2xl border p-4 transition-all hover:shadow-md active:scale-[0.97] ${
-                  i === 0
-                    ? 'w-[240px] border-gray-200 bg-gray-50'
-                    : 'w-[180px] border-gray-100 bg-white hover:border-gray-200'
-                }`}
-              >
-                <div className={`flex shrink-0 items-center justify-center rounded-xl ${bgClass} ${i === 0 ? 'h-9 w-9' : 'h-8 w-8'}`}>
-                  <Icon className={`shrink-0 ${i === 0 ? 'h-5 w-5' : 'h-4 w-4'}`} style={{ color }} />
-                </div>
-                <div className="min-w-0">
-                  <p className={`font-semibold text-gray-900 ${i === 0 ? 'text-base' : 'text-sm'}`}>{label}</p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-gray-400">{sub}</p>
-                </div>
-              </a>
-            ))}
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Tu progreso</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
+              <p className="text-[11px] font-medium text-gray-400">Anamnesis</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">{anamnesisProgress}%</p>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-sky-100">
+                <div className="h-full rounded-full bg-sky-500 transition-all duration-700" style={{ width: `${anamnesisProgress}%` }} />
+              </div>
+            </div>
+            <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
+              <p className="text-[11px] font-medium text-gray-400">Perfil</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">{profileProgress}%</p>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-amber-100">
+                <div className="h-full rounded-full bg-amber-500 transition-all duration-700" style={{ width: `${profileProgress}%` }} />
+              </div>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+              <p className="text-[11px] font-medium text-gray-400">Consultas</p>
+              <p className="mt-1 text-xl font-bold text-gray-900">{freeConsults > 0 ? `${freeConsults} gratis` : `${completedCount}`}</p>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-emerald-100">
+                <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: freeConsults > 0 ? '100%' : `${Math.min(completedCount * 20, 100)}%` }} />
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Visual separator */}
-        <div className="my-6 overflow-hidden rounded-2xl">
-          <img
-            src="/images/patients/hero-medical.webp"
-            alt=""
-            className="h-[120px] w-full object-cover"
-            loading="lazy"
-          />
-        </div>
-
-        {/* Carousel: Tu salud */}
+        {/* ═══ QUICK ACTIONS ═══ */}
         <section>
-          <h2 className="mb-3 text-sm font-medium text-gray-500">Tu salud</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {SALUD.map(({ key, label, sub, href, icon: Icon, color, bgClass }) => (
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Acciones rápidas</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {ACTIONS.map(({ key, label, sub, href, icon: Icon, color, bg, border }) => (
               <a
                 key={key}
                 href={href}
-                className="group flex w-[180px] shrink-0 items-start gap-3 rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-gray-200 hover:shadow-md active:scale-[0.97]"
+                className={`group flex items-start gap-3 rounded-xl border p-4 transition-all hover:shadow-sm active:scale-[0.97] ${border}`}
               >
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${bgClass}`}>
-                  <Icon className="h-4 w-4 shrink-0" style={{ color }} />
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
+                  <Icon className={`h-[18px] w-[18px] ${color}`} />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900">{label}</p>
-                  <p className="mt-0.5 text-[11px] leading-snug text-gray-400">{sub}</p>
+                  <p className="mt-0.5 text-[11px] text-gray-400">{sub}</p>
                 </div>
               </a>
             ))}
