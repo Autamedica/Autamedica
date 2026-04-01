@@ -1,9 +1,11 @@
 import { fetchApi } from '@/lib/api-client';
 import type {
   AddCommunityReactionInput,
+  CommunityComment,
   CommunityPost,
   CommunityOverview,
   CommunitySortBy,
+  CreateCommunityCommentInput,
   CreateCommunityPostInput,
 } from '@/lib/patients/types/community';
 
@@ -48,6 +50,16 @@ export const communityBrowserService = {
   async addReaction(payload: AddCommunityReactionInput) {
     return fetchApi<{ success: true }>(`/api/patients/community/posts/${payload.postId}/reactions`, {
       body: { reactionType: payload.reactionType },
+    });
+  },
+
+  async getComments(postId: string): Promise<CommunityComment[]> {
+    return fetchApi<CommunityComment[]>(`/api/patients/community/posts/${postId}/comments`);
+  },
+
+  async createComment(payload: CreateCommunityCommentInput): Promise<CommunityComment> {
+    return fetchApi<CommunityComment>(`/api/patients/community/posts/${payload.postId}/comments`, {
+      body: { content: payload.content, anonymous: payload.anonymous },
     });
   },
 };

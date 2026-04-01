@@ -7,11 +7,28 @@ import {
   unauthorized,
 } from '@/lib/api-helpers';
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
+import { communityRepo } from '@/lib/patients/lib/repos/community.repo';
 import { communityService } from '@/lib/patients/services/community.service';
 import type { CreateCommunityCommentInput } from '@/lib/patients/types/community';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { APIRoute } from 'astro';
+
+export const GET: APIRoute = async ({ request, params, locals }) => {
+  const context = await resolvePatientContext(request, locals);
+  if (!context) return unauthorized();
+
+  const postId = params.id;
+  if (!postId?.trim()) return badRequest('post id is required');
+
+  try {
+    const comments = await communityRepo.listCommentsByPostId(createAstroAdminClient(), postId);
+    return jsonOk(comments);
+  } catch (error) {
+    logger.error('[patients/community/posts/:id/comments/GET]', error);
+    return internalError();
+  }
+};
 
 export const POST: APIRoute = async ({ request, params, locals }) => {
   const context = await resolvePatientContext(request, locals);

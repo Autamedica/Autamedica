@@ -217,6 +217,23 @@ export const communityRepo = {
     return data ? mapGroup(data as DbRow) : null;
   },
 
+  async listCommentsByPostId(supabase: Db, postId: string): Promise<CommunityComment[]> {
+    const db = supabase as unknown as LooseDb;
+    const { data, error } = await db
+      .from('community_post_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      logger.error('[communityRepo] listCommentsByPostId failed', error);
+      throw error;
+    }
+
+    return Array.isArray(data) ? data.map((row) => mapComment(row as DbRow)) : [];
+  },
+
   async findPostById(supabase: Db, postId: string): Promise<CommunityPost | null> {
     const db = supabase as unknown as LooseDb;
     const { data, error } = await db
