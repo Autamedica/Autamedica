@@ -250,12 +250,41 @@ const {
       }
 
       const heroContent = document.querySelector('.hero-content');
-      if (heroContent) {
-        const tl = gsap.timeline({ delay: 0.2 });
-        tl.from('.hero-badge', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' })
+      const heroOverlay = document.querySelector('.hero-overlay') as HTMLElement | null;
+      if (heroContent && heroOverlay) {
+        let heroRevealed = false;
+
+        // Phase 1: Content enters
+        const enterTl = gsap.timeline({ delay: 0.2 });
+        enterTl
+          .from('.hero-badge', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' })
           .from('.hero-subtitle', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' }, '-=0.4')
+          .from('.hero-actions', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' }, '-=0.2')
+          .from('.hero-role-shortcuts', { opacity: 0, y: 10, duration: 0.4, ease: 'power2.out' }, '-=0.2')
           .from('.hero-metrics', { opacity: 0, y: 15, duration: 0.5, ease: 'power2.out' }, '-=0.2')
           .from('.hero-scroll-hint', { opacity: 0, duration: 0.4 }, '-=0.1');
+
+        // Phase 2: After 5s, fade out content + overlay to reveal video
+        const revealTl = gsap.timeline({ delay: 5.5, paused: false });
+        revealTl
+          .to(heroContent, { opacity: 0, y: -20, duration: 1.2, ease: 'power2.inOut' })
+          .to(heroOverlay, { opacity: 0, duration: 1.4, ease: 'power2.inOut' }, '-=1.0')
+          .to('.hero-scroll-hint', { opacity: 0, duration: 0.3 }, '<')
+          .add(() => { heroRevealed = true; });
+
+        // Phase 3: On mouse move or scroll, bring content back
+        function restoreHero() {
+          if (!heroRevealed) return;
+          heroRevealed = false;
+          gsap.to(heroOverlay, { opacity: 1, duration: 0.6, ease: 'power2.out' });
+          gsap.to(heroContent, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' });
+          gsap.to('.hero-scroll-hint', { opacity: 1, duration: 0.4, delay: 0.3 });
+        }
+
+        const heroEl = document.querySelector('.hero');
+        heroEl?.addEventListener('mousemove', restoreHero, { once: true });
+        heroEl?.addEventListener('touchstart', restoreHero, { once: true });
+        window.addEventListener('scroll', restoreHero, { once: true });
       }
 
       const valuePropsInner = document.querySelector('.value-props-inner');
