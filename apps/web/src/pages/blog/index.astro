@@ -2,7 +2,6 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
-import '../../styles/seo-landing.css';
 
 const articles = [
   {
@@ -178,6 +177,8 @@ const articles = [
 </Layout>
 
 <style>
+  @import '../../styles/seo-landing.css';
+  
   /* Blog index card specifics */
   .blog-card { padding: 0; overflow: hidden; }
 

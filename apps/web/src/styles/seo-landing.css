@@ -24,13 +24,7 @@
 
 .seo-hero {
   padding: clamp(7rem, 16vh, 10rem) var(--section-px) var(--space-16);
-  background:
-    linear-gradient(
-      135deg,
-      var(--au-surface) 0%,
-      rgba(14, 165, 233, 0.04) 50%,
-      var(--au-bg) 100%
-    );
+  background: linear-gradient(135deg, var(--au-surface) 0%, rgba(14, 165, 233, 0.04) 50%, var(--au-bg) 100%);
   border-bottom: 1px solid var(--au-border);
   text-align: center;
 }
