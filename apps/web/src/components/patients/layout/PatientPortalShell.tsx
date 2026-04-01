@@ -55,7 +55,7 @@ interface PatientPortalShellProps {
 
 export function PatientPortalShell({ children, className = '' }: PatientPortalShellProps) {
   const { isFocusMode } = usePatientPortal();
-  const { patient } = usePatientSession();
+  const { patient, profile } = usePatientSession();
 
   return (
     <div
@@ -73,7 +73,7 @@ export function PatientPortalShell({ children, className = '' }: PatientPortalSh
       )}
       
       {/* Global Call Handler */}
-      {patient?.id && <IncomingCallHandler patientId={patient.id} patientName={patient.profile?.first_name || 'Paciente'} />}
+      {patient?.id && <IncomingCallHandler patientId={patient.id} patientName={profile?.first_name || 'Paciente'} />}
     </div>
   );
 }

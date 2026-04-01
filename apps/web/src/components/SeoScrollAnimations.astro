@@ -33,7 +33,7 @@
     }
 
     // Section headings — slide up on scroll
-    gsap.utils.toArray('.seo-section h2').forEach((el) => {
+    gsap.utils.toArray<Element>('.seo-section h2').forEach((el) => {
       gsap.from(el, {
         opacity: 0,
         y: 25,

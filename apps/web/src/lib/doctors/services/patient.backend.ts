@@ -2,10 +2,10 @@
  * Backend Service: Patient business logic.
  * Orchestrates repository access for API Controllers.
  */
-import { createPatientRepositoryAdapter } from '@/lib/doctors/lib/repos/patients'
+import { createPatientRepositoryAdapter, patientsRepo } from '@/lib/doctors/lib/repos/patients'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
-import type { PatientWithProfile } from '@autamedica/types'
+import type { PatientWithProfile, UUID } from '@autamedica/types'
 import { GetRelevantPatientsUseCase } from '../usecases/GetRelevantPatientsUseCase'
 import { GetAllRelevantPatientsUseCase } from '../usecases/GetAllRelevantPatientsUseCase'
 
@@ -36,6 +36,16 @@ export const patientBackendService = {
       return await useCase.execute(doctorUserId, adminClient)
     } catch (error) {
       logger.error('[patientBackendService] getAssignedPatients failed', { doctorUserId, error })
+      throw error
+    }
+  },
+
+  async getPatientById(id: UUID): Promise<PatientWithProfile | null> {
+    try {
+      const adminClient = createAstroAdminClient()
+      return await patientsRepo.findById(id, adminClient)
+    } catch (error) {
+      logger.error('[patientBackendService] getPatientById failed', { id, error })
       throw error
     }
   }

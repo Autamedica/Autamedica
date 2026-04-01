@@ -6,9 +6,9 @@ import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHan
 
 export function SessionSync() {
   useSessionSync();
-  const { patient } = usePatientSession();
+  const { patient, profile } = usePatientSession();
 
   if (!patient?.id) return null;
 
-  return <IncomingCallHandler patientId={patient.id} patientName={patient.profile?.first_name || 'Paciente'} />;
+  return <IncomingCallHandler patientId={patient.id} patientName={profile?.first_name || 'Paciente'} />;
 }

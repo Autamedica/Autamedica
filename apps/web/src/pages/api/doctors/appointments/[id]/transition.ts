@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ params, request, cookies, locals }) => {
     return new Response(JSON.stringify({ error: 'Doctor profile not found' }), { status: 403 });
   }
 
-  if (appointment.doctor_id !== doctor.data.id) {
+  if (appointment.doctorId !== doctor.data.id) {
     return new Response(JSON.stringify({ error: 'Forbidden: not your appointment' }), { status: 403 });
   }
 

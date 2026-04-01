@@ -28,7 +28,7 @@ export class GetRelevantPatientsUseCase {
       if (patientAlerts.some(a => a.severity === 'medium')) score += 500;
       
       // Recency boost
-      const lastUpdate = new Date(p.updatedAt ?? p.createdAt).getTime();
+      const lastUpdate = new Date(p.updated_at ?? p.created_at).getTime();
       score += lastUpdate / 1000000; // Small weight
       
       return { p, score };
