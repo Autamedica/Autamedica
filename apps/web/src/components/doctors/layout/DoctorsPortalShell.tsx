@@ -58,6 +58,7 @@ type SidebarItem = {
   label: string
   count?: number
   badge?: string
+  nextAppointmentTime?: string | null
 }
 
 type TabConfig = {
@@ -189,15 +190,15 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const sidebarItems = useMemo<SidebarItem[]>(
     () => [
       { id: 'patients', icon: Users, label: 'Pacientes', count: patientsCount },
-      { id: 'appointments', icon: Calendar, label: 'Citas', count: appointmentsCount },
+      { id: 'appointments', icon: Calendar, label: 'Citas', count: appointmentsCount, nextAppointmentTime: stats?.nextAppointment?.time ?? null },
       { id: 'records', icon: FileText, label: 'Historiales', count: historyCount },
       { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
       { id: 'diagnosis', icon: Brain, label: 'Asistente Clínico' },
       { id: 'ranking', icon: Star, label: 'Ranking' },
       { id: 'marketplace', icon: MapPin, label: 'Cobertura' },
-      { id: 'settings', icon: Settings, label: 'Configuración' },
+      { id: 'settings', icon: Settings, label: 'Configuracion' },
     ],
-    [patientsCount, appointmentsCount, historyCount],
+    [patientsCount, appointmentsCount, historyCount, stats?.nextAppointment?.time],
   )
 
   const resumeFocusIfLive = () => {
@@ -242,7 +243,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
         )}
         <button
           type="button"
-          className={`relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-am-fast ease-am-ease ${
+          className={`au-interactive au-focus-ring relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-am-fast ease-am-ease ${
             isActive
               ? 'bg-am-doctor-50 text-am-doctor-600 ring-1 ring-am-doctor-200'
               : 'text-am-surface-700 hover:bg-am-surface-100 hover:text-am-surface-900'

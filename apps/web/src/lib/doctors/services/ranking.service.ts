@@ -15,6 +15,10 @@ interface RankingMetricsRow {
   completion_rate: number | null
   overall_score: number | null
   rank_position: number | null
+  community_replies: number | null
+  community_threads_helped: number | null
+  community_helpful_reactions: number | null
+  community_score: number | null
 }
 
 interface DoctorRow {
@@ -91,7 +95,7 @@ export const rankingService = {
 
     const { data: topRanked } = await admin
       .from('doctor_ranking_metrics')
-      .select('doctor_id, avg_rating, total_reviews, total_consultations, completed_consultations, completion_rate, overall_score, rank_position')
+      .select('doctor_id, avg_rating, total_reviews, total_consultations, completed_consultations, completion_rate, overall_score, rank_position, community_replies, community_threads_helped, community_helpful_reactions, community_score')
       .order('rank_position', { ascending: true })
       .limit(20)
 

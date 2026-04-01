@@ -1,11 +1,11 @@
 "use client"
 
 import { DiagnosisPanel } from '@/components/doctors/DiagnosisPanel'
+import { DoctorDailySummary } from '@/components/doctors/DoctorDailySummary'
 import { GracePeriodBanner } from '@/components/doctors/GracePeriodBanner'
 import { OnboardingReminder } from '@/components/doctors/OnboardingReminder'
 import { QuickActionsPanel } from '@/components/doctors/QuickActionsPanel'
 import { VideoControlsOverlay } from '@/components/doctors/VideoControlsOverlay'
-import { StartCallButton } from '@/components/doctors/calls/StartCallButton'
 import { useDoctorsPortal } from '@/components/doctors/layout/DoctorsPortalShell'
 import { PrescriptionModal } from '@/components/doctors/medical/PrescriptionModal'
 import { QuickNotesModal } from '@/components/doctors/medical/QuickNotesModal'
@@ -17,7 +17,7 @@ import { usePatientData } from '@/hooks/doctors/usePatientData'
 import { useVideoCallControls } from '@/hooks/doctors/useVideoCallControls'
 import type { Locale } from '@/i18n/index'
 import { getOnboardingStatus } from '@/lib/onboarding-grace'
-import { getClientEnvOrDefault, isProduction } from '@autamedica/shared'
+import { isProduction } from '@autamedica/shared'
 import {
     Activity,
     Brain,
@@ -106,14 +106,6 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
 
   const { session } = useActiveSession()
   const { patient } = usePatientData(session?.patientId ?? null)
-  const authBaseUrl = useMemo(
-    () => getClientEnvOrDefault(
-      'PUBLIC_APP_URL',
-      isProduction() ? 'https://www.autamedica.com' : 'http://localhost:3000'
-    ),
-    []
-  )
-
   const { isFocusMode, setFocusMode } = useDoctorsPortal()
 
   useEffect(() => {
@@ -300,61 +292,10 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
                 muted
               />
             ) : (
-              <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-4 py-8 text-center overflow-hidden">
-                <img
-                  src="/images/doctor_portal_bg.webp"
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-luminosity"
-                  aria-hidden="true"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 to-slate-950/90 z-0"></div>
-
-                <div className="relative z-10">
-                  <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-3xl border border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400 shadow-[0_0_40px_-10px_var(--tw-shadow-color)] shadow-fuchsia-500/20 mb-6">
-                    <VideoOff className="h-12 w-12" />
-                  </div>
-                  <h3 className="text-2xl font-bold tracking-tight text-white mb-2">Cámara no activada</h3>
-                  <p className="text-sm font-medium text-slate-400">Inicia una llamada con el paciente para comenzar la videoconsulta</p>
-                </div>
-                <div className="flex flex-col gap-4 mt-2">
-                  {authLoading ? (
-                    <div className="flex items-center justify-center gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 backdrop-blur-md">
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-                      Autenticando médico...
-                    </div>
-                  ) : user ? (
-                    <StartCallButton
-                      doctorId={user.doctorProfileId || ''}
-                      patientId={session?.patientId || ''}
-                      patientName={getPatientDisplayName(patient)}
-                      className="group relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-8 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40 active:scale-95"
-                    />
-                  ) : (
-                    <div className="flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm backdrop-blur-md">
-                      <div>
-                        <p className="text-amber-300 font-semibold mb-1">Autenticación requerida</p>
-                        <p className="text-amber-400/70 text-xs">Abre tu sesión para autorizar la llamada</p>
-                      </div>
-                      <a
-                        href={`${authBaseUrl}/auth/login?portal=doctors`}
-                        className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500/20 px-4 py-2 text-xs font-semibold text-amber-300 transition-colors hover:bg-amber-500 hover:text-white"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Iniciar sesión como médico
-                      </a>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleActivateCamera}
-                    disabled={isBlocked}
-                    className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-800/50 px-6 py-3 text-sm font-semibold text-slate-300 transition-all hover:bg-slate-700 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-                  >
-                    Probar cámara sin transmitir
-                  </button>
-                </div>
-              </div>
+              <DoctorDailySummary
+                onActivateCamera={handleActivateCamera}
+                isBlocked={isBlocked}
+              />
             )}
 
             {callStatus === 'connecting' && (

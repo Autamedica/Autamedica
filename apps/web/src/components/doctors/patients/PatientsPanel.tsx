@@ -287,7 +287,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onSelectPatient?.(patient.id) }}
-                      className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+                      className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
                     >
                       <FileText className="h-3.5 w-3.5" />
                       Historial
@@ -296,7 +296,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onSelectPatient?.(patient.id) }}
-                      className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
+                      className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
                     >
                       <Phone className="h-3.5 w-3.5" />
                       Llamar
@@ -305,7 +305,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onSelectPatient?.(patient.id) }}
-                      className="flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
                     >
                       <Calendar className="h-3.5 w-3.5" />
                       Turno

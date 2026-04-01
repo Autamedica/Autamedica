@@ -1,7 +1,7 @@
 "use client"
 
 import type { JSX } from 'react'
-import { Activity, Plus, Users } from 'lucide-react'
+import { Activity, Plus } from 'lucide-react'
 
 interface VitalSignsPanelProps {
   onNavigateToPatients?: () => void
@@ -31,25 +31,21 @@ export function VitalSignsPanel({ onNavigateToPatients }: VitalSignsPanelProps):
       </div>
 
       <div className="flex flex-1 items-center justify-center rounded-2xl border border-am-surface-200 bg-white shadow-am-sm">
-        <div className="flex flex-col items-center text-center max-w-md px-6 py-12">
-          <div className="relative mb-6">
-            <div className="absolute -inset-6 rounded-full bg-emerald-50/60" />
-            <div className="absolute -inset-3 rounded-full bg-emerald-50" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-              <Activity className="h-7 w-7 text-white" />
-            </div>
+        <div className="text-center py-16 px-6">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 mb-4">
+            <Activity className="h-8 w-8 text-emerald-500" />
           </div>
-          <h3 className="text-lg font-semibold text-am-surface-900">Sin registros de signos vitales</h3>
-          <p className="mt-2 text-sm text-am-surface-500">
-            Selecciona un paciente para ver y registrar sus signos vitales.
+          <h3 className="text-lg font-semibold text-gray-900">Sin registros de signos vitales</h3>
+          <p className="mt-2 max-w-sm mx-auto text-sm text-gray-500">
+            Registra signos vitales durante o despues de cada consulta.
+            Los datos de tension, frecuencia cardiaca y temperatura quedan en el historial del paciente.
           </p>
           {onNavigateToPatients && (
             <button
               type="button"
               onClick={onNavigateToPatients}
-              className="mt-5 flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-emerald-500/20 transition-all duration-am-fast hover:-translate-y-0.5 active:scale-95"
+              className="au-interactive au-focus-ring mt-6 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald-500/20 hover:bg-emerald-600 transition-colors"
             >
-              <Users className="h-4 w-4" />
               Ir a Pacientes
             </button>
           )}

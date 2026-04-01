@@ -143,14 +143,14 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg bg-white border border-am-surface-300 px-4 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100"
+            className="au-interactive au-focus-ring flex items-center gap-2 rounded-lg bg-white border border-am-surface-300 px-4 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100"
           >
             <Filter className="h-4 w-4" />
             Filtrar
           </button>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg bg-am-primary-600 px-4 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-am-primary-700"
+            className="au-interactive au-focus-ring flex items-center gap-2 rounded-lg bg-am-primary-600 px-4 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-am-primary-700"
           >
             <Plus className="h-4 w-4" />
             Nueva Cita
@@ -240,7 +240,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
               {sortedAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm transition-all duration-am-fast ease-am-ease hover:-translate-y-0.5 hover:shadow-am-card-hover hover:border-am-surface-300"
+                  className="au-interactive rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm transition-all duration-am-fast ease-am-ease hover:-translate-y-0.5 hover:shadow-am-card-hover hover:border-am-surface-300"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-4">

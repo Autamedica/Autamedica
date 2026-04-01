@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, ShieldAlert } from 'lucide-react'
+import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, ShieldAlert, MessageCircle, Heart } from 'lucide-react'
 import { fetchApi, ApiError } from '@/lib/api-client'
+import { CommunityQuestionsWidget } from './CommunityQuestionsWidget'
 
 interface RankingMetrics {
   doctor_id: string
@@ -17,6 +18,10 @@ interface RankingMetrics {
   avg_clinical_quality: number
   overall_score: number
   rank_position: number | null
+  community_replies: number
+  community_threads_helped: number
+  community_helpful_reactions: number
+  community_score: number
 }
 
 interface Badge {
@@ -43,6 +48,10 @@ interface RankedDoctor {
   last_name: string | null
   is_current_user: boolean
   badges: Badge[]
+  community_replies: number
+  community_threads_helped: number
+  community_helpful_reactions: number
+  community_score: number
 }
 
 interface RankingData {
@@ -343,6 +352,11 @@ export function MedicalRankingPanel() {
                 </div>
               </div>
             )}
+
+            {/* Preguntas de la comunidad */}
+            <div className="mt-6">
+              <CommunityQuestionsWidget />
+            </div>
           </div>
         )}
 
@@ -392,7 +406,7 @@ export function MedicalRankingPanel() {
                   </div>
 
                   <div className="flex items-center justify-between text-sm text-am-surface-500">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex items-center gap-1">
                         <Star className="w-3 h-3" />
                         {doctor.avg_rating.toFixed(1)}/5
@@ -405,6 +419,18 @@ export function MedicalRankingPanel() {
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {doctor.years_experience} años
+                        </div>
+                      )}
+                      {doctor.community_replies > 0 && (
+                        <div className="flex items-center gap-1 text-am-doctor-600">
+                          <MessageCircle className="w-3 h-3" />
+                          {doctor.community_replies} respuestas
+                        </div>
+                      )}
+                      {doctor.community_helpful_reactions > 0 && (
+                        <div className="flex items-center gap-1 text-am-doctor-600">
+                          <Heart className="w-3 h-3" />
+                          {doctor.community_helpful_reactions} utiles
                         </div>
                       )}
                     </div>

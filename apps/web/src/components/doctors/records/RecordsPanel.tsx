@@ -1,7 +1,7 @@
 "use client"
 
 import type { JSX } from 'react'
-import { FileText, Search, Plus, Users } from 'lucide-react'
+import { FileText, Search, Plus } from 'lucide-react'
 
 interface RecordsPanelProps {
   onNavigateToPatients?: () => void
@@ -40,28 +40,32 @@ export function RecordsPanel({ onNavigateToPatients }: RecordsPanelProps): JSX.E
       </div>
 
       <div className="flex flex-1 items-center justify-center rounded-2xl border border-am-surface-200 bg-white shadow-am-sm">
-        <div className="flex flex-col items-center text-center max-w-md px-6 py-12">
-          <div className="relative mb-6">
-            <div className="absolute -inset-6 rounded-full bg-am-doctor-50/60" />
-            <div className="absolute -inset-3 rounded-full bg-am-doctor-50" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-lg shadow-am-doctor-500/20">
-              <FileText className="h-7 w-7 text-white" />
-            </div>
+        <div className="text-center py-16 px-6">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50 mb-4">
+            <FileText className="h-8 w-8 text-sky-500" />
           </div>
-          <h3 className="text-lg font-semibold text-am-surface-900">Sin registros médicos</h3>
-          <p className="mt-2 text-sm text-am-surface-500">
-            Selecciona un paciente para ver y gestionar sus registros médicos.
+          <h3 className="text-lg font-semibold text-gray-900">Sin registros medicos</h3>
+          <p className="mt-2 max-w-sm mx-auto text-sm text-gray-500">
+            Los historiales se generan automaticamente despues de cada consulta.
+            Tambien podes crear registros manualmente desde la ficha del paciente.
           </p>
-          {onNavigateToPatients && (
+          <div className="mt-6 flex justify-center gap-3">
+            {onNavigateToPatients && (
+              <button
+                type="button"
+                onClick={onNavigateToPatients}
+                className="au-interactive au-focus-ring rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-500/20 hover:bg-sky-600 transition-colors"
+              >
+                Ir a Pacientes
+              </button>
+            )}
             <button
               type="button"
-              onClick={onNavigateToPatients}
-              className="mt-5 flex items-center gap-2 rounded-xl bg-gradient-to-r from-am-doctor-600 to-am-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-am-doctor-500/20 transition-all duration-am-fast hover:-translate-y-0.5 active:scale-95"
+              className="au-interactive au-focus-ring rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <Users className="h-4 w-4" />
-              Ir a Pacientes
+              Crear registro manual
             </button>
-          )}
+          </div>
         </div>
       </div>
     </div>
