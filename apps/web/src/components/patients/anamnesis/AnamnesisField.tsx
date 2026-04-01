@@ -345,7 +345,7 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
               onClick={() => updateFieldValue(true)}
               className={`flex-1 rounded-xl border px-4 py-3.5 text-sm font-bold transition-all active:scale-[0.97] ${
                 value === true
-                  ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm'
+                  ? 'border-sky-500 bg-sky-500 text-white shadow-sm'
                   : 'border-stone-200 bg-white text-stone-600 shadow-sm hover:border-stone-300 hover:shadow-md'
               }`}
             >
@@ -427,12 +427,12 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
 
       {/* Nota educativa al completar */}
       {showEducationalNote && field.educationalNote && (
-        <div className="overflow-hidden rounded-xl bg-emerald-50 ring-1 ring-emerald-100">
+        <div className="overflow-hidden rounded-xl bg-sky-50 ring-1 ring-sky-100">
           <div className="flex items-start gap-3 px-4 py-3.5">
-            <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <CheckCircle className="h-5 w-5 text-sky-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-[13px] font-semibold text-emerald-900">Excelente</p>
-              <p className="mt-0.5 text-[13px] leading-relaxed text-emerald-700">{field.educationalNote}</p>
+              <p className="text-[13px] font-semibold text-sky-900">Excelente</p>
+              <p className="mt-0.5 text-[13px] leading-relaxed text-sky-700">{field.educationalNote}</p>
             </div>
           </div>
         </div>

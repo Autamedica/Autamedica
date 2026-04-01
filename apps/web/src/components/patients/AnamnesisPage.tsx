@@ -386,7 +386,7 @@ export default function AnamnesisPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50">
         <div className="text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-emerald-700" />
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-sky-600" />
           <p className="mt-3 text-sm text-stone-500">Cargando tu anamnesis...</p>
         </div>
       </div>
@@ -404,7 +404,7 @@ export default function AnamnesisPage() {
           </p>
           <a
             href="/patients/dashboard"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg border-2 border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg border-2 border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-sky-200 hover:bg-sky-50"
           >
             <ChevronLeft className="h-4 w-4" />
             Volver al panel
@@ -656,7 +656,7 @@ export default function AnamnesisPage() {
                       setEditMode(true);
                       setCurrentStepIndex(option.idx >= 0 ? option.idx : 0);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-stone-100 bg-white px-4 py-3 text-left transition hover:border-emerald-200 hover:bg-emerald-50 active:scale-[0.98]"
+                    className="flex w-full items-center gap-3 rounded-xl border border-stone-100 bg-white px-4 py-3 text-left transition hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98]"
                   >
                     <span className="text-xl">{option.icon}</span>
                     <span className="text-sm font-medium text-stone-900">{option.label}</span>
@@ -729,7 +729,7 @@ export default function AnamnesisPage() {
             <span className="text-sm font-bold tracking-tight text-stone-900">AutaMedica</span>
             <div className="flex items-center gap-3">
               {isExtracting && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-500" />
               )}
               <button
                 onClick={() => switchMode('conversational')}
@@ -763,7 +763,7 @@ export default function AnamnesisPage() {
               </div>
               <div className="mt-1.5 h-[5px] w-full overflow-hidden rounded-full bg-stone-100">
                 <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+                  className="h-full rounded-full bg-sky-500 transition-all duration-700 ease-out"
                   style={{ width: `${completionPct}%` }}
                 />
               </div>
