@@ -2,7 +2,6 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
-import '../../styles/seo-landing.css';
 
 const article = {
   title: 'Acceso a Especialistas en Provincias: La Brecha Que la Telemedicina Cierra',
@@ -262,6 +261,7 @@ const article = {
 </Layout>
 
 <style>
+  @import '../../styles/seo-landing.css';
   .blog-prose { max-width: 720px; margin: 0 auto; }
   .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
   .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }

@@ -2,7 +2,6 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
-import '../../styles/seo-landing.css';
 
 const canonicalUrl = 'https://www.autamedica.com/blog/cuales-son-los-3-tipos-de-telemedicina';
 const publishedTime = '2026-03-26T00:00:00Z';
@@ -324,6 +323,7 @@ const articleSchema = {
 </Layout>
 
 <style>
+  @import '../../styles/seo-landing.css';
   .blog-prose { max-width: 720px; margin: 0 auto; }
   .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
   .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
