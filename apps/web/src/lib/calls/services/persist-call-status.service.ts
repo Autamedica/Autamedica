@@ -6,6 +6,7 @@ import {
   resolvePersistCallStatus,
   type PersistableCallStatus,
 } from '@/lib/calls/services/call-status-rules'
+import { decrementFreeConsultation } from '@/lib/calls/lib/consultation-credits'
 
 type Db = SupabaseClient<Database>
 
@@ -87,6 +88,13 @@ export const persistCallStatusService = {
 
     if (!updated) {
       throw new Error(`Unable to update call status to ${input.status}`)
+    }
+
+    // Decrement free consultation credits when a call ends
+    if (input.status === 'ended' && call.patient_id) {
+      decrementFreeConsultation(admin, call.patient_id).catch(() => {
+        // Non-blocking: credit decrement failure must not break call flow
+      })
     }
 
     return {

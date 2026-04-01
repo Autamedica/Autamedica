@@ -74,7 +74,15 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   } = useJoinTelemedicineAppointment()
   const [hasHydrated, setHasHydrated] = useState(false)
   const firstName = getFirstName(profile, user)
-  const completedConsults = appointments.filter(a => a.status === 'completed').length
+  const uniqueDoctorsCount = useMemo(() => {
+    const doctorIds = new Set(
+      appointments
+        .filter(a => a.status === 'completed')
+        .map(a => a.doctor_id)
+        .filter(Boolean)
+    )
+    return doctorIds.size
+  }, [appointments])
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
 
   useEffect(() => {
@@ -261,7 +269,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           >
             <p className="text-lg leading-relaxed text-gray-500">
               <span className="font-semibold text-gray-900">{firstName}</span>
-              , <span className="font-semibold text-gray-900">{completedConsults}</span> {completedConsults === 1 ? 'profesional revisó' : 'profesionales revisaron'} tu
+              , <span className="font-semibold text-gray-900">{uniqueDoctorsCount}</span> {uniqueDoctorsCount === 1 ? 'profesional revisó' : 'profesionales revisaron'} tu
               historial clínico. Cada dato que cargás permite que tu próximo médico te atienda{' '}
               <span className="text-gray-900">conociendo tu historia desde el primer minuto</span>.
             </p>

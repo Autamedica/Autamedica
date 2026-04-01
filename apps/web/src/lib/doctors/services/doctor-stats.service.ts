@@ -77,10 +77,10 @@ export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
       .gte('start_time', startOfDay)
       .order('start_time', { ascending: true }),
     supabase
-      .from('appointments')
-      .select('patient_id')
+      .from('patient_care_team')
+      .select('patient_id', { count: 'exact', head: true })
       .eq('doctor_id', doctorId)
-      .not('patient_id', 'is', null),
+      .eq('active', true),
     supabase
       .from('medical_records')
       .select('id', { count: 'exact', head: true })
@@ -94,12 +94,6 @@ export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
 
   const appointments = (apptResult.data ?? []) as AppointmentRow[];
 
-  const uniquePatientIds = new Set(
-    (patientsResult.data ?? [])
-      .map((r: { patient_id: string }) => r.patient_id)
-      .filter(Boolean),
-  );
-
   const activeAppointments = appointments.filter(apt => apt.status === 'scheduled' || apt.status === 'in_progress');
 
   const todayAppointments = appointments.filter(apt => apt.start_time >= startOfDay && apt.start_time <= endOfDay);
@@ -111,7 +105,7 @@ export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
   return {
     activeCount: activeAppointments.length,
     todayCount: todayAppointments.length,
-    patientsCount: uniquePatientIds.size,
+    patientsCount: patientsResult.count ?? 0,
     historyCount: recordsResult.count ?? 0,
     nextAppointment: nextAppt
       ? {

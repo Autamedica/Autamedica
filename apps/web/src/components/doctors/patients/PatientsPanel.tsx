@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/Input'
 import { LoadingState } from '@/components/ui/LoadingState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table'
+import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useDoctorPatients } from '@/hooks/doctors/useRealPatients'
 import { logger } from '@autamedica/shared'
 import { Search, UserCheck, UserPlus, Users } from 'lucide-react'
@@ -27,6 +29,21 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
 
   // El hook ahora delega a Service -> Repo. El componente no sabe nada de Supabase.
   const { patients, loading, error, refetch } = useDoctorPatients(doctorUserId ?? '')
+
+  const { user } = useAuthenticatedUser()
+  const { appointments } = useDoctorAppointments(user?.doctorProfileId)
+
+  const upcomingAppointmentsCount = useMemo(() => {
+    const now = Date.now()
+    return appointments.filter(a =>
+      (a.status === 'scheduled' || a.status === 'confirmed') &&
+      Date.parse(a.start_time) > now
+    ).length
+  }, [appointments])
+
+  const patientsWithHistoryCount = useMemo(() => {
+    return patients.filter(p => p.profile?.first_name && p.profile?.last_name).length
+  }, [patients])
 
   // Lógica de presentación (filtrado local) se queda en el componente (o hook si fuera compleja)
   const filteredPatients = useMemo(() => {
@@ -111,7 +128,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Historias Clínicas</p>
-              <h3 className="text-2xl font-bold">--</h3>
+              <h3 className="text-2xl font-bold">{patientsWithHistoryCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -123,7 +140,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Turnos Próximos</p>
-              <h3 className="text-2xl font-bold">--</h3>
+              <h3 className="text-2xl font-bold">{upcomingAppointmentsCount}</h3>
             </div>
           </CardContent>
         </Card>
@@ -171,11 +188,14 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold border border-primary/20">
-                            {(patient.profile?.first_name?.[0] ?? '') + (patient.profile?.last_name?.[0] ?? '')}
+                            {(patient.profile?.first_name?.[0] ?? '') + (patient.profile?.last_name?.[0] ?? '') || '?'}
                           </div>
                           <div>
                             <div className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                              {patient.profile?.first_name} {patient.profile?.last_name}
+                              {patient.profile?.first_name || patient.profile?.last_name
+                                ? `${patient.profile?.first_name ?? ''} ${patient.profile?.last_name ?? ''}`.trim()
+                                : <span className="text-muted-foreground italic">{patient.profile?.email ?? 'Paciente sin nombre'}</span>
+                              }
                             </div>
                             <div className="text-xs text-muted-foreground font-mono">ID: {patient.id.slice(0, 8)}</div>
                           </div>
@@ -189,13 +209,13 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize bg-background">
-                          {patient.gender || 'Buscando...'}
+                          {patient.gender || 'Sin especificar'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {patient.date_of_birth 
                           ? new Date(patient.date_of_birth).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) 
-                          : '-- / -- / --'}
+                          : 'Sin registrar'}
                       </TableCell>
                       <TableCell className="text-right">
                         <button 
