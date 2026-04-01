@@ -2,7 +2,8 @@
  * Backend Service: Patient business logic.
  * Orchestrates repository access for API Controllers.
  */
-import { patientsRepo } from '@/lib/doctors/lib/repos/patients'
+import { createPatientRepositoryAdapter } from '@/lib/doctors/lib/repos/patients'
+import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { PatientWithProfile } from '@autamedica/types'
 import { GetRelevantPatientsUseCase } from '../usecases/GetRelevantPatientsUseCase'
@@ -14,8 +15,10 @@ export const patientBackendService = {
    */
   async getActivePatients(): Promise<PatientWithProfile[]> {
     try {
-      const useCase = new GetAllRelevantPatientsUseCase(patientsRepo)
-      return await useCase.execute()
+      const adminClient = createAstroAdminClient()
+      const repo = createPatientRepositoryAdapter(adminClient)
+      const useCase = new GetAllRelevantPatientsUseCase(repo)
+      return await useCase.execute(adminClient)
     } catch (error) {
       logger.error('[patientBackendService] getActivePatients failed', error)
       throw error
@@ -27,8 +30,10 @@ export const patientBackendService = {
    */
   async getAssignedPatients(doctorUserId: string): Promise<PatientWithProfile[]> {
     try {
-      const useCase = new GetRelevantPatientsUseCase(patientsRepo)
-      return await useCase.execute(doctorUserId)
+      const adminClient = createAstroAdminClient()
+      const repo = createPatientRepositoryAdapter(adminClient)
+      const useCase = new GetRelevantPatientsUseCase(repo)
+      return await useCase.execute(doctorUserId, adminClient)
     } catch (error) {
       logger.error('[patientBackendService] getAssignedPatients failed', { doctorUserId, error })
       throw error

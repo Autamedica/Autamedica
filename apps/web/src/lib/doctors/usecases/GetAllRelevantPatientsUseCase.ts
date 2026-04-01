@@ -3,7 +3,8 @@
  * Orchestrates clinical relevance logic for all patients in the platform.
  * Layer 7: Use Case Layer.
  */
-import type { IPatientRepository, PatientWithProfile } from '@autamedica/types';
+import type { IPatientRepository, PatientWithProfile, Database } from '@autamedica/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAlertsForPatients } from '@/lib/doctors/lib/repos/alerts';
 
 export class GetAllRelevantPatientsUseCase {
@@ -12,15 +13,15 @@ export class GetAllRelevantPatientsUseCase {
   /**
    * Returns all patients prioritized by clinical urgency (alerts) and recency.
    */
-  async execute(): Promise<PatientWithProfile[]> {
+  async execute(supabaseClient?: SupabaseClient<Database>): Promise<PatientWithProfile[]> {
     // 1. Fetch all patients
     const patients = await this.patientRepo.findAllActive();
     if (patients.length === 0) return [];
 
     const patientIds = patients.map(p => p.id);
 
-    // 2. Fetch alerts
-    const alerts = await getAlertsForPatients(patientIds);
+    // 2. Fetch alerts (pass supabaseClient for server-side execution)
+    const alerts = await getAlertsForPatients(patientIds, supabaseClient);
 
     // 3. Score calculation
     const scoredPatients = patients.map(p => {

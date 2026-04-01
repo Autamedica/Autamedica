@@ -1,4 +1,5 @@
-import type { IPatientRepository, PatientWithProfile } from '@autamedica/types';
+import type { IPatientRepository, PatientWithProfile, Database } from '@autamedica/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAlertsForPatients } from '@/lib/doctors/lib/repos/alerts';
 
 export class GetRelevantPatientsUseCase {
@@ -7,15 +8,15 @@ export class GetRelevantPatientsUseCase {
   /**
    * Returns patients prioritized by clinical urgency (alerts) and recency.
    */
-  async execute(doctorUserId: string): Promise<PatientWithProfile[]> {
+  async execute(doctorUserId: string, supabaseClient?: SupabaseClient<Database>): Promise<PatientWithProfile[]> {
     // 1. Fetch patients
     const patients = await this.patientRepo.findByDoctorUserId(doctorUserId);
     if (patients.length === 0) return [];
 
     const patientIds = patients.map(p => p.id);
 
-    // 2. Fetch alerts
-    const alerts = await getAlertsForPatients(patientIds);
+    // 2. Fetch alerts (pass supabaseClient for server-side execution)
+    const alerts = await getAlertsForPatients(patientIds, supabaseClient);
 
     // 3. Score calculation
     const scoredPatients = patients.map(p => {
