@@ -1,0 +1,35 @@
+---
+---
+
+<div
+  id="au-offline-banner"
+  class="fixed top-0 inset-x-0 z-50 hidden"
+  role="alert"
+  aria-live="assertive"
+>
+  <div class="bg-amber-500 px-4 py-2 text-center">
+    <p class="text-sm font-semibold text-white">Sin conexión a internet</p>
+  </div>
+</div>
+
+<script>
+  function initOfflineBanner() {
+    const banner = document.getElementById('au-offline-banner');
+    if (!banner) return;
+
+    function update() {
+      if (navigator.onLine) {
+        banner.classList.add('hidden');
+      } else {
+        banner.classList.remove('hidden');
+      }
+    }
+
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    update();
+  }
+
+  initOfflineBanner();
+  document.addEventListener('astro:after-swap', initOfflineBanner);
+</script>

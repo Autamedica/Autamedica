@@ -12,6 +12,7 @@ import {
     Heart,
     HelpCircle,
     Home,
+    LogOut,
     MessageSquare,
     Settings,
     Shield,
@@ -21,7 +22,8 @@ import {
     Video,
 } from 'lucide-react'
 import type { MouseEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { usePatientSession } from '@/hooks/patients/usePatientSession'
 
 type NavigationItem = {
   icon: typeof Home
@@ -53,20 +55,36 @@ const navigationItems: NavigationItem[] = [
 
 const bottomItems: BottomItem[] = [
   { icon: Bot, label: 'Asistente Auta', href: '#', assistant: true, openChat: true },
-  { icon: Settings, label: 'Configuración', href: '/settings' },
+  { icon: Settings, label: 'Configuración', href: '/patients/settings' },
   { icon: HelpCircle, label: 'Ayuda', href: '/help' },
 ]
 
 export function CollapsibleSidebar() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [pathname, setPathname] = useState('')
+  const { profile, signOut } = usePatientSession()
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     setPathname(window.location.pathname)
   }, [])
 
-  const userName = 'Usuario'
-  const userInitials = 'U'
+  const userName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Paciente'
+  const userInitials = (() => {
+    const first = profile?.first_name?.[0] ?? ''
+    const last = profile?.last_name?.[0] ?? ''
+    return (first + last).toUpperCase() || 'P'
+  })()
+
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true)
+    try {
+      await signOut()
+      window.location.href = '/auth/login'
+    } catch {
+      setSigningOut(false)
+    }
+  }, [signOut])
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -215,6 +233,33 @@ export function CollapsibleSidebar() {
             </div>
           )
         })}
+
+        {/* Logout */}
+        <div className="relative mt-2">
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-red-500 transition-all hover:bg-red-50 hover:text-red-700 disabled:opacity-50 ${
+              isCollapsed ? 'justify-center' : ''
+            }`}
+            onMouseEnter={() => setHoveredItem('logout')}
+            onMouseLeave={() => setHoveredItem(null)}
+          >
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            {!isCollapsed && (
+              <span className="truncate text-sm font-medium">
+                {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
+              </span>
+            )}
+          </button>
+
+          {isCollapsed && hoveredItem === 'logout' && (
+            <div className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-stone-800 px-3 py-2 text-xs font-medium text-white shadow-xl">
+              Cerrar sesión
+              <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-stone-800" />
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   )

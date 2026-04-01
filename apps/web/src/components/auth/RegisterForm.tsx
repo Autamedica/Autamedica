@@ -27,6 +27,7 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const { t } = getClientI18n(locale);
 
@@ -320,8 +321,29 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
             )}
           </div>
 
+          <div className="flex items-start gap-3">
+            <input
+              id="reg-terms"
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              disabled={isLoading}
+              className="mt-1 h-4 w-4 shrink-0 rounded border-[var(--au-border)] accent-[var(--au-accent)]"
+            />
+            <label htmlFor="reg-terms" className="text-sm text-[var(--au-text-secondary)]">
+              {t('auth.acceptTermsPrefix')}{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[var(--au-accent)] hover:underline">
+                {t('auth.termsLink')}
+              </a>{' '}
+              {t('auth.acceptTermsMiddle')}{' '}
+              <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="text-[var(--au-accent)] hover:underline">
+                {t('auth.privacyLink')}
+              </a>
+            </label>
+          </div>
+
           <AuthButton
-            disabled={isLoading || !email || password.length < 8 || password !== confirmPassword}
+            disabled={isLoading || !email || password.length < 8 || password !== confirmPassword || !acceptedTerms}
             loading={isLoading}
             variant="primary"
             fullWidth

@@ -151,6 +151,11 @@ export function usePatientSession(): UsePatientSessionResult {
 
       if (event === 'SIGNED_OUT') {
         safeSetState(() => ({ ...INITIAL_STATE, loading: false }));
+        // If the user didn't trigger logout manually, redirect with expired flag
+        if (!sessionStorage.getItem('au-manual-signout')) {
+          window.location.href = '/auth/login?expired=true';
+        }
+        sessionStorage.removeItem('au-manual-signout');
         return;
       }
 
@@ -166,6 +171,7 @@ export function usePatientSession(): UsePatientSessionResult {
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
+    sessionStorage.setItem('au-manual-signout', '1');
     await supabase.auth.signOut();
     safeSetState(() => ({ ...INITIAL_STATE, loading: false }));
   }, [safeSetState, supabase]);

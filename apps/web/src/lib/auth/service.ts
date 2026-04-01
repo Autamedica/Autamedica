@@ -164,6 +164,9 @@ export async function signInWithOAuth(
  * Para logout global completo usar `signOutGlobally` de @autamedica/auth.
  */
 export async function signOutLocal(): Promise<void> {
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('au-manual-signout', '1')
+  }
   const supabase = createBrowserClient()
   await clearLocalSession(supabase, 'explicit_local_sign_out')
 }

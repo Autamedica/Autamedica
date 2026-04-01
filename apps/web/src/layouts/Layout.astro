@@ -3,6 +3,8 @@ import '../styles/globals.css';
 import StructuredData from '../components/seo/StructuredData.astro';
 import SeoMeta from '../components/seo/SeoMeta.astro';
 import ScrollProgress from '../components/ui/ScrollProgress.astro';
+import CookieBanner from '../components/CookieBanner.astro';
+import OfflineBanner from '../components/OfflineBanner.astro';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
 
@@ -131,5 +133,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
     <a href="#main-content" class="skip-nav">Saltar al contenido</a>
     <ScrollProgress />
     <slot />
+    <OfflineBanner />
+    <CookieBanner />
   </body>
 </html>

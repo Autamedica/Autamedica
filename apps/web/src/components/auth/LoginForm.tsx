@@ -43,6 +43,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [pendingRetry, setPendingRetry] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const { t } = getClientI18n(locale);
 
@@ -53,6 +54,14 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
     setRole(resolvedRole);
     setReturnTo(returnToParam);
+
+    if (params.get('expired') === 'true') {
+      setSessionExpired(true);
+      // Clean the param from URL
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('expired');
+      window.history.replaceState({}, '', clean.toString());
+    }
 
     let active = true;
 
@@ -330,6 +339,9 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
           </div>
         </div>
 
+        {sessionExpired && (
+          <AuthAlert tone="info">Tu sesión expiró. Por favor iniciá sesión de nuevo.</AuthAlert>
+        )}
         {error && <AuthAlert tone="error">{error}</AuthAlert>}
 
         <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isSubmitting}>

@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import PatientSettingsPage from '@/components/patients/PatientSettingsPage';
+
+const title = 'Configuracion | AutaMedica';
+const description = 'Configuracion de cuenta, notificaciones y privacidad';
+---
+
+<Layout title={title} description={description} robots="noindex, nofollow, noarchive">
+  <PatientSettingsPage client:load />
+</Layout>

@@ -65,6 +65,11 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setError(null)
+          // If the user didn't trigger logout manually, redirect with expired flag
+          if (!sessionStorage.getItem('au-manual-signout')) {
+            window.location.href = '/auth/login?expired=true'
+          }
+          sessionStorage.removeItem('au-manual-signout')
         }
 
         setLoading(false)
