@@ -9,6 +9,8 @@ import {
   Calendar,
   ChevronRight,
   Clock,
+  LogOut,
+  Settings,
   User,
   Video,
 } from 'lucide-react'
@@ -20,7 +22,7 @@ import {
   IconHistorial,
   IconComunidad,
 } from '@/components/patients/icons/FeatureIcons'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IncomingCallHandler } from '@/components/patients/calls/IncomingCallHandler'
 import BottomNav from '@/components/patients/layout/BottomNav'
 import {
@@ -64,7 +66,7 @@ interface PatientsHomePageProps {
 }
 
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
-  const { user, profile, patient } = usePatientSession()
+  const { user, profile, patient, signOut } = usePatientSession()
   const { appointments } = useAppointments()
   const {
     joinAppointment,
@@ -73,6 +75,28 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     clearError: clearJoinError,
   } = useJoinTelemedicineAppointment()
   const [hasHydrated, setHasHydrated] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true)
+    try {
+      await signOut()
+      window.location.href = '/auth/login'
+    } catch {
+      setSigningOut(false)
+    }
+  }, [signOut])
   const firstName = getFirstName(profile, user)
   const uniqueDoctorsCount = useMemo(() => {
     const doctorIds = new Set(
@@ -158,13 +182,44 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 </span>
               )}
             </button>
-            <a
-              href="/patients/profile"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-600"
-              aria-label="Perfil"
-            >
-              <User className="h-5 w-5" />
-            </a>
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setShowMenu(prev => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-600"
+                aria-label="Menú de usuario"
+              >
+                <User className="h-5 w-5" />
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-12 z-50 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                  <a
+                    href="/patients/profile"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <User className="h-4 w-4 text-gray-400" />
+                    Perfil
+                  </a>
+                  <a
+                    href="/patients/settings"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-gray-400" />
+                    Configuración
+                  </a>
+                  <div className="mx-3 my-1 border-t border-gray-100" />
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    disabled={signingOut}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
