@@ -1,5 +1,5 @@
 ---
-import Layout from '@/layouts/Layout.astro';
+import PatientAppLayout from '@/layouts/PatientAppLayout.astro';
 import PatientsHomePage from '@/components/patients/PatientsHomePage';
 
 const title = 'Panel de Paciente | AutaMedica';
@@ -7,6 +7,6 @@ const description = 'Portal de videoconsultas y gestión de salud para pacientes
 const locale = Astro.locals.locale ?? 'es';
 ---
 
-<Layout title={title} description={description}>
+<PatientAppLayout title={title} description={description} activeTab="inicio">
   <PatientsHomePage client:load locale={locale} />
-</Layout>
+</PatientAppLayout>

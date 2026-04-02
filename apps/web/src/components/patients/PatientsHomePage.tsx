@@ -21,7 +21,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import OnboardingChecklist from '@/components/patients/OnboardingChecklist'
 import PreConsultationReminder from '@/components/patients/PreConsultationReminder'
-import BottomNav from '@/components/patients/layout/BottomNav'
 import {
   buildPatientTelemedicineEntryUrl,
   isJoinableTelemedicineAppointment,
@@ -186,7 +185,6 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           <div className="mx-auto max-w-2xl">
             <SkeletonDashboard />
           </div>
-          <BottomNav activeTab="inicio" />
         </div>
       ) : (
         <>

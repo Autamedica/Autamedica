@@ -1,12 +1,12 @@
 ---
-import Layout from '@/layouts/Layout.astro';
+import PatientAppLayout from '@/layouts/PatientAppLayout.astro';
 import CommunityPage from '@/components/patients/CommunityPage';
 ---
 
-<Layout
+<PatientAppLayout
   title="Comunidad | AutaMedica"
   description="Conectá con otros pacientes, compartí experiencias y encontrá apoyo"
-  robots="noindex, nofollow, noarchive"
+  activeTab="comunidad"
 >
   <CommunityPage client:load />
-</Layout>
+</PatientAppLayout>

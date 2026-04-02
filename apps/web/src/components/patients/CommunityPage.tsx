@@ -1,6 +1,5 @@
 'use client';
 
-import BottomNav from '@/components/patients/layout/BottomNav';
 import { usePatientCommunityPage } from '@/hooks/patients/usePatientCommunityPage';
 import { communityBrowserService } from '@/lib/patients/services/community.browser';
 import type { CommunityComment, CommunityGroup, CommunityPost } from '@/lib/patients/types/community';
@@ -413,7 +412,7 @@ export default function CommunityPage() {
         <div className="flex min-h-[70vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
         </div>
-        <BottomNav activeTab="comunidad" />
+        
       </div>
     );
   }
@@ -626,7 +625,7 @@ export default function CommunityPage() {
         </div>
       )}
 
-      <BottomNav activeTab="comunidad" />
+      
     </div>
   );
 }

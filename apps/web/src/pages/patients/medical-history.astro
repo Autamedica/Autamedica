@@ -1,11 +1,11 @@
 ---
-import Layout from '@/layouts/Layout.astro';
+import PatientAppLayout from '@/layouts/PatientAppLayout.astro';
 import MedicalHistoryPage from '@/components/patients/MedicalHistoryPage';
 
-const title = 'Historial Médico | AutaMedica';
-const description = 'Accede a tu historial médico completo';
+const title = 'Mis Recetas | AutaMedica';
+const description = 'Gestiona tus recetas médicas';
 ---
 
-<Layout title={title} description={description}>
+<PatientAppLayout title={title} description={description} activeTab="historial">
   <MedicalHistoryPage client:visible />
-</Layout>
+</PatientAppLayout>

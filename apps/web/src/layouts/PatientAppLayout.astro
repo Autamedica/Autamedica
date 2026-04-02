@@ -1,0 +1,19 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import BottomNav from '@/components/patients/layout/BottomNav.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  activeTab?: 'inicio' | 'agenda' | 'consultar' | 'historial' | 'comunidad';
+}
+
+const { title, description, activeTab = 'inicio' } = Astro.props;
+---
+
+<Layout title={title} description={description}>
+  <div class="min-h-screen pb-[env(safe-area-inset-bottom)]">
+    <slot />
+  </div>
+  <BottomNav activeTab={activeTab} />
+</Layout>
