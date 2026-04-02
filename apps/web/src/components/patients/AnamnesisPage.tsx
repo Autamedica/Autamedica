@@ -21,9 +21,9 @@ import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance';
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
 import type { GuidanceQuestion } from '@/lib/patients/services/anamnesis-guidance.service';
 import { AnamnesisField as AnamnesisFieldRenderer } from '@/components/patients/anamnesis/AnamnesisField';
-import { ClarificationStep } from '@/components/patients/anamnesis/ClarificationStep';
 import { VersionTimeline } from '@/components/patients/anamnesis/VersionTimeline';
 import { PrivacyAcceptanceScreen } from '@/components/patients/anamnesis/PrivacyAcceptanceScreen';
+import { AnamnesisChatModal } from '@/components/patients/anamnesis/AnamnesisChatModal';
 import { AnalysisResultOverlay } from '@/components/patients/anamnesis/AnalysisResultOverlay';
 import { AnamnesisFlowTour } from '@/components/patients/tours/AnamnesisFlowTour';
 import { ConversationalAnamnesis } from '@/components/patients/anamnesis/ConversationalAnamnesis';
@@ -68,10 +68,36 @@ export default function AnamnesisPage() {
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [criticalSkipBlocked, setCriticalSkipBlocked] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showUpdatePicker, setShowUpdatePicker] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
+  
+  const handleGeneratePdf = useCallback(async (versionNumber?: number) => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const url = versionNumber
+        ? `/api/patients/anamnesis/pdf?version=${versionNumber}`
+        : '/api/patients/anamnesis/pdf';
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) throw new Error('PDF download failed');
+      const blob = await response.blob();
+      const filename = response.headers.get('Content-Disposition')
+        ?.match(/filename="(.+)"/)?.[1] ?? 'historia-clinica.pdf';
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      setSaveError('No se pudo descargar el PDF');
+    } finally {
+      setSaving(false);
+    }
+  }, []);
   const [anamnesisMode, setAnamnesisMode] = useState<AnamnesisMode>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('autamedica:anamnesis-mode') as AnamnesisMode) || 'wizard';
@@ -325,52 +351,6 @@ export default function AnamnesisPage() {
     }
   }, [isFirstStep, saveCurrentStep]);
 
-  const handleClarificationSubmit = useCallback(async (
-    answers: { question: string; answer: string }[],
-  ) => {
-    // Store clarification turns
-    for (const a of answers) {
-      addClarification(a.question, a.answer);
-    }
-
-    setShowClarification(false);
-
-    // If this was the final checkpoint, complete the anamnesis
-    if (pendingCheckpoint === 'final') {
-      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
-    } else {
-      // Partial checkpoint — advance to next step
-      setCurrentStepIndex((prev) => prev + 1);
-    }
-
-    setPendingCheckpoint(null);
-    dismissGuidance();
-  }, [addClarification, pendingCheckpoint, updateAnamnesis, dismissGuidance]);
-
-  const handleClarificationSkip = useCallback(async () => {
-    // Block skip if there are unanswered critical questions
-    const hasCritical = guidance?.questions?.some(
-      (q: GuidanceQuestion) => q.priority === 'critical',
-    );
-    if (hasCritical) {
-      setCriticalSkipBlocked(true);
-      return;
-    }
-
-    setShowClarification(false);
-    setCriticalSkipBlocked(false);
-
-    if (pendingCheckpoint === 'final') {
-      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
-    } else {
-      // Partial checkpoint — advance to next step
-      setCurrentStepIndex((prev) => prev + 1);
-    }
-
-    setPendingCheckpoint(null);
-    dismissGuidance();
-  }, [pendingCheckpoint, updateAnamnesis, dismissGuidance, guidance]);
-
   const handleAcceptPrivacy = useCallback(async () => {
     setSaving(true);
     await updateAnamnesis({
@@ -419,31 +399,8 @@ export default function AnamnesisPage() {
     const totalSteps = anamnesisSteps.length;
     const completedCount = completedSections.length;
 
-    const handleDownloadPdf = async (versionNumber?: number) => {
-      setSaving(true);
-      try {
-        const url = versionNumber
-          ? `/api/patients/anamnesis/pdf?version=${versionNumber}`
-          : '/api/patients/anamnesis/pdf';
-        const response = await fetch(url, { credentials: 'include' });
-        if (!response.ok) throw new Error('PDF download failed');
-        const blob = await response.blob();
-        const filename = response.headers.get('Content-Disposition')
-          ?.match(/filename="(.+)"/)?.[1] ?? 'historia-clinica.pdf';
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } catch {
-        setSaveError('No se pudo descargar el PDF');
-      } finally {
-        setSaving(false);
-      }
-    };
+    const handleDownloadPdf = handleGeneratePdf;
+
 
     const completedDate = anamnesis?.completed_at
       ? new Date(anamnesis.completed_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -925,28 +882,21 @@ export default function AnamnesisPage() {
 
       {/* AI Clarification overlay */}
       {showClarification && guidance && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm">
-          <div className="w-full max-w-2xl">
-            {criticalSkipBlocked && (
-              <div className="mx-4 mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
-                <p className="text-sm font-semibold text-red-900">
-                  Hay preguntas importantes sin responder
-                </p>
-                <p className="text-sm text-red-700 mt-1">
-                  Por favor, responda las preguntas marcadas como prioritarias antes de continuar.
-                  Son necesarias para que su profesional tenga la informacion completa.
-                </p>
-              </div>
-            )}
-            <ClarificationStep
-              guidance={guidance}
-              isPartial={pendingCheckpoint === 'partial'}
-              onSubmit={handleClarificationSubmit}
-              onSkip={handleClarificationSkip}
-              isSubmitting={saving}
-            />
-          </div>
-        </div>
+        <AnamnesisChatModal
+          checkpoint={pendingCheckpoint || 'partial'}
+          onClose={() => setShowClarification(false)}
+          onComplete={() => {
+            setShowClarification(false);
+            if (pendingCheckpoint === 'final') {
+              void updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+              void handleGeneratePdf();
+            } else {
+              setCurrentStepIndex((prev) => prev + 1);
+            }
+            setPendingCheckpoint(null);
+            dismissGuidance();
+          }}
+        />
       )}
 
       {/* Guided tour (first visit) */}
