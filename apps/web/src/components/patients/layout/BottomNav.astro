@@ -7,13 +7,19 @@ interface Props {
 
 const { activeTab } = Astro.props;
 
-const TABS = [
+const TABS: { 
+  key: 'inicio' | 'agenda' | 'consultar' | 'historial' | 'comunidad', 
+  label: string, 
+  href: string, 
+  icon: any, 
+  center?: boolean 
+}[] = [
   { key: 'inicio', label: 'Inicio', href: '/?portal=patient', icon: Home },
   { key: 'agenda', label: 'Agenda', href: '/patients/appointments', icon: Calendar },
   { key: 'consultar', label: 'Consultar', href: '/patients/appointments?type=telemedicine', icon: Video, center: true },
   { key: 'historial', label: 'Recetas', href: '/patients/medical-history', icon: Pill },
   { key: 'comunidad', label: 'Comunidad', href: '/patients/community', icon: MessageCircle },
-] as const;
+];
 ---
 
 <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/90 backdrop-blur-xl sm:hidden">
