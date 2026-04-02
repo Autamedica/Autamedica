@@ -252,10 +252,10 @@ export const communityService = {
 
     return communityRepo.createComment(supabase, {
       postId: payload.postId,
-      authorId: context.userId,
+      doctorAuthorId: context.doctorId,
       authorDisplayName,
       authorRole: 'doctor',
-      doctorSpecialty,
+      doctorSpecialtySnapshot: doctorSpecialty,
       content: payload.content.trim(),
       anonymous: false,
     });

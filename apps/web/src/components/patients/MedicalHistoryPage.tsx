@@ -128,7 +128,7 @@ export default function MedicalHistoryPage() {
 
   return (
     <div
-      className="min-h-screen pb-24"
+      className="min-h-screen pb-4"
       style={{ background: 'var(--au-bg)', color: 'var(--au-text-primary)' }}
     >
       {/* Header */}

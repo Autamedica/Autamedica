@@ -1,0 +1,29 @@
+{
+  "core_modules": [
+    "auth",
+    "hooks",
+    "session",
+    "shared",
+    "telemedicine",
+    "types",
+    "ui"
+  ],
+  "app_entry_points": {
+    "web": "apps/web",
+    "mobile": "apps/mobile",
+    "android": "apps/android"
+  },
+  "critical_paths": [
+    "auth flow (Supabase + custom hooks)",
+    "video call signaling (WebRTC/LiveKit)",
+    "appointment scheduling (shared/scheduling)",
+    "anamnesis data extraction (clinical-ai-orchestrator)"
+  ],
+  "error_history": [
+    {
+      "id": "#310",
+      "description": "Error en hidratación de componentes críticos.",
+      "solution": "Reestructuración de la hidratación de componentes y envoltorios de cliente para asegurar consistencia entre SSR y el lado del cliente."
+    }
+  ]
+}

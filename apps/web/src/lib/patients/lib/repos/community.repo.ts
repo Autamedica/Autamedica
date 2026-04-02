@@ -89,13 +89,15 @@ function mapMembership(row: DbRow): CommunityMembership {
 }
 
 function mapComment(row: DbRow): CommunityComment {
+  const authorRole = asText(row.author_role) === 'doctor' ? 'doctor' : 'patient';
+
   return {
     id: asText(row.id) ?? '',
     post_id: asText(row.post_id) ?? '',
-    author_id: asText(row.author_id) ?? '',
+    author_id: asText(row.author_id) ?? asText(row.doctor_author_id) ?? '',
     author_display_name: asText(row.author_display_name),
-    author_role: asText(row.author_role) === 'doctor' ? 'doctor' : 'patient',
-    doctor_specialty: asText(row.doctor_specialty),
+    author_role: authorRole,
+    doctor_specialty: asText(row.doctor_specialty_snapshot) ?? asText(row.doctor_specialty),
     content: asText(row.content) ?? '',
     is_anonymous: asBoolean(row.is_anonymous),
     reaction_count: asNumber(row.reaction_count),
@@ -406,10 +408,11 @@ export const communityRepo = {
     supabase: Db,
     payload: {
       postId: string;
-      authorId: string;
+      authorId?: string;
+      doctorAuthorId?: string;
       authorDisplayName: string | null;
       authorRole: 'patient' | 'doctor';
-      doctorSpecialty?: string | null;
+      doctorSpecialtySnapshot?: string | null;
       content: string;
       anonymous: boolean;
     },
@@ -419,10 +422,11 @@ export const communityRepo = {
       .from('community_post_comments')
       .insert({
         post_id: payload.postId,
-        author_id: payload.authorId,
+        author_id: payload.authorRole === 'patient' ? payload.authorId ?? null : null,
+        doctor_author_id: payload.authorRole === 'doctor' ? payload.doctorAuthorId ?? null : null,
         author_display_name: payload.anonymous ? 'Anónimo' : payload.authorDisplayName,
         author_role: payload.authorRole,
-        doctor_specialty: payload.doctorSpecialty ?? null,
+        doctor_specialty_snapshot: payload.authorRole === 'doctor' ? payload.doctorSpecialtySnapshot ?? null : null,
         content: payload.content,
         is_anonymous: payload.anonymous,
       })

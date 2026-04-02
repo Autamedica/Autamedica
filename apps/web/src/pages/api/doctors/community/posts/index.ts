@@ -13,16 +13,21 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   const url = new URL(request.url);
   const limitParam = url.searchParams.get('limit');
+  const sortBy = url.searchParams.get('sort_by');
   const limit = limitParam ? Number(limitParam) : undefined;
 
-  if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0 || limit > 20)) {
-    return badRequest('limit must be between 1 and 20');
+  if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0 || limit > 50)) {
+    return badRequest('limit must be between 1 and 50');
+  }
+
+  if (sortBy && sortBy !== 'recent' && sortBy !== 'popular') {
+    return badRequest('sort_by must be recent or popular');
   }
 
   try {
     const posts = await communityService.getDoctorFeed(createAstroAdminClient(), context, {
       limit,
-      sortBy: 'recent',
+      sortBy: sortBy === 'popular' ? 'popular' : 'recent',
     });
     return jsonOk({ posts });
   } catch (error) {

@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ request, cookies, locals }) => {
   try {
     const url = new URL(request.url)
     const patientId = url.searchParams.get('id')
-    const doctorUserId = url.searchParams.get('doctorUserId')?.trim() || user.id
+    const requestedDoctorUserId = url.searchParams.get('doctorUserId')?.trim()
 
     let data: unknown
 
@@ -27,12 +27,12 @@ export const GET: APIRoute = async ({ request, cookies, locals }) => {
       data = await patientBackendService.getPatientById(patientId as unknown as import('@autamedica/types').UUID)
     } 
     // Si pide los asignados a un doctor
-    else if (doctorUserId) {
-      if (doctorUserId !== user.id) {
+    else if (requestedDoctorUserId) {
+      if (requestedDoctorUserId !== user.id) {
         return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
       }
 
-      data = await patientBackendService.getAssignedPatients(doctorUserId)
+      data = await patientBackendService.getAssignedPatients(requestedDoctorUserId)
     } 
     // Si pide todos (activo)
     else {

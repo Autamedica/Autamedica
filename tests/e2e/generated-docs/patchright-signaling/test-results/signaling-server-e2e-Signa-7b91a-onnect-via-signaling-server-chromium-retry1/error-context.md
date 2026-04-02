@@ -1,0 +1,52 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Saltar al contenido" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - progressbar "Progreso de lectura de la página"
+  - main [ref=e3]:
+    - generic [ref=e5]:
+      - heading "Test de Videollamada - Portal Médicos" [level=1] [ref=e6]
+      - generic [ref=e10]:
+        - img [ref=e31]
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - text: Camara
+          - generic [ref=e40]:
+            - img [ref=e41]
+            - text: Microfono
+          - generic [ref=e44]:
+            - img [ref=e45]
+            - text: Red
+          - generic [ref=e47]: 387ms
+        - generic [ref=e49]:
+          - img
+          - combobox [ref=e50]:
+            - option "Fake Default Audio Input" [selected]
+            - option "Fake Audio Input 1"
+            - option "Fake Audio Input 2"
+          - img
+        - heading "Consulta medica" [level=2] [ref=e51]
+        - paragraph [ref=e52]: Dr. Prueba · Sala e2e-test-1774604302721
+        - generic [ref=e53]: Ocurrió un error. Recargá la página para reintentar.
+        - button "Iniciar consulta" [ref=e54] [cursor=pointer]:
+          - img [ref=e55]
+          - text: Iniciar consulta
+  - generic [ref=e59]:
+    - button "Menu" [ref=e60]:
+      - img [ref=e62]
+      - generic: Menu
+    - button "Inspect" [ref=e66]:
+      - img [ref=e68]
+      - generic: Inspect
+    - button "Audit" [ref=e70]:
+      - generic [ref=e71]:
+        - img [ref=e72]
+        - img [ref=e75]
+      - generic: Audit
+    - button "Settings" [ref=e78]:
+      - img [ref=e80]
+      - generic: Settings
+```

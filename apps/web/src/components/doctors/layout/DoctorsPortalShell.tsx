@@ -80,6 +80,73 @@ type PortalContextValue = {
   setActivePostId: (postId: string | null) => void
 }
 
+const PortalLayoutContext = createContext<PortalContextValue | null>(null)
+
+function PanelLoader(): JSX.Element {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex h-full items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-8 text-am-surface-500 shadow-am-sm"
+    >
+      <div className="flex items-center gap-3">
+        <svg className="h-5 w-5 animate-spin text-am-doctor-500" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        Cargando...
+      </div>
+    </div>
+  )
+}
+
+type NameCandidate = {
+  full_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  firstName?: string | null
+  lastName?: string | null
+}
+
+export function useDoctorsPortal(): PortalContextValue {
+  const value = useContext(PortalLayoutContext)
+  if (!value) {
+    throw new Error('useDoctorsPortal must be used within DoctorsPortalShell')
+  }
+  return value
+}
+
+function getInitials(name: string): string {
+  return (
+    name
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase() || 'DR'
+  )
+}
+
+function resolveDoctorDisplayName(...candidates: Array<NameCandidate | null | undefined>): string {
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue
+    }
+
+    const fullName =
+      candidate.full_name?.trim()
+      || [candidate.first_name, candidate.last_name].filter(Boolean).join(' ').trim()
+      || [candidate.firstName, candidate.lastName].filter(Boolean).join(' ').trim()
+
+    if (fullName) {
+      return fullName
+    }
+  }
+
+  return 'Cuenta médica'
+}
+
 export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabId>('video-call')
   const [isFocusMode, setIsFocusMode] = useState(false)
@@ -175,29 +242,27 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     setActivePostId,
   }
 
-  // ... (rest of the component structure)
+  const clinicalEnd = 3
+  const toolsEnd = 4
 
+  const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }, index) => {
+    const isActive = activeSection === id
+    const groupLabel =
+      index === 0
+        ? 'Clínica'
+        : index === clinicalEnd + 1
+          ? 'Herramientas'
+          : index === toolsEnd + 1
+            ? 'Plataforma'
+            : null
 
-// ... inside shell:
-  const [activePostId, setActivePostId] = useState<string | null>(null)
-
-  const portalContext: PortalContextValue = {
-    activeTab,
-    setActiveTab,
-    userName,
-    isFocusMode,
-    setFocusMode: setIsFocusMode,
-    setActiveSection,
-    activePostId,
-    setActivePostId,
-  }
-
-// ...
-                {activeSection === 'community' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <DoctorCommunityPage initialPostId={activePostId} />
-                  </Suspense>
-                )}
+    return (
+      <div key={id}>
+        {groupLabel && (
+          <p className={`px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-500 ${index > 0 ? 'mb-2 mt-5' : 'mb-2'}`}>
+            {groupLabel}
+          </p>
+        )}
         <button
           type="button"
           className={`au-interactive au-focus-ring relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-am-fast ease-am-ease ${

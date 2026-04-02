@@ -6,7 +6,8 @@ import {
     Palette,
     Shield,
     User,
-    Video
+    Video,
+    ChevronLeft
 } from 'lucide-react'
 import type { JSX } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -44,6 +45,8 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
   const resolvedLicense = licenseNumber?.trim() || 'Sin registro'
 
   const [activeCategory, setActiveCategory] = useState('profile')
+  const [isDetailView, setIsDetailView] = useState(false)
+  const [isDesktopLayout, setIsDesktopLayout] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [settings, setSettings] = useState<SettingsState>({
     fullName: resolvedDoctorName,
@@ -99,6 +102,26 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
       license: resolvedLicense,
     }))
   }, [resolvedDoctorName, resolvedSpecialty, resolvedLicense])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const syncLayoutMode = () => {
+      const desktop = window.innerWidth >= 768
+      setIsDesktopLayout(desktop)
+
+      if (desktop) {
+        setIsDetailView(false)
+      }
+    }
+
+    syncLayoutMode()
+    window.addEventListener('resize', syncLayoutMode)
+
+    return () => window.removeEventListener('resize', syncLayoutMode)
+  }, [])
 
   const categories: SettingsCategory[] = [
     {
@@ -367,7 +390,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
           <select
             value={String(settings[setting.id])}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-am-surface-300 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
+            className="w-full rounded-lg border border-am-surface-300 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 sm:w-auto"
           >
             {setting.options?.map((option) => (
               <option key={option} value={option}>
@@ -382,42 +405,49 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
             type={typeof setting.value === 'number' ? 'number' : 'text'}
             value={settings[setting.id] as string | number}
             onChange={(e) => handleSettingChange(setting.id, e.target.value)}
-            className="rounded-lg border border-am-surface-300 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
+            className="w-full rounded-lg border border-am-surface-300 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 sm:min-w-[220px]"
           />
         )
     }
   }
 
   const currentSettings = settingsByCategory[activeCategory] || []
+  const activeCategoryTitle = categories.find(c => c.id === activeCategory)?.title
 
   return (
-    <div className="flex h-full rounded-2xl border border-am-surface-200 bg-white shadow-am-sm">
-      <div className="w-64 border-r border-am-surface-200 bg-am-surface-50 p-4">
-        <div className="mb-6">
+    <div className="flex h-full w-full flex-col rounded-2xl border border-am-surface-200 bg-white shadow-am-sm md:flex-row">
+      {/* Sidebar / Menu */}
+      <div
+        className={`w-full border-b border-am-surface-200 bg-am-surface-50 p-4 transition-all md:w-64 md:border-b-0 md:border-r ${
+          !isDesktopLayout && isDetailView ? 'hidden' : 'block'
+        }`}
+      >
+        <div className="mb-6 hidden md:block">
           <h2 className="text-lg font-semibold text-am-surface-900">Configuración</h2>
-          <p className="text-sm text-am-surface-500">Personaliza tu experiencia médica</p>
+          <p className="text-sm text-am-surface-500">Personaliza tu experiencia</p>
         </div>
 
         <div className="space-y-2">
           {categories.map((category) => {
             const Icon = category.icon
             const isActive = activeCategory === category.id
+            const isCategorySelected = isActive && (isDesktopLayout || isDetailView)
 
             return (
               <button
                 key={category.id}
                 type="button"
-                onClick={() => setActiveCategory(category.id)}
-                className={`flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all duration-am-fast ease-am-ease ${
-                  isActive
+                onClick={() => { setActiveCategory(category.id); setIsDetailView(true); }}
+                className={`flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-all ${
+                  isCategorySelected
                     ? 'border border-am-doctor-200 bg-am-doctor-50 text-am-doctor-600'
                     : 'border border-transparent text-am-surface-700 hover:bg-am-surface-100 hover:text-am-surface-900'
                 }`}
               >
                 <Icon className={`mt-0.5 h-5 w-5 ${isActive ? 'text-am-doctor-600' : 'text-am-surface-500'}`} />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium">{category.title}</p>
-                  <p className="text-xs text-am-surface-400">{category.description}</p>
+                  <p className="hidden text-xs text-am-surface-400 md:block">{category.description}</p>
                 </div>
               </button>
             )
@@ -425,36 +455,53 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         </div>
       </div>
 
-      <div className="flex-1 p-6">
-        <div className="mb-6">
-          <h3 className="text-xl font-semibold text-am-surface-900">
-            {categories.find(c => c.id === activeCategory)?.title}
-          </h3>
-          <p className="text-sm text-am-surface-500">
-            {categories.find(c => c.id === activeCategory)?.description}
-          </p>
-          {saveMessage && <p className="mt-2 text-xs text-am-doctor-600">{saveMessage}</p>}
+      {/* Content */}
+      <div
+        className={`flex-1 p-4 sm:p-6 ${
+          isDesktopLayout || isDetailView ? 'block' : 'hidden'
+        }`}
+      >
+        <div className="mb-6 flex items-center gap-3">
+            {/* Back button for mobile */}
+            <button 
+                className="rounded-full p-2 -ml-2 hover:bg-am-surface-100 md:hidden"
+                onClick={() => setIsDetailView(false)}
+                aria-label="Volver a categorías"
+            >
+                <ChevronLeft className="h-5 w-5 text-am-surface-600" />
+            </button>
+            <div>
+              <h3 className="text-xl font-semibold text-am-surface-900">{activeCategoryTitle}</h3>
+              <p className="text-sm text-am-surface-500">
+                {categories.find(c => c.id === activeCategory)?.description}
+              </p>
+            </div>
         </div>
+        
+        {saveMessage && <p className="mb-4 text-xs text-am-doctor-600">{saveMessage}</p>}
 
         <div className="space-y-6">
           {currentSettings.map((setting) => (
-            <div key={setting.id} className="flex items-start justify-between gap-4">
+            <div
+              key={setting.id}
+              className="flex flex-col gap-3 rounded-xl border border-am-surface-100 bg-am-surface-50/60 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:border-0 sm:bg-transparent sm:p-0"
+            >
               <div className="flex-1">
                 <h4 className="text-sm font-medium text-am-surface-800">{setting.label}</h4>
                 <p className="text-xs text-am-surface-500">{setting.description}</p>
               </div>
-              <div className="flex-shrink-0">
+              <div className="w-full flex-shrink-0 self-start sm:w-auto sm:self-auto">
                 {renderSettingControl(setting)}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 flex justify-end gap-3">
+        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             className="rounded-lg border border-am-surface-300 bg-transparent px-4 py-2 text-sm text-am-surface-700 transition hover:bg-am-surface-100"
-            onClick={() => setSaveMessage('Cambios descartados visualmente. Nada fue persistido.')}
+            onClick={() => setSaveMessage('Cambios descartados.')}
           >
             Cancelar
           </button>

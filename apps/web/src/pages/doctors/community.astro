@@ -1,0 +1,11 @@
+---
+import { DoctorCommunityPage } from '@/components/doctors/DoctorCommunityPage';
+import Layout from '@/layouts/Layout.astro';
+
+const title = 'Comunidad medica | AutaMedica';
+const description = 'Preguntas de la comunidad para responder desde el portal medico';
+---
+
+<Layout title={title} description={description} robots="noindex, nofollow, noarchive">
+  <DoctorCommunityPage client:load />
+</Layout>
