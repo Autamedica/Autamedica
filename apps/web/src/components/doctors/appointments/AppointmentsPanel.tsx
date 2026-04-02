@@ -9,6 +9,7 @@ import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.servic
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { getCallWindowStatus } from '@/lib/calls/lib/call-error-messages'
 import { StartCallButton } from '../calls/StartCallButton'
+import { CreateAppointmentModal } from './CreateAppointmentModal'
 
 interface AppointmentsPanelProps {
   doctorId?: string
@@ -31,11 +32,13 @@ function canStartTelemedicineCall(appointment: {
 }
 
 export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
   const { user, loading: userLoading } = useAuthenticatedUser()
   const resolvedDoctorId = doctorId ?? user?.doctorProfileId
 
-  const { appointments, loading, error, isClientReady } = useDoctorAppointments(resolvedDoctorId)
+  const { appointments, loading, error, isClientReady, refetch } = useDoctorAppointments(resolvedDoctorId)
+  
   const sortedAppointments = useMemo(() => {
     const now = Date.now()
 
@@ -126,7 +129,6 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
 
   return (
     <div className="flex h-full flex-col gap-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-am-primary-50 p-2">
@@ -150,6 +152,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
           </button>
           <button
             type="button"
+            onClick={() => setIsCreateModalOpen(true)}
             className="au-interactive au-focus-ring flex items-center gap-2 rounded-lg bg-am-primary-600 px-4 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-am-primary-700"
           >
             <Plus className="h-4 w-4" />
@@ -158,75 +161,55 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
         </div>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {/* ... Stats ... */}
         <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-am-primary-50 p-2">
-              <Calendar className="h-5 w-5 text-am-primary-600" />
-            </div>
+            <div className="rounded-lg bg-am-primary-50 p-2"><Calendar className="h-5 w-5 text-am-primary-600" /></div>
             <div>
               <p className="text-sm text-am-surface-500">Hoy</p>
-              <p className="text-xl font-semibold text-am-surface-900">
-                {sortedAppointments.filter(apt => new Date(apt.start_time).toDateString() === new Date().toDateString()).length}
-              </p>
+              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => new Date(apt.start_time).toDateString() === new Date().toDateString()).length}</p>
             </div>
           </div>
         </div>
-
         <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-green-50 p-2">
-              <Video className="h-5 w-5 text-green-700" />
-            </div>
+            <div className="rounded-lg bg-green-50 p-2"><Video className="h-5 w-5 text-green-700" /></div>
             <div>
               <p className="text-sm text-am-surface-500">Telemedicina</p>
-              <p className="text-xl font-semibold text-am-surface-900">
-                {sortedAppointments.filter(apt => apt.type === 'telemedicine').length}
-              </p>
+              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => apt.type === 'telemedicine').length}</p>
             </div>
           </div>
         </div>
-
         <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-yellow-50 p-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
-            </div>
+            <div className="rounded-lg bg-yellow-50 p-2"><Clock className="h-5 w-5 text-yellow-600" /></div>
             <div>
               <p className="text-sm text-am-surface-500">Pendientes</p>
-              <p className="text-xl font-semibold text-am-surface-900">
-                {sortedAppointments.filter(apt => apt.status === 'scheduled').length}
-              </p>
+              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => apt.status === 'scheduled').length}</p>
             </div>
           </div>
         </div>
-
         <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-50 p-2">
-              <User className="h-5 w-5 text-emerald-700" />
-            </div>
+            <div className="rounded-lg bg-emerald-50 p-2"><User className="h-5 w-5 text-emerald-700" /></div>
             <div>
               <p className="text-sm text-am-surface-500">Confirmadas</p>
-              <p className="text-xl font-semibold text-am-surface-900">
-                {sortedAppointments.filter(apt => apt.status === 'confirmed').length}
-              </p>
+              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => apt.status === 'confirmed').length}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Appointments List */}
       <div className="flex-1 overflow-hidden">
         {sortedAppointments.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
               <Calendar className="mx-auto h-12 w-12 text-am-surface-400 mb-4" />
               <h3 className="text-lg font-medium text-am-surface-700 mb-2">No hay citas programadas</h3>
-              <p className="text-am-surface-400 mb-4">Programa tu primera cita medica</p>
               <button
                 type="button"
+                onClick={() => setIsCreateModalOpen(true)}
                 className="flex items-center gap-2 rounded-lg bg-am-primary-600 px-4 py-2 text-sm font-medium text-white shadow-am-sm transition hover:bg-am-primary-700 mx-auto"
               >
                 <Plus className="h-4 w-4" />
@@ -238,41 +221,21 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
           <div className="h-full overflow-auto">
             <div className="grid gap-4">
               {sortedAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="au-interactive rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm transition-all duration-am-fast ease-am-ease hover:-translate-y-0.5 hover:shadow-am-card-hover hover:border-am-surface-300"
-                >
+                <div key={appointment.id} className="au-interactive rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm transition-all duration-am-fast ease-am-ease hover:-translate-y-0.5 hover:shadow-am-card-hover hover:border-am-surface-300">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-am-primary-50 text-am-primary-600">
-                        {getTypeIcon(appointment.type)}
-                      </div>
-
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-am-primary-50 text-am-primary-600">{getTypeIcon(appointment.type)}</div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <h3 className="font-medium text-am-surface-900">{appointment.patient_id ? (patientNames[appointment.patient_id] || 'Cargando...') : 'Sin asignar'}</h3>
-                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(appointment.status ?? 'scheduled')}`}>
-                            {appointment.status ?? 'scheduled'}
-                          </span>
+                          <span className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(appointment.status ?? 'scheduled')}`}>{appointment.status ?? 'scheduled'}</span>
                         </div>
-
                         <div className="flex flex-wrap items-center gap-3 text-sm text-am-surface-500 mb-2">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(appointment.start_time).toLocaleDateString('es-ES')}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {new Date(appointment.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} ({appointment.duration_minutes ?? 30} min)
-                          </div>
+                          <div className="flex items-center gap-1"><Calendar className="h-4 w-4" />{new Date(appointment.start_time).toLocaleDateString('es-ES')}</div>
+                          <div className="flex items-center gap-1"><Clock className="h-4 w-4" />{new Date(appointment.start_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} ({appointment.duration_minutes ?? 30} min)</div>
                         </div>
-
-                        {appointment.notes && (
-                          <p className="text-sm text-am-surface-400">{appointment.notes}</p>
-                        )}
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 self-start shrink-0 sm:self-auto">
                       {appointment.type === 'telemedicine' && resolvedDoctorId && appointment.patient_id && (() => {
                         const windowStatus = getCallWindowStatus(appointment)
@@ -288,12 +251,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                           />
                         )
                       })()}
-                      <button
-                        type="button"
-                        className="rounded-lg bg-white border border-am-surface-300 px-3 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100"
-                      >
-                        Editar
-                      </button>
+                      <button type="button" className="rounded-lg bg-white border border-am-surface-300 px-3 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100">Editar</button>
                     </div>
                   </div>
                 </div>
@@ -302,6 +260,12 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
           </div>
         )}
       </div>
+      {isCreateModalOpen && (
+          <CreateAppointmentModal 
+              onClose={() => setIsCreateModalOpen(false)}
+              onSaved={() => { setIsCreateModalOpen(false); refetch(); }}
+          />
+      )}
     </div>
   )
 }
