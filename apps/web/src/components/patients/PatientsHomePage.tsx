@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Clock,
   ClipboardList,
-  FileText,
   LogOut,
   MessageCircle,
   Pill,
@@ -160,8 +159,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const ACTIONS = [
     { key: 'video', label: 'Videoconsulta', sub: 'Conectá en vivo', href: '/patients/appointments?type=telemedicine', icon: Video, color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100 hover:border-sky-200' },
     { key: 'turnos', label: 'Mis turnos', sub: 'Agendá citas', href: '/patients/appointments', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100 hover:border-violet-200' },
-    { key: 'recetas', label: 'Recetas', sub: 'Prescripciones', href: '/patients/medical-history?tab=prescriptions', icon: Pill, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100 hover:border-emerald-200' },
-    { key: 'historial', label: 'Historial', sub: 'Registros médicos', href: '/patients/medical-history', icon: FileText, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200 hover:border-slate-300' },
+    { key: 'recetas', label: 'Mis Recetas', sub: 'Billetera digital', href: '/patients/medical-history', icon: Pill, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100 hover:border-emerald-200' },
     { key: 'anamnesis', label: 'Anamnesis', sub: 'Historia clínica', href: '/patients/anamnesis', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-200' },
     { key: 'comunidad', label: 'Comunidad', sub: 'Otros pacientes', href: '/patients/community', icon: MessageCircle, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
   ] as const

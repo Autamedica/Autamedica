@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, Home, MessageCircle, FileText, Video } from 'lucide-react'
+import { Calendar, Home, MessageCircle, Pill, Video } from 'lucide-react'
 
 export type PatientTab = 'inicio' | 'agenda' | 'consultar' | 'historial' | 'comunidad'
 
@@ -12,7 +12,7 @@ const TABS: Array<{ key: PatientTab; label: string; href: string; icon: typeof H
   { key: 'inicio', label: 'Inicio', href: '/?portal=patient', icon: Home },
   { key: 'agenda', label: 'Agenda', href: '/patients/appointments', icon: Calendar },
   { key: 'consultar', label: 'Consultar', href: '/patients/appointments?type=telemedicine', icon: Video, center: true },
-  { key: 'historial', label: 'Historial', href: '/patients/medical-history', icon: FileText },
+  { key: 'historial', label: 'Recetas', href: '/patients/medical-history', icon: Pill },
   { key: 'comunidad', label: 'Comunidad', href: '/patients/community', icon: MessageCircle },
 ]
 
