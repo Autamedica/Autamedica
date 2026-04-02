@@ -36,13 +36,19 @@ const isCompanyHost =
   Astro.url.hostname === 'empresa.autamedica.com' ||
   Astro.url.hostname === 'companies.autamedica.com' ||
   devPortal === 'company';
+const isPortalHost = isDoctorHost || isPatientHost || isCompanyHost;
 
-const {
-  variant: copyVariant,
-  hero: heroCopy,
-  cta: ctaCopy,
-  seo: seoCopy,
-} = resolveLandingCopy(Astro.url, import.meta.env.PUBLIC_LANDING_COPY_VARIANT, locale);
+const landingCopy = isPortalHost
+  ? null
+  : resolveLandingCopy(Astro.url, import.meta.env.PUBLIC_LANDING_COPY_VARIANT, locale);
+
+const copyVariant = landingCopy?.variant ?? 'portal';
+const heroCopy = landingCopy?.hero;
+const ctaCopy = landingCopy?.cta;
+const seoCopy = landingCopy?.seo ?? {
+  title: 'AutaMedica',
+  description: 'Telemedicina y coordinacion clinica en una sola plataforma.',
+};
 ---
 
 {isDoctorHost ? (
