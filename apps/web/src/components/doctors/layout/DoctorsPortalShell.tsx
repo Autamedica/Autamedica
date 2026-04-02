@@ -1,7 +1,7 @@
 "use client"
 
 import type { JSX, ReactNode } from 'react'
-import { Suspense, createContext, lazy, useCallback, useContext, useMemo, useState } from 'react'
+import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
 
 import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
@@ -34,6 +34,7 @@ import {
     X,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { DoctorsPortalContext, type DoctorsPortalContextValue } from './portal-context'
 import { SidebarNavigation } from './SidebarNavigation'
 
 const DoctorCommunityPage = lazy(() => import('@/components/doctors/DoctorCommunityPage').then(m => ({ default: m.DoctorCommunityPage })))
@@ -65,19 +66,6 @@ type TabConfig = {
   icon: LucideIcon
 }
 
-type PortalContextValue = {
-  activeTab: TabId
-  setActiveTab: (tab: TabId) => void
-  userName: string
-  isFocusMode: boolean
-  setFocusMode: (focus: boolean) => void
-  setActiveSection: (section: string | null) => void
-  activePostId: string | null
-  setActivePostId: (postId: string | null) => void
-}
-
-const PortalLayoutContext = createContext<PortalContextValue | null>(null)
-
 function PanelLoader(): JSX.Element {
   return (
     <div
@@ -102,14 +90,6 @@ type NameCandidate = {
   last_name?: string | null
   firstName?: string | null
   lastName?: string | null
-}
-
-export function useDoctorsPortal(): PortalContextValue {
-  const value = useContext(PortalLayoutContext)
-  if (!value) {
-    throw new Error('useDoctorsPortal must be used within DoctorsPortalShell')
-  }
-  return value
 }
 
 function getInitials(name: string): string {
@@ -232,7 +212,7 @@ export function DoctorsPortalShell({
     [],
   )
 
-  const portalContext: PortalContextValue = {
+  const portalContext: DoctorsPortalContextValue = {
     activeTab,
     setActiveTab,
     userName,
@@ -316,7 +296,7 @@ export function DoctorsPortalShell({
   }
 
   return (
-    <PortalLayoutContext.Provider value={portalContext}>
+    <DoctorsPortalContext.Provider value={portalContext}>
       <div
         className={`app portal-doctor flex flex-col ${isFocusMode ? 'app--focus' : ''} bg-am-surface-50 text-am-surface-900`}
         suppressHydrationWarning
@@ -683,6 +663,6 @@ export function DoctorsPortalShell({
           </div>
         </nav>
       </div>
-    </PortalLayoutContext.Provider>
+    </DoctorsPortalContext.Provider>
   )
 }

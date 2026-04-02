@@ -3,7 +3,7 @@
 import { DoctorDailySummary } from '@/components/doctors/DoctorDailySummary'
 import { GracePeriodBanner } from '@/components/doctors/GracePeriodBanner'
 import { OnboardingReminder } from '@/components/doctors/OnboardingReminder'
-import { useDoctorsPortal } from '@/components/doctors/layout/DoctorsPortalShell'
+import { useDoctorsPortal } from '@/components/doctors/layout/portal-context'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useCheckDoctorExists } from '@/hooks/doctors/useCheckDoctorExists'
 import type { Locale } from '@/i18n/index'

@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { MessageCircle, ChevronRight, Award, Clock } from 'lucide-react'
+import { useDoctorsPortal } from '@/components/doctors/layout/portal-context'
 import { fetchApi } from '@/lib/api-client'
-import { useDoctorsPortal } from '../layout/DoctorsPortalShell'
 
 interface CommunityQuestion {
   id: string
