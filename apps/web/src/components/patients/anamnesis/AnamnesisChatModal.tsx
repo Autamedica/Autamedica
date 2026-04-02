@@ -9,6 +9,13 @@ interface Message {
   content: string;
 }
 
+interface ChatApiResponse {
+  success?: boolean;
+  reply?: string;
+  isFinished?: boolean;
+  error?: string;
+}
+
 interface ClarificationTurn {
   question: string;
   answer: string;
@@ -62,6 +69,16 @@ export function AnamnesisChatModal({
   const [turns, setTurns] = useState<ClarificationTurn[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const appendFallbackMessage = useCallback(() => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: 'No pude continuar el chat ahora. Podés cerrar esta ventana y seguir con el formulario.',
+      },
+    ]);
+  }, []);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -98,19 +115,31 @@ export function AnamnesisChatModal({
         }),
       });
 
-      const data = await response.json();
-      
+      const rawText = await response.text();
+      const data: ChatApiResponse | null = rawText
+        ? JSON.parse(rawText) as ChatApiResponse
+        : null;
+
+      if (!response.ok) {
+        throw new Error(data?.error ?? `chat_http_${response.status}`);
+      }
+
+      if (!data || typeof data.reply !== 'string') {
+        throw new Error('invalid_chat_response');
+      }
+
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-      
+
       if (data.isFinished) {
         onComplete(nextTurns);
       }
     } catch (error) {
       console.error('Chat error:', error);
+      appendFallbackMessage();
     } finally {
       setIsTyping(false);
     }
-  }, [input, messages, turns, checkpoint, guidance, onComplete]);
+  }, [appendFallbackMessage, input, messages, turns, checkpoint, guidance, onComplete]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm p-4">

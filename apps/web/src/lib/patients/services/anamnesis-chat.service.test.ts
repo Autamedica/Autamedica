@@ -3,6 +3,8 @@ import * as service from './anamnesis-chat.service'
 
 let lastStartChatConfig: any = null
 
+process.env.GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? 'test-gemini-key'
+
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: class {
     getGenerativeModel() {

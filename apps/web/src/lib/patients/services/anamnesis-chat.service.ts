@@ -1,9 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { ensureEnv } from '@autamedica/shared';
-import { getQuestionsModelName } from '@/lib/patients/server/ai-provider';
-
-const genAI = new GoogleGenerativeAI(ensureEnv('GEMINI_API_KEY'));
-const model = genAI.getGenerativeModel({ model: getQuestionsModelName() });
+import { getQuestionsModelName, resolveServerEnv } from '@/lib/patients/server/ai-provider';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -22,6 +18,23 @@ interface ChatSessionLike {
       text: () => string;
     };
   }>;
+}
+
+function createChatSession(history: ChatMessage[]): ChatSessionLike {
+  const apiKey = resolveServerEnv('GEMINI_API_KEY');
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: getQuestionsModelName() });
+
+  return model.startChat({
+    history: normalizeChatHistory(history),
+    generationConfig: {
+      temperature: 0.7,
+    },
+  });
 }
 
 function normalizeChatHistory(history: ChatMessage[]) {
@@ -49,12 +62,7 @@ export async function processAnamnesisChat(
   // Opcional: inyección para tests
   chatInstance?: ChatSessionLike
 ) {
-  const chat = chatInstance || model.startChat({
-    history: normalizeChatHistory(history),
-    generationConfig: {
-      temperature: 0.7,
-    },
-  });
+  const chat = chatInstance || createChatSession(history);
 
   const guidanceQuestions = context.guidanceQuestions?.filter(Boolean) ?? [];
   const coverageGaps = context.coverageGaps?.filter(Boolean) ?? [];
