@@ -10,9 +10,9 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useDoctorPatients } from '@/hooks/doctors/useRealPatients'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
-import { useRealPatients } from '@/hooks/doctors/useRealPatients'
+import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { Calendar, Clock, Video, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { startCallBrowserService } from '@/lib/calls/services/start-call.browser'
@@ -27,9 +27,9 @@ interface PatientsPanelProps {
 export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const { patients, loading, error, refetch } = useRealPatients()
-
   const { user } = useAuthenticatedUser()
+  const { patients, loading, error, refetch } = useDoctorPatients(user?.id)
+  
   const { appointments } = useDoctorAppointments(user?.doctorProfileId)
 
   const startConsultation = async (patientId: string, appointment: { id: string; start_time: string; type: string | null }) => {
