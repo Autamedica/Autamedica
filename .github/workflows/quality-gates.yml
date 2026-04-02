@@ -4,10 +4,19 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'config/**'
+      - 'docs/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'README.md'
+      - 'GEMINI.md'
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
-      - 'packages/types/**'
       - 'scripts/ci/**'
+      - 'scripts/lib/**'
       - 'scripts/check-policy.mjs'
       - 'scripts/validate-no-hardcode.mjs'
   schedule:
@@ -29,6 +38,7 @@ jobs:
       migrations: ${{ steps.filter.outputs.migrations }}
       functions: ${{ steps.filter.outputs.functions }}
       types: ${{ steps.filter.outputs.types }}
+      architecture: ${{ steps.filter.outputs.architecture }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
@@ -41,6 +51,18 @@ jobs:
               - 'supabase/functions/**'
             types:
               - 'packages/types/**'
+            architecture:
+              - 'apps/**'
+              - 'packages/**'
+              - 'config/**'
+              - 'supabase/**'
+              - 'scripts/**'
+              - 'docs/**'
+              - 'README.md'
+              - 'GEMINI.md'
+              - '.github/workflows/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
 
   db-type-drift:
     name: DB Type Drift
@@ -56,6 +78,21 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm check:db:type-drift
+
+  architecture-v2:
+    name: Architecture v2
+    runs-on: self-hosted
+    needs: changes
+    if: |
+      github.event_name == 'schedule' ||
+      needs.changes.outputs.architecture == 'true'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages:core
+      - run: pnpm arch:v2:changed
+      - run: pnpm arch:v2:imports:changed
 
   edge-function-lint:
     name: Edge Functions

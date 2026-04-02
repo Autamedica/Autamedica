@@ -1,0 +1,330 @@
+{
+  "version": "2026-04-02",
+  "mode": "initial-parallel-adoption",
+  "notes": [
+    "La v2 se empieza a aplicar sobre superficies con ownership explicito.",
+    "Los archivos fuera de este alcance inicial se reportan como fuera de scope y no bloquean."
+  ],
+  "ignore": [
+    "**/node_modules/**",
+    "**/.turbo/**",
+    "**/.astro/**",
+    "**/.next/**",
+    "**/.wrangler/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/storybook-static/**",
+    "**/playwright-report/**",
+    "**/.archive/**",
+    "**/*.d.ts"
+  ],
+  "domains": [
+    {
+      "id": "clinical-core",
+      "label": "Clinical Core",
+      "patterns": [
+        "apps/web/src/components/doctors/appointments/**",
+        "apps/web/src/components/doctors/calls/**",
+        "apps/web/src/components/doctors/diagnosis/**",
+        "apps/web/src/components/doctors/history/**",
+        "apps/web/src/components/doctors/medical/**",
+        "apps/web/src/components/doctors/patient/**",
+        "apps/web/src/components/doctors/patients/**",
+        "apps/web/src/components/doctors/records/**",
+        "apps/web/src/components/doctors/telemedicine/**",
+        "apps/web/src/components/doctors/vitals/**",
+        "apps/web/src/components/patients/anamnesis/**",
+        "apps/web/src/components/patients/appointments/**",
+        "apps/web/src/components/patients/calls/**",
+        "apps/web/src/components/patients/chat/**",
+        "apps/web/src/components/patients/medical/**",
+        "apps/web/src/components/patients/medical-history/**",
+        "apps/web/src/components/patients/preventive/**",
+        "apps/web/src/components/patients/telemedicine/**",
+        "apps/web/src/lib/calls/**",
+        "apps/web/src/lib/doctors/**",
+        "apps/web/src/lib/patients/**",
+        "apps/web/src/hooks/calls/**",
+        "apps/web/src/hooks/doctors/**",
+        "apps/web/src/hooks/patients/**",
+        "apps/web/src/pages/api/doctors/**",
+        "apps/web/src/pages/api/patients/**",
+        "apps/web/src/pages/doctors/**",
+        "apps/web/src/pages/patients/**",
+        "apps/android/**",
+        "apps/mobile/**",
+        "packages/telemedicine/**",
+        "packages/@autamedica/telemedicine/**",
+        "packages/scheduling/**",
+        "packages/hooks/**",
+        "packages/types/src/doctor/**",
+        "packages/types/src/medical/**",
+        "packages/types/src/patient/**",
+        "packages/types/src/preventive-care/**",
+        "packages/types/src/reproductive-health/**",
+        "packages/types/src/scheduling/**"
+      ]
+    },
+    {
+      "id": "platform-core",
+      "label": "Platform Core",
+      "patterns": [
+        "apps/web/src/components/admin/**",
+        "apps/web/src/components/auth/**",
+        "apps/web/src/components/companies/layout/**",
+        "apps/web/src/components/doctors/layout/**",
+        "apps/web/src/components/doctors/settings/**",
+        "apps/web/src/components/patients/layout/**",
+        "apps/web/src/components/portal/**",
+        "apps/web/src/components/shared/**",
+        "apps/web/src/components/ui/**",
+        "apps/web/src/config/**",
+        "apps/web/src/i18n/**",
+        "apps/web/src/layouts/**",
+        "apps/web/src/lib/auth-flow.ts",
+        "apps/web/src/lib/auth-utils.ts",
+        "apps/web/src/lib/runtime-env.ts",
+        "apps/web/src/pages/admin/**",
+        "apps/web/src/pages/auth/**",
+        "apps/web/src/pages/api/admin/**",
+        "apps/web/src/pages/api/auth/**",
+        "apps/web/src/pages/api/profiles/**",
+        "apps/web/src/pages/api/session-sync.ts",
+        "apps/web/src/pages/platform/**",
+        "apps/web/src/styles/**",
+        "apps/web/src/types/**",
+        "apps/web/src/lib/admin/**",
+        "apps/web/src/lib/auth/**",
+        "packages/auth/**",
+        "packages/session/**",
+        "packages/shared/**",
+        "packages/supabase-client/**",
+        "packages/ui/**",
+        "packages/tailwind-config/**",
+        "packages/types/src/auth/**",
+        "packages/types/src/core/**",
+        "packages/types/src/entities/**",
+        "packages/types/src/ports/**",
+        "packages/types/src/primitives/**",
+        "packages/types/src/supabase/**",
+        "packages/types/src/utils/**",
+        "packages/types/src/validators/**",
+        "packages/typescript-config/**"
+      ]
+    },
+    {
+      "id": "adjacent-products",
+      "label": "Adjacent Products",
+      "patterns": [
+        "apps/web/src/components/companies/marketplace/**",
+        "apps/web/src/components/companies/providers/**",
+        "apps/web/src/components/doctors/marketplace/**",
+        "apps/web/src/components/doctors/payment/**",
+        "apps/web/src/components/doctors/ranking/**",
+        "apps/web/src/components/doctors/subscription/**",
+        "apps/web/src/components/patients/ai/**",
+        "apps/web/src/components/patients/quick-actions/**",
+        "apps/web/src/components/patients/tours/**",
+        "apps/web/src/pages/blog/**",
+        "apps/web/src/pages/companies/**",
+        "apps/web/src/pages/*.astro",
+        "apps/web/src/components/legal/**",
+        "apps/web/src/components/seo/**"
+      ]
+    }
+  ],
+  "crossCuttingSurfaces": [
+    {
+      "id": "control-plane",
+      "label": "Control Plane",
+      "patterns": [
+        "supabase/migrations/**",
+        "supabase/tests/**",
+        "supabase/functions/**",
+        "docs/database/CONTROL_PLANE_CHECKLIST.md",
+        "docs/database/SUPABASE_HARDENING_LESSONS.md",
+        "docs/database/README.md",
+        "scripts/check-policy.mjs",
+        "scripts/check-rls-with-mcp.sh",
+        "scripts/validate-policies.mjs",
+        "scripts/lib/policy-checks.mjs"
+      ]
+    },
+    {
+      "id": "runtime-assurance",
+      "label": "Runtime Assurance",
+      "patterns": [
+        ".github/workflows/**",
+        "config/architecture-v2.manifest.json",
+        "docs/database/BACKUP_RUNBOOK.md",
+        "docs/ARQUITECTURA.md",
+        "docs/database/RUNTIME_ASSURANCE_CHECKLIST.md",
+        "docs/ARQUITECTURA_V2.md",
+        "docs/REFACTOR_PARALLEL_START_PLAN.md",
+        "docs/REFACTOR_WORKSTREAM_BACKLOG.md",
+        "scripts/ci/**",
+        "scripts/db/**",
+        "scripts/lib/architecture-v2.mjs",
+        "apps/web/src/pages/*.ts",
+        "scripts/health-check.mjs",
+        "scripts/security-check.mjs",
+        "scripts/smoke-all.sh"
+      ]
+    },
+    {
+      "id": "integration-layer",
+      "label": "Integration Layer",
+      "patterns": [
+        "apps/signaling-server/**",
+        "apps/clinical-ai-orchestrator/**",
+        "apps/reminder-worker/**",
+        "apps/web/src/pages/api/webhooks/**"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "platform-core-public",
+      "label": "Platform Core Public Contracts",
+      "providerDomain": "platform-core",
+      "patterns": [
+        "apps/web/src/components/ui/**",
+        "apps/web/src/i18n/**",
+        "apps/web/src/lib/auth/**",
+        "apps/web/src/lib/auth-flow.ts",
+        "apps/web/src/lib/auth-utils.ts",
+        "apps/web/src/lib/runtime-env.ts",
+        "packages/auth/**",
+        "packages/shared/**",
+        "packages/ui/**",
+        "packages/session/**",
+        "packages/supabase-client/**"
+      ]
+    },
+    {
+      "id": "clinical-core-public",
+      "label": "Clinical Core Public Contracts",
+      "providerDomain": "clinical-core",
+      "patterns": [
+        "packages/telemedicine/**",
+        "packages/@autamedica/telemedicine/**",
+        "packages/scheduling/**"
+      ]
+    }
+  ],
+  "importPolicies": [
+    {
+      "id": "clinical-core-imports",
+      "fromDomain": "clinical-core",
+      "allowSameDomain": true,
+      "allowContracts": ["platform-core-public", "clinical-core-public"]
+    },
+    {
+      "id": "platform-core-imports",
+      "fromDomain": "platform-core",
+      "allowSameDomain": true,
+      "allowContracts": ["platform-core-public", "clinical-core-public"]
+    },
+    {
+      "id": "adjacent-products-imports",
+      "fromDomain": "adjacent-products",
+      "allowSameDomain": true,
+      "allowContracts": ["platform-core-public", "clinical-core-public"]
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "A",
+      "label": "Clinical Core Refactor",
+      "patterns": [
+        "apps/web/src/components/doctors/appointments/**",
+        "apps/web/src/components/doctors/calls/**",
+        "apps/web/src/components/doctors/diagnosis/**",
+        "apps/web/src/components/doctors/history/**",
+        "apps/web/src/components/doctors/medical/**",
+        "apps/web/src/components/doctors/patient/**",
+        "apps/web/src/components/doctors/patients/**",
+        "apps/web/src/components/doctors/records/**",
+        "apps/web/src/components/doctors/telemedicine/**",
+        "apps/web/src/components/doctors/vitals/**",
+        "apps/web/src/components/patients/anamnesis/**",
+        "apps/web/src/components/patients/appointments/**",
+        "apps/web/src/components/patients/calls/**",
+        "apps/web/src/components/patients/chat/**",
+        "apps/web/src/components/patients/medical/**",
+        "apps/web/src/components/patients/medical-history/**",
+        "apps/web/src/components/patients/preventive/**",
+        "apps/web/src/components/patients/telemedicine/**",
+        "apps/web/src/lib/calls/**",
+        "apps/web/src/lib/doctors/**",
+        "apps/web/src/lib/patients/**",
+        "packages/telemedicine/**",
+        "packages/@autamedica/telemedicine/**",
+        "packages/scheduling/**",
+        "apps/android/**",
+        "apps/mobile/**"
+      ]
+    },
+    {
+      "id": "B",
+      "label": "Platform Core Refactor",
+      "patterns": [
+        "apps/web/src/components/admin/**",
+        "apps/web/src/components/auth/**",
+        "apps/web/src/components/companies/layout/**",
+        "apps/web/src/components/doctors/layout/**",
+        "apps/web/src/components/doctors/settings/**",
+        "apps/web/src/components/patients/layout/**",
+        "apps/web/src/components/portal/**",
+        "apps/web/src/components/shared/**",
+        "apps/web/src/components/ui/**",
+        "apps/web/src/lib/admin/**",
+        "apps/web/src/lib/auth/**",
+        "packages/auth/**",
+        "packages/shared/**",
+        "packages/session/**",
+        "packages/supabase-client/**",
+        "packages/types/src/auth/**",
+        "packages/types/src/core/**",
+        "packages/types/src/ports/**"
+      ]
+    },
+    {
+      "id": "C",
+      "label": "Control Plane",
+      "patterns": [
+        "supabase/migrations/**",
+        "supabase/tests/**",
+        "supabase/functions/**",
+        "docs/database/CONTROL_PLANE_CHECKLIST.md",
+        "docs/database/SUPABASE_HARDENING_LESSONS.md",
+        "docs/database/README.md",
+        "scripts/check-policy.mjs",
+        "scripts/check-rls-with-mcp.sh",
+        "scripts/validate-policies.mjs",
+        "scripts/lib/policy-checks.mjs"
+      ]
+    },
+    {
+      "id": "D",
+      "label": "Runtime Assurance",
+      "patterns": [
+        ".github/workflows/**",
+        "config/architecture-v2.manifest.json",
+        "docs/database/BACKUP_RUNBOOK.md",
+        "docs/ARQUITECTURA.md",
+        "docs/database/RUNTIME_ASSURANCE_CHECKLIST.md",
+        "docs/ARQUITECTURA_V2.md",
+        "docs/REFACTOR_PARALLEL_START_PLAN.md",
+        "docs/REFACTOR_WORKSTREAM_BACKLOG.md",
+        "scripts/ci/**",
+        "scripts/db/**",
+        "scripts/lib/architecture-v2.mjs",
+        "scripts/health-check.mjs",
+        "scripts/security-check.mjs",
+        "scripts/smoke-all.sh"
+      ]
+    }
+  ]
+}

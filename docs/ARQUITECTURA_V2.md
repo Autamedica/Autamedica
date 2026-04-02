@@ -411,6 +411,9 @@ Esta versión ya se empezó a aplicar en:
 - formalización de `Runtime Assurance` con verificación por API
 - runbook de backups lógicos
 - lecciones aprendidas de hardening
+- manifiesto machine-readable en `config/architecture-v2.manifest.json`
+- gate inicial en CI con `scripts/ci/check-architecture-v2.mjs`
+- política inicial de imports entre dominios con `scripts/ci/check-architecture-v2-imports.mjs`
 
 Referencias:
 
@@ -428,6 +431,7 @@ La siguiente ola de aplicación de la v2 debe caer sobre:
 2. mapa de ownership por dominio
 3. checklist obligatorio de `Control Plane` para nuevas migraciones
 4. checklist obligatorio de `Runtime Assurance` para cambios productivos
+5. ampliar el manifiesto para cubrir superficies hoy fuera del alcance inicial
 
 ---
 

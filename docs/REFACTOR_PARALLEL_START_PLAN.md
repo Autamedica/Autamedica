@@ -14,6 +14,12 @@ Este documento cubre los tres pasos previos al refactor:
 2. `Workstreams`
 3. `Primer batch de ejecución`
 
+Enforcement inicial asociado:
+
+- `config/architecture-v2.manifest.json`
+- `scripts/ci/check-architecture-v2.mjs`
+- `scripts/ci/check-architecture-v2-imports.mjs`
+
 La idea no es reorganizar el repo por estética.
 
 La idea es arrancar una refactorización paralela sin colisiones, con límites de
