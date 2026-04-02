@@ -33,7 +33,7 @@ import { extractGeminiStructuredOutput } from './extraction-parser'
 import { extractBodySelectionsFromSections } from './body-selection'
 
 const GEMINI_GENERATE_CONTENT_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
-export const ANAMNESIS_EXTRACTION_PROMPT_VERSION = 'argente_interrogator_v5'
+export const ANAMNESIS_EXTRACTION_PROMPT_VERSION = 'argente_interrogator_v6'
 
 export function buildAnamnesisExtractionSystemPrompt(): string {
   return [
@@ -56,6 +56,7 @@ export function buildAnamnesisExtractionSystemPrompt(): string {
     '4. Si el mismo relato libre aparece repetido en multiples aparatos o sistemas, consolidalo una sola vez y marca duplicacion en dataIntegrity.duplicatedNarratives.',
     '5. Si aparece un hallazgo aislado sin corroboracion o con alta probabilidad de misclick, no lo trates como hecho firme: pasalo a qualityAlerts y dataIntegrity.possibleMiscalicks.',
     '6. Debes completar normalizedOpenFields usando exclusivamente las categorias cerradas del schema. Si no hay evidencia suficiente para codificar un campo, usa null o [] segun corresponda.',
+    '6.bis. reviewOfSystems debe incluir SIEMPRE las cuatro claves: cardiovascular, respiratory, digestive y genitourinary. Si un sistema todavia no fue interrogado o no hay evidencia suficiente, devuelve [] en esa clave. Nunca omitas una clave de reviewOfSystems.',
     '7. chiefComplaintCode debe reflejar la queja cardinal clinica dominante y no el desencadenante contextual.',
     '8. redFlagCodes solo puede incluir banderas rojas explicitamente sustentadas por la evidencia del caso.',
     '9. Si clarificationTurns esta presente, debes tratar sus respuestas como evidencia complementaria y prioritaria para cerrar huecos semiologicos, sin inventar nada fuera de lo respondido.',

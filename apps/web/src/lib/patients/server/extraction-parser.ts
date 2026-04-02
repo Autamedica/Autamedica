@@ -5,8 +5,50 @@ import type { Json } from '@autamedica/types'
 /** Provider label for logging — accepts any string for backwards compat with stored data */
 type ParserProviderLabel = string
 
+const REVIEW_OF_SYSTEMS_KEYS = [
+  'cardiovascular',
+  'respiratory',
+  'digestive',
+  'genitourinary',
+] as const
+
 export function isJsonObject(value: Json): value is Record<string, Json> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function normalizeStructuredExtractionPayload(parsedPayload: unknown): {
+  payload: unknown
+  defaultedPaths: string[]
+} {
+  if (typeof parsedPayload !== 'object' || parsedPayload === null || Array.isArray(parsedPayload)) {
+    return { payload: parsedPayload, defaultedPaths: [] }
+  }
+
+  const record = parsedPayload as Record<string, unknown>
+  const defaultedPaths: string[] = []
+  const normalizedRecord: Record<string, unknown> = { ...record }
+
+  const rawReviewOfSystems = record.reviewOfSystems
+  const normalizedReviewOfSystems =
+    typeof rawReviewOfSystems === 'object' && rawReviewOfSystems !== null && !Array.isArray(rawReviewOfSystems)
+      ? { ...(rawReviewOfSystems as Record<string, unknown>) }
+      : {}
+
+  for (const key of REVIEW_OF_SYSTEMS_KEYS) {
+    if (!(key in normalizedReviewOfSystems)) {
+      normalizedReviewOfSystems[key] = []
+      defaultedPaths.push(`reviewOfSystems.${key}`)
+    }
+  }
+
+  if (defaultedPaths.length > 0 || !('reviewOfSystems' in normalizedRecord)) {
+    normalizedRecord.reviewOfSystems = normalizedReviewOfSystems
+  }
+
+  return {
+    payload: normalizedRecord,
+    defaultedPaths,
+  }
 }
 
 export function parseStructuredExtractionPayload(
@@ -25,7 +67,18 @@ export function parseStructuredExtractionPayload(
     throw new Error('La salida del modelo no fue JSON valido')
   }
 
-  const validation = AnamnesisExtractionResultSchema.safeParse(parsedPayload)
+  const {
+    payload: normalizedPayload,
+    defaultedPaths,
+  } = normalizeStructuredExtractionPayload(parsedPayload)
+
+  if (defaultedPaths.length > 0) {
+    logger.warn(`[extract ${providerName}] Defaulted missing structured fields`, {
+      defaultedPaths,
+    })
+  }
+
+  const validation = AnamnesisExtractionResultSchema.safeParse(normalizedPayload)
   if (!validation.success) {
     const issues = validation.error.issues.slice(0, 5).map((issue) => ({
       path: issue.path.join('.'),

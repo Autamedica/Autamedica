@@ -9,11 +9,18 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface AnamnesisChatContext {
+  guidanceQuestions?: string[];
+  coverageGaps?: string[];
+  coverageSummary?: string;
+}
+
 // Refactorizado para permitir inyección del chat (para testing)
 export async function processAnamnesisChat(
   message: string, 
   history: ChatMessage[], 
   checkpoint: 'partial' | 'final',
+  context: AnamnesisChatContext = {},
   // Opcional: inyección para tests
   chatInstance?: any
 ) {
@@ -27,10 +34,18 @@ export async function processAnamnesisChat(
     },
   });
 
-  const prompt = `Actúa como un médico empático realizando un triage. 
-  Tu objetivo es obtener información vital faltante sobre el estado de salud del paciente.
-  Responde a: "${message}".
-  Si consideras que tienes suficiente información, responde solo con "FINALIZAR_INTERVENCION" seguido de una despedida cordial.
+  const guidanceQuestions = context.guidanceQuestions?.filter(Boolean) ?? [];
+  const coverageGaps = context.coverageGaps?.filter(Boolean) ?? [];
+
+  const prompt = `Actúa como un médico empático realizando un triage breve para completar una anamnesis clínica.
+  Checkpoint actual: ${checkpoint}.
+  Responde al mensaje del paciente: "${message}".
+  ${context.coverageSummary ? `Resumen de cobertura: ${context.coverageSummary}.` : ''}
+  ${coverageGaps.length > 0 ? `Áreas con datos faltantes: ${coverageGaps.join(', ')}.` : ''}
+  ${guidanceQuestions.length > 0 ? `Prioriza cerrar estas preguntas clínicas: ${guidanceQuestions.join(' | ')}.` : ''}
+  Haz solo UNA pregunta concreta por turno.
+  No des diagnósticos, tratamientos ni consejos terapéuticos.
+  Si ya tienes suficiente información para cerrar la intervención, responde solo con "FINALIZAR_INTERVENCION" seguido de una despedida cordial.
   No preguntes más de 3 cosas en total.`;
 
   const result = await chat.sendMessage(prompt);

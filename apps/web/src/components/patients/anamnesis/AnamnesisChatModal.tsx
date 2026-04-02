@@ -2,24 +2,64 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Loader2, Send, Sparkles, X } from 'lucide-react';
+import type { ExtractionGuidance } from '@/lib/patients/services/anamnesis-guidance.service';
 
 interface Message {
   role: 'assistant' | 'user';
   content: string;
 }
 
-interface AnamnesisChatModalProps {
-  onClose: () => void;
-  onComplete: () => void;
-  checkpoint: 'partial' | 'final';
+interface ClarificationTurn {
+  question: string;
+  answer: string;
 }
 
-export function AnamnesisChatModal({ onClose, onComplete, checkpoint }: AnamnesisChatModalProps) {
+interface AnamnesisChatModalProps {
+  onClose: () => void;
+  onComplete: (turns: ClarificationTurn[]) => void;
+  checkpoint: 'partial' | 'final';
+  guidance: ExtractionGuidance;
+}
+
+function buildInitialAssistantMessage(guidance: ExtractionGuidance, checkpoint: 'partial' | 'final'): string {
+  const firstQuestion = guidance.questions[0]?.text;
+  if (firstQuestion) {
+    return checkpoint === 'final'
+      ? `Antes de finalizar quiero confirmar algunos datos. ${firstQuestion}`
+      : `Estoy revisando tu historia clínica y necesito precisar algunos datos. ${firstQuestion}`;
+  }
+
+  if (guidance.gaps.length > 0) {
+    return checkpoint === 'final'
+      ? `Antes de terminar quiero completar la información faltante en ${guidance.gaps.join(', ')}. ¿Qué dato importante sentís que todavía falta contarle a tu médico?`
+      : `Veo que todavía faltan datos en ${guidance.gaps.join(', ')}. Contame qué información adicional creés que debería quedar registrada ahora.`;
+  }
+
+  return 'Hola, soy tu asistente de salud. Estoy revisando tu historia clínica. ¿Hay algún detalle adicional que quieras comentar sobre tus síntomas o antecedentes?';
+}
+
+function getLastAssistantPrompt(messages: Message[]): string {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i].role === 'assistant') {
+      return messages[i].content.trim();
+    }
+  }
+
+  return 'Aclaración clínica';
+}
+
+export function AnamnesisChatModal({
+  onClose,
+  onComplete,
+  checkpoint,
+  guidance,
+}: AnamnesisChatModalProps) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hola, soy tu asistente de salud. Estoy revisando tu historia clínica. ¿Hay algún detalle adicional que quieras comentar sobre tus síntomas o antecedentes?' }
+    { role: 'assistant', content: buildInitialAssistantMessage(guidance, checkpoint) }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [turns, setTurns] = useState<ClarificationTurn[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,9 +70,17 @@ export function AnamnesisChatModal({ onClose, onComplete, checkpoint }: Anamnesi
 
   const handleSend = useCallback(async () => {
     if (!input.trim()) return;
-    
-    const userMessage: Message = { role: 'user', content: input.trim() };
+
+    const patientAnswer = input.trim();
+    const userMessage: Message = { role: 'user', content: patientAnswer };
+    const answeredQuestion = getLastAssistantPrompt(messages);
+    const nextTurns = [
+      ...turns,
+      { question: answeredQuestion, answer: patientAnswer },
+    ];
+
     setMessages(prev => [...prev, userMessage]);
+    setTurns(nextTurns);
     setInput('');
     setIsTyping(true);
 
@@ -43,7 +91,10 @@ export function AnamnesisChatModal({ onClose, onComplete, checkpoint }: Anamnesi
         body: JSON.stringify({ 
           message: userMessage.content,
           history: messages,
-          checkpoint 
+          checkpoint,
+          guidanceQuestions: guidance.questions.map((question) => question.text),
+          coverageGaps: guidance.gaps,
+          coverageSummary: guidance.coverageSummary,
         }),
       });
 
@@ -52,15 +103,14 @@ export function AnamnesisChatModal({ onClose, onComplete, checkpoint }: Anamnesi
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
       
       if (data.isFinished) {
-        // Enviar respuesta estructurada de vuelta al padre
-        onComplete(); 
+        onComplete(nextTurns);
       }
     } catch (error) {
       console.error('Chat error:', error);
     } finally {
       setIsTyping(false);
     }
-  }, [input, messages, checkpoint, onComplete]);
+  }, [input, messages, turns, checkpoint, guidance, onComplete]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm p-4">

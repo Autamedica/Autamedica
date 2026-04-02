@@ -8,7 +8,7 @@ vi.mock('@google/generative-ai', () => ({
         startChat: () => ({
           sendMessage: async (prompt: string) => ({
             response: {
-              text: () => prompt.includes('FINALIZAR_INTERVENCION')
+              text: () => prompt.includes('Responde al mensaje del paciente: "FINALIZAR_INTERVENCION"')
                 ? 'FINALIZAR_INTERVENCION Gracias, hemos terminado.'
                 : '¿Cómo te sientes hoy?'
             }

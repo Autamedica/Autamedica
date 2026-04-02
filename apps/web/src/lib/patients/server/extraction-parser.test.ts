@@ -120,6 +120,21 @@ describe('parseStructuredExtractionPayload', () => {
     expect(result.nextQuestions[0].priority).toBe('high')
     expect(result.argenteCoverage.adequatelyCovered).toContain('motivo_consulta')
   })
+
+  it('fills missing reviewOfSystems branches with empty arrays', () => {
+    const payload = JSON.stringify({
+      ...VALID_RESULT,
+      reviewOfSystems: {
+        cardiovascular: [],
+        respiratory: [],
+      },
+    })
+
+    const result = parseStructuredExtractionPayload(payload, 'gemini')
+
+    expect(result.reviewOfSystems.digestive).toEqual([])
+    expect(result.reviewOfSystems.genitourinary).toEqual([])
+  })
 })
 
 // ─── extractGeminiStructuredOutput ───────────────────────────────────

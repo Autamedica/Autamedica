@@ -66,6 +66,7 @@ const eslintConfig = [
     // Test results
     '**/test-results/**',
     '**/playwright-report/**',
+    '**/tests/e2e/generated-docs/**',
 
     // Visual snapshots
     '**/visual-snapshots/**',

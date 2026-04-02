@@ -329,10 +329,12 @@ export default function AnamnesisPage() {
     setShowAnalyzing(false);
     setAnalysisResult(null);
 
-    // Use guidance (hook state) as source of truth — ClarificationStep reads from it
-    const hasQuestions = guidance?.questions && guidance.questions.length > 0;
+    // Use guidance (hook state) as source of truth.
+    const hasClarificationContext = Boolean(
+      guidance && (guidance.questions.length > 0 || guidance.gaps.length > 0),
+    );
 
-    if (hasQuestions) {
+    if (hasClarificationContext) {
       setShowClarification(true);
       return;
     }
@@ -884,8 +886,10 @@ export default function AnamnesisPage() {
       {showClarification && guidance && (
         <AnamnesisChatModal
           checkpoint={pendingCheckpoint || 'partial'}
+          guidance={guidance}
           onClose={() => setShowClarification(false)}
-          onComplete={() => {
+          onComplete={(turns) => {
+            turns.forEach((turn) => addClarification(turn.question, turn.answer));
             setShowClarification(false);
             if (pendingCheckpoint === 'final') {
               void updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
