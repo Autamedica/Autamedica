@@ -37,6 +37,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { SidebarNavigation } from './SidebarNavigation'
 
+const DoctorCommunityPage = lazy(() => import('@/components/doctors/DoctorCommunityPage').then(m => ({ default: m.DoctorCommunityPage })))
 const AppointmentsPanel = lazy(() => import('@/components/doctors/appointments/AppointmentsPanel').then(m => ({ default: m.AppointmentsPanel })))
 const DiagnosisPanel = lazy(() => import('@/components/doctors/diagnosis/DiagnosisPanel').then(m => ({ default: m.DiagnosisPanel })))
 const AIHistoryTab = lazy(() => import('@/components/doctors/medical/AIHistoryTab').then(m => ({ default: m.AIHistoryTab })))
@@ -73,6 +74,7 @@ type PortalContextValue = {
   userName: string
   isFocusMode: boolean
   setFocusMode: (focus: boolean) => void
+  setActiveSection: (section: string | null) => void
 }
 
 const PortalLayoutContext = createContext<PortalContextValue | null>(null)
@@ -195,6 +197,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
       { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
       { id: 'diagnosis', icon: Brain, label: 'Asistente Clínico' },
       { id: 'ranking', icon: Star, label: 'Ranking' },
+      { id: 'community', icon: MessageCircle, label: 'Comunidad' },
       { id: 'marketplace', icon: MapPin, label: 'Cobertura' },
       { id: 'settings', icon: Settings, label: 'Configuracion' },
     ],
@@ -225,6 +228,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     userName,
     isFocusMode,
     setFocusMode: setIsFocusMode,
+    setActiveSection,
   }
 
   // Group indices for sidebar visual separators
@@ -537,6 +541,11 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 {activeSection === 'ranking' && (
                   <Suspense fallback={<PanelLoader />}>
                     <MedicalRankingPanel />
+                  </Suspense>
+                )}
+                {activeSection === 'community' && (
+                  <Suspense fallback={<PanelLoader />}>
+                    <DoctorCommunityPage />
                   </Suspense>
                 )}
 

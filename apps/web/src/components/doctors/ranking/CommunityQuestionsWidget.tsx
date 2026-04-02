@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { MessageCircle, ChevronRight, Award, Clock } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
+import { useDoctorsPortal } from '../layout/DoctorsPortalShell'
 
 interface CommunityQuestion {
   id: string
@@ -42,11 +43,11 @@ export function CommunityQuestionsWidget() {
   const [questions, setQuestions] = useState<CommunityQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const { setActiveSection } = useDoctorsPortal()
 
   const fetchQuestions = useCallback(async () => {
     try {
       const result = await fetchApi<PostsResponse>('/api/doctors/community/posts?limit=10')
-      // Filtrar posts con pocas respuestas — los que mas necesitan atencion medica
       const needsAttention = (result.posts ?? [])
         .filter((p) => p.comment_count < 3)
         .slice(0, 5)
@@ -80,7 +81,6 @@ export function CommunityQuestionsWidget() {
 
   return (
     <div className="bg-white border border-am-surface-200 rounded-xl shadow-am-sm overflow-hidden">
-      {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-am-surface-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -99,7 +99,6 @@ export function CommunityQuestionsWidget() {
         </div>
       </div>
 
-      {/* Questions list */}
       {questions.length === 0 ? (
         <div className="px-4 py-8 text-center">
           <MessageCircle className="w-7 h-7 text-am-surface-300 mx-auto mb-2" />
@@ -108,48 +107,46 @@ export function CommunityQuestionsWidget() {
       ) : (
         <div className="divide-y divide-am-surface-100">
           {questions.map((q) => (
-            <div key={q.id} className="px-4 py-3 hover:bg-am-surface-50 transition-colors">
+            <button
+              key={q.id}
+              type="button"
+              onClick={() => setActiveSection('community')}
+              className="w-full px-4 py-3 text-left hover:bg-am-surface-50 transition-colors"
+            >
               <p className="text-sm font-medium text-am-surface-900 leading-snug">
                 {truncate(q.title ?? q.content, 70)}
               </p>
               <div className="flex items-center justify-between mt-1.5">
                 <div className="flex items-center gap-2 text-xs text-am-surface-400">
-                  <span>{q.author_display_name ?? 'Anonimo'}</span>
-                  <span className="text-am-surface-300">·</span>
+                  <span className={q.author_display_name ? 'font-medium text-am-surface-600' : 'italic'}>
+                    {q.author_display_name ?? 'Anónimo'}
+                  </span>
+                  <span className="text-am-surface-300">•</span>
                   <span className="flex items-center gap-0.5">
                     <Clock className="w-3 h-3" />
                     {timeAgo(q.created_at)}
                   </span>
-                  <span className="text-am-surface-300">·</span>
+                  <span className="text-am-surface-300">•</span>
                   <span>
-                    {q.comment_count === 0
-                      ? '0 respuestas'
-                      : `${q.comment_count} respuesta${q.comment_count !== 1 ? 's' : ''}`}
+                    {q.comment_count === 0 ? 'Sin respuestas' : `${q.comment_count} resp.`}
                   </span>
                 </div>
-                <a
-                  href={`/patients/community?post=${q.id}`}
-                  className="inline-flex items-center gap-0.5 text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline"
-                >
-                  Responder
-                  <ChevronRight className="w-3 h-3" />
-                </a>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
 
-      {/* Footer */}
       {questions.length > 0 && (
         <div className="px-4 py-2.5 border-t border-am-surface-100 text-center">
-          <a
-            href="/patients/community"
+          <button
+            type="button"
+            onClick={() => setActiveSection('community')}
             className="inline-flex items-center gap-1 text-xs font-medium text-am-doctor-600 hover:text-am-doctor-700 hover:underline"
           >
             Ver todas las preguntas
             <ChevronRight className="w-3.5 h-3.5" />
-          </a>
+          </button>
         </div>
       )}
     </div>
