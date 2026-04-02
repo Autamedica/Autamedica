@@ -43,7 +43,7 @@ export function CommunityQuestionsWidget() {
   const [questions, setQuestions] = useState<CommunityQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const { setActiveSection } = useDoctorsPortal()
+  const { setActiveSection, setActivePostId } = useDoctorsPortal()
 
   const fetchQuestions = useCallback(async () => {
     try {
@@ -110,7 +110,7 @@ export function CommunityQuestionsWidget() {
             <button
               key={q.id}
               type="button"
-              onClick={() => setActiveSection('community')}
+              onClick={() => { setActivePostId(q.id); setActiveSection('community'); }}
               className="w-full px-4 py-3 text-left hover:bg-am-surface-50 transition-colors"
             >
               <p className="text-sm font-medium text-am-surface-900 leading-snug">

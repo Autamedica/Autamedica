@@ -26,6 +26,7 @@ import {
     LogOut,
     MapPin,
     Menu,
+    MessageCircle,
     Pill,
     Settings,
     Star,
@@ -75,90 +76,30 @@ type PortalContextValue = {
   isFocusMode: boolean
   setFocusMode: (focus: boolean) => void
   setActiveSection: (section: string | null) => void
-}
-
-const PortalLayoutContext = createContext<PortalContextValue | null>(null)
-
-function PanelLoader() {
-  return (
-    <div role="status" aria-live="polite" className="flex h-full items-center justify-center rounded-2xl border border-am-surface-200 bg-white p-8 text-am-surface-500 shadow-am-sm">
-      <div className="flex items-center gap-3">
-        <svg className="animate-spin h-5 w-5 text-am-doctor-500" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-        Cargando...
-      </div>
-    </div>
-  )
-}
-
-type NameCandidate = {
-  full_name?: string | null
-  first_name?: string | null
-  last_name?: string | null
-  firstName?: string | null
-  lastName?: string | null
-}
-
-export function useDoctorsPortal(): PortalContextValue {
-  const value = useContext(PortalLayoutContext)
-  if (!value) {
-    throw new Error('useDoctorsPortal must be used within DoctorsPortalShell')
-  }
-  return value
-}
-
-function getInitials(name: string): string {
-  return (
-    name
-      .split(' ')
-      .filter(Boolean)
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || 'DR'
-  )
-}
-
-function resolveDoctorDisplayName(...candidates: Array<NameCandidate | null | undefined>): string {
-  for (const candidate of candidates) {
-    if (!candidate) {
-      continue
-    }
-
-    const fullName = candidate.full_name?.trim()
-      || [candidate.first_name, candidate.last_name].filter(Boolean).join(' ').trim()
-      || [candidate.firstName, candidate.lastName].filter(Boolean).join(' ').trim()
-
-    if (fullName) {
-      return fullName
-    }
-  }
-
-  return 'Cuenta médica'
+  activePostId: string | null
+  setActivePostId: (postId: string | null) => void
 }
 
 export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabId>('video-call')
   const [isFocusMode, setIsFocusMode] = useState(false)
+  const [activeSection, setActiveSection] = useState<string | null>(null)
+  const [activePostId, setActivePostId] = useState<string | null>(null)
 
   const currentTime = useClock()
   const {
     isSidebarOpen,
     isSidebarCollapsed,
-    activeSection,
     setIsSidebarOpen,
     setIsSidebarCollapsed,
-    setActiveSection,
     handleSidebarItemClick,
   } = useSidebar(isFocusMode, setIsFocusMode)
 
   const { user } = useAuthenticatedUser()
   const { doctor } = useCurrentDoctor(user?.id)
   const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
-
-  // Hook para obtener la sesión activa con el paciente
   const { session, startSession } = useActiveSession()
 
-  // Real userName from authenticated user or doctor profile
   const userName = resolveDoctorDisplayName(doctor?.profile, user?.profile)
   const doctorSpecialty = doctor?.specialty || 'Especialidad pendiente'
   const doctorLicense = doctor?.license_number || 'Registro pendiente'
@@ -168,6 +109,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const historyCount = stats?.historyCount ?? undefined
 
   const [signingOut, setSigningOut] = useState(false)
+  
   const handleSignOut = useCallback(async () => {
     setSigningOut(true)
     try {
@@ -229,22 +171,33 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     isFocusMode,
     setFocusMode: setIsFocusMode,
     setActiveSection,
+    activePostId,
+    setActivePostId,
   }
 
-  // Group indices for sidebar visual separators
-  const clinicalEnd = 3  // After: Pacientes, Citas, Historiales, Signos Vitales
-  const toolsEnd = 4     // After: Asistente Clínico
+  // ... (rest of the component structure)
 
-  const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }, index) => {
-    const isActive = activeSection === id
-    const groupLabel = index === 0 ? 'Clínica' : index === clinicalEnd + 1 ? 'Herramientas' : index === toolsEnd + 1 ? 'Plataforma' : null
-    return (
-      <div key={id}>
-        {groupLabel && (
-          <p className={`px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-500 ${index > 0 ? 'mt-5 mb-2' : 'mb-2'}`}>
-            {groupLabel}
-          </p>
-        )}
+
+// ... inside shell:
+  const [activePostId, setActivePostId] = useState<string | null>(null)
+
+  const portalContext: PortalContextValue = {
+    activeTab,
+    setActiveTab,
+    userName,
+    isFocusMode,
+    setFocusMode: setIsFocusMode,
+    setActiveSection,
+    activePostId,
+    setActivePostId,
+  }
+
+// ...
+                {activeSection === 'community' && (
+                  <Suspense fallback={<PanelLoader />}>
+                    <DoctorCommunityPage initialPostId={activePostId} />
+                  </Suspense>
+                )}
         <button
           type="button"
           className={`au-interactive au-focus-ring relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-am-fast ease-am-ease ${
@@ -545,7 +498,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 )}
                 {activeSection === 'community' && (
                   <Suspense fallback={<PanelLoader />}>
-                    <DoctorCommunityPage />
+                    <DoctorCommunityPage initialPostId={activePostId} />
                   </Suspense>
                 )}
 
