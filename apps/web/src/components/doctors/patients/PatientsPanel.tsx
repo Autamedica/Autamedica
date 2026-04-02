@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useDoctorPatients } from '@/hooks/doctors/useRealPatients'
+import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { Calendar, Clock, Video, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
@@ -28,15 +28,15 @@ export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const { user } = useAuthenticatedUser()
-  const { patients, loading, error, refetch } = useDoctorPatients(user?.id)
+  const { patients, loading, error, refetch } = useRealPatients()
   
   const { appointments } = useDoctorAppointments(user?.doctorProfileId)
 
-  const startConsultation = async (patientId: string, appointment: { id: string; start_time: string; type: string | null }) => {
+  const startConsultation = async (patientId: string, appointmentId?: string) => {
     try {
       const call = await startCallBrowserService.startCall({
         patientId,
-        appointmentId: appointment.id,
+        appointmentId,
       });
 
       refetch();
@@ -272,17 +272,15 @@ export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
 
                   {/* Actions */}
                   <div className="flex border-t border-muted/50">
-                    {/* Add Start Consultation button if appointment is today */}
-                    {nextAppt && (
+                    {/* Start Consultation button - always available */}
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); startConsultation(patient.id, nextAppt) }}
+                        onClick={(e) => { e.stopPropagation(); startConsultation(patient.id, nextAppt?.id) }}
                         className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors"
                       >
                         <Video className="h-3.5 w-3.5" />
                         Iniciar
                       </button>
-                    )}
                     <div className="w-px bg-muted/50" />
                     <button
                       type="button"
