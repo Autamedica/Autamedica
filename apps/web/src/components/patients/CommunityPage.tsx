@@ -56,13 +56,15 @@ function PostCard({
     >
       <div className="p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-600">
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+            post.is_anonymous ? 'bg-stone-100 text-stone-500' : 'bg-sky-50 text-sky-600'
+          }`}>
             {post.is_anonymous ? '?' : (post.author_display_name ?? 'P').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-stone-900 truncate">
-                {post.is_anonymous ? 'Anonimo' : post.author_display_name ?? 'Paciente'}
+              <span className={`text-sm truncate ${post.is_anonymous ? 'font-medium text-stone-500 italic' : 'font-semibold text-stone-900'}`}>
+                {post.is_anonymous ? 'Anónimo' : post.author_display_name ?? 'Paciente'}
               </span>
               <span className="text-xs text-stone-300">{timeAgo(post.created_at)}</span>
             </div>
@@ -89,7 +91,7 @@ function PostCard({
       </div>
 
       {/* Actions bar */}
-      <div className="flex items-center gap-5 border-t border-stone-100/70 px-5 py-2.5 text-xs text-stone-400">
+      <div className="flex items-center gap-5 border-t border-stone-100/70 px-5 py-2.5 text-xs text-stone-500">
         <button
           type="button"
           onClick={handleReact}
@@ -186,12 +188,14 @@ function PostDetailView({
         <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]">
           <div className="p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-600">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                post.is_anonymous ? 'bg-stone-100 text-stone-500' : 'bg-sky-50 text-sky-600'
+              }`}>
                 {post.is_anonymous ? '?' : (post.author_display_name ?? 'P').charAt(0).toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-semibold text-stone-900">
-                  {post.is_anonymous ? 'Anonimo' : post.author_display_name ?? 'Paciente'}
+                <p className={`text-sm ${post.is_anonymous ? 'font-medium text-stone-500 italic' : 'font-semibold text-stone-900'}`}>
+                  {post.is_anonymous ? 'Anónimo' : post.author_display_name ?? 'Paciente'}
                 </p>
                 <p className="text-xs text-stone-400">{timeAgo(post.created_at)}</p>
               </div>
@@ -215,7 +219,7 @@ function PostDetailView({
           </div>
 
           {/* Reactions bar */}
-          <div className="flex items-center gap-5 border-t border-stone-100/70 px-6 py-3 text-xs text-stone-400">
+          <div className="flex items-center gap-5 border-t border-stone-100/70 px-6 py-3 text-xs text-stone-500">
             <button
               type="button"
               onClick={handleReact}
@@ -267,8 +271,8 @@ function PostDetailView({
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-stone-900 truncate">
-                            {comment.is_anonymous ? 'Anonimo' : comment.author_display_name ?? 'Paciente'}
+                          <span className={`text-sm truncate ${comment.is_anonymous ? 'font-medium text-stone-500 italic' : 'font-semibold text-stone-900'}`}>
+                            {comment.is_anonymous ? 'Anónimo' : comment.author_display_name ?? 'Paciente'}
                           </span>
                           {comment.author_role === 'doctor' && (
                             <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700">
@@ -483,7 +487,7 @@ export default function CommunityPage() {
                   onClick={() => setActiveGroupId(group.id)}
                   className="shrink-0 w-56 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md active:scale-[0.98]"
                 >
-                  <p className="text-sm font-bold text-stone-900 truncate">{group.name}</p>
+                  <p className="text-sm font-bold text-stone-900 line-clamp-2 h-10">{group.name}</p>
                   <div className="mt-2.5 flex items-center gap-2.5 text-xs text-stone-400">
                     <Users className="h-3 w-3" /> {group.member_count}
                     <MessageCircle className="h-3 w-3 ml-1" /> {group.post_count}

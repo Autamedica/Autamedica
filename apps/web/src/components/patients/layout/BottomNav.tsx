@@ -28,7 +28,7 @@ export default function BottomNav({ activeTab = 'inicio' }: BottomNavProps) {
               <a
                 key={key}
                 href={href}
-                className="group -mt-5 flex flex-col items-center gap-0.5"
+                className="group -mt-5 flex flex-col items-center gap-0.5 pb-2"
               >
                 <div
                   className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 shadow-lg transition-transform active:scale-95"
