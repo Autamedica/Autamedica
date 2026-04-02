@@ -150,15 +150,16 @@ function resolveDoctorDisplayName(...candidates: Array<NameCandidate | null | un
 export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.Element {
   const [activeTab, setActiveTab] = useState<TabId>('video-call')
   const [isFocusMode, setIsFocusMode] = useState(false)
-  const [activeSection, setActiveSection] = useState<string | null>(null)
   const [activePostId, setActivePostId] = useState<string | null>(null)
 
   const currentTime = useClock()
   const {
     isSidebarOpen,
     isSidebarCollapsed,
+    activeSection,
     setIsSidebarOpen,
     setIsSidebarCollapsed,
+    setActiveSection,
     handleSidebarItemClick,
   } = useSidebar(isFocusMode, setIsFocusMode)
 
