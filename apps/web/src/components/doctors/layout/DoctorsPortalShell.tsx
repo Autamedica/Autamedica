@@ -285,13 +285,13 @@ export function DoctorsPortalShell({
 
   if (enableWorkspaceUrlState && !workspaceUrlStateReady) {
     return (
-      <PortalLayoutContext.Provider value={portalContext}>
+      <DoctorsPortalContext.Provider value={portalContext}>
         <div className="flex min-h-screen items-center justify-center bg-am-surface-50 p-6">
           <div className="w-full max-w-md">
             <PanelLoader />
           </div>
         </div>
-      </PortalLayoutContext.Provider>
+      </DoctorsPortalContext.Provider>
     )
   }
 
