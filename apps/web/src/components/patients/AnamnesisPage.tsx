@@ -109,6 +109,28 @@ export default function AnamnesisPage() {
   const initializedRef = useRef(false);
   const authRedirectStartedRef = useRef(false);
 
+  const buildClarificationTurnsFromTranscript = useCallback((transcript: Array<{ role: 'user' | 'assistant'; text: string }>) => {
+    const turns: Array<{ question: string; answer: string }> = [];
+    let lastAssistantQuestion: string | null = null;
+
+    for (const entry of transcript) {
+      if (entry.role === 'assistant') {
+        lastAssistantQuestion = entry.text.trim() || lastAssistantQuestion;
+        continue;
+      }
+
+      const answer = entry.text.trim();
+      if (!answer) continue;
+
+      turns.push({
+        question: lastAssistantQuestion ?? 'Aclaración por voz',
+        answer,
+      });
+    }
+
+    return turns;
+  }, []);
+
   const redirectToPatientLogin = useCallback(() => {
     if (typeof window === 'undefined' || authRedirectStartedRef.current) {
       return;
@@ -335,6 +357,11 @@ export default function AnamnesisPage() {
     );
 
     if (hasClarificationContext) {
+      if (pendingCheckpoint === 'partial') {
+        setShowVoiceChat(true);
+        return;
+      }
+
       setShowClarification(true);
       return;
     }
@@ -343,7 +370,7 @@ export default function AnamnesisPage() {
     dismissGuidance();
     // Advance to next step
     setCurrentStepIndex((prev) => prev + 1);
-  }, [guidance, dismissGuidance]);
+  }, [guidance, dismissGuidance, pendingCheckpoint]);
 
   const handlePrev = useCallback(async () => {
     if (!isFirstStep) {
@@ -431,6 +458,24 @@ export default function AnamnesisPage() {
           <div className="mx-auto max-w-lg pt-8">
             <VoiceAnamnesis
               onDataExtracted={async (data) => {
+                if (pendingCheckpoint && guidance) {
+                  const turns = buildClarificationTurnsFromTranscript(data.transcript);
+                  turns.forEach((turn) => addClarification(turn.question, turn.answer));
+
+                  setShowVoiceChat(false);
+                  setPendingCheckpoint(null);
+                  dismissGuidance();
+
+                  if (pendingCheckpoint === 'final') {
+                    await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+                    await handleGeneratePdf();
+                    return;
+                  }
+
+                  setCurrentStepIndex((prev) => prev + 1);
+                  return;
+                }
+
                 // Persist extracted fields to anamnesis sections
                 if (data.extractedFields) {
                   const fieldMap: Record<string, { section: string; field: string }> = {
@@ -469,7 +514,15 @@ export default function AnamnesisPage() {
                 setShowVoiceChat(false);
                 window.location.reload();
               }}
-              onSwitchToText={() => setShowVoiceChat(false)}
+              onSwitchToText={() => {
+                setShowVoiceChat(false);
+                if (pendingCheckpoint && guidance) {
+                  setShowClarification(true);
+                }
+              }}
+              guidance={guidance}
+              checkpoint={pendingCheckpoint ?? undefined}
+              forceRelay={Boolean(pendingCheckpoint)}
             />
           </div>
         </div>
@@ -879,6 +932,7 @@ export default function AnamnesisPage() {
           analysisResult={analysisResult}
           onContinue={handleAnalysisContinue}
           isFinal={pendingCheckpoint === 'final'}
+          preferVoice={pendingCheckpoint === 'partial'}
         />
       )}
 

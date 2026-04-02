@@ -5,6 +5,7 @@ import { Mic, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import { sanitizeForTTS } from '@/lib/patients/utils/tts-sanitizer'
 import { logger } from '@autamedica/shared'
+import type { ExtractionGuidance } from '@/lib/patients/services/anamnesis-guidance.service'
 
 interface VoiceAnamnesisProps {
   onDataExtracted: (data: {
@@ -15,6 +16,9 @@ interface VoiceAnamnesisProps {
   }) => void
   onSwitchToText: () => void
   existingSections?: string[]
+  guidance?: ExtractionGuidance | null
+  checkpoint?: 'partial' | 'final'
+  forceRelay?: boolean
 }
 
 interface TranscriptEntry {
@@ -68,7 +72,13 @@ function base64ToFloat32(b64: string): Float32Array {
   return f32
 }
 
-export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnesisProps) {
+export function VoiceAnamnesis({
+  onDataExtracted,
+  onSwitchToText,
+  guidance,
+  checkpoint,
+  forceRelay = false,
+}: VoiceAnamnesisProps) {
   const [state, setState] = useState<VoiceState>('idle')
   const [mode, setMode] = useState<ConnectionMode | null>(null)
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
@@ -77,8 +87,16 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
   const [error, setError] = useState<string | null>(null)
   const [started, setStarted] = useState(false)
   const [modelTurns, setModelTurns] = useState(0)
+  const [relayOpeningTurnCount, setRelayOpeningTurnCount] = useState(0)
   const [extractedFields, setExtractedFields] = useState<Record<string, string> | null>(null)
   const [summaryText, setSummaryText] = useState('')
+
+  const guidanceQuestions = guidance?.questions.map((question) => question.text) ?? []
+  const coverageGaps = guidance?.gaps ?? []
+  const coverageSummary = guidance?.coverageSummary
+  const isGuidedCheckpoint = Boolean(
+    checkpoint && (guidanceQuestions.length > 0 || coverageGaps.length > 0),
+  )
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
@@ -124,6 +142,11 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
   const start = useCallback(async () => {
     setState('connecting')
     setError(null)
+
+    if (forceRelay || isGuidedCheckpoint) {
+      await startRelayMode()
+      return
+    }
 
     // Step 1: Request mic BEFORE connecting WebSocket
     let stream: MediaStream
@@ -212,7 +235,7 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
       wsRef.current = null
       await startRelayMode()
     }
-  }, [addEntry, playAudio])
+  }, [addEntry, forceRelay, isGuidedCheckpoint, playAudio])
 
   // ══════════════════════════════════════════════
   // RELAY MODE (fallback)
@@ -222,12 +245,24 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
     try {
       const result = await fetchApi<RelayResponse>(
         '/api/patients/anamnesis/live-relay',
-        { method: 'POST', body: { text: '', patientContext: true } },
+        {
+          method: 'POST',
+          body: {
+            text: '',
+            patientContext: true,
+            checkpoint,
+            guidanceQuestions,
+            coverageGaps,
+            coverageSummary,
+          },
+        },
       )
       if (!result?.text) throw new Error('No response')
       setMode('relay')
       setStarted(true)
-      setModelTurns(1)
+      setRelayOpeningTurnCount(1)
+      setModelTurns(result.modelTurnCount ?? 1)
+      setRelayHistory(result.history ?? [])
       addEntry('assistant', result.text)
       speakTTS(result.text, true)
     } catch (err) {
@@ -235,7 +270,7 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
       setError('No se pudo conectar con el asistente')
       setState('idle')
     }
-  }, [addEntry])
+  }, [addEntry, checkpoint, coverageGaps, coverageSummary, guidanceQuestions])
 
   // ── TTS (relay mode only) ──
   const speakTTS = useCallback((text: string, autoListen = true) => {
@@ -300,7 +335,18 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
     try {
       const result = await fetchApi<RelayResponse>(
         '/api/patients/anamnesis/live-relay',
-        { method: 'POST', body: { text: text.trim(), history: relayHistory } },
+        {
+          method: 'POST',
+          body: {
+            text: text.trim(),
+            history: relayHistory,
+            checkpoint,
+            openingPromptSent: relayOpeningTurnCount > 0,
+            guidanceQuestions,
+            coverageGaps,
+            coverageSummary,
+          },
+        },
       )
       if (!result?.text) throw new Error('No response')
 
@@ -320,7 +366,7 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
       setError('No se pudo enviar. Intentá de nuevo.')
       setState('idle')
     }
-  }, [relayHistory, speakTTS, addEntry])
+  }, [addEntry, checkpoint, coverageGaps, coverageSummary, guidanceQuestions, relayHistory, relayOpeningTurnCount, speakTTS])
 
   // ── Finish ──
   const finish = useCallback(() => {
@@ -337,7 +383,8 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
   const earlyExit = useCallback(() => { cleanup(); onSwitchToText() }, [cleanup, onSwitchToText])
 
   const isLive = mode === 'live'
-  const progress = Math.min(Math.round((modelTurns / TOTAL_BLOCKS) * 100), 100)
+  const expectedModelTurns = isGuidedCheckpoint ? 4 : TOTAL_BLOCKS
+  const progress = Math.min(Math.round((modelTurns / expectedModelTurns) * 100), 100)
 
   // ══════════ COMPLETED ══════════
   if (state === 'completed') {
@@ -369,7 +416,11 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
             <Mic className="h-8 w-8 text-sky-600" />
           </div>
           <h3 className="text-lg font-bold text-stone-900 mb-2">Anamnesis por voz</h3>
-          <p className="text-sm text-stone-500 mb-5">Hablá naturalmente. El asistente te hace ~8 preguntas y cierra solo.</p>
+          <p className="text-sm text-stone-500 mb-5">
+            {isGuidedCheckpoint
+              ? 'Gemini te va a hacer preguntas puntuales sobre los datos que faltan y va a registrar tus respuestas por voz.'
+              : 'Hablá naturalmente. El asistente te hace ~8 preguntas y cierra solo.'}
+          </p>
           <button onClick={start} disabled={state === 'connecting'} className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50">
             {state === 'connecting' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
             Iniciar
@@ -425,7 +476,7 @@ export function VoiceAnamnesis({ onDataExtracted, onSwitchToText }: VoiceAnamnes
       {/* Progress */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs text-stone-400">
-          <span>Pregunta {modelTurns} de ~{TOTAL_BLOCKS}</span>
+          <span>Pregunta {Math.min(modelTurns, expectedModelTurns)} de ~{expectedModelTurns}</span>
           <span>{progress}%</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-stone-100">

@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ensureEnv } from '@autamedica/shared';
+import { getQuestionsModelName } from '@/lib/patients/server/ai-provider';
 
 const genAI = new GoogleGenerativeAI(ensureEnv('GEMINI_API_KEY'));
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const model = genAI.getGenerativeModel({ model: getQuestionsModelName() });
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -15,6 +16,30 @@ export interface AnamnesisChatContext {
   coverageSummary?: string;
 }
 
+interface ChatSessionLike {
+  sendMessage: (prompt: string) => Promise<{
+    response: {
+      text: () => string;
+    };
+  }>;
+}
+
+function normalizeChatHistory(history: ChatMessage[]) {
+  const trimmed = history
+    .filter((message) => message.content.trim().length > 0)
+    .map((message) => ({
+      role: message.role === 'user' ? 'user' : 'model',
+      parts: [{ text: message.content }],
+    }))
+
+  const firstUserIndex = trimmed.findIndex((message) => message.role === 'user')
+  if (firstUserIndex === -1) {
+    return []
+  }
+
+  return trimmed.slice(firstUserIndex)
+}
+
 // Refactorizado para permitir inyección del chat (para testing)
 export async function processAnamnesisChat(
   message: string, 
@@ -22,13 +47,10 @@ export async function processAnamnesisChat(
   checkpoint: 'partial' | 'final',
   context: AnamnesisChatContext = {},
   // Opcional: inyección para tests
-  chatInstance?: any
+  chatInstance?: ChatSessionLike
 ) {
   const chat = chatInstance || model.startChat({
-    history: history.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    })),
+    history: normalizeChatHistory(history),
     generationConfig: {
       temperature: 0.7,
     },

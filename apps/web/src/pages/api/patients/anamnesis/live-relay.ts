@@ -4,7 +4,16 @@
  * Each request includes full conversation history — no server-side state.
  *
  * POST /api/patients/anamnesis/live-relay
- * Body: { text: string, history?: Turn[], patientContext?: boolean }
+ * Body: {
+ *   text: string,
+ *   history?: Turn[],
+ *   patientContext?: boolean,
+ *   checkpoint?: 'partial' | 'final',
+ *   openingPromptSent?: boolean,
+ *   guidanceQuestions?: string[],
+ *   coverageGaps?: string[],
+ *   coverageSummary?: string
+ * }
  * Returns: { text: string, history: Turn[], isComplete: boolean, extractedFields?: Record }
  */
 import type { APIRoute } from 'astro'
@@ -21,10 +30,50 @@ function json(data: unknown, status = 200) {
 }
 
 /** Build system instruction with optional patient context */
-function buildSystemInstruction(patientInfo?: { name: string; age: number; completedSections: string[] }): string {
+interface GuidanceContext {
+  checkpoint?: 'partial' | 'final'
+  questions: string[]
+  gaps: string[]
+  coverageSummary?: string
+}
+
+function buildSystemInstruction(
+  patientInfo?: { name: string; age: number; completedSections: string[] },
+  guidance?: GuidanceContext,
+): string {
   const context = patientInfo
     ? `\nCONTEXTO DEL PACIENTE:\n- Nombre: ${patientInfo.name}\n- Edad: ${patientInfo.age} años\n- Secciones ya completadas: ${patientInfo.completedSections.length > 0 ? patientInfo.completedSections.join(', ') : 'ninguna'}\nSi ya tiene secciones completadas, enfocate en lo que falta o pudo haber cambiado.\n`
     : ''
+
+  if (guidance && (guidance.questions.length > 0 || guidance.gaps.length > 0)) {
+    return `Sos un médico residente de AutaMedica realizando una ACLARACION POR VOZ de una anamnesis ya iniciada.
+${context}
+CHECKPOINT ACTUAL: ${guidance.checkpoint ?? 'partial'}
+RESUMEN DE COBERTURA: ${guidance.coverageSummary ?? 'Sin resumen'}
+AREAS CON DATOS FALTANTES: ${guidance.gaps.length > 0 ? guidance.gaps.join(', ') : 'sin especificar'}
+PREGUNTAS PRIORITARIAS A RESOLVER:
+${guidance.questions.length > 0 ? guidance.questions.map((question, index) => `${index + 1}. ${question}`).join('\n') : '- Pedí una aclaración clínica relevante.'}
+
+OBJETIVO:
+- Hacé una aclaración breve por voz, enfocada solo en cerrar los huecos anteriores.
+- Preguntá UNA sola cosa por turno.
+- Si el paciente ya respondió una de las preguntas prioritarias, pasá a la siguiente sin repetir.
+- No abras bloques nuevos ni hagas una anamnesis completa desde cero.
+- Máximo 3 preguntas del modelo antes del cierre.
+
+REGLAS:
+- Español argentino informal (voseo), tono cálido y profesional.
+- Hablá SIEMPRE en segunda persona.
+- No diagnostiques ni sugieras tratamientos.
+- No uses abreviaturas médicas.
+- No uses comillas ni apóstrofes.
+
+FINALIZACIÓN OBLIGATORIA:
+Cuando ya tengas suficiente información o hayas agotado las preguntas prioritarias:
+1. Empezá con el tag [ANAMNESIS_COMPLETA]
+2. Hacé un resumen corto de lo que acabás de aclarar
+3. Cerrá con una frase breve indicando que la información quedó registrada.`
+  }
 
   return `Sos un médico residente de AutaMedica realizando una anamnesis estructurada por voz.
 ${context}
@@ -78,10 +127,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const userText = typeof raw.text === 'string' ? raw.text.trim() : ''
   const history = Array.isArray(raw.history) ? (raw.history as Turn[]).slice(-30) : []
   const wantsContext = raw.patientContext !== false // default true
+  const openingPromptSent = raw.openingPromptSent === true
+  const guidanceContext: GuidanceContext = {
+    checkpoint:
+      raw.checkpoint === 'final' || raw.checkpoint === 'partial'
+        ? raw.checkpoint
+        : undefined,
+    questions: Array.isArray(raw.guidanceQuestions)
+      ? raw.guidanceQuestions.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      : [],
+    gaps: Array.isArray(raw.coverageGaps)
+      ? raw.coverageGaps.filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      : [],
+    coverageSummary:
+      typeof raw.coverageSummary === 'string' && raw.coverageSummary.trim().length > 0
+        ? raw.coverageSummary.trim()
+        : undefined,
+  }
+  const isGuidedClarification = guidanceContext.questions.length > 0 || guidanceContext.gaps.length > 0
 
   // Greeting (no text) — fetch patient name for personalization
   if (!userText) {
-    let greeting = 'Hola, soy el asistente de AutaMedica. Contame, ¿qué te trae hoy a la consulta?'
+    let greeting = isGuidedClarification
+      ? 'Estoy revisando tu historia clínica y quiero hacerte una pregunta breve para completar la información.'
+      : 'Hola, soy el asistente de AutaMedica. Contame, ¿qué te trae hoy a la consulta?'
 
     if (wantsContext) {
       try {
@@ -92,14 +161,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
           .eq('user_id', context.userId)
           .single()
         if (profile?.first_name) {
-          greeting = `Hola ${profile.first_name}, soy el asistente de AutaMedica. Contame, ¿qué te trae hoy a la consulta?`
+          greeting = isGuidedClarification
+            ? `Hola ${profile.first_name}, estoy revisando tu historia clínica y quiero hacerte una pregunta breve para completar la información.`
+            : `Hola ${profile.first_name}, soy el asistente de AutaMedica. Contame, ¿qué te trae hoy a la consulta?`
         }
       } catch { /* use default greeting */ }
     }
 
+    if (isGuidedClarification && guidanceContext.questions[0]) {
+      greeting = `${greeting} ${guidanceContext.questions[0]}`
+    }
+
     return json({
       success: true,
-      data: { text: greeting, history: [], isComplete: false, turnCount: 0 },
+      data: { text: greeting, history: [], isComplete: false, turnCount: 1, modelTurnCount: 1 },
     })
   }
 
@@ -150,7 +225,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
   }
 
-  const systemPrompt = buildSystemInstruction(patientInfo)
+  const systemPrompt = buildSystemInstruction(
+    patientInfo,
+    isGuidedClarification ? guidanceContext : undefined,
+  )
   const contents = turns.map(t => ({
     role: t.role === 'user' ? 'user' : 'model',
     parts: [{ text: t.text }],
@@ -214,8 +292,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       ...(modelText ? [{ role: 'model' as const, text: modelText }] : []),
     ]
 
-    const modelTurnCount = updatedHistory.filter(t => t.role === 'model').length
-    const isComplete = hasCompletionTag || modelTurnCount >= MAX_MODEL_TURNS
+    const modelTurnCount = updatedHistory.filter(t => t.role === 'model').length + (openingPromptSent ? 1 : 0)
+    const maxTurns = isGuidedClarification ? 4 : MAX_MODEL_TURNS
+    const isComplete = hasCompletionTag || modelTurnCount >= maxTurns
 
     // Log conversation turn for monitoring
     logger.info('[live-relay] Turn', {
@@ -233,7 +312,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         text: modelText || 'No pude entender. ¿Podrías repetirlo?',
         history: updatedHistory,
         isComplete,
-        turnCount: updatedHistory.length,
+        turnCount: updatedHistory.length + (openingPromptSent ? 1 : 0),
         modelTurnCount,
         ...(extractedFields && { extractedFields }),
       },

@@ -11,9 +11,15 @@ interface AnalysisResultOverlayProps {
   analysisResult: { coverage: string[]; gaps: string[]; questions: GuidanceQuestion[] } | null;
   onContinue: () => void;
   isFinal?: boolean;
+  preferVoice?: boolean;
 }
 
-export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: AnalysisResultOverlayProps) {
+export function AnalysisResultOverlay({
+  analysisResult,
+  onContinue,
+  isFinal,
+  preferVoice = false,
+}: AnalysisResultOverlayProps) {
   const [showSkip, setShowSkip] = useState(false);
 
   useEffect(() => {
@@ -108,7 +114,9 @@ export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: A
                   {analysisResult.questions.length} pregunta{analysisResult.questions.length > 1 ? 's' : ''} adicional{analysisResult.questions.length > 1 ? 'es' : ''}
                 </h3>
                 <p className="text-xs text-sky-600">
-                  Necesitamos precisar algunos datos para que tu médico cuente con un panorama completo.
+                  {preferVoice
+                    ? 'Gemini te las va a hacer por voz para completar rápido los datos que faltan.'
+                    : 'Necesitamos precisar algunos datos para que tu médico cuente con un panorama completo.'}
                 </p>
               </div>
             )}
@@ -118,7 +126,9 @@ export function AnalysisResultOverlay({ analysisResult, onContinue, isFinal }: A
               className="w-full rounded-xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-700"
             >
               {analysisResult.questions.length > 0
-                ? 'Completar información →'
+                ? preferVoice
+                  ? 'Completar por voz →'
+                  : 'Completar información →'
                 : 'Continuar →'}
             </button>
           </div>
