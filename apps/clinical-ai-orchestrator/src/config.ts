@@ -86,7 +86,6 @@ function parseDoctorBindings(raw: string | undefined): ChannelBinding[] {
   });
 }
 
-// eslint-disable-next-line no-restricted-properties
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const publicBaseUrl = env.PUBLIC_BASE_URL || undefined;
   const supabaseUrl = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || undefined;

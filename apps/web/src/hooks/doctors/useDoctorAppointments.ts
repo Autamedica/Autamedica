@@ -1,72 +1,78 @@
 /**
- * Web-only appointments hook.
- * Keeps agenda hydration independent from the shared hooks package entrypoint.
+ * Hook/controller for doctor agenda state.
+ * Keeps React state local and delegates IO/business rules to services.
  */
-import { useCallback, useEffect, useState } from 'react'
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { logger } from '@autamedica/shared'
-import type { Appointment } from '@autamedica/types'
-import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
+import { doctorAppointmentsService } from '@/lib/doctors/services/doctor-appointments.service'
+import type {
+  DoctorAppointmentFormValues,
+  DoctorAppointmentRecord,
+} from '@/lib/doctors/types/appointments'
 
 interface UseDoctorAppointmentsResult {
-  appointments: Appointment[]
+  appointments: DoctorAppointmentRecord[]
   loading: boolean
   error: string | null
   isClientReady: boolean
   refetch: () => Promise<void>
+  createAppointment: (values: DoctorAppointmentFormValues) => Promise<DoctorAppointmentRecord>
 }
 
-export function useDoctorAppointments(doctorId?: string): UseDoctorAppointmentsResult {
-  const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof getBrowserSupabaseClient> | null>(null)
-  const [appointments, setAppointments] = useState<Appointment[]>([])
+export function useDoctorAppointments(): UseDoctorAppointmentsResult {
+  const [appointments, setAppointments] = useState<DoctorAppointmentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isClientReady, setIsClientReady] = useState(false)
 
   useEffect(() => {
-    setSupabaseClient(getBrowserSupabaseClient())
+    setIsClientReady(true)
   }, [])
 
   const refetch = useCallback(async (): Promise<void> => {
-    if (!supabaseClient) {
-      setLoading(false)
-      return
-    }
+    if (!isClientReady) return
 
     try {
       setLoading(true)
       setError(null)
-
-      let query = supabaseClient
-        .from('appointments')
-        .select('*')
-        .order('start_time', { ascending: true })
-
-      if (doctorId) {
-        query = query.eq('doctor_id', doctorId)
-      }
-
-      const { data, error: fetchError } = await query
-      if (fetchError) {
-        throw fetchError
-      }
-
-      setAppointments((data ?? []) as Appointment[])
+      const data = await doctorAppointmentsService.list()
+      setAppointments(data)
     } catch (err) {
       logger.error('[useDoctorAppointments] fetch error:', err)
       setError(err instanceof Error ? err.message : 'Error al cargar citas')
     } finally {
       setLoading(false)
     }
-  }, [doctorId, supabaseClient])
+  }, [isClientReady])
 
   useEffect(() => {
     void refetch()
   }, [refetch])
 
-  return {
-    appointments,
-    loading,
-    error,
-    isClientReady: supabaseClient !== null,
-    refetch,
-  }
+  const createAppointment = useCallback(
+    async (values: DoctorAppointmentFormValues): Promise<DoctorAppointmentRecord> => {
+      const created = await doctorAppointmentsService.create(values)
+      setAppointments((prev) =>
+        [...prev, created].sort(
+          (left, right) => new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
+        ),
+      )
+      return created
+    },
+    [],
+  )
+
+  return useMemo(
+    () => ({
+      appointments,
+      loading,
+      error,
+      isClientReady,
+      refetch,
+      createAppointment,
+    }),
+    [appointments, loading, error, isClientReady, refetch, createAppointment],
+  )
 }

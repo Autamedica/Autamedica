@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { logger } from '@autamedica/shared';
 import {
   X,
@@ -221,13 +221,16 @@ export function CreateAppointmentModal({
 
   /* ── Computed ──────────────────────────────────────────── */
 
-  const days = getDaysInRange(from, to);
-  const slotsByDay = new Map<string, SlotData[]>();
-  for (const day of days) slotsByDay.set(day, []);
-  for (const slot of slots) {
-    const existing = slotsByDay.get(slot.date);
-    if (existing) existing.push(slot);
-  }
+  const days = useMemo(() => getDaysInRange(from, to), [from, to]);
+  const slotsByDay = useMemo(() => {
+    const grouped = new Map<string, SlotData[]>();
+    for (const day of days) grouped.set(day, []);
+    for (const slot of slots) {
+      const existing = grouped.get(slot.date);
+      if (existing) existing.push(slot);
+    }
+    return grouped;
+  }, [days, slots]);
 
   const isToday = (dateStr: string) => dateStr === new Date().toISOString().split('T')[0];
   const isPastDate = (dateStr: string) => new Date(dateStr + 'T23:59:59') < new Date();
@@ -236,6 +239,28 @@ export function CreateAppointmentModal({
   const activeDaySlots = selectedDay
     ? (slotsByDay.get(selectedDay) ?? []).filter((s) => s.is_available)
     : [];
+
+  const firstAvailableDay = useMemo(() => (
+    days.find((day) => (slotsByDay.get(day) ?? []).some((slot) => slot.is_available)) ?? null
+  ), [days, slotsByDay]);
+
+  useEffect(() => {
+    if (!selectedDoctorId) return;
+
+    const selectedDayStillHasSlots = selectedDay
+      ? (slotsByDay.get(selectedDay) ?? []).some((slot) => slot.is_available)
+      : false;
+
+    if (!selectedDayStillHasSlots && firstAvailableDay) {
+      setSelectedDay(firstAvailableDay);
+      setSelectedSlot(null);
+    }
+
+    if (!firstAvailableDay) {
+      setSelectedDay(null);
+      setSelectedSlot(null);
+    }
+  }, [firstAvailableDay, selectedDay, selectedDoctorId, slotsByDay]);
 
   const weekLabel = `${new Date(from + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} — ${new Date(to + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}`;
 

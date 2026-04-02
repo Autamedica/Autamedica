@@ -20,20 +20,41 @@ export class CallService {
     this.functionsBaseUrl = `${new URL(supabaseUrl).origin}/functions/v1`
   }
 
+  private createContextualDebugLogger(payload?: Record<string, unknown>) {
+    const callId = typeof payload?.callId === 'string' && payload.callId.length > 0 ? payload.callId : undefined
+    const roomId = typeof payload?.roomId === 'string' && payload.roomId.length > 0 ? payload.roomId : undefined
+    const userId = typeof payload?.userId === 'string' && payload.userId.length > 0 ? payload.userId : undefined
+    const userType = typeof payload?.userType === 'string' && payload.userType.length > 0 ? payload.userType : undefined
+
+    if (!callId && !roomId && !userId && !userType) {
+      return this.debugLogger
+    }
+
+    return createTelemedicineLogger({
+      source: 'CallService',
+      ...(callId ? { callId } : {}),
+      ...(roomId ? { roomId } : {}),
+      ...(userId ? { userId } : {}),
+      ...(userType ? { userType } : {}),
+    })
+  }
+
   private writeLocalDebug(
     level: TelemedicineDebugLevel,
     message: string,
     payload?: Record<string, unknown>,
   ): void {
+    const debugLogger = this.createContextualDebugLogger(payload)
+
     switch (level) {
       case 'error':
-        this.debugLogger.error(message, undefined, payload)
+        debugLogger.error(message, undefined, payload)
         break
       case 'warn':
-        this.debugLogger.warn(message, payload)
+        debugLogger.warn(message, payload)
         break
       default:
-        this.debugLogger.info(message, payload)
+        debugLogger.info(message, payload)
         break
     }
   }

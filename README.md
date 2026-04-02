@@ -225,6 +225,25 @@ const normalized = normalizeRole("company_admin"); // 'company'
 
 Ver [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md) para detalle completo.
 
+### Arquitectura v2
+
+La evolución vigente del sistema ya no se define solo por capas funcionales.
+
+La referencia actual de diseño es:
+
+- [`docs/ARQUITECTURA_V2.md`](docs/ARQUITECTURA_V2.md)
+
+Esa versión agrega:
+
+- `Clinical Core`, `Platform Core` y `Adjacent Products`
+- eje de `Control Plane`
+- eje de `Runtime Assurance`
+
+Regla práctica:
+
+- una feature no se considera lista solo porque funcione en UI o API
+- también debe cerrar acceso, operación y verificación en runtime
+
 ---
 
 ## 🔄 **CI/CD y Deployment**

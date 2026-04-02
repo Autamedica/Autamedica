@@ -11,6 +11,7 @@
 
 import fs from 'fs';
 import { spawnSync } from 'node:child_process';
+import { findProcessEnvViolations, formatViolations } from './lib/policy-checks.mjs';
 
 function runCommand(command, args = [], options = {}) {
   const result = spawnSync(command, args, {
@@ -31,7 +32,7 @@ function checkDeepImports() {
   console.log('🔍 Verificando deep imports...');
 
   const result = runCommand('bash', ['-c',
-    'grep -r --exclude-dir=".next" --exclude-dir="dist" --exclude-dir=".turbo" --exclude-dir="node_modules" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" "@autamedica/.*/src" apps/ packages/ | grep -v "vitest\\.config\\.ts" | grep -v "playwright\\.config\\.ts"'
+    'grep -r --exclude-dir=".next" --exclude-dir=".open-next" --exclude-dir="dist" --exclude-dir=".turbo" --exclude-dir="node_modules" --exclude-dir="storybook-static" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" "@autamedica/.*/src" apps/ packages/ | grep -v "vitest\\.config\\.ts" | grep -v "playwright\\.config\\.ts"'
   ]);
 
   if (result.stdout.trim()) {
@@ -49,7 +50,7 @@ function checkExportStar() {
   console.log('🔍 Verificando export * ...');
 
   const result = runCommand('bash', ['-c',
-    'grep -r --exclude-dir=".next" --exclude-dir="dist" --exclude-dir=".turbo" --exclude-dir="node_modules" --include="*.ts" --include="*.tsx" "export \\*" packages/ | grep -v "packages/shared/src/env/index.ts"'
+    'grep -r --exclude-dir=".next" --exclude-dir=".open-next" --exclude-dir="dist" --exclude-dir=".turbo" --exclude-dir="node_modules" --exclude-dir="storybook-static" --include="*.ts" --include="*.tsx" "export \\*" packages/ | grep -v "packages/shared/src/env/index.ts"'
   ]);
 
   if (result.stdout.trim()) {
@@ -66,14 +67,11 @@ function checkExportStar() {
 function checkProcessEnv() {
   console.log('🔍 Verificando uso directo de process.env...');
 
-  // Buscar process.env pero excluir el archivo de shared/env, tests y configuraciones internas
-  const result = runCommand('bash', ['-c',
-    'grep -r --exclude-dir=".next" --exclude-dir=".open-next" --exclude-dir="e2e" --exclude-dir="dist" --exclude-dir=".turbo" --exclude-dir="node_modules" --exclude-dir="__tests__" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" "process\\.env" apps/ packages/ | grep -v "process\\.env\\.NODE_ENV" | grep -v "apps/signaling-server" | grep -v "packages/shared/src/env" | grep -v "packages/shared/src/config/" | grep -v "packages/shared/src/auth/portals.ts" | grep -v "packages/shared/src/auth/session.ts" | grep -v "packages/shared/src/security/" | grep -v "packages/telemedicine/src/config/" | grep -v "packages/auth/src/" | grep -v "packages/shared/src/webrtc-diagnostics.ts" | grep -v "packages/shared/src/role-routing.ts" | grep -v "packages/shared/src/db.ts" | grep -v "\\.test\\.ts" | grep -v "playwright\\.config\\.ts"'
-  ]);
+  const violations = findProcessEnvViolations(process.cwd());
 
-  if (result.stdout.trim()) {
+  if (violations.length > 0) {
     console.error('❌ Uso directo de process.env detectado:');
-    console.error(result.stdout);
+    console.error(formatViolations(violations));
     console.error('💡 Usa ensureEnv() de @autamedica/shared: ensureEnv("VARIABLE_NAME")');
     return false;
   }

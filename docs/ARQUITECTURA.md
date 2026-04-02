@@ -1,5 +1,8 @@
 # Arquitectura AutaMedica — Mapa Real
 
+> Este documento describe el mapa funcional del sistema.
+> La gobernanza arquitectónica vigente está en [ARQUITECTURA_V2.md](/home/edu/Autamedica/docs/ARQUITECTURA_V2.md).
+
 > Referencia para mirar y saber siempre si falta una pieza.
 > Ultima actualizacion: 2026-03-24
 

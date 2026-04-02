@@ -16,6 +16,7 @@ const eslintConfig = [
     '**/.turbo/**',
     '**/.vercel/**',
     '**/.astro/**',
+    '**/storybook-static/**',
 
     // Dependencies
     '**/node_modules/**',
@@ -220,7 +221,9 @@ js.configs.recommended,
     '**/components/auth/**/*.{ts,tsx}',
     '**/components/layout/VSCodeLayout.{ts,tsx}',
     'apps/web/src/components/ErrorBoundary.tsx',
+    'apps/clinical-ai-orchestrator/**/*.{ts,tsx}',
     'apps/signaling-server/**/*.{ts,tsx}',
+    'apps/mobile/**/*.{ts,tsx}',
     'packages/telemedicine/**/*.{ts,tsx}',
   ],
   rules: {

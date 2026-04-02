@@ -50,6 +50,24 @@ export const doctorsRepo = {
       }
     })
 
-    return doctors.sort((a, b) => a.label.localeCompare(b.label, 'es'))
+    const doctorIds = doctors.map((doctor) => doctor.id)
+    if (doctorIds.length === 0) return []
+
+    const { data: availabilityRows, error: availabilityError } = await supabase
+      .from('doctor_availability')
+      .select('doctor_id')
+      .in('doctor_id', doctorIds)
+      .eq('is_active', true)
+
+    if (availabilityError) {
+      logger.error('[doctorsRepo] listActive availability filter failed', availabilityError)
+      throw availabilityError
+    }
+
+    const doctorsWithAvailability = new Set((availabilityRows ?? []).map((row) => row.doctor_id))
+
+    return doctors
+      .filter((doctor) => doctorsWithAvailability.has(doctor.id))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'))
   },
 }

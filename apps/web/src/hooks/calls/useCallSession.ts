@@ -12,6 +12,30 @@ interface UseCallSessionResult {
   refresh: () => Promise<void>
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function isValidCallSessionBootstrap(value: unknown): value is CallSessionBootstrap {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const session = value as CallSessionBootstrap
+
+  return (
+    isNonEmptyString(session.callId)
+    && isNonEmptyString(session.roomId)
+    && Boolean(session.user)
+    && isNonEmptyString(session.user.id)
+    && isNonEmptyString(session.user.role)
+    && Boolean(session.permissions)
+    && Boolean(session.mediaPolicy)
+    && Boolean(session.transport)
+    && Boolean(session.waitingRoom)
+  )
+}
+
 function normalizeCallSessionError(message: string): string {
   switch (message) {
     case 'call_ended':
@@ -22,6 +46,8 @@ function normalizeCallSessionError(message: string): string {
       return 'La videollamada fue rechazada y ya no está disponible.'
     case 'call_not_found':
       return 'No encontramos una videollamada disponible para este turno.'
+    case 'invalid_call_session':
+      return 'La videollamada llegó con datos incompletos. Reintentá para reconstruir la sesión.'
     default:
       return message
   }
@@ -42,6 +68,11 @@ export function useCallSession(roomId: string, enabled = true): UseCallSessionRe
       setLoading(true)
       setError(null)
       const data = await callSessionService.getBootstrap(roomId)
+
+      if (!isValidCallSessionBootstrap(data)) {
+        throw new Error('invalid_call_session')
+      }
+
       setSession(data)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo preparar la llamada'

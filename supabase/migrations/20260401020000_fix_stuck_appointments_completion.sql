@@ -8,6 +8,24 @@
 -- 1. Backfill stuck appointments
 -- ============================================================
 
+-- The project drifted from migration history and some environments never
+-- materialized the calls.appointment_id column. Re-create the expected link
+-- here before running the backfill logic.
+ALTER TABLE public.calls
+  ADD COLUMN IF NOT EXISTS appointment_id uuid
+  REFERENCES public.appointments(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_calls_appointment_id
+  ON public.calls (appointment_id);
+
+-- Recover appointment links for rooms that already have a telemedicine session.
+UPDATE public.calls AS c
+SET appointment_id = ts.appointment_id
+FROM public.telemedicine_sessions AS ts
+WHERE c.appointment_id IS NULL
+  AND ts.appointment_id IS NOT NULL
+  AND ts.room_id = c.room_id;
+
 UPDATE public.appointments AS a
 SET status = 'completed', updated_at = now()
 WHERE a.status IN ('scheduled', 'confirmed', 'in_progress')

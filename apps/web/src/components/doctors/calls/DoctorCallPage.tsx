@@ -130,9 +130,16 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }, [])
 
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
+  const callSessionId = callSession?.callId?.trim() ?? ''
+  const renderableCallSession =
+    Boolean(callSession)
+    && callSessionId.length > 0
+    && (callSession?.roomId?.trim().length ?? 0) > 0
+    && (callSession?.user.id?.trim().length ?? 0) > 0
+    && (callSession?.user.role?.trim().length ?? 0) > 0
   const isDoctorWaitingRoomEnabled = callSession?.user.role === 'doctor' && callSession.waitingRoom.enabled
   const showDoctorWaitingRoom =
-    Boolean(callSession) &&
+    renderableCallSession &&
     callSession.user.role === 'doctor' &&
     doctorWaitingState !== 'idle'
 
@@ -191,12 +198,12 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }, [callSession])
 
   useEffect(() => {
-    if (!isReady || !callSession || !isDoctorWaitingRoomEnabled || doctorWaitingState === 'idle') {
+    if (!isReady || !callSessionId || !isDoctorWaitingRoomEnabled || doctorWaitingState === 'idle') {
       return
     }
 
     const callService = getCallService()
-    const unsubscribe = callService.subscribeToCall(callSession.callId, (nextCall) => {
+    const unsubscribe = callService.subscribeToCall(callSessionId, (nextCall) => {
       if (nextCall.status === 'accepted' || nextCall.status === 'connecting' || nextCall.status === 'connected') {
         setDoctorWaitingState('idle')
         setWaitingActionError(null)
@@ -224,7 +231,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     return () => {
       unsubscribe()
     }
-  }, [callSession, doctorWaitingState, isDoctorWaitingRoomEnabled, isReady])
+  }, [callSessionId, doctorWaitingState, isDoctorWaitingRoomEnabled, isReady])
 
   const cancelWaitingCall = useCallback(
     async (reason: 'doctor_canceled' | 'no_answer_timeout') => {
@@ -428,6 +435,35 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-700">Preparando videollamada...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!renderableCallSession) {
+    return (
+      <div className="min-h-screen bg-[#101d32] flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
+          <h1 className="text-xl font-semibold text-white">La videollamada quedó inconsistente</h1>
+          <p className="mt-3 text-sm text-slate-300">
+            Recibimos una sesión parcial. Reintentá para reconstruir la llamada antes de volver a entrar.
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => void refreshCallSession()}
+              className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
+            >
+              Reintentar
+            </button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = '/doctors' }}
+              className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200"
+            >
+              Volver al portal
+            </button>
+          </div>
         </div>
       </div>
     )

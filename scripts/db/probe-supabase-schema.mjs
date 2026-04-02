@@ -56,20 +56,25 @@ async function main() {
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
   const checks = [
-    { table: 'profiles', columns: ['id', 'email', 'full_name', 'role', 'portal'] },
+    { table: 'profiles', columns: ['user_id', 'email', 'first_name', 'last_name', 'role', 'active'] },
     { table: 'patients', columns: ['user_id', 'active', 'birth_date', 'height_cm', 'weight_kg'] },
     { table: 'auth_audit', columns: ['user_id', 'event', 'created_at'] },
   ];
 
   const out = [];
+  let hasFailures = false;
   for (const c of checks) {
     const t = c.table;
     const ex = await existsTable(admin, t);
     if (!ex.exists) {
+      hasFailures = true;
       out.push({ table: t, exists: false, error: ex.error?.message || String(ex.error || '') });
       continue;
     }
     const cols = await hasColumns(admin, t, c.columns);
+    if (Object.values(cols).some((value) => value === false)) {
+      hasFailures = true;
+    }
     out.push({ table: t, exists: true, columns: cols });
   }
 
@@ -84,6 +89,13 @@ async function main() {
       console.log(`- ${r.table}: OK [${cols}]`);
     }
   }
+
+  if (hasFailures) {
+    console.error('❌ Supabase schema probe detectó drift o columnas faltantes');
+    process.exit(1);
+  }
+
+  console.log('✅ Supabase schema probe alineado con el contrato actual');
 }
 
 main().catch(e => { console.error('Probe failed', e); process.exit(1); });

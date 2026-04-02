@@ -6,29 +6,14 @@ import { Calendar, Clock, Video, User, Plus, Filter } from 'lucide-react'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
-import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { getCallWindowStatus } from '@/lib/calls/lib/call-error-messages'
+import { selectDoctorAppointmentBoardView } from '@/lib/doctors/queries/doctor-appointments.selectors'
 import { StartCallButton } from '../calls/StartCallButton'
 import { CreateAppointmentModal } from './CreateAppointmentModal'
+import type { DoctorAppointmentFormValues } from '@/lib/doctors/types/appointments'
 
 interface AppointmentsPanelProps {
   doctorId?: string
-}
-
-const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
-
-function canStartTelemedicineCall(appointment: {
-  type: string | null
-  status: string | null
-  start_time?: string | null
-  end_time?: string | null
-  duration_minutes?: number | null
-}): boolean {
-  return (
-    appointment.type === 'telemedicine' &&
-    CALLABLE_APPOINTMENT_STATUSES.has(appointment.status ?? 'scheduled') &&
-    isTelemedicineCallWindowOpen(appointment)
-  )
 }
 
 export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
@@ -37,33 +22,13 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
   const { user, loading: userLoading } = useAuthenticatedUser()
   const resolvedDoctorId = doctorId ?? user?.doctorProfileId
 
-  const { appointments, loading, error, isClientReady, refetch } = useDoctorAppointments(resolvedDoctorId)
-  
-  const sortedAppointments = useMemo(() => {
-    const now = Date.now()
+  const { appointments, loading, error, isClientReady, createAppointment } = useDoctorAppointments()
 
-    return [...appointments].sort((left, right) => {
-      const leftCallable = canStartTelemedicineCall(left)
-      const rightCallable = canStartTelemedicineCall(right)
-
-      if (leftCallable !== rightCallable) {
-        return leftCallable ? -1 : 1
-      }
-
-      const leftStart = Date.parse(left.start_time ?? '')
-      const rightStart = Date.parse(right.start_time ?? '')
-      const safeLeftStart = Number.isNaN(leftStart) ? 0 : leftStart
-      const safeRightStart = Number.isNaN(rightStart) ? 0 : rightStart
-      const leftIsFuture = safeLeftStart >= now
-      const rightIsFuture = safeRightStart >= now
-
-      if (leftIsFuture !== rightIsFuture) {
-        return leftIsFuture ? -1 : 1
-      }
-
-      return leftIsFuture ? safeLeftStart - safeRightStart : safeRightStart - safeLeftStart
-    })
-  }, [appointments])
+  const boardView = useMemo(
+    () => selectDoctorAppointmentBoardView(appointments),
+    [appointments],
+  )
+  const sortedAppointments = boardView.sortedAppointments
 
   const resolveNames = useCallback(async () => {
     if (appointments.length === 0) return
@@ -74,6 +39,14 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
     const nameMap = await resolvePatientNameMap(patientIds)
     setPatientNames(nameMap)
   }, [appointments])
+
+  const handleCreateAppointment = useCallback(
+    async (values: DoctorAppointmentFormValues) => {
+      await createAppointment(values)
+      setIsCreateModalOpen(false)
+    },
+    [createAppointment],
+  )
 
   useEffect(() => {
     void resolveNames()
@@ -137,7 +110,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
           <div>
             <h1 className="text-2xl font-semibold text-am-surface-900">Agenda de Citas</h1>
             <p className="text-am-surface-500">
-              {appointments.length} cita{appointments.length !== 1 ? 's' : ''} programada{appointments.length !== 1 ? 's' : ''}
+              {sortedAppointments.length} cita{sortedAppointments.length !== 1 ? 's' : ''} programada{sortedAppointments.length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -163,42 +136,42 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {/* ... Stats ... */}
-        <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-am-primary-50 p-2"><Calendar className="h-5 w-5 text-am-primary-600" /></div>
-            <div>
-              <p className="text-sm text-am-surface-500">Hoy</p>
-              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => new Date(apt.start_time).toDateString() === new Date().toDateString()).length}</p>
+            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-am-primary-50 p-2"><Calendar className="h-5 w-5 text-am-primary-600" /></div>
+                <div>
+                  <p className="text-sm text-am-surface-500">Hoy</p>
+                  <p className="text-xl font-semibold text-am-surface-900">{boardView.todayCount}</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-green-50 p-2"><Video className="h-5 w-5 text-green-700" /></div>
-            <div>
-              <p className="text-sm text-am-surface-500">Telemedicina</p>
-              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => apt.type === 'telemedicine').length}</p>
+            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-green-50 p-2"><Video className="h-5 w-5 text-green-700" /></div>
+                <div>
+                  <p className="text-sm text-am-surface-500">Telemedicina</p>
+                  <p className="text-xl font-semibold text-am-surface-900">{boardView.telemedicineCount}</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-yellow-50 p-2"><Clock className="h-5 w-5 text-yellow-600" /></div>
-            <div>
-              <p className="text-sm text-am-surface-500">Pendientes</p>
-              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => apt.status === 'scheduled').length}</p>
+            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-yellow-50 p-2"><Clock className="h-5 w-5 text-yellow-600" /></div>
+                <div>
+                  <p className="text-sm text-am-surface-500">Pendientes</p>
+                  <p className="text-xl font-semibold text-am-surface-900">{boardView.pendingCount}</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-50 p-2"><User className="h-5 w-5 text-emerald-700" /></div>
-            <div>
-              <p className="text-sm text-am-surface-500">Confirmadas</p>
-              <p className="text-xl font-semibold text-am-surface-900">{sortedAppointments.filter(apt => apt.status === 'confirmed').length}</p>
+            <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-emerald-50 p-2"><User className="h-5 w-5 text-emerald-700" /></div>
+                <div>
+                  <p className="text-sm text-am-surface-500">Confirmadas</p>
+                  <p className="text-xl font-semibold text-am-surface-900">{boardView.confirmedCount}</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
@@ -263,7 +236,7 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
       {isCreateModalOpen && (
           <CreateAppointmentModal 
               onClose={() => setIsCreateModalOpen(false)}
-              onSaved={() => { setIsCreateModalOpen(false); refetch(); }}
+              onSaved={handleCreateAppointment}
           />
       )}
     </div>

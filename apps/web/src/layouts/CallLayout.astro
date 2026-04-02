@@ -1,0 +1,73 @@
+---
+import '../styles/globals.css';
+import { resolvePublicClientEnv } from '../lib/runtime-env';
+
+interface Props {
+  title: string;
+  description: string;
+  robots?: string;
+}
+
+const locale = Astro.locals.locale ?? 'es';
+const {
+  title,
+  description,
+  robots = 'noindex, nofollow, noarchive',
+} = Astro.props;
+
+const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
+  Astro.locals.runtime?.env,
+);
+---
+
+<!doctype html>
+<html lang={locale} dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
+    <title>{title}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script
+      is:inline
+      define:vars={{
+        PUBLIC_SUPABASE_URL: publicSupabaseUrl,
+        PUBLIC_SUPABASE_ANON_KEY: publicSupabaseAnonKey,
+      }}
+    >
+      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
+    </script>
+  </head>
+  <body class="call-layout antialiased">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: #0a0a0a;
+    overscroll-behavior: none;
+  }
+
+  body.call-layout {
+    min-height: 100vh;
+    background: #0a0a0a;
+    color: #fff;
+  }
+ </style>

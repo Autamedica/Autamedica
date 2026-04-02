@@ -1,17 +1,16 @@
 "use client"
 
 import type { JSX, ReactNode } from 'react'
-import { Suspense, createContext, lazy, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { Suspense, createContext, lazy, useCallback, useContext, useMemo, useState } from 'react'
 
 import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
-import { useActiveSession } from '@/hooks/doctors/useActiveSession'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useClock } from '@/hooks/doctors/useClock'
 import { useDoctorStats } from '@/hooks/doctors/useDoctorStats'
+import { useDoctorWorkspaceState, type TabId } from '@/hooks/doctors/useDoctorWorkspaceState'
 import { useCurrentDoctor } from '@/hooks/doctors/useRealDoctors'
 import { useSidebar } from '@/hooks/doctors/useSidebar'
 import { signOutLocal } from '@/lib/auth/service'
-import type { UUID } from '@/types/medical'
 import type { LucideIcon } from 'lucide-react'
 import {
     Activity,
@@ -32,7 +31,6 @@ import {
     Star,
     User,
     Users,
-    Video,
     X,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -51,8 +49,6 @@ const RecordsPanel = lazy(() => import('@/components/doctors/records/RecordsPane
 const SettingsPanel = lazy(() => import('@/components/doctors/settings/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
 const VitalSignsPanel = lazy(() => import('@/components/doctors/vitals/VitalSignsPanel').then(m => ({ default: m.VitalSignsPanel })))
 const MarketplacePanel = lazy(() => import('@/components/doctors/marketplace/MarketplacePanel').then(m => ({ default: m.MarketplacePanel })))
-
-type TabId = 'video-call' | 'patient-info' | 'medical-history' | 'prescriptions' | 'vital-signs' | 'ai-history'
 
 type SidebarItem = {
   id: string
@@ -147,10 +143,16 @@ function resolveDoctorDisplayName(...candidates: Array<NameCandidate | null | un
   return 'Cuenta médica'
 }
 
-export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.Element {
-  const [activeTab, setActiveTab] = useState<TabId>('video-call')
+interface DoctorsPortalShellProps {
+  children: ReactNode
+  enableWorkspaceUrlState?: boolean
+}
+
+export function DoctorsPortalShell({
+  children,
+  enableWorkspaceUrlState = false,
+}: DoctorsPortalShellProps): JSX.Element {
   const [isFocusMode, setIsFocusMode] = useState(false)
-  const [activePostId, setActivePostId] = useState<string | null>(null)
 
   const currentTime = useClock()
   const {
@@ -166,7 +168,6 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
   const { user } = useAuthenticatedUser()
   const { doctor } = useCurrentDoctor(user?.id)
   const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
-  const { session, startSession } = useActiveSession()
 
   const userName = resolveDoctorDisplayName(doctor?.profile, user?.profile)
   const doctorSpecialty = doctor?.specialty || 'Especialidad pendiente'
@@ -188,16 +189,22 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     }
   }, [])
 
-  const handleSelectPatient = useCallback(async (patientId: string) => {
-    await startSession(patientId as UUID, 'general')
-    setActiveSection(null)
-  }, [startSession])
-
-  useEffect(() => {
-    if (session?.status === 'en_progreso' && activeTab === 'video-call' && !activeSection) {
-      setIsSidebarCollapsed(true)
-    }
-  }, [session?.status, activeTab, activeSection, setIsSidebarCollapsed])
+  const {
+    activeTab,
+    setActiveTab,
+    activePostId,
+    setActivePostId,
+    selectedPatientId,
+    workspaceUrlStateReady,
+    handleSelectPatient,
+    resetWorkspace,
+  } = useDoctorWorkspaceState({
+    enableWorkspaceUrlState,
+    activeSection,
+    setActiveSection,
+    setIsSidebarOpen,
+    setIsSidebarCollapsed,
+  })
 
   const sidebarItems = useMemo<SidebarItem[]>(
     () => [
@@ -214,15 +221,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     [patientsCount, appointmentsCount, historyCount, stats?.nextAppointment?.time],
   )
 
-  const resumeFocusIfLive = () => {
-    if (session?.status === 'en_progreso') {
-      setIsFocusMode(true)
-    }
-  }
-
   const tabs = useMemo<TabConfig[]>(
     () => [
-      { id: 'video-call', label: 'Videollamada', icon: Video },
       { id: 'patient-info', label: 'Paciente', icon: User },
       { id: 'medical-history', label: 'Historial', icon: ClipboardList },
       { id: 'prescriptions', label: 'Prescripciones', icon: Pill },
@@ -242,6 +242,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     activePostId,
     setActivePostId,
   }
+
+  const hasPatientWorkspace = Boolean(selectedPatientId) && !activeSection
 
   const clinicalEnd = 3
   const toolsEnd = 4
@@ -293,13 +295,25 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
     )
   })
 
-  const bottomNavItems: Array<{ id: string | null; icon: LucideIcon; label: string; primary?: boolean }> = [
+  const bottomNavItems: Array<{ id: string | null; icon: LucideIcon; label: string }> = [
     { id: null, icon: Home, label: 'Inicio' },
     { id: 'patients', icon: Users, label: 'Pacientes' },
-    { id: 'teleconsulta', icon: Video, label: 'Consulta', primary: true },
     { id: 'appointments', icon: Calendar, label: 'Citas' },
+    { id: 'records', icon: FileText, label: 'Historiales' },
     { id: 'settings', icon: User, label: 'Perfil' },
   ]
+
+  if (enableWorkspaceUrlState && !workspaceUrlStateReady) {
+    return (
+      <PortalLayoutContext.Provider value={portalContext}>
+        <div className="flex min-h-screen items-center justify-center bg-am-surface-50 p-6">
+          <div className="w-full max-w-md">
+            <PanelLoader />
+          </div>
+        </div>
+      </PortalLayoutContext.Provider>
+    )
+  }
 
   return (
     <PortalLayoutContext.Provider value={portalContext}>
@@ -332,10 +346,10 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
           </div>
         </header>
 
-        {!activeSection && session?.status === 'en_progreso' && (
+        {hasPatientWorkspace && (
           <div className="tabs border-b border-am-surface-200 bg-white">
-            <div className="flex h-full w-full items-center overflow-x-auto px-2 sm:px-4">
-              <div className="flex min-w-full snap-x snap-mandatory gap-0.5 md:min-w-0">
+            <div className="flex h-full w-full items-center justify-between gap-3 overflow-x-auto px-2 sm:px-4">
+              <div className="flex min-w-0 flex-1 snap-x snap-mandatory gap-0.5 overflow-x-auto">
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTab
                   const TabIcon = tab.icon
@@ -363,6 +377,13 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   )
                 })}
               </div>
+              <button
+                type="button"
+                onClick={() => setActiveSection('patients')}
+                className="hidden shrink-0 rounded-xl border border-am-surface-200 bg-white px-3 py-2 text-xs font-medium text-am-surface-600 transition-all duration-am-fast hover:border-am-doctor-300 hover:text-am-surface-900 sm:inline-flex"
+              >
+                Cambiar paciente
+              </button>
             </div>
           </div>
         )}
@@ -382,10 +403,8 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveSection(null)
-                    setActiveTab('video-call')
+                    resetWorkspace()
                     setIsSidebarOpen(false)
-                    resumeFocusIfLive()
                   }}
                   className="text-sm font-bold text-am-surface-900 transition-colors hover:text-am-doctor-600"
                 >
@@ -436,9 +455,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveSection(null)
-                    setActiveTab('video-call')
-                    resumeFocusIfLive()
+                    resetWorkspace()
                   }}
                   className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-500 transition-colors hover:text-am-doctor-600"
                 >
@@ -449,9 +466,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveSection(null)
-                    setActiveTab('video-call')
-                    resumeFocusIfLive()
+                    resetWorkspace()
                   }}
                   className="rounded-lg p-2 text-am-surface-400 transition-colors hover:bg-am-surface-100 hover:text-am-doctor-600"
                   title="Portal Médico"
@@ -515,7 +530,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
               >
                 <AnimatePresence mode="wait">
                 <motion.div
-                  key={activeSection || activeTab}
+                  key={activeSection || (hasPatientWorkspace ? activeTab : 'dashboard')}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
@@ -570,20 +585,20 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
 
                 {!activeSection && (
                   <div className="flex min-h-0 flex-1 overflow-hidden">
-                    {activeTab === 'video-call' ? (
+                    {hasPatientWorkspace ? (
+                      <Suspense fallback={<PanelLoader />}>
+                        <div className="flex min-h-0 w-full flex-1 overflow-y-auto rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
+                          {activeTab === 'patient-info' && <PatientInfoTab patientId={selectedPatientId} />}
+                          {activeTab === 'medical-history' && <MedicalHistoryTab patientId={selectedPatientId} />}
+                          {activeTab === 'prescriptions' && <PrescriptionsTab patientId={selectedPatientId} />}
+                          {activeTab === 'vital-signs' && <VitalSignsTab patientId={selectedPatientId} />}
+                          {activeTab === 'ai-history' && <AIHistoryTab patientId={selectedPatientId} />}
+                        </div>
+                      </Suspense>
+                    ) : (
                       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
                         {children}
                       </div>
-                    ) : (
-                      <Suspense fallback={<PanelLoader />}>
-                        <div className="flex min-h-0 w-full flex-1 overflow-y-auto rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
-                          {activeTab === 'patient-info' && <PatientInfoTab patientId={session?.patientId || null} />}
-                          {activeTab === 'medical-history' && <MedicalHistoryTab patientId={session?.patientId || null} />}
-                          {activeTab === 'prescriptions' && <PrescriptionsTab patientId={session?.patientId || null} />}
-                          {activeTab === 'vital-signs' && <VitalSignsTab patientId={session?.patientId || null} />}
-                          {activeTab === 'ai-history' && <AIHistoryTab patientId={session?.patientId || null} />}
-                        </div>
-                      </Suspense>
                     )}
                   </div>
                 )}
@@ -623,53 +638,14 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
           aria-label="Navegación principal"
         >
           <div className="flex items-end justify-around px-2">
-            {bottomNavItems.map(({ id, icon: Icon, label, primary }) => {
+            {bottomNavItems.map(({ id, icon: Icon, label }) => {
               const isHome = id === null
-              const isTeleconsulta = id === 'teleconsulta'
-              const isActive = isTeleconsulta
-                ? (!activeSection && activeTab === 'video-call')
-                : isHome
-                  ? !activeSection
+              const isPatientWorkspaceActive = Boolean(selectedPatientId) && !activeSection
+              const isActive = isHome
+                ? !activeSection && !isPatientWorkspaceActive
+                : id === 'records'
+                  ? activeSection === id || isPatientWorkspaceActive
                   : activeSection === id
-              const hasLiveSession = session?.status === 'en_progreso'
-
-              if (primary) {
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => {
-                      setActiveSection(null)
-                      setActiveTab('video-call')
-                      resumeFocusIfLive()
-                    }}
-                    className="relative flex flex-col items-center justify-center -mt-4"
-                    aria-label="Teleconsulta"
-                  >
-                    <motion.span
-                      whileTap={{ scale: 0.9 }}
-                      className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition-all duration-300 ${
-                        isActive
-                          ? 'bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-am-doctor-500/40'
-                          : 'bg-gradient-to-br from-am-doctor-400 to-am-primary-500 shadow-am-doctor-500/20'
-                      }`}
-                    >
-                      <Video className="h-6 w-6 text-white stroke-[2]" />
-                      {hasLiveSession && (
-                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center">
-                          <span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-                        </span>
-                      )}
-                    </motion.span>
-                    <span className={`mt-1 text-[10px] leading-none font-bold transition-colors duration-200 ${
-                      isActive ? 'text-am-doctor-600' : 'text-am-doctor-500'
-                    }`}>
-                      {label}
-                    </span>
-                  </button>
-                )
-              }
 
               return (
                 <button
@@ -677,9 +653,7 @@ export function DoctorsPortalShell({ children }: { children: ReactNode }): JSX.E
                   type="button"
                   onClick={() => {
                     if (isHome) {
-                      setActiveSection(null)
-                      setActiveTab('video-call')
-                      resumeFocusIfLive()
+                      resetWorkspace()
                     } else if (id !== null) {
                       handleSidebarItemClick(id)
                     }

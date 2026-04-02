@@ -12,7 +12,7 @@ interface DoctorsDashboardPageProps {
 export function DoctorsDashboardPage({ locale }: DoctorsDashboardPageProps) {
   return (
     <ClientWrapper>
-      <DoctorsPortalShell>
+      <DoctorsPortalShell enableWorkspaceUrlState>
         <DoctorsHomePage locale={locale} />
       </DoctorsPortalShell>
     </ClientWrapper>

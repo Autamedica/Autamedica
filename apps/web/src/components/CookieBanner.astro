@@ -1,21 +1,27 @@
 ---
 ---
 
-<div id="au-cookie-banner" class="fixed bottom-0 inset-x-0 z-50 hidden" role="alert">
-  <div class="bg-white border-t border-[var(--au-border)] px-4 py-3 shadow-[0_-2px_10px_rgba(0,0,0,0.06)] sm:px-6 sm:py-4">
-    <div class="mx-auto flex max-w-5xl flex-col items-center gap-3 sm:flex-row sm:justify-between">
-      <p class="text-sm text-[var(--au-text-secondary)] text-center sm:text-left">
+<div
+  id="au-cookie-banner"
+  class="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4rem)] z-50 hidden px-3 sm:bottom-0 sm:px-4 sm:pb-4"
+  role="alert"
+>
+  <div class="mx-auto max-w-5xl overflow-hidden rounded-t-2xl border border-[var(--au-border)] bg-white shadow-[0_-12px_30px_rgba(0,0,0,0.08)] sm:rounded-2xl">
+    <div class="flex max-h-[70dvh] flex-col gap-3 overflow-y-auto px-4 py-3 sm:max-h-none sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+      <p class="flex-1 text-xs leading-5 text-[var(--au-text-secondary)] text-center sm:text-left sm:text-sm sm:leading-6">
         Usamos cookies propias y de terceros para ofrecerte una mejor experiencia, analizar el uso del sitio y personalizar contenido.
         Al hacer clic en "Aceptar", consentís el uso de todas las cookies conforme a nuestra
         <a href="/privacidad" class="text-[var(--am-primary-600,#0284C7)] underline underline-offset-2 hover:text-[var(--am-primary-700,#0369A1)] ml-1">
           Política de Privacidad</a>.
       </p>
-      <button
-        id="au-cookie-accept"
-        class="shrink-0 rounded-lg bg-[var(--am-primary-600,#0284C7)] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--am-primary-700,#0369A1)] active:scale-95"
-      >
-        Aceptar
-      </button>
+      <div class="w-full shrink-0 sm:w-auto">
+        <button
+          id="au-cookie-accept"
+          class="w-full rounded-lg bg-[var(--am-primary-600,#0284C7)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--am-primary-700,#0369A1)] active:scale-95 sm:w-auto"
+        >
+          Aceptar
+        </button>
+      </div>
     </div>
   </div>
 </div>

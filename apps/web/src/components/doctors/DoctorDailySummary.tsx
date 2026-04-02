@@ -7,6 +7,7 @@ import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useDoctorStats } from '@/hooks/doctors/useDoctorStats'
 import { getCallWindowStatus } from '@/lib/calls/lib/call-error-messages'
 import { resolvePatientNameMap } from '@/lib/doctors/services/appointment.service'
+import { selectDoctorDailyAgendaView } from '@/lib/doctors/queries/doctor-appointments.selectors'
 import { StartCallButton } from '@/components/doctors/calls/StartCallButton'
 import type { Appointment } from '@autamedica/types'
 
@@ -36,41 +37,25 @@ function formatTime(iso: string): string {
   }).format(d)
 }
 
-function isSameDay(iso: string, ref: Date): boolean {
-  const d = new Date(iso)
-  return (
-    d.getFullYear() === ref.getFullYear() &&
-    d.getMonth() === ref.getMonth() &&
-    d.getDate() === ref.getDate()
-  )
-}
-
 interface DoctorDailySummaryProps {
-  onActivateCamera: () => void
   isBlocked?: boolean
 }
 
-export function DoctorDailySummary({ onActivateCamera, isBlocked }: DoctorDailySummaryProps) {
+export function DoctorDailySummary({
+  isBlocked,
+}: DoctorDailySummaryProps) {
   const { user } = useAuthenticatedUser()
-  const { appointments, loading: apptLoading } = useDoctorAppointments(user?.doctorProfileId)
+  const { appointments, loading: apptLoading } = useDoctorAppointments()
   const { stats, loading: statsLoading } = useDoctorStats(user?.doctorProfileId)
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
 
   const now = useMemo(() => new Date(), [])
-
-  const todayAppointments = useMemo(() => {
-    if (!appointments.length) return []
-    return appointments
-      .filter((a) => isSameDay(a.start_time, now) && a.status !== 'cancelled')
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-  }, [appointments, now])
-
-  const upcomingToday = useMemo(() => {
-    const nowMs = now.getTime()
-    return todayAppointments
-      .filter((a) => new Date(a.start_time).getTime() >= nowMs - 2 * 60 * 60 * 1000)
-      .slice(0, 3)
-  }, [todayAppointments, now])
+  const agendaView = useMemo(
+    () => selectDoctorDailyAgendaView(appointments, now),
+    [appointments, now],
+  )
+  const todayAppointments = agendaView.todayAppointments
+  const upcomingToday = agendaView.upcomingToday
 
   // Resolve patient names in batch
   useEffect(() => {
@@ -85,19 +70,6 @@ export function DoctorDailySummary({ onActivateCamera, isBlocked }: DoctorDailyS
 
     void resolvePatientNameMap(ids).then(setPatientNames)
   }, [todayAppointments])
-
-  const weekCount = useMemo(() => {
-    if (!appointments.length) return 0
-    const startOfWeek = new Date(now)
-    startOfWeek.setDate(now.getDate() - now.getDay())
-    startOfWeek.setHours(0, 0, 0, 0)
-    const endOfWeek = new Date(startOfWeek)
-    endOfWeek.setDate(startOfWeek.getDate() + 7)
-    return appointments.filter((a) => {
-      const t = new Date(a.start_time).getTime()
-      return t >= startOfWeek.getTime() && t < endOfWeek.getTime() && a.status !== 'cancelled'
-    }).length
-  }, [appointments, now])
 
   const firstName = user?.profile?.firstName ?? user?.profile?.fullName?.split(' ')[0] ?? 'Doctor'
   const loading = apptLoading || statsLoading
@@ -122,7 +94,7 @@ export function DoctorDailySummary({ onActivateCamera, isBlocked }: DoctorDailyS
         <StatCard
           icon={<Clock className="h-4 w-4 text-violet-600" />}
           label="Semana"
-          value={loading ? '...' : String(weekCount)}
+          value={loading ? '...' : String(agendaView.weekCount)}
         />
         <StatCard
           icon={<Users className="h-4 w-4 text-emerald-600" />}
@@ -167,14 +139,11 @@ export function DoctorDailySummary({ onActivateCamera, isBlocked }: DoctorDailyS
           Ver agenda completa
           <ChevronRight className="h-4 w-4" />
         </a>
-        <button
-          type="button"
-          onClick={onActivateCamera}
-          disabled={isBlocked}
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-        >
-          Probar camara sin transmitir
-        </button>
+        {isBlocked && (
+          <p className="text-center text-xs text-slate-500">
+            Completá la configuración pendiente para habilitar acciones clínicas.
+          </p>
+        )}
       </div>
     </div>
   )

@@ -1,24 +1,12 @@
 ---
-import Layout from '@/layouts/Layout.astro';
+import CallLayout from '@/layouts/CallLayout.astro';
 import PatientCallPage from '@/components/patients/calls/PatientCallPage';
 
 const { roomId } = Astro.params;
-const title = `Videollamada | AutaMedica`;
+const title = 'Videollamada | AutaMedica';
 const description = 'Videollamada con tu médico';
 ---
 
-<Layout title={title} description={description} robots="noindex, nofollow, noarchive">
-  <main class="page-shell">
-    <PatientCallPage client:load roomId={roomId!} />
-  </main>
-</Layout>
-
-<style>
-  .page-shell {
-    position: fixed;
-    inset: 0;
-    padding: 0;
-    margin: 0;
-    background: #0a0a0a;
-  }
-</style>
+<CallLayout title={title} description={description}>
+  <PatientCallPage client:load roomId={roomId!} />
+</CallLayout>

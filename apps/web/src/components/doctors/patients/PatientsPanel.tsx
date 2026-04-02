@@ -10,75 +10,105 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { useDoctorAppointments } from '@/hooks/doctors/useDoctorAppointments'
-import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
+import { useStartCall } from '@/hooks/doctors/useStartCall'
+import { selectDoctorPatientAppointmentInsights } from '@/lib/doctors/queries/doctor-appointments.selectors'
 import { Calendar, Clock, Video, Users, FileText, RefreshCw, Search, UserCheck, UserPlus } from 'lucide-react'
 import { useState, useMemo } from 'react'
-import { startCallBrowserService } from '@/lib/calls/services/start-call.browser'
 import { getDisplayName, getInitials, getAvatarColor } from '@/lib/doctors/lib/utils'
-import { logger } from '@autamedica/shared'
 
 interface PatientsPanelProps {
   doctorUserId?: string
-  onSelectPatient?: (patientId: string) => void
+  onSelectPatient?: (patientId: string, tab?: PatientWorkspaceTab) => void
 }
 
-export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
-  const [searchTerm, setSearchTerm] = useState('')
+type PatientWorkspaceTab = 'patient-info' | 'medical-history'
 
+function PatientCardActions({
+  doctorId,
+  patientId,
+  patientName,
+  appointmentId,
+  onSelectPatient,
+}: {
+  doctorId: string
+  patientId: string
+  patientName: string
+  appointmentId?: string
+  onSelectPatient?: (patientId: string, tab?: PatientWorkspaceTab) => void
+}) {
+  const { startCall, isStarting, error } = useStartCall({
+    doctorId,
+    patientId,
+    ...(appointmentId ? { appointmentId } : {}),
+  })
+
+  return (
+    <>
+      <div className="flex border-t border-muted/50">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            void startCall()
+          }}
+          disabled={isStarting}
+          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-green-600 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Video className="h-3.5 w-3.5" />
+          {isStarting ? 'Llamando...' : 'Iniciar'}
+        </button>
+        <div className="w-px bg-muted/50" />
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelectPatient?.(patientId, 'medical-history')
+          }}
+          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Historial
+        </button>
+        <div className="w-px bg-muted/50" />
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelectPatient?.(patientId, 'patient-info')
+          }}
+          className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-blue-50 hover:text-blue-600"
+        >
+          <Calendar className="h-3.5 w-3.5" />
+          Ficha
+        </button>
+      </div>
+      {error && (
+        <div className="border-t border-red-100 bg-red-50 px-4 py-2 text-[11px] text-red-700">
+          No pudimos iniciar la llamada con {patientName}. Reintentá desde la agenda o la ficha del paciente.
+        </div>
+      )}
+    </>
+  )
+}
+
+export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelProps) {
+  const [searchTerm, setSearchTerm] = useState('')
   const { user } = useAuthenticatedUser()
+
   const { patients, loading, error, refetch } = useRealPatients()
   
-  const { appointments } = useDoctorAppointments(user?.doctorProfileId)
-
-  const startConsultation = async (patientId: string, appointmentId?: string) => {
-    try {
-      const call = await startCallBrowserService.startCall({
-        patientId,
-        appointmentId,
-      });
-
-      refetch();
-      window.location.href = `/doctors/call/${call.roomId}?callId=${call.callId}`;
-    } catch (error) {
-      logger.error('Failed to start consultation', error);
-    }
-  };
-
-  const upcomingAppointmentsCount = useMemo(() => {
-    const now = Date.now()
-    return appointments.filter(a =>
-      (a.status === 'scheduled' || a.status === 'confirmed') &&
-      Date.parse(a.start_time) > now
-    ).length
-  }, [appointments])
-
-  // Map patient_id → next appointment for that patient
-  const nextAppointmentByPatient = useMemo(() => {
-    const now = Date.now()
-    const map = new Map<string, { id: string; start_time: string; type: string | null }>()
-    const future = appointments
-      .filter(a => (a.status === 'scheduled' || a.status === 'confirmed') && Date.parse(a.start_time) > now)
-      .sort((a, b) => Date.parse(a.start_time) - Date.parse(b.start_time))
-    for (const a of future) {
-      if (a.patient_id && !map.has(a.patient_id)) {
-        map.set(a.patient_id, { id: a.id, start_time: a.start_time, type: a.type })
-      }
-    }
-    return map
-  }, [appointments])
-
-  // Count completed appointments per patient
-  const completedByPatient = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const a of appointments) {
-      if (a.status === 'completed' && a.patient_id) {
-        map.set(a.patient_id, (map.get(a.patient_id) ?? 0) + 1)
-      }
-    }
-    return map
-  }, [appointments])
+  const { appointments } = useDoctorAppointments()
+  const resolvedDoctorUserId = doctorUserId ?? user?.doctorProfileId ?? user?.id ?? ''
+  const appointmentInsights = useMemo(
+    () => selectDoctorPatientAppointmentInsights(appointments),
+    [appointments],
+  )
+  const upcomingAppointmentsCount = appointmentInsights.upcomingAppointmentsCount
+  const nextAppointmentByPatient = appointmentInsights.nextAppointmentByPatient
+  const completedByPatient = appointmentInsights.completedByPatient
 
   const patientsWithHistoryCount = useMemo(() => {
     return patients.filter(p => p.profile?.first_name && p.profile?.last_name).length
@@ -211,8 +241,8 @@ export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
                 role="button"
                 tabIndex={0}
                 className="group cursor-pointer"
-                onClick={() => onSelectPatient?.(patient.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter') onSelectPatient?.(patient.id) }}
+                onClick={() => onSelectPatient?.(patient.id, 'patient-info')}
+                onKeyDown={(e) => { if (e.key === 'Enter') onSelectPatient?.(patient.id, 'patient-info') }}
               >
               <Card className="overflow-hidden transition-all duration-200 group-hover:shadow-md group-hover:-translate-y-0.5 group-hover:border-primary/30">
                 <CardContent className="p-0">
@@ -270,36 +300,13 @@ export function PatientsPanel({ onSelectPatient }: PatientsPanelProps) {
                     )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex border-t border-muted/50">
-                    {/* Start Consultation button - always available */}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); startConsultation(patient.id, nextAppt?.id) }}
-                        className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-green-600 hover:bg-green-50 transition-colors"
-                      >
-                        <Video className="h-3.5 w-3.5" />
-                        Iniciar
-                      </button>
-                    <div className="w-px bg-muted/50" />
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onSelectPatient?.(patient.id) }}
-                      className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      Historial
-                    </button>
-                    <div className="w-px bg-muted/50" />
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onSelectPatient?.(patient.id) }}
-                      className="au-focus-ring flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-medium text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                    >
-                      <Calendar className="h-3.5 w-3.5" />
-                      Turno
-                    </button>
-                  </div>
+                  <PatientCardActions
+                    doctorId={resolvedDoctorUserId}
+                    patientId={patient.id}
+                    patientName={name}
+                    appointmentId={nextAppt?.id}
+                    onSelectPatient={onSelectPatient}
+                  />
                 </CardContent>
               </Card>
               </div>

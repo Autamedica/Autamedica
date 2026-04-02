@@ -5,6 +5,78 @@ import { logger } from '@autamedica/shared'
 import { jsonOk, badRequest, internalError } from '@/lib/api-helpers'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 
+const DEFAULT_AVAILABILITY_PRESET = [
+  { day_of_week: 1, start_time: '09:00', end_time: '17:00' },
+  { day_of_week: 2, start_time: '09:00', end_time: '17:00' },
+  { day_of_week: 3, start_time: '09:00', end_time: '17:00' },
+  { day_of_week: 4, start_time: '09:00', end_time: '17:00' },
+  { day_of_week: 5, start_time: '09:00', end_time: '17:00' },
+] as const
+
+type AvailabilityInsert = Database['public']['Tables']['doctor_availability']['Insert']
+type ScheduleInput = Record<
+  string,
+  {
+    isAvailable?: boolean
+    timeSlots?: Array<{
+      startTime?: string
+      endTime?: string
+      slotDurationMinutes?: number
+    }>
+  }
+>
+
+function buildAvailabilityRows(
+  doctorId: string,
+  schedule: unknown,
+): AvailabilityInsert[] {
+  if (!schedule || typeof schedule !== 'object') return []
+
+  const dayMap: Record<string, number> = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+  }
+
+  const availabilityRows: AvailabilityInsert[] = []
+  const weeklySchedule = schedule as ScheduleInput
+
+  for (const [dayName, dayConfig] of Object.entries(weeklySchedule)) {
+    const dayOfWeek = dayMap[dayName]
+    if (dayOfWeek === undefined || !dayConfig?.isAvailable) continue
+
+    for (const slot of dayConfig.timeSlots ?? []) {
+      if (!slot.startTime || !slot.endTime) continue
+
+      availabilityRows.push({
+        doctor_id: doctorId,
+        day_of_week: dayOfWeek,
+        start_time: slot.startTime,
+        end_time: slot.endTime,
+        slot_duration: slot.slotDurationMinutes ?? 30,
+        is_active: true,
+      })
+    }
+  }
+
+  return availabilityRows
+}
+
+function buildDefaultAvailabilityRows(doctorId: string): AvailabilityInsert[] {
+  return DEFAULT_AVAILABILITY_PRESET.map((slot) => ({
+    doctor_id: doctorId,
+    day_of_week: slot.day_of_week,
+    start_time: slot.start_time,
+    end_time: slot.end_time,
+    slot_duration: 30,
+    is_active: true,
+  }))
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const auth = await withAuth(request)
@@ -69,39 +141,30 @@ export const POST: APIRoute = async ({ request }) => {
 
     const doctorId = (data as { id: string }).id
 
-    // Write schedule to doctor_availability table (replaces deprecated doctors.schedule JSONB)
-    if (schedule && typeof schedule === 'object') {
-      const dayMap: Record<string, number> = {
-        sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-        thursday: 4, friday: 5, saturday: 6,
+    const availabilityRows = buildAvailabilityRows(doctorId, schedule)
+
+    if (availabilityRows.length > 0) {
+      await admin.from('doctor_availability').delete().eq('doctor_id', doctorId)
+      const { error: availError } = await admin.from('doctor_availability').insert(availabilityRows)
+      if (availError) {
+        logger.error('[API] doctor_availability insert failed', availError)
       }
+    } else if (doctorData.active) {
+      const { count, error: availabilityCountError } = await admin
+        .from('doctor_availability')
+        .select('*', { count: 'exact', head: true })
+        .eq('doctor_id', doctorId)
+        .eq('is_active', true)
 
-      const availabilityRows: Database['public']['Tables']['doctor_availability']['Insert'][] = []
-      const weeklySchedule = schedule as Record<string, { isAvailable?: boolean; timeSlots?: { startTime?: string; endTime?: string; slotDurationMinutes?: number }[] }>
+      if (availabilityCountError) {
+        logger.error('[API] doctor_availability count failed', availabilityCountError)
+      } else if ((count ?? 0) === 0) {
+        const { error: defaultAvailabilityError } = await admin
+          .from('doctor_availability')
+          .insert(buildDefaultAvailabilityRows(doctorId))
 
-      for (const [dayName, dayConfig] of Object.entries(weeklySchedule)) {
-        const dayOfWeek = dayMap[dayName]
-        if (dayOfWeek === undefined || !dayConfig?.isAvailable) continue
-
-        for (const slot of dayConfig.timeSlots ?? []) {
-          if (!slot.startTime || !slot.endTime) continue
-          availabilityRows.push({
-            doctor_id: doctorId,
-            day_of_week: dayOfWeek,
-            start_time: slot.startTime,
-            end_time: slot.endTime,
-            slot_duration: slot.slotDurationMinutes ?? 30,
-            is_active: true,
-          })
-        }
-      }
-
-      if (availabilityRows.length > 0) {
-        // Clear existing availability for this doctor, then insert new
-        await admin.from('doctor_availability').delete().eq('doctor_id', doctorId)
-        const { error: availError } = await admin.from('doctor_availability').insert(availabilityRows)
-        if (availError) {
-          logger.error('[API] doctor_availability insert failed', availError)
+        if (defaultAvailabilityError) {
+          logger.error('[API] doctor_availability default insert failed', defaultAvailabilityError)
         }
       }
     }

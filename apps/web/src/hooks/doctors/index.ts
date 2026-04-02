@@ -19,9 +19,9 @@ export { useDoctorStats } from './useDoctorStats'
 export { useAIAnalysis } from './useAIAnalysis'
 
 // Telemedicine
-export { useActiveSession } from './useActiveSession'
 export { useTelemedicineSignaling } from './useTelemedicineSignaling'
 
 // UI / Layout
 export { useClock } from './useClock'
+export { useDoctorWorkspaceState } from './useDoctorWorkspaceState'
 export { useSidebar } from './useSidebar'

@@ -1,0 +1,16 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DoctorsDashboardPage } from '@/components/doctors/DoctorsDashboardPage';
+
+const patientId = Astro.params.patientId;
+const title = 'Workspace Clínico | AutaMedica';
+const description = 'Workspace clínico del paciente dentro del portal médico';
+const locale = Astro.locals.locale ?? 'es';
+const canonical = patientId
+  ? `https://www.autamedica.com/doctors/patients/${patientId}`
+  : 'https://www.autamedica.com/doctors/dashboard';
+---
+
+<Layout title={title} description={description} canonical={canonical} robots="noindex, nofollow, noarchive">
+  <DoctorsDashboardPage client:load locale={locale} />
+</Layout>
