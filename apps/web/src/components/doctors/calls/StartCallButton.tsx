@@ -12,6 +12,7 @@ interface StartCallButtonProps {
   disabled?: boolean
   callWindowMessage?: string
   className?: string
+  showDescription?: boolean
 }
 
 export function StartCallButton({
@@ -21,7 +22,8 @@ export function StartCallButton({
   appointmentId,
   disabled = false,
   callWindowMessage,
-  className = "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+  className = "bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg",
+  showDescription = true
 }: StartCallButtonProps) {
   const { startCall, isStarting, error } = useStartCall({ doctorId, patientId, appointmentId })
   const hasDoctor = doctorId.trim().length > 0
@@ -88,7 +90,7 @@ export function StartCallButton({
         </div>
       )}
 
-      {!error && !disabled && hasDoctor && hasPatient && (
+      {showDescription && !error && !disabled && hasDoctor && hasPatient && (
         <p className="text-xs text-stone-500">
           El paciente recibirá una llamada entrante para atender y entrar a la videoconsulta.
         </p>
