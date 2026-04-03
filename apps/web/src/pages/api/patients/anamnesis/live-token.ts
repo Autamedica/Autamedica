@@ -50,6 +50,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 interface AstroLocals {
   session?: { user?: { id?: string } } | null
   supabase?: unknown
+  runtime?: { env?: Record<string, unknown> }
 }
 
 interface LiveTokenRequestBody {
@@ -95,6 +96,7 @@ async function issueLiveToken(request: Request, locals?: AstroLocals) {
     guidanceQuestions: body.guidanceQuestions,
     coverageGaps: body.coverageGaps,
     coverageSummary: body.coverageSummary,
+    runtimeEnv: locals?.runtime?.env,
   })
 
   // Return WebSocket URL to the signaling worker's Gemini Live proxy.

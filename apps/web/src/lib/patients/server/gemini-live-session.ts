@@ -26,6 +26,7 @@ interface BuildGeminiLiveSessionConfigInput {
   guidanceQuestions?: string[];
   coverageGaps?: string[];
   coverageSummary?: string;
+  runtimeEnv?: Record<string, unknown> | null;
 }
 
 function sanitizeList(values?: string[]): string[] {
@@ -69,8 +70,9 @@ function calculateAge(birthDate: string | null | undefined): number | null {
 async function fetchPatientContext(
   userId: string,
   patientId: string,
+  runtimeEnv?: Record<string, unknown> | null,
 ): Promise<GeminiLivePatientContext> {
-  const admin = createAstroAdminClient();
+  const admin = createAstroAdminClient(runtimeEnv);
 
   const [profileRes, patientRes, anamnesisRes] = await Promise.all([
     admin
@@ -116,7 +118,7 @@ export async function buildGeminiLiveSessionConfig(
   const guidanceQuestions = sanitizeList(input.guidanceQuestions);
   const coverageGaps = sanitizeList(input.coverageGaps);
   const coverageSummary = sanitizeSummary(input.coverageSummary);
-  const patient = await fetchPatientContext(input.userId, input.patientId);
+  const patient = await fetchPatientContext(input.userId, input.patientId, input.runtimeEnv);
   const guidedCheckpoint = Boolean(
     input.checkpoint || guidanceQuestions.length > 0 || coverageGaps.length > 0,
   );
