@@ -32,5 +32,5 @@ export function isJoinableTelemedicineAppointment(
 export function getAppointmentStartIso(
   appointment: Pick<TelemedicineLikeAppointment, 'start_time' | 'scheduled_at'>,
 ): string {
-  return appointment.start_time ?? appointment.scheduled_at
+  return appointment.start_time ?? appointment.scheduled_at ?? new Date(0).toISOString()
 }
