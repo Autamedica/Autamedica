@@ -1,6 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 import AppointmentsPage from '@/components/patients/AppointmentsPage';
+import { ErrorBoundary } from '@/components/patients/ErrorBoundary';
 
 const isTelemedicineView = Astro.url.searchParams.get('type') === 'telemedicine';
 const focusAppointmentId = Astro.url.searchParams.get('appointmentId');
@@ -11,9 +12,11 @@ const description = isTelemedicineView
 ---
 
 <Layout title={title} description={description}>
-  <AppointmentsPage
-    client:load
-    mode={isTelemedicineView ? 'telemedicine' : 'all'}
-    focusAppointmentId={focusAppointmentId}
-  />
+  <ErrorBoundary client:load>
+    <AppointmentsPage
+      client:load
+      mode={isTelemedicineView ? 'telemedicine' : 'all'}
+      focusAppointmentId={focusAppointmentId}
+    />
+  </ErrorBoundary>
 </Layout>
