@@ -248,9 +248,6 @@ export function IncomingCallHandler({
     }
 
     let subscription: (() => void) | null = null
-    const pollInterval = window.setInterval(() => {
-      void refreshIncomingCall().catch(() => {})
-    }, 3000)
     const onWindowFocus = () => {
       void refreshIncomingCall().catch(() => {})
     }
@@ -261,7 +258,6 @@ export function IncomingCallHandler({
     })
 
     return () => {
-      window.clearInterval(pollInterval)
       window.removeEventListener('focus', onWindowFocus)
       if (subscription) subscription()
     }

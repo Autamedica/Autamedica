@@ -129,13 +129,15 @@ function matchesFilter(record: TelemedicineDebugRecord, filter?: TelemedicineDeb
 
 function writeConsole(record: TelemedicineDebugRecord): void {
   const message = `[Telemedicine][${record.source}] ${record.message}`
-  const context = {
-    callId: record.callId,
-    roomId: record.roomId,
-    userId: record.userId,
-    userType: record.userType,
-    payload: record.payload,
-  }
+  const context = Object.fromEntries(
+    Object.entries({
+      callId: record.callId,
+      roomId: record.roomId,
+      userId: record.userId,
+      userType: record.userType,
+      payload: record.payload,
+    }).filter(([, value]) => typeof value !== 'undefined')
+  )
 
   switch (record.level) {
     case 'error':
