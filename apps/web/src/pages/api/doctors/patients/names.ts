@@ -4,14 +4,6 @@ import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 import { createAstroAdminClient } from '@/lib/supabase'
 
-interface PatientNameRow {
-  id: string
-  profile: {
-    first_name: string | null
-    last_name: string | null
-  } | null
-}
-
 interface NamesRequestBody {
   patientIds?: string[]
 }
@@ -44,9 +36,10 @@ export const POST: APIRoute = async ({ request }) => {
       .from('patients')
       .select(`
         id,
-        profile:profiles!inner(
+        profile:profiles(
           first_name,
-          last_name
+          last_name,
+          email
         )
       `)
       .in('id', patientIds)
@@ -56,13 +49,24 @@ export const POST: APIRoute = async ({ request }) => {
       return internalError()
     }
 
-    const nameMap = ((data ?? []) as PatientNameRow[]).reduce<Record<string, string>>((acc, row) => {
-      const fullName = [row.profile?.first_name, row.profile?.last_name]
-        .filter(Boolean)
-        .join(' ')
-        .trim()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nameMap = ((data ?? []) as any[]).reduce<Record<string, string>>((acc, row) => {
+      const first = row.profile?.first_name?.trim()
+      const last = row.profile?.last_name?.trim()
+      const fullName = [first, last].filter(Boolean).join(' ').trim()
 
-      acc[row.id] = fullName || 'Paciente'
+      if (fullName) {
+        acc[row.id] = fullName
+      } else if (row.profile?.email) {
+        const email = row.profile.email
+        const [user, domain] = email.split('@')
+        const masked = !domain || user.length <= 2 
+          ? '***@' + (domain || 'unknown') 
+          : `${user.slice(0, 2)}***${user.slice(-2)}@${domain}`
+        acc[row.id] = masked
+      } else {
+        acc[row.id] = 'Paciente'
+      }
       return acc
     }, {})
 
