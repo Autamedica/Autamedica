@@ -34,6 +34,7 @@ function LocalVideoPiP({
 }) {
   const pipVideoRef = useRef<HTMLVideoElement | null>(null)
   const [hasVideo, setHasVideo] = useState(false)
+  const isCompactMode = !isVideoEnabled || !hasVideo
 
   const setRef = useCallback(
     (el: HTMLVideoElement | null) => {
@@ -67,36 +68,75 @@ function LocalVideoPiP({
   }, [client])
 
   return (
-    <div className="absolute bottom-24 right-4 z-10 overflow-hidden rounded-2xl border border-white/15 bg-neutral-900 shadow-[0_8px_32px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.03] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 h-[120px] w-[160px] sm:h-[144px] sm:w-[200px]">
-      {/* Name label */}
-      <div className="absolute left-2 top-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-        {localLabel}
-      </div>
-
+    <div
+      className={`absolute z-10 transition-all hover:scale-[1.03] ${
+        isCompactMode
+          ? 'bottom-4 right-4 max-w-[calc(100vw-2rem)] rounded-full border border-white/15 bg-neutral-900/95 px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 sm:h-[144px] sm:w-[200px] sm:max-w-none sm:overflow-hidden sm:rounded-2xl sm:px-0 sm:py-0'
+          : 'bottom-24 right-4 overflow-hidden rounded-2xl border border-white/15 bg-neutral-900 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 h-[120px] w-[160px] sm:h-[144px] sm:w-[200px]'
+      }`}
+    >
       <video
         ref={setRef}
         autoPlay
         muted
         playsInline
-        className={`h-full w-full object-cover -scale-x-100 transition-opacity duration-300 ${
+        className={`absolute inset-0 h-full w-full object-cover -scale-x-100 transition-opacity duration-300 ${
           hasVideo && isVideoEnabled ? 'opacity-100' : 'opacity-0'
         }`}
       />
 
-      {/* Camera off fallback */}
-      {(!isVideoEnabled || !hasVideo) && (
-        <div className="absolute inset-0 flex items-center justify-center bg-neutral-800">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-700">
-            <VideoOff className="h-5 w-5 text-neutral-400" />
+      {isCompactMode ? (
+        <>
+          <div className="relative z-10 flex items-center gap-2 rounded-full sm:hidden" title={localLabel}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-800">
+              <VideoOff className="h-4 w-4 text-neutral-300" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-white">Tú</p>
+              <p className="text-[10px] leading-none text-white/60">Cámara apagada</p>
+            </div>
+            {!isAudioEnabled && (
+              <div className="ml-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500/90">
+                <MicOff className="h-3 w-3 text-white" />
+              </div>
+            )}
           </div>
-        </div>
-      )}
 
-      {/* Muted mic indicator */}
-      {!isAudioEnabled && (
-        <div className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500/90">
-          <MicOff className="h-3 w-3 text-white" />
-        </div>
+          <div className="relative hidden h-full w-full items-center justify-center sm:flex">
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800">
+                <VideoOff className="h-7 w-7 text-neutral-400" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-white">Tú</p>
+                <p className="mt-1 text-xs text-white/60">Cámara apagada</p>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Name label */}
+          <div className="absolute left-2 top-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+            {localLabel}
+          </div>
+
+          {/* Camera off fallback */}
+          {(!isVideoEnabled || !hasVideo) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-neutral-800">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-700">
+                <VideoOff className="h-5 w-5 text-neutral-400" />
+              </div>
+            </div>
+          )}
+
+          {/* Muted mic indicator */}
+          {!isAudioEnabled && (
+            <div className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500/90">
+              <MicOff className="h-3 w-3 text-white" />
+            </div>
+          )}
+        </>
       )}
     </div>
   )

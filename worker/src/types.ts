@@ -22,6 +22,28 @@ export interface UserMeta {
   userType: string
 }
 
+export type GeminiLiveCheckpoint = 'partial' | 'final'
+export type GeminiLiveSessionMode = 'general' | 'guided_checkpoint'
+
+export interface GeminiLivePatientContext {
+  name: string | null
+  age: number | null
+  completedSections: string[]
+}
+
+export interface GeminiLiveSessionConfig {
+  mode: GeminiLiveSessionMode
+  checkpoint?: GeminiLiveCheckpoint
+  patient: GeminiLivePatientContext
+  guidanceQuestions: string[]
+  coverageGaps: string[]
+  coverageSummary?: string
+  maxModelTurns: number
+}
+
+export type GeminiLiveClientMessage =
+  | { type: 'session_config'; data: GeminiLiveSessionConfig }
+
 /** Worker environment bindings */
 export interface Env {
   SIGNALING_ROOM: DurableObjectNamespace

@@ -49,7 +49,7 @@ export function useRemoteMediaTimeout({
       remoteMediaTimeoutHandledRef.current = true
       setShowAudioOnlySuggestion(true)
       setCallError((current: string | null) => current ?? REMOTE_MEDIA_TIMEOUT_MESSAGE)
-      emitDebug('warn', 'El peer entro a la sala pero el video remoto no estuvo listo a tiempo', {
+      emitDebug('warn', 'El peer entro a la sala pero el video remoto sigue sin aparecer', {
         remoteUsers: remoteUsersSize,
         timeoutMs: REMOTE_MEDIA_TIMEOUT_MS,
       })

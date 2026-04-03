@@ -45,6 +45,13 @@ const PUBLIC_ROUTES = [
   '/api/health',
 ];
 
+// Static showcase pages are prerendered at build time and should bypass
+// request-header-dependent middleware logic entirely.
+const STATIC_BUILD_BYPASS_ROUTES = new Set([
+  '/design-system',
+  '/showcase',
+]);
+
 /** Role → redirect URL. Prod uses subdomains, dev uses ?portal= query param. */
 function getRoleRedirect(role: string): string {
   if (import.meta.env.PROD) {
@@ -158,6 +165,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
+
+  if (STATIC_BUILD_BYPASS_ROUTES.has(normalizePath(pathname))) {
+    return next();
+  }
+
   const portal = detectPortal(requestUrl);
   const authCookieDebug = getAuthCookieDebug(context.request);
   const isDoctorHost = portal === 'doctor';

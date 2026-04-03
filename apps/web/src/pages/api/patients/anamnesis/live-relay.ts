@@ -37,6 +37,33 @@ interface GuidanceContext {
   coverageSummary?: string
 }
 
+function shortenQuestionForVoice(question: string, maxLength = 160): string {
+  const cleaned = question
+    .replace(/^hola[^.?!]*[.?!]\s*/i, '')
+    .replace(/^quiero hacerte una pregunta breve para completar la información\.?\s*/i, '')
+    .replace(/^necesito una aclaración breve\.?\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!cleaned) return ''
+
+  const sentences = cleaned.split(/(?<=[?!.])\s+/).filter(Boolean)
+  const firstSentence = sentences[0] ?? cleaned
+  if (firstSentence.length <= maxLength) return firstSentence
+
+  const candidates = [
+    firstSentence.lastIndexOf('?'),
+    firstSentence.lastIndexOf(','),
+    firstSentence.lastIndexOf(' ', maxLength),
+  ].filter((value) => value >= Math.floor(maxLength * 0.55))
+
+  const cutIndex = candidates.length > 0 ? Math.max(...candidates) : maxLength
+  const shortened = firstSentence.slice(0, cutIndex + 1).trim()
+  return shortened.endsWith('?') || !firstSentence.includes('?')
+    ? shortened
+    : `${shortened}?`
+}
+
 function buildSystemInstruction(
   patientInfo?: { name: string; age: number; completedSections: string[] },
   guidance?: GuidanceContext,
@@ -64,6 +91,9 @@ OBJETIVO:
 REGLAS:
 - Español argentino informal (voseo), tono cálido y profesional.
 - Hablá SIEMPRE en segunda persona.
+- Cada pregunta debe sonar natural al leerla en voz alta.
+- Máximo 18 palabras o 160 caracteres por turno.
+- Evitá preguntas largas con dos ideas encadenadas en la misma frase.
 - No diagnostiques ni sugieras tratamientos.
 - No uses abreviaturas médicas.
 - No uses comillas ni apóstrofes.
@@ -93,6 +123,7 @@ REGLAS:
 - Español argentino informal (voseo), tono cálido
 - Hablá SIEMPRE en segunda persona dirigiéndote al paciente (decí vos tenés, no el paciente tiene)
 - NUNCA hables del paciente en tercera persona (NUNCA digas Eduardo tiene o el paciente refiere)
+- Máximo 18 palabras o 160 caracteres por turno
 - Si el paciente ya respondió algo de un bloque en mensajes anteriores, saltá ese bloque
 - Si detectás bandera roja (dolor de pecho, dificultad respiratoria, pérdida de consciencia, sangrado activo), mencionalo con calma y priorizalo
 - NO diagnostiques ni sugieras tratamientos
@@ -148,6 +179,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // Greeting (no text) — fetch patient name for personalization
   if (!userText) {
+    const openingQuestion = guidanceContext.questions[0]
+      ? shortenQuestionForVoice(guidanceContext.questions[0])
+      : ''
     let greeting = isGuidedClarification
       ? 'Estoy revisando tu historia clínica y quiero hacerte una pregunta breve para completar la información.'
       : 'Hola, soy el asistente de AutaMedica. Contame, ¿qué te trae hoy a la consulta?'
@@ -162,14 +196,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
           .single()
         if (profile?.first_name) {
           greeting = isGuidedClarification
-            ? `Hola ${profile.first_name}, estoy revisando tu historia clínica y quiero hacerte una pregunta breve para completar la información.`
+            ? `Hola ${profile.first_name}. ${openingQuestion || 'Necesito una aclaración breve para completar la información.'}`
             : `Hola ${profile.first_name}, soy el asistente de AutaMedica. Contame, ¿qué te trae hoy a la consulta?`
         }
       } catch { /* use default greeting */ }
     }
 
-    if (isGuidedClarification && guidanceContext.questions[0]) {
-      greeting = `${greeting} ${guidanceContext.questions[0]}`
+    if (isGuidedClarification && !greeting.includes('?') && openingQuestion) {
+      greeting = `Necesito una aclaración breve. ${openingQuestion}`
     }
 
     return json({

@@ -6,7 +6,9 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://www.autamedica.com',
   output: 'server',
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    imageService: 'compile',
+  }),
   integrations: [
     react(),
     tailwind({ applyBaseStyles: false })

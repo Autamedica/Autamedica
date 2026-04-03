@@ -39,6 +39,7 @@ import {
   CallTopBar,
   CallControlsBar,
   ChatPanel,
+  ReconnectingOverlay,
   QualityOverlays,
 } from './components'
 
@@ -110,6 +111,11 @@ export function UnifiedVideoCall({
   /* ── Retry state ── */
   const [retryKey, setRetryKey] = useState(0)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [reconnectionState, setReconnectionState] = useState({
+    isReconnecting: false,
+    attempt: 0,
+    maxAttempts: 0,
+  })
 
   /* ── Refs ── */
   const localVideoRef = useRef<HTMLVideoElement>(null)
@@ -256,6 +262,7 @@ export function UnifiedVideoCall({
         }
 
         if (state === 'failed') {
+          setReconnectionState({ isReconnecting: false, attempt: 0, maxAttempts: 0 })
           const MAX_RETRIES = 5
           const attempt = retryCountRef.current
           if (!manualHangupRef.current && autoStart && attempt < MAX_RETRIES) {
@@ -274,6 +281,7 @@ export function UnifiedVideoCall({
             setCallError('Error de conexión. Verifica tu internet y recarga la página.')
           }
         } else if (state === 'connecting') {
+          setReconnectionState({ isReconnecting: false, attempt: 0, maxAttempts: 0 })
           // Start a connecting timeout — if stuck in "connecting" for too long, force retry
           const CONNECTING_TIMEOUT_MS = 30_000
           connectingTimerRef.current = setTimeout(() => {
@@ -303,9 +311,11 @@ export function UnifiedVideoCall({
           retryCountRef.current = 0
           setIsRetrying(false)
           setCallError(null)
+          setReconnectionState({ isReconnecting: false, attempt: 0, maxAttempts: 0 })
         } else if (state === 'disconnected' || state === 'closed') {
           setIsChatReady(false)
           setHasPeerConnection(false)
+          setReconnectionState({ isReconnecting: false, attempt: 0, maxAttempts: 0 })
         }
       })
     )
@@ -429,6 +439,27 @@ export function UnifiedVideoCall({
         emitDebug('warn', 'Fallback a audio-only', info)
         setIsVideoEnabled(false)
         setShowAudioOnlySuggestion(false)
+      })
+    )
+
+    unsubs.push(
+      webrtcClient.on('reconnecting', (info) => {
+        setReconnectionState({
+          isReconnecting: true,
+          attempt: info.attempt,
+          maxAttempts: info.maxAttempts,
+        })
+        emitDebug('warn', 'Reconectando la llamada WebRTC', info)
+      })
+    )
+
+    unsubs.push(
+      webrtcClient.on('reconnected', (info) => {
+        setReconnectionState((current) => ({
+          ...current,
+          isReconnecting: false,
+        }))
+        emitDebug('info', 'Reconexión WebRTC exitosa', info)
       })
     )
 
@@ -705,6 +736,14 @@ export function UnifiedVideoCall({
             maxRetries={3}
             accentColor={accentColor}
             roomId={roomId}
+          />
+        )}
+
+        {isInRoom && (
+          <ReconnectingOverlay
+            isReconnecting={reconnectionState.isReconnecting}
+            attempt={reconnectionState.attempt}
+            maxAttempts={reconnectionState.maxAttempts}
           />
         )}
 
