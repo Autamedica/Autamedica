@@ -296,21 +296,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     }
   }, [callSession?.waitingRoom.deadlineAt, cancelWaitingCall, doctorWaitingState, showDoctorWaitingRoom])
 
-  useEffect(() => {
-    if (!showDoctorWaitingRoom || doctorWaitingState !== 'waiting') {
-      return
-    }
-
-    void refreshCallSession()
-
-    const intervalId = window.setInterval(() => {
-      void refreshCallSession()
-    }, 2_000)
-
-    return () => {
-      window.clearInterval(intervalId)
-    }
-  }, [doctorWaitingState, refreshCallSession, showDoctorWaitingRoom])
+  // REMOVED AGGRESSIVE POLLING: Realtime updates are handled by `callService.subscribeToCall`.
 
   const saveTranscription = useCallback(async (segments: TranscriptSegment[]) => {
     if (transcriptionSavedRef.current || segments.length === 0) return
