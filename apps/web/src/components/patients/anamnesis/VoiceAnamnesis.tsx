@@ -276,17 +276,13 @@ export function VoiceAnamnesis({
       const ctx = new AudioContext({ sampleRate: 16000 })
       audioCtxRef.current = ctx
       const source = ctx.createMediaStreamSource(stream)
-      const processor = ctx.createScriptProcessor(4096, 1, 1)
+      
+      await ctx.audioWorklet.addModule('/vad-processor.js')
+      const vadNode = new AudioWorkletNode(ctx, 'vad-processor')
 
-      processor.onaudioprocess = (e) => {
-        const inputData = e.inputBuffer.getChannelData(0)
+      vadNode.port.onmessage = (event: MessageEvent<{ rms: number; buffer: Float32Array }>) => {
+        const { rms, buffer: inputData } = event.data
         
-        // Calculate RMS to determine voice activity
-        let sumSquares = 0
-        for (let i = 0; i < inputData.length; i++) {
-          sumSquares += inputData[i] * inputData[i]
-        }
-        const rms = Math.sqrt(sumSquares / inputData.length)
         const isSpeaking = rms > vadThreshold
 
         if (isSpeaking) {
@@ -310,8 +306,9 @@ export function VoiceAnamnesis({
           }))
         }
       }
-      source.connect(processor)
-      processor.connect(ctx.destination)
+      
+      source.connect(vadNode)
+      vadNode.connect(ctx.destination)
 
       // Step 5: Handle Gemini Live responses
       ws.onmessage = (event) => {
@@ -401,45 +398,6 @@ export function VoiceAnamnesis({
     vadThreshold,
   ])
 
-  // ══════════════════════════════════════════════
-  // RELAY MODE (fallback)
-  // ══════════════════════════════════════════════
-  const startRelayMode = useCallback(async () => {
-    setState('processing')
-    try {
-      const result = await fetchApi<RelayResponse>(
-        '/api/patients/anamnesis/live-relay',
-        {
-          method: 'POST',
-          body: {
-            text: '',
-            patientContext: true,
-            checkpoint,
-            guidanceQuestions: guidanceQuestions.current,
-            coverageGaps: coverageGaps.current,
-            coverageSummary,
-          },
-        },
-      )
-      if (!result?.text) throw new Error('No response')
-      setMode('relay')
-      setStarted(true)
-      setRelayOpeningTurnCount(1)
-      setModelTurns(result.modelTurnCount ?? 1)
-      setRelayHistory(result.history ?? [])
-      addEntry('assistant', result.text)
-      speakTTS(result.text, true)
-    } catch (err) {
-      logger.error('[Voice] Relay start failed', err)
-      setError('No se pudo conectar con el asistente')
-      setState('idle')
-    }
-  }, [addEntry, checkpoint, coverageSummary, speakTTS])
-
-  useEffect(() => {
-    startRelayModeRef.current = startRelayMode
-  }, [startRelayMode])
-
   // ── TTS (relay mode only) ──
   const speakTTS = useCallback((text: string, autoListen = true) => {
     if (!('speechSynthesis' in window)) {
@@ -505,46 +463,44 @@ export function VoiceAnamnesis({
     speakNext()
   }, [clearTTSTimeout, stopTTS])
 
-  // ── STT (relay mode only) — auto-sends when patient stops ──
-  const startSTT = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { setState('idle'); return }
-
-    const r = new SR()
-    r.lang = 'es-AR'
-    r.continuous = false
-    r.interimResults = true
-    recognitionRef.current = r
-
-    let finalText = ''
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    r.onresult = (e: any) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalText += e.results[i][0].transcript
-        else interim = e.results[i][0].transcript
-      }
-      setCurrentInput(finalText || interim)
-      currentInputRef.current = finalText || interim
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    r.onerror = (e: any) => {
-      if (e.error !== 'aborted' && e.error !== 'no-speech') logger.warn('[Voice] STT error', e.error)
+  // ══════════════════════════════════════════════
+  // RELAY MODE (fallback)
+  // ══════════════════════════════════════════════
+  const startRelayMode = useCallback(async () => {
+    setState('processing')
+    try {
+      const result = await fetchApi<RelayResponse>(
+        '/api/patients/anamnesis/live-relay',
+        {
+          method: 'POST',
+          body: {
+            text: '',
+            patientContext: true,
+            checkpoint,
+            guidanceQuestions: guidanceQuestions.current,
+            coverageGaps: coverageGaps.current,
+            coverageSummary,
+          },
+        },
+      )
+      if (!result?.text) throw new Error('No response')
+      setMode('relay')
+      setStarted(true)
+      setRelayOpeningTurnCount(1)
+      setModelTurns(result.modelTurnCount ?? 1)
+      setRelayHistory(result.history ?? [])
+      addEntry('assistant', result.text)
+      speakTTS(result.text, true)
+    } catch (err) {
+      logger.error('[Voice] Relay start failed', err)
+      setError('No se pudo conectar con el asistente')
       setState('idle')
     }
-    r.onend = () => {
-      const input = (finalText || currentInputRef.current).trim()
-      if (input) sendRelayMessage(input)
-      else setState('idle')
-    }
-    r.start()
-    setState('listening')
-  }, [sendRelayMessage])
+  }, [addEntry, checkpoint, coverageSummary, speakTTS])
 
   useEffect(() => {
-    startSTTRef.current = startSTT
-  }, [startSTT])
+    startRelayModeRef.current = startRelayMode
+  }, [startRelayMode])
 
   // ── Send to relay ──
   const sendRelayMessage = useCallback(async (text: string) => {
@@ -592,6 +548,47 @@ export function VoiceAnamnesis({
       setState('idle')
     }
   }, [addEntry, checkpoint, coverageSummary, relayHistory, relayOpeningTurnCount, speakTTS, stopTTS])
+
+  // ── STT (relay mode only) — auto-sends when patient stops ──
+  const startSTT = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { setState('idle'); return }
+
+    const r = new SR()
+    r.lang = 'es-AR'
+    r.continuous = false
+    r.interimResults = true
+    recognitionRef.current = r
+
+    let finalText = ''
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    r.onresult = (e: any) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript
+        else interim = e.results[i][0].transcript
+      }
+      setCurrentInput(finalText || interim)
+      currentInputRef.current = finalText || interim
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    r.onerror = (e: any) => {
+      if (e.error !== 'aborted' && e.error !== 'no-speech') logger.warn('[Voice] STT error', e.error)
+      setState('idle')
+    }
+    r.onend = () => {
+      const input = (finalText || currentInputRef.current).trim()
+      if (input) sendRelayMessage(input)
+      else setState('idle')
+    }
+    r.start()
+    setState('listening')
+  }, [sendRelayMessage])
+
+  useEffect(() => {
+    startSTTRef.current = startSTT
+  }, [startSTT])
 
   // ── Finish ──
   const finish = useCallback(() => {

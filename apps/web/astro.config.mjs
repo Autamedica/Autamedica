@@ -20,9 +20,6 @@ export default defineConfig({
     server: {
       forwardConsole: true
     },
-    ssr: {
-      external: ['node:child_process', 'node:crypto', 'node:module', 'node:util']
-    },
     optimizeDeps: {
       include: ['gsap', 'gsap/ScrollTrigger', 'gsap/ScrollToPlugin']
     }

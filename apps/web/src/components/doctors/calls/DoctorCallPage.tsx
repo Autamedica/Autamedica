@@ -390,7 +390,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { userId, userName } = useMemo(() => {
     if (session && typedProfile) {
       return {
-        userId: (session as { user: { id: string } }).user.id,
+        userId: session?.user?.id ?? '',
         userName: typedProfile.firstName && typedProfile.lastName
           ? `${typedProfile.firstName} ${typedProfile.lastName}`
           : 'Doctor'
