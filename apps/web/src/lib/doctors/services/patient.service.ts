@@ -35,6 +35,21 @@ export const patientService = {
   /**
    * Get all patients assigned to a doctor through care team correctly.
    */
+  /**
+   * Update patient profile and identity data.
+   */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async updatePatient(id: UUID, updates: any): Promise<void> {
+    try {
+      await fetchApi(`/api/doctors/patients?id=${id}`, {
+        method: "PATCH",
+        body: updates,
+      })
+    } catch (error) {
+      logger.error("[patientService] updatePatient failed", { id, error })
+      throw error
+    }
+  },
   async getAssignedPatients(doctorUserId: string): Promise<PatientWithProfile[]> {
     try {
       return await fetchApi<PatientWithProfile[]>(`/api/doctors/patients?doctorUserId=${doctorUserId}`)

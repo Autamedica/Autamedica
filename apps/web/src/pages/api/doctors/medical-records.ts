@@ -13,6 +13,7 @@
 import type { APIRoute } from 'astro'
 import { medicalRecordsBackendService } from '@/lib/doctors/services/medical-records.backend'
 import { logger } from '@autamedica/shared'
+import { createSupabaseServerClient } from "@/lib/supabase"
 import { jsonOk, badRequest, internalError } from '@/lib/api-helpers'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 
@@ -21,6 +22,7 @@ export const GET: APIRoute = async ({ request }) => {
   if (!isAuthed(auth)) return auth
 
   try {
+    const supabase = createSupabaseServerClient(request)
     const url = new URL(request.url)
     const patientId = url.searchParams.get('patientId')
 
@@ -36,7 +38,7 @@ export const GET: APIRoute = async ({ request }) => {
       diagnosisContains: url.searchParams.get('diagnosisContains') ?? undefined,
       page: parseInt(url.searchParams.get('page') ?? '0', 10),
       pageSize: parseInt(url.searchParams.get('pageSize') ?? '10', 10),
-    })
+    }, supabase)
 
     return jsonOk(result)
   } catch (err) {

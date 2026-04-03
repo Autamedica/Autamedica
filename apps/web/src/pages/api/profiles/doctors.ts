@@ -102,6 +102,7 @@ export const POST: APIRoute = async ({ request }) => {
       languages,
       active,
     } = body
+    const full_name = typeof body.fullName === "string" ? body.fullName : (typeof body.full_name === "string" ? body.full_name : null)
 
     if (typeof license_number !== 'string' || !license_number.trim()) {
       return badRequest('license_number is required')
@@ -139,6 +140,9 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('doctor_profile_upsert_failed')
     }
 
+    if (full_name) {
+      await admin.from("profiles").update({ full_name: full_name.trim() }).eq("user_id", user.id)
+    }
     const doctorId = (data as { id: string }).id
 
     const availabilityRows = buildAvailabilityRows(doctorId, schedule)

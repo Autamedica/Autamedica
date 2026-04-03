@@ -27,7 +27,7 @@ export interface PatientRow {
     email: string | null
     phone: string | null
     avatar_url: string | null
-    role: string | null
+    role: string | null, address: string | null, emergency_contact_name: string | null, emergency_contact_phone: string | null, allergies: string[] | string | null, chronic_conditions: string[] | string | null, insurance_provider: string | null, insurance_number: string | null
   }
 }
 
@@ -45,7 +45,7 @@ function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()) {
         email,
         phone,
         avatar_url,
-        role
+        role, address, emergency_contact_name, emergency_contact_phone, allergies, chronic_conditions, insurance_provider, insurance_number
       )
     `)
 }
@@ -176,6 +176,27 @@ export function createPatientRepositoryAdapter(
     findById: (id) => patientsRepo.findById(id, client),
     findByUserId: (userId) => patientsRepo.findByUserId(userId, client),
     findByCompany: (companyId) => patientsRepo.findByCompany(companyId, client),
+  async update(
+    id: UUID,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    updates: any,
+    client: PatientsClient = getBrowserSupabaseClient(),
+  ): Promise<void> {
+    const { profile, ...patientData } = updates
+    
+    if (Object.keys(patientData).length > 0) {
+      const { error } = await client.from("patients").update(toSnake(patientData)).eq("id", id)
+      if (error) throw error
+    }
+
+    if (profile) {
+      const { data: p } = await client.from("patients").select("user_id").eq("id", id).single()
+      if (p?.user_id) {
+        const { error } = await client.from("profiles").update(toSnake(profile)).eq("user_id", p.user_id)
+        if (error) throw error
+      }
+    }
+  },
     findByDoctorUserId: (doctorUserId) => patientsRepo.findByDoctorUserId(doctorUserId, client),
   }
 }

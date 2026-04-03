@@ -440,8 +440,8 @@ function MedicalContextPanel() {
       <section>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Accesos a historia</p>
         <div className="space-y-2">
-          <AccessLog doctor="Dr. Garcia" specialty="Cardiologia" views={12} />
-          <AccessLog doctor="Dra. Martinez" specialty="Medicina general" views={8} />
+          <AccessLog doctor="Medico tratante" specialty="Cardiologia" views={12} />
+          <AccessLog doctor="Especialista" specialty="Medicina general" views={8} />
         </div>
         <button className="mt-2 w-full rounded-lg border border-stone-300 bg-stone-100 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-200">
           <Eye className="mr-2 inline-block h-3 w-3" />
@@ -464,7 +464,7 @@ function ChatPanel() {
       </div>
 
       <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
-        <ChatMessage sender="Dr. Garcia" message="Como estuvo tu presion arterial esta semana?" />
+        <ChatMessage sender="Equipo medico" message="Hola, ¿en qué podemos ayudarte hoy?" />
         <ChatMessage sender="Tu" message="Se mantuvo estable, entre 118/78 y 122/81." isOwn />
       </div>
 

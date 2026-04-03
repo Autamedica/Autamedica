@@ -5,6 +5,7 @@
 import { createPatientRepositoryAdapter, patientsRepo } from '@/lib/doctors/lib/repos/patients'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
+import type { SupabaseClient } from "@supabase/supabase-js"
 import type { PatientWithProfile, UUID } from '@autamedica/types'
 import { GetRelevantPatientsUseCase } from '../usecases/GetRelevantPatientsUseCase'
 import { GetAllRelevantPatientsUseCase } from '../usecases/GetAllRelevantPatientsUseCase'
@@ -40,10 +41,10 @@ export const patientBackendService = {
     }
   },
 
-  async getPatientById(id: UUID): Promise<PatientWithProfile | null> {
+  async getPatientById(id: UUID, client?: SupabaseClient): Promise<PatientWithProfile | null> {
     try {
       const adminClient = createAstroAdminClient()
-      return await patientsRepo.findById(id, adminClient)
+      const patient = await patientsRepo.findById(id, adminClient || client); return patient ? { ...patient, ...(patient.profile || {}) } : null
     } catch (error) {
       logger.error('[patientBackendService] getPatientById failed', { id, error })
       throw error

@@ -1,6 +1,7 @@
 /**
  * Backend Service: Medical Records business logic.
  * Orchestrates repository access for API Controllers.
+import type { SupabaseClient } from "@supabase/supabase-js"
  */
 import { medicalRecordsRepo } from '@/lib/doctors/lib/repos/medical-records'
 import { logger } from '@autamedica/shared'
@@ -24,11 +25,11 @@ export interface PaginatedMedicalRecords {
 }
 
 export const medicalRecordsBackendService = {
-  async getByPatient(query: MedicalRecordsQuery): Promise<PaginatedMedicalRecords> {
+  async getByPatient(query: MedicalRecordsQuery, client?: SupabaseClient): Promise<PaginatedMedicalRecords> {
     try {
       const { patientId, type, dateFrom, dateTo, diagnosisContains, page = 0, pageSize = 10 } = query
 
-      let records = await medicalRecordsRepo.findByPatient(patientId, type)
+      let records = await medicalRecordsRepo.findByPatient(patientId, type, client)
 
       if (dateFrom) {
         records = records.filter(r => (r.dateRecorded ?? '') >= dateFrom)

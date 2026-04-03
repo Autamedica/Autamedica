@@ -117,4 +117,19 @@ export const callSessionRepo = {
     const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
     return fullName || undefined
   },
+
+  async acceptCall(supabase: Db, callId: string): Promise<void> {
+    const { error } = await supabase
+      .from('calls')
+      .update({ 
+        status: 'in_progress',
+        accepted_at: new Date().toISOString()
+      })
+      .eq('id', callId)
+
+    if (error) {
+      logger.error('[callSessionRepo] acceptCall failed', error)
+      throw error
+    }
+  }
 }

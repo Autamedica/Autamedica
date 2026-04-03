@@ -8,6 +8,12 @@ interface Profile {
   email?: string | null
 }
 
+function maskEmail(email: string): string {
+  const [user, domain] = email.split("@")
+  if (!domain) return email
+  if (user.length <= 2) return "***@" + domain
+  return `${user.slice(0, 2)}***${user.slice(-2)}@${domain}` 
+}
 export function getDisplayName(profile: Profile | undefined): { name: string; isEmail: boolean } {
   const first = profile?.first_name?.trim()
   const last = profile?.last_name?.trim()
@@ -16,7 +22,7 @@ export function getDisplayName(profile: Profile | undefined): { name: string; is
     return { name: [first, last].filter(Boolean).join(' '), isEmail: false }
   }
 
-  return { name: profile?.email ?? 'Paciente', isEmail: true }
+  return { name: profile?.email ? maskEmail(profile.email) : "Paciente", isEmail: true }
 }
 
 export function getInitials(firstName?: string | null, lastName?: string | null): string {

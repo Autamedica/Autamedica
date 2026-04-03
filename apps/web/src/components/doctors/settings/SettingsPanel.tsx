@@ -341,13 +341,14 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
 
       // Persist profile fields to backend
       const profileChanged =
-        String(settings.specialty) !== resolvedSpecialty ||
+        String(settings.fullName) !== resolvedDoctorName || String(settings.specialty) !== resolvedSpecialty ||
         String(settings.license) !== resolvedLicense
 
       if (profileChanged) {
         try {
           await fetchApi('/api/profiles/doctors', {
             body: {
+              fullName: String(settings.fullName).trim(),
               specialty: String(settings.specialty).trim(),
               license_number: String(settings.license).trim(),
             },

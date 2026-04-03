@@ -2,6 +2,8 @@
  * Repository: medical_records table access.
  * Single source of truth for all DB queries on medical_records.
  */
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@autamedica/types"
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { toCamel, toSnake, logger } from '@autamedica/shared'
 
@@ -49,9 +51,10 @@ export interface MedicalRecordUpdate {
   content?: Record<string, unknown>
 }
 
+type RecordsClient = SupabaseClient<Database>
 export const medicalRecordsRepo = {
-  async findByPatient(patientId: string, type?: string): Promise<UiMedicalRecord[]> {
-    const supabase = getBrowserSupabaseClient()
+  async findByPatient(patientId: string, type?: string, client: RecordsClient = getBrowserSupabaseClient()): Promise<UiMedicalRecord[]> {
+    const supabase = client
     let query = supabase
       .from('medical_records')
       .select('*')
@@ -73,8 +76,8 @@ export const medicalRecordsRepo = {
     return toCamel<UiMedicalRecord[]>(data ?? [])
   },
 
-  async insert(record: MedicalRecordInsert): Promise<void> {
-    const supabase = getBrowserSupabaseClient()
+  async insert(record: MedicalRecordInsert, client: RecordsClient = getBrowserSupabaseClient()): Promise<void> {
+    const supabase = client
     const dbPayload = toSnake(record)
     const { error } = await supabase
       .from('medical_records')
@@ -86,8 +89,8 @@ export const medicalRecordsRepo = {
     }
   },
 
-  async update(id: string, updates: MedicalRecordUpdate): Promise<void> {
-    const supabase = getBrowserSupabaseClient()
+  async update(id: string, updates: MedicalRecordUpdate, client: RecordsClient = getBrowserSupabaseClient()): Promise<void> {
+    const supabase = client
     const dbPayload = toSnake(updates) as Record<string, unknown>
     const { error } = await supabase
       .from('medical_records')
@@ -100,8 +103,8 @@ export const medicalRecordsRepo = {
     }
   },
 
-  async resolveDoctorIdByUser(userId: string): Promise<string | null> {
-    const supabase = getBrowserSupabaseClient()
+  async resolveDoctorIdByUser(userId: string, client: RecordsClient = getBrowserSupabaseClient()): Promise<string | null> {
+    const supabase = client
     const { data, error } = await supabase
       .from('doctors')
       .select('id')

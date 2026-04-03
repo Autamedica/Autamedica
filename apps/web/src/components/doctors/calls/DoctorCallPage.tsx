@@ -337,6 +337,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }, [roomId, transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription])
 
   const handleCallStart = useCallback(() => {
+    void handleAcceptCall()
     callStartTimeRef.current = Date.now()
     // Auto-start transcription silently when call begins
     if (transcriptionState.isSupported && !transcriptionStartedRef.current) {
@@ -354,6 +355,18 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       } catch { /* ignore */ }
     }
   }, [transcriptionState.isSupported, transcriptionActions])
+
+  const handleAcceptCall = useCallback(async () => {
+    if (!callSession?.callId) return
+    try {
+      await fetch(`/api/doctors/calls/${callSession.callId}/accept`, {
+        method: "POST",
+      })
+      logger.info("[DoctorCallPage] Call accepted and session clinical activated")
+    } catch (err) {
+      logger.error("[DoctorCallPage] Failed to accept call", err)
+    }
+  }, [callSession?.callId])
 
   const handlePersistCallStatus = useCallback(
     async (status: CallStatus, reason?: string) => {
