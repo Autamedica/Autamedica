@@ -5,6 +5,7 @@
 import type { APIRoute } from 'astro'
 import { createSupabaseServerClient } from '@/lib/supabase'
 import { patientBackendService } from '@/lib/doctors/services/patient.backend'
+import { patientsRepo } from '@/lib/doctors/lib/repos/patients'
 import { logger } from '@autamedica/shared'
 
 export const GET: APIRoute = async ({ request, cookies, locals }) => {
@@ -58,8 +59,7 @@ export const PATCH: APIRoute = async ({ request, cookies, locals }) => {
     const id = url.searchParams.get("id")
     const body = await request.json()
     if (!id) return new Response(JSON.stringify({ error: "Patient ID required" }), { status: 400 })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (patientsRepo as any).update(id, body, supabase)
+    await patientsRepo.update(id as import('@autamedica/types').UUID, body as Record<string, unknown>, supabase)
     return new Response(null, { status: 204 })
   } catch (err) {
     logger.error("[api/doctors/patients] PATCH error:", err)

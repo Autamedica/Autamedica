@@ -1,8 +1,8 @@
 /**
  * Backend Service: Medical Records business logic.
  * Orchestrates repository access for API Controllers.
-import type { SupabaseClient } from "@supabase/supabase-js"
  */
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { medicalRecordsRepo } from '@/lib/doctors/lib/repos/medical-records'
 import { logger } from '@autamedica/shared'
 import type { UiMedicalRecord } from '@/lib/doctors/lib/repos/medical-records'

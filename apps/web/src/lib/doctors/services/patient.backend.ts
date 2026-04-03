@@ -14,9 +14,9 @@ export const patientBackendService = {
   /**
    * Resolve all active patients in the platform using relevance use case.
    */
-  async getActivePatients(): Promise<PatientWithProfile[]> {
+  async getActivePatients(client?: SupabaseClient): Promise<PatientWithProfile[]> {
     try {
-      const adminClient = createAstroAdminClient()
+      const adminClient = client ?? createAstroAdminClient()
       const repo = createPatientRepositoryAdapter(adminClient)
       const useCase = new GetAllRelevantPatientsUseCase(repo)
       return await useCase.execute(adminClient)
@@ -29,9 +29,9 @@ export const patientBackendService = {
   /**
    * Resolve patients assigned to a doctor using the relevance use case.
    */
-  async getAssignedPatients(doctorUserId: string): Promise<PatientWithProfile[]> {
+  async getAssignedPatients(doctorUserId: string, client?: SupabaseClient): Promise<PatientWithProfile[]> {
     try {
-      const adminClient = createAstroAdminClient()
+      const adminClient = client ?? createAstroAdminClient()
       const repo = createPatientRepositoryAdapter(adminClient)
       const useCase = new GetRelevantPatientsUseCase(repo)
       return await useCase.execute(doctorUserId, adminClient)

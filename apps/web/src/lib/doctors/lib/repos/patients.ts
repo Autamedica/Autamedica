@@ -4,7 +4,7 @@
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import type { Database } from '@autamedica/types'
-import { toCamel, logger } from '@autamedica/shared'
+import { toCamel, toSnake, logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PatientWithProfile, UUID, IPatientRepository } from '@autamedica/types'
 
@@ -160,7 +160,28 @@ export const patientsRepo = {
     }
 
     return toCamel<PatientWithProfile[]>(patients ?? [])
-  }
+  },
+
+  async update(
+    id: UUID,
+    updates: Record<string, unknown>,
+    client: PatientsClient = getBrowserSupabaseClient(),
+  ): Promise<void> {
+    const { profile, ...patientData } = updates
+
+    if (Object.keys(patientData).length > 0) {
+      const { error } = await client.from('patients').update(toSnake(patientData) as never).eq('id', id)
+      if (error) throw error
+    }
+
+    if (profile) {
+      const { data: p } = await client.from('patients').select('user_id').eq('id', id).single()
+      if (p?.user_id) {
+        const { error } = await client.from('profiles').update(toSnake(profile) as never).eq('user_id', p.user_id)
+        if (error) throw error
+      }
+    }
+  },
 }
 
 /**
@@ -176,27 +197,6 @@ export function createPatientRepositoryAdapter(
     findById: (id) => patientsRepo.findById(id, client),
     findByUserId: (userId) => patientsRepo.findByUserId(userId, client),
     findByCompany: (companyId) => patientsRepo.findByCompany(companyId, client),
-  async update(
-    id: UUID,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updates: any,
-    client: PatientsClient = getBrowserSupabaseClient(),
-  ): Promise<void> {
-    const { profile, ...patientData } = updates
-    
-    if (Object.keys(patientData).length > 0) {
-      const { error } = await client.from("patients").update(toSnake(patientData)).eq("id", id)
-      if (error) throw error
-    }
-
-    if (profile) {
-      const { data: p } = await client.from("patients").select("user_id").eq("id", id).single()
-      if (p?.user_id) {
-        const { error } = await client.from("profiles").update(toSnake(profile)).eq("user_id", p.user_id)
-        if (error) throw error
-      }
-    }
-  },
     findByDoctorUserId: (doctorUserId) => patientsRepo.findByDoctorUserId(doctorUserId, client),
   }
 }

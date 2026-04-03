@@ -141,7 +141,10 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (full_name) {
-      await admin.from("profiles").update({ full_name: full_name.trim() }).eq("user_id", user.id)
+      const nameParts = full_name.trim().split(/\s+/)
+      const first_name_val = nameParts[0] ?? null
+      const last_name_val = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null
+      await admin.from('profiles').update({ first_name: first_name_val, last_name: last_name_val }).eq('user_id', user.id)
     }
     const doctorId = (data as { id: string }).id
 

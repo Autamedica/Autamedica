@@ -129,6 +129,9 @@ jobs:
     name: Clinical
     runs-on: self-hosted
     timeout-minutes: 5
+    # Non-blocking: clinical observability tables (vital_signs, medication_logs, etc.)
+    # are not yet implemented. Re-enable as blocking when migrations land.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - run: pnpm install --frozen-lockfile

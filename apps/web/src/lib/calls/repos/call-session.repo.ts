@@ -121,8 +121,8 @@ export const callSessionRepo = {
   async acceptCall(supabase: Db, callId: string): Promise<void> {
     const { error } = await supabase
       .from('calls')
-      .update({ 
-        status: 'in_progress',
+      .update({
+        status: 'accepted',
         accepted_at: new Date().toISOString()
       })
       .eq('id', callId)
