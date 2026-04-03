@@ -66,14 +66,14 @@ export function QualityOverlays({
           <div className="flex items-center gap-3 rounded-xl border border-amber-400/15 bg-neutral-900/95 px-4 py-3 text-sm shadow-xl backdrop-blur-xl">
             <WifiOff className="h-5 w-5 shrink-0 text-amber-400" />
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-white">Conexión inestable</p>
-              <p className="mt-0.5 text-xs text-slate-400">Solo audio puede mejorar la experiencia</p>
+              <p className="font-medium text-white">La red está inestable</p>
+              <p className="mt-0.5 text-xs text-slate-400">Seguimos por audio mientras el video se estabiliza</p>
             </div>
             <button
               onClick={onSwitchAudioOnly}
               className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition-colors"
             >
-              Solo audio
+              Seguir con audio
             </button>
             <button
               onClick={onDismissSuggestion}
@@ -92,7 +92,7 @@ export function QualityOverlays({
             qualityLevel === 'poor' ? 'text-red-400' : 'text-amber-400'
           }`}>
             <WifiOff className="h-3 w-3" />
-            Conexión {qualityLevel === 'poor' ? 'débil' : 'regular'}
+            Red {qualityLevel === 'poor' ? 'débil' : 'regular'}
           </div>
         </div>
       )}

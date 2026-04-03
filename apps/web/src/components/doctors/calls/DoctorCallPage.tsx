@@ -10,6 +10,7 @@ import type { UserProfile } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
+import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 import { cancelCallBrowserService } from '@/lib/calls/services/cancel-call.browser'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
 import { ConsultationContextPanel } from './ConsultationContextPanel'
@@ -392,7 +393,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         userId: (session as { user: { id: string } }).user.id,
         userName: typedProfile.firstName && typedProfile.lastName
           ? `${typedProfile.firstName} ${typedProfile.lastName}`
-          : typedProfile?.email || 'Doctor'
+          : 'Doctor'
       }
     }
 
@@ -403,23 +404,35 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }, [session, typedProfile, roomId])
 
   if (callSessionError) {
+    const errorInfo = translateCallError(callSessionError)
     return (
-      <div className="min-h-screen bg-[#101d32] flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
-          <h1 className="text-xl font-semibold text-white">No pudimos preparar la videollamada</h1>
-          <p className="mt-3 text-sm text-slate-300">{callSessionError}</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#101d32] px-4">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
+            Telemedicina profesional
+          </p>
+          <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20">
+            <svg className="h-7 w-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-white">{errorInfo.title}</h1>
+          <p className="mt-3 text-sm text-slate-300">{errorInfo.description}</p>
+          {errorInfo.retryHint && (
+            <p className="mt-2 text-sm text-amber-300">{errorInfo.retryHint}</p>
+          )}
           <div className="mt-6 flex flex-col gap-3">
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
+              className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400"
             >
               Reintentar
             </button>
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
-              className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/5"
             >
               Volver al portal
             </button>
@@ -431,10 +444,16 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   if (loading || !isReady || callSessionLoading || !callSession) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-700">Preparando videollamada...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#101d32] px-4">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
+            Telemedicina profesional
+          </p>
+          <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-cyan-400"></div>
+          <h1 className="text-xl font-semibold text-white">Preparando videollamada...</h1>
+          <p className="mt-3 text-sm text-slate-300">
+            Estamos validando la sala, el contexto clínico y la conexión segura antes de ingresar.
+          </p>
         </div>
       </div>
     )
@@ -443,7 +462,10 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   if (!renderableCallSession) {
     return (
       <div className="min-h-screen bg-[#101d32] flex items-center justify-center px-4">
-        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
+        <div className="max-w-md w-full rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
+            Telemedicina profesional
+          </p>
           <h1 className="text-xl font-semibold text-white">La videollamada quedó inconsistente</h1>
           <p className="mt-3 text-sm text-slate-300">
             Recibimos una sesión parcial. Reintentá para reconstruir la llamada antes de volver a entrar.
@@ -452,14 +474,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             <button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
+              className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400"
             >
               Reintentar
             </button>
             <button
               type="button"
               onClick={() => { window.location.href = '/doctors' }}
-              className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/5"
             >
               Volver al portal
             </button>
