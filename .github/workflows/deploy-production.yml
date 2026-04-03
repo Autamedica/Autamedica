@@ -143,6 +143,10 @@ jobs:
           PUBLIC_DOCTORS_URL: https://doctor.autamedica.com
           PUBLIC_COMPANIES_URL: https://empresa.autamedica.com
           PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
+          PUBLIC_GOOGLE_MAPS_API_KEY: "AIzaSyC0bWOK4BuHFyQYX_mGVjFauBPpPSP3ECQ"
+          CLOUDFLARE_CALLS_TURN_KEY_ID: "baea006acd256b17d3e23160be58705d"
+          CLOUDFLARE_CALLS_TURN_TOKEN: "f0ecadf2bef2cc7c41b00f3588b1677c03c8caa2130e42c13a0cdbb9bd939c6a"
+
 
       - name: Snapshot current deployment
         id: snapshot
