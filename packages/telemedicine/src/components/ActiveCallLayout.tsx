@@ -71,8 +71,8 @@ function LocalVideoPiP({
     <div
       className={`absolute z-10 transition-all hover:scale-[1.03] ${
         isCompactMode
-          ? 'bottom-4 right-4 max-w-[calc(100vw-2rem)] rounded-full border border-white/15 bg-neutral-900/95 px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 sm:h-[144px] sm:w-[200px] sm:max-w-none sm:overflow-hidden sm:rounded-2xl sm:px-0 sm:py-0'
-          : 'bottom-24 right-4 overflow-hidden rounded-2xl border border-white/15 bg-neutral-900 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 h-[120px] w-[160px] sm:h-[144px] sm:w-[200px]'
+          ? 'bottom-4 right-4 max-w-[calc(100vw-2rem)] rounded-full border border-white/10 bg-slate-800/95 px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 sm:h-[144px] sm:w-[200px] sm:max-w-none sm:overflow-hidden sm:rounded-2xl sm:px-0 sm:py-0'
+          : 'bottom-24 right-4 overflow-hidden rounded-2xl border border-white/10 bg-slate-800 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 h-[120px] w-[160px] sm:h-[144px] sm:w-[200px]'
       }`}
     >
       <video
@@ -88,8 +88,8 @@ function LocalVideoPiP({
       {isCompactMode ? (
         <>
           <div className="relative z-10 flex items-center gap-2 rounded-full sm:hidden" title={localLabel}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-800">
-              <VideoOff className="h-4 w-4 text-neutral-300" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700">
+              <VideoOff className="h-4 w-4 text-slate-300" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white">Tú</p>
@@ -104,8 +104,8 @@ function LocalVideoPiP({
 
           <div className="relative hidden h-full w-full items-center justify-center sm:flex">
             <div className="flex flex-col items-center gap-3">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800">
-                <VideoOff className="h-7 w-7 text-neutral-400" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-700">
+                <VideoOff className="h-7 w-7 text-slate-400" />
               </div>
               <div className="text-center">
                 <p className="text-sm font-semibold text-white">Tú</p>
@@ -117,15 +117,15 @@ function LocalVideoPiP({
       ) : (
         <>
           {/* Name label */}
-          <div className="absolute left-2 top-2 z-10 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+          <div className="absolute left-2 top-2 z-10 rounded-md bg-slate-900/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
             {localLabel}
           </div>
 
           {/* Camera off fallback */}
           {(!isVideoEnabled || !hasVideo) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-neutral-800">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-700">
-                <VideoOff className="h-5 w-5 text-neutral-400" />
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-700">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-600">
+                <VideoOff className="h-5 w-5 text-slate-400" />
               </div>
             </div>
           )}
@@ -245,7 +245,7 @@ export function ActiveCallLayout({
     <>
       {firstRemote ? (
         /* ══════ SPEAKER VIEW — remote fullscreen ══════ */
-        <div className="h-full w-full bg-[#0a0a0a]">
+        <div className="h-full w-full bg-slate-950">
           {Array.from(remoteUsers.entries()).map(([remoteUserId, remoteUser]) => {
             const hasTrack = !!(remoteUser.stream?.getVideoTracks().some(t => t.readyState === 'live' && t.enabled))
             const hasVideo = hasTrack && !!renderableIds[remoteUserId]
@@ -278,8 +278,8 @@ export function ActiveCallLayout({
                     <div
                       className={`flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-white shadow-2xl sm:h-32 sm:w-32 sm:text-4xl ${
                         accentColor === 'violet'
-                          ? 'bg-gradient-to-br from-violet-600 to-violet-800'
-                          : 'bg-gradient-to-br from-sky-600 to-sky-800'
+                          ? 'bg-gradient-to-br from-am-primary-600 to-am-primary-800'
+                          : 'bg-gradient-to-br from-am-patient-600 to-am-patient-800'
                       }`}
                     >
                       {initials}
@@ -294,7 +294,7 @@ export function ActiveCallLayout({
                       </div>
                     ) : (
                       <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-                        <div className="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-am-patient-400 animate-pulse" />
                         Conectando video...
                       </div>
                     )}
@@ -303,7 +303,7 @@ export function ActiveCallLayout({
 
                 {/* Remote user name pill (only when video visible) */}
                 {hasVideo && (
-                  <div className="absolute bottom-28 left-4 rounded-lg bg-black/50 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm sm:bottom-32 sm:left-6">
+                  <div className="absolute bottom-28 left-4 rounded-lg bg-slate-900/50 px-3 py-1.5 text-sm font-medium text-white backdrop-blur-sm sm:bottom-32 sm:left-6">
                     {name}
                   </div>
                 )}
@@ -313,18 +313,18 @@ export function ActiveCallLayout({
         </div>
       ) : (
         /* ══════ WAITING STATE — local preview centered ══════ */
-        <div className="relative flex h-full w-full items-center justify-center bg-[#0a0a0a] px-4">
+        <div className="relative flex h-full w-full items-center justify-center bg-slate-950 px-4">
           {/* Background ambient */}
           <div className="absolute inset-0 overflow-hidden">
             <div className={`absolute -left-32 -top-32 h-96 w-96 rounded-full blur-[120px] opacity-20 ${
-              accentColor === 'violet' ? 'bg-violet-600' : 'bg-sky-600'
+              accentColor === 'violet' ? 'bg-am-primary-600' : 'bg-am-patient-600'
             }`} />
             <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-white/5 blur-[120px]" />
           </div>
 
           <div className="relative z-10 w-full max-w-2xl">
             {/* Local video preview */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 shadow-[0_16px_64px_rgba(0,0,0,0.5)]">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-800 shadow-[0_16px_64px_rgba(0,0,0,0.5)]">
               <video
                 ref={(el) => {
                   (localVideoRef as MutableRefObject<HTMLVideoElement | null>).current = el
@@ -342,16 +342,16 @@ export function ActiveCallLayout({
               />
 
               {(!isVideoEnabled || !hasLocalVideo) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 text-white">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-neutral-800">
-                    <VideoOff className="h-8 w-8 text-neutral-500" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-white">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-700">
+                    <VideoOff className="h-8 w-8 text-slate-500" />
                   </div>
                   <p className="mt-4 text-sm text-slate-400">Cámara desactivada</p>
                 </div>
               )}
 
               {/* Name overlay on preview */}
-              <div className="absolute bottom-3 left-3 rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <div className="absolute bottom-3 left-3 rounded-md bg-slate-900/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
                 {localLabel}
               </div>
             </div>
@@ -384,9 +384,9 @@ export function ActiveCallLayout({
 
       {/* ── Screen share overlay ── */}
       {isScreenSharing && screenStream && (
-        <div className="absolute left-4 top-16 z-10 overflow-hidden rounded-xl border border-cyan-400/30 bg-black shadow-xl sm:left-6 sm:top-20 h-[100px] w-[160px] sm:h-[120px] sm:w-[200px]">
+        <div className="absolute left-4 top-16 z-10 overflow-hidden rounded-xl border border-am-doctor-400/30 bg-slate-900 shadow-xl sm:left-6 sm:top-20 h-[100px] w-[160px] sm:h-[120px] sm:w-[200px]">
           <video ref={screenShareRef as React.RefObject<HTMLVideoElement>} autoPlay muted playsInline className="h-full w-full object-contain" />
-          <div className="absolute bottom-0 inset-x-0 flex items-center gap-1 bg-gradient-to-t from-black/80 to-transparent px-2 py-1 text-[10px] font-medium text-cyan-300">
+          <div className="absolute bottom-0 inset-x-0 flex items-center gap-1 bg-gradient-to-t from-slate-900/80 to-transparent px-2 py-1 text-[10px] font-medium text-am-doctor-300">
             <MonitorUp className="h-3 w-3" />
             Compartiendo
           </div>

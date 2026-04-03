@@ -61,8 +61,8 @@ function ControlButton({
     style = 'bg-red-500/90 text-white hover:bg-red-400 shadow-lg shadow-red-500/25'
   } else if (active) {
     style = accent
-      ? 'bg-violet-600 text-white hover:bg-violet-500 ring-1 ring-violet-400/30'
-      : 'bg-cyan-600 text-white hover:bg-cyan-500 ring-1 ring-cyan-400/30'
+      ? 'bg-am-primary-600 text-white hover:bg-am-primary-500 ring-1 ring-am-primary-400/30'
+      : 'bg-am-doctor-600 text-white hover:bg-am-doctor-500 ring-1 ring-am-doctor-400/30'
   } else {
     style = 'bg-white/10 text-white hover:bg-white/[0.18] hover:ring-1 hover:ring-white/20'
   }
@@ -85,12 +85,12 @@ function ControlButton({
       </button>
       {/* Tooltip */}
       <div
-        className={`pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-neutral-800 px-3 py-1.5 text-xs font-medium text-white shadow-xl transition-all duration-150 ${
+        className={`pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white shadow-xl transition-all duration-150 ${
           hovered ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
         }`}
       >
         {label}
-        <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-neutral-800" />
+        <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-700" />
       </div>
     </div>
   )
@@ -120,11 +120,11 @@ export function CallControlsBar({
 
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-20 flex items-end justify-center px-4 pb-5 pt-16 bg-gradient-to-t from-black/70 via-black/25 to-transparent transition-all duration-500 ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex items-end justify-center px-4 pb-5 pt-16 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent transition-all duration-500 ${
         showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
-      <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-neutral-900/80 px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl sm:gap-3 sm:px-5 sm:py-3">
+      <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-slate-800/80 px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl sm:gap-3 sm:px-5 sm:py-3">
         {/* Mic */}
         <ControlButton
           onClick={onToggleAudio}

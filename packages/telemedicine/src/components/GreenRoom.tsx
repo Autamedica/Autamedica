@@ -209,18 +209,18 @@ export function GreenRoom({
   const isUnreachable = preflightResult?.recommendation === 'unreachable'
 
   return (
-    <div className="flex h-full items-center justify-center bg-[#0a0a0a] px-4 py-6 sm:px-6">
+    <div className="flex h-full items-center justify-center bg-slate-950 px-4 py-6 sm:px-6">
       {/* Background ambient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full blur-[150px] opacity-[0.08] ${
-          accentColor === 'violet' ? 'bg-violet-500' : 'bg-sky-500'
+          accentColor === 'violet' ? 'bg-am-primary-500' : 'bg-am-patient-500'
         }`} />
       </div>
 
       <div className="relative z-10 grid w-full max-w-4xl gap-8 lg:grid-cols-[1fr_340px]">
         {/* ── Left: Video preview ── */}
         <div className="flex flex-col">
-          <div className="relative overflow-hidden rounded-2xl bg-neutral-900 shadow-[0_16px_64px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+          <div className="relative overflow-hidden rounded-2xl bg-slate-800 shadow-[0_16px_64px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
             <video
               ref={(el) => {
                 (localVideoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el
@@ -237,7 +237,7 @@ export function GreenRoom({
 
             {/* Loading/no camera overlay */}
             {!warmUpResult && (
-              <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
                 {isWarmingUp ? (
                   <div className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-slate-400" />
@@ -254,7 +254,7 @@ export function GreenRoom({
 
             {/* Name overlay */}
             {warmUpResult && (
-              <div className="absolute bottom-3 left-3 rounded-md bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <div className="absolute bottom-3 left-3 rounded-md bg-slate-900/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
                 {userName || 'Tú'}
               </div>
             )}
@@ -336,8 +336,8 @@ export function GreenRoom({
               disabled={isWarmingUp || isUnreachable}
               className={`w-full rounded-xl px-6 py-4 text-base font-semibold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
                 accentColor === 'violet'
-                  ? 'bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 shadow-violet-600/20'
-                  : 'bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 shadow-sky-600/20'
+                  ? 'bg-gradient-to-r from-am-primary-600 to-am-primary-500 hover:from-violet-500 hover:to-am-primary-400 shadow-am-primary-600/20'
+                  : 'bg-gradient-to-r from-am-patient-600 to-am-patient-500 hover:from-sky-500 hover:to-am-patient-400 shadow-am-patient-600/20'
               }`}
             >
               <span className="flex items-center justify-center gap-2">

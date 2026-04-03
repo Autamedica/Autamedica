@@ -140,7 +140,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   if (callSessionError) {
     const errorInfo = translateCallError(callSessionError)
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#101d32] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
         <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
             Telemedicina paciente
@@ -178,7 +178,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
 
   if (loading || !isReady || callSessionLoading || !callSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#101d32] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
         <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
             Telemedicina paciente
