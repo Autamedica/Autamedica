@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
+import type { Appointment } from '@autamedica/types'
 import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X } from 'lucide-react'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { getDisplayName } from '@/lib/doctors/lib/utils'

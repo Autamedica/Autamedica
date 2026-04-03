@@ -19,6 +19,7 @@ interface UseDoctorAppointmentsResult {
   isClientReady: boolean
   refetch: () => Promise<void>
   createAppointment: (values: DoctorAppointmentFormValues) => Promise<DoctorAppointmentRecord>
+  updateAppointment: (id: string, values: DoctorAppointmentFormValues) => Promise<DoctorAppointmentRecord>
 }
 
 export function useDoctorAppointments(): UseDoctorAppointmentsResult {
@@ -72,6 +73,10 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
       isClientReady,
       refetch,
       createAppointment,
+      updateAppointment: async (id, values) => {
+        logger.info('updating appt', id, values);
+        throw new Error('Not implemented');
+      }
     }),
     [appointments, loading, error, isClientReady, refetch, createAppointment],
   )
