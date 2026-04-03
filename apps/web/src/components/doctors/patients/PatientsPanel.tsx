@@ -115,14 +115,50 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
   }, [patients])
 
   const filteredPatients = useMemo(() => {
-    if (!searchTerm) return patients
-    const s = searchTerm.toLowerCase()
-    return patients.filter((p) => {
-      const pName = `${p.profile?.first_name ?? ''} ${p.profile?.last_name ?? ''}`.toLowerCase()
-      const pEmail = p.profile?.email?.toLowerCase() ?? ''
-      return pName.includes(s) || pEmail.includes(s)
+    let result = patients
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase()
+      result = result.filter((p) => {
+        const pName = `${p.profile?.first_name ?? ''} ${p.profile?.last_name ?? ''}`.toLowerCase()
+        const pEmail = p.profile?.email?.toLowerCase() ?? ''
+        return pName.includes(s) || pEmail.includes(s)
+      })
+    }
+
+    return [...result].sort((a, b) => {
+      const nextA = nextAppointmentByPatient.get(a.id)
+      const nextB = nextAppointmentByPatient.get(b.id)
+
+      if (nextA && nextB) {
+        return new Date(nextA.start_time).getTime() - new Date(nextB.start_time).getTime()
+      }
+      if (nextA) return -1
+      if (nextB) return 1
+
+      const compA = completedByPatient.get(a.id) ?? 0
+      const compB = completedByPatient.get(b.id) ?? 0
+      if (compA !== compB) {
+        return compB - compA
+      }
+
+      const hasNameA = !!(a.profile?.first_name || a.profile?.last_name)
+      const hasNameB = !!(b.profile?.first_name || b.profile?.last_name)
+      if (hasNameA && !hasNameB) return -1
+      if (!hasNameA && hasNameB) return 1
+
+      const nameA = `${a.profile?.first_name ?? ''} ${a.profile?.last_name ?? ''}`.trim() || a.profile?.email || ''
+      const nameB = `${b.profile?.first_name ?? ''} ${b.profile?.last_name ?? ''}`.trim() || b.profile?.email || ''
+      return nameA.localeCompare(nameB)
     })
-  }, [patients, searchTerm])
+  }, [patients, searchTerm, nextAppointmentByPatient, completedByPatient])
+
+  const translateGender = (gender: string) => {
+    const g = gender.toLowerCase()
+    if (g === 'male' || g === 'm') return 'Masculino'
+    if (g === 'female' || g === 'f') return 'Femenino'
+    if (g === 'other') return 'Otro'
+    return gender
+  }
 
   if (loading && patients.length === 0) {
     return (
@@ -260,7 +296,7 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                       )}
                       <div className="flex items-center gap-2 mt-1">
                         {patient.gender && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{patient.gender}</Badge>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{translateGender(patient.gender)}</Badge>
                         )}
                         {patient.date_of_birth && (
                           <span className="text-[10px] text-muted-foreground">
