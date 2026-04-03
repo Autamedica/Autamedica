@@ -105,7 +105,7 @@ export function DoctorDailySummary({
 
       {/* Upcoming appointments */}
       <div className="w-full max-w-lg">
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">Proximas consultas</h3>
+        <h3 className="mb-3 text-sm font-semibold text-slate-700">Próximas consultas</h3>
 
         {loading ? (
           <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-8">
@@ -185,53 +185,64 @@ function AppointmentRow({
     return `Entrar en ${hours}h ${remainMins > 0 ? `${remainMins}m` : ''}`
   }, [windowStatus])
 
+  const isActive = windowStatus.isOpen;
+
   return (
     <div
-      className={`au-interactive flex items-center gap-4 px-5 py-4 transition-colors hover:bg-slate-50 ${
-        isFirst && windowStatus.isOpen ? 'bg-sky-50/50' : ''
+      className={`au-interactive flex flex-col gap-3 px-5 py-5 transition-colors hover:bg-slate-50 ${
+        isActive && isFirst ? 'bg-sky-50/40 border-l-4 border-emerald-500' : 'border-l-4 border-transparent'
       }`}
     >
-      {/* Time + status dot */}
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-sm font-bold text-slate-900">{formatTime(appointment.start_time)}</span>
-        <span
-          className={`h-2.5 w-2.5 rounded-full ${
-            windowStatus.isOpen
-              ? 'bg-emerald-500 shadow-sm shadow-emerald-500/40'
-              : 'border-2 border-slate-300 bg-white'
-          }`}
-        />
-      </div>
+      <div className="flex items-start gap-4">
+        {/* Time + status dot */}
+        <div className="flex flex-col items-center gap-2 pt-0.5 w-14 shrink-0">
+          <span className={`text-sm font-bold ${isActive ? 'text-emerald-700' : 'text-slate-900'}`}>
+            {formatTime(appointment.start_time)}
+          </span>
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${
+              isActive
+                ? 'bg-emerald-500 shadow-sm shadow-emerald-500/40'
+                : 'border-2 border-slate-300 bg-white'
+            }`}
+          />
+        </div>
 
-      {/* Patient info */}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-slate-900">{patientName}</p>
-        <p className="mt-0.5 text-xs text-slate-500">
-          {typeLabel}
-          {isTelemedicine && !windowStatus.isOpen && opensInLabel && (
-            <span className="ml-1.5 text-sky-600">&middot; {opensInLabel}</span>
-          )}
-          {windowStatus.isOpen && isTelemedicine && (
-            <span className="ml-1.5 text-emerald-600">&middot; Disponible ahora</span>
-          )}
-          {!windowStatus.isOpen && !opensInLabel && windowStatus.message && (
-            <span className="ml-1.5 text-slate-400">&middot; {windowStatus.message}</span>
-          )}
-        </p>
+        {/* Patient info */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-semibold text-slate-900">{patientName}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            <span className="font-medium text-slate-600">{typeLabel}</span>
+            <span className="text-slate-300">&middot;</span>
+            {isTelemedicine && !isActive && opensInLabel && (
+              <span className="font-medium text-sky-600">{opensInLabel}</span>
+            )}
+            {isActive && isTelemedicine && (
+              <span className="font-medium text-emerald-600">Disponible ahora</span>
+            )}
+            {!isActive && !opensInLabel && windowStatus.message && (
+              <span className="font-medium text-slate-500">{windowStatus.message}</span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Actions */}
-      <div className="flex shrink-0 items-center gap-2">
-        {isTelemedicine && windowStatus.isOpen && appointment.patient_id && (
+      {isTelemedicine && isActive && appointment.patient_id && (
+        <div className="pl-[72px] pb-1">
           <StartCallButton
             doctorId={doctorId}
             patientId={appointment.patient_id}
             patientName={patientName}
             appointmentId={appointment.id}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-600 active:scale-95"
+            showDescription={false}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow active:scale-95"
           />
-        )}
-      </div>
+          <p className="mt-2.5 text-xs text-slate-500 max-w-sm leading-relaxed">
+            El paciente recibirá una notificación para entrar a la videoconsulta.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
