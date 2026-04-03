@@ -76,3 +76,86 @@ export function sanitizeForTTS(text: string): string {
 
   return result
 }
+
+function splitLongSegment(segment: string, maxLength: number): string[] {
+  if (segment.length <= maxLength) return [segment]
+
+  const commaParts = segment
+    .split(/,(?=\s)/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  if (commaParts.length > 1) {
+    const output: string[] = []
+    let current = ''
+
+    for (const part of commaParts) {
+      const candidate = current ? `${current}, ${part}` : part
+      if (candidate.length <= maxLength) {
+        current = candidate
+      } else {
+        if (current) output.push(current)
+        current = part
+      }
+    }
+
+    if (current) output.push(current)
+    return output.flatMap((part) => splitLongSegment(part, maxLength))
+  }
+
+  const words = segment.split(/\s+/).filter(Boolean)
+  const output: string[] = []
+  let current = ''
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word
+    if (candidate.length <= maxLength) {
+      current = candidate
+      continue
+    }
+
+    if (current) output.push(current)
+    current = word
+  }
+
+  if (current) output.push(current)
+  return output
+}
+
+export function segmentForTTS(text: string, maxLength = 140): string[] {
+  const sanitized = sanitizeForTTS(text)
+  if (!sanitized) return []
+
+  const sentenceLikeParts = sanitized
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  if (sentenceLikeParts.length === 0) {
+    return splitLongSegment(sanitized, maxLength)
+  }
+
+  const segments: string[] = []
+  let current = ''
+
+  for (const part of sentenceLikeParts) {
+    const candidate = current ? `${current} ${part}` : part
+    if (candidate.length <= maxLength) {
+      current = candidate
+      continue
+    }
+
+    if (current) segments.push(current)
+    current = ''
+
+    if (part.length <= maxLength) {
+      current = part
+      continue
+    }
+
+    segments.push(...splitLongSegment(part, maxLength))
+  }
+
+  if (current) segments.push(current)
+  return segments.filter(Boolean)
+}

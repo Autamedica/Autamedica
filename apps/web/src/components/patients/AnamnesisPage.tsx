@@ -140,7 +140,6 @@ export default function AnamnesisPage() {
             onSwitchToText={handleVoiceSwitchToText}
             guidance={guidance}
             checkpoint={pendingCheckpoint ?? undefined}
-            forceRelay={Boolean(pendingCheckpoint)}
           />
         </div>
       </div>

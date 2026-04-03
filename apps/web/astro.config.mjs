@@ -6,7 +6,9 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://www.autamedica.com',
   output: 'server',
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    imageService: 'compile',
+  }),
   integrations: [
     react(),
     tailwind({ applyBaseStyles: false })
@@ -17,6 +19,9 @@ export default defineConfig({
     },
     server: {
       forwardConsole: true
+    },
+    ssr: {
+      external: ['node:child_process', 'node:crypto', 'node:module', 'node:util']
     },
     optimizeDeps: {
       include: ['gsap', 'gsap/ScrollTrigger', 'gsap/ScrollToPlugin']

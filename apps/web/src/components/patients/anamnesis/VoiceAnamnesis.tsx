@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Mic, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
-import { sanitizeForTTS } from '@/lib/patients/utils/tts-sanitizer'
+import { sanitizeForTTS, segmentForTTS } from '@/lib/patients/utils/tts-sanitizer'
 import { logger } from '@autamedica/shared'
 import type { ExtractionGuidance } from '@/lib/patients/services/anamnesis-guidance.service'
 
@@ -29,6 +29,7 @@ interface TranscriptEntry {
 
 type VoiceState = 'idle' | 'connecting' | 'live' | 'listening' | 'processing' | 'speaking' | 'completed'
 type ConnectionMode = 'live' | 'relay'
+type CheckpointMode = 'partial' | 'final'
 
 interface RelayResponse {
   text: string
@@ -39,7 +40,29 @@ interface RelayResponse {
   extractedFields?: Record<string, string>
 }
 
+interface LiveSessionConfig {
+  mode: 'general' | 'guided_checkpoint'
+  checkpoint?: CheckpointMode
+  patient: {
+    name: string | null
+    age: number | null
+    completedSections: string[]
+  }
+  guidanceQuestions: string[]
+  coverageGaps: string[]
+  coverageSummary?: string
+  maxModelTurns: number
+}
+
+interface LiveTokenResponse {
+  wsUrl: string
+  sessionId: string
+  model: string
+  sessionConfig: LiveSessionConfig
+}
+
 const TOTAL_BLOCKS = 8
+const LIVE_COMPLETION_TAG = '[CHECKPOINT_COMPLETO]'
 
 function resample(buf: Float32Array, from: number, to: number): Float32Array {
   if (from === to) return buf
@@ -90,13 +113,24 @@ export function VoiceAnamnesis({
   const [relayOpeningTurnCount, setRelayOpeningTurnCount] = useState(0)
   const [extractedFields, setExtractedFields] = useState<Record<string, string> | null>(null)
   const [summaryText, setSummaryText] = useState('')
+  const [vadThreshold, setVadThreshold] = useState(0.02)
 
-  const guidanceQuestions = guidance?.questions.map((question) => question.text) ?? []
-  const coverageGaps = guidance?.gaps ?? []
+  const vadActiveRef = useRef(false)
+  const lastAudioTimeRef = useRef<number>(0)
+  const activeSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set())
+  const audioQueueTimeRef = useRef<number>(0)
+
+  const guidanceQuestions = useRef<string[]>([])
+  const coverageGaps = useRef<string[]>([])
   const coverageSummary = guidance?.coverageSummary
   const isGuidedCheckpoint = Boolean(
-    checkpoint && (guidanceQuestions.length > 0 || coverageGaps.length > 0),
+    checkpoint && (guidance?.questions?.length || guidance?.gaps?.length),
   )
+
+  useEffect(() => {
+    guidanceQuestions.current = guidance?.questions.map((question) => question.text) ?? []
+    coverageGaps.current = guidance?.gaps ?? []
+  }, [guidance])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null)
@@ -106,20 +140,49 @@ export function VoiceAnamnesis({
   const transcriptRef = useRef<TranscriptEntry[]>([])
   const chatEndRef = useRef<HTMLDivElement>(null)
   const currentInputRef = useRef('')
+  const ttsSessionRef = useRef(0)
+  const ttsTimeoutRef = useRef<number | null>(null)
+  const startSTTRef = useRef<() => void>(() => {})
+  const startRelayModeRef = useRef<() => Promise<void>>(async () => {})
+  const finishRef = useRef<() => void>(() => {})
+  const stateRef = useRef<VoiceState>('idle')
 
   useEffect(() => { transcriptRef.current = transcript }, [transcript])
   useEffect(() => { currentInputRef.current = currentInput }, [currentInput])
+  useEffect(() => { stateRef.current = state }, [state])
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [transcript])
-  useEffect(() => { return () => cleanup() }, [])
+  const clearTTSTimeout = useCallback(() => {
+    if (ttsTimeoutRef.current !== null) {
+      window.clearTimeout(ttsTimeoutRef.current)
+      ttsTimeoutRef.current = null
+    }
+  }, [])
+
+  const stopTTS = useCallback(() => {
+    ttsSessionRef.current += 1
+    clearTTSTimeout()
+    window.speechSynthesis?.cancel()
+  }, [clearTTSTimeout])
+
+  const stopAllAudio = useCallback(() => {
+    activeSourcesRef.current.forEach(src => {
+      try { src.stop() } catch { /* ignore */ }
+    })
+    activeSourcesRef.current.clear()
+    audioQueueTimeRef.current = 0
+  }, [])
 
   const cleanup = useCallback(() => {
     recognitionRef.current?.abort()
     mediaStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop())
+    stopAllAudio()
     audioCtxRef.current?.close().catch(() => {})
     wsRef.current?.close()
-    window.speechSynthesis?.cancel()
+    stopTTS()
     wsRef.current = null; audioCtxRef.current = null; mediaStreamRef.current = null
-  }, [])
+  }, [stopTTS, stopAllAudio])
+
+  useEffect(() => { return () => cleanup() }, [cleanup])
 
   const addEntry = useCallback((role: 'user' | 'assistant', text: string) => {
     setTranscript(prev => [...prev, { role, text, timestamp: Date.now() }])
@@ -133,7 +196,19 @@ export function VoiceAnamnesis({
     const src = ctx.createBufferSource()
     src.buffer = buf
     src.connect(ctx.destination)
-    src.start()
+    
+    // Queue sequentially to avoid overlapping
+    const currentTime = ctx.currentTime
+    if (audioQueueTimeRef.current < currentTime) {
+      audioQueueTimeRef.current = currentTime
+    }
+    src.start(audioQueueTimeRef.current)
+    audioQueueTimeRef.current += buf.duration
+
+    activeSourcesRef.current.add(src)
+    src.onended = () => {
+      activeSourcesRef.current.delete(src)
+    }
   }, [])
 
   // ══════════════════════════════════════════════
@@ -143,8 +218,8 @@ export function VoiceAnamnesis({
     setState('connecting')
     setError(null)
 
-    if (forceRelay || isGuidedCheckpoint) {
-      await startRelayMode()
+    if (forceRelay) {
+      await startRelayModeRef.current()
       return
     }
 
@@ -157,14 +232,23 @@ export function VoiceAnamnesis({
       mediaStreamRef.current = stream
     } catch {
       logger.warn('[Voice] Mic denied, falling back to relay')
-      await startRelayMode()
+      await startRelayModeRef.current()
       return
     }
 
     // Step 2: Get WS URL
     try {
-      const tokenData = await fetchApi<{ wsUrl: string; sessionId: string }>(
+      const tokenData = await fetchApi<LiveTokenResponse>(
         '/api/patients/anamnesis/live-token',
+        {
+          method: 'POST',
+          body: {
+            checkpoint,
+            guidanceQuestions: guidanceQuestions.current,
+            coverageGaps: coverageGaps.current,
+            coverageSummary,
+          },
+        },
       )
       if (!tokenData?.wsUrl) throw new Error('No wsUrl')
 
@@ -175,6 +259,9 @@ export function VoiceAnamnesis({
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => { ws.close(); reject(new Error('timeout')) }, 8000)
 
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ type: 'session_config', data: tokenData.sessionConfig }))
+        }
         ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data)
@@ -192,8 +279,30 @@ export function VoiceAnamnesis({
       const processor = ctx.createScriptProcessor(4096, 1, 1)
 
       processor.onaudioprocess = (e) => {
-        const resampled = resample(e.inputBuffer.getChannelData(0), ctx.sampleRate, 16000)
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
+        const inputData = e.inputBuffer.getChannelData(0)
+        
+        // Calculate RMS to determine voice activity
+        let sumSquares = 0
+        for (let i = 0; i < inputData.length; i++) {
+          sumSquares += inputData[i] * inputData[i]
+        }
+        const rms = Math.sqrt(sumSquares / inputData.length)
+        const isSpeaking = rms > vadThreshold
+
+        if (isSpeaking) {
+          lastAudioTimeRef.current = Date.now()
+          if (!vadActiveRef.current) {
+            vadActiveRef.current = true
+            // Real barge-in: stop assistant when user speaks
+            stopAllAudio()
+          }
+        } else if (vadActiveRef.current && Date.now() - lastAudioTimeRef.current > 1000) {
+          // Keep sending for 1 sec after voice stops
+          vadActiveRef.current = false
+        }
+
+        if (wsRef.current?.readyState === WebSocket.OPEN && (isSpeaking || vadActiveRef.current)) {
+          const resampled = resample(inputData, ctx.sampleRate, 16000)
           wsRef.current.send(JSON.stringify({
             realtimeInput: {
               mediaChunks: [{ data: float32ToBase64Pcm16(resampled), mimeType: 'audio/pcm;rate=16000' }],
@@ -207,13 +316,53 @@ export function VoiceAnamnesis({
       // Step 5: Handle Gemini Live responses
       ws.onmessage = (event) => {
         try {
-          const msg = JSON.parse(event.data)
-          if (msg.type === 'session-end') { finish(); return }
+          const msg = JSON.parse(event.data) as {
+            type?: string
+            data?: unknown
+            serverContent?: {
+              modelTurn?: { parts?: Array<{ inlineData?: { data?: string }; text?: string; functionCall?: { name: string; args?: unknown } }> }
+              inputTranscription?: string
+            }
+          }
+
+          if (msg.type === 'error') {
+            logger.warn('[Voice] Live session error', msg.data)
+            setError('La sesión de voz se interrumpió. Podés pasar a texto.')
+            stateRef.current = 'idle'
+            cleanup()
+            setMode(null)
+            setStarted(false)
+            setState('idle')
+            return
+          }
+          if (msg.type === 'session-end') { finishRef.current(); return }
 
           if (msg.serverContent?.modelTurn?.parts) {
+            setModelTurns((prev) => prev + 1)
             for (const part of msg.serverContent.modelTurn.parts) {
+              if (part.functionCall?.name === 'complete_checkpoint') {
+                const args = part.functionCall.args as Record<string, string> | undefined
+                const summary = args?.summary ?? 'Aclaración registrada.'
+                setSummaryText(summary)
+                stateRef.current = 'completed'
+                cleanup()
+                setState('completed')
+                return
+              }
               if (part.inlineData?.data) playAudio(base64ToFloat32(part.inlineData.data))
-              if (part.text) addEntry('assistant', part.text)
+              if (part.text) {
+                const normalizedText = part.text.replace(LIVE_COMPLETION_TAG, '').trim()
+                if (normalizedText) {
+                  addEntry('assistant', normalizedText)
+                }
+                if (part.text.includes(LIVE_COMPLETION_TAG)) {
+                  setSummaryText(normalizedText)
+                  stateRef.current = 'completed'
+                  cleanup()
+                  setState('completed')
+                  return
+                }
+              }
             }
           }
           if (msg.serverContent?.inputTranscription) {
@@ -221,7 +370,13 @@ export function VoiceAnamnesis({
           }
         } catch { /* ignore */ }
       }
-      ws.onclose = () => { if (state !== 'completed') setState('idle') }
+      ws.onclose = () => {
+        if (stateRef.current !== 'completed') {
+          setMode(null)
+          setStarted(false)
+          setState('idle')
+        }
+      }
 
       setMode('live')
       setStarted(true)
@@ -233,9 +388,18 @@ export function VoiceAnamnesis({
       stream.getTracks().forEach(t => t.stop())
       mediaStreamRef.current = null
       wsRef.current = null
-      await startRelayMode()
+      await startRelayModeRef.current()
     }
-  }, [addEntry, forceRelay, isGuidedCheckpoint, playAudio])
+  }, [
+    addEntry,
+    checkpoint,
+    cleanup,
+    coverageSummary,
+    forceRelay,
+    playAudio,
+    stopAllAudio,
+    vadThreshold,
+  ])
 
   // ══════════════════════════════════════════════
   // RELAY MODE (fallback)
@@ -251,8 +415,8 @@ export function VoiceAnamnesis({
             text: '',
             patientContext: true,
             checkpoint,
-            guidanceQuestions,
-            coverageGaps,
+            guidanceQuestions: guidanceQuestions.current,
+            coverageGaps: coverageGaps.current,
             coverageSummary,
           },
         },
@@ -270,19 +434,76 @@ export function VoiceAnamnesis({
       setError('No se pudo conectar con el asistente')
       setState('idle')
     }
-  }, [addEntry, checkpoint, coverageGaps, coverageSummary, guidanceQuestions])
+  }, [addEntry, checkpoint, coverageSummary, speakTTS])
+
+  useEffect(() => {
+    startRelayModeRef.current = startRelayMode
+  }, [startRelayMode])
 
   // ── TTS (relay mode only) ──
   const speakTTS = useCallback((text: string, autoListen = true) => {
-    if (!('speechSynthesis' in window)) { setState('idle'); return }
+    if (!('speechSynthesis' in window)) {
+      if (autoListen) startSTTRef.current()
+      else setState('idle')
+      return
+    }
+
+    const segments = segmentForTTS(text)
+    if (segments.length === 0) {
+      if (autoListen) startSTTRef.current()
+      else setState('idle')
+      return
+    }
+
+    stopTTS()
     setState('speaking')
-    const u = new SpeechSynthesisUtterance(sanitizeForTTS(text))
-    u.lang = 'es-AR'
-    u.rate = 1.0
-    u.onend = () => { if (autoListen) startSTT(); else setState('idle') }
-    u.onerror = () => setState('idle')
-    window.speechSynthesis.speak(u)
-  }, [])
+    const synthesis = window.speechSynthesis
+    const sessionId = ttsSessionRef.current
+    const queue = [...segments]
+
+    const finishSpeech = () => {
+      clearTTSTimeout()
+      if (autoListen) startSTTRef.current()
+      else setState('idle')
+    }
+
+    const speakNext = () => {
+      if (ttsSessionRef.current !== sessionId) return
+
+      const nextSegment = queue.shift()
+      if (!nextSegment) {
+        finishSpeech()
+        return
+      }
+
+      const utterance = new SpeechSynthesisUtterance(nextSegment)
+      utterance.lang = 'es-AR'
+      utterance.rate = 1.0
+      utterance.onstart = () => {
+        clearTTSTimeout()
+        const watchdogMs = Math.max(6_000, Math.min(18_000, sanitizeForTTS(nextSegment).length * 90))
+        ttsTimeoutRef.current = window.setTimeout(() => {
+          if (ttsSessionRef.current !== sessionId) return
+          logger.warn('[Voice] TTS watchdog fired; falling back to next step', { nextSegment })
+          synthesis.cancel()
+          finishSpeech()
+        }, watchdogMs)
+      }
+      utterance.onend = () => {
+        clearTTSTimeout()
+        window.setTimeout(speakNext, 60)
+      }
+      utterance.onerror = () => {
+        logger.warn('[Voice] TTS utterance failed', { nextSegment })
+        finishSpeech()
+      }
+
+      synthesis.speak(utterance)
+      synthesis.resume()
+    }
+
+    speakNext()
+  }, [clearTTSTimeout, stopTTS])
 
   // ── STT (relay mode only) — auto-sends when patient stops ──
   const startSTT = useCallback(() => {
@@ -319,14 +540,18 @@ export function VoiceAnamnesis({
     }
     r.start()
     setState('listening')
-  }, [])
+  }, [sendRelayMessage])
+
+  useEffect(() => {
+    startSTTRef.current = startSTT
+  }, [startSTT])
 
   // ── Send to relay ──
   const sendRelayMessage = useCallback(async (text: string) => {
     if (!text.trim()) return
     recognitionRef.current?.stop()
     recognitionRef.current = null
-    window.speechSynthesis?.cancel()
+    stopTTS()
 
     addEntry('user', text.trim())
     setCurrentInput('')
@@ -342,8 +567,8 @@ export function VoiceAnamnesis({
             history: relayHistory,
             checkpoint,
             openingPromptSent: relayOpeningTurnCount > 0,
-            guidanceQuestions,
-            coverageGaps,
+            guidanceQuestions: guidanceQuestions.current,
+            coverageGaps: coverageGaps.current,
             coverageSummary,
           },
         },
@@ -366,10 +591,11 @@ export function VoiceAnamnesis({
       setError('No se pudo enviar. Intentá de nuevo.')
       setState('idle')
     }
-  }, [addEntry, checkpoint, coverageGaps, coverageSummary, guidanceQuestions, relayHistory, relayOpeningTurnCount, speakTTS])
+  }, [addEntry, checkpoint, coverageSummary, relayHistory, relayOpeningTurnCount, speakTTS, stopTTS])
 
   // ── Finish ──
   const finish = useCallback(() => {
+    stateRef.current = 'completed'
     cleanup()
     const entries = transcriptRef.current
     onDataExtracted({
@@ -379,6 +605,10 @@ export function VoiceAnamnesis({
       extractedFields: extractedFields ?? undefined,
     })
   }, [cleanup, onDataExtracted, extractedFields])
+
+  useEffect(() => {
+    finishRef.current = finish
+  }, [finish])
 
   const earlyExit = useCallback(() => { cleanup(); onSwitchToText() }, [cleanup, onSwitchToText])
 
@@ -440,8 +670,14 @@ export function VoiceAnamnesis({
       <div className="space-y-4">
         <div className="flex items-center justify-center gap-2 text-xs text-sky-600">
           <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
-          Gemini Live — audio en tiempo real
+          {isGuidedCheckpoint ? 'Gemini Live — aclaración guiada en tiempo real' : 'Gemini Live — audio en tiempo real'}
         </div>
+
+        {isGuidedCheckpoint && (
+          <div className="rounded-xl border border-sky-100 bg-sky-50/70 p-3 text-sm text-sky-900">
+            Te voy a pedir solo las aclaraciones pendientes. Cuando termines, podés guardar lo hablado.
+          </div>
+        )}
 
         {/* Transcript */}
         <div className="space-y-3 max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-4">
@@ -455,15 +691,52 @@ export function VoiceAnamnesis({
           <div ref={chatEndRef} />
         </div>
 
-        {/* Live indicator */}
-        <div className="flex flex-col items-center gap-3 py-4">
+        {/* Live indicator and VAD Slider */}
+        <div className="flex flex-col items-center gap-4 py-4">
           <div className="h-20 w-20 rounded-full bg-sky-500 flex items-center justify-center animate-pulse shadow-lg shadow-sky-200">
             <Mic className="h-10 w-10 text-white" />
           </div>
-          <p className="text-sm text-stone-500">Hablá libremente — Gemini te escucha en tiempo real</p>
+          <p className="text-sm text-stone-500">
+            {isGuidedCheckpoint
+              ? 'Respondé en voz alta. Gemini te escucha y te va guiando con preguntas puntuales.'
+              : 'Hablá libremente — Gemini te escucha en tiempo real'}
+          </p>
+          <div className="w-full max-w-xs space-y-1">
+            <div className="flex justify-between text-xs text-stone-400">
+              <span>Sensibilidad del micrófono</span>
+              <span>{Math.round(vadThreshold * 1000)}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="0.1"
+              step="0.001"
+              value={vadThreshold}
+              onChange={(e) => setVadThreshold(parseFloat(e.target.value))}
+              className="w-full accent-sky-500"
+            />
+            <p className="text-xs text-stone-400 text-center">Ajustá para filtrar ruido ambiente si se interrumpe solo</p>
+          </div>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-3">
+          {isGuidedCheckpoint && transcript.length > 0 && (
+            <button
+              onClick={() => {
+                stateRef.current = 'completed'
+                cleanup()
+                setSummaryText(
+                  transcript
+                    .filter((entry) => entry.role === 'assistant')
+                    .slice(-1)[0]?.text ?? 'Aclaración registrada.',
+                )
+                setState('completed')
+              }}
+              className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700"
+            >
+              Guardar y volver
+            </button>
+          )}
           <button onClick={earlyExit} className="text-xs text-stone-400 hover:text-stone-600">Salir</button>
         </div>
       </div>

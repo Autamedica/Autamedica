@@ -1,16 +1,17 @@
 /**
  * API: Gemini Live session config (NO API key exposed).
- * Returns only the model name and WS endpoint hostname.
- * The actual API key stays server-side.
- *
- * SECURITY: Previously this endpoint returned the full WS URL with
- * the API key as query param — exposing it to any browser DevTools user.
- * Now the browser must use /api/patients/anamnesis/live-relay for audio.
+ * Returns the Worker WebSocket URL plus a server-built session contract.
+ * The browser only forwards this contract to the Worker after WS open.
  *
  * GET /api/patients/anamnesis/live-token
+ * POST /api/patients/anamnesis/live-token
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
+import {
+  buildGeminiLiveSessionConfig,
+  type GeminiLiveCheckpoint,
+} from '@/lib/patients/server/gemini-live-session'
 import { isAnamnesisExtractionConfigured } from '@/lib/patients/server/ai-provider'
 import { logger } from '@autamedica/shared'
 
@@ -39,6 +40,26 @@ if (typeof globalThis !== 'undefined') {
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
+  return issueLiveToken(request, locals)
+}
+
+export const POST: APIRoute = async ({ request, locals }) => {
+  return issueLiveToken(request, locals)
+}
+
+interface AstroLocals {
+  session?: { user?: { id?: string } } | null
+  supabase?: unknown
+}
+
+interface LiveTokenRequestBody {
+  checkpoint?: GeminiLiveCheckpoint
+  guidanceQuestions?: string[]
+  coverageGaps?: string[]
+  coverageSummary?: string
+}
+
+async function issueLiveToken(request: Request, locals?: AstroLocals) {
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
@@ -59,10 +80,26 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   logger.info('[live-token] Session authorized', { patientId: context.patientId })
 
-  // Return WebSocket URL to the signaling worker's Gemini Live proxy
-  // API key is stored as a secret in the worker, never exposed to the browser
+  let body: LiveTokenRequestBody = {}
+  if (request.method === 'POST') {
+    body = await request.json().catch(() => ({})) as LiveTokenRequestBody
+  }
+
+  const sessionConfig = await buildGeminiLiveSessionConfig({
+    userId: context.userId,
+    patientId: context.patientId,
+    checkpoint:
+      body.checkpoint === 'partial' || body.checkpoint === 'final'
+        ? body.checkpoint
+        : undefined,
+    guidanceQuestions: body.guidanceQuestions,
+    coverageGaps: body.coverageGaps,
+    coverageSummary: body.coverageSummary,
+  })
+
+  // Return WebSocket URL to the signaling worker's Gemini Live proxy.
+  // API key stays as a Worker secret. Session config is constructed server-side.
   const sessionId = crypto.randomUUID()
-  // Extract just the origin (host) from PUBLIC_SIGNALING_URL which may include /signaling path
   const rawUrl = import.meta.env.PUBLIC_SIGNALING_URL
     ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
   const signalingOrigin = new URL(rawUrl).origin
@@ -73,6 +110,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       wsUrl: `${signalingOrigin.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
       sessionId,
       model: 'gemini-3.1-flash-live-preview',
+      sessionConfig,
     },
   })
 }
