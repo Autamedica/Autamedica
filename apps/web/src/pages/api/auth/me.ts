@@ -9,8 +9,8 @@ import { logger } from '@autamedica/shared'
 import { jsonOk, internalError } from '@/lib/api-helpers'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 
-export const GET: APIRoute = async ({ request }) => {
-  const auth = await withAuth(request)
+export const GET: APIRoute = async ({ request, locals }) => {
+  const auth = await withAuth(request, locals)
   if (!isAuthed(auth)) return jsonOk(null)
 
   try {

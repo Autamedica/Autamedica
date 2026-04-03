@@ -22,6 +22,7 @@ export interface PatientContext {
 interface AstroLocals {
   session?: { user?: { id?: string } } | null
   supabase?: unknown
+  runtime?: { env?: Record<string, unknown> }
 }
 
 function getRequestAuthDebug(request: Request): {
@@ -58,7 +59,7 @@ export async function resolvePatientContext(
     // 2. Fallback: Parse cookies and create a Supabase client
     // This path has the refresh problem — it works only within the 1-hour access token window.
     if (!userId) {
-      const supabase = createAstroServerClientFromRequest(request)
+      const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
       try {
         const { data: { session } } = await supabase.auth.getSession()
         userId = session?.user?.id ?? null
@@ -88,7 +89,7 @@ export async function resolvePatientContext(
       if (authHeader?.toLowerCase().startsWith('bearer ')) {
         const token = authHeader.slice(7)
         try {
-          const adminClient = createAstroAdminClient()
+          const adminClient = createAstroAdminClient(locals?.runtime?.env)
           const { data: userRes, error: tokenUserError } = await adminClient.auth.getUser(token)
           if (!tokenUserError && userRes.user) {
             userId = userRes.user.id
@@ -108,7 +109,7 @@ export async function resolvePatientContext(
     }
 
     // 4. Resolve Patient ID (Admin bypass to ensure existence and prevent RLS edge cases during initial profile creation)
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals?.runtime?.env)
 
     // Try to find existing patient
     let { data: patient, error: patientError } = await admin

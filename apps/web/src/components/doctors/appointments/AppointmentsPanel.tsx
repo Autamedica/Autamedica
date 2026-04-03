@@ -1,3 +1,4 @@
+import type { Appointment } from '@autamedica/types'
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -18,11 +19,13 @@ interface AppointmentsPanelProps {
 
 export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Element {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
   const [patientNames, setPatientNames] = useState<Record<string, string>>({})
+  
   const { user, loading: userLoading } = useAuthenticatedUser()
-  const resolvedDoctorId = doctorId ?? user?.doctorProfileId
+  const { appointments, loading, error, isClientReady, createAppointment, updateAppointment } = useDoctorAppointments()
 
-  const { appointments, loading, error, isClientReady, createAppointment } = useDoctorAppointments()
+  const resolvedDoctorId = doctorId ?? user?.doctorProfileId
 
   const boardView = useMemo(
     () => selectDoctorAppointmentBoardView(appointments),
@@ -32,25 +35,46 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
 
   const resolveNames = useCallback(async () => {
     if (appointments.length === 0) return
-
     const patientIds = Array.from(new Set(appointments.map(a => a.patient_id).filter(Boolean)))
     if (patientIds.length === 0) return
-
     const nameMap = await resolvePatientNameMap(patientIds)
     setPatientNames(nameMap)
   }, [appointments])
 
-  const handleCreateAppointment = useCallback(
-    async (values: DoctorAppointmentFormValues) => {
-      await createAppointment(values)
-      setIsCreateModalOpen(false)
-    },
-    [createAppointment],
-  )
-
   useEffect(() => {
     void resolveNames()
   }, [resolveNames])
+
+  const handleSaveAppointment = useCallback(
+    async (values: DoctorAppointmentFormValues) => {
+      if (editingAppointment) {
+        await updateAppointment(editingAppointment.id, values)
+      } else {
+        await createAppointment(values)
+      }
+      setIsCreateModalOpen(false)
+      setEditingAppointment(null)
+    },
+    [createAppointment, updateAppointment, editingAppointment],
+  )
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'scheduled': return 'bg-yellow-50 text-yellow-700'
+      case 'confirmed': return 'bg-green-50 text-green-700'
+      case 'cancelled': return 'bg-red-50 text-red-700'
+      case 'completed': return 'bg-am-primary-50 text-am-primary-700'
+      default: return 'bg-am-surface-100 text-am-surface-500'
+    }
+  }
+
+  const getTypeIcon = (type: string | null) => {
+    switch (type) {
+      case 'telemedicine': return <Video className="h-4 w-4" />
+      case 'consultation': return <User className="h-4 w-4" />
+      default: return <Calendar className="h-4 w-4" />
+    }
+  }
 
   if ((!doctorId && userLoading) || !isClientReady || loading) {
     return (
@@ -80,24 +104,6 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
         </div>
       </div>
     )
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'bg-yellow-50 text-yellow-700'
-      case 'confirmed': return 'bg-green-50 text-green-700'
-      case 'cancelled': return 'bg-red-50 text-red-700'
-      case 'completed': return 'bg-am-primary-50 text-am-primary-700'
-      default: return 'bg-am-surface-100 text-am-surface-500'
-    }
-  }
-
-  const getTypeIcon = (type: string | null) => {
-    switch (type) {
-      case 'telemedicine': return <Video className="h-4 w-4" />
-      case 'consultation': return <User className="h-4 w-4" />
-      default: return <Calendar className="h-4 w-4" />
-    }
   }
 
   return (
@@ -135,7 +141,6 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {/* ... Stats ... */}
             <div className="rounded-2xl border border-am-surface-200 bg-white p-4 shadow-am-sm">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-am-primary-50 p-2"><Calendar className="h-5 w-5 text-am-primary-600" /></div>
@@ -224,7 +229,16 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
                           />
                         )
                       })()}
-                      <button type="button" className="rounded-lg bg-white border border-am-surface-300 px-3 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100">Editar</button>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setEditingAppointment(appointment);
+                          setIsCreateModalOpen(true);
+                        }}
+                        className="rounded-lg bg-white border border-am-surface-300 px-3 py-2 text-sm font-medium text-am-surface-700 shadow-am-sm transition hover:bg-am-surface-100"
+                      >
+                        Editar
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -233,10 +247,14 @@ export function AppointmentsPanel({ doctorId }: AppointmentsPanelProps): JSX.Ele
           </div>
         )}
       </div>
-      {isCreateModalOpen && (
+      {(isCreateModalOpen || !!editingAppointment) && (
           <CreateAppointmentModal 
-              onClose={() => setIsCreateModalOpen(false)}
-              onSaved={handleCreateAppointment}
+              onClose={() => {
+                setIsCreateModalOpen(false);
+                setEditingAppointment(null);
+              }}
+              onSaved={handleSaveAppointment}
+              appointment={editingAppointment}
           />
       )}
     </div>

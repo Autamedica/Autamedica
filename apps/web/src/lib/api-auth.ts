@@ -19,10 +19,14 @@ export interface SessionRequest {
  * Authenticate a request via `getUser()` (secure — validates JWT with Supabase Auth).
  * Returns the authenticated user + Supabase client, or an `unauthorized()` Response.
  */
-export async function withAuth(request: Request): Promise<AuthedRequest | Response> {
+export async function withAuth(
+  request: Request,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  locals?: { runtime?: { env?: any } }
+): Promise<AuthedRequest | Response> {
   let supabase: TypedClient
   try {
-    supabase = createAstroServerClientFromRequest(request)
+    supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
   } catch {
     return unauthorized()
   }
@@ -37,10 +41,14 @@ export async function withAuth(request: Request): Promise<AuthedRequest | Respon
  * Authenticate a request via `getSession()` (reads JWT from cookie, no Supabase roundtrip).
  * Returns the session + Supabase client, or an `unauthorized()` Response.
  */
-export async function withSession(request: Request): Promise<SessionRequest | Response> {
+export async function withSession(
+  request: Request,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  locals?: { runtime?: { env?: any } }
+): Promise<SessionRequest | Response> {
   let supabase: TypedClient
   try {
-    supabase = createAstroServerClientFromRequest(request)
+    supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
   } catch {
     return unauthorized()
   }

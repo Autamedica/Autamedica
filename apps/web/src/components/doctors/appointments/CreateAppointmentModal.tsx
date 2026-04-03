@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X } from 'lucide-react'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
 import { getDisplayName } from '@/lib/doctors/lib/utils'
@@ -12,6 +12,7 @@ import type {
 interface CreateAppointmentModalProps {
   onClose: () => void
   onSaved: (values: DoctorAppointmentFormValues) => Promise<void>
+  appointment?: Appointment
 }
 
 const APPOINTMENT_TYPES: Array<{
@@ -46,11 +47,13 @@ const APPOINTMENT_TYPES: Array<{
   },
 ]
 
-function getInitialDate(): string {
+function getInitialDate(iso?: string): string {
+  if (iso) return new Date(iso).toISOString().slice(0, 10)
   return new Date().toISOString().slice(0, 10)
 }
 
-function getInitialTime(): string {
+function getInitialTime(iso?: string): string {
+  if (iso) return new Date(iso).toTimeString().slice(0, 5)
   const nextSlot = new Date()
   nextSlot.setMinutes(Math.ceil(nextSlot.getMinutes() / 30) * 30, 0, 0)
   return nextSlot.toTimeString().slice(0, 5)
@@ -59,20 +62,33 @@ function getInitialTime(): string {
 export function CreateAppointmentModal({
   onClose,
   onSaved,
+  appointment,
 }: CreateAppointmentModalProps) {
+  const isEditing = !!appointment
   const { patients, loading: patientsLoading } = useRealPatients()
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
   const [form, setForm] = useState<DoctorAppointmentFormValues>({
-    patientId: '',
-    date: getInitialDate(),
-    time: getInitialTime(),
-    durationMinutes: 30,
-    type: 'consultation',
-    notes: '',
-    location: '',
+    patientId: appointment?.patient_id ?? '',
+    date: getInitialDate(appointment?.start_time),
+    time: getInitialTime(appointment?.start_time),
+    durationMinutes: appointment?.duration_minutes ?? 30,
+    type: (appointment?.type as DoctorAppointmentType) ?? 'consultation',
+    notes: appointment?.notes ?? '',
+    location: appointment?.location ?? '',
   })
+
+  useEffect(() => {
+    if (isEditing && appointment?.patient_id && !search && patients.length > 0) {
+      const patient = patients.find(p => p.id === appointment.patient_id)
+      if (patient) {
+        const { name } = getDisplayName(patient.profile)
+        setSearch(name)
+      }
+    }
+  }, [isEditing, appointment?.patient_id, patients, search])
 
   const filteredPatients = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -109,7 +125,7 @@ export function CreateAppointmentModal({
     try {
       await onSaved(form)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo programar la cita')
+      setError(err instanceof Error ? err.message : 'No se pudo guardar la cita')
       setSaving(false)
       return
     }
@@ -122,9 +138,13 @@ export function CreateAppointmentModal({
       <div className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-3xl">
         <div className="flex items-start justify-between border-b border-am-surface-200 px-5 py-4 sm:px-6">
           <div>
-            <h2 className="text-xl font-semibold text-am-surface-900">Programar Cita</h2>
+            <h2 className="text-xl font-semibold text-am-surface-900">
+              {isEditing ? 'Editar Cita' : 'Programar Cita'}
+            </h2>
             <p className="mt-1 text-sm text-am-surface-500">
-              Crea un turno nuevo desde el portal medico y dejalo visible en la agenda del paciente.
+              {isEditing 
+                ? 'Actualiza los detalles de la cita medica seleccionada.'
+                : 'Crea un turno nuevo desde el portal medico y dejalo visible en la agenda del paciente.'}
             </p>
           </div>
           <button
@@ -216,7 +236,7 @@ export function CreateAppointmentModal({
                   <span className="text-sm font-medium text-am-surface-700">Fecha</span>
                   <input
                     type="date"
-                    min={getInitialDate()}
+                    min={isEditing ? undefined : getInitialDate()}
                     value={form.date}
                     onChange={(event) => handleChange('date', event.target.value)}
                     className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none transition focus:border-am-primary-400"
@@ -312,7 +332,7 @@ export function CreateAppointmentModal({
               disabled={saving || !form.patientId || !form.date || !form.time}
               className="rounded-2xl bg-am-primary-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-am-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving ? 'Guardando...' : 'Programar cita'}
+              {saving ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Programar cita'}
             </button>
           </div>
         </form>
