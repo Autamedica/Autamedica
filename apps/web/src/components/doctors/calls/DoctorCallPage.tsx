@@ -207,10 +207,14 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         return
       }
 
-      await persistCallStatusBrowserService.persist(callSession.callId, {
-        status,
-        ...(reason ? { reason } : {}),
-      })
+      try {
+        await persistCallStatusBrowserService.persist(callSession.callId, {
+          status,
+          ...(reason ? { reason } : {}),
+        })
+      } catch (err) {
+        logger.warn('[DoctorCallPage] Failed to persist call status', { status, error: err })
+      }
     },
     [callSession]
   )

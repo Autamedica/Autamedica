@@ -5,14 +5,9 @@
  *  - **Presence**: peer discovery (replaces server-side room-state tracking)
  *  - **Broadcast**: SDP offer/answer and ICE candidate relay
  *
- * Flow:
- *  1. Both peers subscribe to channel `signaling:{roomId}`
- *  2. On subscribe, each peer tracks presence with { userId, userType }
- *  3. Presence sync delivers room-state (who's already here)
- *  4. Presence join/leave delivers user-joined/user-left events
- *  5. Broadcast relays offer/answer/ice-candidate between peers
- *
- * This eliminates the need for a separate signaling server.
+ * Messages sent before the channel subscribes are buffered and flushed
+ * automatically once the subscription completes. This prevents lost
+ * ICE candidates and SDP offers during the warmUp race.
  */
 
 import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js'
@@ -58,10 +53,58 @@ export function openSupabaseSignaling(
   }
 
   const channelName = `signaling:${roomId}`
+  const pendingMessages: Array<Record<string, unknown>> = []
+  let subscribed = false
 
   const channel: RealtimeChannel = supabase.channel(channelName, {
     config: { broadcast: { self: false }, presence: { key: userId } },
   })
+
+  function broadcastMessage(message: Record<string, unknown>): void {
+    if (message.type === 'join' || message.type === 'leave') return
+    channel.send({
+      type: 'broadcast',
+      event: 'signaling',
+      payload: { ...message, from: userId },
+    })
+  }
+
+  function flushPending(): void {
+    if (pendingMessages.length === 0) return
+    deps.logger.logInfo('Flushing buffered signaling messages', { count: pendingMessages.length })
+    for (const msg of pendingMessages) {
+      broadcastMessage(msg)
+    }
+    pendingMessages.length = 0
+  }
+
+  // Create handle IMMEDIATELY so callers can send() before subscribe completes.
+  // Messages are buffered and flushed once the channel is ready.
+  currentHandle.handle = {
+    send: (message: Record<string, unknown>) => {
+      if (message.type === 'join' || message.type === 'leave') return
+      if (subscribed) {
+        broadcastMessage(message)
+      } else {
+        pendingMessages.push(message)
+        deps.logger.logInfo('Buffered signaling message (channel not ready)', {
+          type: typeof message.type === 'string' ? message.type : 'unknown',
+          buffered: pendingMessages.length,
+        })
+      }
+    },
+    close: () => {
+      subscribed = false
+      pendingMessages.length = 0
+      channel.untrack()
+      channel.unsubscribe()
+      currentHandle.handle = null
+      deps.logger.logInfo('Supabase signaling channel closed', { channelName })
+      deps.setConnectionState('disconnected')
+      deps.cleanup()
+    },
+    isOpen: () => true, // Always true — messages buffer if not yet subscribed
+  }
 
   return new Promise<void>((resolve, reject) => {
     const t0 = performance.now()
@@ -82,7 +125,6 @@ export function openSupabaseSignaling(
     })
 
     // ── Presence: peer discovery ──
-    // sync fires once after subscribe with the full presence state
     channel.on('presence', { event: 'sync' }, () => {
       const state = channel.presenceState()
       const users: Array<{ id: string; userType: string }> = []
@@ -99,7 +141,6 @@ export function openSupabaseSignaling(
       }
     })
 
-    // join fires when a NEW peer arrives after we're already subscribed
     channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
       if (key === userId) return
       const p = newPresences[0] as { userId?: string; userType?: string } | undefined
@@ -113,7 +154,6 @@ export function openSupabaseSignaling(
       }
     })
 
-    // leave fires when a peer disconnects
     channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
       if (key === userId) return
       const p = leftPresences[0] as { userId?: string } | undefined
@@ -122,8 +162,6 @@ export function openSupabaseSignaling(
         deps.handleMessage({ type: 'user-left', from: p.userId })
       }
     })
-
-    let subscribed = false
 
     channel.subscribe(async (status, err) => {
       deps.logger.logInfo('Supabase signaling channel status', { status, channelName, error: err?.message })
@@ -135,31 +173,8 @@ export function openSupabaseSignaling(
         deps.logger.logInfo('Supabase signaling channel subscribed', { latencyMs, channelName })
         deps.emit('signaling-connected', { latencyMs })
 
-        // Announce our presence so the other peer discovers us
         await channel.track({ userId, userType })
-
-        currentHandle.handle = {
-          send: (message: Record<string, unknown>) => {
-            // 'join' and 'leave' are handled by presence — skip broadcasting them
-            if (message.type === 'join' || message.type === 'leave') return
-            channel.send({
-              type: 'broadcast',
-              event: 'signaling',
-              payload: { ...message, from: userId },
-            })
-          },
-          close: () => {
-            subscribed = false
-            channel.untrack()
-            channel.unsubscribe()
-            currentHandle.handle = null
-            deps.logger.logInfo('Supabase signaling channel closed', { channelName })
-            deps.setConnectionState('disconnected')
-            deps.cleanup()
-          },
-          isOpen: () => subscribed,
-        }
-
+        flushPending()
         resolve()
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         clearTimeout(timeout)
