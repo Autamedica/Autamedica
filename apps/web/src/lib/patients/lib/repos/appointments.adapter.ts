@@ -5,7 +5,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import type { IAppointmentQueryRepository } from '@autamedica/types'
+import type { IAppointmentsRepository } from '@/lib/patients/ports/appointments.port'
 import {
   computeEndTime,
   mapAppointment,
@@ -25,8 +25,9 @@ type Db = SupabaseClient<Database>
 const DOCTOR_SELECT =
   '*, doctor:doctors(id, specialty, user_id, profile:profiles!doctors_user_id_fkey(first_name, last_name))' as const
 
-export const appointmentsRepo = {
-  async listByPatient(supabase: Db, patientId: string): Promise<AppointmentWithDoctor[]> {
+export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository {
+  return {
+  async listByPatient(patientId: string): Promise<AppointmentWithDoctor[]> {
     const { data, error } = await supabase
       .from('appointments')
       .select(DOCTOR_SELECT)
@@ -42,7 +43,6 @@ export const appointmentsRepo = {
   },
 
   async findById(
-    supabase: Db,
     id: string,
     patientId: string,
   ): Promise<AppointmentWithDoctor | null> {
@@ -61,7 +61,7 @@ export const appointmentsRepo = {
     return data ? mapAppointment(data as unknown as DbAppointmentRow) : null
   },
 
-  async doctorExists(supabase: Db, doctorId: string): Promise<boolean> {
+  async doctorExists(doctorId: string): Promise<boolean> {
     const { data, error } = await supabase
       .from('doctors')
       .select('id')
@@ -74,7 +74,6 @@ export const appointmentsRepo = {
   },
 
   async create(
-    supabase: Db,
     patientId: string,
     input: CreateAppointmentInput & { meeting_url?: string | null; location?: string | null },
   ): Promise<AppointmentWithDoctor> {
@@ -147,7 +146,6 @@ export const appointmentsRepo = {
   },
 
   async update(
-    supabase: Db,
     id: string,
     patientId: string,
     patch: {
@@ -204,7 +202,7 @@ export const appointmentsRepo = {
     return mapAppointment(data as unknown as DbAppointmentRow)
   },
 
-  async cancel(supabase: Db, id: string, patientId: string): Promise<AppointmentWithDoctor | null> {
+  async cancel(id: string, patientId: string): Promise<AppointmentWithDoctor | null> {
     const { data, error } = await supabase
       .from('appointments')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() } as never)
@@ -226,13 +224,4 @@ export const appointmentsRepo = {
  * Factory: crea un adapter read-only que implementa IAppointmentQueryRepository
  * scoped a un paciente específico.
  */
-export function createAppointmentQueryAdapter(
-  supabase: Db,
-  patientId: string
-): IAppointmentQueryRepository<AppointmentWithDoctor> {
-  return {
-    listByPatient: () => appointmentsRepo.listByPatient(supabase, patientId),
-    listByDoctor: async () => [],
-    findById: (id) => appointmentsRepo.findById(supabase, id, patientId),
-  }
 }

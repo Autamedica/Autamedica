@@ -2,7 +2,8 @@ import type { APIRoute } from 'astro'
 import { createServerClientFromRequest } from '@autamedica/auth/server'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-import { appointmentsService } from '@/lib/patients/services/appointments.service'
+import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase'
+import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
 import type { AppointmentStatus, AppointmentType } from '@/lib/patients/types/appointment'
 import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
 
@@ -13,7 +14,8 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
 
   try {
     const supabase = createServerClientFromRequest(request)
-    const data = await appointmentsService.getById(supabase, params.id, context.patientId)
+    const deps = { appointmentsRepo: createAppointmentAdapter(supabase), dbClient: supabase }
+    const data = await appointmentsUseCase.getById(deps, params.id, context.patientId)
     if (!data) return notFound('Appointment not found')
     return jsonOk(data)
   } catch (err) {
@@ -39,7 +41,8 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
 
   try {
     const supabase = createServerClientFromRequest(request)
-    const updated = await appointmentsService.update(supabase, params.id, context.patientId, body)
+    const deps = { appointmentsRepo: createAppointmentAdapter(supabase), dbClient: supabase }
+    const updated = await appointmentsUseCase.update(deps, params.id, context.patientId, body)
     return jsonOk(updated)
   } catch (err) {
     logger.error('[appointments/[id]/PATCH]', err)
@@ -54,7 +57,8 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
 
   try {
     const supabase = createServerClientFromRequest(request)
-    const cancelled = await appointmentsService.cancel(supabase, params.id, context.patientId)
+    const deps = { appointmentsRepo: createAppointmentAdapter(supabase), dbClient: supabase }
+    const cancelled = await appointmentsUseCase.cancel(deps, params.id, context.patientId)
     if (!cancelled) return notFound('Appointment not found')
     return jsonOk(cancelled)
   } catch (err) {

@@ -1,17 +1,13 @@
-/**
- * Backend Service: appointments business logic.
- * Orchestrates repository access for API controllers.
- */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { scheduleReminders, cancelReminders, processWaitlist } from '@autamedica/scheduling'
-import { appointmentsRepo } from '@/lib/patients/lib/repos/appointments.repo'
 import type {
   AppointmentWithDoctor,
   AppointmentType,
   AppointmentStatus,
 } from '@/lib/patients/types/appointment'
+import type { IAppointmentsRepository } from '@/lib/patients/ports/appointments.port'
 
 type Db = SupabaseClient<Database>
 
@@ -36,21 +32,26 @@ export interface UpdateAppointmentPayload {
   location?: string | null
 }
 
-export const appointmentsService = {
-  async listByPatient(supabase: Db, patientId: string): Promise<AppointmentWithDoctor[]> {
-    return appointmentsRepo.listByPatient(supabase, patientId)
+export interface AppointmentsUseCaseDeps {
+  appointmentsRepo: IAppointmentsRepository
+  dbClient: Db
+}
+
+export const appointmentsUseCase = {
+  async listByPatient(deps: AppointmentsUseCaseDeps, patientId: string): Promise<AppointmentWithDoctor[]> {
+    return deps.appointmentsRepo.listByPatient(patientId)
   },
 
   async getById(
-    supabase: Db,
+    deps: AppointmentsUseCaseDeps,
     id: string,
     patientId: string,
   ): Promise<AppointmentWithDoctor | null> {
-    return appointmentsRepo.findById(supabase, id, patientId)
+    return deps.appointmentsRepo.findById(id, patientId)
   },
 
   async create(
-    supabase: Db,
+    deps: AppointmentsUseCaseDeps,
     patientId: string,
     payload: CreateAppointmentPayload,
   ): Promise<AppointmentWithDoctor> {
@@ -59,69 +60,66 @@ export const appointmentsService = {
     if (!scheduled_at?.trim()) throw new Error('scheduled_at is required')
     if (!doctor_id?.trim()) throw new Error('doctor_id is required')
 
-    const doctorExists = await appointmentsRepo.doctorExists(supabase, doctor_id)
+    const doctorExists = await deps.appointmentsRepo.doctorExists(doctor_id)
     if (!doctorExists) throw Object.assign(new Error('Doctor not found or inactive'), { code: 'DOCTOR_NOT_FOUND' })
 
     try {
-      const appointment = await appointmentsRepo.create(supabase, patientId, payload)
+      const appointment = await deps.appointmentsRepo.create(patientId, payload)
 
       // Fire-and-forget: programar recordatorios 24h y 2h antes
-      scheduleReminders(supabase, appointment.id, 'whatsapp').catch((err) =>
-        logger.error('[appointmentsService] scheduleReminders failed', err),
+      scheduleReminders(deps.dbClient, appointment.id, 'whatsapp').catch((err) =>
+        logger.error('[appointmentsUseCase] scheduleReminders failed', err),
       )
 
       return appointment
     } catch (err) {
-      logger.error('[appointmentsService] create failed', err)
+      logger.error('[appointmentsUseCase] create failed', err)
       throw err
     }
   },
 
   async update(
-    supabase: Db,
+    deps: AppointmentsUseCaseDeps,
     id: string,
     patientId: string,
     payload: UpdateAppointmentPayload,
   ): Promise<AppointmentWithDoctor> {
     try {
-      return await appointmentsRepo.update(supabase, id, patientId, payload)
+      return await deps.appointmentsRepo.update(id, patientId, payload)
     } catch (err) {
-      logger.error('[appointmentsService] update failed', err)
+      logger.error('[appointmentsUseCase] update failed', err)
       throw err
     }
   },
 
   async cancel(
-    supabase: Db,
+    deps: AppointmentsUseCaseDeps,
     id: string,
     patientId: string,
   ): Promise<AppointmentWithDoctor | null> {
     try {
-      // Leer la cita antes de cancelar para obtener datos del slot liberado
-      const existing = await appointmentsRepo.findById(supabase, id, patientId)
+      const existing = await deps.appointmentsRepo.findById(id, patientId)
       if (!existing) return null
 
-      const cancelled = await appointmentsRepo.cancel(supabase, id, patientId)
+      const cancelled = await deps.appointmentsRepo.cancel(id, patientId)
 
-      // Fire-and-forget: cancelar recordatorios pendientes
-      cancelReminders(supabase, id).catch((err) =>
-        logger.error('[appointmentsService] cancelReminders failed', err),
+      cancelReminders(deps.dbClient, id).catch((err) =>
+        logger.error('[appointmentsUseCase] cancelReminders failed', err),
       )
 
-      // Fire-and-forget: ofrecer slot liberado a la waitlist
       if (existing.start_time && existing.end_time) {
-        processWaitlist(supabase, existing.doctor_id, {
+        processWaitlist(deps.dbClient, existing.doctor_id, {
           date: existing.start_time.split('T')[0],
           start_time: existing.start_time,
           end_time: existing.end_time,
         }).catch((err) =>
-          logger.error('[appointmentsService] processWaitlist failed', err),
+          logger.error('[appointmentsUseCase] processWaitlist failed', err),
         )
       }
 
       return cancelled
     } catch (err) {
-      logger.error('[appointmentsService] cancel failed', err)
+      logger.error('[appointmentsUseCase] cancel failed', err)
       throw err
     }
   },

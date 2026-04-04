@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
-import { appointmentsService } from '@/lib/patients/services/appointments.service';
+import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase';
+import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter';
 import { communityRepo } from '@/lib/patients/lib/repos/community.repo';
 import { medicalHistoryRepo } from '@/lib/patients/lib/repos/medical-history.repo';
 import { notificationsRepo } from '@/lib/patients/lib/repos/notifications.repo';
@@ -40,7 +41,7 @@ function formatAppointmentDate(iso: string): string {
 }
 
 function buildAppointmentCandidates(
-  appointments: Awaited<ReturnType<typeof appointmentsService.listByPatient>>,
+  appointments: Awaited<ReturnType<typeof appointmentsUseCase.listByPatient>>,
 ): PortalNotificationCandidate[] {
   const now = Date.now();
   const reminderWindowMs = 36 * 60 * 60 * 1000;
@@ -166,7 +167,7 @@ export const notificationsService = {
     context: NotificationContext,
   ): Promise<void> {
     const [appointments, reports, comments] = await Promise.all([
-      appointmentsService.listByPatient(supabase, context.patientId),
+      appointmentsUseCase.listByPatient({ appointmentsRepo: createAppointmentAdapter(supabase), dbClient: supabase }, context.patientId),
       medicalHistoryRepo.listConsultations(supabase, context.patientId, 8),
       communityRepo.listRecentCommentsOnPatientPosts(supabase, context.patientId, 12),
     ]);

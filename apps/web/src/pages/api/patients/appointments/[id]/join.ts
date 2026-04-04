@@ -2,8 +2,9 @@ import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase'
-import { appointmentsService } from '@/lib/patients/services/appointments.service'
-import { callStartRepo } from '@/lib/calls/repos/call-start.repo'
+import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase'
+import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
+import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { badRequest, conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 
@@ -19,7 +20,7 @@ async function ensurePatientJoined(
   }
 
   try {
-    const updated = await callStartRepo.updateCallStatus(actorSupabase, callId, 'accepted')
+    const updated = await createCallStartAdapter(actorSupabase).updateCallStatus(callId, 'accepted')
     return updated ? 'accepted' : currentStatus
   } catch (error) {
     logger.warn('[patients/appointments/[id]/join] Failed to move call to accepted', error)
@@ -52,7 +53,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   try {
     const admin = createAstroAdminClient()
     const actorSupabase = createAstroServerClientFromRequest(request)
-    const appointment = await appointmentsService.getById(admin, params.id, context.patientId)
+    const appointment = await appointmentsUseCase.getById({ appointmentsRepo: createAppointmentAdapter(admin), dbClient: admin }, params.id, context.patientId)
 
     if (!appointment) {
       return notFound('appointment_not_found')
@@ -75,11 +76,10 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       return conflict('appointment_outside_call_window')
     }
 
-    const appointmentScopedCall = await callStartRepo.findActiveByAppointmentId(admin, appointment.id)
+    const appointmentScopedCall = await createCallStartAdapter(admin).findActiveByAppointmentId(appointment.id)
     const participantCall = appointmentScopedCall
       ? null
-      : await callStartRepo.findActiveByParticipants(
-        admin,
+      : await createCallStartAdapter(admin).findActiveByParticipants(
         appointment.doctor_id,
         context.patientId,
       )
@@ -99,8 +99,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
       })
     }
 
-    const createdCall = await callStartRepo.createCall(
-      admin,
+    const createdCall = await createCallStartAdapter(admin).createCall(
       appointment.doctor_id,
       context.patientId,
       appointment.id,

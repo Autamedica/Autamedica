@@ -2,7 +2,8 @@ import type { APIRoute } from 'astro'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
-import { appointmentsService } from '@/lib/patients/services/appointments.service'
+import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase'
+import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
 import { jsonOk, unauthorized, badRequest, notFound, conflict, internalError } from '@/lib/api-helpers'
 import type { AppointmentType } from '@/lib/patients/types/appointment'
 
@@ -11,7 +12,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const data = await appointmentsService.listByPatient(createAstroAdminClient(), context.patientId)
+    const adminDb = createAstroAdminClient()
+    const data = await appointmentsUseCase.listByPatient({ appointmentsRepo: createAppointmentAdapter(adminDb), dbClient: adminDb }, context.patientId)
     return jsonOk(data)
   } catch (err) {
     logger.error('[appointments/GET]', err)
@@ -38,8 +40,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!body.doctor_id?.trim()) return badRequest('doctor_id is required')
 
   try {
-    const created = await appointmentsService.create(
-      createAstroAdminClient(),
+    const admin = createAstroAdminClient()
+    const created = await appointmentsUseCase.create(
+      { appointmentsRepo: createAppointmentAdapter(admin), dbClient: admin },
       context.patientId,
       {
         scheduled_at: body.scheduled_at,

@@ -3,7 +3,8 @@ import { logger } from '@autamedica/shared'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 import { badRequest, conflict, forbidden, internalError, jsonOk, notFound } from '@/lib/api-helpers'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { startCallService } from '@/lib/calls/services/start-call.service'
+import { startTeleconsultationUseCase } from '@/lib/calls/usecases/start-teleconsultation.usecase'
+import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 
 export const POST: APIRoute = async ({ request }) => {
   const auth = await withAuth(request)
@@ -23,7 +24,12 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const admin = createAstroAdminClient()
-    const result = await startCallService.startCall(admin, auth.supabase, {
+    const adminCallRepo = createCallStartAdapter(admin)
+    const actorCallRepo = createCallStartAdapter(auth.supabase)
+
+    const result = await startTeleconsultationUseCase(
+      { adminCallRepo, actorCallRepo, adminDb: admin },
+      {
       doctorUserId: auth.user.id,
       patientId,
       ...(appointmentId ? { appointmentId } : {}),

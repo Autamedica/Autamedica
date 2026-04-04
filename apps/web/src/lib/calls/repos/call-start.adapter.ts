@@ -64,19 +64,13 @@ function withNullAppointmentId(row: LegacyCallRow | null): Call | null {
   } as Call
 }
 
-export interface StartCallAppointmentRecord {
-  id: string
-  doctor_id: string
-  patient_id: string
-  type: string | null
-  status: string
-  start_time: string | null
-  end_time: string | null
-  duration_minutes: number | null
-}
 
-export const callStartRepo = {
-  async findAppointmentById(supabase: Db, appointmentId: string): Promise<StartCallAppointmentRecord | null> {
+
+import type { ICallStartRepository, StartCallAppointmentRecord } from '@/lib/calls/ports/call-start.port'
+
+export function createCallStartAdapter(supabase: Db): ICallStartRepository {
+  return {
+  async findAppointmentById(appointmentId: string): Promise<StartCallAppointmentRecord | null> {
     const { data, error } = await supabase
       .from('appointments')
       .select('id, doctor_id, patient_id, type, status, start_time, end_time, duration_minutes')
@@ -91,7 +85,7 @@ export const callStartRepo = {
     return data as StartCallAppointmentRecord | null
   },
 
-  async findPatientById(supabase: Db, patientId: string): Promise<{ id: string } | null> {
+  async findPatientById(patientId: string): Promise<{ id: string } | null> {
     const { data, error } = await supabase
       .from('patients')
       .select('id')
@@ -106,7 +100,7 @@ export const callStartRepo = {
     return data as { id: string } | null
   },
 
-  async findActiveByAppointmentId(supabase: Db, appointmentId: string): Promise<Call | null> {
+  async findActiveByAppointmentId(appointmentId: string): Promise<Call | null> {
     const { data, error } = await selectCalls(supabase, CALL_SELECT)
       .eq('appointment_id', appointmentId)
       .or(ACTIVE_CALL_STATUS_FILTER)
@@ -127,7 +121,7 @@ export const callStartRepo = {
     return withNullAppointmentId(data as LegacyCallRow | null)
   },
 
-  async findActiveByParticipants(supabase: Db, doctorId: string, patientId: string): Promise<Call | null> {
+  async findActiveByParticipants(doctorId: string, patientId: string): Promise<Call | null> {
     const primary = await selectCalls(supabase, CALL_SELECT)
       .eq('doctor_id', doctorId)
       .eq('patient_id', patientId)
@@ -162,7 +156,7 @@ export const callStartRepo = {
     throw primary.error
   },
 
-  async listPendingByParticipants(supabase: Db, doctorId: string, patientId: string): Promise<Call[]> {
+  async listPendingByParticipants(doctorId: string, patientId: string): Promise<Call[]> {
     const pendingFilter = 'status.eq.requested,status.eq.ringing,status.eq.accepted'
     const primary = await selectCalls(supabase, CALL_SELECT)
       .eq('doctor_id', doctorId)
@@ -197,7 +191,6 @@ export const callStartRepo = {
   },
 
   async createCall(
-    supabase: Db,
     doctorId: string,
     patientId: string,
     appointmentId?: string,
@@ -265,7 +258,6 @@ export const callStartRepo = {
   },
 
   async updateCallStatus(
-    supabase: Db,
     callId: string,
     status: CallStatus,
     reason?: string,
@@ -290,7 +282,6 @@ export const callStartRepo = {
    * Row-level triggers (validation, appointment sync) still fire per row.
    */
   async cancelCallsBatch(
-    supabase: Db,
     calls: Array<{ id: string; status: string }>,
     reason: string,
   ): Promise<void> {
@@ -322,4 +313,6 @@ export const callStartRepo = {
       logger.error('[callStartRepo] cancelCallsBatch event logging failed', eventError)
     }
   },
+}
+
 }
