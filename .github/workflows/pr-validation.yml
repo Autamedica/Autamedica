@@ -14,7 +14,7 @@ env:
 jobs:
   validate:
     name: PR Quality
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
       - name: WIP guard

@@ -31,7 +31,7 @@ env:
 jobs:
   changes:
     name: Detect
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'pull_request'
     outputs:
       migrations: ${{ steps.filter.outputs.migrations }}
@@ -65,7 +65,7 @@ jobs:
 
   db-type-drift:
     name: DB Type Drift
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: changes
     if: |
       github.event_name == 'schedule' ||
@@ -80,7 +80,7 @@ jobs:
 
   architecture-v2:
     name: Architecture v2
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: changes
     if: |
       github.event_name == 'schedule' ||
@@ -95,7 +95,7 @@ jobs:
 
   edge-function-lint:
     name: Edge Functions
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: changes
     if: |
       github.event_name == 'schedule' ||
@@ -126,7 +126,7 @@ jobs:
 
   clinical-coherence:
     name: Clinical
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     # Non-blocking: clinical observability tables (vital_signs, medication_logs, etc.)
     # are not yet implemented. Re-enable as blocking when migrations land.
@@ -139,7 +139,7 @@ jobs:
 
   policy:
     name: Policies
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1

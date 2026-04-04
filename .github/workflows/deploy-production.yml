@@ -23,7 +23,7 @@ env:
 jobs:
   validate:
     name: Pre-flight
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -41,7 +41,7 @@ jobs:
 
   deploy-db:
     name: DB Migrations
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: validate
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -72,7 +72,7 @@ jobs:
 
   build-and-deploy:
     name: Build & Deploy
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [validate, deploy-db]
     if: always() && needs.validate.result == 'success' && needs.deploy-db.result != 'failure'
     env:
@@ -163,7 +163,7 @@ jobs:
 
   smoke-tests:
     name: Smoke Tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [build-and-deploy]
     timeout-minutes: 5
     steps:
@@ -195,7 +195,7 @@ jobs:
 
   auto-rollback:
     name: Rollback
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [build-and-deploy, smoke-tests]
     if: failure() && needs.build-and-deploy.result == 'success' && needs.build-and-deploy.outputs.prev_deployment != ''
     steps:
@@ -210,7 +210,7 @@ jobs:
 
   summary:
     name: Summary
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 2
     needs: [validate, deploy-db, build-and-deploy, smoke-tests, auto-rollback]
     if: always()
