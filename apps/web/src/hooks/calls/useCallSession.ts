@@ -71,8 +71,18 @@ export function useCallSession(roomId: string, enabled = true): UseCallSessionRe
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo preparar la llamada'
       logger.error('[useCallSession] refresh failed', err)
-      setSession(null)
-      setError(normalizeCallSessionError(message))
+      // If we already have a session, keep it — don't destroy an active call
+      // because of a transient refresh error or post-timeout 409.
+      setSession((prev) => {
+        if (prev) {
+          logger.warn('[useCallSession] Keeping existing session despite refresh error')
+          return prev
+        }
+        return null
+      })
+      if (!session) {
+        setError(normalizeCallSessionError(message))
+      }
     } finally {
       setLoading(false)
     }
