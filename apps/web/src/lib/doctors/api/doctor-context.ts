@@ -52,7 +52,8 @@ export async function resolveDoctorContext(
             user_id: userId, 
             active: true,
             // Provide minimal required defaults to satisfy DB constraints
-            license_number: 'PENDING',
+            // license_number has a UNIQUE constraint — use a per-user placeholder
+            license_number: `PENDING-${userId.slice(0, 8)}`,
             specialty: 'General'
           }, 
           { onConflict: 'user_id' }
