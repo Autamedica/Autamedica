@@ -43,7 +43,7 @@ export interface SupabaseSignalingHandle {
   isOpen: () => boolean
 }
 
-const SUBSCRIBE_TIMEOUT_MS = 8_000
+const SUBSCRIBE_TIMEOUT_MS = 15_000
 
 export function openSupabaseSignaling(
   supabase: SupabaseClient,
@@ -125,7 +125,8 @@ export function openSupabaseSignaling(
 
     let subscribed = false
 
-    channel.subscribe(async (status) => {
+    channel.subscribe(async (status, err) => {
+      deps.logger.logInfo('Supabase signaling channel status', { status, channelName, error: err?.message })
       if (status === 'SUBSCRIBED') {
         if (subscribed) return
         subscribed = true
