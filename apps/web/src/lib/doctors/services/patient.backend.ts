@@ -13,13 +13,14 @@ import { GetAllRelevantPatientsUseCase } from '../usecases/GetAllRelevantPatient
 export const patientBackendService = {
   /**
    * Resolve all active patients in the platform using relevance use case.
+   * Uses admin client — auth is validated at the API route level.
    */
-  async getActivePatients(client?: SupabaseClient): Promise<PatientWithProfile[]> {
+  async getActivePatients(_client?: SupabaseClient): Promise<PatientWithProfile[]> {
     try {
-      const adminClient = client ?? createAstroAdminClient()
-      const repo = createPatientRepositoryAdapter(adminClient)
+      const admin = createAstroAdminClient()
+      const repo = createPatientRepositoryAdapter(admin)
       const useCase = new GetAllRelevantPatientsUseCase(repo)
-      return await useCase.execute(adminClient)
+      return await useCase.execute(admin)
     } catch (error) {
       logger.error('[patientBackendService] getActivePatients failed', error)
       throw error
@@ -28,23 +29,25 @@ export const patientBackendService = {
 
   /**
    * Resolve patients assigned to a doctor using the relevance use case.
+   * Uses admin client — auth is validated at the API route level.
    */
-  async getAssignedPatients(doctorUserId: string, client?: SupabaseClient): Promise<PatientWithProfile[]> {
+  async getAssignedPatients(doctorUserId: string, _client?: SupabaseClient): Promise<PatientWithProfile[]> {
     try {
-      const adminClient = client ?? createAstroAdminClient()
-      const repo = createPatientRepositoryAdapter(adminClient)
+      const admin = createAstroAdminClient()
+      const repo = createPatientRepositoryAdapter(admin)
       const useCase = new GetRelevantPatientsUseCase(repo)
-      return await useCase.execute(doctorUserId, adminClient)
+      return await useCase.execute(doctorUserId, admin)
     } catch (error) {
       logger.error('[patientBackendService] getAssignedPatients failed', { doctorUserId, error })
       throw error
     }
   },
 
-  async getPatientById(id: UUID, client?: SupabaseClient): Promise<PatientWithProfile | null> {
+  async getPatientById(id: UUID, _client?: SupabaseClient): Promise<PatientWithProfile | null> {
     try {
-      const adminClient = createAstroAdminClient()
-      const patient = await patientsRepo.findById(id, adminClient || client); return patient ? { ...patient, ...(patient.profile || {}) } : null
+      const admin = createAstroAdminClient()
+      const patient = await patientsRepo.findById(id, admin)
+      return patient ? { ...patient, ...(patient.profile || {}) } : null
     } catch (error) {
       logger.error('[patientBackendService] getPatientById failed', { id, error })
       throw error
