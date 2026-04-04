@@ -3,6 +3,9 @@
  *
  * Lee doctor_availability + doctor_availability_overrides,
  * resta appointments existentes, retorna solo slots libres.
+ *
+ * All slot timestamps use explicit UTC-3 (Argentina Standard Time) offset
+ * to avoid implicit local-timezone issues during DST transitions in other locales.
  */
 
 import type {
@@ -12,6 +15,9 @@ import type {
   SlotQuery,
 } from '@autamedica/types';
 import type { SupabaseLike } from './supabase';
+
+/** Argentina Standard Time offset (UTC-3). Argentina doesn't observe DST. */
+const ART_OFFSET = '-03:00';
 
 /**
  * Genera todos los slots disponibles para un doctor en un rango de fechas.
@@ -173,8 +179,8 @@ function generateSlotsForTimeRange(
   const endH = endParts[0] ?? 0;
   const endM = endParts[1] ?? 0;
 
-  const dayStart = new Date(`${dateStr}T${pad(startH)}:${pad(startM)}:00`);
-  const dayEnd = new Date(`${dateStr}T${pad(endH)}:${pad(endM)}:00`);
+  const dayStart = new Date(`${dateStr}T${pad(startH)}:${pad(startM)}:00${ART_OFFSET}`);
+  const dayEnd = new Date(`${dateStr}T${pad(endH)}:${pad(endM)}:00${ART_OFFSET}`);
 
   let cursor = dayStart.getTime();
   const endMs = dayEnd.getTime();
