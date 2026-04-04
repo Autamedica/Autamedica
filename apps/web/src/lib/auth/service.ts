@@ -11,6 +11,7 @@
  */
 import { createBrowserClient, resetAuthCircuitBreaker } from '@autamedica/auth'
 import { logger } from '@autamedica/shared'
+import { markManualSignout } from './browser-storage'
 
 export interface SignInResult {
   ok: boolean
@@ -162,13 +163,11 @@ export async function signInWithOAuth(
 }
 
 /**
- * Cierra la sesión local (limpia localStorage y cookies accesibles).
+ * Cierra la sesión local (limpia auth state y cookies accesibles).
  * Para logout global completo usar `signOutGlobally` de @autamedica/auth.
  */
 export async function signOutLocal(): Promise<void> {
-  if (typeof sessionStorage !== 'undefined') {
-    sessionStorage.setItem('au-manual-signout', '1')
-  }
+  markManualSignout()
   const supabase = createBrowserClient()
   await clearLocalSession(supabase, 'explicit_local_sign_out')
 }
