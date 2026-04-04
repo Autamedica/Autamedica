@@ -3,6 +3,16 @@ import Layout from '@/layouts/Layout.astro';
 
 const title = 'Panel de Administración | AutaMedica';
 const description = 'Panel de administración de AutaMedica';
+
+const session = Astro.locals.session;
+if (!session) {
+  return Astro.redirect('/auth/login?returnTo=/admin&portal=admin');
+}
+
+const role = (session.user.user_metadata as Record<string, unknown>)?.role;
+if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+  return Astro.redirect('/admin/unauthorized');
+}
 ---
 
 <Layout title={title} description={description}>
@@ -19,43 +29,38 @@ const description = 'Panel de administración de AutaMedica';
       </div>
     </header>
     <main>
-      <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div class="px-4 py-6 sm:px-0">
-          <div class="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
-            <div class="text-center">
-              <h2 class="text-2xl font-bold text-gray-900 mb-4">
-                Panel de Administración
-              </h2>
-              <p class="text-gray-600 mb-8">
-                Bienvenido al panel de administración de AutaMedica
-              </p>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
-                <div class="bg-white p-6 rounded-lg shadow">
-                  <h3 class="text-lg font-medium text-gray-900 mb-2">
-                    Usuarios
-                  </h3>
-                  <p class="text-gray-600 text-sm">
-                    Gestionar médicos, pacientes y empresas
-                  </p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow">
-                  <h3 class="text-lg font-medium text-gray-900 mb-2">
-                    Sistema
-                  </h3>
-                  <p class="text-gray-600 text-sm">
-                    Configuración y monitoreo del sistema
-                  </p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow">
-                  <h3 class="text-lg font-medium text-gray-900 mb-2">
-                    Reportes
-                  </h3>
-                  <p class="text-gray-600 text-sm">
-                    Analíticas y reportes de uso
-                  </p>
-                </div>
-              </div>
-            </div>
+      <div class="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">
+            Panel de Administración
+          </h2>
+          <p class="text-gray-500 text-sm">
+            Este panel está en desarrollo. Las secciones disponibles se listan a continuación.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <a
+            href="/admin/telemedicine"
+            class="block bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 hover:shadow transition-all"
+          >
+            <h3 class="text-lg font-medium text-gray-900 mb-1">
+              Telemedicina
+            </h3>
+            <p class="text-gray-500 text-sm">
+              Observabilidad de llamadas, estado de sesiones y métricas de calidad.
+            </p>
+          </a>
+
+          <div class="bg-gray-50 p-6 rounded-lg border border-dashed border-gray-300">
+            <p class="text-sm font-medium text-gray-500 mb-3">
+              Secciones en desarrollo
+            </p>
+            <ul class="text-sm text-gray-400 space-y-1">
+              <li>Gestión de usuarios (médicos, pacientes, empresas)</li>
+              <li>Configuración y monitoreo del sistema</li>
+              <li>Analíticas y reportes de uso</li>
+            </ul>
           </div>
         </div>
       </div>
