@@ -1,4 +1,4 @@
-import { getClientEnvOrDefault, isDevelopment } from '../env';
+import { ensureClientEnv, getClientEnvOrDefault, isDevelopment } from '../env';
 
 export type AppName = 'patients' | 'doctors';
 
@@ -46,14 +46,8 @@ export function getAppEnv(appName: AppName): AppEnvironmentConfig {
     authHubOrigin,
     appOrigin: appOrigins[appName],
     supabase: {
-      url: getClientEnvOrDefault(
-        'PUBLIC_SUPABASE_URL',
-        'https://qxjjrpksmwwrmubhvjew.supabase.co',
-      ),
-      anonKey: getClientEnvOrDefault(
-        'PUBLIC_SUPABASE_ANON_KEY',
-        'REPLACE_WITH_ROTATED_KEY.7UFMVZsWTWOAynnhzkG76I_lhVCYtd_RmTt9EH3wJD4',
-      ),
+      url: ensureClientEnv('PUBLIC_SUPABASE_URL'),
+      anonKey: ensureClientEnv('PUBLIC_SUPABASE_ANON_KEY'),
     },
     signalingUrl: getClientEnvOrDefault(
       'PUBLIC_SIGNALING_URL',
