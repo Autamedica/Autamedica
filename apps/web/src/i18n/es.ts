@@ -252,7 +252,6 @@ export const es = {
     healthContent: {
       title: 'Para entender lo que te pasa',
       subtitle: 'Artículos escritos por los médicos que atienden en AutaMedica, no por redactores de contenido',
-      comingSoon: 'Más artículos cada semana, escritos por los médicos que también atienden en AutaMedica.',
       articles: [
         {
           tag: 'Prevención',
@@ -279,6 +278,13 @@ export const es = {
           date: 'Ene 2026',
         },
       ],
+    },
+    newsletter: {
+      title: 'AutaMedica Semanal',
+      subtitle: 'Un resumen semanal de salud escrito por nuestros medicos. Sin spam, solo informacion que importa.',
+      placeholder: 'Tu email',
+      button: 'Suscribirme',
+      note: 'Sin spam. Un email por semana.',
     },
     symptomChecker: {
       symptoms: [

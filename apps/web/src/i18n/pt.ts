@@ -271,7 +271,6 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
     healthContent: {
       title: 'Para entender o que está acontecendo',
       subtitle: 'Artigos escritos pelos médicos que atendem na AutaMedica, não por redatores de conteúdo',
-      comingSoon: 'Mais artigos cada semana, escritos pelos médicos que também atendem na AutaMedica.',
       articles: [
         {
           tag: 'Prevenção',
@@ -298,6 +297,13 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
           date: 'Jan 2026',
         },
       ],
+    },
+    newsletter: {
+      title: 'AutaMedica Semanal',
+      subtitle: 'Um resumo semanal de saude escrito pelos nossos medicos. Sem spam, so informacao que importa.',
+      placeholder: 'Seu email',
+      button: 'Assinar',
+      note: 'Sem spam. Um email por semana.',
     },
     symptomChecker: {
       symptoms: [

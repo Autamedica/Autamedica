@@ -91,14 +91,14 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
           </svg>
         </a>
       </MagneticButton>
-      <MagneticButton client:idle>
-        <a href={safeSecondaryCtaHref} class="btn-secondary">
+      {safeSecondaryCtaLabel && (
+        <a href={safeSecondaryCtaHref} class="hero-secondary-link">
           {safeSecondaryCtaLabel}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </a>
-      </MagneticButton>
+      )}
     </div>
     {shortcutItems.length > 0 && (
       <div class="hero-role-shortcuts" aria-label="Acceso rápido por perfil">
@@ -296,26 +296,18 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     transform: translateY(-1px);
   }
 
-  .btn-secondary {
-    display: inline-flex;
+  .hero-secondary-link {
+    display: none;
     align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-6);
+    gap: var(--space-1);
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    color: var(--au-text-primary);
-    border: 1px solid rgba(5, 5, 5, 0.12);
-    background: rgba(255, 255, 255, 0.68);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 14px 34px rgba(5, 5, 5, 0.08);
-    border-radius: var(--radius-sm);
-    transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base);
+    color: var(--au-text-secondary);
+    transition: color var(--transition-base);
   }
 
-  .btn-secondary:hover {
-    border-color: rgba(14, 165, 233, 0.28);
-    background: rgba(255, 255, 255, 0.82);
-    transform: translateY(-1px);
+  .hero-secondary-link:hover {
+    color: var(--au-text-primary);
   }
 
   .role-shortcut {
@@ -378,6 +370,12 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     50% { transform: translateX(-50%) translateY(-6px); }
   }
 
+  @media (min-width: 769px) {
+    .hero-secondary-link {
+      display: inline-flex;
+    }
+  }
+
   /* Center on mobile */
   @media (max-width: 768px) {
     .hero {
@@ -409,8 +407,7 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
       align-items: stretch;
     }
 
-    .btn-primary,
-    .btn-secondary {
+    .btn-primary {
       justify-content: center;
     }
 
