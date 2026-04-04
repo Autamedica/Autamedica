@@ -4,8 +4,10 @@
  * MediaManager, and QualityMonitor for specific concerns.
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createTelemedicineLogger } from './debug'
 import { openSignalingSocket } from './signaling-socket'
+import { openSupabaseSignaling, type SupabaseSignalingHandle } from './supabase-signaling'
 import { loadIceServers, loadSignalingUrl, ICE_STUN_ONLY } from './config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints } from './media-optimizations'
 import { MediaManager } from './media-manager'
@@ -23,6 +25,8 @@ export interface WebRTCConfig {
   userId: string
   userType: 'doctor' | 'patient' | 'nurse'
   userName?: string
+  /** When provided, uses Supabase Realtime for signaling instead of plain WebSocket. */
+  supabase?: SupabaseClient
 }
 
 export interface MediaConstraints {
@@ -82,6 +86,7 @@ export interface WarmUpResult {
 export class WebRTCClient {
   private ws: WebSocket | null = null
   private signalingSocketPromise: Promise<void> | null = null
+  private supabaseHandle: { handle: SupabaseSignalingHandle | null } = { handle: null }
   private peerConnections = new Map<string, PeerState>()
   private config: WebRTCConfig
   private readonly sessionId = `${Math.random().toString(36).slice(2, 8)}-${Date.now()}`
@@ -331,24 +336,44 @@ export class WebRTCClient {
   }
 
   async measureSignalingLatency(): Promise<number | null> {
-    if (this.ws?.readyState !== WebSocket.OPEN) return null
+    const open = this.useSupabaseSignaling
+      ? this.supabaseHandle.handle?.isOpen()
+      : this.ws?.readyState === WebSocket.OPEN
+    if (!open) return null
     const start = performance.now()
     return Math.round(performance.now() - start)
   }
 
+  private get useSupabaseSignaling(): boolean {
+    return !!this.config.supabase
+  }
+
   private openSignalingSocket(): Promise<void> {
     const roomId = this.config.roomId || 'default-room'
+    const deps = {
+      logger: { logInfo: this.logInfo.bind(this), logWarn: this.logWarn.bind(this), logError: this.logError.bind(this) },
+      setConnectionState: (s: string) => this.setConnectionState(s as ConnectionState),
+      handleMessage: (msg: { type: string; from?: string; data?: unknown }) => { void this.handleSignalingMessage(msg as ServerSignalingMessage) },
+      emit: (event: string, ...args: unknown[]) => this.emit(event as keyof WebRTCEvents, ...args as [never]),
+      cleanup: () => this.cleanup(),
+    }
+
+    if (this.useSupabaseSignaling && this.config.supabase) {
+      return openSupabaseSignaling(
+        this.config.supabase,
+        roomId,
+        this.config.userId,
+        this.config.userType,
+        deps,
+        this.supabaseHandle,
+      )
+    }
+
     const wsState = { ws: this.ws, promise: this.signalingSocketPromise }
     const result = openSignalingSocket(
       this.config.signalingUrl,
       roomId,
-      {
-        logger: { logInfo: this.logInfo.bind(this), logWarn: this.logWarn.bind(this), logError: this.logError.bind(this) },
-        setConnectionState: (s) => this.setConnectionState(s as ConnectionState),
-        handleMessage: (msg) => { void this.handleSignalingMessage(msg as ServerSignalingMessage) },
-        emit: (event, ...args) => this.emit(event as keyof WebRTCEvents, ...args as [never]),
-        cleanup: () => this.cleanup(),
-      },
+      deps,
       wsState,
     )
     this.ws = wsState.ws
@@ -367,7 +392,10 @@ export class WebRTCClient {
       const finalRoomId = roomId || this.config.roomId || 'default-room'
       this.config.roomId = finalRoomId
 
-      if (this.ws?.readyState !== WebSocket.OPEN) {
+      const signalingOpen = this.useSupabaseSignaling
+        ? this.supabaseHandle.handle?.isOpen()
+        : this.ws?.readyState === WebSocket.OPEN
+      if (!signalingOpen) {
         await this.openSignalingSocket()
       }
 
@@ -450,8 +478,12 @@ export class WebRTCClient {
 
     this.setConnectionState('disconnected')
 
+    this.sendSignalingMessage({ type: 'leave' })
+
+    if (this.supabaseHandle.handle) {
+      this.supabaseHandle.handle.close()
+    }
     if (this.ws) {
-      this.sendSignalingMessage({ type: 'leave' })
       this.ws.close()
       this.ws = null
     }
@@ -488,6 +520,17 @@ export class WebRTCClient {
   }
 
   private sendSignalingMessage(message: Record<string, unknown>): void {
+    if (this.useSupabaseSignaling) {
+      if (this.supabaseHandle.handle?.isOpen()) {
+        this.supabaseHandle.handle.send(message)
+        return
+      }
+      this.logWarn('Skipped signaling message: Supabase channel not subscribed', {
+        messageType: typeof message.type === 'string' ? message.type : 'unknown',
+      })
+      return
+    }
+
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message))
       return

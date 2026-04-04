@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { JSX } from 'react'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { patchVideoPlayback } from './media-optimizations'
 import type { CallService } from './calls/service'
@@ -60,6 +61,8 @@ export interface UnifiedVideoCallProps {
    * - string: URL personalizada del proxy.
    */
   cloudflareCallsApiUrl?: string | null
+  /** Supabase client for P2P signaling via Realtime. Required when cloudflareCallsApiUrl is null. */
+  supabase?: SupabaseClient
   onCallEnd?: () => void
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
@@ -88,6 +91,7 @@ export function UnifiedVideoCall({
   userName,
   iceServers,
   cloudflareCallsApiUrl,
+  supabase,
   onCallEnd,
   onCallStart,
   onStatusChange,
@@ -247,7 +251,7 @@ export function UnifiedVideoCall({
       : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls')
     const webrtcClient = sfuUrl
       ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: sfuUrl })
-      : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}) })
+      : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}), ...(supabase ? { supabase } : {}) })
     const unsubs: Array<() => void> = []
 
     unsubs.push(
@@ -527,7 +531,7 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [addRemoteMessage, autoStart, cleanupSound, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, userId, userName, userType])
+  }, [addRemoteMessage, autoStart, cleanupSound, cloudflareCallsApiUrl, emitDebug, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, supabase, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {

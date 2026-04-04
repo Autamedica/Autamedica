@@ -206,6 +206,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
           ? null
           : (callSession.transport.cloudflareCallsApiUrl ?? null)
       }
+      supabase={callSession.runtime === 'webrtc-p2p' ? createBrowserClient() : undefined}
       theme="patient"
       onCallEnd={handleCallEnd}
       persistCallStatus={handlePersistCallStatus}
