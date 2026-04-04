@@ -124,6 +124,22 @@ export function useDoctorWaitingRoom({
     return () => { unsubscribe() }
   }, [callSessionId, isDoctorWaitingEnabled, state, getCallService])
 
+  const cancelCall = useCallback(async (reason: 'doctor_canceled' | 'no_answer_timeout') => {
+    if (!callSession) return
+    setState('canceling')
+    setError(null)
+    try {
+      await cancelCallBrowserService.cancel(callSession.callId, { reason })
+      setState(reason === 'no_answer_timeout' ? 'timed_out' : 'canceled')
+    } catch (err) {
+      logger.error('[useDoctorWaitingRoom] Failed to cancel', err)
+      const msg = err instanceof Error ? err.message : 'No pudimos cancelar la videollamada'
+      if (msg === 'call_not_cancelable') { setState('idle'); return }
+      setState('waiting')
+      setError('No pudimos cancelar la videollamada. Reintenta en unos segundos.')
+    }
+  }, [callSession])
+
   // Countdown + periodic server sync
   useEffect(() => {
     if (!showWaitingRoom || state !== 'waiting') return
@@ -161,22 +177,6 @@ export function useDoctorWaitingRoom({
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [callSession?.waitingRoom.deadlineAt, state, showWaitingRoom, refreshCallSession, cancelCall])
-
-  const cancelCall = useCallback(async (reason: 'doctor_canceled' | 'no_answer_timeout') => {
-    if (!callSession) return
-    setState('canceling')
-    setError(null)
-    try {
-      await cancelCallBrowserService.cancel(callSession.callId, { reason })
-      setState(reason === 'no_answer_timeout' ? 'timed_out' : 'canceled')
-    } catch (err) {
-      logger.error('[useDoctorWaitingRoom] Failed to cancel', err)
-      const msg = err instanceof Error ? err.message : 'No pudimos cancelar la videollamada'
-      if (msg === 'call_not_cancelable') { setState('idle'); return }
-      setState('waiting')
-      setError('No pudimos cancelar la videollamada. Reintenta en unos segundos.')
-    }
-  }, [callSession])
 
   return { state, secondsRemaining, error, showWaitingRoom, cancelCall }
 }
