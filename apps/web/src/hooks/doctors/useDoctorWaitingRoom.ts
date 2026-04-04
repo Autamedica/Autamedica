@@ -14,7 +14,7 @@ export type DoctorWaitingState =
   | 'declined'
   | 'ended'
 
-const DOCTOR_NO_ANSWER_TIMEOUT_SECONDS = 60
+const DOCTOR_NO_ANSWER_TIMEOUT_SECONDS = 300
 const DEADLINE_SERVER_SYNC_MS = 15_000
 
 function getWaitingSecondsRemaining(deadlineAt?: string): number {
