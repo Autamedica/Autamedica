@@ -34,7 +34,7 @@
     "@fontsource-variable/inter": "^5.2.8",
     "@google/generative-ai": "^0.24.1",
     "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.57.4",
+    "@supabase/supabase-js": "^2.98.0",
     "@vis.gl/react-google-maps": "^1.7.1",
     "astro": "^5.0.0",
     "class-variance-authority": "^0.7.1",

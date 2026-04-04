@@ -35,12 +35,12 @@
     "@autamedica/shared": "workspace:*"
   },
   "peerDependencies": {
-    "@supabase/supabase-js": "^2.57.4"
+    "@supabase/supabase-js": "^2.98.0"
   },
   "devDependencies": {
     "@autamedica/typescript-config": "workspace:*",
     "rimraf": "^5.0.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.0"
   }
 }

@@ -24,7 +24,7 @@
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "@supabase/supabase-js": "^2.57.4"
+    "@supabase/supabase-js": "^2.98.0"
   },
   "dependencies": {
     "@autamedica/types": "workspace:*",
@@ -41,6 +41,6 @@
     "react-dom": "^19.0.0",
     "rimraf": "^5.0.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.0"
   }
 }

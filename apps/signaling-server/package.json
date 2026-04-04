@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@autamedica/types": "workspace:*",
-    "@supabase/supabase-js": "^2.57.4",
+    "@supabase/supabase-js": "^2.98.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "4.20.0",
@@ -29,10 +29,10 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.5",
     "@types/supertest": "^6.0.3",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "^4.1.0",
     "supertest": "^7.1.4",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.0"
   }
 }

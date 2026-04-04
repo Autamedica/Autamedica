@@ -24,7 +24,7 @@
   "dependencies": {
     "@autamedica/auth": "workspace:*",
     "@autamedica/types": "workspace:*",
-    "@supabase/supabase-js": "^2.57.4"
+    "@supabase/supabase-js": "^2.98.0"
   },
   "devDependencies": {
     "@autamedica/typescript-config": "workspace:*",

@@ -66,7 +66,6 @@
         "apps/android/**",
         "apps/mobile/**",
         "packages/telemedicine/**",
-        "packages/@autamedica/telemedicine/**",
         "packages/scheduling/**",
         "packages/hooks/**",
         "packages/types/src/doctor/**",
@@ -309,11 +308,7 @@
       "id": "clinical-core-public",
       "label": "Clinical Core Public Contracts",
       "providerDomain": "clinical-core",
-      "patterns": [
-        "packages/telemedicine/**",
-        "packages/@autamedica/telemedicine/**",
-        "packages/scheduling/**"
-      ]
+      "patterns": ["packages/telemedicine/**", "packages/scheduling/**"]
     },
     {
       "id": "clinical-core-platform-composition",
@@ -425,7 +420,6 @@
         "apps/web/src/lib/doctors/**",
         "apps/web/src/lib/patients/**",
         "packages/telemedicine/**",
-        "packages/@autamedica/telemedicine/**",
         "packages/scheduling/**",
         "apps/android/**",
         "apps/mobile/**"
