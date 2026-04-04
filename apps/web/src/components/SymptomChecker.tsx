@@ -107,6 +107,7 @@ export default function SymptomChecker({ locale = 'es' }: { locale?: Locale }) {
           <button
             key={s.id}
             type="button"
+            aria-pressed={selected === s.id}
             onClick={() => setSelected(selected === s.id ? null : s.id)}
             style={{
               display: 'inline-flex',

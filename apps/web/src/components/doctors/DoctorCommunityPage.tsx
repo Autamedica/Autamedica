@@ -132,7 +132,7 @@ function DoctorPostDetailView({
     <div className="min-h-screen bg-[#f7f8fa] text-stone-900">
       <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-4">
-          <button type="button" onClick={onBack} className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
+          <button type="button" onClick={onBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
@@ -383,7 +383,7 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
       <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={handlePortalBack} className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
+            <button type="button" onClick={handlePortalBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <div>

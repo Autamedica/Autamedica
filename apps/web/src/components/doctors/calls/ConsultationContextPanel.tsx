@@ -173,6 +173,7 @@ export function ConsultationContextPanel({
       onClick={onToggle}
       className="absolute top-3 -left-10 z-10 h-8 w-8 rounded-lg bg-white border border-am-surface-200 shadow-am-sm flex items-center justify-center hover:bg-am-surface-100 transition-colors"
       title={collapsed ? 'Mostrar contexto clínico' : 'Ocultar contexto clínico'}
+      aria-label={collapsed ? 'Mostrar contexto clínico' : 'Ocultar contexto clínico'}
     >
       <svg
         className={`w-4 h-4 text-am-surface-500 transition-transform ${collapsed ? 'rotate-180' : ''}`}

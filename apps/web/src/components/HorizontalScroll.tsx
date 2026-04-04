@@ -214,6 +214,9 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
       {/* Track */}
       <div
         ref={trackRef}
+        role="region"
+        aria-roledescription="carousel"
+        aria-label={locale === 'pt' ? 'Nossos Portais' : 'Nuestros Portales'}
         style={trackStyle}
         className={isMobile ? 'hide-scrollbar' : ''}
       >
@@ -224,6 +227,9 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
           return (
             <div
               key={portal.name}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${index + 1} / ${portals.length}: ${portal.name}`}
               data-slide
               data-slide-index={index}
               style={{

@@ -309,7 +309,7 @@ export function VitalSignsTab({ patientId }: VitalSignsTabProps): JSX.Element {
                           {formatDateTime(vitals.recorded_at)}
                         </span>
                       </div>
-                      <button className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-700 hover:bg-am-surface-100 transition shadow-am-sm">
+                      <button aria-label="Editar signos vitales" className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-700 hover:bg-am-surface-100 transition shadow-am-sm">
                         <Edit3 className="h-3 w-3" />
                       </button>
                     </div>
