@@ -48,9 +48,6 @@ const articles = dict.landing.healthContent.articles.map((a, i) => ({
       ))}
     </div>
 
-    <div class="content-coming animate-on-scroll">
-      <p>{t('landing.healthContent.comingSoon')}</p>
-    </div>
   </div>
 </section>
 
@@ -188,17 +185,6 @@ const articles = dict.landing.healthContent.articles.map((a, i) => ({
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid var(--au-glass-border);
-  }
-
-  .content-coming {
-    text-align: center;
-    margin-top: var(--space-8);
-  }
-
-  .content-coming p {
-    font-size: var(--text-sm);
-    color: var(--au-text-tertiary);
-    margin: 0;
   }
 
   @media (max-width: 768px) {

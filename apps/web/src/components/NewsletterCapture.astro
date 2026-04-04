@@ -1,0 +1,110 @@
+---
+import { getI18n } from '../i18n';
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
+---
+
+<section class="newsletter-capture" aria-label="Newsletter">
+  <div class="newsletter-inner">
+    <h2 class="newsletter-title">{t('landing.newsletter.title')}</h2>
+    <p class="newsletter-subtitle">{t('landing.newsletter.subtitle')}</p>
+    <form class="newsletter-form" action="#" method="post">
+      <input
+        type="email"
+        name="email"
+        required
+        autocomplete="email"
+        placeholder={t('landing.newsletter.placeholder')}
+        class="newsletter-input"
+      />
+      <button type="submit" class="newsletter-button">
+        {t('landing.newsletter.button')}
+      </button>
+    </form>
+    <p class="newsletter-note">{t('landing.newsletter.note')}</p>
+  </div>
+</section>
+
+<style>
+  .newsletter-capture {
+    padding: var(--section-py) var(--section-px);
+    background: var(--au-bg);
+  }
+
+  .newsletter-inner {
+    max-width: 560px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .newsletter-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    margin: 0 0 var(--space-3);
+    letter-spacing: -0.02em;
+  }
+
+  .newsletter-subtitle {
+    font-size: var(--text-base);
+    color: var(--au-text-secondary);
+    line-height: 1.6;
+    margin: 0 0 var(--space-8);
+  }
+
+  .newsletter-form {
+    display: flex;
+    gap: var(--space-3);
+    max-width: 440px;
+    margin: 0 auto var(--space-4);
+  }
+
+  .newsletter-input {
+    flex: 1;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--au-text-primary);
+    background: var(--au-surface);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-sm);
+    transition: border-color var(--transition-fast);
+  }
+
+  .newsletter-input::placeholder {
+    color: var(--au-text-tertiary);
+  }
+
+  .newsletter-input:focus {
+    outline: none;
+    border-color: var(--au-accent);
+  }
+
+  .newsletter-button {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--au-bg);
+    background: var(--au-text-primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity var(--transition-fast);
+  }
+
+  .newsletter-button:hover {
+    opacity: 0.85;
+  }
+
+  .newsletter-note {
+    font-size: var(--text-xs);
+    color: var(--au-text-tertiary);
+    margin: 0;
+  }
+
+  @media (max-width: 480px) {
+    .newsletter-form {
+      flex-direction: column;
+    }
+  }
+</style>
