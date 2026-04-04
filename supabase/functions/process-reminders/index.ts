@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization')
   const expectedToken = Deno.env.get('CRON_SECRET') ?? ''
 
-  if (!authHeader || !authHeader.includes(expectedToken)) {
+  if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
