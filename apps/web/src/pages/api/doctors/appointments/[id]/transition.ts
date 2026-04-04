@@ -1,70 +1,45 @@
 import type { APIRoute } from 'astro';
 import { appointmentBackendService } from '@/lib/doctors/services/appointment.backend';
-import { createSupabaseServerClient } from '@/lib/supabase';
 import { getAppointment } from '@/lib/doctors/lib/repos/appointments';
 import { logger } from '@autamedica/shared';
+import { resolveDoctorContext } from '@/lib/doctors/api/doctor-context';
+import { badRequest, forbidden, notFound, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
 
 const VALID_STATUSES = ['scheduled', 'confirmed', 'in_progress', 're_queue', 'completed', 'cancelled'] as const;
 type ValidStatus = typeof VALID_STATUSES[number];
 
-export const POST: APIRoute = async ({ params, request, cookies, locals }) => {
+export const POST: APIRoute = async ({ params, request, locals }) => {
   const { id } = params;
-  if (!id) {
-    return new Response(JSON.stringify({ error: 'Missing appointment id' }), { status: 400 });
-  }
+  if (!id) return badRequest('missing_appointment_id');
 
-  const supabase = createSupabaseServerClient(request, cookies, locals.runtime?.env);
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'Session required' }), { status: 401 });
-  }
+  const context = await resolveDoctorContext(request, locals);
+  if (!context) return unauthorized();
 
   const appointment = await getAppointment(id);
-  if (!appointment) {
-    return new Response(JSON.stringify({ error: 'Appointment not found' }), { status: 404 });
-  }
+  if (!appointment) return notFound('appointment_not_found');
 
-  const doctor = await supabase
-    .from('doctors')
-    .select('id, user_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (doctor.error || !doctor.data) {
-    return new Response(JSON.stringify({ error: 'Doctor profile not found' }), { status: 403 });
-  }
-
-  if (appointment.doctorId !== doctor.data.id) {
-    return new Response(JSON.stringify({ error: 'Forbidden: not your appointment' }), { status: 403 });
+  if (appointment.doctorId !== context.doctorId) {
+    return forbidden('not_your_appointment');
   }
 
   try {
     const body = await request.json();
-    const { status } = body;
+    const { status } = body as { status?: string };
 
-    if (!status) {
-      return new Response(JSON.stringify({ error: 'Missing status' }), { status: 400 });
-    }
+    if (!status) return badRequest('missing_status');
 
     if (!VALID_STATUSES.includes(status as ValidStatus)) {
-      return new Response(
-        JSON.stringify({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` }),
-        { status: 400 }
-      );
+      return badRequest(`invalid_status: must be one of ${VALID_STATUSES.join(', ')}`);
     }
 
     const updatedAppointment = await appointmentBackendService.transitionStatus(id, status);
-    return new Response(JSON.stringify(updatedAppointment), { status: 200 });
+    return jsonOk(updatedAppointment);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    const statusCode = message.includes('not found') ? 404
-      : message.includes('Invalid transition') ? 400
-      : 500;
+    if (message.includes('not found')) return notFound(message);
+    if (message.includes('Invalid transition')) return badRequest(message);
+
     logger.error('[API transition] failed', { id, error });
-    return new Response(
-      JSON.stringify({ error: statusCode === 500 ? 'Internal server error' : message }),
-      { status: statusCode }
-    );
+    return internalError();
   }
 };
