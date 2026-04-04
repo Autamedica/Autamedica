@@ -12,6 +12,7 @@ import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { detectLocale, LOCALE_COOKIE } from './i18n/index';
 import { isProduction, validateRedirectUrl } from './lib/auth-utils';
+import { checkRateLimit } from './lib/rate-limit';
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
 
 // Rutas que requieren autenticación
@@ -51,6 +52,32 @@ const STATIC_BUILD_BYPASS_ROUTES = new Set([
   '/design-system',
   '/showcase',
 ]);
+
+// ── RATE LIMITING CONFIG ──────────────────────────────────────────────────────
+const AUTH_RATE_LIMIT_MAX = 20;          // requests per window
+const AUTH_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+
+// ── SECURITY HEADERS ──────────────────────────────────────────────────────────
+const CSP_REPORT_ONLY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "frame-ancestors 'none'",
+].join('; ');
+
+function applySecurityHeaders(response: Response): void {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
+  response.headers.set('Content-Security-Policy-Report-Only', CSP_REPORT_ONLY);
+
+  if (import.meta.env.PROD) {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+}
 
 /** Role → redirect URL. Prod uses subdomains, dev uses ?portal= query param. */
 function getRoleRedirect(role: string): string {
@@ -187,8 +214,32 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;
 
+  // Wrap next() so every response gets security headers applied
+  const secureNext = async (): Promise<Response> => {
+    const response = await next();
+    applySecurityHeaders(response);
+    return response;
+  };
+
   if (STATIC_BUILD_BYPASS_ROUTES.has(normalizePath(pathname))) {
-    return next();
+    return secureNext();
+  }
+
+  // ── RATE LIMITING (auth API routes) ─────────────────────────────────────────
+  if (pathname.startsWith('/api/auth/')) {
+    const clientIp = context.request.headers.get('cf-connecting-ip')
+      ?? context.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? 'unknown';
+    const rateLimitKey = `${clientIp}:${pathname}`;
+
+    if (!checkRateLimit(rateLimitKey, AUTH_RATE_LIMIT_MAX, AUTH_RATE_LIMIT_WINDOW_MS)) {
+      const response = new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+      applySecurityHeaders(response);
+      return response;
+    }
   }
 
   const portal = detectPortal(requestUrl);
@@ -251,7 +302,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // Skip auth for static assets
   if (pathname.startsWith('/_astro/') || pathname.includes('.')) {
-    return next();
+    return secureNext();
   }
 
   // ── LOCALE DETECTION ────────────────────────────────────────────────────────
@@ -269,7 +320,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (savedLocale !== locale) {
       context.cookies.set(LOCALE_COOKIE, locale, {
         path: '/',
-        maxAge: 60 * 60 * 24 * 365, // 1 año
+        maxAge: 60 * 60 * 24 * 365, // 1 ano
         sameSite: 'lax',
         secure: import.meta.env.PROD,
         httpOnly: false, // legible por LanguageSwitcher en el cliente
@@ -283,7 +334,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // Public routes that are NOT auth routes — skip auth entirely
   if (!isAuthRoute && !isPortalHostRoot && PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
-    return next();
+    return secureNext();
   }
 
   // Everything below requires auth verification
@@ -378,7 +429,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect(returnToUrl ?? roleRedirect);
       }
       // Not authenticated — show login/register form
-      return next();
+      return secureNext();
     }
 
     // Protected routes: redirect unauthenticated users to login
@@ -392,7 +443,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
           portal,
           ...authCookieDebug,
         });
-        return next();
+        return secureNext();
       }
 
       logger.info('Middleware auth: redirecting unauthenticated request to login', {
@@ -438,7 +489,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     }
 
-    return next();
+    return secureNext();
 
   } catch (err) {
     logger.error('Middleware error:', err);
@@ -449,6 +500,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return context.redirect(loginUrl.toString());
     }
 
-    return next();
+    return secureNext();
   }
 });
