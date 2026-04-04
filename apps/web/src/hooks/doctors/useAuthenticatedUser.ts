@@ -10,6 +10,7 @@ import { createBrowserClient } from '@autamedica/auth'
 import { logger } from '@autamedica/shared'
 import { authUserService } from '@/lib/doctors/services/auth-user.service'
 import type { AuthenticatedUserProfile } from '@/lib/doctors/services/auth-user.service'
+import { clearManualSignout, wasManualSignout } from '@/lib/auth/browser-storage'
 
 interface UseAuthenticatedUserReturn {
   user: AuthenticatedUserProfile | null
@@ -66,10 +67,10 @@ export function useAuthenticatedUser(): UseAuthenticatedUserReturn {
           setUser(null)
           setError(null)
           // If the user didn't trigger logout manually, redirect with expired flag
-          if (!sessionStorage.getItem('au-manual-signout')) {
+          if (!wasManualSignout()) {
             window.location.href = '/auth/login?expired=true'
           }
-          sessionStorage.removeItem('au-manual-signout')
+          clearManualSignout()
         }
 
         setLoading(false)

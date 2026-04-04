@@ -5,6 +5,7 @@ import type { Profile } from '@/lib/patients/lib/zod/profiles';
 import { patientSessionService } from '@/lib/patients/services/patient-session.service';
 import { useSupabase } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
+import { clearManualSignout, markManualSignout, wasManualSignout } from '@/lib/auth/browser-storage';
 import type { User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -152,10 +153,10 @@ export function usePatientSession(): UsePatientSessionResult {
       if (event === 'SIGNED_OUT') {
         safeSetState(() => ({ ...INITIAL_STATE, loading: false }));
         // If the user didn't trigger logout manually, redirect with expired flag
-        if (!sessionStorage.getItem('au-manual-signout')) {
+        if (!wasManualSignout()) {
           window.location.href = '/auth/login?expired=true';
         }
-        sessionStorage.removeItem('au-manual-signout');
+        clearManualSignout();
         return;
       }
 
@@ -173,7 +174,7 @@ export function usePatientSession(): UsePatientSessionResult {
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
-    sessionStorage.setItem('au-manual-signout', '1');
+    markManualSignout();
     await supabase.auth.signOut();
     safeSetState(() => ({ ...INITIAL_STATE, loading: false }));
   }, [safeSetState, supabase]);
