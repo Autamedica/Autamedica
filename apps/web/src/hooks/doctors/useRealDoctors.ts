@@ -90,8 +90,26 @@ export function useRealDoctors(): UseDoctorsResult {
   }, [isClient])
 
   useEffect(() => {
-    void fetchDoctors()
-  }, [fetchDoctors])
+    let cancelled = false
+    if (!isClient) return
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await doctorService.getDoctors()
+        if (!cancelled) setDoctors(data)
+      } catch (err) {
+        if (!cancelled) {
+          logger.error('[useRealDoctors] fetch error:', err)
+          setError(err instanceof Error ? err.message : 'Error al cargar doctores')
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [isClient])
 
   return { doctors, loading, error, refetch: fetchDoctors }
 }

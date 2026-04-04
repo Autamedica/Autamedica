@@ -50,6 +50,15 @@ export const patientService = {
       throw error
     }
   },
+  async getPatientsByCompany(companyId: string): Promise<PatientWithProfile[]> {
+    try {
+      return await fetchApi<PatientWithProfile[]>(`/api/doctors/patients?companyId=${companyId}`)
+    } catch (error) {
+      logger.error('[patientService] getPatientsByCompany failed', { companyId, error })
+      throw error
+    }
+  },
+
   async getAssignedPatients(doctorUserId: string): Promise<PatientWithProfile[]> {
     try {
       return await fetchApi<PatientWithProfile[]>(`/api/doctors/patients?doctorUserId=${doctorUserId}`)

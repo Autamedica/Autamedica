@@ -44,8 +44,26 @@ export function useRealPatients(): UsePatientsResult {
   }, [isClient])
 
   useEffect(() => {
-    void fetchPatients()
-  }, [fetchPatients])
+    let cancelled = false
+    if (!isClient) return
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await patientService.getActivePatients()
+        if (!cancelled) setPatients(data)
+      } catch (err) {
+        if (!cancelled) {
+          logger.error('[useRealPatients] fetch error:', err)
+          setError(err instanceof Error ? err.message : 'Error al cargar pacientes')
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [isClient])
 
   return { patients, loading, error, refetch: fetchPatients }
 }
@@ -164,7 +182,7 @@ export function usePatientsByCompany(companyId?: string): UsePatientsByCompanyRe
     try {
       setLoading(true)
       setError(null)
-      const data = await patientService.getActivePatients()
+      const data = await patientService.getPatientsByCompany(companyId)
       setPatients(data)
     } catch (err) {
       logger.error('[usePatientsByCompany] fetch error:', err)
