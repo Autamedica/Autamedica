@@ -1,6 +1,6 @@
 /**
  * API: AI-driven initial question for anamnesis.
- * Patient describes chief complaint in free text → Gemini generates
+ * Patient describes chief complaint in free text -> Gemini generates
  * targeted follow-up questions based on clinical reasoning.
  *
  * POST /api/patients/anamnesis/ai-question
@@ -15,7 +15,7 @@ import {
   isAnamnesisExtractionConfigured,
 } from '@/lib/patients/server/ai-provider'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { anamnesisExtractionRepo } from '@/lib/patients/lib/repos/anamnesis-extraction.repo'
+import { createAnamnesisExtractionAdapter } from '@/lib/patients/lib/repos/anamnesis-extraction.adapter'
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -27,24 +27,24 @@ function json(data: unknown, status = 200) {
 /** Max AI question calls per patient per day (shared with extract endpoint) */
 const DAILY_AI_QUESTION_LIMIT = 5
 
-const SYSTEM_PROMPT = `Sos un asistente médico de AutaMedica. El paciente acaba de describir su motivo de consulta.
-Tu tarea: generar 4–8 preguntas de seguimiento clínicamente relevantes basadas en lo que describió.
+const SYSTEM_PROMPT = `Sos un asistente medico de AutaMedica. El paciente acaba de describir su motivo de consulta.
+Tu tarea: generar 4-8 preguntas de seguimiento clinicamente relevantes basadas en lo que describio.
 
 Reglas:
-- Preguntas cortas, claras, en español argentino informal (voseo)
-- Cada pregunta con tipo: "open" (texto libre), "closed" (sí/no), "scale" (1-10), "select" (opciones)
+- Preguntas cortas, claras, en espanol argentino informal (voseo)
+- Cada pregunta con tipo: "open" (texto libre), "closed" (si/no), "scale" (1-10), "select" (opciones)
 - Para "select": incluir array "options" con 2-4 opciones + "Otro"
-- Prioridad: "critical" (banderas rojas), "high" (diagnóstico diferencial), "medium" (contexto)
+- Prioridad: "critical" (banderas rojas), "high" (diagnostico diferencial), "medium" (contexto)
 - NO diagnosticar, NO sugerir tratamientos
-- Focalizate en: temporalidad, intensidad, factores agravantes/atenuantes, síntomas asociados, antecedentes relevantes
-- Si hay banderas rojas (dolor torácico, dificultad respiratoria, pérdida de consciencia), priorizalas
+- Focalizate en: temporalidad, intensidad, factores agravantes/atenuantes, sintomas asociados, antecedentes relevantes
+- Si hay banderas rojas (dolor toracico, dificultad respiratoria, perdida de consciencia), priorizalas
 
-Responder SOLO en JSON válido:
+Responder SOLO en JSON valido:
 {
   "questions": [
     {
       "id": "ai_q1",
-      "question": "¿Hace cuánto tenés este dolor?",
+      "question": "Hace cuanto tenes este dolor?",
       "type": "open",
       "priority": "high",
       "targetSection": "motivo_consulta",
@@ -70,9 +70,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: 'chief_complaint_too_long' }, 400)
   }
 
-  // DB-backed rate limit: reuses extraction count (both endpoints call Gemini)
   const admin = createAstroAdminClient()
-  const todayCount = await anamnesisExtractionRepo.countToday(admin, context.patientId)
+  const anamnesisExtractionRepo = createAnamnesisExtractionAdapter(admin)
+  const todayCount = await anamnesisExtractionRepo.countToday(context.patientId)
   if (todayCount >= DAILY_AI_QUESTION_LIMIT) {
     return json({ success: false, error: 'rate_limit_exceeded' }, 429)
   }
@@ -121,7 +121,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ success: true, data: { questions: [], detectedSections: [], urgencyLevel: 'normal' } })
     }
 
-    // Parse JSON response (LLM may return non-JSON)
     let parsed: Record<string, unknown>
     try {
       parsed = JSON.parse(aiResponse as string)

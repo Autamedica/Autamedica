@@ -1,18 +1,18 @@
 /**
  * Service: Anamnesis version management.
- * Capa 6 — Snapshot creation, diff computation, version orchestration.
+ * Capa 6 -- Snapshot creation, diff computation, version orchestration.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import {
-  anamnesisVersionsRepo,
+  createAnamnesisVersionsAdapter,
   type AnamnesisVersion,
   type VersionTrigger,
   type VersionRelevance,
-} from '@/lib/patients/lib/repos/anamnesis-versions.repo'
-import { anamnesisRepo } from '@/lib/patients/lib/repos/anamnesis.repo'
-import { anamnesisExtractionRepo } from '@/lib/patients/lib/repos/anamnesis-extraction.repo'
+} from '@/lib/patients/lib/repos/anamnesis-versions.adapter'
+import { createAnamnesisAdapter } from '@/lib/patients/lib/repos/anamnesis.adapter'
+import { createAnamnesisExtractionAdapter } from '@/lib/patients/lib/repos/anamnesis-extraction.adapter'
 
 type Db = SupabaseClient<Database>
 
@@ -29,10 +29,6 @@ export interface ChangesSummary {
   fieldChanges: { section: string; field: string; from: unknown; to: unknown }[]
 }
 
-/**
- * Computes diff between two section snapshots.
- * Identifies added, modified, and unchanged sections + field-level changes.
- */
 function computeDiff(
   prev: SectionSnapshot[],
   current: SectionSnapshot[],
@@ -60,7 +56,6 @@ function computeDiff(
       unchanged.push(section)
     } else {
       modified.push(section)
-      // Compute field-level changes
       const allKeys = new Set([...Object.keys(prevSection.data), ...Object.keys(cur.data)])
       for (const key of allKeys) {
         const prevVal = prevSection.data[key]
@@ -75,9 +70,6 @@ function computeDiff(
   return { added, modified, unchanged, fieldChanges }
 }
 
-/**
- * Determines relevance based on diff analysis.
- */
 function inferRelevance(diff: ChangesSummary, trigger: VersionTrigger): VersionRelevance {
   if (trigger === 'initial') return 'routine'
   if (diff.added.length > 0) return 'new_symptom'
@@ -87,13 +79,13 @@ function inferRelevance(diff: ChangesSummary, trigger: VersionTrigger): VersionR
 
 const SECTION_LABELS: Record<string, string> = {
   edad: 'Datos personales',
-  ocupacion: 'Ocupación',
+  ocupacion: 'Ocupacion',
   motivo_consulta: 'Motivo de consulta',
   enfermedades_previas: 'Enfermedades previas',
   medicamentos: 'Medicamentos',
   alergias: 'Alergias',
   antecedentes_familiares: 'Antecedentes familiares',
-  habitos: 'Hábitos',
+  habitos: 'Habitos',
   cardiovascular: 'Cardiovascular',
   respiratorio: 'Respiratorio',
   digestivo: 'Digestivo',
@@ -101,10 +93,6 @@ const SECTION_LABELS: Record<string, string> = {
   resumen_final: 'Resumen',
 }
 
-/**
- * Generates a descriptive auto-summary of what this version contains.
- * Like a git commit message — explains the clinical state, not just "v1".
- */
 function generateVersionNotes(
   trigger: VersionTrigger,
   snapshot: SectionSnapshot[],
@@ -113,20 +101,19 @@ function generateVersionNotes(
   const completedSections = snapshot.filter(s => s.completed)
 
   if (trigger === 'initial') {
-    // Extract key clinical data for the summary
     const motivo = snapshot.find(s => s.section === 'motivo_consulta')
     const sintomaTexto = motivo?.data?.sintoma_principal as string | undefined
     const edad = snapshot.find(s => s.section === 'edad')
     const edadVal = edad?.data?.edad as number | undefined
 
     const parts: string[] = []
-    parts.push(`Historia clínica inicial: ${completedSections.length} secciones`)
-    if (edadVal) parts[0] += `, ${edadVal} años`
+    parts.push(`Historia clinica inicial: ${completedSections.length} secciones`)
+    if (edadVal) parts[0] += `, ${edadVal} anios`
     if (sintomaTexto) parts.push(`Motivo: ${sintomaTexto.slice(0, 80)}`)
     return parts.join('. ')
   }
 
-  if (!diff) return `Actualización con ${completedSections.length} secciones`
+  if (!diff) return `Actualizacion con ${completedSections.length} secciones`
 
   const parts: string[] = []
   if (diff.added.length > 0) {
@@ -143,14 +130,10 @@ function generateVersionNotes(
     parts.push(`Campos: ${details.join(', ')}`)
   }
 
-  return parts.length > 0 ? parts.join('. ') : `Revisión con ${completedSections.length} secciones`
+  return parts.length > 0 ? parts.join('. ') : `Revision con ${completedSections.length} secciones`
 }
 
 export const anamnesisVersionService = {
-  /**
-   * Creates a new version snapshot from current anamnesis state.
-   * Called automatically when anamnesis is completed or updated.
-   */
   async createVersion(
     supabase: Db,
     patientId: string,
@@ -158,37 +141,35 @@ export const anamnesisVersionService = {
     trigger: VersionTrigger,
     notes?: string,
   ): Promise<AnamnesisVersion> {
-    // 1. Get current sections
-    const sections = await anamnesisRepo.getSections(supabase, anamnesisId)
+    const anamnesisRepo = createAnamnesisAdapter(supabase)
+    const anamnesisExtractionRepo = createAnamnesisExtractionAdapter(supabase)
+    const anamnesisVersionsRepo = createAnamnesisVersionsAdapter(supabase)
+
+    const sections = await anamnesisRepo.getSections(anamnesisId)
     const currentSnapshot: SectionSnapshot[] = sections.map(s => ({
       section: typeof s.section === 'string' ? s.section : '',
       data: (s.data ?? {}) as Record<string, unknown>,
       completed: s.completed ?? false,
     }))
 
-    // 2. Get latest extraction (if exists)
-    const extraction = await anamnesisExtractionRepo.getLatest(supabase, anamnesisId)
+    const extraction = await anamnesisExtractionRepo.getLatest(anamnesisId)
       .catch(() => null)
 
-    // 3. Get previous version for diff
-    const prevVersion = await anamnesisVersionsRepo.getLatest(supabase, anamnesisId)
+    const prevVersion = await anamnesisVersionsRepo.getLatest(anamnesisId)
       .catch(() => null)
     const nextVersionNumber = prevVersion ? prevVersion.version_number + 1 : 1
 
-    // 4. Compute diff
     let changesSummary: ChangesSummary | null = null
     if (prevVersion && Array.isArray(prevVersion.sections_snapshot)) {
       const prevSnapshot = prevVersion.sections_snapshot as unknown as SectionSnapshot[]
       changesSummary = computeDiff(prevSnapshot, currentSnapshot)
     }
 
-    // 5. Determine relevance
     const relevance = changesSummary
       ? inferRelevance(changesSummary, trigger)
       : (trigger === 'initial' ? 'routine' as const : 'follow_up' as const)
 
-    // 6. Insert version
-    const version = await anamnesisVersionsRepo.insert(supabase, {
+    const version = await anamnesisVersionsRepo.insert({
       anamnesis_id: anamnesisId,
       patient_id: patientId,
       version_number: nextVersionNumber,
@@ -216,17 +197,13 @@ export const anamnesisVersionService = {
     return version
   },
 
-  /**
-   * Lists all versions for an anamnesis.
-   */
   async listVersions(supabase: Db, anamnesisId: string): Promise<AnamnesisVersion[]> {
-    return anamnesisVersionsRepo.listByAnamnesis(supabase, anamnesisId)
+    const anamnesisVersionsRepo = createAnamnesisVersionsAdapter(supabase)
+    return anamnesisVersionsRepo.listByAnamnesis(anamnesisId)
   },
 
-  /**
-   * Gets a specific version by number.
-   */
   async getVersion(supabase: Db, anamnesisId: string, versionNumber: number): Promise<AnamnesisVersion | null> {
-    return anamnesisVersionsRepo.getByVersion(supabase, anamnesisId, versionNumber)
+    const anamnesisVersionsRepo = createAnamnesisVersionsAdapter(supabase)
+    return anamnesisVersionsRepo.getByVersion(anamnesisId, versionNumber)
   },
 }

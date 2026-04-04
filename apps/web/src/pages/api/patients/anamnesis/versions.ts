@@ -1,13 +1,13 @@
 /**
  * API Controller: Anamnesis versions (history).
- * GET /api/patients/anamnesis/versions — list all versions
- * POST /api/patients/anamnesis/versions — create new version (manual update)
+ * GET /api/patients/anamnesis/versions -- list all versions
+ * POST /api/patients/anamnesis/versions -- create new version (manual update)
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { anamnesisVersionService } from '@/lib/patients/services/anamnesis-version.service'
-import { anamnesisRepo } from '@/lib/patients/lib/repos/anamnesis.repo'
+import { createAnamnesisAdapter } from '@/lib/patients/lib/repos/anamnesis.adapter'
 import { logger } from '@autamedica/shared'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
@@ -17,7 +17,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient()
-    const anamnesis = await anamnesisRepo.findByPatient(admin, context.patientId)
+    const anamnesisRepo = createAnamnesisAdapter(admin)
+    const anamnesis = await anamnesisRepo.findByPatient(context.patientId)
     if (!anamnesis) return jsonOk({ versions: [] })
 
     const versions = await anamnesisVersionService.listVersions(admin, anamnesis.id)
@@ -49,7 +50,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient()
-    const anamnesis = await anamnesisRepo.findByPatient(admin, context.patientId)
+    const anamnesisRepo = createAnamnesisAdapter(admin)
+    const anamnesis = await anamnesisRepo.findByPatient(context.patientId)
     if (!anamnesis) return badRequest('no_anamnesis')
 
     const version = await anamnesisVersionService.createVersion(

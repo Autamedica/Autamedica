@@ -1,7 +1,7 @@
 import type { Database } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { communityRepo } from '@/lib/patients/lib/repos/community.repo';
+import { createCommunityAdapter } from '@/lib/patients/lib/repos/community.adapter';
 import type {
   AddCommentReactionInput,
   AddCommunityReactionInput,
@@ -71,8 +71,6 @@ function resolveCommunityActor(context: PatientCommunityContext): {
   actorId: string;
   actorIds: string[];
 } {
-  // Community writes historically keyed by auth user id in production flows.
-  // Keep that effective contract here until the DB contract is audited and normalized.
   const actorId = context.userId;
   const actorIds = Array.from(new Set([context.userId, context.patientId].filter(Boolean)));
 
@@ -92,17 +90,18 @@ export const communityService = {
     const limit = options?.limit ?? 20;
     const sortBy = options?.sortBy ?? 'recent';
     const { actorIds } = resolveCommunityActor(context);
+    const communityRepo = createCommunityAdapter(supabase);
 
     const [groups, memberships, posts] = await Promise.all([
-      communityRepo.listGroups(supabase).catch((error) => {
+      communityRepo.listGroups().catch((error) => {
         logger.warn('[communityService] listGroups degraded to empty state', error);
         return [];
       }),
-      communityRepo.listMemberships(supabase, actorIds).catch((error) => {
+      communityRepo.listMemberships(actorIds).catch((error) => {
         logger.warn('[communityService] listMemberships degraded to empty state', error);
         return [];
       }),
-      communityRepo.listPosts(supabase, {
+      communityRepo.listPosts({
         limit,
         sortBy,
         groupId: options?.groupId,
@@ -128,6 +127,8 @@ export const communityService = {
     context: PatientCommunityContext,
     payload: CreateCommunityPostInput,
   ) {
+    const communityRepo = createCommunityAdapter(supabase);
+
     if (!payload.groupId.trim()) {
       throw Object.assign(new Error('El grupo es obligatorio'), { code: 'VALIDATION' });
     }
@@ -136,17 +137,17 @@ export const communityService = {
       throw Object.assign(new Error('El contenido es obligatorio'), { code: 'VALIDATION' });
     }
 
-    const group = await communityRepo.findGroupById(supabase, payload.groupId);
+    const group = await communityRepo.findGroupById(payload.groupId);
     if (!group) {
       throw Object.assign(new Error('Grupo no encontrado'), { code: 'GROUP_NOT_FOUND' });
     }
 
     const { actorId, actorIds } = resolveCommunityActor(context);
-    await communityRepo.ensureMembership(supabase, actorIds, payload.groupId, actorId);
+    await communityRepo.ensureMembership(actorIds, payload.groupId, actorId);
 
     const authorDisplayName = await resolveAuthorDisplayName(supabase, context);
 
-    return communityRepo.createPost(supabase, {
+    return communityRepo.createPost({
       groupId: payload.groupId,
       authorId: actorId,
       authorDisplayName,
@@ -162,17 +163,19 @@ export const communityService = {
     context: PatientCommunityContext,
     payload: AddCommunityReactionInput,
   ): Promise<void> {
+    const communityRepo = createCommunityAdapter(supabase);
+
     if (!payload.postId.trim()) {
-      throw Object.assign(new Error('La publicación es obligatoria'), { code: 'VALIDATION' });
+      throw Object.assign(new Error('La publicacion es obligatoria'), { code: 'VALIDATION' });
     }
 
-    const post = await communityRepo.findPostById(supabase, payload.postId);
+    const post = await communityRepo.findPostById(payload.postId);
     if (!post) {
-      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+      throw Object.assign(new Error('Publicacion no encontrada'), { code: 'POST_NOT_FOUND' });
     }
 
     const { actorId } = resolveCommunityActor(context);
-    await communityRepo.upsertReaction(supabase, {
+    await communityRepo.upsertReaction({
       postId: payload.postId,
       actorId,
       reactionType: payload.reactionType.trim() || 'like',
@@ -184,23 +187,25 @@ export const communityService = {
     context: PatientCommunityContext,
     payload: CreateCommunityCommentInput,
   ): Promise<CommunityComment> {
+    const communityRepo = createCommunityAdapter(supabase);
+
     if (!payload.postId.trim()) {
-      throw Object.assign(new Error('La publicación es obligatoria'), { code: 'VALIDATION' });
+      throw Object.assign(new Error('La publicacion es obligatoria'), { code: 'VALIDATION' });
     }
 
     if (!payload.content.trim()) {
       throw Object.assign(new Error('El contenido es obligatorio'), { code: 'VALIDATION' });
     }
 
-    const post = await communityRepo.findPostById(supabase, payload.postId);
+    const post = await communityRepo.findPostById(payload.postId);
     if (!post) {
-      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+      throw Object.assign(new Error('Publicacion no encontrada'), { code: 'POST_NOT_FOUND' });
     }
 
     const { actorId } = resolveCommunityActor(context);
     const authorDisplayName = await resolveAuthorDisplayName(supabase, context);
 
-    return communityRepo.createComment(supabase, {
+    return communityRepo.createComment({
       postId: payload.postId,
       authorId: actorId,
       authorDisplayName,
@@ -215,20 +220,21 @@ export const communityService = {
     context: { userId: string; doctorId: string },
     payload: { postId: string; content: string },
   ): Promise<CommunityComment> {
+    const communityRepo = createCommunityAdapter(supabase);
+
     if (!payload.postId.trim()) {
-      throw Object.assign(new Error('La publicación es obligatoria'), { code: 'VALIDATION' });
+      throw Object.assign(new Error('La publicacion es obligatoria'), { code: 'VALIDATION' });
     }
 
     if (!payload.content.trim()) {
       throw Object.assign(new Error('El contenido es obligatorio'), { code: 'VALIDATION' });
     }
 
-    const post = await communityRepo.findPostById(supabase, payload.postId);
+    const post = await communityRepo.findPostById(payload.postId);
     if (!post) {
-      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+      throw Object.assign(new Error('Publicacion no encontrada'), { code: 'POST_NOT_FOUND' });
     }
 
-    // Resolve doctor display name and specialty
     let authorDisplayName: string | null = null;
     let doctorSpecialty: string | null = null;
     try {
@@ -250,7 +256,7 @@ export const communityService = {
       logger.warn('[communityService] createDoctorComment profile resolution failed', error);
     }
 
-    return communityRepo.createComment(supabase, {
+    return communityRepo.createComment({
       postId: payload.postId,
       doctorAuthorId: context.doctorId,
       authorDisplayName,
@@ -266,17 +272,19 @@ export const communityService = {
     context: PatientCommunityContext,
     payload: AddCommentReactionInput,
   ): Promise<void> {
+    const communityRepo = createCommunityAdapter(supabase);
+
     if (!payload.commentId.trim()) {
       throw Object.assign(new Error('El comentario es obligatorio'), { code: 'VALIDATION' });
     }
 
-    const comment = await communityRepo.findCommentById(supabase, payload.commentId);
+    const comment = await communityRepo.findCommentById(payload.commentId);
     if (!comment) {
       throw Object.assign(new Error('Comentario no encontrado'), { code: 'COMMENT_NOT_FOUND' });
     }
 
     const { actorId } = resolveCommunityActor(context);
-    await communityRepo.upsertCommentReaction(supabase, {
+    await communityRepo.upsertCommentReaction({
       commentId: payload.commentId,
       actorId,
       reactionType: payload.reactionType.trim() || 'helpful',
@@ -289,17 +297,18 @@ export const communityService = {
     postId: string,
     payload: UpdateCommunityPostInput,
   ): Promise<CommunityPost> {
-    const post = await communityRepo.findPostById(supabase, postId);
+    const communityRepo = createCommunityAdapter(supabase);
+    const post = await communityRepo.findPostById(postId);
     if (!post) {
-      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+      throw Object.assign(new Error('Publicacion no encontrada'), { code: 'POST_NOT_FOUND' });
     }
 
     const { actorId } = resolveCommunityActor(context);
     if (post.author_id !== actorId) {
-      throw Object.assign(new Error('No podés editar esta publicación'), { code: 'FORBIDDEN' });
+      throw Object.assign(new Error('No podes editar esta publicacion'), { code: 'FORBIDDEN' });
     }
 
-    return communityRepo.updatePost(supabase, postId, {
+    return communityRepo.updatePost(postId, {
       title: payload.title,
       content: payload.content,
       tags: payload.tags ? normalizeTags(payload.tags) : undefined,
@@ -311,17 +320,18 @@ export const communityService = {
     context: PatientCommunityContext,
     postId: string,
   ): Promise<void> {
-    const post = await communityRepo.findPostById(supabase, postId);
+    const communityRepo = createCommunityAdapter(supabase);
+    const post = await communityRepo.findPostById(postId);
     if (!post) {
-      throw Object.assign(new Error('Publicación no encontrada'), { code: 'POST_NOT_FOUND' });
+      throw Object.assign(new Error('Publicacion no encontrada'), { code: 'POST_NOT_FOUND' });
     }
 
     const { actorId } = resolveCommunityActor(context);
     if (post.author_id !== actorId) {
-      throw Object.assign(new Error('No podés eliminar esta publicación'), { code: 'FORBIDDEN' });
+      throw Object.assign(new Error('No podes eliminar esta publicacion'), { code: 'FORBIDDEN' });
     }
 
-    await communityRepo.deletePost(supabase, postId);
+    await communityRepo.deletePost(postId);
   },
 
   async getDoctorFeed(
@@ -334,8 +344,9 @@ export const communityService = {
   ): Promise<CommunityPost[]> {
     const limit = options?.limit ?? 20;
     const sortBy = options?.sortBy ?? 'recent';
+    const communityRepo = createCommunityAdapter(supabase);
 
-    return communityRepo.listPosts(supabase, { limit, sortBy }).catch((error) => {
+    return communityRepo.listPosts({ limit, sortBy }).catch((error) => {
       logger.warn('[communityService] getDoctorFeed degraded to empty state', error);
       return [];
     });

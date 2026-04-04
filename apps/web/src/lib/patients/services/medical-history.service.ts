@@ -4,7 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import { medicalHistoryRepo, type MedicalRecord } from '@/lib/patients/lib/repos/medical-history.repo'
+import { createMedicalHistoryAdapter, type MedicalRecord } from '@/lib/patients/lib/repos/medical-history.adapter'
 
 type Db = SupabaseClient<Database>
 
@@ -20,20 +20,22 @@ export interface MedicalHistorySnapshot {
 
 export const medicalHistoryService = {
   async getFullHistory(supabase: Db, patientId: string): Promise<MedicalHistorySnapshot> {
+    const medicalHistoryRepo = createMedicalHistoryAdapter(supabase)
+
     const [medications, conditions, allergies, timeline, anamnesisRes] = await Promise.all([
-      medicalHistoryRepo.listByType(supabase, patientId, 'prescription').catch((err) => {
+      medicalHistoryRepo.listByType(patientId, 'prescription').catch((err) => {
         logger.error('[medicalHistoryService] medications failed', err)
         return []
       }),
-      medicalHistoryRepo.listByType(supabase, patientId, 'diagnosis').catch((err) => {
+      medicalHistoryRepo.listByType(patientId, 'diagnosis').catch((err) => {
         logger.error('[medicalHistoryService] conditions failed', err)
         return []
       }),
-      medicalHistoryRepo.listByType(supabase, patientId, 'allergy').catch((err) => {
+      medicalHistoryRepo.listByType(patientId, 'allergy').catch((err) => {
         logger.error('[medicalHistoryService] allergies failed', err)
         return []
       }),
-      medicalHistoryRepo.listAll(supabase, patientId).catch((err) => {
+      medicalHistoryRepo.listAll(patientId).catch((err) => {
         logger.error('[medicalHistoryService] timeline failed', err)
         return []
       }),
@@ -60,7 +62,8 @@ export const medicalHistoryService = {
     name: string,
     meta: { severity?: string; reaction?: string; notes?: string },
   ): Promise<MedicalRecord> {
-    return medicalHistoryRepo.insert(supabase, patientId, 'allergy', name.trim(), meta)
+    const medicalHistoryRepo = createMedicalHistoryAdapter(supabase)
+    return medicalHistoryRepo.insert(patientId, 'allergy', name.trim(), meta)
   },
 
   async addMedication(
@@ -69,8 +72,9 @@ export const medicalHistoryService = {
     name: string,
     meta: { dosage?: string; frequency?: string; status?: string; notes?: string },
   ): Promise<MedicalRecord> {
+    const medicalHistoryRepo = createMedicalHistoryAdapter(supabase)
     const content = { ...meta, status: meta.status || 'active' }
-    return medicalHistoryRepo.insert(supabase, patientId, 'prescription', name.trim(), content)
+    return medicalHistoryRepo.insert(patientId, 'prescription', name.trim(), content)
   },
 
   async addCondition(
@@ -79,6 +83,7 @@ export const medicalHistoryService = {
     name: string,
     meta: { status?: string; diagnosed_date?: string; notes?: string },
   ): Promise<MedicalRecord> {
-    return medicalHistoryRepo.insert(supabase, patientId, 'diagnosis', name.trim(), meta)
+    const medicalHistoryRepo = createMedicalHistoryAdapter(supabase)
+    return medicalHistoryRepo.insert(patientId, 'diagnosis', name.trim(), meta)
   },
 }

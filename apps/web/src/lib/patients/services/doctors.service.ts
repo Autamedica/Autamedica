@@ -3,12 +3,15 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
-import { doctorsRepo, type DoctorSummary } from '@/lib/patients/lib/repos/doctors.repo'
+import { createDoctorsAdapter, type DoctorSummary } from '@/lib/patients/lib/repos/doctors.adapter'
 
 type Db = SupabaseClient<Database>
 
+export type { DoctorSummary }
+
 export const doctorsService = {
   async listActiveDoctors(supabase: Db): Promise<DoctorSummary[]> {
-    return doctorsRepo.listActive(supabase)
+    const doctorsRepo = createDoctorsAdapter(supabase)
+    return doctorsRepo.listActive()
   },
 }

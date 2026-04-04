@@ -3,13 +3,14 @@ import type { Database } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
 import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase';
 import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter';
-import { communityRepo } from '@/lib/patients/lib/repos/community.repo';
-import { medicalHistoryRepo } from '@/lib/patients/lib/repos/medical-history.repo';
-import { notificationsRepo } from '@/lib/patients/lib/repos/notifications.repo';
+import { createCommunityAdapter } from '@/lib/patients/lib/repos/community.adapter';
+import { createMedicalHistoryAdapter } from '@/lib/patients/lib/repos/medical-history.adapter';
+import { createNotificationsAdapter } from '@/lib/patients/lib/repos/notifications.adapter';
 import type {
   PortalNotificationCandidate,
   PortalNotificationFeed,
 } from '@/lib/patients/types/notifications';
+import type { MedicalRecord } from '@/lib/patients/lib/repos/medical-history.adapter';
 
 type Db = SupabaseClient<Database>;
 
@@ -23,7 +24,7 @@ function formatDoctorName(input: {
   last_name?: string | null;
 } | null | undefined): string {
   const fullName = [input?.first_name, input?.last_name].filter(Boolean).join(' ').trim();
-  return fullName.length > 0 ? `Dr. ${fullName}` : 'tu médico';
+  return fullName.length > 0 ? `Dr. ${fullName}` : 'tu medico';
 }
 
 function formatAppointmentDate(iso: string): string {
@@ -55,7 +56,7 @@ function buildAppointmentCandidates(
       return [{
         category: 'appointment',
         type: 'appointment_live',
-        title: 'Tu consulta ya está lista',
+        title: 'Tu consulta ya esta lista',
         body: `${doctorName} ya puede atenderte.`,
         actionUrl: '/patients/appointments',
         actionLabel: 'Entrar',
@@ -77,8 +78,8 @@ function buildAppointmentCandidates(
     return [{
       category: 'appointment',
       type: 'appointment_upcoming',
-      title: 'Tenés un turno próximo',
-      body: `${doctorName} · ${formatAppointmentDate(appointment.scheduled_at)}`,
+      title: 'Tenes un turno proximo',
+      body: `${doctorName} - ${formatAppointmentDate(appointment.scheduled_at)}`,
       actionUrl: '/patients/appointments',
       actionLabel: 'Ver turno',
       priority: 'high',
@@ -95,7 +96,7 @@ function buildAppointmentCandidates(
 }
 
 function buildReportCandidates(
-  records: Awaited<ReturnType<typeof medicalHistoryRepo.listConsultations>>,
+  records: MedicalRecord[],
 ): PortalNotificationCandidate[] {
   const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
@@ -105,8 +106,8 @@ function buildReportCandidates(
     .map((record) => ({
       category: 'report' as const,
       type: 'report_ready',
-      title: 'Ya tenés un nuevo informe',
-      body: record.title || 'Tu último informe ya está disponible.',
+      title: 'Ya tenes un nuevo informe',
+      body: record.title || 'Tu ultimo informe ya esta disponible.',
       actionUrl: '/patients/reports',
       actionLabel: 'Ver informes',
       priority: 'normal' as const,
@@ -136,14 +137,14 @@ function buildCommunityCandidates(
   return comments
     .filter((comment) => new Date(comment.created_at).getTime() >= cutoff)
     .map((comment) => {
-      const authorName = comment.author_display_name?.trim() || (comment.author_role === 'doctor' ? 'Un médico' : 'Alguien');
-      const postLabel = comment.post_title?.trim() || 'tu publicación';
+      const authorName = comment.author_display_name?.trim() || (comment.author_role === 'doctor' ? 'Un medico' : 'Alguien');
+      const postLabel = comment.post_title?.trim() || 'tu publicacion';
 
       return {
         category: 'community' as const,
         type: comment.author_role === 'doctor' ? 'community_doctor_reply' : 'community_comment',
-        title: comment.author_role === 'doctor' ? 'Un médico respondió en comunidad' : 'Hay una nueva respuesta en comunidad',
-        body: `${authorName} comentó en ${postLabel}.`,
+        title: comment.author_role === 'doctor' ? 'Un medico respondio en comunidad' : 'Hay una nueva respuesta en comunidad',
+        body: `${authorName} comento en ${postLabel}.`,
         actionUrl: '/patients/community',
         actionLabel: 'Abrir comunidad',
         priority: comment.author_role === 'doctor' ? ('high' as const) : ('normal' as const),
@@ -166,10 +167,14 @@ export const notificationsService = {
     supabase: Db,
     context: NotificationContext,
   ): Promise<void> {
+    const communityRepo = createCommunityAdapter(supabase);
+    const medicalHistoryRepo = createMedicalHistoryAdapter(supabase);
+    const notificationsRepo = createNotificationsAdapter(supabase);
+
     const [appointments, reports, comments] = await Promise.all([
       appointmentsUseCase.listByPatient({ appointmentsRepo: createAppointmentAdapter(supabase), dbClient: supabase }, context.patientId),
-      medicalHistoryRepo.listConsultations(supabase, context.patientId, 8),
-      communityRepo.listRecentCommentsOnPatientPosts(supabase, context.patientId, 12),
+      medicalHistoryRepo.listConsultations(context.patientId, 8),
+      communityRepo.listRecentCommentsOnPatientPosts(context.patientId, 12),
     ]);
 
     const candidates = [
@@ -180,7 +185,7 @@ export const notificationsService = {
       .sort((left, right) => new Date(right.createdAt ?? 0).getTime() - new Date(left.createdAt ?? 0).getTime())
       .slice(0, 24);
 
-    await notificationsRepo.insertMissing(supabase, context.userId, candidates);
+    await notificationsRepo.insertMissing(context.userId, candidates);
   },
 
   async getPatientFeed(
@@ -193,9 +198,10 @@ export const notificationsService = {
       logger.warn('[notificationsService] syncPatientNotifications degraded', error);
     }
 
+    const notificationsRepo = createNotificationsAdapter(supabase);
     const [notifications, unreadCount] = await Promise.all([
-      notificationsRepo.listByUser(supabase, context.userId, 24),
-      notificationsRepo.countUnread(supabase, context.userId),
+      notificationsRepo.listByUser(context.userId, 24),
+      notificationsRepo.countUnread(context.userId),
     ]);
 
     return {
@@ -210,16 +216,18 @@ export const notificationsService = {
     notificationId: string,
   ): Promise<void> {
     if (!notificationId.trim()) {
-      throw Object.assign(new Error('La notificación es obligatoria'), { code: 'VALIDATION' });
+      throw Object.assign(new Error('La notificacion es obligatoria'), { code: 'VALIDATION' });
     }
 
-    await notificationsRepo.markRead(supabase, context.userId, notificationId);
+    const notificationsRepo = createNotificationsAdapter(supabase);
+    await notificationsRepo.markRead(context.userId, notificationId);
   },
 
   async markAllRead(
     supabase: Db,
     context: NotificationContext,
   ): Promise<void> {
-    await notificationsRepo.markAllRead(supabase, context.userId);
+    const notificationsRepo = createNotificationsAdapter(supabase);
+    await notificationsRepo.markAllRead(context.userId);
   },
 };

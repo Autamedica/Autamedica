@@ -6,10 +6,10 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import {
-  anamnesisRepo,
+  createAnamnesisAdapter,
   type AnamnesisRecord,
   type AnamnesisSectionRecord,
-} from '@/lib/patients/lib/repos/anamnesis.repo'
+} from '@/lib/patients/lib/repos/anamnesis.adapter'
 import { anamnesisVersionService } from './anamnesis-version.service'
 
 type Db = SupabaseClient<Database>
@@ -74,39 +74,37 @@ function computeAge(birthDate: string): number | null {
 
 export const anamnesisService = {
   async get(supabase: Db, patientId: string): Promise<AnamnesisSnapshot> {
-    // 1. Ensure anamnesis + fetch sections + birth_date in parallel
-    const anamnesis = await anamnesisRepo.ensure(supabase, patientId)
+    const anamnesisRepo = createAnamnesisAdapter(supabase)
+
+    const anamnesis = await anamnesisRepo.ensure(patientId)
     const [sections, patient] = await Promise.all([
-      anamnesisRepo.getSections(supabase, anamnesis.id),
+      anamnesisRepo.getSections(anamnesis.id),
       supabase.from('patients').select('birth_date').eq('id', patientId).maybeSingle(),
     ])
 
     const birthDate = patient.data?.birth_date ?? null
-    let currentSections = sections
+    let currentSections = sections as AnamnesisSectionRecord[]
 
-    // 2. Auto-complete edad if birth_date exists but section not completed
     if (birthDate && !sections.some((s) => s.section === 'edad' && s.completed)) {
       const age = computeAge(birthDate)
       if (age !== null) {
         await anamnesisRepo
-          .upsertSection(supabase, anamnesis.id, 'edad', { fecha_nacimiento: birthDate, edad: age }, true)
+          .upsertSection(anamnesis.id, 'edad', { fecha_nacimiento: birthDate, edad: age }, true)
           .catch((err) => logger.warn('[anamnesisService] auto-complete edad failed', err))
-        currentSections = await anamnesisRepo.getSections(supabase, anamnesis.id)
+        currentSections = await anamnesisRepo.getSections(anamnesis.id) as AnamnesisSectionRecord[]
       }
     }
 
-    // 3. Compute progress once
     const progress = computeProgress(currentSections)
 
-    // 4. Sync progress if drifted (fire-and-forget)
     if (anamnesis.completion_percentage !== progress.completion_percentage) {
       anamnesisRepo
-        .updateProgress(supabase, anamnesis.id, progress.completion_percentage, progress.completed_sections)
+        .updateProgress(anamnesis.id, progress.completion_percentage, progress.completed_sections)
         .catch((err) => logger.warn('[anamnesisService] progress sync failed', err))
     }
 
     return {
-      anamnesis: { ...anamnesis, completion_percentage: progress.completion_percentage },
+      anamnesis: { ...anamnesis as AnamnesisRecord, completion_percentage: progress.completion_percentage },
       sections: currentSections,
       progress,
       patientBirthDate: birthDate,
@@ -118,6 +116,7 @@ export const anamnesisService = {
     patientId: string,
     updates: Record<string, unknown>,
   ): Promise<AnamnesisRecord> {
+    const anamnesisRepo = createAnamnesisAdapter(supabase)
     const cleanUpdates: Record<string, unknown> = {}
 
     if (typeof updates.status === 'string') {
@@ -147,10 +146,9 @@ export const anamnesisService = {
       throw Object.assign(new Error('no_updates'), { code: 'NO_UPDATES' })
     }
 
-    const anamnesis = await anamnesisRepo.ensure(supabase, patientId)
-    const result = await anamnesisRepo.updateMeta(supabase, anamnesis.id, cleanUpdates)
+    const anamnesis = await anamnesisRepo.ensure(patientId)
+    const result = await anamnesisRepo.updateMeta(anamnesis.id, cleanUpdates)
 
-    // Auto-create version when anamnesis is completed
     if (cleanUpdates.status === 'completed') {
       const isFirstCompletion = !anamnesis.completed_at
       try {
@@ -159,7 +157,6 @@ export const anamnesisService = {
           isFirstCompletion ? 'initial' : 'update',
         )
       } catch (err) {
-        // Log but don't block — versioning failure shouldn't prevent completion
         logger.error('[anamnesisService] auto-version creation failed', {
           error: err instanceof Error ? err.message : err,
           patientId,
@@ -169,7 +166,7 @@ export const anamnesisService = {
       }
     }
 
-    return result
+    return result as AnamnesisRecord
   },
 
   async saveSection(
@@ -179,20 +176,21 @@ export const anamnesisService = {
     data: Record<string, unknown>,
     completed: boolean,
   ): Promise<{ section: AnamnesisSectionRecord; progress: AnamnesisProgress }> {
-    // Auto-calculate age from birth date
+    const anamnesisRepo = createAnamnesisAdapter(supabase)
+
     if (section === 'edad' && data.fecha_nacimiento && !data.edad) {
       const age = computeAge(data.fecha_nacimiento as string)
       if (age !== null) data.edad = age
     }
 
-    const anamnesis = await anamnesisRepo.ensure(supabase, patientId)
-    const savedSection = await anamnesisRepo.upsertSection(supabase, anamnesis.id, section, data, completed)
+    const anamnesis = await anamnesisRepo.ensure(patientId)
+    const savedSection = await anamnesisRepo.upsertSection(anamnesis.id, section, data, completed) as AnamnesisSectionRecord
 
-    const sections = await anamnesisRepo.getSections(supabase, anamnesis.id)
+    const sections = await anamnesisRepo.getSections(anamnesis.id) as AnamnesisSectionRecord[]
     const progress = computeProgress(sections)
 
     anamnesisRepo
-      .updateProgress(supabase, anamnesis.id, progress.completion_percentage, progress.completed_sections)
+      .updateProgress(anamnesis.id, progress.completion_percentage, progress.completed_sections)
       .catch((err) => logger.warn('[anamnesisService] saveSection progress sync failed', err))
 
     return { section: savedSection, progress }
