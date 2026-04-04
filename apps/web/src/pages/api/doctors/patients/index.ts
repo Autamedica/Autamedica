@@ -1,68 +1,80 @@
 /**
  * Backend Controller: API Endpoint for Patients.
  * Path: /api/doctors/patients
+ *
+ * RBAC:
+ * - doctor: can list their own assigned patients or fetch by ID
+ * - admin: can list all active patients or fetch by ID
+ * - other roles: 403 Forbidden
  */
 import type { APIRoute } from 'astro'
-import { createSupabaseServerClient } from '@/lib/supabase'
+import type { UUID } from '@autamedica/types'
 import { patientBackendService } from '@/lib/doctors/services/patient.backend'
 import { patientsRepo } from '@/lib/doctors/lib/repos/patients'
 import { logger } from '@autamedica/shared'
+import { withAuth, isAuthed } from '@/lib/api-auth'
+import { forbidden, badRequest, internalError, jsonOk } from '@/lib/api-helpers'
 
-export const GET: APIRoute = async ({ request, cookies, locals }) => {
-  const supabase = createSupabaseServerClient(request, cookies, locals.runtime?.env)
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+type UserRole = 'doctor' | 'admin' | 'patient' | 'company'
 
-  if (authError || !user) {
-    return new Response(JSON.stringify({ error: 'Session Required' }), { status: 401 })
+function resolveRole(user: { user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }): UserRole | undefined {
+  const meta = user.user_metadata?.role
+  if (typeof meta === 'string' && meta.length > 0) return meta as UserRole
+  const app = user.app_metadata?.role
+  if (typeof app === 'string' && app.length > 0) return app as UserRole
+  return undefined
+}
+
+export const GET: APIRoute = async ({ request, locals }) => {
+  const auth = await withAuth(request, locals)
+  if (!isAuthed(auth)) return auth
+
+  const role = resolveRole(auth.user)
+  if (role !== 'doctor' && role !== 'admin') {
+    return forbidden('doctor_or_admin_only')
   }
 
   try {
     const url = new URL(request.url)
     const patientId = url.searchParams.get('id')
-    const requestedDoctorUserId = url.searchParams.get('doctorUserId')?.trim()
 
-    let data: unknown
-
-    // Si pide uno en específico
     if (patientId) {
-      data = await patientBackendService.getPatientById(patientId as unknown as import('@autamedica/types').UUID, supabase)
-    } 
-    // Si pide los asignados a un doctor
-    else if (requestedDoctorUserId) {
-      if (requestedDoctorUserId !== user.id) {
-        return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
-      }
-
-      data = await patientBackendService.getAssignedPatients(requestedDoctorUserId, supabase)
-    } 
-    // Si pide todos (activo)
-    else {
-      data = await patientBackendService.getActivePatients(supabase)
+      const data = await patientBackendService.getPatientById(patientId as UUID, auth.supabase)
+      return jsonOk(data)
     }
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    })
+    if (role === 'doctor') {
+      const data = await patientBackendService.getAssignedPatients(auth.user.id, auth.supabase)
+      return jsonOk(data)
+    }
+
+    const data = await patientBackendService.getActivePatients(auth.supabase)
+    return jsonOk(data)
   } catch (err) {
     logger.error('[api/doctors/patients] GET error:', err)
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 })
+    return internalError()
   }
 }
 
-export const PATCH: APIRoute = async ({ request, cookies, locals }) => {
-  const supabase = createSupabaseServerClient(request, cookies, locals.runtime?.env)
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return new Response(JSON.stringify({ error: "Session Required" }), { status: 401 })
+export const PATCH: APIRoute = async ({ request, locals }) => {
+  const auth = await withAuth(request, locals)
+  if (!isAuthed(auth)) return auth
+
+  const role = resolveRole(auth.user)
+  if (role !== 'doctor' && role !== 'admin') {
+    return forbidden('doctor_or_admin_only')
+  }
+
   try {
     const url = new URL(request.url)
-    const id = url.searchParams.get("id")
+    const id = url.searchParams.get('id')
+    if (!id) return badRequest('patient_id_required')
+
     const body = await request.json()
-    if (!id) return new Response(JSON.stringify({ error: "Patient ID required" }), { status: 400 })
-    await patientsRepo.update(id as import('@autamedica/types').UUID, body as Record<string, unknown>, supabase)
+    await patientsRepo.update(id as UUID, body as Record<string, unknown>, auth.supabase)
     return new Response(null, { status: 204 })
   } catch (err) {
-    logger.error("[api/doctors/patients] PATCH error:", err)
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 })
+    logger.error('[api/doctors/patients] PATCH error:', err)
+    return internalError()
   }
 }
