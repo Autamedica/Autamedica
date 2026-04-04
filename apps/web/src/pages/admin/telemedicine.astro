@@ -4,6 +4,16 @@ import TelemedicineDashboard from '@/components/admin/TelemedicineDashboard';
 
 const title = 'Telemedicina — Admin | AutaMedica';
 const description = 'Dashboard de observabilidad de telemedicina';
+
+const session = Astro.locals.session;
+if (!session) {
+  return Astro.redirect('/auth/login?returnTo=/admin/telemedicine&portal=admin');
+}
+
+const role = (session.user.user_metadata as Record<string, unknown>)?.role;
+if (typeof role !== 'string' || !['admin', 'organization_admin', 'platform_admin'].includes(role)) {
+  return Astro.redirect('/admin/unauthorized');
+}
 ---
 
 <Layout title={title} description={description}>
