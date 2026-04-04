@@ -4,8 +4,9 @@ import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase'
 import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
-import { jsonOk, unauthorized, badRequest, notFound, conflict, internalError } from '@/lib/api-helpers'
-import type { AppointmentType } from '@/lib/patients/types/appointment'
+import { jsonOk, unauthorized, notFound, conflict, internalError } from '@/lib/api-helpers'
+import { validateBody } from '@/lib/validation'
+import { CreatePatientAppointmentSchema } from '@/lib/zod/appointments'
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
@@ -25,19 +26,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
-  const body = await request.json().catch(() => ({})) as {
-    scheduled_at?: string
-    doctor_id?: string
-    duration_minutes?: number
-    type?: AppointmentType
-    notes?: string
-    reason?: string
-    meeting_url?: string
-    location?: string
-  }
+  const raw = await request.json().catch(() => ({}))
+  const parsed = validateBody(CreatePatientAppointmentSchema, raw)
+  if (!parsed.success) return parsed.error
 
-  if (!body.scheduled_at?.trim()) return badRequest('scheduled_at is required')
-  if (!body.doctor_id?.trim()) return badRequest('doctor_id is required')
+  const body = parsed.data
 
   try {
     const admin = createAstroAdminClient()

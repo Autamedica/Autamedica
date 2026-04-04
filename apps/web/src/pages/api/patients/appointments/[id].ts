@@ -4,8 +4,9 @@ import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { appointmentsUseCase } from '@/lib/patients/usecases/appointments.usecase'
 import { createAppointmentAdapter } from '@/lib/patients/lib/repos/appointments.adapter'
-import type { AppointmentStatus, AppointmentType } from '@/lib/patients/types/appointment'
 import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
+import { validateBody } from '@/lib/validation'
+import { UpdatePatientAppointmentSchema } from '@/lib/zod/appointments'
 
 export const GET: APIRoute = async ({ request, params, locals }) => {
   const context = await resolvePatientContext(request, locals)
