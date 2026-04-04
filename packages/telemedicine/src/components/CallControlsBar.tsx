@@ -120,7 +120,7 @@ export function CallControlsBar({
 
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-20 flex items-end justify-center px-4 pb-5 pt-16 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent transition-all duration-500 ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex items-end justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-16 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent transition-all duration-500 ${
         showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
     >
