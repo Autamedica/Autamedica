@@ -149,7 +149,7 @@ export function AnamnesisChatModal({
             <Sparkles className="h-5 w-5 text-sky-600" />
             <h3 className="font-bold text-stone-900">Dr. IA</h3>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full">
+          <button onClick={onClose} aria-label="Cerrar" className="p-2 hover:bg-stone-100 rounded-full">
             <X className="h-5 w-5 text-stone-500" />
           </button>
         </div>

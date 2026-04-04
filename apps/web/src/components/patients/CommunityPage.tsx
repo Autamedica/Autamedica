@@ -172,7 +172,7 @@ function PostDetailView({
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-5 py-4">
-          <button type="button" onClick={onBack} className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
+          <button type="button" onClick={onBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-sm font-bold text-stone-900">Publicacion</h1>

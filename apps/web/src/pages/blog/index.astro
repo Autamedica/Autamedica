@@ -161,11 +161,13 @@ const articles = [
           <h2>Recibe Artículos de Salud Cada Semana</h2>
           <p>Suscríbete a nuestro newsletter para recibir contenido médico confiable, directamente en tu email.</p>
           <form class="blog-newsletter-form">
+            <label for="newsletter-email" class="sr-only">Email para suscripcion</label>
             <input
+              id="newsletter-email"
               type="email"
               placeholder="Tu email"
               required
-              aria-label="Email para suscripción"
+              autocomplete="email"
             />
             <button type="submit" class="seo-btn-primary">Suscribirse</button>
           </form>
