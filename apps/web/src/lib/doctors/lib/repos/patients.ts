@@ -27,7 +27,7 @@ export interface PatientRow {
     email: string | null
     phone: string | null
     avatar_url: string | null
-    role: string | null, address: string | null, emergency_contact_name: string | null, emergency_contact_phone: string | null, allergies: string[] | string | null, chronic_conditions: string[] | string | null, insurance_provider: string | null, insurance_number: string | null
+    role: string | null
   }
 }
 
@@ -45,7 +45,7 @@ function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()) {
         email,
         phone,
         avatar_url,
-        role, address, emergency_contact_name, emergency_contact_phone, allergies, chronic_conditions, insurance_provider, insurance_number
+        role
       )
     `)
 }
