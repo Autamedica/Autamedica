@@ -37,6 +37,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   try {
     const url = new URL(request.url)
     const patientId = url.searchParams.get('id')
+    const companyId = url.searchParams.get('companyId')?.trim()
 
     if (patientId) {
       const data = await patientBackendService.getPatientById(patientId as UUID, auth.supabase)
@@ -45,6 +46,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     if (role === 'doctor') {
       const data = await patientBackendService.getAssignedPatients(auth.user.id, auth.supabase)
+      return jsonOk(data)
+    }
+
+    if (companyId) {
+      const data = await patientBackendService.getPatientsByCompany(companyId, auth.supabase)
       return jsonOk(data)
     }
 

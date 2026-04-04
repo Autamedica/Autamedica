@@ -74,6 +74,8 @@ export function useDoctorWaitingRoom({
   const [secondsRemaining, setSecondsRemaining] = useState(DOCTOR_NO_ANSWER_TIMEOUT_SECONDS)
   const [error, setError] = useState<string | null>(null)
   const timeoutHandledRef = useRef(false)
+  const callSessionRef = useRef(callSession)
+  callSessionRef.current = callSession
 
   const callSessionId = callSession?.callId?.trim() ?? ''
   const isDoctorWaitingEnabled = callSession?.user.role === 'doctor' && callSession.waitingRoom.enabled
@@ -125,11 +127,12 @@ export function useDoctorWaitingRoom({
   }, [callSessionId, isDoctorWaitingEnabled, state, getCallService])
 
   const cancelCall = useCallback(async (reason: 'doctor_canceled' | 'no_answer_timeout') => {
-    if (!callSession) return
+    const session = callSessionRef.current
+    if (!session) return
     setState('canceling')
     setError(null)
     try {
-      await cancelCallBrowserService.cancel(callSession.callId, { reason })
+      await cancelCallBrowserService.cancel(session.callId, { reason })
       setState(reason === 'no_answer_timeout' ? 'timed_out' : 'canceled')
     } catch (err) {
       logger.error('[useDoctorWaitingRoom] Failed to cancel', err)
@@ -138,14 +141,14 @@ export function useDoctorWaitingRoom({
       setState('waiting')
       setError('No pudimos cancelar la videollamada. Reintenta en unos segundos.')
     }
-  }, [callSession])
+  }, [])
 
   // Countdown + periodic server sync
   useEffect(() => {
     if (!showWaitingRoom || state !== 'waiting') return
 
     const syncDeadline = () => {
-      const remaining = getWaitingSecondsRemaining(callSession?.waitingRoom.deadlineAt)
+      const remaining = getWaitingSecondsRemaining(callSessionRef.current?.waitingRoom.deadlineAt)
       setSecondsRemaining(remaining)
       if (remaining > 0 || timeoutHandledRef.current) return
       timeoutHandledRef.current = true
@@ -176,7 +179,7 @@ export function useDoctorWaitingRoom({
       window.clearInterval(serverSyncId)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [callSession?.waitingRoom.deadlineAt, state, showWaitingRoom, refreshCallSession, cancelCall])
+  }, [state, showWaitingRoom, refreshCallSession, cancelCall])
 
   return { state, secondsRemaining, error, showWaitingRoom, cancelCall }
 }

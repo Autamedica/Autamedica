@@ -43,6 +43,16 @@ export const patientBackendService = {
     }
   },
 
+  async getPatientsByCompany(companyId: string, _client?: SupabaseClient): Promise<PatientWithProfile[]> {
+    try {
+      const admin = createAstroAdminClient()
+      return await patientsRepo.findByCompany(companyId, admin)
+    } catch (error) {
+      logger.error('[patientBackendService] getPatientsByCompany failed', { companyId, error })
+      throw error
+    }
+  },
+
   async getPatientById(id: UUID, _client?: SupabaseClient): Promise<PatientWithProfile | null> {
     try {
       const admin = createAstroAdminClient()

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   TelemedicineClient,
   type TelemedicineRole,
@@ -126,21 +126,21 @@ export function useTelemedicineSignaling(config: UseTelemedicineSignalingConfig)
     }
   }, [normalizedConfig])
 
-  const connect = async () => {
+  const connect = useCallback(async () => {
     if (!clientRef.current) {
       throw new Error('Telemedicine client not initialized')
     }
     setState((prev) => ({ ...prev, connectionState: 'connecting', error: null }))
     await clientRef.current.connect(normalizedConfig.roomId)
-  }
+  }, [normalizedConfig.roomId])
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     clientRef.current?.disconnect()
     setState((prev) => ({
       ...prev,
       connectionState: 'disconnected',
     }))
-  }
+  }, [])
 
   return {
     state,

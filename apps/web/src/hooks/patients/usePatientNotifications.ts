@@ -1,7 +1,7 @@
 'use client';
 
 import { logger } from '@autamedica/shared';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { notificationsBrowserService } from '@/lib/patients/services/notifications.browser';
 import type { PortalNotification } from '@/lib/patients/types/notifications';
 
@@ -36,9 +36,12 @@ export function usePatientNotifications(): UsePatientNotificationsResult {
     }
   }, []);
 
+  const notificationsRef = useRef(notifications);
+  notificationsRef.current = notifications;
+
   const markRead = useCallback(async (notificationId: string) => {
-    const previous = notifications;
-    const nextNotifications = notifications.map((notification) =>
+    const previous = notificationsRef.current;
+    const nextNotifications = previous.map((notification) =>
       notification.id === notificationId && !notification.read_at
         ? { ...notification, read_at: new Date().toISOString() }
         : notification,
@@ -56,10 +59,10 @@ export function usePatientNotifications(): UsePatientNotificationsResult {
       setUnreadCount(previous.filter((notification) => !notification.read_at).length);
       throw err;
     }
-  }, [notifications]);
+  }, []);
 
   const markAllRead = useCallback(async () => {
-    const previous = notifications;
+    const previous = notificationsRef.current;
     const markedAt = new Date().toISOString();
     setNotifications((current) =>
       current.map((notification) => ({
@@ -77,7 +80,7 @@ export function usePatientNotifications(): UsePatientNotificationsResult {
       setUnreadCount(previous.filter((notification) => !notification.read_at).length);
       throw err;
     }
-  }, [notifications]);
+  }, []);
 
   useEffect(() => {
     void refresh();
