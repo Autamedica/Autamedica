@@ -41,7 +41,7 @@ export function AutaFloatingButton() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-stone-900">Auta AI</h3>
-                <p className="text-xs text-stone-600">Tu asistente médico</p>
+                <p className="text-xs text-stone-600">Asistente virtual de salud</p>
               </div>
             </div>
             <button

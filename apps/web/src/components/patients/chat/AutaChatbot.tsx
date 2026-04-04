@@ -1,12 +1,10 @@
-/* eslint-disable */
-// @ts-nocheck
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Loader2, Sparkles } from 'lucide-react';
+import { Send, User, Bot, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import { usePatientScreenings } from '@/hooks/patients/usePatientScreenings';
 import { getONNXService, initializeONNX } from '@/lib/patients/lib/ai/onnx-service';
-import { medicalQA, type PatientContext } from '@/lib/patients/lib/ai/medical-qa';
+import type { PatientContext } from '@/lib/patients/lib/ai/medical-qa';
 import { logger } from '@autamedica/shared';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import { computeAgeFromIso, normalizeGender } from '@/lib/patients/lib/demographics';
@@ -20,12 +18,15 @@ interface Message {
   confidence?: number;
 }
 
+const WELCOME_MESSAGE =
+  'Soy un asistente virtual. Puedo responder preguntas generales sobre salud. No reemplazo la consulta con un profesional medico.';
+
 export function AutaChatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: '¡Hola! Soy **Auta**, tu asistente de salud inteligente potenciada por IA. Tengo acceso completo a tu historial médico, medicamentos, citas y screenings preventivos. ¿En qué puedo ayudarte hoy? 🏥',
+      content: WELCOME_MESSAGE,
       timestamp: new Date(),
     },
   ]);
@@ -34,114 +35,34 @@ export function AutaChatbot() {
   const [aiReady, setAiReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Construir contexto del paciente desde datos reales
-  const { user, profile } = usePatientSession();
+  const { user, profile, patient } = usePatientSession();
 
-  // Estados del servidor
-  const [serverName, setServerName] = useState<string | null>(null);
-  const [serverEmail, setServerEmail] = useState<string | null>(null);
-  const [serverBirthDate, setServerBirthDate] = useState<string | null>(null);
-  const [serverGender, setServerGender] = useState<string | null>(null);
-  const [serverBloodType, setServerBloodType] = useState<string | null>(null);
-  const [serverHeightCm, setServerHeightCm] = useState<number | null>(null);
-  const [serverWeightKg, setServerWeightKg] = useState<number | null>(null);
-  const [userPatterns, setUserPatterns] = useState<Array<{ pattern: string; intent: string; active?: boolean }>>([]);
-  const [userFaqs, setUserFaqs] = useState<Array<{ question: string; answer: string; active?: boolean }>>([]);
+  const patientBirthDate = patient?.birthDate ?? null;
+  const patientGender = patient?.gender ?? null;
 
-  // Obtener datos del paciente
-  // Derivar edad y género reales para screenings
-  const realAge = computeAgeFromIso(serverBirthDate) ?? computeAgeFromIso((profile as any)?.birthDate) ?? 52;
-  const realGender = normalizeGender(serverGender || (profile as any)?.gender) ?? 'male';
+  const realAge = computeAgeFromIso(patientBirthDate) ?? 52;
+  const realGender = normalizeGender(patientGender) ?? 'male';
   const { screenings, stats, achievements } = usePatientScreenings(realAge, realGender);
 
-  // Inicializar ONNX service
   useEffect(() => {
     const init = async () => {
       try {
         await initializeONNX();
         setAiReady(true);
-        // logger.info('✅ Auta AI initialized with ONNX');
       } catch (error) {
-        const msg = (error as any)?.message || String(error || '');
-        logger.warn(`Auta ONNX init falló (fallback): ${msg}`);
-        setAiReady(true); // Continuar con modo fallback
+        const msg = error instanceof Error ? error.message : String(error ?? '');
+        logger.warn(`Auta ONNX init failed: ${msg}`);
+        // aiReady stays false -- the chatbot cannot process queries without the AI backend
       }
     };
     init();
   }, []);
 
-  // Cargar contexto del servidor (summary) y, si está vacío, intentar sincronizar una vez
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await fetch('/api/ai/context', { cache: 'no-store', credentials: 'include' });
-        if (res.ok) {
-          const json = await res.json();
-          const s = json?.data?.summary;
-          if (!cancelled && s) {
-            setServerName(typeof s.name === 'string' && s.name.trim() ? s.name : null);
-            setServerEmail(typeof s.email === 'string' && s.email.trim() ? s.email : null);
-            setServerBirthDate(s.birthDate ?? null)
-            setServerGender(s.gender ?? null)
-            setServerBloodType(s.bloodType ?? null)
-            setServerHeightCm(typeof s.heightCm === 'number' ? s.heightCm : (typeof s.heightCm === 'string' ? Number(s.heightCm) : null))
-            setServerWeightKg(typeof s.weightKg === 'number' ? s.weightKg : (typeof s.weightKg === 'string' ? Number(s.weightKg) : null))
-          }
-          // Si faltan datos clave, intentar sincronizar una vez
-          if ((!s?.name || !s?.email) && !cancelled) {
-            try {
-              const sync = await fetch('/api/ai/context/sync', { method: 'POST', credentials: 'include' });
-              if (sync.ok) {
-                const again = await fetch('/api/ai/context', { cache: 'no-store' });
-                if (again.ok) {
-                  const next = await again.json();
-                  const ns = next?.data?.summary;
-                  if (!cancelled && ns) {
-                    setServerName(typeof ns.name === 'string' && ns.name.trim() ? ns.name : null);
-                    setServerEmail(typeof ns.email === 'string' && ns.email.trim() ? ns.email : null);
-                    setServerBirthDate(ns.birthDate ?? null)
-                    setServerGender(ns.gender ?? null)
-                    setServerBloodType(ns.bloodType ?? null)
-                    setServerHeightCm(typeof ns.heightCm === 'number' ? ns.heightCm : (typeof ns.heightCm === 'string' ? Number(ns.heightCm) : null))
-                    setServerWeightKg(typeof ns.weightKg === 'number' ? ns.weightKg : (typeof ns.weightKg === 'string' ? Number(ns.weightKg) : null))
-                  }
-                }
-              }
-            } catch (e) {
-              logger.warn('Failed to load server context for chatbot', e);
-            }
-          }
-        }
-      } catch (e) {
-        logger.warn('No se pudo cargar contexto del servidor', e);
-      }
-      // Cargar patrones y FAQs del usuario
-      try {
-        const res2 = await fetch('/api/ai/patterns', { cache: 'no-store', credentials: 'include' })
-        if (res2.ok) {
-          const json = await res2.json()
-          if (!cancelled) {
-            const ps = Array.isArray(json?.data?.patterns) ? json.data.patterns : []
-            const fs = Array.isArray(json?.data?.faqs) ? json.data.faqs : []
-            setUserPatterns(ps.map((p: Record<string, unknown>) => ({ pattern: String(p.pattern || ''), intent: String(p.intent || ''), active: p.active !== false })))
-            setUserFaqs(fs.map((f: Record<string, unknown>) => ({ question: String(f.question || ''), answer: String(f.answer || ''), active: f.active !== false })))
-          }
-        }
-      } catch (e) {
-        logger.warn('No se pudieron cargar patrones/FAQs', e)
-      }
-    };
-    load();
-    return () => { cancelled = true };
-  }, []);
   const computedName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
-  const metaName = (user?.user_metadata as any)?.full_name as string | undefined;
+  const metaName = (user?.user_metadata as Record<string, unknown>)?.full_name;
   const emailLocal = user?.email?.split('@')[0];
-  const fallbackName = computedName || metaName || emailLocal || null;
-  const fallbackEmail = user?.email || null;
-  const userName = serverName ?? fallbackName;
-  const userEmail = serverEmail ?? fallbackEmail;
+  const userName = computedName || (typeof metaName === 'string' ? metaName : null) || emailLocal || null;
+  const userEmail = user?.email || null;
 
   const buildPatientContext = (): PatientContext => {
     return {
@@ -150,11 +71,11 @@ export function AutaChatbot() {
         email: userEmail,
       },
       demographics: {
-        birthDate: serverBirthDate,
-        gender: serverGender,
-        bloodType: serverBloodType,
-        heightCm: serverHeightCm,
-        weightKg: serverWeightKg,
+        birthDate: patientBirthDate,
+        gender: patientGender,
+        bloodType: patient?.bloodType ?? null,
+        heightCm: patient?.heightCm ?? null,
+        weightKg: patient?.weightKg ?? null,
       },
       medications: [],
       vitals: {},
@@ -163,15 +84,15 @@ export function AutaChatbot() {
         name: s.title,
         status: s.status === 'overdue' ? 'due' : s.status === 'due_soon' ? 'upcoming' : 'completed',
         lastCompleted: s.last_done_date,
-        nextDue: s.next_due_date
+        nextDue: s.next_due_date,
       })),
       allergies: [],
       progress: {
         level: Math.floor(achievements.filter(a => a.earned).length / 2) + 1,
         streak: 0,
         completedScreenings: stats.upToDate,
-        totalScreenings: stats.total
-      }
+        totalScreenings: stats.total,
+      },
     };
   };
 
@@ -183,7 +104,6 @@ export function AutaChatbot() {
     scrollToBottom();
   }, [messages]);
 
-  // Procesar query con ONNX AI Service
   const handleSend = async () => {
     if (!input.trim() || !aiReady) return;
 
@@ -201,90 +121,39 @@ export function AutaChatbot() {
 
     try {
       const patientContext = buildPatientContext();
-
-      // 1) Intento rápido: FAQs del usuario (respuesta directa)
-      const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}+/gu, '')
-      const qn = norm(query)
-      const faq = userFaqs.find(f => f.active !== false && qn.includes(norm(f.question)))
-      if (faq) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: faq.answer,
-          timestamp: new Date(),
-        }
-        // Registrar telemetría
-        fetch('/api/ai/telemetry', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: 'faq', confidence: 0.99, usedPattern: true, replyPreview: faq.answer.slice(0, 140) }) }).catch(() => {})
-        // Simular typing breve
-        setTimeout(() => {
-          setMessages(prev => [...prev, assistantMessage])
-          setIsTyping(false)
-        }, Math.min(Math.max(faq.answer.length * 3, 300), 1000))
-        return
-      }
-
-      // 2) Intento con patrones del usuario → clasificación fija
-      const pat = userPatterns.find(p => p.active !== false && qn.includes(norm(p.pattern)))
-      if (pat) {
-        const classification = { intent: pat.intent as any, confidence: 0.99, keywords: [] }
-        const response = medicalQA.generateResponse(classification, patientContext)
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: response.text,
-          timestamp: new Date(),
-          confidence: classification.confidence,
-        }
-        fetch('/api/ai/telemetry', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: classification.intent, confidence: classification.confidence, usedPattern: true, replyPreview: response.text.slice(0, 140) }) }).catch(() => {})
-        const typingDelay = Math.min(Math.max(response.text.length * 5, 400), 1200)
-        setTimeout(() => {
-          setMessages(prev => [...prev, assistantMessage])
-          setIsTyping(false)
-        }, typingDelay)
-        return
-      }
-
-      // 3) Fallback: ONNX/Reglas
       const onnxService = getONNXService();
       const { response, classification, processingTime } = await onnxService.processQuery(query, patientContext);
 
-      // Crear mensaje de respuesta
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response.text,
         timestamp: new Date(),
         processingTime,
-        confidence: classification.confidence
+        confidence: classification.confidence,
       };
 
-      // Telemetría
-      fetch('/api/ai/telemetry', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: query, intent: classification.intent, confidence: classification.confidence, usedPattern: false, replyPreview: response.text.slice(0, 140) }) }).catch(() => {})
-
-      // Simular typing natural delay
       const typingDelay = Math.min(Math.max(response.text.length * 5, 500), 1500);
       setTimeout(() => {
         setMessages(prev => [...prev, assistantMessage]);
         setIsTyping(false);
 
-        // Log para debugging (solo en desarrollo)
         if (import.meta.env.DEV) {
-          logger.info('🤖 Auta AI Response:', {
+          logger.info('Auta AI Response:', {
             intent: classification.intent,
             confidence: classification.confidence,
             processingTime: `${processingTime.toFixed(2)}ms`,
-            keywords: classification.keywords
+            keywords: classification.keywords,
           });
         }
       }, typingDelay);
-
     } catch (error) {
       logger.error('Error processing query:', error);
 
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '⚠️ Lo siento, tuve un problema procesando tu pregunta. ¿Podrías reformularla?',
+        content: 'Lo siento, tuve un problema procesando tu pregunta. Podrias reformularla?',
         timestamp: new Date(),
       };
 
@@ -309,13 +178,8 @@ export function AutaChatbot() {
         <div className="flex items-center gap-2">
           <Sparkles className={`h-4 w-4 ${aiReady ? 'text-green-700' : 'text-stone-500'}`} />
           <span className="text-xs font-medium text-stone-700">
-            {aiReady ? 'IA Médica Activa' : 'Inicializando IA...'}
+            {aiReady ? 'Asistente activo' : 'Inicializando asistente...'}
           </span>
-          {aiReady && (
-            <span className="ml-auto text-[10px] text-stone-500">
-              Desarrollada por E.M Medicina UBA
-            </span>
-          )}
         </div>
       </div>
 
@@ -374,7 +238,7 @@ export function AutaChatbot() {
               </div>
               <div className="flex items-center gap-1 rounded-2xl border border-stone-200 bg-white px-4 py-2.5">
                 <Loader2 className="h-4 w-4 animate-spin text-stone-600" />
-                <span className="text-sm text-stone-600">Auta está pensando...</span>
+                <span className="text-sm text-stone-600">Auta esta pensando...</span>
               </div>
             </div>
           </div>
@@ -391,7 +255,7 @@ export function AutaChatbot() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Pregúntale a Auta sobre tu salud..."
+            placeholder="Preguntale a Auta sobre tu salud..."
             className="flex-1 rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder-stone-500 focus:border-stone-600 focus:outline-none focus:ring-2 focus:ring-stone-600/20"
           />
           <button
@@ -402,9 +266,10 @@ export function AutaChatbot() {
             <Send className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-2 text-center text-[10px] text-stone-500">
-          🤖 Auta AI utiliza IA médica avanzada - Desarrollada por E.M Medicina UBA
-        </p>
+        <div className="mt-2 flex items-center justify-center gap-1 text-[10px] text-stone-500">
+          <AlertTriangle className="h-3 w-3" />
+          <span>Este asistente no proporciona diagnosticos medicos. Ante emergencias, llama al 107.</span>
+        </div>
       </div>
     </div>
   );
