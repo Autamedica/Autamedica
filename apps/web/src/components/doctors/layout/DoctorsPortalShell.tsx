@@ -3,6 +3,7 @@
 import type { JSX, ReactNode } from 'react'
 import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
 
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PatientsPanel } from '@/components/doctors/patients/PatientsPanel'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { useClock } from '@/hooks/doctors/useClock'
@@ -79,6 +80,23 @@ function PanelLoader(): JSX.Element {
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
         Cargando...
+      </div>
+    </div>
+  )
+}
+
+function PanelErrorFallback(): JSX.Element {
+  return (
+    <div className="flex h-full items-center justify-center rounded-2xl border border-red-200 bg-red-50 p-8">
+      <div className="text-center">
+        <p className="text-sm font-medium text-red-700">Error al cargar el panel</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+        >
+          Recargar
+        </button>
       </div>
     </div>
   )
@@ -518,49 +536,65 @@ export function DoctorsPortalShell({
                   className="flex min-h-0 flex-1 flex-col"
                 >
                 {activeSection === 'settings' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <SettingsPanel
-                      doctorName={userName}
-                      specialty={doctorSpecialty}
-                      licenseNumber={String(doctorLicense)}
-                    />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <SettingsPanel
+                        doctorName={userName}
+                        specialty={doctorSpecialty}
+                        licenseNumber={String(doctorLicense)}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {activeSection === 'marketplace' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <MarketplacePanel />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <MarketplacePanel />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {activeSection === 'patients' && user?.id && <PatientsPanel doctorUserId={user.id} onSelectPatient={handleSelectPatient} />}
                 {activeSection === 'appointments' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <AppointmentsPanel doctorId={doctor?.id} />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <AppointmentsPanel doctorId={doctor?.id} />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {activeSection === 'records' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <RecordsPanel onNavigateToPatients={() => setActiveSection('patients')} />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <RecordsPanel onNavigateToPatients={() => setActiveSection('patients')} />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {activeSection === 'vitals' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <VitalSignsPanel onNavigateToPatients={() => setActiveSection('patients')} />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <VitalSignsPanel onNavigateToPatients={() => setActiveSection('patients')} />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {activeSection === 'diagnosis' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <DiagnosisPanel />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <DiagnosisPanel />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {activeSection === 'ranking' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <MedicalRankingPanel />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <MedicalRankingPanel />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
                 {activeSection === 'community' && (
-                  <Suspense fallback={<PanelLoader />}>
-                    <DoctorCommunityPage initialPostId={activePostId} />
-                  </Suspense>
+                  <ErrorBoundary fallback={<PanelErrorFallback />}>
+                    <Suspense fallback={<PanelLoader />}>
+                      <DoctorCommunityPage initialPostId={activePostId} />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
 
                 {!activeSection && (
