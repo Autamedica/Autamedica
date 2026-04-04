@@ -4,6 +4,7 @@ import type {
   DoctorAppointmentFormValues,
   DoctorAppointmentRecord,
   DoctorAppointmentType,
+  UpdateDoctorAppointmentInput,
 } from '@/lib/doctors/types/appointments'
 
 const DOCTOR_APPOINTMENT_TYPES: DoctorAppointmentType[] = [
@@ -56,6 +57,34 @@ export function buildDoctorAppointmentPayload(
   }
 }
 
+export function buildDoctorAppointmentUpdatePayload(
+  values: DoctorAppointmentFormValues,
+): UpdateDoctorAppointmentInput {
+  const date = values.date.trim()
+  const time = values.time.trim()
+  const notes = values.notes.trim()
+  const location = values.location.trim()
+
+  const payload: UpdateDoctorAppointmentInput = {}
+
+  if (date && time) {
+    payload.scheduled_at = combineDateAndTime(date, time)
+  }
+
+  if (Number.isFinite(values.durationMinutes) && values.durationMinutes >= 5) {
+    payload.duration_minutes = values.durationMinutes
+  }
+
+  if (DOCTOR_APPOINTMENT_TYPES.includes(values.type)) {
+    payload.type = values.type
+  }
+
+  payload.notes = notes || null
+  payload.location = values.type === 'telemedicine' ? null : (location || null)
+
+  return payload
+}
+
 export const doctorAppointmentsService = {
   async list(): Promise<DoctorAppointmentRecord[]> {
     return fetchApi<DoctorAppointmentRecord[]>('/api/doctors/appointments')
@@ -65,6 +94,14 @@ export const doctorAppointmentsService = {
     const payload = buildDoctorAppointmentPayload(values)
     return fetchApi<DoctorAppointmentRecord>('/api/doctors/appointments', {
       method: 'POST',
+      body: payload,
+    })
+  },
+
+  async update(id: string, values: DoctorAppointmentFormValues): Promise<DoctorAppointmentRecord> {
+    const payload = buildDoctorAppointmentUpdatePayload(values)
+    return fetchApi<DoctorAppointmentRecord>(`/api/doctors/appointments/${id}`, {
+      method: 'PATCH',
       body: payload,
     })
   },
