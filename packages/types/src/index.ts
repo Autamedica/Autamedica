@@ -404,6 +404,7 @@ export { ROLE_TO_PORTALS, canAccessPortal } from "./auth/user";
 // Patient types
 export type {
   Patient,
+  PatientRow,
   PatientAddress,
   EmergencyContact as LegacyEmergencyContact,
   PatientCareTeam,
@@ -416,6 +417,7 @@ export type {
 
 export {
   isPatient,
+  isPatientRow,
   isPatientCareTeamRole,
   isPrimaryDoctor
 } from "./entities/patient";
@@ -423,6 +425,7 @@ export {
 // Doctor types
 export type {
   Doctor,
+  DoctorRow,
   DoctorEducation,
   DoctorExperience,
   DoctorUpdate
@@ -430,6 +433,7 @@ export type {
 
 export {
   isDoctor,
+  isDoctorRow,
   isDoctorEducation
 } from "./entities/doctor";
 
