@@ -42,18 +42,24 @@ export function buildMedicalHistorySummary(
 ): MedicalHistorySummary {
   const activeMedications = records.filter(isActiveMedication)
   const recentDiagnoses = records.filter((r) => getType(r) === 'diagnosis')
+  const allergyRecords = records.filter((r) => getType(r) === 'allergy')
 
   return {
     patient_id: patientId,
     active_conditions_count: recentDiagnoses.length,
     active_medications_count: activeMedications.length,
-    known_allergies_count: 0,
+    known_allergies_count: allergyRecords.length,
     last_encounter_date:
       typeof records[0]?.created_at === 'string'
         ? (records[0].created_at as string)
         : new Date().toISOString(),
     chronic_conditions: recentDiagnoses.map((r) => String(r.title || 'Diagnóstico')),
-    critical_allergies: [],
+    critical_allergies: allergyRecords.map((r) => {
+      const content = getContent(r)
+      const allergen =
+        typeof content.allergen === 'string' ? content.allergen : String(r.title || 'Alergia')
+      return allergen
+    }),
     current_medications: activeMedications.map((r) => {
       const content = getContent(r)
       const name =
@@ -70,6 +76,7 @@ export function buildMedicalHistoryTimeline(
 ): MedicalHistoryTimeline {
   const activeMedications = records.filter(isActiveMedication)
   const recentDiagnoses = records.filter((r) => getType(r) === 'diagnosis')
+  const allergyRecords = records.filter((r) => getType(r) === 'allergy')
 
   return {
     patient_id: patientId,
@@ -88,7 +95,22 @@ export function buildMedicalHistoryTimeline(
           notes: typeof content.notes === 'string' ? content.notes : undefined,
         }
       }),
-      allergies: [],
+      allergies: allergyRecords.map((r) => {
+        const content = getContent(r)
+        return {
+          id: String(r.id),
+          allergen:
+            typeof content.allergen === 'string' ? content.allergen : String(r.title || 'Alergia'),
+          allergen_type:
+            typeof content.allergen_type === 'string' ? content.allergen_type : 'unknown',
+          severity:
+            typeof content.severity === 'string' ? content.severity : 'moderate',
+          reaction_description:
+            typeof content.reaction === 'string' ? content.reaction : undefined,
+          created_at:
+            typeof r.created_at === 'string' ? r.created_at : new Date().toISOString(),
+        }
+      }),
       medications: activeMedications.map((r) => {
         const content = getContent(r)
         return {

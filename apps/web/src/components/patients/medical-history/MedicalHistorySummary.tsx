@@ -179,36 +179,13 @@ export function MedicalHistorySummary({ summary, className = '' }: MedicalHistor
         </div>
       </div>
 
-      {/* Health Score Indicator */}
+      {/* Health Summary */}
       <div className="p-6 rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Estado de Salud General</h3>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-green-400">Estable</div>
-            <div className="text-sm text-white/60">Último análisis</div>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-white/70">Riesgo cardiovascular</span>
-            <span className="text-green-400">Bajo</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-white/70">Cumplimiento medicamentos</span>
-            <span className="text-green-400">Alto</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-white/70">Control rutinario</span>
-            <span className="text-yellow-400">Pendiente</span>
-          </div>
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-white/20">
-          <p className="text-white/70 text-sm">
-            Tu estado de salud general es estable. Se recomienda mantener el seguimiento médico regular y el cumplimiento del tratamiento actual.
-          </p>
-        </div>
+        <h3 className="text-lg font-semibold text-white mb-4">Estado de Salud General</h3>
+        <p className="text-white/70 text-sm">
+          Completa tu historial medico para obtener un resumen de salud. El equipo medico
+          evaluara tus datos durante la consulta.
+        </p>
       </div>
     </div>
   );

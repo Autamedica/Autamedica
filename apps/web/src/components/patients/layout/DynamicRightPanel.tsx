@@ -14,7 +14,6 @@ import { computeAgeFromIso, normalizeGender } from '@/lib/patients/lib/demograph
 import {
     Activity,
     AlertTriangle,
-    Clock,
     Eye,
     FileText,
     Heart,
@@ -400,19 +399,10 @@ function MedicalContextPanel() {
 
       <section>
         <p className="mb-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">Signos vitales</p>
-        <div className="space-y-3">
-          <VitalSign
-            icon={<Heart className="h-5 w-5 text-rose-600" />}
-            label="Presion arterial"
-            value="120/80"
-            status="Dentro de rango esperado"
-            statusClassName="text-emerald-700"
-          />
-          <VitalSign
-            icon={<Activity className="h-5 w-5 text-blue-500" />}
-            label="Frecuencia cardiaca"
-            value="72 lpm"
-          />
+        <div className="rounded-xl border border-slate-200/50 bg-white/40 p-4 text-center backdrop-blur-sm">
+          <Heart className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+          <p className="text-sm font-medium text-slate-700">Sin registros de signos vitales</p>
+          <p className="mt-1 text-xs text-slate-500">Registra tus signos vitales para ver el resumen aqui.</p>
         </div>
       </section>
 
@@ -420,33 +410,29 @@ function MedicalContextPanel() {
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
           Medicacion de hoy
         </p>
-        <div className="space-y-2">
-          <MedicationItem name="Lisinopril 10 mg" time="Tomado" completed />
-          <MedicationItem name="Metformina 500 mg" time="14:00" />
-          <MedicationItem name="Aspirina 100 mg" time="20:00" />
+        <div className="rounded-xl border border-slate-200/50 bg-white/40 p-4 text-center backdrop-blur-sm">
+          <Pill className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+          <p className="text-sm font-medium text-slate-700">No hay medicamentos registrados</p>
+          <p className="mt-1 text-xs text-slate-500">Confirma tus medicamentos para llevar trazabilidad.</p>
         </div>
       </section>
 
       <section>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Alergias declaradas</p>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-700" />
-            <span className="text-sm font-medium text-red-900">Penicilina</span>
-          </div>
+        <div className="rounded-xl border border-slate-200/50 bg-white/40 p-4 text-center backdrop-blur-sm">
+          <AlertTriangle className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+          <p className="text-sm font-medium text-slate-700">No hay alergias registradas</p>
+          <p className="mt-1 text-xs text-slate-500">Completa tu historial medico para registrar alergias.</p>
         </div>
       </section>
 
       <section>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">Accesos a historia</p>
-        <div className="space-y-2">
-          <AccessLog doctor="Medico tratante" specialty="Cardiologia" views={12} />
-          <AccessLog doctor="Especialista" specialty="Medicina general" views={8} />
+        <div className="rounded-xl border border-slate-200/50 bg-white/40 p-4 text-center backdrop-blur-sm">
+          <Eye className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+          <p className="text-sm font-medium text-slate-700">Sin accesos registrados</p>
+          <p className="mt-1 text-xs text-slate-500">Los accesos a tu historia clinica aparecen aqui.</p>
         </div>
-        <button className="mt-2 w-full rounded-lg border border-stone-300 bg-stone-100 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-200">
-          <Eye className="mr-2 inline-block h-3 w-3" />
-          Ver historial completo
-        </button>
       </section>
     </div>
   )
@@ -464,8 +450,11 @@ function ChatPanel() {
       </div>
 
       <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
-        <ChatMessage sender="Equipo medico" message="Hola, ¿en qué podemos ayudarte hoy?" />
-        <ChatMessage sender="Tu" message="Se mantuvo estable, entre 118/78 y 122/81." isOwn />
+        <div className="rounded-xl border border-slate-200/50 bg-white/40 p-4 text-center backdrop-blur-sm">
+          <MessageSquare className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+          <p className="text-sm font-medium text-slate-700">Sin mensajes</p>
+          <p className="mt-1 text-xs text-slate-500">Los mensajes de la consulta aparecen aqui.</p>
+        </div>
       </div>
 
       <div className="mt-4">
@@ -574,79 +563,3 @@ function ActionButton({
   )
 }
 
-function VitalSign({
-  icon,
-  label,
-  value,
-  status,
-  statusClassName,
-}: {
-  icon: ReactNode
-  label: string
-  value: string
-  status?: string
-  statusClassName?: string
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-stone-200 bg-white p-3">
-      <div>{icon}</div>
-      <div className="flex-1">
-        <p className="text-xs text-stone-600">{label}</p>
-        <p className="text-lg font-semibold text-stone-900">{value}</p>
-        {status && <p className={`text-xs ${statusClassName ?? 'text-stone-600'}`}>{status}</p>}
-      </div>
-    </div>
-  )
-}
-
-function MedicationItem({ name, time, completed = false }: { name: string; time: string; completed?: boolean }) {
-  return (
-    <div
-      className={`flex items-center justify-between rounded-lg border p-2 ${
-        completed ? 'border-emerald-200 bg-emerald-50' : 'border-stone-200 bg-white'
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        {completed ? (
-          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600">
-            <span className="text-[10px] text-white">✓</span>
-          </div>
-        ) : (
-          <Clock className="h-4 w-4 text-amber-700" />
-        )}
-        <span className="text-sm text-stone-900">{name}</span>
-      </div>
-      <span className={`text-xs ${completed ? 'font-semibold text-emerald-700' : 'text-stone-600'}`}>{time}</span>
-    </div>
-  )
-}
-
-function AccessLog({ doctor, specialty, views }: { doctor: string; specialty: string; views: number }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-white p-2">
-      <div>
-        <p className="text-sm font-medium text-stone-900">{doctor}</p>
-        <p className="text-xs text-stone-600">{specialty}</p>
-      </div>
-      <div className="text-right">
-        <p className="text-sm font-semibold text-stone-900">{views}</p>
-        <p className="text-[10px] text-stone-500">veces</p>
-      </div>
-    </div>
-  )
-}
-
-function ChatMessage({ sender, message, isOwn = false }: { sender: string; message: string; isOwn?: boolean }) {
-  return (
-    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[80%] rounded-lg border p-3 ${
-          isOwn ? 'border-stone-300 bg-stone-100' : 'border-stone-200 bg-white'
-        }`}
-      >
-        <p className="mb-1 text-xs font-medium text-stone-600">{sender}</p>
-        <p className="text-sm text-stone-900">{message}</p>
-      </div>
-    </div>
-  )
-}
