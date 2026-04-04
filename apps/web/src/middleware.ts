@@ -11,7 +11,7 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { detectLocale, LOCALE_COOKIE } from './i18n/index';
-import { isProduction } from './lib/auth-utils';
+import { isProduction, validateRedirectUrl } from './lib/auth-utils';
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
 
 // Rutas que requieren autenticación
@@ -127,6 +127,27 @@ function isProtectedPath(pathname: string): boolean {
 function extractRole(metadata: Record<string, unknown> | undefined): string | undefined {
   const raw = metadata?.role;
   return typeof raw === 'string' ? raw : undefined;
+}
+
+/** Resolve returnTo from query params, validating against allowed hosts. */
+function resolveReturnTo(requestUrl: URL, roleRedirectBase: string): string | null {
+  const returnTo = requestUrl.searchParams.get('returnTo');
+  if (!returnTo) return null;
+
+  // Relative path: attach to the role's redirect base
+  if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+    try {
+      const base = roleRedirectBase.startsWith('http')
+        ? roleRedirectBase
+        : new URL(roleRedirectBase, requestUrl.origin).toString();
+      return new URL(returnTo, base).toString();
+    } catch {
+      return null;
+    }
+  }
+
+  // Absolute URL: validate against allowed hosts
+  return validateRedirectUrl(returnTo) ? returnTo : null;
 }
 
 /** Detect portal from hostname (prod) or ?portal= query param (dev) */
@@ -315,7 +336,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (error) {
       // Rate-limit or transient server errors: do NOT clear cookies — the session
       // may still be valid. Only clear on definitive auth failures (invalid JWT, etc.).
-      const isTransient = /rate.limit|too.many|429|5\d\d/i.test(error.message ?? '');
+      const isTransient = /rate.limit|too.many|429|5\d\d|timeout|econnrefused|enotfound|fetch.failed|network/i.test(error.message ?? '');
       if (isTransient) {
         logger.warn('Middleware auth: transient error, preserving session cookies', {
           msg: error.message,
@@ -352,7 +373,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
         if (!userRole) {
           return context.redirect('/auth/select-role');
         }
-        return context.redirect(getRoleRedirect(userRole));
+        const roleRedirect = getRoleRedirect(userRole);
+        const returnToUrl = resolveReturnTo(requestUrl, roleRedirect);
+        return context.redirect(returnToUrl ?? roleRedirect);
       }
       // Not authenticated — show login/register form
       return next();
@@ -384,7 +407,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       else if (pathname.startsWith('/admin')) loginPortal = 'admin';
 
       const loginUrl = new URL('/auth/login', context.request.url);
-      loginUrl.searchParams.set('returnTo', isPortalHostRoot ? '/' : pathname);
+      loginUrl.searchParams.set('returnTo', isPortalHostRoot ? '/' : pathname + requestUrl.search);
       loginUrl.searchParams.set('portal', loginPortal);
 
       return context.redirect(loginUrl.toString());
@@ -422,7 +445,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     if (isProtectedPath(pathname) || isPortalHostRoot) {
       const loginUrl = new URL('/auth/login', context.request.url);
-      loginUrl.searchParams.set('returnTo', isPortalHostRoot ? '/' : pathname);
+      loginUrl.searchParams.set('returnTo', isPortalHostRoot ? '/' : pathname + requestUrl.search);
       return context.redirect(loginUrl.toString());
     }
 

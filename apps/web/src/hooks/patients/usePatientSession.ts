@@ -159,7 +159,9 @@ export function usePatientSession(): UsePatientSessionResult {
         return;
       }
 
-      if (session?.user) {
+      // Only re-fetch on actual sign-in, not on token refreshes
+      // (TOKEN_REFRESHED doesn't change profile/patient data)
+      if (event === 'SIGNED_IN' && session?.user) {
         refresh();
       }
     });

@@ -12,6 +12,14 @@ import { safeParseProfile } from '@/lib/patients/lib/zod/profiles'
 import type { Patient } from '@/lib/patients/lib/zod/patients'
 import { parsePatient } from '@/lib/patients/lib/zod/patients'
 
+/** In-memory cache to deduplicate concurrent fetches across React islands */
+const CACHE_TTL_MS = 10_000 // 10 seconds
+
+const profileCache = new Map<string, { data: Profile; ts: number }>()
+const patientCache = new Map<string, { data: Patient | null; ts: number }>()
+const inflightProfiles = new Map<string, Promise<Profile>>()
+const inflightPatients = new Map<string, Promise<Patient | null>>()
+
 type DbRow = Record<string, unknown>
 
 interface DbError extends Error {
@@ -50,6 +58,29 @@ function ensureEmail(user: User): string {
 
 export const patientSessionService = {
   async fetchOrCreateProfile(supabase: Db, user: User): Promise<Profile> {
+    const key = user.id
+    const cached = profileCache.get(key)
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data
+
+    const inflight = inflightProfiles.get(key)
+    if (inflight) return inflight
+
+    const promise = this._fetchOrCreateProfileImpl(supabase, user)
+      .then(profile => {
+        profileCache.set(key, { data: profile, ts: Date.now() })
+        inflightProfiles.delete(key)
+        return profile
+      })
+      .catch(err => {
+        inflightProfiles.delete(key)
+        throw err
+      })
+
+    inflightProfiles.set(key, promise)
+    return promise
+  },
+
+  async _fetchOrCreateProfileImpl(supabase: Db, user: User): Promise<Profile> {
     const db = supabase as unknown as LooseDb
     const email = ensureEmail(user)
 
@@ -184,6 +215,29 @@ export const patientSessionService = {
   },
 
   async fetchOrCreatePatient(supabase: Db, userId: string): Promise<Patient | null> {
+    const key = userId
+    const cached = patientCache.get(key)
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data
+
+    const inflight = inflightPatients.get(key)
+    if (inflight) return inflight
+
+    const promise = this._fetchOrCreatePatientImpl(supabase, userId)
+      .then(patient => {
+        patientCache.set(key, { data: patient, ts: Date.now() })
+        inflightPatients.delete(key)
+        return patient
+      })
+      .catch(err => {
+        inflightPatients.delete(key)
+        throw err
+      })
+
+    inflightPatients.set(key, promise)
+    return promise
+  },
+
+  async _fetchOrCreatePatientImpl(supabase: Db, userId: string): Promise<Patient | null> {
     const db = supabase as unknown as LooseDb
     const { data, error } = await db
       .from('patients')
