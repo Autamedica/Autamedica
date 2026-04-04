@@ -4,13 +4,18 @@
  */
 import { TransitionAppointmentUseCase } from '../usecases/TransitionAppointmentUseCase';
 import type { AppointmentStatus } from '../usecases/TransitionAppointmentUseCase';
+import { createAppointmentReadAdapter } from '@/lib/doctors/lib/repos/appointments';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
-import type { UiAppointment } from '@/lib/doctors/lib/repos/appointments';
+import type { AppointmentView } from '@autamedica/types';
 
 export const appointmentBackendService = {
-  async transitionStatus(appointmentId: string, nextStatus: AppointmentStatus): Promise<UiAppointment> {
+  async transitionStatus(appointmentId: string, nextStatus: AppointmentStatus): Promise<AppointmentView> {
     try {
-      const useCase = new TransitionAppointmentUseCase();
+      const admin = createAstroAdminClient();
+      const useCase = new TransitionAppointmentUseCase({
+        appointmentRepo: createAppointmentReadAdapter(admin),
+      });
       return await useCase.execute(appointmentId, nextStatus);
     } catch (error) {
       logger.error('[appointmentBackendService] transitionStatus failed', { appointmentId, nextStatus, error });

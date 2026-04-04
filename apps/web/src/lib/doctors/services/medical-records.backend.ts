@@ -3,9 +3,9 @@
  * Orchestrates repository access for API Controllers.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { medicalRecordsRepo } from '@/lib/doctors/lib/repos/medical-records'
+import { createMedicalRecordsAdapter } from '@/lib/doctors/lib/repos/medical-records'
 import { logger } from '@autamedica/shared'
-import type { UiMedicalRecord } from '@/lib/doctors/lib/repos/medical-records'
+import type { MedicalRecordView } from '@autamedica/types'
 
 export interface MedicalRecordsQuery {
   patientId: string
@@ -18,7 +18,7 @@ export interface MedicalRecordsQuery {
 }
 
 export interface PaginatedMedicalRecords {
-  records: UiMedicalRecord[]
+  records: MedicalRecordView[]
   hasMore: boolean
   page: number
   total: number
@@ -29,7 +29,8 @@ export const medicalRecordsBackendService = {
     try {
       const { patientId, type, dateFrom, dateTo, diagnosisContains, page = 0, pageSize = 10 } = query
 
-      let records = await medicalRecordsRepo.findByPatient(patientId, type, client)
+      const repo = createMedicalRecordsAdapter(client)
+      let records = await repo.findByPatient(patientId, type)
 
       if (dateFrom) {
         records = records.filter(r => (r.dateRecorded ?? '') >= dateFrom)

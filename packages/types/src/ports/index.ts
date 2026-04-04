@@ -25,3 +25,15 @@ export type {
   AnamnesisEntity,
   AnamnesisSectionEntity,
 } from './anamnesis.port'
+export type { IDoctorRepository } from './doctors.port'
+export type {
+  IMedicalRecordsRepository,
+  MedicalRecordView,
+  MedicalRecordInsertInput,
+  MedicalRecordUpdateInput,
+} from './medical-records.port'
+export type { IAlertsRepository, AlertEntity } from './alerts.port'
+export type {
+  IAppointmentReadRepository,
+  AppointmentView,
+} from './appointment-read.port'

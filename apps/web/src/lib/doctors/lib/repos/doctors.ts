@@ -3,7 +3,7 @@
  * Single source of truth for all DB queries related to doctor profiles.
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import type { Database } from '@autamedica/types'
+import type { Database, IDoctorRepository } from '@autamedica/types'
 import { toCamel, logger } from '@autamedica/shared'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { DoctorWithProfile } from '@autamedica/types'
@@ -124,4 +124,21 @@ export const doctorsRepo = {
 
     return data?.id ?? null
   },
+}
+
+/**
+ * Factory: crea un adapter que implementa IDoctorRepository
+ * cerrando sobre un SupabaseClient específico.
+ * Útil para use cases con inversión de dependencias y testing.
+ */
+export function createDoctorRepositoryAdapter(
+  client: DoctorsClient = getBrowserSupabaseClient(),
+): IDoctorRepository {
+  return {
+    findAll: () => doctorsRepo.findAll(client),
+    findByUserId: (userId) => doctorsRepo.findByUserId(userId, client),
+    findById: (id) => doctorsRepo.findById(id, client),
+    findBySpecialty: (specialty) => doctorsRepo.findBySpecialty(specialty, client),
+    resolveIdByUserId: (userId) => doctorsRepo.resolveIdByUserId(userId, client),
+  }
 }

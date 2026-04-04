@@ -4,7 +4,7 @@
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { logger } from '@autamedica/shared'
-import { medicalRecordsRepo } from '@/lib/doctors/lib/repos/medical-records'
+import { createMedicalRecordsAdapter } from '@/lib/doctors/lib/repos/medical-records'
 import type { UiMedicalRecord, MedicalRecordInsert, MedicalRecordUpdate } from '@/lib/doctors/lib/repos/medical-records'
 import type {
   Prescription,
@@ -125,7 +125,8 @@ async function resolveCurrentDoctorId(): Promise<string | null> {
     return null
   }
 
-  return medicalRecordsRepo.resolveDoctorIdByUser(user.id)
+  const repo = createMedicalRecordsAdapter()
+  return repo.resolveDoctorIdByUser(user.id)
 }
 
 export const prescriptionService = {
@@ -133,7 +134,8 @@ export const prescriptionService = {
     patientId: string,
     filters: PrescriptionFilters = {},
   ): Promise<Prescription[]> {
-    const records = await medicalRecordsRepo.findByPatient(patientId, 'prescription')
+    const repo = createMedicalRecordsAdapter()
+    const records = await repo.findByPatient(patientId, 'prescription')
     const prescriptions = records.map(mapRecordToPrescription)
     return applyFilters(prescriptions, filters)
   },
@@ -169,7 +171,8 @@ export const prescriptionService = {
       },
     }
 
-    await medicalRecordsRepo.insert(record)
+    const repo = createMedicalRecordsAdapter()
+    await repo.insert(record)
   },
 
   async update(
@@ -201,6 +204,7 @@ export const prescriptionService = {
       },
     }
 
-    await medicalRecordsRepo.update(id, record)
+    const repo = createMedicalRecordsAdapter()
+    await repo.update(id, record)
   },
 }

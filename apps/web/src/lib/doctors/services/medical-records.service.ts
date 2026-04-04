@@ -5,7 +5,7 @@
  */
 import { fetchApi } from '@/lib/api-client'
 import { logger } from '@autamedica/shared'
-import type { UiMedicalRecord } from '@/lib/doctors/lib/repos/medical-records'
+import type { MedicalRecordView } from '@autamedica/types'
 
 export interface MedicalRecordsFilter {
   type?: string
@@ -15,7 +15,7 @@ export interface MedicalRecordsFilter {
 }
 
 export interface PaginatedMedicalRecords {
-  records: UiMedicalRecord[]
+  records: MedicalRecordView[]
   hasMore: boolean
   page: number
   total: number

@@ -5,7 +5,8 @@
  */
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 import { toCamel, toSnake, logger } from '@autamedica/shared';
-import type { Tables, TablesInsert, TablesUpdate } from '@autamedica/types';
+import type { Tables, TablesInsert, TablesUpdate, Database, IAppointmentReadRepository } from '@autamedica/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type Appointment = Tables<'appointments'>;
 export type NewAppointment = TablesInsert<'appointments'>;
@@ -104,4 +105,66 @@ export async function deleteAppointment(id: string): Promise<void> {
     logger.error('[appointments repo] deleteAppointment failed', error);
     throw error;
   }
+}
+
+type AppointmentsClient = SupabaseClient<Database>
+
+/**
+ * Factory: crea un adapter que implementa IAppointmentReadRepository
+ * cerrando sobre un SupabaseClient específico.
+ * Útil para use cases con inversión de dependencias y testing.
+ */
+export function createAppointmentReadAdapter(
+  client: AppointmentsClient,
+): IAppointmentReadRepository {
+  return {
+    async list(): Promise<UiAppointment[]> {
+      const { data, error } = await client
+        .from('appointments')
+        .select('*')
+        .order('start_time', { ascending: true });
+
+      if (error) {
+        logger.error('[appointments adapter] list failed', error);
+        throw error;
+      }
+
+      return toCamel<UiAppointment[]>(data ?? []);
+    },
+
+    async findById(id: string): Promise<UiAppointment | null> {
+      const { data, error } = await client
+        .from('appointments')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('[appointments adapter] findById failed', error);
+        return null;
+      }
+
+      return data ? toCamel<UiAppointment>(data) : null;
+    },
+
+    async update(id: string, patch: Record<string, unknown>): Promise<UiAppointment> {
+      if (patch.duration_minutes !== undefined && typeof patch.duration_minutes === 'string') {
+        throw new Error('duration_minutes must be a number, not a string');
+      }
+
+      const { data, error } = await client
+        .from('appointments')
+        .update(toSnake(patch) as never)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        logger.error('[appointments adapter] update failed', error);
+        throw error;
+      }
+
+      return toCamel<UiAppointment>(data);
+    },
+  };
 }

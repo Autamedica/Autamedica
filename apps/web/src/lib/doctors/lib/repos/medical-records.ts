@@ -3,7 +3,7 @@
  * Single source of truth for all DB queries on medical_records.
  */
 import type { SupabaseClient } from "@supabase/supabase-js"
-import type { Database } from "@autamedica/types"
+import type { Database, IMedicalRecordsRepository } from "@autamedica/types"
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { toCamel, toSnake, logger } from '@autamedica/shared'
 
@@ -118,4 +118,20 @@ export const medicalRecordsRepo = {
 
     return data?.id ?? null
   },
+}
+
+/**
+ * Factory: crea un adapter que implementa IMedicalRecordsRepository
+ * cerrando sobre un SupabaseClient específico.
+ * Útil para use cases con inversión de dependencias y testing.
+ */
+export function createMedicalRecordsAdapter(
+  client: RecordsClient = getBrowserSupabaseClient(),
+): IMedicalRecordsRepository {
+  return {
+    findByPatient: (patientId, type) => medicalRecordsRepo.findByPatient(patientId, type, client),
+    insert: (record) => medicalRecordsRepo.insert(record, client),
+    update: (id, updates) => medicalRecordsRepo.update(id, updates, client),
+    resolveDoctorIdByUser: (userId) => medicalRecordsRepo.resolveDoctorIdByUser(userId, client),
+  }
 }
