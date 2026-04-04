@@ -16,7 +16,6 @@ permissions:
 
 env:
   HUSKY: '0'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   TURBO_FORCE: 'true'
   NODE_VERSION: '20'
   PNPM_VERSION: '9.15.2'
@@ -24,7 +23,7 @@ env:
 jobs:
   build-and-deploy:
     name: Build & Deploy Content
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1

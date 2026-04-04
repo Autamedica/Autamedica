@@ -24,12 +24,11 @@ permissions:
 
 env:
   HUSKY: '0'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   e2e-critical:
     name: Critical Paths
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.target == 'local')
     continue-on-error: true
@@ -70,7 +69,7 @@ jobs:
 
   e2e-production:
     name: Production
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
     steps:

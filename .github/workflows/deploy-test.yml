@@ -8,12 +8,11 @@ permissions:
 
 env:
   HUSKY: '0'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   canary:
     name: Environment
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - run: node --version && pnpm --version

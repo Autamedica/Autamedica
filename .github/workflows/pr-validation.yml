@@ -10,12 +10,11 @@ permissions:
 
 env:
   HUSKY: '0'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   validate:
     name: PR Quality
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: WIP guard
