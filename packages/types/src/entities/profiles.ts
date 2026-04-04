@@ -249,51 +249,58 @@ export interface InsuranceInfo {
 }
 
 /**
- * Perfil completo de paciente - corresponde a tabla patients
- * Refleja el esquema real de Supabase con campos corregidos según BD
+ * Perfil completo de paciente - corresponds to the `patients` table.
  *
- * NOTA: La BD tiene columnas individuales (medical_history TEXT, allergies TEXT, medications TEXT)
- * no arrays complejos. Estos son campos de texto simple o JSON según el esquema real.
+ * DB schema: id, user_id, dni, birth_date (date), gender, blood_type,
+ * height_cm, weight_kg, emergency_contact (jsonb), medical_history (jsonb DEFAULT '[]'),
+ * allergies (jsonb DEFAULT '[]'), medications (jsonb DEFAULT '[]'),
+ * insurance_info (jsonb), organization_id, active, created_at, updated_at
  */
 export interface PatientProfile {
   id: UUID;
   user_id: UUID;
   dni: string | null;
-  date_of_birth: ISODateString | null; // Corregido: era birth_date, ahora date_of_birth
+  /** DB column: `birth_date` (date type) */
+  birth_date: ISODateString | null;
   gender: Gender | null;
   blood_type: string | null;
   height_cm: number | null;
   weight_kg: number | null;
-  medical_history: string | null; // Campo TEXT en BD, no array
-  allergies: string | null; // Campo TEXT en BD, no array
-  medications: string | null; // Campo TEXT en BD, no array
-  emergency_contact_name: string | null;
-  emergency_contact_phone: string | null;
-  company_id: UUID | null;
+  /** DB column: `emergency_contact` (jsonb) -- single object, not split fields */
+  emergency_contact: EmergencyContact | null;
+  /** DB column: `medical_history` (jsonb DEFAULT '[]') */
+  medical_history: unknown[] | null;
+  /** DB column: `allergies` (jsonb DEFAULT '[]') */
+  allergies: unknown[] | null;
+  /** DB column: `medications` (jsonb DEFAULT '[]') */
+  medications: unknown[] | null;
+  /** DB column: `insurance_info` (jsonb) */
+  insurance_info: unknown | null;
+  /** DB column: `organization_id` (uuid FK) */
+  organization_id: UUID | null;
   active: boolean;
   created_at: ISODateString;
   updated_at: ISODateString;
-  deleted_at: ISODateString | null; // Soft delete - agregado en parches de seguridad
 }
 
 /**
- * Datos para crear perfil de paciente
- * Actualizado para reflejar esquema real de BD
+ * Datos para crear perfil de paciente.
+ * Matches INSERT columns of the `patients` table.
  */
 export interface PatientInsert {
   user_id: UUID;
   dni?: string | null;
-  date_of_birth?: ISODateString | null; // Corregido: date_of_birth no birth_date
+  birth_date?: ISODateString | null;
   gender?: Gender | null;
   blood_type?: string | null;
   height_cm?: number | null;
   weight_kg?: number | null;
-  medical_history?: string | null; // TEXT field, no array
-  allergies?: string | null; // TEXT field, no array
-  medications?: string | null; // TEXT field, no array
-  emergency_contact_name?: string | null;
-  emergency_contact_phone?: string | null;
-  company_id?: UUID | null;
+  emergency_contact?: EmergencyContact | null;
+  medical_history?: unknown[] | null;
+  allergies?: unknown[] | null;
+  medications?: unknown[] | null;
+  insurance_info?: unknown | null;
+  organization_id?: UUID | null;
   active?: boolean;
 }
 
