@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { appointmentBackendService } from '@/lib/doctors/services/appointment.backend';
-import { getAppointment } from '@/lib/doctors/lib/repos/appointments';
+import { createAppointmentReadAdapter } from '@/lib/doctors/lib/repos/appointments';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import { resolveDoctorContext } from '@/lib/doctors/api/doctor-context';
 import { badRequest, forbidden, notFound, internalError, jsonOk, unauthorized } from '@/lib/api-helpers';
@@ -15,7 +16,9 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const context = await resolveDoctorContext(request, locals);
   if (!context) return unauthorized();
 
-  const appointment = await getAppointment(id);
+  const admin = createAstroAdminClient();
+  const appointmentRepo = createAppointmentReadAdapter(admin);
+  const appointment = await appointmentRepo.findById(id);
   if (!appointment) return notFound('appointment_not_found');
 
   if (appointment.doctorId !== context.doctorId) {

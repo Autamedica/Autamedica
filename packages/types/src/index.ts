@@ -935,4 +935,13 @@ export type {
   IAnamnesisRepository,
   AnamnesisEntity,
   AnamnesisSectionEntity,
+  IDoctorRepository,
+  IMedicalRecordsRepository,
+  MedicalRecordView,
+  MedicalRecordInsertInput,
+  MedicalRecordUpdateInput,
+  IAlertsRepository,
+  AlertEntity,
+  IAppointmentReadRepository,
+  AppointmentView,
 } from './ports';

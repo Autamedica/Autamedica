@@ -2,7 +2,7 @@
  * Backend Service: Doctor business logic.
  * Orchestrates repository access for API Controllers.
  */
-import { doctorsRepo } from '@/lib/doctors/lib/repos/doctors'
+import { createDoctorRepositoryAdapter } from '@/lib/doctors/lib/repos/doctors'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { logger } from '@autamedica/shared'
 import type { DoctorWithProfile } from '@autamedica/types'
@@ -10,7 +10,8 @@ import type { DoctorWithProfile } from '@autamedica/types'
 export const doctorBackendService = {
   async getDoctors(): Promise<DoctorWithProfile[]> {
     try {
-      return await doctorsRepo.findAll(createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      return await repo.findAll()
     } catch (error) {
       logger.error('[doctorBackendService] getDoctors failed', error)
       throw error
@@ -19,7 +20,8 @@ export const doctorBackendService = {
 
   async getDoctorByUserId(userId: string): Promise<DoctorWithProfile | null> {
     try {
-      return await doctorsRepo.findByUserId(userId, createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      return await repo.findByUserId(userId)
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorByUserId failed', { userId, error })
       throw error
@@ -28,7 +30,8 @@ export const doctorBackendService = {
 
   async getDoctorById(id: string): Promise<DoctorWithProfile | null> {
     try {
-      return await doctorsRepo.findById(id, createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      return await repo.findById(id)
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorById failed', { id, error })
       throw error
@@ -37,7 +40,8 @@ export const doctorBackendService = {
 
   async getDoctorsBySpecialty(specialty: string): Promise<DoctorWithProfile[]> {
     try {
-      return await doctorsRepo.findBySpecialty(specialty, createAstroAdminClient())
+      const repo = createDoctorRepositoryAdapter(createAstroAdminClient())
+      return await repo.findBySpecialty(specialty)
     } catch (error) {
       logger.error('[doctorBackendService] getDoctorsBySpecialty failed', { specialty, error })
       throw error

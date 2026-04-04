@@ -40,21 +40,21 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const companyId = url.searchParams.get('companyId')?.trim()
 
     if (patientId) {
-      const data = await patientBackendService.getPatientById(patientId as UUID, auth.supabase)
+      const data = await patientBackendService.getPatientById(patientId as UUID)
       return jsonOk(data)
     }
 
     if (role === 'doctor') {
-      const data = await patientBackendService.getAssignedPatients(auth.user.id, auth.supabase)
+      const data = await patientBackendService.getAssignedPatients(auth.user.id)
       return jsonOk(data)
     }
 
     if (companyId) {
-      const data = await patientBackendService.getPatientsByCompany(companyId, auth.supabase)
+      const data = await patientBackendService.getPatientsByCompany(companyId)
       return jsonOk(data)
     }
 
-    const data = await patientBackendService.getActivePatients(auth.supabase)
+    const data = await patientBackendService.getActivePatients()
     return jsonOk(data)
   } catch (err) {
     logger.error('[api/doctors/patients] GET error:', err)

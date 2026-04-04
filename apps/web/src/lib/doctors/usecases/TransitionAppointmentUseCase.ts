@@ -3,19 +3,19 @@
  * Orchestrates valid state transitions for appointments.
  * Layer 7: Use Case Layer.
  */
-import { updateAppointment, getAppointment, type UiAppointment } from '@/lib/doctors/lib/repos/appointments';
+import type { IAppointmentReadRepository, AppointmentView } from '@autamedica/types';
 
 export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 're_queue' | 'completed' | 'cancelled';
 
-export class TransitionAppointmentUseCase {
-  constructor() {}
+interface TransitionAppointmentDeps {
+  appointmentRepo: IAppointmentReadRepository
+}
 
-  /**
-   * Orchestrates the transition of an appointment status.
-   * Ensures business rules are met before updating the database.
-   */
-  async execute(appointmentId: string, nextStatus: AppointmentStatus): Promise<UiAppointment> {
-    const appointment = await getAppointment(appointmentId);
+export class TransitionAppointmentUseCase {
+  constructor(private readonly deps: TransitionAppointmentDeps) {}
+
+  async execute(appointmentId: string, nextStatus: AppointmentStatus): Promise<AppointmentView> {
+    const appointment = await this.deps.appointmentRepo.findById(appointmentId);
     if (!appointment) {
       throw new Error('Appointment not found');
     }
@@ -24,8 +24,7 @@ export class TransitionAppointmentUseCase {
       throw new Error(`Invalid transition from ${appointment.status} to ${nextStatus}`);
     }
 
-    // Perform the update
-    return await updateAppointment(appointmentId, { status: nextStatus });
+    return await this.deps.appointmentRepo.update(appointmentId, { status: nextStatus });
   }
 
   private isValidTransition(current: AppointmentStatus, next: AppointmentStatus): boolean {
