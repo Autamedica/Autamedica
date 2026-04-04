@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
 import { fetchApi, ApiError } from '@/lib/api-client';
@@ -89,6 +89,16 @@ function ReportContent({ roomId }: { roomId: string }) {
   const updateField = useCallback((field: keyof SOAPReport, value: string) => {
     setEditedReport(prev => prev ? { ...prev, [field]: value } : null);
   }, []);
+
+  // Warn before navigating away with unsaved edits
+  useEffect(() => {
+    if (!editedReport || saved) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [editedReport, saved]);
 
   if (authLoading) {
     return (

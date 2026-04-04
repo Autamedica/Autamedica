@@ -9,8 +9,7 @@ import type { MediaManager } from './media-manager'
 import type { QualityMonitor } from './quality-monitor'
 import type { CallLogger } from './logging/call-logger'
 
-const MAX_ICE_RESTART_ATTEMPTS = 5
-const ICE_RESTART_BACKOFF_BASE_MS = 2_000
+import { MAX_ICE_RESTART_ATTEMPTS, ICE_RESTART_BACKOFF_BASE_MS } from './tuning'
 const CHAT_CHANNEL_LABEL = 'autamedica-chat'
 
 export interface ChatMessage {

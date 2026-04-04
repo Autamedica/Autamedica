@@ -1,4 +1,4 @@
-// Generated: 2026-03-31T06:50:00Z — RLS policy hardening (no schema changes)
+// Generated: 2026-04-03T18:00:00Z — sync_call_to_appointment function update + unique index (no table schema changes)
 export type Json =
   | string
   | number

@@ -25,7 +25,34 @@ export type DoctorCancelStatusResolution =
       message: string
     }
 
-const TERMINAL_STATUSES = new Set<CallStatus>(['declined', 'canceled', 'ended'])
+/**
+ * Single source of truth for call status transitions.
+ * Must stay in sync with DB trigger `validate_call_status_transition()`
+ * defined in supabase/migrations/20260323100000_link_calls_appointments.sql
+ *
+ * The DB trigger is the enforcement backstop — this matrix is for app-level
+ * pre-validation to avoid unnecessary round-trips and provide better errors.
+ */
+export const TRANSITION_MATRIX: Readonly<Record<CallStatus, ReadonlySet<CallStatus>>> = {
+  requested:  new Set<CallStatus>(['ringing', 'canceled']),
+  ringing:    new Set<CallStatus>(['accepted', 'declined', 'canceled']),
+  accepted:   new Set<CallStatus>(['connecting', 'canceled', 'ended']),
+  connecting: new Set<CallStatus>(['connected', 'ended']),
+  connected:  new Set<CallStatus>(['ended']),
+  declined:   new Set<CallStatus>(),
+  canceled:   new Set<CallStatus>(),
+  ended:      new Set<CallStatus>(),
+}
+
+/** Check if a transition is valid per the DB-level state machine */
+export function canTransition(from: CallStatus, to: CallStatus): boolean {
+  return TRANSITION_MATRIX[from]?.has(to) ?? false
+}
+
+// App-level subsets derived from the matrix + idempotency rules
+const TERMINAL_STATUSES = new Set<CallStatus>(
+  (Object.keys(TRANSITION_MATRIX) as CallStatus[]).filter(s => TRANSITION_MATRIX[s].size === 0),
+)
 const CONNECTING_ALLOWED_FROM = new Set<CallStatus>(['accepted', 'connecting'])
 const CONNECTED_ALLOWED_FROM = new Set<CallStatus>(['accepted', 'connecting'])
 const ENDABLE_STATUSES = new Set<CallStatus>(['accepted', 'connecting', 'connected'])

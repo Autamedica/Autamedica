@@ -7,6 +7,7 @@ import { getAdaptiveConstraints, getPreferredVideoCodecs, getPreferredAudioCodec
 import type { createTelemedicineLogger } from './debug'
 import type { DeviceInfo, MediaConstraints } from './webrtc-client'
 import { INITIAL_VIDEO_BITRATE } from './bitrate-adapter'
+import { AudioFilterProcessor, type AudioFilterConfig } from './audio-filter'
 
 export interface MediaManagerCallbacks {
   emit: (event: string, ...args: unknown[]) => void
@@ -15,14 +16,23 @@ export interface MediaManagerCallbacks {
 
 export class MediaManager {
   private localStream: MediaStream | null = null
+  private rawStream: MediaStream | null = null
   private cachedDevices: DeviceInfo[] = []
   private deviceChangeCleanup: (() => void) | null = null
+  private audioFilter: AudioFilterProcessor
 
   constructor(
     private readonly logger: ReturnType<typeof createTelemedicineLogger>,
     private readonly sessionId: string,
     private readonly callbacks: MediaManagerCallbacks,
-  ) {}
+    audioFilterConfig?: Partial<AudioFilterConfig>,
+  ) {
+    this.audioFilter = new AudioFilterProcessor(logger, audioFilterConfig)
+  }
+
+  getAudioFilter(): AudioFilterProcessor {
+    return this.audioFilter
+  }
 
   private logInfo(message: string, context: Record<string, unknown> = {}): void {
     this.logger.info(message, { sessionId: this.sessionId, ...context })
@@ -86,10 +96,14 @@ export class MediaManager {
           throw mediaError
         }
       }
+      // Apply 3-band audio filter (low: -50dB, mid: 0dB, high: 0dB)
+      this.rawStream = this.localStream
+      this.localStream = this.audioFilter.process(this.localStream)
+
       this.callbacks.emit('local-stream', this.localStream)
       const videoTrackCount = this.localStream.getVideoTracks().length
       const audioTrackCount = this.localStream.getAudioTracks().length
-      this.logInfo('Local media stream started', { videoTrackCount, audioTrackCount })
+      this.logInfo('Local media stream started', { videoTrackCount, audioTrackCount, audioFilterEnabled: this.audioFilter.enabled })
       this.callbacks.emit('media-acquired', { videoTracks: videoTrackCount, audioTracks: audioTrackCount, source: 'startLocalStream' })
 
       for (const [, peerState] of peerConnections) {
@@ -116,8 +130,14 @@ export class MediaManager {
       ? { video: { deviceId: { exact: deviceId }, ...adaptive.video as MediaTrackConstraints } }
       : { audio: { deviceId: { exact: deviceId }, ...adaptive.audio as MediaTrackConstraints } }
 
-    const newStream = await navigator.mediaDevices.getUserMedia(constraints)
-    const newTrack = newStream.getTracks()[0]
+    let newStream = await navigator.mediaDevices.getUserMedia(constraints)
+
+    // Re-apply audio filter when switching audio device
+    if (kind === 'audio') {
+      newStream = this.audioFilter.process(newStream)
+    }
+
+    const newTrack = newStream.getTracks().find(t => t.kind === kind)
     if (!newTrack) return
 
     const oldTracks = kind === 'video'
@@ -137,7 +157,7 @@ export class MediaManager {
     }
 
     this.callbacks.emit('local-stream', this.localStream)
-    this.logInfo('Device switched', { kind, deviceId })
+    this.logInfo('Device switched', { kind, deviceId, audioFilterEnabled: kind === 'audio' && this.audioFilter.enabled })
   }
 
   async replaceVideoTrack(
@@ -197,7 +217,13 @@ export class MediaManager {
   ): Promise<void> {
     if (!this.localStream) return
 
-    const currentAudioTrack = this.localStream.getAudioTracks()[0]
+    // In clinical mode: bypass audio filter to send raw unprocessed audio
+    // (stethoscope, lung sounds need full frequency range without EQ cuts)
+    if (enabled) {
+      this.audioFilter.destroy()
+    }
+
+    const currentAudioTrack = (this.rawStream ?? this.localStream).getAudioTracks()[0]
     if (!currentAudioTrack) return
 
     const deviceId = currentAudioTrack.getSettings().deviceId
@@ -214,7 +240,14 @@ export class MediaManager {
     }
 
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia(constraints)
+      let newStream = await navigator.mediaDevices.getUserMedia(constraints)
+
+      // Re-apply EQ when exiting clinical mode
+      if (!enabled) {
+        this.rawStream = newStream
+        newStream = this.audioFilter.process(newStream)
+      }
+
       const newTrack = newStream.getAudioTracks()[0]
       if (!newTrack) return
 

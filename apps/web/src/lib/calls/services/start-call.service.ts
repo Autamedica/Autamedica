@@ -50,18 +50,15 @@ async function cancelSupersededPendingCalls(
 ): Promise<void> {
   const pendingCalls = await callStartRepo.listPendingByParticipants(supabase, doctorId, patientId)
 
-  for (const call of pendingCalls) {
-    if (appointmentId && call.appointment_id === appointmentId) {
-      continue
-    }
+  const toCancel = pendingCalls.filter(
+    (call) => !(appointmentId && call.appointment_id === appointmentId),
+  )
 
-    await callStartRepo.updateCallStatus(
-      supabase,
-      call.id,
-      'canceled',
-      'superseded_by_new_call'
-    )
-  }
+  await callStartRepo.cancelCallsBatch(
+    supabase,
+    toCancel.map(c => ({ id: c.id, status: c.status })),
+    'superseded_by_new_call',
+  )
 }
 
 export const startCallService = {

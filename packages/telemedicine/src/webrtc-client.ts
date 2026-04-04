@@ -423,6 +423,7 @@ export class WebRTCClient {
   }
 
   stopLocalStream(): void {
+    this.media.getAudioFilter().destroy()
     const stream = this.media.getLocalStream()
     if (stream) {
       stream.getTracks().forEach(track => track.stop())

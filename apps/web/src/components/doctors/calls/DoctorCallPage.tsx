@@ -10,83 +10,13 @@ import type { UserProfile } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
+import { useDoctorWaitingRoom, formatWaitingCountdown, getWaitingCopy } from '@/hooks/doctors/useDoctorWaitingRoom'
 import { translateCallError } from '@/lib/calls/lib/call-error-messages'
-import { cancelCallBrowserService } from '@/lib/calls/services/cancel-call.browser'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
 import { ConsultationContextPanel } from './ConsultationContextPanel'
 
 interface DoctorCallPageProps {
   roomId: string
-}
-
-type DoctorWaitingState =
-  | 'idle'
-  | 'waiting'
-  | 'canceling'
-  | 'canceled'
-  | 'timed_out'
-  | 'declined'
-  | 'ended'
-
-const DOCTOR_NO_ANSWER_TIMEOUT_SECONDS = 60
-
-function formatCountdown(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-function getWaitingSecondsRemaining(deadlineAt?: string): number {
-  if (!deadlineAt) {
-    return DOCTOR_NO_ANSWER_TIMEOUT_SECONDS
-  }
-
-  const deadlineMs = Date.parse(deadlineAt)
-
-  if (Number.isNaN(deadlineMs)) {
-    return DOCTOR_NO_ANSWER_TIMEOUT_SECONDS
-  }
-
-  return Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000))
-}
-
-function getWaitingCopy(
-  state: DoctorWaitingState,
-  defaultMessage?: string,
-): { title: string; description: string } {
-  switch (state) {
-    case 'canceling':
-      return {
-        title: 'Cancelando videollamada...',
-        description: 'Estamos cerrando la invitacion para que el paciente ya no vea esta llamada.',
-      }
-    case 'canceled':
-      return {
-        title: 'Videollamada cancelada',
-        description: 'La invitacion se cerro antes de que el paciente se conectara.',
-      }
-    case 'timed_out':
-      return {
-        title: 'Sin respuesta del paciente',
-        description: 'La videollamada se cancelo automaticamente porque nadie respondio a tiempo.',
-      }
-    case 'declined':
-      return {
-        title: 'Paciente no disponible',
-        description: 'El paciente rechazo la invitacion y la videollamada ya no esta disponible.',
-      }
-    case 'ended':
-      return {
-        title: 'Videollamada finalizada',
-        description: 'La sala se cerro antes de que la consulta pudiera comenzar.',
-      }
-    case 'waiting':
-    default:
-      return {
-        title: 'Esperando al paciente',
-        description: defaultMessage ?? 'La videollamada esta lista. Entraremos apenas el paciente acepte.',
-      }
-  }
 }
 
 export default function DoctorCallPage({ roomId }: DoctorCallPageProps) {
@@ -101,9 +31,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { session, profile, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
-  const [doctorWaitingState, setDoctorWaitingState] = useState<DoctorWaitingState>('idle')
-  const [waitSecondsRemaining, setWaitSecondsRemaining] = useState(DOCTOR_NO_ANSWER_TIMEOUT_SECONDS)
-  const [waitingActionError, setWaitingActionError] = useState<string | null>(null)
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
   const {
     session: callSession,
@@ -121,9 +48,23 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const transcriptionSavedRef = useRef(false)
   const transcriptionStartedRef = useRef(false)
   const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
-  const waitingTimeoutHandledRef = useRef(false)
 
-  // Request notification permission for incoming patient notifications
+  const getCallService = useCallback(() => {
+    if (!callServiceRef.current) {
+      callServiceRef.current = createCallService(createBrowserClient())
+    }
+    return callServiceRef.current
+  }, [])
+
+  // Waiting room state machine (extracted hook)
+  const {
+    state: doctorWaitingState,
+    secondsRemaining: waitSecondsRemaining,
+    error: waitingActionError,
+    showWaitingRoom: showDoctorWaitingRoom,
+    cancelCall: cancelWaitingCall,
+  } = useDoctorWaitingRoom({ callSession, getCallService, refreshCallSession })
+
   useEffect(() => {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission().catch(() => {})
@@ -138,19 +79,6 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     && (callSession?.roomId?.trim().length ?? 0) > 0
     && (callSession?.user.id?.trim().length ?? 0) > 0
     && (callSession?.user.role?.trim().length ?? 0) > 0
-  const isDoctorWaitingRoomEnabled = callSession?.user.role === 'doctor' && callSession.waitingRoom.enabled
-  const showDoctorWaitingRoom =
-    renderableCallSession &&
-    callSession.user.role === 'doctor' &&
-    doctorWaitingState !== 'idle'
-
-  function getCallService() {
-    if (!callServiceRef.current) {
-      callServiceRef.current = createCallService(createBrowserClient())
-    }
-
-    return callServiceRef.current
-  }
 
   useEffect(() => {
     if (loading) return
@@ -177,126 +105,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     setIsReady(true)
   }, [session, loading, roomId, typedProfile])
 
-  useEffect(() => {
-    if (callSession?.user.role !== 'doctor') {
-      setDoctorWaitingState('idle')
-      setWaitSecondsRemaining(DOCTOR_NO_ANSWER_TIMEOUT_SECONDS)
-      waitingTimeoutHandledRef.current = false
-      setWaitingActionError(null)
-      return
-    }
-
-    if (callSession.waitingRoom.enabled) {
-      setDoctorWaitingState('waiting')
-      setWaitSecondsRemaining(getWaitingSecondsRemaining(callSession.waitingRoom.deadlineAt))
-      waitingTimeoutHandledRef.current = false
-      setWaitingActionError(null)
-      return
-    }
-
-    setDoctorWaitingState('idle')
-    setWaitingActionError(null)
-  }, [callSession])
-
-  useEffect(() => {
-    if (!isReady || !callSessionId || !isDoctorWaitingRoomEnabled || doctorWaitingState === 'idle') {
-      return
-    }
-
-    const callService = getCallService()
-    const unsubscribe = callService.subscribeToCall(callSessionId, (nextCall) => {
-      if (nextCall.status === 'accepted' || nextCall.status === 'connecting' || nextCall.status === 'connected') {
-        setDoctorWaitingState('idle')
-        setWaitingActionError(null)
-        return
-      }
-
-      if (nextCall.status === 'declined') {
-        setDoctorWaitingState('declined')
-        return
-      }
-
-      if (nextCall.status === 'canceled') {
-        setDoctorWaitingState(nextCall.reason === 'no_answer_timeout' ? 'timed_out' : 'canceled')
-        return
-      }
-
-      if (nextCall.status === 'ended') {
-        setDoctorWaitingState('ended')
-        return
-      }
-
-      setDoctorWaitingState((current) => (current === 'canceling' ? current : 'waiting'))
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [callSessionId, doctorWaitingState, isDoctorWaitingRoomEnabled, isReady])
-
-  const cancelWaitingCall = useCallback(
-    async (reason: 'doctor_canceled' | 'no_answer_timeout') => {
-      if (!callSession) {
-        return
-      }
-
-      setDoctorWaitingState('canceling')
-      setWaitingActionError(null)
-
-      try {
-        await cancelCallBrowserService.cancel(callSession.callId, { reason })
-        setDoctorWaitingState(reason === 'no_answer_timeout' ? 'timed_out' : 'canceled')
-      } catch (error) {
-        logger.error('[DoctorCallPage] Failed to cancel waiting call', error)
-        const message = error instanceof Error ? error.message : 'No pudimos cancelar la videollamada'
-
-        if (message === 'call_not_cancelable') {
-          setDoctorWaitingState('idle')
-          return
-        }
-
-        setDoctorWaitingState('waiting')
-        setWaitingActionError('No pudimos cancelar la videollamada. Reintentá en unos segundos.')
-      }
-    },
-    [callSession]
-  )
-
-  useEffect(() => {
-    if (!showDoctorWaitingRoom || doctorWaitingState !== 'waiting') {
-      return
-    }
-
-    const syncDeadline = () => {
-      const remainingSeconds = getWaitingSecondsRemaining(callSession?.waitingRoom.deadlineAt)
-      setWaitSecondsRemaining(remainingSeconds)
-
-      if (remainingSeconds > 0 || waitingTimeoutHandledRef.current) {
-        return
-      }
-
-      waitingTimeoutHandledRef.current = true
-      void cancelWaitingCall('no_answer_timeout')
-    }
-
-    syncDeadline()
-
-    const intervalId = window.setInterval(syncDeadline, 1000)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncDeadline()
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      window.clearInterval(intervalId)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [callSession?.waitingRoom.deadlineAt, cancelWaitingCall, doctorWaitingState, showDoctorWaitingRoom])
-
-  // REMOVED AGGRESSIVE POLLING: Realtime updates are handled by `callService.subscribeToCall`.
+  // Waiting room effects are fully managed by useDoctorWaitingRoom hook.
 
   const saveTranscription = useCallback(async (segments: TranscriptSegment[]) => {
     if (transcriptionSavedRef.current || segments.length === 0) return
@@ -310,29 +119,49 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
       : undefined
 
-    try {
-      await fetch(`/api/doctors/consultations/${roomId}/transcription`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          segments: finalSegments,
-          fullText,
-          durationSeconds,
-          consentDoctor: true,
-          lang: 'es-AR',
-        }),
-      })
-    } catch (err) {
-      logger.error('[DoctorCallPage] Failed to save transcription', err)
+    const payload = JSON.stringify({
+      segments: finalSegments,
+      fullText,
+      durationSeconds,
+      consentDoctor: true,
+      lang: 'es-AR',
+    })
+
+    const url = `/api/doctors/consultations/${roomId}/transcription`
+    const RETRY_DELAYS = [0, 1_000, 2_000]
+
+    for (let attempt = 0; attempt < RETRY_DELAYS.length; attempt++) {
+      if (RETRY_DELAYS[attempt] > 0) {
+        await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]))
+      }
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: payload,
+        })
+        if (res.ok) return
+        logger.error(`[DoctorCallPage] Transcription save HTTP ${res.status}, attempt ${attempt + 1}`)
+      } catch (err) {
+        logger.error(`[DoctorCallPage] Transcription save failed, attempt ${attempt + 1}`, err)
+      }
+    }
+
+    // Last resort: sendBeacon survives page unload
+    if (typeof navigator.sendBeacon === 'function') {
+      const sent = navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }))
+      if (!sent) {
+        logger.error('[DoctorCallPage] sendBeacon also failed for transcription')
+      }
     }
   }, [roomId])
 
-  const handleCallEnd = useCallback(() => {
+  const handleCallEnd = useCallback(async () => {
     if (transcriptionState.isTranscribing) {
       transcriptionActions.stop()
     }
-    saveTranscription(transcriptionState.segments)
-    // Redirect to post-consultation report page
+    await saveTranscription(transcriptionState.segments)
     window.location.href = `/doctors/call/${roomId}/report`
   }, [roomId, transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription])
 
@@ -521,7 +350,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                       : 'border-slate-200 bg-slate-50 text-slate-700'
                 }`}>
                   {doctorWaitingState === 'waiting'
-                    ? formatCountdown(waitSecondsRemaining)
+                    ? formatWaitingCountdown(waitSecondsRemaining)
                     : doctorWaitingState === 'canceling'
                       ? 'Procesando'
                       : 'Cerrada'}

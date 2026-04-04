@@ -6,12 +6,20 @@
 
 import type { createTelemedicineLogger } from './debug'
 import type { StreamQualityLevel } from './quality-monitor'
+import {
+  INITIAL_VIDEO_BITRATE,
+  TARGET_VIDEO_BITRATE,
+  BITRATE_RAMP_DURATION_MS,
+  BITRATE_RAMP_INTERVAL_MS,
+  BWE_HEADROOM_FACTOR,
+  BWE_ADJUST_THROTTLE_MS,
+  QUALITY_DEGRADE_THROTTLE_MS,
+  CPU_REDUCTION_FACTOR,
+  BW_REDUCTION_FACTOR,
+  HIGH_PACKET_LOSS_THRESHOLD,
+} from './tuning'
 
-// Progressive bitrate constants
-export const INITIAL_VIDEO_BITRATE = 500_000   // Start conservative: 500kbps
-export const TARGET_VIDEO_BITRATE = 2_500_000  // Ramp to 2.5Mbps for 720p quality
-const BITRATE_RAMP_DURATION_MS = 10_000        // Over 10 seconds
-const BITRATE_RAMP_INTERVAL_MS = 2_000         // Step every 2s
+export { INITIAL_VIDEO_BITRATE, TARGET_VIDEO_BITRATE }
 
 interface PeerConnectionMap {
   entries(): IterableIterator<[string, { pc: RTCPeerConnection; iceRestartCount: number }]>
@@ -111,8 +119,8 @@ export class BitrateAdapter {
       if (!current || !params.encodings?.[0]) continue
 
       const reduced = reason === 'cpu'
-        ? Math.max(current * 0.6, INITIAL_VIDEO_BITRATE)
-        : Math.max(current * 0.75, INITIAL_VIDEO_BITRATE)
+        ? Math.max(current * CPU_REDUCTION_FACTOR, INITIAL_VIDEO_BITRATE)
+        : Math.max(current * BW_REDUCTION_FACTOR, INITIAL_VIDEO_BITRATE)
 
       if (reduced < current) {
         params.encodings[0].maxBitrate = Math.round(reduced)
@@ -137,7 +145,7 @@ export class BitrateAdapter {
       const params = sender.getParameters()
       if (!params.encodings?.[0]) continue
 
-      if (lossPct > 10) {
+      if (lossPct > HIGH_PACKET_LOSS_THRESHOLD) {
         params.encodings[0].maxBitrate = Math.round(INITIAL_VIDEO_BITRATE * 0.5)
         params.encodings[0].maxFramerate = 15
         params.encodings[0].scaleResolutionDownBy = 2.0
@@ -216,11 +224,11 @@ export class BitrateAdapter {
   /** Proactively adjust bitrate based on browser's bandwidth estimate */
   adaptToBandwidthEstimate(peerConnections: PeerConnectionMap, availableBitrateKbps: number): void {
     const now = Date.now()
-    if (now - this.lastBweAdjustMs < 3_000) return
+    if (now - this.lastBweAdjustMs < BWE_ADJUST_THROTTLE_MS) return
     this.lastBweAdjustMs = now
 
     // Cap at 85% of available to leave headroom for audio + overhead
-    const targetBps = Math.round(availableBitrateKbps * 1000 * 0.85)
+    const targetBps = Math.round(availableBitrateKbps * 1000 * BWE_HEADROOM_FACTOR)
     // Never go below the floor
     const cappedBps = Math.max(targetBps, INITIAL_VIDEO_BITRATE)
 
@@ -255,7 +263,7 @@ export class BitrateAdapter {
     if (level === 'excellent' || level === 'good' || level === 'unknown') return
 
     const now = Date.now()
-    if (now - this.lastQualityDegradationMs < 3_000) return
+    if (now - this.lastQualityDegradationMs < QUALITY_DEGRADE_THROTTLE_MS) return
     this.lastQualityDegradationMs = now
 
     const isFair = level === 'fair'

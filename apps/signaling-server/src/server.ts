@@ -21,8 +21,16 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { authenticateSocket } from './auth.js';
 import { logger } from './logger.js';
+import { SocketRateLimiter } from './rate-limiter.js';
 import { RoomManager } from './rooms.js';
 import type { ClientToServerEvents, ServerToClientEvents } from './types.js';
+import {
+  isValidRoomId,
+  isValidUserId,
+  isValidSDP,
+  isValidIceCandidate,
+  isValidConnectionStats,
+} from './validation.js';
 const PORT = parseInt(process.env.PORT || '8888', 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3003';
 
@@ -57,8 +65,9 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   transports: ['websocket', 'polling'],
 });
 
-// Room manager
+// Room manager & rate limiter
 const roomManager = new RoomManager();
+const rateLimiter = new SocketRateLimiter();
 
 /**
  * Socket.io connection handler
@@ -66,14 +75,28 @@ const roomManager = new RoomManager();
 io.on('connection', async (socket: Socket) => {
   logger.info(`[Signaling] New connection: ${socket.id}`);
 
-  // Extract userId from query params (set by client)
   const userId = socket.handshake.query.userId as string;
   const token = socket.handshake.query.token as string;
 
-  if (!userId) {
-    logger.warn(`[Signaling] Connection rejected: missing userId`);
+  if (!isValidUserId(userId)) {
+    logger.warn(`[Signaling] Connection rejected: invalid userId`);
     socket.disconnect(true);
     return;
+  }
+
+  /** Validate + rate-limit guard reusable across handlers */
+  function guardEvent(eventName: string, roomId: unknown): roomId is string {
+    if (!rateLimiter.check(socket.id, eventName)) {
+      logger.warn(`[Signaling] Rate limited: ${userId} on ${eventName}`);
+      socket.emit('error', { message: 'Rate limit exceeded' });
+      return false;
+    }
+    if (!isValidRoomId(roomId)) {
+      logger.warn(`[Signaling] Invalid roomId from ${userId}: ${String(roomId).slice(0, 40)}`);
+      socket.emit('error', { message: 'Invalid room ID' });
+      return false;
+    }
+    return true;
   }
 
   // Authenticate
@@ -95,13 +118,12 @@ io.on('connection', async (socket: Socket) => {
    * JOIN ROOM
    */
   socket.on('join-room', async ({ roomId }) => {
+    if (!guardEvent('join-room', roomId)) return;
     try {
       logger.info(`[Signaling] User ${userId} joining room ${roomId}`);
 
-      // Join Socket.io room
       await socket.join(roomId);
 
-      // Register in room manager
       const room = await roomManager.joinRoom(roomId, userId, socket.data.userRole);
 
       logger.info(`[Signaling] User ${userId} joined room ${roomId}. Total users: ${room.users.length}`);
@@ -133,16 +155,13 @@ io.on('connection', async (socket: Socket) => {
    * LEAVE ROOM
    */
   socket.on('leave-room', async ({ roomId }) => {
+    if (!guardEvent('leave-room', roomId)) return;
     try {
       logger.info(`[Signaling] User ${userId} leaving room ${roomId}`);
 
-      // Leave Socket.io room
       await socket.leave(roomId);
-
-      // Unregister from room manager
       await roomManager.leaveRoom(roomId, userId);
 
-      // Notify others
       socket.to(roomId).emit('user-left', {
         roomId,
         userId,
@@ -158,78 +177,51 @@ io.on('connection', async (socket: Socket) => {
    * SDP OFFER
    */
   socket.on('offer', ({ roomId, offer }) => {
-    logger.info(`[Signaling] Relaying SDP offer from ${userId} to room ${roomId}`);
-
-    // Broadcast to others in room (except sender)
-    socket.to(roomId).emit('offer', {
-      roomId,
-      userId,
-      offer,
-    });
+    if (!guardEvent('offer', roomId)) return;
+    if (!isValidSDP(offer)) {
+      socket.emit('error', { message: 'Invalid SDP offer' });
+      return;
+    }
+    socket.to(roomId).emit('offer', { roomId, userId, offer });
   });
 
-  /**
-   * SDP ANSWER
-   */
   socket.on('answer', ({ roomId, answer }) => {
-    logger.info(`[Signaling] Relaying SDP answer from ${userId} to room ${roomId}`);
-
-    socket.to(roomId).emit('answer', {
-      roomId,
-      userId,
-      answer,
-    });
+    if (!guardEvent('answer', roomId)) return;
+    if (!isValidSDP(answer)) {
+      socket.emit('error', { message: 'Invalid SDP answer' });
+      return;
+    }
+    socket.to(roomId).emit('answer', { roomId, userId, answer });
   });
 
-  /**
-   * ICE CANDIDATE
-   */
   socket.on('ice-candidate', ({ roomId, candidate }) => {
-    logger.info(`[Signaling] Relaying ICE candidate from ${userId} to room ${roomId}`);
-
-    socket.to(roomId).emit('ice-candidate', {
-      roomId,
-      userId,
-      candidate,
-    });
+    if (!guardEvent('ice-candidate', roomId)) return;
+    if (!isValidIceCandidate(candidate)) {
+      socket.emit('error', { message: 'Invalid ICE candidate' });
+      return;
+    }
+    socket.to(roomId).emit('ice-candidate', { roomId, userId, candidate });
   });
 
-  /**
-   * CALL INITIATED
-   */
   socket.on('call-init', ({ roomId }) => {
+    if (!guardEvent('call-init', roomId)) return;
     logger.info(`[Signaling] Call initiated by ${userId} in room ${roomId}`);
-
-    socket.to(roomId).emit('call-init', {
-      roomId,
-      userId,
-    });
+    socket.to(roomId).emit('call-init', { roomId, userId });
   });
 
-  /**
-   * CALL ENDED
-   */
   socket.on('call-end', ({ roomId }) => {
+    if (!guardEvent('call-end', roomId)) return;
     logger.info(`[Signaling] Call ended by ${userId} in room ${roomId}`);
-
-    socket.to(roomId).emit('call-end', {
-      roomId,
-      userId,
-    });
+    socket.to(roomId).emit('call-end', { roomId, userId });
   });
 
-  /**
-   * CONNECTION STATS UPDATE
-   */
   socket.on('connection-stats', ({ roomId, stats }) => {
-    logger.debug(`[Signaling] Connection stats from ${userId} in room ${roomId}:`, stats);
-
-    // Broadcast stats to others in room
-    socket.to(roomId).emit('peer-stats', {
-      roomId,
-      userId,
-      stats,
-    });
+    if (!guardEvent('connection-stats', roomId)) return;
+    if (!isValidConnectionStats(stats)) {
+      socket.emit('error', { message: 'Invalid connection stats' });
+      return;
+    }
+    socket.to(roomId).emit('peer-stats', { roomId, userId, stats });
   });
 
   /**
@@ -237,18 +229,14 @@ io.on('connection', async (socket: Socket) => {
    */
   socket.on('disconnect', async (reason) => {
     logger.info(`[Signaling] User ${userId} disconnected: ${reason}`);
+    rateLimiter.removeSocket(socket.id);
 
-    // Clean up all rooms user was in
+    // Snapshot room IDs to avoid iterating a mutating Map
     const userRooms = await roomManager.getUserRooms(userId);
 
     for (const roomId of userRooms) {
       await roomManager.leaveRoom(roomId, userId);
-
-      // Notify others
-      socket.to(roomId).emit('user-left', {
-        roomId,
-        userId,
-      });
+      socket.to(roomId).emit('user-left', { roomId, userId });
     }
   });
 
@@ -272,23 +260,17 @@ httpServer.listen(PORT, () => {
 /**
  * Graceful shutdown
  */
-process.on('SIGTERM', () => {
-  logger.info('[Signaling] SIGTERM received, closing server...');
-
+function shutdown(signal: string) {
+  logger.info(`[Signaling] ${signal} received, closing server...`);
+  roomManager.destroy();
   httpServer.close(() => {
     logger.info('[Signaling] Server closed');
     process.exit(0);
   });
-});
+}
 
-process.on('SIGINT', () => {
-  logger.info('[Signaling] SIGINT received, closing server...');
-
-  httpServer.close(() => {
-    logger.info('[Signaling] Server closed');
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Export for testing
 export { io, roomManager };

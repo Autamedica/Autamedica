@@ -145,6 +145,36 @@ export type { SignalingTransport, SignalingConfig, SignalingImplementation } fro
 export { getIceServersConfig, validateIceServersConfig } from './config'
 export type { IceServerConfig } from './config'
 
+// Audio Filter — 3-band parametric EQ for microphone
+export { AudioFilterProcessor, DEFAULT_AUDIO_FILTER } from './audio-filter'
+export type { AudioFilterConfig, AudioFilterBand } from './audio-filter'
+
+// Tuning — centralized WebRTC engine constants
+export {
+  INITIAL_VIDEO_BITRATE,
+  TARGET_VIDEO_BITRATE,
+  BITRATE_RAMP_DURATION_MS,
+  BITRATE_RAMP_INTERVAL_MS,
+  BWE_HEADROOM_FACTOR,
+  BWE_ADJUST_THROTTLE_MS,
+  QUALITY_DEGRADE_THROTTLE_MS,
+  CPU_REDUCTION_FACTOR,
+  BW_REDUCTION_FACTOR,
+  HIGH_PACKET_LOSS_THRESHOLD,
+  QUALITY_POLL_INTERVAL_MS,
+  QUALITY_LOG_INTERVAL_MS,
+  AUDIO_SILENT_THRESHOLD,
+  AUDIO_SILENT_ALERT_MS,
+  QUALITY_THRESHOLDS,
+  MAX_ICE_RESTART_ATTEMPTS,
+  ICE_RESTART_BACKOFF_BASE_MS,
+  POOR_QUALITY_THRESHOLD_MS,
+  RECOVERY_THRESHOLD_MS,
+  QUALITY_WARMUP_MS,
+  REMOTE_MEDIA_TIMEOUT_MS,
+  TURN_REFRESH_INTERVAL_MS,
+} from './tuning'
+
 // Media optimizations
 export {
   getAdaptiveConstraints,

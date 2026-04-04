@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CallSessionBootstrap } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
+import { z } from 'zod'
 import { callSessionService } from '@/lib/calls/services/call-session.service'
 
 interface UseCallSessionResult {
@@ -12,28 +13,21 @@ interface UseCallSessionResult {
   refresh: () => Promise<void>
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
-}
+const CallSessionBootstrapSchema = z.object({
+  callId: z.string().min(1),
+  roomId: z.string().min(1),
+  user: z.object({
+    id: z.string().min(1),
+    role: z.string().min(1),
+  }).passthrough(),
+  permissions: z.object({}).passthrough(),
+  mediaPolicy: z.object({}).passthrough(),
+  transport: z.object({}).passthrough(),
+  waitingRoom: z.object({}).passthrough(),
+}).passthrough()
 
 function isValidCallSessionBootstrap(value: unknown): value is CallSessionBootstrap {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const session = value as CallSessionBootstrap
-
-  return (
-    isNonEmptyString(session.callId)
-    && isNonEmptyString(session.roomId)
-    && Boolean(session.user)
-    && isNonEmptyString(session.user.id)
-    && isNonEmptyString(session.user.role)
-    && Boolean(session.permissions)
-    && Boolean(session.mediaPolicy)
-    && Boolean(session.transport)
-    && Boolean(session.waitingRoom)
-  )
+  return CallSessionBootstrapSchema.safeParse(value).success
 }
 
 function normalizeCallSessionError(message: string): string {

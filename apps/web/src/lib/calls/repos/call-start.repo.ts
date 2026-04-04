@@ -283,4 +283,43 @@ export const callStartRepo = {
 
     return Boolean(data)
   },
+
+  /**
+   * Batch-cancel multiple calls in a single UPDATE + event INSERT.
+   * Eliminates the N+1 pattern in cancelSupersededPendingCalls.
+   * Row-level triggers (validation, appointment sync) still fire per row.
+   */
+  async cancelCallsBatch(
+    supabase: Db,
+    calls: Array<{ id: string; status: string }>,
+    reason: string,
+  ): Promise<void> {
+    if (calls.length === 0) return
+
+    const ids = calls.map(c => c.id)
+
+    const { error: updateError } = await supabase
+      .from('calls')
+      .update({ status: 'canceled', reason } as never)
+      .in('id', ids)
+
+    if (updateError) {
+      logger.error('[callStartRepo] cancelCallsBatch update failed', updateError)
+      throw updateError
+    }
+
+    const events = calls.map(c => ({
+      call_id: c.id,
+      type: 'status_changed',
+      payload: { from: c.status, to: 'canceled', reason },
+    }))
+
+    const { error: eventError } = await supabase
+      .from('call_events')
+      .insert(events as never)
+
+    if (eventError) {
+      logger.error('[callStartRepo] cancelCallsBatch event logging failed', eventError)
+    }
+  },
 }

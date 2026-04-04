@@ -82,8 +82,7 @@ interface QualityLogger {
   warn(message: string, context?: Record<string, unknown>): void
 }
 
-const QUALITY_POLL_INTERVAL_MS = 5000
-const QUALITY_LOG_INTERVAL_MS = 30000
+import { QUALITY_POLL_INTERVAL_MS, QUALITY_LOG_INTERVAL_MS } from './tuning'
 const QUALITY_SCORE_TO_LEVEL: StreamQualityLevel[] = ['poor', 'fair', 'good', 'excellent']
 
 export class QualityMonitor {

@@ -7,8 +7,44 @@ import {
   type PersistableCallStatus,
 } from '@/lib/calls/services/call-status-rules'
 import { decrementFreeConsultation } from '@/lib/calls/lib/consultation-credits'
+import { logger } from '@autamedica/shared'
 
 type Db = SupabaseClient<Database>
+
+const CREDIT_RETRY_DELAYS = [0, 1_000, 3_000] // immediate, 1s, 3s
+
+/** Non-blocking credit decrement with retry and audit trail */
+async function retryDecrementCredits(admin: Db, callId: string, patientId: string): Promise<void> {
+  for (let attempt = 0; attempt < CREDIT_RETRY_DELAYS.length; attempt++) {
+    const delay = CREDIT_RETRY_DELAYS[attempt]
+    if (delay > 0) await new Promise(r => setTimeout(r, delay))
+
+    try {
+      const consumed = await decrementFreeConsultation(admin, patientId)
+      logger.info('[persist-call-status] Credit decrement result', {
+        callId,
+        patientId,
+        consumed,
+        attempt: attempt + 1,
+      })
+      return
+    } catch (err) {
+      logger.error('[persist-call-status] Credit decrement failed', {
+        callId,
+        patientId,
+        attempt: attempt + 1,
+        maxAttempts: CREDIT_RETRY_DELAYS.length,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  logger.error('[persist-call-status] AUDIT: Credit decrement exhausted all retries', {
+    callId,
+    patientId,
+    totalAttempts: CREDIT_RETRY_DELAYS.length,
+  })
+}
 
 interface CallStatusViewer {
   userId: string
@@ -90,11 +126,9 @@ export const persistCallStatusService = {
       throw new Error(`Unable to update call status to ${input.status}`)
     }
 
-    // Decrement free consultation credits when a call ends
+    // Decrement free consultation credits when a call ends (with retry + audit)
     if (input.status === 'ended' && call.patient_id) {
-      decrementFreeConsultation(admin, call.patient_id).catch(() => {
-        // Non-blocking: credit decrement failure must not break call flow
-      })
+      retryDecrementCredits(admin, call.id, call.patient_id)
     }
 
     return {
