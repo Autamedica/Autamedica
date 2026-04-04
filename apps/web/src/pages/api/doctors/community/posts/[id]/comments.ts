@@ -6,7 +6,7 @@ import {
   unauthorized,
 } from '@/lib/api-helpers';
 import { resolveDoctorContext } from '@/lib/doctors/api/doctor-context';
-import { communityRepo } from '@/lib/patients/lib/repos/community.repo';
+import { createCommunityAdapter } from '@/lib/patients/lib/repos/community.adapter';
 import { communityService } from '@/lib/patients/services/community.service';
 import type { CreateCommunityCommentInput } from '@/lib/patients/types/community';
 import { createAstroAdminClient } from '@/lib/supabase';
@@ -25,7 +25,9 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    const comments = await communityRepo.listCommentsByPostId(createAstroAdminClient(), postId);
+    const admin = createAstroAdminClient();
+    const communityRepo = createCommunityAdapter(admin);
+    const comments = await communityRepo.listCommentsByPostId(postId);
     return jsonOk(comments);
   } catch (error) {
     logger.error('[doctors/community/posts/:id/comments/GET]', error);

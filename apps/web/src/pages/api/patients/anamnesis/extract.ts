@@ -1,6 +1,6 @@
 /**
  * API Controller: Trigger anamnesis AI extraction.
- * Capa 5 — Validates auth, validates input, delegates to service.
+ * Capa 5 -- Validates auth, validates input, delegates to service.
  *
  * POST /api/patients/anamnesis/extract
  * Body: { checkpoint: 'partial'|'final', clarificationTurns?: [] }
@@ -9,7 +9,7 @@ import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { anamnesisExtractionService } from '@/lib/patients/services/anamnesis-extraction.service'
-import { anamnesisExtractionRepo } from '@/lib/patients/lib/repos/anamnesis-extraction.repo'
+import { createAnamnesisExtractionAdapter } from '@/lib/patients/lib/repos/anamnesis-extraction.adapter'
 import { logger } from '@autamedica/shared'
 
 /** Max AI extractions per patient per day */
@@ -25,11 +25,9 @@ function json(data: unknown, status = 200) {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  // primeRuntimeEnv is called by middleware on every request — no need to repeat here
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
-  // Validate input
   const raw = await request.json().catch(() => ({}))
   const parsed = ExtractInputSchema.safeParse(raw)
   if (!parsed.success) {
@@ -44,9 +42,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient()
+    const anamnesisExtractionRepo = createAnamnesisExtractionAdapter(admin)
 
-    // Rate limit: max DAILY_EXTRACTION_LIMIT extractions per patient per day
-    const todayCount = await anamnesisExtractionRepo.countToday(admin, context.patientId)
+    const todayCount = await anamnesisExtractionRepo.countToday(context.patientId)
     if (todayCount >= DAILY_EXTRACTION_LIMIT) {
       logger.warn('[anamnesis/extract] Rate limit exceeded', {
         patientId: context.patientId,
@@ -56,7 +54,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ success: false, error: 'rate_limit_exceeded' }, 429)
     }
 
-    // Fetch anamnesis + sections for this patient
     const { data: anamnesis } = await admin
       .from('anamnesis')
       .select('id, status, privacy_accepted')
@@ -66,10 +63,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!anamnesis) {
       return json({ success: false, error: 'no_anamnesis' }, 404)
     }
-
-    // Note: removed early-return guard for completed anamnesis.
-    // If the client explicitly requests extraction (partial/final checkpoint),
-    // always run it — the patient may be updating or re-entering the flow.
 
     const { data: sections } = await admin
       .from('anamnesis_sections')
@@ -81,7 +74,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return json({ success: false, error: 'no_sections' }, 400)
     }
 
-    // Fetch patient profile for label
     const { data: profile } = await admin
       .from('profiles')
       .select('first_name, last_name')
@@ -91,7 +83,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const patientLabel = [profile?.first_name, profile?.last_name]
       .filter(Boolean).join(' ') || 'Paciente'
 
-    // Execute extraction (Capa 6) — 60s timeout
     const extractionTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('extraction_timeout')), 60_000),
     )

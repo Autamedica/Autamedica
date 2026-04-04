@@ -1,16 +1,16 @@
 /**
  * API Controller: PDF download for a specific medical report.
  *
- * GET /api/patients/reports/[id]/pdf — Generates and returns PDF for the authenticated patient.
+ * GET /api/patients/reports/[id]/pdf -- Generates and returns PDF for the authenticated patient.
  *
- * Architecture: Capa 5 (Controller) — validates auth + ownership,
+ * Architecture: Capa 5 (Controller) -- validates auth + ownership,
  * delegates PDF generation to pdf-report.service.ts (Capa 6),
- * delegates DB access to medical-history.repo.ts (Capa 7).
+ * delegates DB access to medical-history.adapter.ts (Capa 7).
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { medicalHistoryRepo } from '@/lib/patients/lib/repos/medical-history.repo'
+import { createMedicalHistoryAdapter } from '@/lib/patients/lib/repos/medical-history.adapter'
 import { generateConsultationPdf } from '@/lib/patients/services/pdf-report.service'
 import { logger } from '@autamedica/shared'
 
@@ -30,12 +30,11 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
   try {
     const admin = createAstroAdminClient()
+    const medicalHistoryRepo = createMedicalHistoryAdapter(admin)
 
-    // Capa 7: Repository — fetch record scoped to this patient
-    const record = await medicalHistoryRepo.findById(admin, context.patientId, recordId)
+    const record = await medicalHistoryRepo.findById(context.patientId, recordId)
     if (!record) return jsonError('not_found', 404)
 
-    // Resolve patient profile + demographics
     const { data: profile } = await admin
       .from('profiles')
       .select('first_name, last_name')
@@ -53,7 +52,6 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       ? Math.floor((Date.now() - new Date(patientRow.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
       : null
 
-    // Resolve doctor profile if available
     let doctorInfo: { name: string; specialty: string | null; license: string | null } | null = null
     const { data: recordFull } = await admin
       .from('medical_records')
@@ -76,14 +74,13 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 
       if (doctorProfile) {
         doctorInfo = {
-          name: [doctorProfile.first_name, doctorProfile.last_name].filter(Boolean).join(' ') || 'Profesional médico',
+          name: [doctorProfile.first_name, doctorProfile.last_name].filter(Boolean).join(' ') || 'Profesional medico',
           specialty: doctorRecord?.specialty ?? null,
           license: doctorRecord?.license_number ?? null,
         }
       }
     }
 
-    // Capa 6: Service — generate PDF
     const pdf = generateConsultationPdf({
       record: {
         id: record.id,
@@ -101,7 +98,6 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
       doctor: doctorInfo,
     })
 
-    // Audit log
     try {
       await admin.from('audit_logs').insert({
         user_id: context.userId,

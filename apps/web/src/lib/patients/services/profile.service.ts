@@ -5,7 +5,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import { profileRepo } from '@/lib/patients/lib/repos/profile.repo'
+import { createProfileAdapter } from '@/lib/patients/lib/repos/profile.adapter'
 import { buildPatientContext, persistPatientContextFiles } from '@/lib/patients/lib/ai/context-builder'
 import { buildPatientUpdatePayload } from '@/lib/patients/lib/zod/patients'
 import { buildProfileUpdatePayload } from '@/lib/patients/lib/zod/profiles'
@@ -28,13 +28,14 @@ export const profileService = {
     userId: string,
     input: ProfileUpdateInput,
   ): Promise<ProfileUpdateResult> {
+    const profileRepo = createProfileAdapter(supabase)
     let updatedProfile: unknown = null
     let updatedPatient: unknown = null
 
     if (input.profile) {
       const snake = buildProfileUpdatePayload(input.profile)
       try {
-        updatedProfile = await profileRepo.upsertProfile(supabase, userId, snake as Record<string, unknown>)
+        updatedProfile = await profileRepo.upsertProfile(userId, snake as Record<string, unknown>)
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'profile_update_failed'
         logger.error('[profileService] profile update failed', err)
@@ -45,7 +46,7 @@ export const profileService = {
     if (input.patient) {
       const snake = buildPatientUpdatePayload(input.patient)
       try {
-        updatedPatient = await profileRepo.upsertPatient(supabase, userId, snake as Record<string, unknown>)
+        updatedPatient = await profileRepo.upsertPatient(userId, snake as Record<string, unknown>)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         logger.warn('[profileService] patient update skipped:', msg)
@@ -65,7 +66,8 @@ export const profileService = {
     userId: string,
     email?: string | null,
   ): Promise<void> {
-    await profileRepo.ensureBoth(supabase, userId, email)
+    const profileRepo = createProfileAdapter(supabase)
+    await profileRepo.ensureBoth(userId, email)
   },
 
   async completeOnboarding(
@@ -73,7 +75,8 @@ export const profileService = {
     adminSupabase: Db,
     userId: string,
   ): Promise<void> {
-    await profileRepo.updateOnboardingComplete(supabase, userId)
+    const profileRepo = createProfileAdapter(supabase)
+    await profileRepo.updateOnboardingComplete(userId)
 
     const { error: authError } = await (adminSupabase.auth.admin as { updateUserById: (id: string, data: unknown) => Promise<{ error: unknown }> }).updateUserById(userId, {
       user_metadata: { onboarding_completed: true },

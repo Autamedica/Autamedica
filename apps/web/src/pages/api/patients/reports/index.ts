@@ -1,14 +1,14 @@
 /**
  * API Controller: Patient medical reports listing.
  *
- * GET /api/patients/reports — List consultation reports for the authenticated patient.
+ * GET /api/patients/reports -- List consultation reports for the authenticated patient.
  *
- * Architecture: Capa 5 (Controller) — validates auth, delegates to Repository.
+ * Architecture: Capa 5 (Controller) -- validates auth, delegates to Repository.
  */
 import type { APIRoute } from 'astro'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { medicalHistoryRepo } from '@/lib/patients/lib/repos/medical-history.repo'
+import { createMedicalHistoryAdapter } from '@/lib/patients/lib/repos/medical-history.adapter'
 import { logger } from '@autamedica/shared'
 
 function json(data: unknown, status = 200) {
@@ -26,14 +26,14 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   try {
     const admin = createAstroAdminClient()
-    const records = await medicalHistoryRepo.listConsultations(admin, context.patientId)
+    const medicalHistoryRepo = createMedicalHistoryAdapter(admin)
+    const records = await medicalHistoryRepo.listConsultations(context.patientId)
 
     const enriched = await Promise.all(
       records.map(async (record) => {
         const content = record.content as Record<string, unknown>
         let doctorName = (content.doctorName as string) ?? null
 
-        // Try to resolve doctor name from medical_records.doctor_id → profiles
         if (!doctorName) {
           try {
             const { data: rec } = await admin

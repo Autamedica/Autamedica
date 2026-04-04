@@ -1,7 +1,7 @@
 /**
  * Service: Anamnesis AI extraction orchestration.
- * Capa 6 — Orquesta: recibe secciones, llama al motor de IA, persiste resultado.
- * No implementa lógica de IA — delega a executeAnamnesisExtraction().
+ * Capa 6 -- Orquesta: recibe secciones, llama al motor de IA, persiste resultado.
+ * No implementa logica de IA -- delega a executeAnamnesisExtraction().
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
@@ -13,9 +13,9 @@ import {
   ANAMNESIS_EXTRACTION_PROMPT_VERSION,
 } from '@/lib/patients/server/anamnesis-ai-extraction'
 import {
-  anamnesisExtractionRepo,
+  createAnamnesisExtractionAdapter,
   type ExtractionCheckpoint,
-} from '@/lib/patients/lib/repos/anamnesis-extraction.repo'
+} from '@/lib/patients/lib/repos/anamnesis-extraction.adapter'
 import type {
   AnamnesisClarificationTurn,
   AnamnesisSectionRecord,
@@ -32,7 +32,6 @@ export interface ExtractionServiceInput {
   sections: AnamnesisSectionRecord[]
   clarificationTurns?: AnamnesisClarificationTurn[]
   checkpoint: ExtractionCheckpoint
-  /** Sections modified in this revisit. Undefined = first visit (analyze all). */
   modifiedSections?: string[]
 }
 
@@ -73,10 +72,9 @@ export const anamnesisExtractionService = {
     input: ExtractionServiceInput,
   ): Promise<ExtractionServiceResult> {
     if (!isAnamnesisExtractionConfigured()) {
-      throw new Error('AI extraction not configured — missing API keys')
+      throw new Error('AI extraction not configured -- missing API keys')
     }
 
-    // 1. Build request (reutiliza función existente)
     const request = buildAnamnesisExtractionRequest({
       patientId: input.patientId,
       patientLabel: input.patientLabel,
@@ -87,7 +85,6 @@ export const anamnesisExtractionService = {
       modifiedSections: input.modifiedSections,
     })
 
-    // 2. Execute extraction (Gemini 3.1 Flash Preview)
     const { providerName, modelName, result } = await executeAnamnesisExtraction(request)
 
     logger.info('[ExtractionService] Extraction completed', {
@@ -100,12 +97,11 @@ export const anamnesisExtractionService = {
       coverageWeak: result.argenteCoverage?.weakOrMissing?.length ?? 0,
     })
 
-    // 3. Determine if there are critical questions
     const nextQuestions = (result.nextQuestions ?? []) as NextQuestion[]
     const hasCritical = nextQuestions.some(q => q.priority === 'critical')
 
-    // 4. Persist via repository (Capa 7)
-    const record = await anamnesisExtractionRepo.upsert(supabase, {
+    const anamnesisExtractionRepo = createAnamnesisExtractionAdapter(supabase)
+    const record = await anamnesisExtractionRepo.upsert({
       anamnesis_id: input.anamnesisId,
       patient_id: input.patientId,
       checkpoint: input.checkpoint,
@@ -117,7 +113,6 @@ export const anamnesisExtractionService = {
       has_critical_questions: hasCritical,
     })
 
-    // 5. Return guidance for frontend
     return {
       extractionId: record.id,
       checkpoint: input.checkpoint,
