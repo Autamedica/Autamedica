@@ -7,8 +7,15 @@ export interface DoctorContext {
 }
 
 interface AstroLocals {
-  session?: { user?: { id?: string } } | null;
+  session?: { user?: { id?: string; user_metadata?: Record<string, unknown> } } | null;
   runtime?: { env?: Record<string, unknown> };
+}
+
+const DOCTOR_ALLOWED_ROLES = new Set(['doctor', 'organization_admin', 'platform_admin', 'admin']);
+
+function extractRole(metadata: Record<string, unknown> | undefined): string | undefined {
+  const raw = metadata?.role;
+  return typeof raw === 'string' ? raw : undefined;
 }
 
 export async function resolveDoctorContext(
@@ -17,19 +24,31 @@ export async function resolveDoctorContext(
 ): Promise<DoctorContext | null> {
   try {
     let userId = locals?.session?.user?.id ?? null;
+    let userRole = extractRole(locals?.session?.user?.user_metadata);
 
     if (!userId) {
       const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env);
       const { data } = await supabase.auth.getUser();
       userId = data.user?.id ?? null;
+      if (!userRole && data.user?.user_metadata) {
+        userRole = extractRole(data.user.user_metadata as Record<string, unknown>);
+      }
     }
 
     if (!userId) {
       return null;
     }
 
+    if (!userRole || !DOCTOR_ALLOWED_ROLES.has(userRole)) {
+      logger.info('[resolveDoctorContext] User role does not grant doctor access', {
+        userId,
+        role: userRole ?? 'none',
+      });
+      return null;
+    }
+
     const admin = createAstroAdminClient(locals?.runtime?.env);
-    let { data: doctor, error } = await admin
+    const { data: doctor, error } = await admin
       .from('doctors')
       .select('id, active')
       .eq('user_id', userId)
@@ -40,35 +59,14 @@ export async function resolveDoctorContext(
       return null;
     }
 
-    // Self-healing: if doctor row doesn't exist yet, create it automatically
-    // just like we do for patients. This prevents 401s during the onboarding grace period
-    // when the user has the 'doctor' role but hasn't completed their profile yet.
     if (!doctor) {
-      logger.info('[resolveDoctorContext] Doctor row not found, creating one for userId:', userId);
-      const { data: insertedDoctor, error: insertError } = await admin
-        .from('doctors')
-        .upsert(
-          { 
-            user_id: userId, 
-            active: true,
-            // Provide minimal required defaults to satisfy DB constraints
-            // license_number has a UNIQUE constraint — use a per-user placeholder
-            license_number: `PENDING-${userId.slice(0, 8)}`,
-            specialty: 'General'
-          }, 
-          { onConflict: 'user_id' }
-        )
-        .select('id, active')
-        .maybeSingle();
-
-      if (insertError) {
-        logger.error('[resolveDoctorContext] Failed to auto-create doctor row', insertError);
-        return null;
-      }
-      doctor = insertedDoctor;
+      logger.info('[resolveDoctorContext] No doctor record found — doctor must complete onboarding first', {
+        userId,
+      });
+      return null;
     }
 
-    if (!doctor?.id || doctor.active !== true) {
+    if (!doctor.id || doctor.active !== true) {
       return null;
     }
 

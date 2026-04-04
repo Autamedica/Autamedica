@@ -6,7 +6,7 @@
  * Re-creating a Supabase client from cookies alone fails when the access token
  * expires because the API endpoint can't write refreshed tokens back (setAll is no-op).
  *
- * With locals: uses the already-validated session → no re-auth, no refresh needed.
+ * With locals: uses the already-validated session -> no re-auth, no refresh needed.
  * Without locals: falls back to cookie-based auth (legacy, for backwards compat).
  */
 
@@ -20,9 +20,16 @@ export interface PatientContext {
 
 /** Astro locals shape (set by middleware) */
 interface AstroLocals {
-  session?: { user?: { id?: string } } | null
+  session?: { user?: { id?: string; user_metadata?: Record<string, unknown> } } | null
   supabase?: unknown
   runtime?: { env?: Record<string, unknown> }
+}
+
+const PATIENT_ALLOWED_ROLES = new Set(['patient', 'organization_admin', 'platform_admin', 'admin'])
+
+function extractRole(metadata: Record<string, unknown> | undefined): string | undefined {
+  const raw = metadata?.role
+  return typeof raw === 'string' ? raw : undefined
 }
 
 function getRequestAuthDebug(request: Request): {
@@ -51,18 +58,22 @@ export async function resolvePatientContext(
     const authDebug = getRequestAuthDebug(request)
     // 1. PREFERRED: Use middleware-validated session from locals
     let userId: string | null = null
+    let userRole = extractRole(locals?.session?.user?.user_metadata)
 
     if (locals?.session?.user?.id) {
       userId = locals.session.user.id
     }
 
     // 2. Fallback: Parse cookies and create a Supabase client
-    // This path has the refresh problem — it works only within the 1-hour access token window.
+    // This path has the refresh problem -- it works only within the 1-hour access token window.
     if (!userId) {
       const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env)
       try {
         const { data: { session } } = await supabase.auth.getSession()
         userId = session?.user?.id ?? null
+        if (!userRole && session?.user?.user_metadata) {
+          userRole = extractRole(session.user.user_metadata as Record<string, unknown>)
+        }
       } catch {
         logger.warn('[resolvePatientContext] getSession() threw', authDebug)
       }
@@ -71,6 +82,9 @@ export async function resolvePatientContext(
         try {
           const { data: { user }, error } = await supabase.auth.getUser()
           userId = user?.id ?? null
+          if (!userRole && user?.user_metadata) {
+            userRole = extractRole(user.user_metadata as Record<string, unknown>)
+          }
           if (error) {
             logger.warn('[resolvePatientContext] getUser() failed', {
               msg: error.message,
@@ -93,6 +107,9 @@ export async function resolvePatientContext(
           const { data: userRes, error: tokenUserError } = await adminClient.auth.getUser(token)
           if (!tokenUserError && userRes.user) {
             userId = userRes.user.id
+            if (!userRole && userRes.user.user_metadata) {
+              userRole = extractRole(userRes.user.user_metadata as Record<string, unknown>)
+            }
           }
         } catch (error) {
           logger.warn('[resolvePatientContext] Bearer token lookup failed', error)
@@ -108,19 +125,27 @@ export async function resolvePatientContext(
       return null
     }
 
-    // 4. Resolve Patient ID (Admin bypass to ensure existence and prevent RLS edge cases during initial profile creation)
+    if (!userRole || !PATIENT_ALLOWED_ROLES.has(userRole)) {
+      logger.info('[resolvePatientContext] User role does not grant patient access', {
+        userId,
+        role: userRole ?? 'none',
+      })
+      return null
+    }
+
+    // 4. Resolve Patient ID
     const admin = createAstroAdminClient(locals?.runtime?.env)
 
-    // Try to find existing patient
     let { data: patient, error: patientError } = await admin
       .from('patients')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle()
 
-    // 5. If not found, ensure it's created (Self-healing logic)
-    if (!patient && !patientError) {
-      logger.info('[resolvePatientContext] Patient row not found, creating one for userId:', userId)
+    // 5. Auto-create patient record only for users with the 'patient' role.
+    // Admin roles can look up existing patient records but should not trigger creation.
+    if (!patient && !patientError && userRole === 'patient') {
+      logger.info('[resolvePatientContext] Patient row not found, creating one for patient-role userId:', userId)
       const { data: insertedPatient, error: insertPatientError } = await admin
         .from('patients')
         .upsert({ user_id: userId, active: true }, { onConflict: 'user_id' })
