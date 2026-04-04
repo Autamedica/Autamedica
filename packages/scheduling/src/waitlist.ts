@@ -12,6 +12,12 @@ import type {
 } from '@autamedica/types';
 import type { SupabaseLike } from './supabase';
 
+/** Converts "HH:mm" to minutes since midnight for reliable numeric comparison. */
+function timeToMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
 /**
  * Agrega un paciente a la lista de espera de un doctor.
  */
@@ -59,12 +65,13 @@ export async function processWaitlist(
   if (error) throw new Error(`Error processing waitlist: ${error.message}`);
   if (!candidates || candidates.length === 0) return null;
 
-  // Filter candidates that match preferences
+  // Filter candidates that match preferences (numeric comparison for times)
+  const slotStartMins = timeToMinutes(slotTimeStart);
   const match = (candidates as WaitlistEntry[]).find((c) => {
     if (c.preferred_date_start && slotDate < c.preferred_date_start) return false;
     if (c.preferred_date_end && slotDate > c.preferred_date_end) return false;
-    if (c.preferred_time_start && slotTimeStart < c.preferred_time_start) return false;
-    if (c.preferred_time_end && slotTimeStart > c.preferred_time_end) return false;
+    if (c.preferred_time_start && slotStartMins < timeToMinutes(c.preferred_time_start)) return false;
+    if (c.preferred_time_end && slotStartMins >= timeToMinutes(c.preferred_time_end)) return false;
     return true;
   });
 
