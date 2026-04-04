@@ -24,3 +24,11 @@ export interface CreateDoctorAppointmentInput {
   notes?: string
   location?: string | null
 }
+
+export interface UpdateDoctorAppointmentInput {
+  scheduled_at?: string
+  duration_minutes?: number
+  type?: DoctorAppointmentType
+  notes?: string | null
+  location?: string | null
+}

@@ -1,11 +1,13 @@
 import { domainEvents, logger } from '@autamedica/shared'
 import { scheduleReminders } from '@autamedica/scheduling'
+import type { AppointmentUpdate } from '@autamedica/types'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { createPatientRepositoryAdapter } from '@/lib/doctors/lib/repos/patients'
 import { createDoctorAppointmentCommandAdapter } from '@/lib/doctors/lib/repos/doctor-appointments'
 import { listDoctorAppointmentsView } from '@/lib/doctors/queries/doctor-appointments.query'
 import { ScheduleDoctorAppointmentUseCase } from '@/lib/doctors/usecases/ScheduleDoctorAppointmentUseCase'
-import type { CreateDoctorAppointmentInput } from '@/lib/doctors/types/appointments'
+import { computeEndTime } from '@/lib/patients/api/appointment-utils'
+import type { CreateDoctorAppointmentInput, UpdateDoctorAppointmentInput } from '@/lib/doctors/types/appointments'
 
 interface DoctorScheduleContext {
   doctorId: string
@@ -40,5 +42,44 @@ export const doctorAppointmentsBackendService = {
     })
 
     return created
+  },
+
+  async updateForDoctor(
+    appointmentId: string,
+    doctorId: string,
+    payload: UpdateDoctorAppointmentInput,
+    runtimeEnv?: Record<string, unknown> | null,
+  ) {
+    const admin = createAstroAdminClient(runtimeEnv)
+    const repo = createDoctorAppointmentCommandAdapter(admin, doctorId, doctorId)
+
+    const patch: AppointmentUpdate = {}
+
+    if (payload.scheduled_at) {
+      patch.start_time = payload.scheduled_at
+      const duration = payload.duration_minutes ?? 30
+      patch.end_time = computeEndTime(payload.scheduled_at, duration)
+    }
+
+    if (payload.duration_minutes !== undefined) {
+      patch.duration_minutes = payload.duration_minutes
+      if (payload.scheduled_at) {
+        patch.end_time = computeEndTime(payload.scheduled_at, payload.duration_minutes)
+      }
+    }
+
+    if (payload.type !== undefined) {
+      patch.type = payload.type
+    }
+
+    if (payload.notes !== undefined) {
+      patch.notes = payload.notes
+    }
+
+    if (payload.location !== undefined) {
+      patch.location = payload.location
+    }
+
+    return repo.update(appointmentId, patch)
   },
 }

@@ -65,6 +65,21 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
     [],
   )
 
+  const updateAppointment = useCallback(
+    async (id: string, values: DoctorAppointmentFormValues): Promise<DoctorAppointmentRecord> => {
+      const updated = await doctorAppointmentsService.update(id, values)
+      setAppointments((prev) =>
+        prev
+          .map((appt) => (appt.id === id ? { ...appt, ...updated } : appt))
+          .sort(
+            (left, right) => new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
+          ),
+      )
+      return updated
+    },
+    [],
+  )
+
   return useMemo(
     () => ({
       appointments,
@@ -73,11 +88,8 @@ export function useDoctorAppointments(): UseDoctorAppointmentsResult {
       isClientReady,
       refetch,
       createAppointment,
-      updateAppointment: async (id, values) => {
-        logger.info('updating appt', id, values);
-        throw new Error('Not implemented');
-      }
+      updateAppointment,
     }),
-    [appointments, loading, error, isClientReady, refetch, createAppointment],
+    [appointments, loading, error, isClientReady, refetch, createAppointment, updateAppointment],
   )
 }
