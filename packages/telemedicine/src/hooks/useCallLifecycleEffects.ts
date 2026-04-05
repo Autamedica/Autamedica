@@ -106,10 +106,20 @@ export function useCallLifecycleEffects({
       const supabaseKey = getClientEnvOrDefault('PUBLIC_SUPABASE_ANON_KEY', '')
       if (!supabaseUrl || !supabaseKey) return
 
-      const beaconUrl = `${new URL(supabaseUrl).origin}/functions/v1/update-call-status`
+      const url = `${new URL(supabaseUrl).origin}/functions/v1/update-call-status`
       const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed' })
-      const blob = new Blob([payload], { type: 'application/json' })
-      navigator.sendBeacon(beaconUrl, blob)
+      // fetch+keepalive instead of sendBeacon: sendBeacon cannot send Authorization
+      // headers, so the edge function would reject the unauthenticated request.
+      fetch(url, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: payload,
+      }).catch(() => { /* best-effort on page close */ })
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)

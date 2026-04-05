@@ -580,7 +580,13 @@ export class WebRTCClient {
     this.signalingQueue.length = 0
     this.logInfo('Flushing signaling queue', { count: queued.length })
     for (const message of queued) {
-      this.sendSignalingMessage(message)
+      try {
+        this.sendSignalingMessage(message)
+      } catch (error) {
+        this.logError('Failed to flush signaling message', error, {
+          messageType: typeof message.type === 'string' ? message.type : 'unknown',
+        })
+      }
     }
   }
 
