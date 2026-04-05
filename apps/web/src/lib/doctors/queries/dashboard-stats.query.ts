@@ -96,7 +96,7 @@ export async function queryDashboardStats(
   logger.info(`[query:dashboard-stats] doctor=${doctorId} today=${todayAppts.length} patients=${uniquePatients.size}`)
 
   return {
-    activeAppointments: todayAppts.filter((a) => a.status === 'in-progress').length,
+    activeAppointments: todayAppts.filter((a) => a.status === 'in_progress').length,
     todayAppointments: todayAppts.length,
     totalPatients: uniquePatients.size,
     medicalRecords: recordsResult.count ?? 0,

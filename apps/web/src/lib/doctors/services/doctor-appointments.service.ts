@@ -46,7 +46,7 @@ export function buildDoctorAppointmentPayload(
 
   return {
     patient_id: patientId,
-    scheduled_at: combineDateAndTime(date, time),
+    start_time: combineDateAndTime(date, time),
     duration_minutes: values.durationMinutes,
     type: values.type,
     notes: notes || undefined,
@@ -68,7 +68,7 @@ export function buildDoctorAppointmentUpdatePayload(
   const payload: UpdateDoctorAppointmentInput = {}
 
   if (date && time) {
-    payload.scheduled_at = combineDateAndTime(date, time)
+    payload.start_time = combineDateAndTime(date, time)
   }
 
   if (Number.isFinite(values.durationMinutes) && values.durationMinutes >= 5) {

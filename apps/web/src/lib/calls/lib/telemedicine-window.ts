@@ -1,6 +1,5 @@
 type AppointmentWindowLike = {
   start_time?: string | null
-  scheduled_at?: string | null
   end_time?: string | null
   duration_minutes?: number | null
 }
@@ -9,7 +8,7 @@ const EARLY_JOIN_WINDOW_MS = 45 * 60 * 1000
 const LATE_JOIN_GRACE_MS = 2 * 60 * 60 * 1000
 
 export function getAppointmentWindowStartMs(appointment: AppointmentWindowLike): number | null {
-  const iso = appointment.start_time ?? appointment.scheduled_at
+  const iso = appointment.start_time
   if (!iso) return null
 
   const parsed = Date.parse(iso)

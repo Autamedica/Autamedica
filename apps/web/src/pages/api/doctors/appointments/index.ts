@@ -27,14 +27,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const body = (await request.json().catch(() => ({}))) as Partial<CreateDoctorAppointmentInput>
   if (!body.patient_id?.trim()) return badRequest('patient_id is required')
-  if (!body.scheduled_at?.trim()) return badRequest('scheduled_at is required')
+  if (!body.start_time?.trim()) return badRequest('start_time is required')
 
   try {
     const created = await doctorAppointmentsBackendService.createForDoctor(
       context,
       {
         patient_id: body.patient_id,
-        scheduled_at: body.scheduled_at,
+        start_time: body.start_time,
         duration_minutes: body.duration_minutes ?? 30,
         type: body.type ?? 'consultation',
         notes: body.notes,

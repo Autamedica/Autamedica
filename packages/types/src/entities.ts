@@ -43,8 +43,8 @@ export interface Appointment {
   doctorId: DoctorId;
   startTime: ISODateString;
   duration: number; // minutos
-  type: "consultation" | "follow-up" | "emergency";
-  status: "scheduled" | "in-progress" | "completed" | "cancelled" | "no-show" | "rescheduled";
+  type: "consultation" | "follow_up" | "emergency" | "telemedicine" | "lab_test";
+  status: "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
   notes?: string;
   createdAt: ISODateString;
   updatedAt: ISODateString;

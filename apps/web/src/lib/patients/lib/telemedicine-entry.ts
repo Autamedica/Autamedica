@@ -1,11 +1,11 @@
 import type { AppointmentWithDoctor } from '@/lib/patients/types/appointment'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 
-const JOINABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress', 'in-progress'])
+const JOINABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
 
 type TelemedicineLikeAppointment = Pick<
   AppointmentWithDoctor,
-  'id' | 'type' | 'meeting_url' | 'status' | 'start_time' | 'scheduled_at' | 'end_time' | 'duration_minutes'
+  'id' | 'type' | 'meeting_url' | 'status' | 'start_time' | 'end_time' | 'duration_minutes'
 >
 
 export function buildPatientTelemedicineEntryUrl(appointmentId: string): string {
@@ -19,7 +19,7 @@ export function isTelemedicineAppointment(appointment: Pick<AppointmentWithDocto
 export function isJoinableTelemedicineAppointment(
   appointment: Pick<
     TelemedicineLikeAppointment,
-    'type' | 'meeting_url' | 'status' | 'start_time' | 'scheduled_at' | 'end_time' | 'duration_minutes'
+    'type' | 'meeting_url' | 'status' | 'start_time' | 'end_time' | 'duration_minutes'
   >,
 ): boolean {
   return (
@@ -30,7 +30,7 @@ export function isJoinableTelemedicineAppointment(
 }
 
 export function getAppointmentStartIso(
-  appointment: Pick<TelemedicineLikeAppointment, 'start_time' | 'scheduled_at'>,
+  appointment: Pick<TelemedicineLikeAppointment, 'start_time'>,
 ): string {
-  return appointment.start_time ?? appointment.scheduled_at ?? new Date(0).toISOString()
+  return appointment.start_time ?? new Date(0).toISOString()
 }

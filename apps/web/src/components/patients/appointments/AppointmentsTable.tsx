@@ -13,7 +13,6 @@ import {
   MapPin,
   Star,
   Stethoscope,
-  UserRound,
   ArrowRight,
   Loader2,
 } from 'lucide-react';
@@ -30,7 +29,6 @@ interface AppointmentsTableProps {
 const statusConfig: Record<string, { label: string; dot: string; bg: string }> = {
   scheduled: { label: 'Programada', dot: 'bg-sky-500', bg: 'bg-sky-50 text-sky-700' },
   confirmed: { label: 'Confirmada', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700' },
-  'in-progress': { label: 'En curso', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700' },
   in_progress: { label: 'En curso', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700' },
   completed: { label: 'Completada', dot: 'bg-stone-400', bg: 'bg-stone-100 text-stone-600' },
   cancelled: { label: 'Cancelada', dot: 'bg-red-400', bg: 'bg-red-50 text-red-600' },
@@ -39,12 +37,10 @@ const statusConfig: Record<string, { label: string; dot: string; bg: string }> =
 
 const typeConfig: Record<string, { label: string; icon: typeof Stethoscope; color: string }> = {
   consultation: { label: 'Consulta', icon: Stethoscope, color: 'text-sky-700 bg-sky-50' },
-  in_person: { label: 'Presencial', icon: MapPin, color: 'text-emerald-700 bg-emerald-50' },
   follow_up: { label: 'Seguimiento', icon: ArrowRight, color: 'text-violet-600 bg-violet-50' },
   emergency: { label: 'Emergencia', icon: Clock, color: 'text-red-600 bg-red-50' },
   telemedicine: { label: 'Telemedicina', icon: Video, color: 'text-cyan-700 bg-cyan-50' },
   lab_test: { label: 'Laboratorio', icon: Stethoscope, color: 'text-amber-700 bg-amber-50' },
-  checkup: { label: 'Chequeo', icon: UserRound, color: 'text-indigo-600 bg-indigo-50' },
 };
 
 export function AppointmentsTable({

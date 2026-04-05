@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       { appointmentsRepo: createAppointmentAdapter(admin), dbClient: admin },
       context.patientId,
       {
-        scheduled_at: body.scheduled_at,
+        start_time: body.start_time,
         doctor_id: body.doctor_id,
         duration_minutes: body.duration_minutes,
         type: body.type,

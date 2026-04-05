@@ -85,7 +85,7 @@ const TURNOS_EJEMPLO = [
     time: '15:00',
     date: 'Manana',
     status: 'scheduled' as const,
-    type: 'in_person' as const,
+    type: 'consultation' as const,
   },
   {
     id: 3,

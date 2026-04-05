@@ -87,7 +87,7 @@ function getDaysInRange(from: string, to: string): string[] {
 
 const APPOINTMENT_TYPES: { value: AppointmentType; label: string; icon: typeof Video; desc: string }[] = [
   { value: 'telemedicine', label: 'Telemedicina', icon: Video, desc: 'Consulta por videollamada' },
-  { value: 'in_person', label: 'Presencial', icon: MapPin, desc: 'Consulta en consultorio' },
+  { value: 'consultation', label: 'Presencial', icon: MapPin, desc: 'Consulta en consultorio' },
   { value: 'follow_up', label: 'Seguimiento', icon: ArrowRight, desc: 'Control posterior' },
   { value: 'emergency', label: 'Urgencia', icon: Clock, desc: 'Atención prioritaria' },
 ];
@@ -204,7 +204,7 @@ export function CreateAppointmentModal({
     try {
       await onSubmit({
         doctor_id: selectedDoctorId,
-        scheduled_at: selectedSlot.start_time,
+        start_time: selectedSlot.start_time,
         duration_minutes: selectedSlot.duration_minutes,
         type: appointmentType,
         reason,

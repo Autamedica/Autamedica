@@ -27,19 +27,19 @@ export class ScheduleDoctorAppointmentUseCase {
     payload: CreateDoctorAppointmentInput,
   ): Promise<Appointment> {
     const patientId = payload.patient_id.trim()
-    const scheduledAt = payload.scheduled_at.trim()
+    const startTime = payload.start_time.trim()
 
     if (!patientId) {
       throw Object.assign(new Error('patient_id is required'), { code: 'VALIDATION' })
     }
 
-    if (!scheduledAt) {
-      throw Object.assign(new Error('scheduled_at is required'), { code: 'VALIDATION' })
+    if (!startTime) {
+      throw Object.assign(new Error('start_time is required'), { code: 'VALIDATION' })
     }
 
-    const scheduledDate = new Date(scheduledAt)
+    const scheduledDate = new Date(startTime)
     if (Number.isNaN(scheduledDate.getTime())) {
-      throw Object.assign(new Error('scheduled_at is invalid'), { code: 'VALIDATION' })
+      throw Object.assign(new Error('start_time is invalid'), { code: 'VALIDATION' })
     }
 
     if (!Number.isFinite(payload.duration_minutes) || payload.duration_minutes < 5) {
@@ -53,7 +53,7 @@ export class ScheduleDoctorAppointmentUseCase {
 
     const insert: AppointmentInsert = {
       doctor_id: context.doctorId as UUID,
-      start_time: scheduledAt as ISODateString,
+      start_time: startTime as ISODateString,
       duration_minutes: payload.duration_minutes,
       type: payload.type,
       status: 'scheduled',

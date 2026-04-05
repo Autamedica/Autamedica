@@ -18,7 +18,7 @@ export interface DoctorAppointmentFormValues {
 
 export interface CreateDoctorAppointmentInput {
   patient_id: string
-  scheduled_at: string
+  start_time: string
   duration_minutes: number
   type: DoctorAppointmentType
   notes?: string
@@ -26,7 +26,7 @@ export interface CreateDoctorAppointmentInput {
 }
 
 export interface UpdateDoctorAppointmentInput {
-  scheduled_at?: string
+  start_time?: string
   duration_minutes?: number
   type?: DoctorAppointmentType
   notes?: string | null

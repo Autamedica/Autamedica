@@ -17,7 +17,7 @@ export interface IAppointmentsRepository {
     id: string,
     patientId: string,
     patch: {
-      scheduled_at?: string
+      start_time?: string
       duration_minutes?: number
       status?: AppointmentStatus
       type?: AppointmentType

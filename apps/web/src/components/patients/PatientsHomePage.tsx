@@ -101,20 +101,20 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     if (!hasHydrated) return null
     const live = appointments
       .filter(a => a.status === 'in_progress')
-      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] ?? null
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] ?? null
     if (live) return live
     const now = new Date()
     return appointments
       .filter(a => a.status === 'scheduled' || a.status === 'confirmed')
-      .filter(a => new Date(a.scheduled_at) > now)
-      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0] ?? null
+      .filter(a => new Date(a.start_time) > now)
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] ?? null
   }, [appointments, hasHydrated])
 
   const upcomingCount = useMemo(() => {
     if (!hasHydrated) return 0
     const now = new Date()
     return appointments.filter(a =>
-      (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.scheduled_at) > now
+      (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.start_time) > now
     ).length
   }, [appointments, hasHydrated])
 
@@ -256,7 +256,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                         HOY
                       </span>
                       <span className="text-sm text-sky-100">
-                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
+                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.start_time))}
                       </span>
                     </div>
                     <h2 className="text-xl font-bold text-white">
@@ -291,11 +291,11 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     <div className="mt-3 flex items-center gap-4 text-sm text-sky-100">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5" />
-                        {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.scheduled_at))}
+                        {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.start_time))}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5" />
-                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.scheduled_at))}
+                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.start_time))}
                       </span>
                     </div>
                   </a>
@@ -320,7 +320,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
               </section>
             )}
 
-            {upcomingTelemedicine && isWithin2Hours(upcomingTelemedicine.scheduled_at) && (
+            {upcomingTelemedicine && isWithin2Hours(upcomingTelemedicine.start_time) && (
               <PreConsultationReminder
                 doctorName={
                   upcomingTelemedicine.doctor
@@ -328,7 +328,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                     : 'Tu médico'
                 }
                 specialty={upcomingTelemedicine.doctor?.specialty ?? 'General'}
-                scheduledAt={upcomingTelemedicine.scheduled_at}
+                scheduledAt={upcomingTelemedicine.start_time}
                 appointmentId={upcomingTelemedicine.id}
                 locale={dateLocale}
               />

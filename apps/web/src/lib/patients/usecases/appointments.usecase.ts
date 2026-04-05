@@ -12,7 +12,7 @@ import type { IAppointmentsRepository } from '@/lib/patients/ports/appointments.
 type Db = SupabaseClient<Database>
 
 export interface CreateAppointmentPayload {
-  scheduled_at: string
+  start_time: string
   doctor_id: string
   duration_minutes?: number
   type?: AppointmentType
@@ -23,13 +23,22 @@ export interface CreateAppointmentPayload {
 }
 
 export interface UpdateAppointmentPayload {
-  scheduled_at?: string
+  start_time?: string
   duration_minutes?: number
   status?: AppointmentStatus
   type?: AppointmentType
   notes?: string
   meeting_url?: string | null
   location?: string | null
+}
+
+/**
+ * Allowed status transitions for patients.
+ * Patients can only cancel their own scheduled appointments.
+ */
+const PATIENT_ALLOWED_TRANSITIONS: Record<string, AppointmentStatus[]> = {
+  scheduled: ['cancelled'],
+  confirmed: ['cancelled'],
 }
 
 export interface AppointmentsUseCaseDeps {
@@ -55,9 +64,9 @@ export const appointmentsUseCase = {
     patientId: string,
     payload: CreateAppointmentPayload,
   ): Promise<AppointmentWithDoctor> {
-    const { scheduled_at, doctor_id } = payload
+    const { start_time, doctor_id } = payload
 
-    if (!scheduled_at?.trim()) throw new Error('scheduled_at is required')
+    if (!start_time?.trim()) throw new Error('start_time is required')
     if (!doctor_id?.trim()) throw new Error('doctor_id is required')
 
     const doctorExists = await deps.appointmentsRepo.doctorExists(doctor_id)
@@ -84,6 +93,20 @@ export const appointmentsUseCase = {
     patientId: string,
     payload: UpdateAppointmentPayload,
   ): Promise<AppointmentWithDoctor> {
+    if (payload.status) {
+      const existing = await deps.appointmentsRepo.findById(id, patientId)
+      if (!existing) throw Object.assign(new Error('Appointment not found'), { code: 'NOT_FOUND' })
+
+      const currentStatus = existing.status
+      const allowed = PATIENT_ALLOWED_TRANSITIONS[currentStatus]
+      if (!allowed || !allowed.includes(payload.status)) {
+        throw Object.assign(
+          new Error(`Patients cannot transition from '${currentStatus}' to '${payload.status}'`),
+          { code: 'INVALID_TRANSITION' },
+        )
+      }
+    }
+
     try {
       return await deps.appointmentsRepo.update(id, patientId, payload)
     } catch (err) {

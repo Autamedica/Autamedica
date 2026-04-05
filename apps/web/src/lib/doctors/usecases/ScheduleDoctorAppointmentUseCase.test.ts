@@ -39,7 +39,7 @@ describe('ScheduleDoctorAppointmentUseCase', () => {
       { doctorId: 'doc-1' },
       {
         patient_id: 'pat-1',
-        scheduled_at: '2026-04-04T14:00:00.000Z',
+        start_time: '2026-04-04T14:00:00.000Z',
         duration_minutes: 30,
         type: 'consultation',
         notes: 'Control clínico breve',
@@ -92,7 +92,7 @@ describe('ScheduleDoctorAppointmentUseCase', () => {
         { doctorId: 'doc-1' },
         {
           patient_id: 'missing',
-          scheduled_at: '2026-04-04T14:00:00.000Z',
+          start_time: '2026-04-04T14:00:00.000Z',
           duration_minutes: 30,
           type: 'consultation',
         },
