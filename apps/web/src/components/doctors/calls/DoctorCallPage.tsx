@@ -8,6 +8,7 @@ import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
 import { getClientEnvOrDefault, logger } from '@autamedica/shared'
+import { fetchApi } from '@/lib/api-client'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
 import { useDoctorWaitingRoom, formatWaitingCountdown, getWaitingCopy } from '@/hooks/doctors/useDoctorWaitingRoom'
@@ -119,13 +120,13 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
       : undefined
 
-    const payload = JSON.stringify({
+    const transcriptionBody = {
       segments: finalSegments,
       fullText,
       durationSeconds,
       consentDoctor: true,
       lang: 'es-AR',
-    })
+    }
 
     const url = `/api/doctors/consultations/${roomId}/transcription`
     const RETRY_DELAYS = [0, 1_000, 2_000]
@@ -135,14 +136,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]))
       }
       try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: payload,
-        })
-        if (res.ok) return
-        logger.error(`[DoctorCallPage] Transcription save HTTP ${res.status}, attempt ${attempt + 1}`)
+        await fetchApi(url, { body: transcriptionBody })
+        return
       } catch (err) {
         logger.error(`[DoctorCallPage] Transcription save failed, attempt ${attempt + 1}`, err)
       }
@@ -150,7 +145,8 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
     // Last resort: sendBeacon survives page unload
     if (typeof navigator.sendBeacon === 'function') {
-      const sent = navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }))
+      const beaconPayload = JSON.stringify(transcriptionBody)
+      const sent = navigator.sendBeacon(url, new Blob([beaconPayload], { type: 'application/json' }))
       if (!sent) {
         logger.error('[DoctorCallPage] sendBeacon also failed for transcription')
       }
@@ -188,9 +184,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const handleAcceptCall = useCallback(async () => {
     if (!callSession?.callId) return
     try {
-      await fetch(`/api/doctors/calls/${callSession.callId}/accept`, {
-        method: "POST",
-      })
+      await fetchApi(`/api/doctors/calls/${callSession.callId}/accept`, { method: 'POST' })
       logger.info("[DoctorCallPage] Call accepted and session clinical activated")
     } catch (err) {
       logger.error("[DoctorCallPage] Failed to accept call", err)

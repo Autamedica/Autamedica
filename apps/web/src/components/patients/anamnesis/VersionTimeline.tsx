@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import { logger } from '@autamedica/shared';
+import { fetchApi } from '@/lib/api-client';
 
 const RELEVANCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   routine: { label: 'Rutina', color: 'text-stone-600', bg: 'bg-stone-100' },
@@ -29,14 +30,12 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch('/api/patients/anamnesis/versions', {
-      credentials: 'include',
+    fetchApi<{ versions?: VersionEntry[] }>('/api/patients/anamnesis/versions', {
       signal: controller.signal,
     })
-      .then(r => r.json())
-      .then((resp: { versions?: VersionEntry[]; data?: { versions?: VersionEntry[] } }) => {
+      .then((data) => {
         if (controller.signal.aborted) return;
-        const list = resp.versions ?? resp.data?.versions ?? [];
+        const list = data?.versions ?? [];
         setVersions(Array.isArray(list) ? list : []);
         setLoaded(true);
       })
