@@ -8,13 +8,21 @@ permissions:
 
 env:
   HUSKY: '0'
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9.15.2'
 
 jobs:
   canary:
     name: Environment
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - run: node --version && pnpm --version
       - run: deno --version 2>/dev/null || echo "deno not installed"
       - run: git --version

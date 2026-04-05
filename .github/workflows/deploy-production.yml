@@ -23,14 +23,14 @@ env:
 jobs:
   validate:
     name: Pre-flight
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -41,16 +41,17 @@ jobs:
 
   deploy-db:
     name: DB Migrations
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: validate
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -72,21 +73,20 @@ jobs:
 
   build-and-deploy:
     name: Build & Deploy
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [validate, deploy-db]
+    timeout-minutes: 20
     if: always() && needs.validate.result == 'success' && needs.deploy-db.result != 'failure'
-    env:
-      TURBO_FORCE: 'true'
     outputs:
       prev_deployment: ${{ steps.snapshot.outputs.id }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           clean: true
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -117,6 +117,11 @@ jobs:
             exit 1
           fi
       - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
       - run: pnpm build:packages:core
 
       - name: Build web
@@ -163,7 +168,7 @@ jobs:
 
   smoke-tests:
     name: Smoke Tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [build-and-deploy]
     timeout-minutes: 5
     steps:
@@ -195,7 +200,7 @@ jobs:
 
   auto-rollback:
     name: Rollback
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [build-and-deploy, smoke-tests]
     if: failure() && needs.build-and-deploy.result == 'success' && needs.build-and-deploy.outputs.prev_deployment != ''
     steps:
@@ -210,7 +215,7 @@ jobs:
 
   summary:
     name: Summary
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 2
     needs: [validate, deploy-db, build-and-deploy, smoke-tests, auto-rollback]
     if: always()
