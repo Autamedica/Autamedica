@@ -151,7 +151,9 @@ export function UnifiedVideoCall({
   /* ── Extracted hooks ── */
   const isDesktopViewport = useViewportDetection()
   const { playParticipantJoinedSound, cleanupSound } = useParticipantSound()
-  const { isScreenSharing, setIsScreenSharing, screenStream, setScreenStream, toggleScreenShare } = useScreenShare(client)
+  const { isScreenSharing, setIsScreenSharing, screenStream, setScreenStream, toggleScreenShare } = useScreenShare(client, {
+    onError: setCallError,
+  })
   const { persistCallStatus } = useCallStatusPersistence({
     callId,
     callServiceOverride,
@@ -363,8 +365,9 @@ export function UnifiedVideoCall({
               el.srcObject = stream
               patchVideoPlayback(el)
 
-              // Chrome quirk: if stream was assigned while tracks were muted,
-              // the video element stays at readyState=0. Re-assign on unmute.
+              // Chrome/mobile quirk: if stream was assigned while tracks were muted,
+              // the video element stays at readyState=0. Re-assign on unmute and
+              // call play() to ensure autoplay works on mobile browsers.
               stream.getTracks().forEach(track => {
                 track.addEventListener('unmute', () => {
                   if (el.srcObject === stream && el.readyState === 0) {
@@ -374,6 +377,10 @@ export function UnifiedVideoCall({
                   }
                 }, { once: true })
               })
+
+              // Mobile autoplay: explicit play() after srcObject assignment.
+              // Some mobile browsers ignore autoplay attr on programmatic srcObject changes.
+              el.play().catch(() => { /* handled by patchVideoPlayback retry */ })
             }
           } else if (attempt < 10) {
             setTimeout(() => attachStream(attempt + 1), 100)
@@ -664,18 +671,34 @@ export function UnifiedVideoCall({
 
   const togglePiP = useCallback(async () => {
     if (typeof document === 'undefined') return
-    // Legacy PiP: single remote video element
-    if (document.pictureInPictureElement) {
-      await document.exitPictureInPicture()
-      return
-    }
-    // Find the first remote video or fall back to local
-    const remoteEl = remoteVideosRef.current.values().next().value as HTMLVideoElement | undefined
-    const target = remoteEl ?? localVideoRef.current
-    if (target && document.pictureInPictureEnabled) {
-      try {
+    try {
+      // Exit PiP if already active
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture()
+        return
+      }
+      // Find the first remote video or fall back to local
+      const remoteEl = remoteVideosRef.current.values().next().value as HTMLVideoElement | undefined
+      const target = remoteEl ?? localVideoRef.current
+      if (!target) return
+
+      // Check PiP support: document-level API (Chrome/Edge) or element-level (Safari/iOS)
+      const pipSupported =
+        ('pictureInPictureEnabled' in document && document.pictureInPictureEnabled) ||
+        ('webkitSupportsPresentationMode' in target &&
+          typeof (target as HTMLVideoElement & { webkitSupportsPresentationMode?: (mode: string) => boolean }).webkitSupportsPresentationMode === 'function' &&
+          (target as HTMLVideoElement & { webkitSupportsPresentationMode: (mode: string) => boolean }).webkitSupportsPresentationMode('picture-in-picture'))
+
+      if (!pipSupported) return
+
+      // Safari/iOS uses webkit API
+      if ('webkitSetPresentationMode' in target) {
+        (target as HTMLVideoElement & { webkitSetPresentationMode: (mode: string) => void }).webkitSetPresentationMode('picture-in-picture')
+      } else {
         await target.requestPictureInPicture()
-      } catch { /* user denied or not supported */ }
+      }
+    } catch {
+      // PiP denied by user or not supported on this platform
     }
   }, [])
 

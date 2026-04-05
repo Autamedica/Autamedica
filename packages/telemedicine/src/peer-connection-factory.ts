@@ -153,6 +153,19 @@ export class PeerConnectionFactory {
       }
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         this.callLogger?.warn('ice', 'connection_terminated', { peerId: userId, state: pc.connectionState })
+        // Clear the negotiation timer to prevent stale offers after peer removal
+        if (negotiationTimer) {
+          clearTimeout(negotiationTimer)
+          negotiationTimer = null
+        }
+        // Null out event handlers to prevent callbacks on a dead connection
+        pc.ontrack = null
+        pc.onicecandidate = null
+        pc.onconnectionstatechange = null
+        pc.oniceconnectionstatechange = null
+        pc.onsignalingstatechange = null
+        pc.onnegotiationneeded = null
+        pc.ondatachannel = null
         peerConnections.delete(userId)
         this.qualityMonitor.deletePeer(userId)
         this.callbacks.emitChatReady()
