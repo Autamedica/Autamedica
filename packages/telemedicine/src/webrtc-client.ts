@@ -508,8 +508,18 @@ export class WebRTCClient {
     this.media.stopDeviceChangeMonitoring()
 
     for (const [, peerState] of this.peerConnections) {
+      peerState.pendingIceCandidates.length = 0
       peerState.dataChannel?.close()
-      peerState.pc.close()
+      // Null out event handlers before closing to prevent stale callbacks
+      const { pc } = peerState
+      pc.ontrack = null
+      pc.onicecandidate = null
+      pc.onconnectionstatechange = null
+      pc.oniceconnectionstatechange = null
+      pc.onsignalingstatechange = null
+      pc.onnegotiationneeded = null
+      pc.ondatachannel = null
+      pc.close()
     }
     this.peerConnections.clear()
     this.emit('chat-ready', false)
@@ -566,9 +576,12 @@ export class WebRTCClient {
         this.emit('user-left', message.from)
         const peerState = this.peerConnections.get(message.from)
         if (peerState) {
+          // Clear pending ICE candidates to prevent stale processing
+          peerState.pendingIceCandidates.length = 0
           peerState.dataChannel?.close()
           peerState.pc.close()
           this.peerConnections.delete(message.from)
+          this.qualityMonitor.deletePeer(message.from)
           this.emitChatReady()
         }
         break

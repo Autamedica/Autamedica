@@ -82,6 +82,16 @@ export class MediaManager {
     peerConnections: Map<string, { pc: RTCPeerConnection }>,
   ): Promise<MediaStream> {
     try {
+      // Stop previous stream tracks before acquiring new media to prevent leaks
+      if (this.localStream) {
+        this.localStream.getTracks().forEach(t => t.stop())
+        this.localStream = null
+      }
+      if (this.rawStream) {
+        this.rawStream.getTracks().forEach(t => t.stop())
+        this.rawStream = null
+      }
+
       try {
         this.localStream = await navigator.mediaDevices.getUserMedia(constraints)
       } catch (mediaError) {
@@ -138,7 +148,16 @@ export class MediaManager {
     }
 
     const newTrack = newStream.getTracks().find(t => t.kind === kind)
-    if (!newTrack) return
+    if (!newTrack) {
+      // No matching track — stop all tracks from the acquired stream to avoid leaks
+      newStream.getTracks().forEach(t => t.stop())
+      return
+    }
+
+    // Stop any extra tracks from the new stream that we won't use
+    newStream.getTracks().forEach(t => {
+      if (t !== newTrack) t.stop()
+    })
 
     const oldTracks = kind === 'video'
       ? this.localStream.getVideoTracks()
@@ -176,7 +195,14 @@ export class MediaManager {
           audio: false,
         })
         newTrack = camStream.getVideoTracks()[0]
-        if (!newTrack) return
+        if (!newTrack) {
+          camStream.getTracks().forEach(t => t.stop())
+          return
+        }
+        // Stop any extra tracks from fallback stream (e.g. unexpected audio tracks)
+        camStream.getTracks().forEach(t => {
+          if (t !== newTrack) t.stop()
+        })
       } catch {
         return
       }

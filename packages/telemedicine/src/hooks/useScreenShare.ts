@@ -18,6 +18,10 @@ export function useScreenShare(client: WebRTCClient | CloudflareCallsClient | nu
       return
     }
     try {
+      // Check getDisplayMedia support before calling (not available on most mobile browsers)
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        return
+      }
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
       applyScreenShareHint(stream)
       setScreenStream(stream)
