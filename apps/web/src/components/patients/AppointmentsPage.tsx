@@ -153,14 +153,6 @@ export default function AppointmentsPage({
     )[0] ?? null
   }, [focusAppointmentId, isTelemedicineView, visibleAppointments])
 
-  const _incomingCallFocusAppointmentId = useMemo(() => {
-    if (!isTelemedicineView) {
-      return null
-    }
-
-    return focusAppointmentId ?? featuredTelemedicineAppointment?.id ?? null
-  }, [featuredTelemedicineAppointment?.id, focusAppointmentId, isTelemedicineView])
-
   const stats = useMemo(() => {
     const upcoming = visibleAppointments.filter(
       (apt) => apt.status === 'scheduled' || apt.status === 'confirmed'

@@ -33,9 +33,7 @@ export interface PatientRow {
 
 type PatientsClient = SupabaseClient<Database>
 
-type PatientWithProfileQuery = ReturnType<ReturnType<PatientsClient['from']>['select']>
-
-function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()): PatientWithProfileQuery {
+function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()) {
   return client
     .from('patients')
     .select(`
@@ -54,7 +52,8 @@ function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()): 
 
 export const patientsRepo = {
   async findAllActive(client: PatientsClient = getBrowserSupabaseClient()): Promise<PatientWithProfile[]> {
-    const { data, error } = await queryWithProfile(client)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (queryWithProfile(client) as any)
       .eq('active', true)
       .order('created_at', { ascending: false })
 
@@ -70,7 +69,8 @@ export const patientsRepo = {
     id: UUID,
     client: PatientsClient = getBrowserSupabaseClient(),
   ): Promise<PatientWithProfile | null> {
-    const { data, error } = await queryWithProfile(client)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (queryWithProfile(client) as any)
       .eq('id', id)
       .eq('active', true)
       .maybeSingle()
@@ -87,7 +87,8 @@ export const patientsRepo = {
     userId: string,
     client: PatientsClient = getBrowserSupabaseClient(),
   ): Promise<PatientWithProfile | null> {
-    const { data, error } = await queryWithProfile(client)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (queryWithProfile(client) as any)
       .eq('user_id', userId)
       .eq('active', true)
       .maybeSingle()
@@ -104,7 +105,8 @@ export const patientsRepo = {
     companyId: string,
     client: PatientsClient = getBrowserSupabaseClient(),
   ): Promise<PatientWithProfile[]> {
-    const { data, error } = await queryWithProfile(client)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (queryWithProfile(client) as any)
       .eq('company_id', companyId)
       .eq('active', true)
       .order('created_at', { ascending: false })

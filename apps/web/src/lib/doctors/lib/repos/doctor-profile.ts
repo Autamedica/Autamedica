@@ -64,7 +64,6 @@ export const doctorProfileRepo = {
 
   async insertDefaultAvailability(
     admin: AdminClient,
-    doctorId: string,
     rows: AvailabilityInsert[],
   ): Promise<void> {
     const { error } = await admin.from('doctor_availability').insert(rows)

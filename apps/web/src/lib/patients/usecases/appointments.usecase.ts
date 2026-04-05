@@ -104,7 +104,7 @@ export const appointmentsUseCase = {
 
       const currentStatus = existing.status
       const allowed = PATIENT_ALLOWED_TRANSITIONS[currentStatus]
-      if (!allowed || !allowed.includes(payload.status)) {
+      if (!allowed?.includes(payload.status)) {
         throw Object.assign(
           new Error(`Patients cannot transition from '${currentStatus}' to '${payload.status}'`),
           { code: 'INVALID_TRANSITION' },
@@ -115,7 +115,7 @@ export const appointmentsUseCase = {
     try {
       const updated = await deps.appointmentsRepo.update(id, patientId, payload)
 
-      if (payload.scheduled_at) {
+      if (payload.start_time) {
         try {
           await cancelReminders(deps.dbClient, id)
           await scheduleReminders(deps.dbClient, id, 'whatsapp')

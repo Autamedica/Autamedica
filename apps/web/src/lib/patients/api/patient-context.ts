@@ -20,7 +20,13 @@ export interface PatientContext {
 
 /** Astro locals shape (set by middleware) */
 interface AstroLocals {
-  session?: { user?: { id?: string; user_metadata?: Record<string, unknown> } } | null
+  session?: {
+    user?: {
+      id?: string;
+      user_metadata?: Record<string, unknown>;
+      app_metadata?: Record<string, unknown>;
+    }
+  } | null
   supabase?: unknown
   runtime?: { env?: Record<string, unknown> }
 }

@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const raw = await request.json().catch(() => ({}))
   const parsed = validateBody(CreatePatientAppointmentSchema, raw)
-  if (!parsed.success) return parsed.error
+  if (parsed.success === false) return parsed.error
 
   const body = parsed.data
 

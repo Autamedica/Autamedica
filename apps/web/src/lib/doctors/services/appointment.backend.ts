@@ -3,11 +3,10 @@
  * Layer 8: Backend Service Layer.
  */
 import { TransitionAppointmentUseCase } from '../usecases/TransitionAppointmentUseCase';
-import type { AppointmentStatus } from '../usecases/TransitionAppointmentUseCase';
 import { createAppointmentReadAdapter } from '@/lib/doctors/lib/repos/appointments';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
-import type { AppointmentView } from '@autamedica/types';
+import type { AppointmentView, AppointmentStatus } from '@autamedica/types';
 
 export const appointmentBackendService = {
   async transitionStatus(appointmentId: string, nextStatus: AppointmentStatus): Promise<AppointmentView> {

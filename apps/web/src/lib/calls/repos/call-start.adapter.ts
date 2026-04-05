@@ -164,7 +164,7 @@ export function createCallStartAdapter(supabase: Db): ICallStartRepository {
       .or(pendingFilter)
       .order('created_at', { ascending: false })
 
-    const primaryResponse = await primary as unknown as { data: LegacyCallRow[] | null; error: unknown }
+    const primaryResponse = primary as unknown as { data: LegacyCallRow[] | null; error: unknown }
 
     if (!primaryResponse.error) {
       return (primaryResponse.data ?? []).map((row) => withNullAppointmentId(row)).filter(Boolean) as Call[]

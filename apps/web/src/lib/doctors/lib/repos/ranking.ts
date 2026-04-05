@@ -4,7 +4,6 @@
  * and profile/doctor lookups for the leaderboard.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { logger } from '@autamedica/shared'
 
 type AdminClient = SupabaseClient
 

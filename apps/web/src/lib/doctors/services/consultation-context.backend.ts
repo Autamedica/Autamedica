@@ -125,7 +125,7 @@ async function getOrCreateExtraction(
  * Fetch consultation context (anamnesis, extraction, red flags, suggested questions).
  * Returns empty context if room has no participants or anamnesis not shared.
  */
-export async function getConsultationContext(roomId: string, patientId: string, patientProfile: PatientProfile): Promise<{
+export async function getConsultationContext(patientId: string, patientProfile: PatientProfile): Promise<{
   hasAnamnesis: boolean;
   patient: PatientProfile | null;
   anamnesisStatus?: string;

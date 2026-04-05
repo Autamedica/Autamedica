@@ -34,7 +34,7 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
 
   const raw = await request.json().catch(() => ({}))
   const validation = validateBody(UpdatePatientAppointmentSchema, raw)
-  if (!validation.success) return validation.error
+  if (validation.success === false) return validation.error
 
   const body = validation.data
 

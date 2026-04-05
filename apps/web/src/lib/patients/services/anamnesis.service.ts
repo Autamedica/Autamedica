@@ -3,13 +3,9 @@
  * Owns: section definitions, progress computation, section orchestration.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@autamedica/types'
+import type { Database, AnamnesisEntity, AnamnesisSectionEntity } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import {
-  createAnamnesisAdapter,
-  type AnamnesisRecord,
-  type AnamnesisSectionRecord,
-} from '@/lib/patients/lib/repos/anamnesis.adapter'
+import { createAnamnesisAdapter } from '@/lib/patients/lib/repos/anamnesis.adapter'
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps'
 import { anamnesisVersionService } from './anamnesis-version.service'
 
@@ -40,13 +36,13 @@ export interface AnamnesisProgress {
 }
 
 export interface AnamnesisSnapshot {
-  anamnesis: AnamnesisRecord
-  sections: AnamnesisSectionRecord[]
+  anamnesis: AnamnesisEntity
+  sections: AnamnesisSectionEntity[]
   progress: AnamnesisProgress
   patientBirthDate?: string | null
 }
 
-function computeProgress(sections: AnamnesisSectionRecord[]): AnamnesisProgress {
+function computeProgress(sections: AnamnesisSectionEntity[]): AnamnesisProgress {
   const completed = sections.filter((s) => s.completed)
   const completedIds = completed
     .map((s) => s.section)
@@ -114,7 +110,7 @@ export const anamnesisService = {
     ])
 
     const birthDate = patient.data?.birth_date ?? null
-    let currentSections = sections as AnamnesisSectionRecord[]
+    let currentSections = sections
 
     if (birthDate && !sections.some((s) => s.section === 'edad' && s.completed)) {
       const age = computeAge(birthDate)
@@ -122,7 +118,7 @@ export const anamnesisService = {
         await anamnesisRepo
           .upsertSection(anamnesis.id, 'edad', { fecha_nacimiento: birthDate, edad: age }, true)
           .catch((err) => logger.warn('[anamnesisService] auto-complete edad failed', err))
-        currentSections = await anamnesisRepo.getSections(anamnesis.id) as AnamnesisSectionRecord[]
+        currentSections = await anamnesisRepo.getSections(anamnesis.id)
       }
     }
 
@@ -135,7 +131,7 @@ export const anamnesisService = {
     }
 
     return {
-      anamnesis: { ...anamnesis as AnamnesisRecord, completionPercentage: progress.completionPercentage },
+      anamnesis: { ...anamnesis, completionPercentage: progress.completionPercentage },
       sections: currentSections,
       progress,
       patientBirthDate: birthDate,
@@ -145,32 +141,32 @@ export const anamnesisService = {
   async updateMeta(
     supabase: Db,
     patientId: string,
-    updates: Record<string, unknown>,
-  ): Promise<AnamnesisRecord> {
+    updates: Partial<AnamnesisEntity>,
+  ): Promise<AnamnesisEntity> {
     const anamnesisRepo = createAnamnesisAdapter(supabase)
     const cleanUpdates: Record<string, unknown> = {}
 
-    if (typeof updates.status === 'string') {
+    if (updates.status) {
       cleanUpdates.status = updates.status
       if (updates.status === 'completed' && !updates.completedAt) {
-        cleanUpdates.completed_at = new Date().toISOString()
+        cleanUpdates.completedAt = new Date().toISOString()
       }
     }
 
     if (typeof updates.completionPercentage === 'number') {
-      cleanUpdates.completion_percentage = Math.min(100, Math.max(0, Math.round(updates.completionPercentage)))
+      cleanUpdates.completionPercentage = updates.completionPercentage
     }
 
     if (updates.completedAt) {
-      cleanUpdates.completed_at = updates.completedAt
+      cleanUpdates.completedAt = updates.completedAt
     }
 
     if (typeof updates.privacyAccepted === 'boolean') {
-      cleanUpdates.privacy_accepted = updates.privacyAccepted
+      cleanUpdates.privacyAccepted = updates.privacyAccepted
     }
 
     if (typeof updates.termsAccepted === 'boolean') {
-      cleanUpdates.terms_accepted = updates.termsAccepted
+      cleanUpdates.termsAccepted = updates.termsAccepted
     }
 
     if (Object.keys(cleanUpdates).length === 0) {
@@ -197,7 +193,7 @@ export const anamnesisService = {
       }
     }
 
-    return result as AnamnesisRecord
+    return result
   },
 
   async saveSection(
@@ -206,7 +202,7 @@ export const anamnesisService = {
     section: string,
     data: Record<string, unknown>,
     completed: boolean,
-  ): Promise<{ section: AnamnesisSectionRecord; progress: AnamnesisProgress }> {
+  ): Promise<{ section: AnamnesisSectionEntity; progress: AnamnesisProgress }> {
     const anamnesisRepo = createAnamnesisAdapter(supabase)
 
     if (section === 'edad' && data.fecha_nacimiento && !data.edad) {
@@ -227,9 +223,9 @@ export const anamnesisService = {
       }
     }
 
-    const savedSection = await anamnesisRepo.upsertSection(anamnesis.id, section, finalData, completed) as AnamnesisSectionRecord
+    const savedSection = await anamnesisRepo.upsertSection(anamnesis.id, section, finalData, completed)
 
-    const sections = await anamnesisRepo.getSections(anamnesis.id) as AnamnesisSectionRecord[]
+    const sections = await anamnesisRepo.getSections(anamnesis.id)
     const progress = computeProgress(sections)
 
     anamnesisRepo

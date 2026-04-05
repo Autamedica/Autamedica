@@ -131,7 +131,7 @@ export const doctorProfileService = {
       const existing = await doctorProfileRepo.countActiveAvailability(admin, doctorId)
       if (existing === 0) {
         await doctorProfileRepo.insertDefaultAvailability(
-          admin, doctorId, buildDefaultAvailabilityRows(doctorId),
+          admin, buildDefaultAvailabilityRows(doctorId),
         )
       }
     }
