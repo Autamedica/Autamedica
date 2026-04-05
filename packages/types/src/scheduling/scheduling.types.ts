@@ -101,6 +101,8 @@ export interface SlotQuery {
   date_from: string;     // YYYY-MM-DD
   date_to: string;       // YYYY-MM-DD
   appointment_type?: string;
+  /** IANA timezone for slot generation (default: America/Argentina/Buenos_Aires) */
+  timezone?: string;
 }
 
 // ==========================================
