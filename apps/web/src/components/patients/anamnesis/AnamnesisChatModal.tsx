@@ -151,7 +151,7 @@ export function AnamnesisChatModal({
         role="dialog"
         aria-modal="true"
         aria-label="Chat de aclaración clínica"
-        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col h-[80vh]"
+        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col h-[calc(100dvh-2rem)] sm:h-[80vh]"
       >
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
