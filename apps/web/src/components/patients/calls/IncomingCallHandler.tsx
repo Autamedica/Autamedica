@@ -460,8 +460,8 @@ export function IncomingCallHandler({
   if (!incomingCall) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#09101c]/72 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-[28px] border border-white/10 bg-[#101d32]/96 p-6 text-white shadow-[0_24px_80px_rgba(9,16,28,0.32)] backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-[28px] border border-white/10 bg-slate-900/95 p-6 text-white shadow-am-overlay backdrop-blur">
         <div className="mb-6 text-center">
           <div className="relative mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-300 ring-8 ring-emerald-400/10">
             <div className="absolute inset-0 animate-ping rounded-full border-4 border-emerald-400/20"></div>

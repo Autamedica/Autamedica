@@ -37,7 +37,7 @@ function StatCard({
         </div>
         <div>
           <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="text-2xl font-bold tracking-tight text-[#050505]">{value}</p>
+          <p className="text-2xl font-bold tracking-tight text-stone-950">{value}</p>
         </div>
       </div>
     </div>
@@ -203,7 +203,7 @@ export default function AppointmentsPage({
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="font-heading text-2xl font-bold tracking-tight text-[#050505] sm:text-3xl">
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-stone-950 sm:text-3xl">
               {isTelemedicineView ? 'Telemedicina' : 'Mis citas'}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
@@ -223,7 +223,7 @@ export default function AppointmentsPage({
         </div>
 
         {isTelemedicineView && (
-          <section className="mb-8 overflow-hidden rounded-[28px] border border-sky-100 bg-white p-6 text-[#050505] shadow-xl shadow-sky-500/5">
+          <section className="mb-8 overflow-hidden rounded-[28px] border border-sky-100 bg-white p-6 text-stone-950 shadow-xl shadow-sky-500/5">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-2xl">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
@@ -270,7 +270,7 @@ export default function AppointmentsPage({
               <div className="mt-6 grid gap-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-5 sm:grid-cols-3">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Profesional</p>
-                  <p className="mt-1 text-sm font-semibold text-[#050505]">
+                  <p className="mt-1 text-sm font-semibold text-stone-950">
                     {featuredTelemedicineAppointment.doctor
                       ? `Dr. ${featuredTelemedicineAppointment.doctor.first_name ?? ''} ${featuredTelemedicineAppointment.doctor.last_name ?? ''}`.trim()
                       : 'Profesional asignado'}
@@ -278,7 +278,7 @@ export default function AppointmentsPage({
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Fecha</p>
-                  <p className="mt-1 text-sm font-semibold text-[#050505]">
+                  <p className="mt-1 text-sm font-semibold text-stone-950">
                     {new Intl.DateTimeFormat('es-AR', {
                       weekday: 'short',
                       day: 'numeric',
@@ -288,7 +288,7 @@ export default function AppointmentsPage({
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-500">Hora</p>
-                  <p className="mt-1 text-sm font-semibold text-[#050505]">
+                  <p className="mt-1 text-sm font-semibold text-stone-950">
                     {new Intl.DateTimeFormat('es-AR', {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -348,7 +348,7 @@ export default function AppointmentsPage({
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-50">
               <CalendarPlus className="h-7 w-7 text-sky-600" />
             </div>
-            <h3 className="font-heading text-lg font-semibold text-[#050505]">
+            <h3 className="font-heading text-lg font-semibold text-stone-950">
               {isTelemedicineView ? 'Sin videoconsultas programadas' : 'Sin citas programadas'}
             </h3>
             <p className="mt-1 max-w-sm text-sm text-slate-500">

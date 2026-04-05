@@ -344,9 +344,9 @@ export default function AnamnesisPage() {
   if (!currentStep) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f7f8fa]">
+    <div className="flex min-h-screen flex-col bg-am-surface-50">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
         <div className="mx-auto max-w-2xl px-5 pb-4 pt-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold tracking-tight text-stone-900">AutaMedica</span>
@@ -400,7 +400,7 @@ export default function AnamnesisPage() {
         <div data-tour="anamnesis-section">
           {/* Educational story */}
           {currentStep.story && (
-            <div className="mb-8 overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
+            <div className="mb-8 overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
               <div className="px-6 py-5">
                 <p className="text-[15px] leading-relaxed text-stone-700">{currentStep.story.intro}</p>
                 {currentStep.story.why && (
@@ -422,7 +422,7 @@ export default function AnamnesisPage() {
 
           {/* Video */}
           {currentStep.mediaUrl && (
-            <div className="mb-8 overflow-hidden rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
+            <div className="mb-8 overflow-hidden rounded-2xl shadow-am-sm ring-1 ring-stone-950/[0.03]" data-tour="educational-media">
               <video
                 src={currentStep.mediaUrl}
                 controls
@@ -441,7 +441,7 @@ export default function AnamnesisPage() {
           {/* Revisit: carried-forward preview */}
           {isStepCarriedForward && !editingCarriedStep ? (
             <div className="mt-8 space-y-5">
-              <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]">
+              <div className="overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03]">
                 <div className="border-b border-stone-100 px-6 py-4">
                   <p className="text-[13px] font-semibold text-stone-800">
                     {currentStep.mutability === 'carry_forward_additive'
@@ -502,7 +502,7 @@ export default function AnamnesisPage() {
 
       {/* Navigation */}
       <footer
-        className="sticky bottom-0 bg-white shadow-[0_-1px_3px_rgba(0,0,0,0.04)]"
+        className="sticky bottom-0 bg-white shadow-am-sticky-top"
         data-tour="navigation-buttons"
       >
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">

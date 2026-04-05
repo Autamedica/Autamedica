@@ -59,7 +59,7 @@ export function PatientPortalShell({ children, className = '' }: PatientPortalSh
 
   return (
     <div
-      className={`min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f4fbff_100%)] text-[#050505] ${
+      className={`min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f4fbff_100%)] text-stone-950 ${
         isFocusMode ? 'overflow-hidden' : ''
       } ${className}`}
     >

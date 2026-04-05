@@ -118,7 +118,17 @@ const autamedicaPreset = {
         'am-primary': '0 8px 24px -8px rgb(14 165 233 / 0.35)',
         'am-doctor': '0 8px 24px -8px rgb(14 165 233 / 0.35)',
         'am-success': '0 4px 14px -3px rgb(16 185 129 / 0.30)',
+        'am-2xl': '0 32px 80px -15px rgb(14 165 233 / 0.08)',
+        'am-primary-sm': '0 14px 34px rgb(14 165 233 / 0.26)',
+        'am-card': '0 10px 30px rgb(14 165 233 / 0.06)',
         'am-card-hover': '0 12px 28px -8px rgb(0 0 0 / 0.18), 0 4px 10px -4px rgb(0 0 0 / 0.08)',
+        'am-card-lg': '0 20px 60px rgb(2 6 23 / 0.04)',
+        'am-card-xl': '0 20px 50px rgb(2 6 23 / 0.04)',
+        'am-dropdown': '0 28px 70px rgb(15 23 42 / 0.18)',
+        'am-overlay': '0 24px 80px rgb(9 16 28 / 0.32)',
+        'am-sticky-top': '0 -1px 3px 0 rgb(0 0 0 / 0.04)',
+        'am-glass-dark': '0 30px 60px -15px rgb(0 0 0 / 0.80)',
+        'am-glass-logo': '0 20px 40px -15px rgb(0 0 0 / 0.80)',
       },
 
       transitionDuration: {

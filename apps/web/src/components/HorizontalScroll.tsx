@@ -182,8 +182,8 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
 
   // ── Styles: conditional on mobile vs desktop ──
   const containerStyle: React.CSSProperties = isMobile
-    ? { position: 'relative', width: '100vw', minHeight: '100svh', overflow: 'visible', background: '#0A0A0A' }
-    : { position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#0A0A0A' };
+    ? { position: 'relative', width: '100vw', minHeight: '100svh', overflow: 'visible', background: 'rgb(10, 10, 10)' }
+    : { position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: 'rgb(10, 10, 10)' };
 
   const trackStyle: React.CSSProperties = isMobile
     ? {
@@ -266,8 +266,8 @@ export default function HorizontalScroll({ locale = 'es' }: { locale?: Locale })
                     className="w-full h-full object-cover"
                     style={{ opacity: 0.4 }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/70 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/70 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-neutral-950/80 via-transparent to-transparent" />
                 </div>
 
                 {/* Watermark Number */}
