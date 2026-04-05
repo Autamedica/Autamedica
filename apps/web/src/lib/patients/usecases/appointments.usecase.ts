@@ -66,10 +66,14 @@ export const appointmentsUseCase = {
     try {
       const appointment = await deps.appointmentsRepo.create(patientId, payload)
 
-      // Fire-and-forget: programar recordatorios 24h y 2h antes
-      scheduleReminders(deps.dbClient, appointment.id, 'whatsapp').catch((err) =>
-        logger.error('[appointmentsUseCase] scheduleReminders failed', err),
-      )
+      try {
+        await scheduleReminders(deps.dbClient, appointment.id, 'whatsapp')
+      } catch (reminderErr) {
+        logger.error('[appointmentsUseCase] scheduleReminders failed (appointment created)', {
+          appointmentId: appointment.id,
+          error: reminderErr,
+        })
+      }
 
       return appointment
     } catch (err) {
@@ -85,7 +89,21 @@ export const appointmentsUseCase = {
     payload: UpdateAppointmentPayload,
   ): Promise<AppointmentWithDoctor> {
     try {
-      return await deps.appointmentsRepo.update(id, patientId, payload)
+      const updated = await deps.appointmentsRepo.update(id, patientId, payload)
+
+      if (payload.scheduled_at) {
+        try {
+          await cancelReminders(deps.dbClient, id)
+          await scheduleReminders(deps.dbClient, id, 'whatsapp')
+        } catch (reminderErr) {
+          logger.error('[appointmentsUseCase] reschedule reminders failed', {
+            appointmentId: id,
+            error: reminderErr,
+          })
+        }
+      }
+
+      return updated
     } catch (err) {
       logger.error('[appointmentsUseCase] update failed', err)
       throw err
@@ -103,18 +121,28 @@ export const appointmentsUseCase = {
 
       const cancelled = await deps.appointmentsRepo.cancel(id, patientId)
 
-      cancelReminders(deps.dbClient, id).catch((err) =>
-        logger.error('[appointmentsUseCase] cancelReminders failed', err),
-      )
+      try {
+        await cancelReminders(deps.dbClient, id)
+      } catch (reminderErr) {
+        logger.error('[appointmentsUseCase] cancelReminders failed', {
+          appointmentId: id,
+          error: reminderErr,
+        })
+      }
 
       if (existing.start_time && existing.end_time) {
-        processWaitlist(deps.dbClient, existing.doctor_id, {
-          date: existing.start_time.split('T')[0],
-          start_time: existing.start_time,
-          end_time: existing.end_time,
-        }).catch((err) =>
-          logger.error('[appointmentsUseCase] processWaitlist failed', err),
-        )
+        try {
+          await processWaitlist(deps.dbClient, existing.doctor_id, {
+            date: existing.start_time.split('T')[0],
+            start_time: existing.start_time,
+            end_time: existing.end_time,
+          })
+        } catch (waitlistErr) {
+          logger.error('[appointmentsUseCase] processWaitlist failed', {
+            appointmentId: id,
+            error: waitlistErr,
+          })
+        }
       }
 
       return cancelled
