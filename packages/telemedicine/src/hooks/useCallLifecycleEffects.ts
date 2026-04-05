@@ -1,4 +1,5 @@
 import { useEffect, useRef, type MutableRefObject, type RefObject } from 'react'
+import { getClientEnvOrDefault } from '@autamedica/shared'
 import {
   acquireWakeLock,
   releaseWakeLock,
@@ -94,6 +95,26 @@ export function useCallLifecycleEffects({
       void persistCallStatus('ended', 'connection_closed')
     }
   }, [callId, connectionState, hasStartedCallRef, isCallEstablished, manualHangupRef, persistCallStatus])
+
+  // Persist call status on page close via sendBeacon
+  useEffect(() => {
+    if (!callId || !hasStartedCallRef.current) return
+
+    const handleBeforeUnload = () => {
+      if (manualHangupRef.current) return
+      const supabaseUrl = getClientEnvOrDefault('PUBLIC_SUPABASE_URL', '')
+      const supabaseKey = getClientEnvOrDefault('PUBLIC_SUPABASE_ANON_KEY', '')
+      if (!supabaseUrl || !supabaseKey) return
+
+      const beaconUrl = `${new URL(supabaseUrl).origin}/functions/v1/update-call-status`
+      const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed' })
+      const blob = new Blob([payload], { type: 'application/json' })
+      navigator.sendBeacon(beaconUrl, blob)
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [callId, hasStartedCallRef, manualHangupRef])
 
   // Remote stream sync
   useEffect(() => {

@@ -93,6 +93,8 @@ export class WebRTCClient {
 
   private eventListeners = new Map<keyof WebRTCEvents, Function[]>()
   private connectionState: ConnectionState = 'disconnected'
+  private readonly signalingQueue: Array<Record<string, unknown>> = []
+  private static readonly CRITICAL_MESSAGE_TYPES = new Set(['offer', 'answer', 'ice-candidate'])
   private readonly qualityMonitor: QualityMonitor
   private readonly debugLogger: ReturnType<typeof createTelemedicineLogger>
   private readonly bitrateAdapter: BitrateAdapter
@@ -184,6 +186,11 @@ export class WebRTCClient {
         emitChatReady: () => this.emitChatReady(),
       },
     )
+
+    // Flush queued signaling messages when socket reconnects
+    this.on('signaling-connected', () => {
+      this.flushSignalingQueue()
+    })
 
     // Promote to 'connected' when any peer's RTCPeerConnection actually connects
     this.on('peer-connected', () => {
@@ -500,6 +507,7 @@ export class WebRTCClient {
   }
 
   private cleanup(): void {
+    this.signalingQueue.length = 0
     this.qualityMonitor.stop()
     this.qualityMonitor.clearState()
     this.bitrateAdapter.stopBitrateRamp()
@@ -529,26 +537,51 @@ export class WebRTCClient {
     this.warmUpPromise = null
   }
 
-  private sendSignalingMessage(message: Record<string, unknown>): void {
+  private sendSignalingMessage(message: Record<string, unknown>): boolean {
+    const messageType = typeof message.type === 'string' ? message.type : 'unknown'
+
     if (this.useSupabaseSignaling) {
       if (this.supabaseHandle.handle?.isOpen()) {
         this.supabaseHandle.handle.send(message)
-        return
+        return true
       }
-      this.logWarn('Skipped signaling message: Supabase channel not subscribed', {
-        messageType: typeof message.type === 'string' ? message.type : 'unknown',
-      })
-      return
+      if (WebRTCClient.CRITICAL_MESSAGE_TYPES.has(messageType)) {
+        this.signalingQueue.push(message)
+        this.logWarn('Queued critical signaling message: Supabase channel not subscribed', {
+          messageType, queueSize: this.signalingQueue.length,
+        })
+      } else {
+        this.logWarn('Dropped non-critical signaling message: Supabase channel not subscribed', { messageType })
+      }
+      return false
     }
 
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message))
-      return
+      return true
     }
-    this.logWarn('Skipped signaling message: socket not open', {
-      readyState: this.ws?.readyState ?? null,
-      messageType: typeof message.type === 'string' ? message.type : 'unknown',
-    })
+
+    if (WebRTCClient.CRITICAL_MESSAGE_TYPES.has(messageType)) {
+      this.signalingQueue.push(message)
+      this.logWarn('Queued critical signaling message: socket not open', {
+        readyState: this.ws?.readyState ?? null, messageType, queueSize: this.signalingQueue.length,
+      })
+    } else {
+      this.logWarn('Dropped non-critical signaling message: socket not open', {
+        readyState: this.ws?.readyState ?? null, messageType,
+      })
+    }
+    return false
+  }
+
+  private flushSignalingQueue(): void {
+    if (this.signalingQueue.length === 0) return
+    const queued = [...this.signalingQueue]
+    this.signalingQueue.length = 0
+    this.logInfo('Flushing signaling queue', { count: queued.length })
+    for (const message of queued) {
+      this.sendSignalingMessage(message)
+    }
   }
 
   private async handleSignalingMessage(message: ServerSignalingMessage): Promise<void> {
@@ -660,6 +693,9 @@ export class WebRTCClient {
       peerState.ignoreOffer = false
     } catch (error) {
       this.logError('Failed handling offer', error, { peerId: userId })
+      const negotiationError = error instanceof Error ? error : new Error('Offer negotiation failed')
+      Object.assign(negotiationError, { code: 'NEGOTIATION_FAILED', phase: 'offer', peerId: userId })
+      this.emit('error', negotiationError)
     } finally {
       peerState.isSettingRemoteAnswerPending = false
     }
@@ -675,6 +711,9 @@ export class WebRTCClient {
       await this.flushPendingIceCandidates(peerState)
     } catch (error) {
       this.logError('Failed handling answer', error, { peerId: userId })
+      const negotiationError = error instanceof Error ? error : new Error('Answer negotiation failed')
+      Object.assign(negotiationError, { code: 'NEGOTIATION_FAILED', phase: 'answer', peerId: userId })
+      this.emit('error', negotiationError)
     } finally {
       peerState.isSettingRemoteAnswerPending = false
       peerState.ignoreOffer = false
