@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /patients/
+Disallow: /doctors/
+Disallow: /companies/
+
+Sitemap: https://www.autamedica.com/sitemap-index.xml
