@@ -83,8 +83,10 @@ function mergeAdditive(
       continue
     }
 
-    // Union: all previous items plus any new ones
-    const union = [...new Set([...prevValue, ...newValue])]
+    // Union: all previous items plus any new ones.
+    // JSON.stringify handles objects (Set only deduplicates primitives).
+    const seen = new Set(prevValue.map((v) => JSON.stringify(v)))
+    const union = [...prevValue, ...newValue.filter((v) => !seen.has(JSON.stringify(v)))]
     merged[key] = union
   }
 
