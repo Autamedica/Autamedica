@@ -89,11 +89,27 @@ jobs:
       - run: pnpm build:packages:core
       - run: pnpm test:unit
 
+  rls-tests:
+    name: RLS
+    runs-on: self-hosted
+    timeout-minutes: 5
+    needs: [build-gate]
+    continue-on-error: true
+    if: ${{ vars.SUPABASE_DB_URL != '' || secrets.SUPABASE_DB_URL != '' }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Run RLS tests
+        run: |
+          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_smoke.sql
+          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_core_tables.sql
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
   ci-status:
     name: CI
     runs-on: self-hosted
     timeout-minutes: 2
-    needs: [build-gate, lint-gate, unit-tests]
+    needs: [build-gate, lint-gate, unit-tests, rls-tests]
     if: always()
     steps:
       - name: Evaluate gates
@@ -104,6 +120,7 @@ jobs:
           echo "| Build | ${{ needs.build-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| RLS | ${{ needs.rls-tests.result }} (non-blocking) |" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" ]]; then
             exit 1
           fi
