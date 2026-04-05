@@ -33,10 +33,12 @@ vi.mock('@autamedica/shared', () => ({
 
 import { profileService } from './profile.service'
 
+/** Minimal Supabase stub — adapter is fully mocked so no real DB calls occur */
 function fakeSupabase() {
-  return {} as never
+  return {} as unknown as Parameters<typeof profileService.update>[0]
 }
 
+/** Minimal admin Supabase stub with auth.admin.updateUserById */
 function fakeAdminSupabase(updateResult: { error: unknown } = { error: null }) {
   return {
     auth: {
@@ -44,7 +46,7 @@ function fakeAdminSupabase(updateResult: { error: unknown } = { error: null }) {
         updateUserById: vi.fn().mockResolvedValue(updateResult),
       },
     },
-  } as never
+  } as unknown as Parameters<typeof profileService.completeOnboarding>[1]
 }
 
 describe('profileService', () => {

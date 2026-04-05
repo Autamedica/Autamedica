@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const mockFindByPatient = vi.fn()
 const mockEnsure = vi.fn()
 const mockGetSections = vi.fn()
 const mockUpsertSection = vi.fn()
@@ -8,6 +9,7 @@ const mockUpdateMeta = vi.fn()
 
 vi.mock('@/lib/patients/lib/repos/anamnesis.adapter', () => ({
   createAnamnesisAdapter: () => ({
+    findByPatient: mockFindByPatient,
     ensure: mockEnsure,
     getSections: mockGetSections,
     upsertSection: mockUpsertSection,
@@ -28,6 +30,7 @@ vi.mock('@autamedica/shared', () => ({
 
 import { anamnesisService, KNOWN_SECTIONS } from './anamnesis.service'
 
+/** Minimal Supabase stub — only the .from('patients').select().eq().maybeSingle() path used by anamnesisService.get */
 function fakeSupabase() {
   return {
     from: () => ({
@@ -37,7 +40,7 @@ function fakeSupabase() {
         }),
       }),
     }),
-  } as never
+  } as unknown as Parameters<typeof anamnesisService.get>[0]
 }
 
 const BASE_ANAMNESIS = {
@@ -116,7 +119,7 @@ describe('anamnesisService', () => {
             }),
           }),
         }),
-      } as never
+      } as unknown as Parameters<typeof anamnesisService.get>[0]
 
       mockGetSections
         .mockResolvedValueOnce([])

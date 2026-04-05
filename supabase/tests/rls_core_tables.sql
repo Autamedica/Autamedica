@@ -1,3 +1,26 @@
+-- ============================================================================
+-- WARNING: SUPERUSER CONTEXT — NOT REAL RLS ENFORCEMENT
+-- ============================================================================
+-- These tests run as the database superuser (typically via psql with a
+-- privileged connection string). Superusers BYPASS all RLS policies, so
+-- setting request.jwt.claims alone does NOT activate row-level filtering.
+--
+-- What these tests DO validate:
+--   - Test data setup and teardown (schema compatibility)
+--   - Policy-aware query patterns (correct WHERE clauses, FK joins)
+--   - Smoke-level confidence that the expected tables/columns exist
+--
+-- What these tests do NOT validate:
+--   - Actual row filtering by RLS policies
+--   - Cross-user isolation at the database level
+--
+-- For real RLS enforcement, tests must:
+--   1. SET LOCAL ROLE authenticated;
+--   2. SET LOCAL request.jwt.claims = '{"sub":"<user-uuid>","role":"authenticated"}';
+--   3. Run queries in a transaction and ROLLBACK after assertions.
+-- See: https://supabase.com/docs/guides/auth/row-level-security#testing-policies
+-- ============================================================================
+--
 -- RLS Tests for 5 Core Tables: patients, doctors, appointments, medical_records, companies
 --
 -- Uses PL/pgSQL anonymous blocks to simulate different authenticated users
