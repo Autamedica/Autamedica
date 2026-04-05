@@ -147,12 +147,12 @@ export default function AnamnesisPage() {
   }
 
   if (pageView === 'completed') {
-    const completedSections = progress?.completed_sections ?? [];
+    const completedSections = progress?.completedSections ?? [];
     const totalSteps = anamnesisSteps.length;
     const completedCount = completedSections.length;
 
-    const completedDate = anamnesis?.completed_at
-      ? new Date(anamnesis.completed_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
+    const completedDate = anamnesis?.completedAt
+      ? new Date(anamnesis.completedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })
       : null;
 
     return (

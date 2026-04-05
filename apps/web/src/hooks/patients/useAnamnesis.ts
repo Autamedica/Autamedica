@@ -8,33 +8,33 @@ import { useCallback, useEffect, useState } from 'react';
 
 type ApiAnamnesis = {
   id: string;
-  patient_id: string;
+  patientId: string;
   status: string;
-  completion_percentage: number;
-  sections_status: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-  completed_at?: string | null;
-  privacy_accepted?: boolean;
-  terms_accepted?: boolean;
+  completionPercentage: number;
+  sectionsStatus: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+  privacyAccepted?: boolean;
+  termsAccepted?: boolean;
   locked?: boolean;
 };
 
 type ApiSection = {
   id: string;
-  anamnesis_id: string;
+  anamnesisId: string;
   section: string;
   data: Record<string, unknown>;
   completed: boolean;
-  completed_at?: string | null;
-  updated_at: string;
+  completedAt?: string | null;
+  updatedAt: string;
 };
 
 type ApiProgress = {
-  completion_percentage: number;
-  completed_sections: string[];
-  pending_sections: string[];
-  total_sections: number;
+  completionPercentage: number;
+  completedSections: string[];
+  pendingSections: string[];
+  totalSections: number;
 };
 
 interface ApiResponse {

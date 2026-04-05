@@ -189,7 +189,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
 
     const startIndex = resolveInitialStepIndex({
       patientBirthDate,
-      completedSections: progress?.completed_sections,
+      completedSections: progress?.completedSections,
     });
 
     if (startIndex > 0) {
@@ -200,15 +200,15 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
   const currentStep = anamnesisSteps[currentStepIndex] ?? null;
   const isLastStep = currentStepIndex === anamnesisSteps.length - 1;
   const isFirstStep = currentStepIndex === 0;
-  const completionPct = progress?.completion_percentage ?? 0;
-  const isRevisit = Boolean(progress?.completed_sections?.length);
+  const completionPct = progress?.completionPercentage ?? 0;
+  const isRevisit = Boolean(progress?.completedSections?.length);
 
   const isStepCarriedForward = useMemo(() => {
     if (!isRevisit || !currentStep) {
       return false;
     }
 
-    const wasCompleted = progress?.completed_sections?.includes(currentStep.id);
+    const wasCompleted = progress?.completedSections?.includes(currentStep.id);
     return Boolean(
       wasCompleted && (
         currentStep.mutability === 'carry_forward'
@@ -308,7 +308,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     setCurrentStepIndex((prev) => resolveNextWizardStepIndex({
       currentStepIndex: prev,
       isRevisit,
-      completedSections: progress?.completed_sections,
+      completedSections: progress?.completedSections,
     }));
   }, [isRevisit, progress]);
 
@@ -403,8 +403,8 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
   const handleAcceptPrivacy = useCallback(async () => {
     setSaving(true);
     await updateAnamnesis({
-      privacy_accepted: true,
-      terms_accepted: true,
+      privacyAccepted: true,
+      termsAccepted: true,
     } as Record<string, unknown>);
     setSaving(false);
   }, [updateAnamnesis]);
