@@ -151,7 +151,9 @@ export function UnifiedVideoCall({
   /* ── Extracted hooks ── */
   const isDesktopViewport = useViewportDetection()
   const { playParticipantJoinedSound, cleanupSound } = useParticipantSound()
-  const { isScreenSharing, setIsScreenSharing, screenStream, setScreenStream, toggleScreenShare } = useScreenShare(client)
+  const { isScreenSharing, setIsScreenSharing, screenStream, setScreenStream, toggleScreenShare } = useScreenShare(client, {
+    onError: setCallError,
+  })
   const { persistCallStatus } = useCallStatusPersistence({
     callId,
     callServiceOverride,

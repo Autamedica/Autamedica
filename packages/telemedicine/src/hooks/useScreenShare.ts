@@ -3,7 +3,11 @@ import { applyScreenShareHint } from '../media-optimizations'
 import type { WebRTCClient } from '../webrtc-client'
 import type { CloudflareCallsClient } from '../cloudflare-calls'
 
-export function useScreenShare(client: WebRTCClient | CloudflareCallsClient | null) {
+interface UseScreenShareOptions {
+  onError?: (message: string) => void
+}
+
+export function useScreenShare(client: WebRTCClient | CloudflareCallsClient | null, options?: UseScreenShareOptions) {
   const [isScreenSharing, setIsScreenSharing] = useState(false)
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null)
 
@@ -20,6 +24,7 @@ export function useScreenShare(client: WebRTCClient | CloudflareCallsClient | nu
     try {
       // Check getDisplayMedia support before calling (not available on most mobile browsers)
       if (!navigator.mediaDevices?.getDisplayMedia) {
+        options?.onError?.('Compartir pantalla no está disponible en este dispositivo.')
         return
       }
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })

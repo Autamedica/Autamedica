@@ -82,22 +82,18 @@ export class MediaManager {
     peerConnections: Map<string, { pc: RTCPeerConnection }>,
   ): Promise<MediaStream> {
     try {
-      // Stop previous stream tracks before acquiring new media to prevent leaks
-      if (this.localStream) {
-        this.localStream.getTracks().forEach(t => t.stop())
-        this.localStream = null
-      }
-      if (this.rawStream) {
-        this.rawStream.getTracks().forEach(t => t.stop())
-        this.rawStream = null
-      }
-
+      // Acquire the new stream BEFORE destroying the old one. This avoids a
+      // brief gap where the user has no active media (visible as a black frame
+      // or muted audio). On devices that don't allow concurrent camera access
+      // getUserMedia will internally release the old device handle, so this
+      // order is still safe — the OS resolves the conflict transparently.
+      let newStream: MediaStream
       try {
-        this.localStream = await navigator.mediaDevices.getUserMedia(constraints)
+        newStream = await navigator.mediaDevices.getUserMedia(constraints)
       } catch (mediaError) {
         if (constraints.video) {
           this.logWarn('Video getUserMedia failed in startLocalStream, falling back to audio-only', { error: mediaError })
-          this.localStream = await navigator.mediaDevices.getUserMedia({
+          newStream = await navigator.mediaDevices.getUserMedia({
             audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
             video: false,
           })
@@ -106,9 +102,18 @@ export class MediaManager {
           throw mediaError
         }
       }
+
+      // Now that we have a new stream, stop the previous one to release hardware
+      if (this.localStream) {
+        this.localStream.getTracks().forEach(t => t.stop())
+      }
+      if (this.rawStream) {
+        this.rawStream.getTracks().forEach(t => t.stop())
+      }
+
       // Apply 3-band audio filter (low: -50dB, mid: 0dB, high: 0dB)
-      this.rawStream = this.localStream
-      this.localStream = this.audioFilter.process(this.localStream)
+      this.rawStream = newStream
+      this.localStream = this.audioFilter.process(newStream)
 
       this.callbacks.emit('local-stream', this.localStream)
       const videoTrackCount = this.localStream.getVideoTracks().length
