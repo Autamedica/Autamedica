@@ -404,8 +404,8 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
   const handleAcceptPrivacy = useCallback(async () => {
     setSaving(true);
     await updateAnamnesis({
-      privacyAccepted: true,
-      termsAccepted: true,
+      privacy_accepted: true,
+      terms_accepted: true,
     } as Record<string, unknown>);
     setSaving(false);
   }, [updateAnamnesis]);
