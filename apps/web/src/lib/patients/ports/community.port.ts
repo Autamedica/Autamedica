@@ -65,4 +65,8 @@ export interface ICommunityRepository {
     },
   ): Promise<CommunityPost>
   deletePost(postId: string): Promise<void>
+  // TODO(risk): [SRP] resolveDisplayName and findDoctorSpecialty query profiles/doctors tables,
+  // not community tables. Extract to a profile adapter when community adapter consumers are stabilized.
+  resolveDisplayName(userId: string): Promise<string | null>
+  findDoctorSpecialty(doctorId: string): Promise<string | null>
 }

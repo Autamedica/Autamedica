@@ -32,35 +32,12 @@ function normalizeTags(input: string[] | undefined): string[] {
     .slice(0, 5);
 }
 
-function buildDisplayName(profile: {
-  first_name?: string | null;
-  last_name?: string | null;
-} | null): string | null {
-  if (!profile) {
-    return null;
-  }
-
-  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
-  return fullName.length > 0 ? fullName : null;
-}
-
 async function resolveAuthorDisplayName(
-  supabase: Db,
+  communityRepo: ReturnType<typeof createCommunityAdapter>,
   context: PatientCommunityContext,
 ): Promise<string | null> {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('user_id', context.userId)
-      .maybeSingle();
-
-    if (error) {
-      logger.warn('[communityService] resolveAuthorDisplayName failed', error);
-      return null;
-    }
-
-    return buildDisplayName(data);
+    return await communityRepo.resolveDisplayName(context.userId);
   } catch (error) {
     logger.warn('[communityService] resolveAuthorDisplayName threw', error);
     return null;
@@ -145,7 +122,7 @@ export const communityService = {
     const { actorId, actorIds } = resolveCommunityActor(context);
     await communityRepo.ensureMembership(actorIds, payload.groupId, actorId);
 
-    const authorDisplayName = await resolveAuthorDisplayName(supabase, context);
+    const authorDisplayName = await resolveAuthorDisplayName(communityRepo, context);
 
     return communityRepo.createPost({
       groupId: payload.groupId,
@@ -203,7 +180,7 @@ export const communityService = {
     }
 
     const { actorId } = resolveCommunityActor(context);
-    const authorDisplayName = await resolveAuthorDisplayName(supabase, context);
+    const authorDisplayName = await resolveAuthorDisplayName(communityRepo, context);
 
     return communityRepo.createComment({
       postId: payload.postId,
@@ -238,20 +215,12 @@ export const communityService = {
     let authorDisplayName: string | null = null;
     let doctorSpecialty: string | null = null;
     try {
-      const [profileResult, doctorResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('user_id', context.userId)
-          .maybeSingle(),
-        supabase
-          .from('doctors')
-          .select('specialty')
-          .eq('id', context.doctorId)
-          .maybeSingle(),
+      const [displayName, specialty] = await Promise.all([
+        communityRepo.resolveDisplayName(context.userId),
+        communityRepo.findDoctorSpecialty(context.doctorId),
       ]);
-      authorDisplayName = buildDisplayName(profileResult.data);
-      doctorSpecialty = doctorResult.data?.specialty ?? null;
+      authorDisplayName = displayName;
+      doctorSpecialty = specialty;
     } catch (error) {
       logger.warn('[communityService] createDoctorComment profile resolution failed', error);
     }

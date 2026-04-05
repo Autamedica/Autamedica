@@ -519,5 +519,41 @@ export function createCommunityAdapter(supabase: Db): ICommunityRepository {
         throw error;
       }
     },
+
+    async resolveDisplayName(userId: string): Promise<string | null> {
+      const { data, error } = await db
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        logger.warn('[communityRepo] resolveDisplayName failed', error);
+        return null;
+      }
+
+      if (!data) return null;
+      const row = data as DbRow;
+      const fullName = [asText(row.first_name), asText(row.last_name)]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      return fullName.length > 0 ? fullName : null;
+    },
+
+    async findDoctorSpecialty(doctorId: string): Promise<string | null> {
+      const { data, error } = await db
+        .from('doctors')
+        .select('specialty')
+        .eq('id', doctorId)
+        .maybeSingle();
+
+      if (error) {
+        logger.warn('[communityRepo] findDoctorSpecialty failed', error);
+        return null;
+      }
+
+      return data ? asText((data as DbRow).specialty) : null;
+    },
   };
 }

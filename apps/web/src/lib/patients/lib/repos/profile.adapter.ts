@@ -127,5 +127,23 @@ export function createProfileAdapter(supabase: Db): IProfileRepository {
         throw error
       }
     },
+
+    async findActivePatientByUserId(
+      userId: string,
+    ): Promise<{ id: string } | null> {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('active', true)
+        .maybeSingle()
+
+      if (error) {
+        logger.error('[profileRepo] findActivePatientByUserId failed', error)
+        throw error
+      }
+
+      return data ? { id: data.id } : null
+    },
   }
 }
