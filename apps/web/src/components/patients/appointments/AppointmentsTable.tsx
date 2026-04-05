@@ -129,7 +129,7 @@ export function AppointmentsTable({
                 {appointment.location && (
                   <span className="inline-flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5 text-stone-500" />
-                    {appointment.location}
+                    {typeof appointment.location === 'string' ? appointment.location : String(appointment.location)}
                   </span>
                 )}
                 {isTelemedicine && (
@@ -143,7 +143,9 @@ export function AppointmentsTable({
               {/* Notes */}
               {appointment.notes && (
                 <div className="mb-4 rounded-xl bg-stone-50 px-4 py-3">
-                  <p className="text-sm text-stone-600">{appointment.notes}</p>
+                  <p className="text-sm text-stone-600">
+                    {typeof appointment.notes === 'string' ? appointment.notes : String(appointment.notes)}
+                  </p>
                 </div>
               )}
 

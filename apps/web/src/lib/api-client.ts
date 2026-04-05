@@ -52,8 +52,8 @@ export async function fetchApi<T>(
   const json = await res.json().catch(() => null)
 
   if (!res.ok) {
-    const errorMsg =
-      json?.error?.message ?? json?.error ?? `HTTP ${res.status}`
+    const rawError = json?.error?.message ?? json?.error ?? `HTTP ${res.status}`
+    const errorMsg = typeof rawError === 'string' ? rawError : JSON.stringify(rawError)
     const errorCode = json?.error?.code ?? undefined
     logger.error(`[fetchApi] ${method} ${url} → ${res.status}:`, errorMsg)
     throw new ApiError(errorMsg, res.status, errorCode)
@@ -62,7 +62,8 @@ export async function fetchApi<T>(
   // Envelope: { success: true, data: T }
   if (json && typeof json === 'object' && 'success' in json) {
     if (!json.success) {
-      const errorMsg = json.error?.message ?? json.error ?? 'Request failed'
+      const rawError = json.error?.message ?? json.error ?? 'Request failed'
+      const errorMsg = typeof rawError === 'string' ? rawError : JSON.stringify(rawError)
       const errorCode = json.error?.code ?? undefined
       throw new ApiError(errorMsg, res.status, errorCode)
     }
