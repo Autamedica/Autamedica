@@ -1,5 +1,6 @@
 import { domainEvents, logger } from '@autamedica/shared'
 import { scheduleReminders } from '@autamedica/scheduling'
+import { toISODateString } from '@autamedica/types'
 import type { AppointmentUpdate } from '@autamedica/types'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { createPatientRepositoryAdapter } from '@/lib/doctors/lib/repos/patients'
@@ -56,15 +57,15 @@ export const doctorAppointmentsBackendService = {
     const patch: AppointmentUpdate = {}
 
     if (payload.start_time) {
-      patch.start_time = payload.start_time
+      patch.start_time = toISODateString(payload.start_time)
       const duration = payload.duration_minutes ?? 30
-      patch.end_time = computeEndTime(payload.start_time, duration)
+      patch.end_time = toISODateString(computeEndTime(payload.start_time, duration))
     }
 
     if (payload.duration_minutes !== undefined) {
       patch.duration_minutes = payload.duration_minutes
       if (payload.start_time) {
-        patch.end_time = computeEndTime(payload.start_time, payload.duration_minutes)
+        patch.end_time = toISODateString(computeEndTime(payload.start_time, payload.duration_minutes))
       }
     }
 

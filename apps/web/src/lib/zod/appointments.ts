@@ -1,12 +1,8 @@
 import { z } from 'zod'
 
-<<<<<<< HEAD
 /** Matches DB CHECK constraint: consultation, follow_up, emergency, telemedicine, lab_test */
 const AppointmentTypeEnum = z.enum(['consultation', 'follow_up', 'emergency', 'telemedicine', 'lab_test'])
 /** Matches DB CHECK constraint: scheduled, confirmed, in_progress, completed, cancelled, no_show */
-=======
-const AppointmentTypeEnum = z.enum(['consultation', 'follow_up', 'emergency', 'telemedicine', 'lab_test'])
->>>>>>> 8c1b54d85 (fix(types): consolidate appointment types and align anamnesis sections)
 const AppointmentStatusEnum = z.enum(['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show'])
 
 export const CreatePatientAppointmentSchema = z.object({

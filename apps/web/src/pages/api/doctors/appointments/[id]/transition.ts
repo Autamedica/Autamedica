@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { appointmentBackendService } from '@/lib/doctors/services/appointment.backend';
+import type { AppointmentStatus } from '@autamedica/types';
 import { createAppointmentReadAdapter } from '@/lib/doctors/lib/repos/appointments';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
@@ -35,7 +36,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
       return badRequest(`invalid_status: must be one of ${VALID_STATUSES.join(', ')}`);
     }
 
-    const updatedAppointment = await appointmentBackendService.transitionStatus(id, status);
+    const updatedAppointment = await appointmentBackendService.transitionStatus(id, status as AppointmentStatus);
     return jsonOk(updatedAppointment);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

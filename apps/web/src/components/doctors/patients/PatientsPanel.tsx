@@ -298,9 +298,9 @@ export function PatientsPanel({ doctorUserId, onSelectPatient }: PatientsPanelPr
                         {patient.gender && (
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{translateGender(patient.gender)}</Badge>
                         )}
-                        {patient.date_of_birth && (
+                        {patient.birth_date && (
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(patient.date_of_birth).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {new Date(patient.birth_date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
                           </span>
                         )}
                       </div>

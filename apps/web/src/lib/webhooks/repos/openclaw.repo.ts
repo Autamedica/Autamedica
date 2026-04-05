@@ -3,7 +3,6 @@
  * Isolates all Supabase queries from the webhook controller.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { logger } from '@autamedica/shared'
 
 type AdminClient = SupabaseClient
 

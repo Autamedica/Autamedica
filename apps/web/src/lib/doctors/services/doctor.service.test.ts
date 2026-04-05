@@ -74,7 +74,7 @@ describe('doctorService', () => {
       const result = await doctorService.getDoctorByUserId('u-1')
 
       expect(mockFetchApi).toHaveBeenCalledWith('/api/doctors/profile?userId=u-1')
-      expect(result?.firstName).toBe('Ana')
+      expect(result?.profile.first_name).toBe('Ana')
     })
 
     it('returns null when no doctor matches', async () => {

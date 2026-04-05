@@ -3,9 +3,9 @@
  * Orchestrates valid state transitions for appointments.
  * Layer 7: Use Case Layer.
  */
-import type { IAppointmentReadRepository, AppointmentView } from '@autamedica/types';
+import type { IAppointmentReadRepository, AppointmentView, AppointmentStatus } from '@autamedica/types';
 
-export type AppointmentStatus = 'scheduled' | 'confirmed' | 'in_progress' | 're_queue' | 'completed' | 'cancelled';
+type InternalStatus = AppointmentStatus | 're_queue' | 'no_show';
 
 interface TransitionAppointmentDeps {
   appointmentRepo: IAppointmentReadRepository
@@ -20,21 +20,22 @@ export class TransitionAppointmentUseCase {
       throw new Error('Appointment not found');
     }
 
-    if (!this.isValidTransition(appointment.status as AppointmentStatus, nextStatus)) {
+    if (!this.isValidTransition(appointment.status as InternalStatus, nextStatus as InternalStatus)) {
       throw new Error(`Invalid transition from ${appointment.status} to ${nextStatus}`);
     }
 
     return await this.deps.appointmentRepo.update(appointmentId, { status: nextStatus });
   }
 
-  private isValidTransition(current: AppointmentStatus, next: AppointmentStatus): boolean {
-    const transitions: Record<AppointmentStatus, AppointmentStatus[]> = {
-      scheduled: ['confirmed', 'cancelled', 'in_progress'],
-      confirmed: ['in_progress', 'cancelled'],
+  private isValidTransition(current: InternalStatus, next: InternalStatus): boolean {
+    const transitions: Record<InternalStatus, InternalStatus[]> = {
+      scheduled: ['confirmed', 'cancelled', 'in_progress', 'no_show'],
+      confirmed: ['in_progress', 'cancelled', 'no_show'],
       in_progress: ['completed', 're_queue'],
       re_queue: ['scheduled', 'cancelled'],
       completed: [],
       cancelled: [],
+      no_show: ['scheduled'],
     };
 
     return transitions[current]?.includes(next) ?? false;

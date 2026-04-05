@@ -4,7 +4,6 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Json } from '@autamedica/types'
-import { logger } from '@autamedica/shared'
 
 type AdminClient = SupabaseClient
 

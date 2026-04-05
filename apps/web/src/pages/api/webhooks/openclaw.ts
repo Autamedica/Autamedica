@@ -12,7 +12,8 @@ const WEBHOOK_SECRET = import.meta.env.OPENCLAW_WEBHOOK_SECRET ?? ''
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const
 
-function jsonOk(data: Record<string, unknown>): Response {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function jsonOk(data: Record<string, any>): Response {
   return new Response(JSON.stringify({ ok: true, ...data }), { status: 200, headers: JSON_HEADERS })
 }
 

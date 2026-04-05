@@ -3,38 +3,14 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
-import { logger } from '@autamedica/shared'
-import type { IAnamnesisRepository } from '@autamedica/types'
+import { logger, toCamel, toSnake } from '@autamedica/shared'
+import type { IAnamnesisRepository, AnamnesisEntity, AnamnesisSectionEntity } from '@autamedica/types'
 
 type Db = SupabaseClient<Database>
 
-export interface AnamnesisRecord {
-  id: string
-  patient_id: string
-  status: string
-  completion_percentage: number | null
-  sections_status: Record<string, unknown>
-  created_at: string
-  updated_at: string
-  completed_at?: string | null
-  privacy_accepted?: boolean
-  terms_accepted?: boolean
-  locked?: boolean
-}
-
-export interface AnamnesisSectionRecord {
-  id: string
-  anamnesis_id: string
-  section: string
-  data: Record<string, unknown>
-  completed: boolean
-  completed_at?: string | null
-  updated_at: string
-}
-
 export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
   const self: IAnamnesisRepository = {
-    async findByPatient(patientId: string) {
+    async findByPatient(patientId: string): Promise<AnamnesisEntity | null> {
       const { data, error } = await supabase
         .from('anamnesis')
         .select('*')
@@ -47,10 +23,10 @@ export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
         throw error
       }
 
-      return data as AnamnesisRecord | null
+      return toCamel<AnamnesisEntity | null>(data)
     },
 
-    async ensure(patientId: string) {
+    async ensure(patientId: string): Promise<AnamnesisEntity> {
       const existing = await self.findByPatient(patientId)
       if (existing) return existing
 
@@ -65,14 +41,14 @@ export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
         throw error
       }
 
-      return data as AnamnesisRecord
+      return toCamel<AnamnesisEntity>(data)
     },
 
     async updateProgress(
       anamnesisId: string,
       completionPercentage: number,
       completedSections: string[],
-    ) {
+    ): Promise<void> {
       const { error } = await supabase
         .from('anamnesis')
         .update({
@@ -90,10 +66,10 @@ export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
     async updateMeta(
       anamnesisId: string,
       updates: Record<string, unknown>,
-    ) {
+    ): Promise<AnamnesisEntity> {
       const { data, error } = await supabase
         .from('anamnesis')
-        .update(updates as never)
+        .update(toSnake(updates) as never)
         .eq('id', anamnesisId)
         .select('*')
         .single()
@@ -103,10 +79,10 @@ export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
         throw error
       }
 
-      return data as AnamnesisRecord
+      return toCamel<AnamnesisEntity>(data)
     },
 
-    async getSections(anamnesisId: string) {
+    async getSections(anamnesisId: string): Promise<AnamnesisSectionEntity[]> {
       const { data, error } = await supabase
         .from('anamnesis_sections')
         .select('*')
@@ -118,7 +94,7 @@ export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
         throw error
       }
 
-      return (data ?? []) as AnamnesisSectionRecord[]
+      return toCamel<AnamnesisSectionEntity[]>(data ?? [])
     },
 
     async upsertSection(
@@ -126,7 +102,7 @@ export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
       section: string,
       data: Record<string, unknown>,
       completed: boolean,
-    ) {
+    ): Promise<AnamnesisSectionEntity> {
       const { data: result, error } = await supabase
         .from('anamnesis_sections')
         .upsert(
@@ -148,7 +124,7 @@ export function createAnamnesisAdapter(supabase: Db): IAnamnesisRepository {
         throw error
       }
 
-      return result as AnamnesisSectionRecord
+      return toCamel<AnamnesisSectionEntity>(result)
     },
   }
 

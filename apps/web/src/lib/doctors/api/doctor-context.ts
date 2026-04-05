@@ -7,7 +7,13 @@ export interface DoctorContext {
 }
 
 interface AstroLocals {
-  session?: { user?: { id?: string; user_metadata?: Record<string, unknown> } } | null;
+  session?: {
+    user?: {
+      id?: string;
+      user_metadata?: Record<string, unknown>;
+      app_metadata?: Record<string, unknown>;
+    }
+  } | null;
   runtime?: { env?: Record<string, unknown> };
 }
 

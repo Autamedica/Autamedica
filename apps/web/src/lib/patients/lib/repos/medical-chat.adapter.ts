@@ -49,7 +49,7 @@ export function createMedicalChatAdapter(supabase: Db): IMedicalChatRepository {
         throw error
       }
 
-      return (data ?? []) as MedicalChatRowWithRelations[]
+      return (data as unknown as MedicalChatRowWithRelations[] ?? [])
     },
 
     async createChat(data: MedicalChatInsert): Promise<{ id: string }> {

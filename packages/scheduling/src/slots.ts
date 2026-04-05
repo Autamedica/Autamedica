@@ -35,8 +35,8 @@ function resolveOffset(timezone?: string | null): string {
     // Format: "GMT-3" or "GMT+5:30" → normalize to "-03:00" or "+05:30"
     const match = tzPart.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
     if (!match) return ART_OFFSET;
-    const sign = match[1];
-    const hours = match[2].padStart(2, '0');
+    const sign = match[1] ?? '-';
+    const hours = (match[2] ?? '00').padStart(2, '0');
     const minutes = match[3] ?? '00';
     return `${sign}${hours}:${minutes}`;
   } catch {
