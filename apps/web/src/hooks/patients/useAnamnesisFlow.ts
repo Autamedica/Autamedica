@@ -7,6 +7,7 @@ import { usePatientSession } from '@/hooks/patients/usePatientSession';
 import { useAnamnesis } from '@/hooks/patients/useAnamnesis';
 import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance';
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps';
+import { anamnesisPdfService } from '@/lib/patients/services/anamnesis-pdf.service';
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis';
 import {
   buildAnalysisResult,
@@ -280,25 +281,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     setSaveError(null);
 
     try {
-      const url = versionNumber
-        ? `/api/patients/anamnesis/pdf?version=${versionNumber}`
-        : '/api/patients/anamnesis/pdf';
-      const response = await fetch(url, { credentials: 'include' });
-      if (!response.ok) {
-        throw new Error('PDF download failed');
-      }
-
-      const blob = await response.blob();
-      const filename = response.headers.get('Content-Disposition')
-        ?.match(/filename="(.+)"/)?.[1] ?? 'historia-clinica.pdf';
-      const blobUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = blobUrl;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(blobUrl);
+      await anamnesisPdfService.downloadPdf(versionNumber);
     } catch {
       setSaveError('No se pudo descargar el PDF');
     } finally {
@@ -463,12 +446,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
         await updateSection(section as AnamnesisSection, fields).catch(() => {});
       }
 
-      await fetch('/api/patients/anamnesis/versions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ notes: 'Actualización por conversación de voz con IA' }),
-      }).catch(() => {});
+      await anamnesisPdfService.createVersion('Actualización por conversación de voz con IA').catch(() => {});
     }
 
     setShowVoiceChat(false);
