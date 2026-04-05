@@ -409,7 +409,7 @@ export default function CommunityPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-am-surface-50">
-        <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="flex min-h-[50vh] sm:min-h-[70vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
         </div>
         

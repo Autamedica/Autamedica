@@ -112,7 +112,7 @@ export function CollapsibleSidebar() {
   return (
     <aside
       className={`relative flex flex-col border-r border-stone-200 bg-white py-6 shadow-sm transition-all duration-300 ${
-        isCollapsed ? 'w-[64px]' : 'w-[240px]'
+        isCollapsed ? 'w-[64px]' : 'w-60'
       }`}
     >
       <button

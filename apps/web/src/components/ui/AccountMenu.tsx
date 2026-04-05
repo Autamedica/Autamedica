@@ -76,7 +76,7 @@ export default function AccountMenu({ locale }: { locale?: Locale }) {
   }, []);
 
   return (
-    <div ref={dropdownRef} className="relative z-[1000]">
+    <div ref={dropdownRef} className="relative z-50">
       <button
         ref={buttonRef}
         onClick={() => setDropdownOpen((open) => !open)}
@@ -112,7 +112,7 @@ export default function AccountMenu({ locale }: { locale?: Locale }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute right-0 top-[calc(100%+0.8rem)] min-w-[360px] origin-top-right rounded-3xl border border-white/10 bg-zinc-950/85 shadow-am-glass-dark backdrop-blur-2xl ring-1 ring-white/5"
+            className="absolute right-0 top-[calc(100%+0.8rem)] min-w-[280px] sm:min-w-[360px] origin-top-right rounded-3xl border border-white/10 bg-zinc-950/85 shadow-am-glass-dark backdrop-blur-2xl ring-1 ring-white/5"
           >
             <div className="px-6 pb-3 pt-6">
               <h3 className="text-xs font-bold tracking-[0.15em] text-zinc-500 uppercase">
