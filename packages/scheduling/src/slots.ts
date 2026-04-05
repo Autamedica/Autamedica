@@ -20,27 +20,28 @@ import type { SupabaseLike } from './supabase';
 const ART_OFFSET = '-03:00';
 
 /**
- * Map common IANA timezone IDs to fixed UTC offsets.
- * Argentina doesn't observe DST, so a static map works.
- * For regions with DST, a proper library (e.g. Temporal, Luxon) would be needed.
+ * Resolve the current UTC offset for any IANA timezone using Intl.
+ * Handles DST automatically (e.g. America/New_York → -05:00 or -04:00).
  */
-const TIMEZONE_OFFSETS: Record<string, string> = {
-  'America/Argentina/Buenos_Aires': '-03:00',
-  'America/Argentina/Cordoba': '-03:00',
-  'America/Argentina/Mendoza': '-03:00',
-  'America/Montevideo': '-03:00',
-  'America/Sao_Paulo': '-03:00',
-  'America/Santiago': '-04:00',
-  'America/Bogota': '-05:00',
-  'America/Lima': '-05:00',
-  'America/Mexico_City': '-06:00',
-  'America/New_York': '-05:00',
-  'UTC': '+00:00',
-};
-
 function resolveOffset(timezone?: string | null): string {
-  if (!timezone) return ART_OFFSET;
-  return TIMEZONE_OFFSETS[timezone] ?? ART_OFFSET;
+  if (!timezone || timezone === 'UTC') return timezone === 'UTC' ? '+00:00' : ART_OFFSET;
+  try {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(now);
+    const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+    // Format: "GMT-3" or "GMT+5:30" → normalize to "-03:00" or "+05:30"
+    const match = tzPart.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if (!match) return ART_OFFSET;
+    const sign = match[1];
+    const hours = match[2].padStart(2, '0');
+    const minutes = match[3] ?? '00';
+    return `${sign}${hours}:${minutes}`;
+  } catch {
+    return ART_OFFSET;
+  }
 }
 
 /**

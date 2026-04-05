@@ -59,7 +59,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       doctor_id: doctorId as UUID,
       date_from: dateFrom,
       date_to: dateTo,
-      timezone: (doctor as { timezone?: string }).timezone,
+      timezone: 'timezone' in doctor ? (doctor.timezone as string) : undefined,
     })
 
     return jsonOk({
