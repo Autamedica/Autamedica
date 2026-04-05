@@ -1,218 +1,241 @@
 # API Reference
 
-> Auto-generated from `apps/web/src/pages/api/`. All endpoints are Astro API routes
-> deployed to Cloudflare Pages. Auth is enforced via Supabase session cookies
-> (`withAuth` / `resolvePatientContext` / `resolveDoctorContext`).
+> Auto-generated from `apps/web/src/pages/api/` and `supabase/functions/`.
 
-## Auth & Session
+## Authentication Patterns
 
-| Method  | Path                | Auth           | Description                                                                  |
-| ------- | ------------------- | -------------- | ---------------------------------------------------------------------------- |
-| GET     | `/api/auth/me`      | Session        | Returns authenticated user with profile, role, and linked doctor/patient IDs |
-| GET     | `/api/session-sync` | Session (CORS) | Validates active session for cross-subdomain portals. Returns session + user |
-| OPTIONS | `/api/session-sync` | None           | CORS preflight for session-sync                                              |
+| Pattern | Where used | Mechanism |
+|---------|-----------|-----------|
+| Session cookie | Patient and doctor portal endpoints | Supabase SSR session via `resolvePatientContext` / `resolveDoctorContext` / `withAuth` |
+| Bearer token (JWT) | Edge functions (`create-call`, `update-call-status`, `ingest-patient-observation`) | `Authorization: Bearer <supabase_jwt>` |
+| CRON_SECRET | Scheduled edge functions (`send-push-notification`) | `Authorization: Bearer <CRON_SECRET>` |
+| Webhook secret | Webhook endpoints (`openclaw`) | `Authorization: Bearer <OPENCLAW_WEBHOOK_SECRET>` |
 
-## Call Infrastructure
+All session-authenticated endpoints return `401 Unauthorized` when no valid session is present.
+Doctor endpoints additionally verify the caller holds the `doctor` role via `resolveDoctorContext`.
 
-| Method | Path                            | Auth    | Description                                                        |
-| ------ | ------------------------------- | ------- | ------------------------------------------------------------------ |
-| POST   | `/api/calls/[callId]/status`    | Session | Update call status (`connecting`, `connected`, `ended`)            |
-| GET    | `/api/calls/[roomId]/bootstrap` | Session | Bootstrap call session data for a room (participants, TURN, state) |
+---
 
-## Doctor Endpoints
+## Auth Endpoints (`/api/auth/`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/auth/me` | Session cookie | Returns the authenticated user with profile data, role, and metadata |
+
+## Session Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/session-sync` | Session cookie | Returns the active session for cross-portal verification (CORS-restricted to `*.autamedica.com`) |
+| OPTIONS | `/api/session-sync` | None | CORS preflight handler |
+
+---
+
+## Doctor Endpoints (`/api/doctors/`)
 
 ### Appointments
 
-| Method | Path                                        | Auth   | Description                                                                             |
-| ------ | ------------------------------------------- | ------ | --------------------------------------------------------------------------------------- |
-| GET    | `/api/doctors/appointments`                 | Doctor | List all appointments for the authenticated doctor                                      |
-| POST   | `/api/doctors/appointments`                 | Doctor | Create a new appointment (requires `patient_id`, `scheduled_at`)                        |
-| PATCH  | `/api/doctors/appointments/[id]`            | Doctor | Update appointment fields (time, type, notes, location, duration)                       |
-| POST   | `/api/doctors/appointments/[id]/transition` | Doctor | Transition appointment status (scheduled, confirmed, in_progress, completed, cancelled) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/doctors/appointments` | Doctor session | List all appointments for the authenticated doctor |
+| POST | `/api/doctors/appointments` | Doctor session | Create a new appointment (requires `patient_id`, `scheduled_at`) |
+| PATCH | `/api/doctors/appointments/:id` | Doctor session | Update an existing appointment (schedule, duration, type, notes, location) |
+| POST | `/api/doctors/appointments/:id/transition` | Doctor session | Transition appointment status (`scheduled`, `confirmed`, `in_progress`, `re_queue`, `completed`, `cancelled`) |
 
-### Calls
+### Calls (Telemedicine)
 
-| Method | Path                                 | Auth   | Description                                                                 |
-| ------ | ------------------------------------ | ------ | --------------------------------------------------------------------------- |
-| POST   | `/api/doctors/calls/start`           | Doctor | Start a teleconsultation with a patient (creates call session + room)       |
-| POST   | `/api/doctors/calls/[callId]/accept` | Doctor | Accept an incoming call                                                     |
-| POST   | `/api/doctors/calls/[callId]/cancel` | Doctor | Cancel a call with optional reason (`doctor_canceled`, `no_answer_timeout`) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/doctors/calls/start` | Session cookie | Start a teleconsultation with a patient (creates call session via use case) |
+| POST | `/api/doctors/calls/:callId/accept` | Session cookie | Accept an incoming call |
+| POST | `/api/doctors/calls/:callId/cancel` | Session cookie | Cancel a call (reasons: `doctor_canceled`, `no_answer_timeout`) |
+| POST | `/api/doctors/cloudflare-calls` | Session cookie | Proxy to Cloudflare Calls API for WebRTC session management |
+| GET | `/api/doctors/turn-credentials` | Session cookie | Fetch TURN server credentials for WebRTC connectivity |
 
 ### Consultations
 
-| Method | Path                                                | Auth   | Description                                                                   |
-| ------ | --------------------------------------------------- | ------ | ----------------------------------------------------------------------------- |
-| GET    | `/api/doctors/consultations/[roomId]/context`       | Doctor | Get patient context for an active consultation (history, vitals, medications) |
-| PATCH  | `/api/doctors/consultations/[roomId]/report`        | Doctor | Update or save consultation report content                                    |
-| POST   | `/api/doctors/consultations/[roomId]/report`        | Doctor | Generate AI-assisted consultation report                                      |
-| POST   | `/api/doctors/consultations/[roomId]/transcription` | Doctor | Save consultation transcription segments                                      |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/doctors/consultations/:roomId/context` | Session cookie | Fetch patient context for an active consultation (history, vitals, meds) |
+| PATCH | `/api/doctors/consultations/:roomId/report` | Session cookie | Update consultation report content and doctor notes |
+| POST | `/api/doctors/consultations/:roomId/report` | Session cookie | Generate and save AI-assisted consultation report |
+| POST | `/api/doctors/consultations/:roomId/transcription` | Session cookie | Save call transcription segments |
 
-### Patients (Doctor View)
+### Patients (Doctor view)
 
-| Method | Path                                          | Auth         | Description                                                       |
-| ------ | --------------------------------------------- | ------------ | ----------------------------------------------------------------- |
-| GET    | `/api/doctors/patients`                       | Doctor/Admin | List patients assigned to the doctor (admin: all active patients) |
-| POST   | `/api/doctors/patients/names`                 | Doctor       | Batch resolve patient display names from IDs (max 100)            |
-| GET    | `/api/doctors/patients/[patientId]/anamnesis` | Doctor       | Get patient anamnesis with summary and export HTML                |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/doctors/patients` | Doctor or admin session | List assigned patients (doctor) or all active patients (admin) |
+| POST | `/api/doctors/patients/names` | Doctor session | Batch-resolve patient display names by IDs (max 100) |
+| GET | `/api/doctors/patients/:patientId/anamnesis` | Session cookie | Fetch a patient's anamnesis with HTML export and summary |
+
+### Profile and Onboarding
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/doctors/profile` | Session cookie | Fetch doctor profile by `userId`, `id`, `specialty`, or list all active doctors |
+| POST | `/api/doctors/onboarding-complete` | Session cookie | Mark doctor onboarding as complete, update profile name |
 
 ### Medical Records
 
-| Method | Path                           | Auth   | Description                                                                               |
-| ------ | ------------------------------ | ------ | ----------------------------------------------------------------------------------------- |
-| GET    | `/api/doctors/medical-records` | Doctor | Query patient medical records with filters (type, date range, diagnosis text, pagination) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/doctors/medical-records` | Session cookie | Query patient medical records with filters (`patientId` required; optional: `type`, `dateFrom`, `dateTo`, `diagnosisContains`, pagination) |
 
 ### Community
 
-| Method | Path                                         | Auth    | Description                                                  |
-| ------ | -------------------------------------------- | ------- | ------------------------------------------------------------ |
-| GET    | `/api/doctors/community/leaderboard`         | Session | Get community leaderboard with doctor rankings               |
-| GET    | `/api/doctors/community/posts`               | Doctor  | List community posts (sort by recent or popular, limit 1-50) |
-| POST   | `/api/doctors/community/posts`               | Doctor  | Create a community post                                      |
-| GET    | `/api/doctors/community/posts/[id]/comments` | Doctor  | List comments on a community post                            |
-| POST   | `/api/doctors/community/posts/[id]/comments` | Doctor  | Add a comment to a community post                            |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/doctors/community/leaderboard` | Session cookie | Fetch the community leaderboard (doctor rankings) |
+| GET | `/api/doctors/community/posts` | Doctor session | List community posts (supports `limit`, `sort_by=recent\|popular`) |
+| GET | `/api/doctors/community/posts/:id/comments` | Doctor session | List comments on a community post |
+| POST | `/api/doctors/community/posts/:id/comments` | Doctor session | Add a comment to a community post |
 
-### Profile & Onboarding
+### Ranking
 
-| Method | Path                               | Auth    | Description                                                              |
-| ------ | ---------------------------------- | ------- | ------------------------------------------------------------------------ |
-| GET    | `/api/doctors/profile`             | Doctor  | Get doctor profile(s) by `userId`, `id`, `specialty`, or list all active |
-| GET    | `/api/doctors/ranking`             | Session | Get doctor ranking leaderboard with metrics and badges                   |
-| POST   | `/api/doctors/onboarding-complete` | Doctor  | Mark doctor onboarding as complete (sets profile timestamps)             |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/doctors/ranking` | Session cookie | Fetch doctor ranking/leaderboard for the authenticated doctor |
 
-### Telemedicine Infrastructure
+---
 
-| Method | Path                            | Auth    | Description                                                 |
-| ------ | ------------------------------- | ------- | ----------------------------------------------------------- |
-| POST   | `/api/doctors/cloudflare-calls` | Session | Proxy to Cloudflare Calls API for WebRTC session management |
-| GET    | `/api/doctors/turn-credentials` | Session | Get TURN server credentials (Cloudflare, TTL-based)         |
-
-### Public Profiles
-
-| Method | Path                    | Auth   | Description                                                |
-| ------ | ----------------------- | ------ | ---------------------------------------------------------- |
-| POST   | `/api/profiles/doctors` | Doctor | Create or update doctor profile with availability schedule |
-
-## Patient Endpoints
+## Patient Endpoints (`/api/patients/`)
 
 ### Anamnesis
 
-| Method | Path                                  | Auth    | Description                                                                      |
-| ------ | ------------------------------------- | ------- | -------------------------------------------------------------------------------- |
-| GET    | `/api/patients/anamnesis`             | Patient | Get current anamnesis snapshot for the patient                                   |
-| POST   | `/api/patients/anamnesis`             | Patient | Save an anamnesis section (validated via Zod schema)                             |
-| PATCH  | `/api/patients/anamnesis`             | Patient | Update anamnesis metadata                                                        |
-| POST   | `/api/patients/anamnesis/ai-question` | Patient | Generate AI follow-up questions from chief complaint (rate limited: 5/day)       |
-| POST   | `/api/patients/anamnesis/chat`        | Patient | Process conversational anamnesis chat message                                    |
-| POST   | `/api/patients/anamnesis/extract`     | Patient | Trigger AI extraction of clinical entities from anamnesis (rate limited: 10/day) |
-| GET    | `/api/patients/anamnesis/live-token`  | Patient | Get Gemini Live session config for voice anamnesis (rate limited: 3/hour)        |
-| POST   | `/api/patients/anamnesis/live-token`  | Patient | Same as GET, accepts POST for body params                                        |
-| POST   | `/api/patients/anamnesis/live-relay`  | Patient | Stateless Gemini conversation relay for voice anamnesis                          |
-| GET    | `/api/patients/anamnesis/pdf`         | Patient | Download anamnesis as PDF (optional `?version=N` for specific version)           |
-| GET    | `/api/patients/anamnesis/versions`    | Patient | List all anamnesis versions (history)                                            |
-| POST   | `/api/patients/anamnesis/versions`    | Patient | Create a new anamnesis version (manual update)                                   |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/anamnesis` | Patient session | Fetch the patient's current anamnesis snapshot |
+| POST | `/api/patients/anamnesis` | Patient session | Save a single anamnesis section (`stepId`, `data`, `completed`) |
+| PATCH | `/api/patients/anamnesis` | Patient session | Update anamnesis metadata (mode, filling preferences) |
+| POST | `/api/patients/anamnesis/ai-question` | Patient session | AI-generated follow-up questions from chief complaint (rate-limited: 5/day) |
+| POST | `/api/patients/anamnesis/chat` | Patient session | Conversational anamnesis turn (message + history + checkpoint) |
+| POST | `/api/patients/anamnesis/extract` | Patient session | Trigger AI extraction of clinical entities from conversation (rate-limited: 10/day) |
+| GET | `/api/patients/anamnesis/live-token` | Patient session | Get Gemini Live WebSocket URL and session config (rate-limited: 3/hour) |
+| POST | `/api/patients/anamnesis/live-token` | Patient session | Same as GET with request body for checkpoint context |
+| POST | `/api/patients/anamnesis/live-relay` | Patient session | Stateless Gemini conversation relay for voice anamnesis |
+| GET | `/api/patients/anamnesis/pdf` | Patient session | Download anamnesis as PDF (optional `?version=N` for specific snapshot) |
+| GET | `/api/patients/anamnesis/versions` | Patient session | List all anamnesis versions (history timeline) |
+| POST | `/api/patients/anamnesis/versions` | Patient session | Create a new anamnesis version (manual update trigger) |
 
 ### Appointments
 
-| Method | Path                                   | Auth    | Description                                                                    |
-| ------ | -------------------------------------- | ------- | ------------------------------------------------------------------------------ |
-| GET    | `/api/patients/appointments`           | Patient | List all appointments for the patient                                          |
-| POST   | `/api/patients/appointments`           | Patient | Create a new appointment (validated via Zod schema)                            |
-| GET    | `/api/patients/appointments/[id]`      | Patient | Get a specific appointment by ID                                               |
-| PATCH  | `/api/patients/appointments/[id]`      | Patient | Update appointment (status, type, notes)                                       |
-| POST   | `/api/patients/appointments/[id]/join` | Patient | Join a telemedicine appointment (finds or creates call, validates time window) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/appointments` | Patient session | List all appointments for the authenticated patient |
+| POST | `/api/patients/appointments` | Patient session | Book a new appointment (validated via Zod schema) |
+| GET | `/api/patients/appointments/:id` | Patient session | Fetch a single appointment by ID |
+| PATCH | `/api/patients/appointments/:id` | Patient session | Update an appointment (reschedule, cancel) |
+| POST | `/api/patients/appointments/:id/join` | Patient session | Join a teleconsultation for a scheduled appointment (validates time window) |
 
-### Calls
+### Calls (Telemedicine)
 
-| Method | Path                             | Auth    | Description                                                 |
-| ------ | -------------------------------- | ------- | ----------------------------------------------------------- |
-| POST   | `/api/patients/calls/respond`    | Patient | Respond to incoming call (`accept` or `decline`)            |
-| POST   | `/api/patients/cloudflare-calls` | Session | Proxy to Cloudflare Calls API for WebRTC session management |
-| GET    | `/api/patients/turn-credentials` | Session | Get TURN server credentials                                 |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/patients/calls/respond` | Session cookie | Respond to an incoming call (`accept` or `decline`) |
+| POST | `/api/patients/cloudflare-calls` | Session cookie | Proxy to Cloudflare Calls API for WebRTC session management |
+| GET | `/api/patients/turn-credentials` | Session cookie | Fetch TURN server credentials for WebRTC connectivity |
 
 ### Community
 
-| Method | Path                                              | Auth    | Description                                                   |
-| ------ | ------------------------------------------------- | ------- | ------------------------------------------------------------- |
-| GET    | `/api/patients/community`                         | Patient | Get community overview (posts with sort, limit, group filter) |
-| GET    | `/api/patients/community/posts/[id]/comments`     | Patient | List comments on a post                                       |
-| POST   | `/api/patients/community/posts/[id]/comments`     | Patient | Add a comment to a post                                       |
-| PATCH  | `/api/patients/community/posts/[id]`              | Patient | Update a community post                                       |
-| POST   | `/api/patients/community/posts/[id]/reactions`    | Patient | Add reaction to a post (default: `like`)                      |
-| POST   | `/api/patients/community/comments/[id]/reactions` | Patient | Add reaction to a comment                                     |
-| POST   | `/api/patients/community/posts`                   | Patient | Create a community post                                       |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/community` | Patient session | Get community overview (posts feed with sorting and filtering) |
+| POST | `/api/patients/community/posts` | Patient session | Create a new community post |
+| PATCH | `/api/patients/community/posts/:id` | Patient session | Update own community post |
+| DELETE | `/api/patients/community/posts/:id` | Patient session | Delete own community post |
+| GET | `/api/patients/community/posts/:id/comments` | Patient session | List comments on a post |
+| POST | `/api/patients/community/posts/:id/comments` | Patient session | Add a comment to a post |
+| POST | `/api/patients/community/posts/:id/reactions` | Patient session | Add a reaction to a post (default: `like`) |
+| POST | `/api/patients/community/comments/:id/reactions` | Patient session | Add a reaction to a comment |
 
-### Doctors (Patient View)
+### Doctors (Patient view)
 
-| Method | Path                               | Auth    | Description                                                                     |
-| ------ | ---------------------------------- | ------- | ------------------------------------------------------------------------------- |
-| GET    | `/api/patients/doctors`            | Patient | List all active doctors on the platform                                         |
-| GET    | `/api/patients/doctors/[id]/slots` | Session | Get available appointment slots for a doctor (`?from=YYYY-MM-DD&to=YYYY-MM-DD`) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/doctors` | Patient session | List all active doctors available for booking |
+| GET | `/api/patients/doctors/:id/slots` | Session cookie | Get open appointment slots for a doctor (requires `from` and `to` dates in `YYYY-MM-DD`) |
 
 ### Medical History
 
-| Method | Path                                        | Auth    | Description                                                            |
-| ------ | ------------------------------------------- | ------- | ---------------------------------------------------------------------- |
-| GET    | `/api/patients/medical-history`             | Patient | Get full medical history (conditions, allergies, medications, records) |
-| POST   | `/api/patients/medical-history/allergies`   | Patient | Add an allergy record                                                  |
-| POST   | `/api/patients/medical-history/conditions`  | Patient | Add a medical condition                                                |
-| POST   | `/api/patients/medical-history/medications` | Patient | Add a medication record                                                |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/medical-history` | Patient session | Fetch full medical history (conditions, allergies, medications) |
+| POST | `/api/patients/medical-history/allergies` | Patient session | Add an allergy record |
+| POST | `/api/patients/medical-history/conditions` | Patient session | Add a medical condition record |
+| POST | `/api/patients/medical-history/medications` | Patient session | Add a medication record |
 
 ### Notifications
 
-| Method | Path                                    | Auth    | Description                           |
-| ------ | --------------------------------------- | ------- | ------------------------------------- |
-| GET    | `/api/patients/notifications`           | Patient | Get notification feed for the patient |
-| POST   | `/api/patients/notifications/[id]/read` | Patient | Mark a single notification as read    |
-| POST   | `/api/patients/notifications/read-all`  | Patient | Mark all notifications as read        |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/notifications` | Patient session | Fetch the patient's notification feed |
+| POST | `/api/patients/notifications/:id/read` | Patient session | Mark a single notification as read |
+| POST | `/api/patients/notifications/read-all` | Patient session | Mark all notifications as read |
 
-### Profile
+### Profile and Onboarding
 
-| Method | Path                                        | Auth    | Description                                         |
-| ------ | ------------------------------------------- | ------- | --------------------------------------------------- |
-| PATCH  | `/api/patients/profile`                     | Patient | Update patient profile and/or patient record fields |
-| POST   | `/api/patients/profile/ensure`              | Patient | Ensure profile + patient records exist (idempotent) |
-| POST   | `/api/patients/profile/onboarding-complete` | Patient | Mark patient onboarding as complete                 |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/patients/profile/ensure` | Session cookie | Ensure profile and patient records exist (idempotent) |
+| PATCH | `/api/patients/profile` | Session cookie | Update patient profile fields |
+| POST | `/api/patients/profile/onboarding-complete` | Session cookie | Mark patient onboarding as complete |
 
 ### Reports
 
-| Method | Path                             | Auth    | Description                                    |
-| ------ | -------------------------------- | ------- | ---------------------------------------------- |
-| GET    | `/api/patients/reports`          | Patient | List consultation reports for the patient      |
-| GET    | `/api/patients/reports/[id]/pdf` | Patient | Download a specific consultation report as PDF |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/reports` | Patient session | List consultation reports for the authenticated patient |
+| GET | `/api/patients/reports/:id/pdf` | Patient session | Download a consultation report as PDF |
 
 ### Reviews
 
-| Method | Path                    | Auth    | Description                                                 |
-| ------ | ----------------------- | ------- | ----------------------------------------------------------- |
-| POST   | `/api/patients/reviews` | Patient | Submit a doctor review (rating 1-5 with optional breakdown) |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/patients/reviews` | Patient session | List appointment IDs the patient has already reviewed |
+| POST | `/api/patients/reviews` | Patient session | Submit a doctor review (ratings 1-5 across multiple dimensions, optional comment) |
 
-## Admin Endpoints
+---
 
-| Method | Path                            | Auth  | Description                       |
-| ------ | ------------------------------- | ----- | --------------------------------- |
-| GET    | `/api/admin/telemedicine-stats` | Admin | Get telemedicine usage statistics |
+## Shared Endpoints
 
-## Webhooks
+### Calls (Role-agnostic)
 
-| Method  | Path                     | Auth         | Description                                                                                                              |
-| ------- | ------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| POST    | `/api/webhooks/openclaw` | Bearer token | Receive patient responses from OpenClaw (WhatsApp/Telegram). Handles confirmation, cancellation, and waitlist acceptance |
-| OPTIONS | `/api/webhooks/openclaw` | None         | CORS preflight                                                                                                           |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/calls/:callId/status` | Session cookie | Update call status (`connecting`, `connected`, `ended`) with optional reason |
+| GET | `/api/calls/:roomId/bootstrap` | Session cookie | Bootstrap call session data for a room (participant info, TURN, call state) |
 
-## Supabase Edge Functions
+### Profiles
 
-| Function                     | Trigger                 | Description                                                                                                    |
-| ---------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `create-call`                | RPC (POST)              | Creates a telemedicine call session in DB with room ID and participant records                                 |
-| `update-call-status`         | RPC (POST)              | Updates call status (`connecting`, `connected`, `ended`) with timestamp tracking                               |
-| `ingest-patient-observation` | RPC (POST)              | Ingests patient observations (vital signs, medications, symptoms, lab results) with automatic alert generation |
-| `process-reminders`          | Cron (every minute)     | Processes pending appointment reminders via OpenClaw (WhatsApp). Also expires stale waitlist offers            |
-| `send-push-notification`     | RPC (POST, cron-secret) | Sends FCM push notifications to a user by looking up their device token                                        |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/profiles/doctors` | Session cookie | Complete doctor profile setup (availability schedule, specialties) |
 
-## Auth Patterns
+---
 
-- **Session**: Supabase session cookie validated via `withAuth(request)` or middleware `locals.session`.
-- **Doctor**: Session + role verification via `resolveDoctorContext()` (checks `user_metadata.role === 'doctor'` and resolves `doctorId`).
-- **Patient**: Session + patient context via `resolvePatientContext()` (resolves `patientId` from user).
-- **Admin**: Session + admin role verified via service-level check.
-- **Bearer token**: Server-to-server auth via `Authorization: Bearer <secret>` header (webhooks, cron).
+## Admin Endpoints (`/api/admin/`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/admin/telemedicine-stats` | Admin session | Fetch platform-wide telemedicine statistics (verified admin only) |
+
+---
+
+## Webhooks (`/api/webhooks/`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/webhooks/openclaw` | Bearer token (`OPENCLAW_WEBHOOK_SECRET`) | Receive patient responses from OpenClaw (WhatsApp/Telegram). Parses `CONFIRMO`/`CANCELO`/`ACEPTO` and updates appointment status |
+
+---
+
+## Edge Functions (`supabase/functions/`)
+
+| Function | Auth | Description |
+|----------|------|-------------|
+| `create-call` | Bearer JWT | Create a telemedicine call session via Supabase RPC (requires `doctorId`, `patientId`, optional `appointmentId`) |
+| `update-call-status` | Bearer JWT | Update call status (`callId`, `status`, optional `reason`) |
+| `ingest-patient-observation` | Bearer JWT | Ingest patient health observations (vital signs, medications, symptoms, lab results) with automatic alert generation |
+| `process-reminders` | Service role / CRON | Process pending appointment reminders via OpenClaw (WhatsApp). Designed for `pg_cron` invocation every minute. Also expires stale waitlist offers |
+| `send-push-notification` | CRON_SECRET | Send push notifications to a specific user (`userId`, `title`, `body`, optional `data`) |
