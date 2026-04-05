@@ -36,6 +36,7 @@ interface ResolvePageViewInput {
 interface ResolveInitialStepIndexInput {
   patientBirthDate: string | null;
   completedSections?: string[] | null;
+  isRevisit?: boolean;
 }
 
 interface ResolveNextWizardStepIndexInput {
@@ -97,7 +98,7 @@ export function buildInitialFormData(
 export function resolveInitialStepIndex(
   input: ResolveInitialStepIndexInput,
 ): number {
-  const { patientBirthDate, completedSections } = input;
+  const { patientBirthDate, completedSections, isRevisit } = input;
   let startIndex = 0;
 
   if (patientBirthDate && anamnesisSteps[0]?.id === 'edad') {
@@ -105,12 +106,23 @@ export function resolveInitialStepIndex(
   }
 
   if (completedSections?.length) {
-    const firstIncomplete = anamnesisSteps.findIndex(
-      (step) => !completedSections.includes(step.id),
+    const firstNeedingAttention = anamnesisSteps.findIndex(
+      (step, index) => {
+        if (index < startIndex) return false;
+        if (!completedSections.includes(step.id)) return true;
+
+        // On revisit, stop at sections that need user confirmation
+        if (isRevisit) {
+          return step.mutability === 'confirm_on_revisit'
+            || step.mutability === 'carry_forward_additive';
+        }
+
+        return false;
+      },
     );
 
-    if (firstIncomplete > startIndex) {
-      startIndex = firstIncomplete;
+    if (firstNeedingAttention > startIndex) {
+      startIndex = firstNeedingAttention;
     }
   }
 
@@ -136,6 +148,21 @@ export function resolveNextWizardStepIndex(
   }
 
   return target;
+}
+
+export function validateRequiredFields(
+  stepData: Record<string, AnamnesisFieldValue>,
+  visibleFields: typeof anamnesisSteps[number]['fields'],
+): string[] {
+  return visibleFields
+    .filter((field) => {
+      if (!field.required) return false;
+      const value = stepData[field.id];
+      if (value == null || value === '') return true;
+      if (Array.isArray(value) && value.length === 0) return true;
+      return false;
+    })
+    .map((field) => field.label);
 }
 
 export function buildAnalysisResult(
