@@ -222,8 +222,8 @@ export function usePatientProfilePage(
   const missingFields = useMemo(() => buildMissingFields(form), [form]);
   const bmi = useMemo(() => computeBmi(form.heightCm, form.weightKg), [form.heightCm, form.weightKg]);
   const genderLabel = useMemo(() => getGenderLabel(form.gender), [form.gender]);
-  const anamnesisCompletion = anamnesis.progress?.completion_percentage ?? 0;
-  const pendingAnamnesisSections = anamnesis.progress?.pending_sections ?? [];
+  const anamnesisCompletion = anamnesis.progress?.completionPercentage ?? 0;
+  const pendingAnamnesisSections = anamnesis.progress?.pendingSections ?? [];
   const upcomingAppointment = useMemo(() => {
     if (appointments.appointments.length === 0) {
       return null;

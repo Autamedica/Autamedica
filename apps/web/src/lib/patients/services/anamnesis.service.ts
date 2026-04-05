@@ -32,10 +32,10 @@ export const KNOWN_SECTIONS = [
 ] as const
 
 export interface AnamnesisProgress {
-  completion_percentage: number
-  completed_sections: string[]
-  pending_sections: string[]
-  total_sections: number
+  completionPercentage: number
+  completedSections: string[]
+  pendingSections: string[]
+  totalSections: number
 }
 
 export interface AnamnesisSnapshot {
@@ -51,14 +51,14 @@ function computeProgress(sections: AnamnesisSectionRecord[]): AnamnesisProgress 
     .map((s) => s.section)
     .filter((section): section is string => typeof section === 'string' && section.length > 0)
   const pending = KNOWN_SECTIONS.filter((section) => !completedIds.includes(section))
-  const completion_percentage =
+  const completionPercentage =
     TOTAL_SECTIONS > 0 ? Math.round((completed.length / TOTAL_SECTIONS) * 100) : 0
 
   return {
-    completion_percentage,
-    completed_sections: completedIds,
-    pending_sections: pending,
-    total_sections: TOTAL_SECTIONS,
+    completionPercentage,
+    completedSections: completedIds,
+    pendingSections: pending,
+    totalSections: TOTAL_SECTIONS,
   }
 }
 
@@ -97,14 +97,14 @@ export const anamnesisService = {
 
     const progress = computeProgress(currentSections)
 
-    if (anamnesis.completion_percentage !== progress.completion_percentage) {
+    if (anamnesis.completionPercentage !== progress.completionPercentage) {
       anamnesisRepo
-        .updateProgress(anamnesis.id, progress.completion_percentage, progress.completed_sections)
+        .updateProgress(anamnesis.id, progress.completionPercentage, progress.completedSections)
         .catch((err) => logger.warn('[anamnesisService] progress sync failed', err))
     }
 
     return {
-      anamnesis: { ...anamnesis as AnamnesisRecord, completion_percentage: progress.completion_percentage },
+      anamnesis: { ...anamnesis as AnamnesisRecord, completionPercentage: progress.completionPercentage },
       sections: currentSections,
       progress,
       patientBirthDate: birthDate,
@@ -121,25 +121,25 @@ export const anamnesisService = {
 
     if (typeof updates.status === 'string') {
       cleanUpdates.status = updates.status
-      if (updates.status === 'completed' && !updates.completed_at) {
+      if (updates.status === 'completed' && !updates.completedAt) {
         cleanUpdates.completed_at = new Date().toISOString()
       }
     }
 
-    if (typeof updates.completion_percentage === 'number') {
-      cleanUpdates.completion_percentage = Math.min(100, Math.max(0, Math.round(updates.completion_percentage)))
+    if (typeof updates.completionPercentage === 'number') {
+      cleanUpdates.completion_percentage = Math.min(100, Math.max(0, Math.round(updates.completionPercentage)))
     }
 
-    if (updates.completed_at) {
-      cleanUpdates.completed_at = updates.completed_at
+    if (updates.completedAt) {
+      cleanUpdates.completed_at = updates.completedAt
     }
 
-    if (typeof updates.privacy_accepted === 'boolean') {
-      cleanUpdates.privacy_accepted = updates.privacy_accepted
+    if (typeof updates.privacyAccepted === 'boolean') {
+      cleanUpdates.privacy_accepted = updates.privacyAccepted
     }
 
-    if (typeof updates.terms_accepted === 'boolean') {
-      cleanUpdates.terms_accepted = updates.terms_accepted
+    if (typeof updates.termsAccepted === 'boolean') {
+      cleanUpdates.terms_accepted = updates.termsAccepted
     }
 
     if (Object.keys(cleanUpdates).length === 0) {
@@ -150,7 +150,7 @@ export const anamnesisService = {
     const result = await anamnesisRepo.updateMeta(anamnesis.id, cleanUpdates)
 
     if (cleanUpdates.status === 'completed') {
-      const isFirstCompletion = !anamnesis.completed_at
+      const isFirstCompletion = !anamnesis.completedAt
       try {
         await anamnesisVersionService.createVersion(
           supabase, patientId, anamnesis.id,
@@ -190,7 +190,7 @@ export const anamnesisService = {
     const progress = computeProgress(sections)
 
     anamnesisRepo
-      .updateProgress(anamnesis.id, progress.completion_percentage, progress.completed_sections)
+      .updateProgress(anamnesis.id, progress.completionPercentage, progress.completedSections)
       .catch((err) => logger.warn('[anamnesisService] saveSection progress sync failed', err))
 
     return { section: savedSection, progress }
