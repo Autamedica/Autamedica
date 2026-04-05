@@ -170,6 +170,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   type="text"
+                  aria-label={`Nombre de la condición ${index + 1}`}
                   placeholder="Nombre de la condición"
                   value={condition.name}
                   onChange={(e) => {
@@ -180,10 +181,11 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                       personalHistory: { ...prev.personalHistory, conditions: newConditions }
                     }));
                   }}
-                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:outline-none focus:border-white/40"
+                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
                 />
 
                 <select
+                  aria-label={`Estado de la condición ${index + 1}`}
                   value={condition.status}
                   onChange={(e) => {
                     const newConditions = [...formData.personalHistory.conditions];
@@ -193,7 +195,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                       personalHistory: { ...prev.personalHistory, conditions: newConditions }
                     }));
                   }}
-                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
                 >
                   <option value="active">Activa</option>
                   <option value="resolved">Resuelta</option>
@@ -203,6 +205,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
 
                 <div className="flex items-center space-x-2">
                   <input
+                    id={`condition-chronic-${index}`}
                     type="checkbox"
                     checked={condition.is_chronic}
                     onChange={(e) => {
@@ -215,7 +218,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                     }}
                     className="rounded"
                   />
-                  <label className="text-white text-sm">Crónica</label>
+                  <label htmlFor={`condition-chronic-${index}`} className="text-white text-sm">Crónica</label>
                 </div>
               </div>
             </div>
@@ -241,6 +244,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   type="text"
+                  aria-label={`Alérgeno ${index + 1}`}
                   placeholder="Alérgeno"
                   value={allergy.allergen}
                   onChange={(e) => {
@@ -251,10 +255,11 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                       personalHistory: { ...prev.personalHistory, allergies: newAllergies }
                     }));
                   }}
-                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:outline-none focus:border-white/40"
+                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
                 />
 
                 <select
+                  aria-label={`Tipo de alérgeno ${index + 1}`}
                   value={allergy.allergen_type}
                   onChange={(e) => {
                     const newAllergies = [...formData.personalHistory.allergies];
@@ -264,7 +269,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                       personalHistory: { ...prev.personalHistory, allergies: newAllergies }
                     }));
                   }}
-                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
                 >
                   <option value="medication">Medicamento</option>
                   <option value="food">Alimento</option>
@@ -273,6 +278,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                 </select>
 
                 <select
+                  aria-label={`Severidad de alergia ${index + 1}`}
                   value={allergy.severity}
                   onChange={(e) => {
                     const newAllergies = [...formData.personalHistory.allergies];
@@ -282,7 +288,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                       personalHistory: { ...prev.personalHistory, allergies: newAllergies }
                     }));
                   }}
-                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+                  className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
                 >
                   <option value="mild">Leve</option>
                   <option value="moderate">Moderada</option>
@@ -315,6 +321,7 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input
                 type="text"
+                aria-label={`Condición familiar ${index + 1}`}
                 placeholder="Condición médica"
                 value={condition.name}
                 onChange={(e) => {
@@ -322,17 +329,18 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
                   newConditions[index].name = e.target.value;
                   setFormData(prev => ({ ...prev, familyHistory: newConditions }));
                 }}
-                className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:outline-none focus:border-white/40"
+                className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
               />
 
               <select
+                aria-label={`Parentesco de condición ${index + 1}`}
                 value={condition.family_relationship || 'mother'}
                 onChange={(e) => {
                   const newConditions = [...formData.familyHistory];
                   newConditions[index].family_relationship = e.target.value as FamilyRelationship;
                   setFormData(prev => ({ ...prev, familyHistory: newConditions }));
                 }}
-                className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+                className="px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
               >
                 <option value="mother">Madre</option>
                 <option value="father">Padre</option>
@@ -352,14 +360,15 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-white font-medium mb-2">Tabaquismo</label>
+          <label htmlFor="anamnesis-smoking" className="block text-white font-medium mb-2">Tabaquismo</label>
           <select
+            id="anamnesis-smoking"
             value={formData.socialHistory.smoking}
             onChange={(e) => setFormData(prev => ({
               ...prev,
               socialHistory: { ...prev.socialHistory, smoking: e.target.value as AnamnesisFormData['socialHistory']['smoking'] }
             }))}
-            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
           >
             <option value="never">Nunca</option>
             <option value="former">Ex-fumador</option>
@@ -368,14 +377,15 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
         </div>
 
         <div>
-          <label className="block text-white font-medium mb-2">Alcohol</label>
+          <label htmlFor="anamnesis-alcohol" className="block text-white font-medium mb-2">Alcohol</label>
           <select
+            id="anamnesis-alcohol"
             value={formData.socialHistory.alcohol}
             onChange={(e) => setFormData(prev => ({
               ...prev,
               socialHistory: { ...prev.socialHistory, alcohol: e.target.value as AnamnesisFormData['socialHistory']['alcohol'] }
             }))}
-            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
           >
             <option value="never">Nunca</option>
             <option value="occasional">Ocasional</option>
@@ -385,14 +395,15 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
         </div>
 
         <div>
-          <label className="block text-white font-medium mb-2">Ejercicio</label>
+          <label htmlFor="anamnesis-exercise" className="block text-white font-medium mb-2">Ejercicio</label>
           <select
+            id="anamnesis-exercise"
             value={formData.socialHistory.exercise}
             onChange={(e) => setFormData(prev => ({
               ...prev,
               socialHistory: { ...prev.socialHistory, exercise: e.target.value as AnamnesisFormData['socialHistory']['exercise'] }
             }))}
-            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
           >
             <option value="sedentary">Sedentario</option>
             <option value="light">Ligero</option>
@@ -402,14 +413,15 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
         </div>
 
         <div>
-          <label className="block text-white font-medium mb-2">Dieta</label>
+          <label htmlFor="anamnesis-diet" className="block text-white font-medium mb-2">Dieta</label>
           <select
+            id="anamnesis-diet"
             value={formData.socialHistory.diet}
             onChange={(e) => setFormData(prev => ({
               ...prev,
               socialHistory: { ...prev.socialHistory, diet: e.target.value as AnamnesisFormData['socialHistory']['diet'] }
             }))}
-            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
           >
             <option value="poor">Pobre</option>
             <option value="fair">Regular</option>
@@ -419,28 +431,30 @@ export function AnamnesisForm({ onSubmit, className = '' }: AnamnesisFormProps) 
         </div>
 
         <div>
-          <label className="block text-white font-medium mb-2">Ocupación</label>
+          <label htmlFor="anamnesis-occupation" className="block text-white font-medium mb-2">Ocupación</label>
           <input
+            id="anamnesis-occupation"
             type="text"
             value={formData.socialHistory.occupation}
             onChange={(e) => setFormData(prev => ({
               ...prev,
               socialHistory: { ...prev.socialHistory, occupation: e.target.value }
             }))}
-            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:outline-none focus:border-white/40"
+            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white placeholder-white/60 focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
             placeholder="Trabajo o profesión"
           />
         </div>
 
         <div>
-          <label className="block text-white font-medium mb-2">Nivel de Estrés</label>
+          <label htmlFor="anamnesis-stress" className="block text-white font-medium mb-2">Nivel de Estrés</label>
           <select
+            id="anamnesis-stress"
             value={formData.socialHistory.stress}
             onChange={(e) => setFormData(prev => ({
               ...prev,
               socialHistory: { ...prev.socialHistory, stress: e.target.value as AnamnesisFormData['socialHistory']['stress'] }
             }))}
-            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:outline-none focus:border-white/40"
+            className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded text-white focus:border-white/40 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
           >
             <option value="low">Bajo</option>
             <option value="moderate">Moderado</option>

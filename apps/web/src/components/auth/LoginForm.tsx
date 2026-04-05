@@ -358,7 +358,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
               autoComplete="email"
               inputMode="email"
               disabled={isSubmitting}
-              className="w-full rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] px-5 py-4 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-[var(--au-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--au-accent-soft)] disabled:opacity-50"
+              className="w-full rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] px-5 py-4 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-[var(--au-accent)] focus:ring-4 focus:ring-[var(--au-accent-soft)] focus-visible:outline-2 focus-visible:outline-[var(--au-accent)] disabled:opacity-50"
               placeholder={t('auth.emailPlaceholder')}
             />
           </div>
@@ -381,7 +381,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
                 required
                 autoComplete="current-password"
                 disabled={isSubmitting}
-                className="w-full rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] px-5 py-4 pr-14 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-[var(--au-accent)] focus:outline-none focus:ring-4 focus:ring-[var(--au-accent-soft)] disabled:opacity-50"
+                className="w-full rounded-2xl border border-[var(--au-border)] bg-[var(--au-surface)] px-5 py-4 pr-14 text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] transition-all focus:border-[var(--au-accent)] focus:ring-4 focus:ring-[var(--au-accent-soft)] focus-visible:outline-2 focus-visible:outline-[var(--au-accent)] disabled:opacity-50"
                 placeholder="••••••••"
               />
               <button

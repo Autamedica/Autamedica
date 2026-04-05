@@ -220,7 +220,7 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
               inputMode="email"
               disabled={isLoading}
               aria-invalid={Boolean(error)}
-              className="w-full px-4 py-3 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
+              className="w-full px-4 py-3 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent focus-visible:outline-2 focus-visible:outline-[var(--au-accent)] transition-all disabled:opacity-50"
               placeholder={t('auth.emailPlaceholder')}
             />
           </div>
@@ -240,7 +240,7 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
                 autoComplete="new-password"
                 disabled={isLoading}
                 aria-invalid={password.length > 0 && password.length < 8}
-                className="w-full px-4 py-3 pr-12 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full px-4 py-3 pr-12 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent focus-visible:outline-2 focus-visible:outline-[var(--au-accent)] transition-all disabled:opacity-50"
                 placeholder={t('auth.passwordMinHint')}
               />
               <button
@@ -288,7 +288,7 @@ export function RegisterForm({ locale = 'es' }: { locale?: Locale }) {
                 autoComplete="new-password"
                 disabled={isLoading}
                 aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}
-                className="w-full px-4 py-3 pr-12 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full px-4 py-3 pr-12 bg-[var(--au-hover)] border-2 border-[var(--au-border)] rounded-xl text-[var(--au-text-primary)] placeholder:text-[var(--au-text-tertiary)] focus:ring-2 focus:ring-[var(--au-accent)] focus:border-transparent focus-visible:outline-2 focus-visible:outline-[var(--au-accent)] transition-all disabled:opacity-50"
                 placeholder={t('auth.confirmPasswordPlaceholder')}
               />
               <button
