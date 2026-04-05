@@ -115,8 +115,7 @@ export type {
 } from './logging'
 
 // Hooks
-export { useTelemedicineClient, useMediaControls, useRtcStats, useAudioTranscription, useCallRecording, useCallReport } from './hooks'
-export { useTurnCredentials } from './hooks/useTurnCredentials'
+export { useTelemedicineClient, useMediaControls, useRtcStats, useAudioTranscription, useCallRecording, useCallReport, useNetworkPreflight, useTurnCredentials } from './hooks'
 export type {
   TelemedicineClientState,
   TelemedicineClientActions,
@@ -135,6 +134,7 @@ export type {
   CallRecordingActions,
   CallRecordingHook,
   CallReportState,
+  UseNetworkPreflightReturn,
 } from './hooks'
 
 // Signaling

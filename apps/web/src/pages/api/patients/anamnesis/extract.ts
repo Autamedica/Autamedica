@@ -68,6 +68,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .from('anamnesis_sections')
       .select('section, data, completed')
       .eq('anamnesis_id', anamnesis.id)
+      .eq('completed', true)
       .order('updated_at', { ascending: true })
 
     if (!sections || sections.length === 0) {

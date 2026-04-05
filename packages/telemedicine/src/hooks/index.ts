@@ -52,3 +52,8 @@ export { useCallLifecycleEffects } from './useCallLifecycleEffects'
 
 export { useCallReport } from './useCallReport'
 export type { CallReportState } from './useCallReport'
+
+export { useNetworkPreflight } from './useNetworkPreflight'
+export type { UseNetworkPreflightReturn } from './useNetworkPreflight'
+
+export { useTurnCredentials } from './useTurnCredentials'

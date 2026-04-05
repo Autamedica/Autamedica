@@ -58,12 +58,8 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#0A0A0A] p-8 transition-all duration-500 ease-out hover:border-white/20 hover:shadow-2xl hover:shadow-primary/20 group ${className} ${isLarge ? 'md:col-span-2 md:row-span-2 p-10' : ''}`}
-      style={{
-        background: isHovered
-          ? 'radial-gradient(1000px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.06), transparent 40%), #0A0A0A'
-          : '#0A0A0A',
-      }}
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#0A0A0A] p-8 transition-all duration-500 ease-out hover:border-white/20 hover:shadow-2xl hover:shadow-primary/20 group [&[data-hovered=true]]:bg-[radial-gradient(1000px_circle_at_var(--mouse-x)_var(--mouse-y),rgba(255,255,255,0.06),transparent_40%),#0A0A0A] ${className} ${isLarge ? 'md:col-span-2 md:row-span-2 p-10' : ''}`}
+      data-hovered={isHovered}
     >
       {/* Background Media Overlay */}
       {(videoSrc || imageSrc) && (

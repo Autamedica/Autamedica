@@ -18,6 +18,19 @@ import {
   User,
   Video,
 } from 'lucide-react'
+
+function ProgressBar({ value, color }: { value: number; color: 'sky' | 'amber' | 'emerald' }) {
+  const trackColors = { sky: 'bg-sky-100', amber: 'bg-amber-100', emerald: 'bg-emerald-100' } as const
+  const fillColors = { sky: 'bg-sky-500', amber: 'bg-amber-500', emerald: 'bg-emerald-500' } as const
+  return (
+    <div className={`mt-2 h-1 overflow-hidden rounded-full ${trackColors[color]}`}>
+      <div
+        className={`h-full rounded-full ${fillColors[color]} transition-all duration-700`}
+        style={{ width: `${Math.max(0, Math.min(value, 100))}%` }}
+      />
+    </div>
+  )
+}
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import OnboardingChecklist from '@/components/patients/OnboardingChecklist'
 import PreConsultationReminder from '@/components/patients/PreConsultationReminder'
@@ -340,23 +353,17 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
                 <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
                   <p className="text-[11px] font-medium text-gray-400">Anamnesis</p>
                   <p className="mt-1 text-xl font-bold text-gray-900">{anamnesisProgress}%</p>
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-sky-100">
-                    <div className="h-full rounded-full bg-sky-500 transition-all duration-700" style={{ width: `${anamnesisProgress}%` }} />
-                  </div>
+                  <ProgressBar value={anamnesisProgress} color="sky" />
                 </div>
                 <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
                   <p className="text-[11px] font-medium text-gray-400">Perfil</p>
                   <p className="mt-1 text-xl font-bold text-gray-900">{profileProgress}%</p>
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-amber-100">
-                    <div className="h-full rounded-full bg-amber-500 transition-all duration-700" style={{ width: `${profileProgress}%` }} />
-                  </div>
+                  <ProgressBar value={profileProgress} color="amber" />
                 </div>
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
                   <p className="text-[11px] font-medium text-gray-400">Consultas</p>
                   <p className="mt-1 text-xl font-bold text-gray-900">{freeConsults > 0 ? `${freeConsults} gratis` : `${completedCount}`}</p>
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-emerald-100">
-                    <div className="h-full rounded-full bg-emerald-500 transition-all duration-700" style={{ width: freeConsults > 0 ? '100%' : `${Math.min(completedCount * 20, 100)}%` }} />
-                  </div>
+                  <ProgressBar value={freeConsults > 0 ? 100 : Math.min(completedCount * 20, 100)} color="emerald" />
                 </div>
               </div>
             </section>
