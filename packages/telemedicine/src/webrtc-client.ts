@@ -95,6 +95,7 @@ export class WebRTCClient {
   private connectionState: ConnectionState = 'disconnected'
   private readonly signalingQueue: Array<Record<string, unknown>> = []
   private static readonly CRITICAL_MESSAGE_TYPES = new Set(['offer', 'answer', 'ice-candidate'])
+  private static readonly MAX_QUEUE_SIZE = 50
   private readonly qualityMonitor: QualityMonitor
   private readonly debugLogger: ReturnType<typeof createTelemedicineLogger>
   private readonly bitrateAdapter: BitrateAdapter
@@ -508,6 +509,7 @@ export class WebRTCClient {
 
   private cleanup(): void {
     this.signalingQueue.length = 0
+    this.isFlushing = false
     this.qualityMonitor.stop()
     this.qualityMonitor.clearState()
     this.bitrateAdapter.stopBitrateRamp()
@@ -546,10 +548,7 @@ export class WebRTCClient {
         return true
       }
       if (WebRTCClient.CRITICAL_MESSAGE_TYPES.has(messageType)) {
-        this.signalingQueue.push(message)
-        this.logWarn('Queued critical signaling message: Supabase channel not subscribed', {
-          messageType, queueSize: this.signalingQueue.length,
-        })
+        this.enqueueSignaling(message, messageType)
       } else {
         this.logWarn('Dropped non-critical signaling message: Supabase channel not subscribed', { messageType })
       }
@@ -562,10 +561,7 @@ export class WebRTCClient {
     }
 
     if (WebRTCClient.CRITICAL_MESSAGE_TYPES.has(messageType)) {
-      this.signalingQueue.push(message)
-      this.logWarn('Queued critical signaling message: socket not open', {
-        readyState: this.ws?.readyState ?? null, messageType, queueSize: this.signalingQueue.length,
-      })
+      this.enqueueSignaling(message, messageType)
     } else {
       this.logWarn('Dropped non-critical signaling message: socket not open', {
         readyState: this.ws?.readyState ?? null, messageType,
@@ -574,8 +570,20 @@ export class WebRTCClient {
     return false
   }
 
+  private enqueueSignaling(message: Record<string, unknown>, messageType: string): void {
+    if (this.signalingQueue.length >= WebRTCClient.MAX_QUEUE_SIZE) {
+      this.logWarn('Signaling queue full, dropping oldest', { queueSize: this.signalingQueue.length, messageType })
+      this.signalingQueue.shift()
+    }
+    this.signalingQueue.push(message)
+    this.logWarn('Queued critical signaling message', { messageType, queueSize: this.signalingQueue.length })
+  }
+
+  private isFlushing = false
+
   private flushSignalingQueue(): void {
-    if (this.signalingQueue.length === 0) return
+    if (this.signalingQueue.length === 0 || this.isFlushing) return
+    this.isFlushing = true
     const queued = [...this.signalingQueue]
     this.signalingQueue.length = 0
     this.logInfo('Flushing signaling queue', { count: queued.length })
@@ -588,6 +596,7 @@ export class WebRTCClient {
         })
       }
     }
+    this.isFlushing = false
   }
 
   private async handleSignalingMessage(message: ServerSignalingMessage): Promise<void> {
