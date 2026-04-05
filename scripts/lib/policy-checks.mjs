@@ -127,8 +127,13 @@ export function getProjectCodeFiles(cwd = process.cwd()) {
     encoding: 'utf8',
   });
 
+  if (result.error) {
+    console.warn(`⚠ rg not available: ${result.error.message}. Skipping file listing.`);
+    return [];
+  }
   if (result.status !== 0 && result.status !== 1) {
-    throw new Error(result.stderr || 'No se pudieron listar archivos del proyecto');
+    console.warn(`⚠ rg exited with status ${result.status}. Skipping file listing.`);
+    return [];
   }
 
   return (result.stdout || '')
