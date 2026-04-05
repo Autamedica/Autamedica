@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BellRing, CheckCircle2, PhoneIncoming, Volume2, VolumeX, X } from 'lucide-react'
-import { createBrowserClient } from '@autamedica/auth'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { createCallService } from '@autamedica/telemedicine'
 import type { Call, InviteMessage } from '@autamedica/telemedicine'
 import { logger } from '@autamedica/shared'
@@ -73,7 +73,7 @@ export function IncomingCallHandler({
   const [isConnecting, setIsConnecting] = useState(false)
   const [audioAvailability, setAudioAvailability] = useState<AudioAvailability>('idle')
   const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
-  const browserClientRef = useRef<ReturnType<typeof createBrowserClient> | null>(null)
+  const browserClientRef = useRef<ReturnType<typeof getBrowserSupabaseClient> | null>(null)
   const ringtoneContextRef = useRef<AudioContext | null>(null)
   const ringtoneIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const trackedCallsRef = useRef<Map<string, Call>>(new Map())
@@ -91,7 +91,7 @@ export function IncomingCallHandler({
 
   const getBrowserClient = useCallback(() => {
     if (!browserClientRef.current) {
-      browserClientRef.current = createBrowserClient()
+      browserClientRef.current = getBrowserSupabaseClient()
     }
 
     return browserClientRef.current
@@ -202,7 +202,7 @@ export function IncomingCallHandler({
   function getCallService() {
     if (!callServiceRef.current) {
       try {
-        callServiceRef.current = createCallService(createBrowserClient())
+        callServiceRef.current = createCallService(getBrowserSupabaseClient())
       } catch (err) {
         logger.warn('[IncomingCallHandler] Failed to create call service:', err)
         return null
