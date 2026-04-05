@@ -51,7 +51,7 @@ function PostCard({
   return (
     <article
       onClick={() => onOpen(post)}
-      className="cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md active:scale-[0.99]"
+      className="cursor-pointer overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md active:scale-[0.99]"
     >
       <div className="p-5">
         <div className="flex items-start gap-3">
@@ -168,9 +168,9 @@ function PostDetailView({
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f8fa] text-stone-900">
+    <div className="min-h-screen bg-am-surface-50 text-stone-900">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-5 py-4">
           <button type="button" onClick={onBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
             <ArrowLeft className="h-5 w-5" />
@@ -184,7 +184,7 @@ function PostDetailView({
 
       <main className="mx-auto max-w-2xl px-5 pb-48 pt-6">
         {/* Post content */}
-        <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03]">
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
@@ -257,7 +257,7 @@ function PostDetailView({
               {comments.map((comment) => (
                 <div
                   key={comment.id}
-                  className="overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-stone-950/[0.03]"
+                  className="overflow-hidden rounded-xl bg-white shadow-am-xs ring-1 ring-stone-950/[0.03]"
                 >
                   <div className="px-4 py-3.5">
                     <div className="flex items-center gap-2.5">
@@ -292,7 +292,7 @@ function PostDetailView({
       </main>
 
       {/* Comment input — fixed bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-am-sticky-top">
         <div className="mx-auto max-w-2xl px-5 py-3">
           <div className="flex items-end gap-3">
             <div className="min-w-0 flex-1">
@@ -408,7 +408,7 @@ export default function CommunityPage() {
   /* ─── Loading ─── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f7f8fa]">
+      <div className="min-h-screen bg-am-surface-50">
         <div className="flex min-h-[70vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
         </div>
@@ -419,9 +419,9 @@ export default function CommunityPage() {
 
   /* ─── Feed View ─── */
   return (
-    <div className="min-h-screen bg-[#f7f8fa] text-stone-900">
+    <div className="min-h-screen bg-am-surface-50 text-stone-900">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
             <a href="/" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
@@ -484,7 +484,7 @@ export default function CommunityPage() {
                   key={group.id}
                   type="button"
                   onClick={() => setActiveGroupId(group.id)}
-                  className="shrink-0 w-56 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md active:scale-[0.98]"
+                  className="shrink-0 w-56 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-am-sm ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md active:scale-[0.98]"
                 >
                   <p className="text-sm font-bold text-stone-900 line-clamp-2 h-10">{group.name}</p>
                   <div className="mt-2.5 flex items-center gap-2.5 text-xs text-stone-400">
@@ -524,7 +524,7 @@ export default function CommunityPage() {
                 key={prompt.id}
                 type="button"
                 onClick={() => openComposer({ groupId: prompt.groupId, content: prompt.content })}
-                className="w-full rounded-xl bg-white p-4 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md"
+                className="w-full rounded-xl bg-white p-4 text-left shadow-am-sm ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md"
               >
                 <p className="text-sm font-semibold text-stone-900">{prompt.title}</p>
               </button>

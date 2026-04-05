@@ -106,7 +106,7 @@ export default function PatientNotificationsBell() {
             className="fixed inset-0 z-30 cursor-default"
             onClick={() => setIsOpen(false)}
           />
-          <section className="absolute right-0 top-12 z-40 w-[min(92vw,380px)] overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.18)]">
+          <section className="absolute right-0 top-12 z-40 w-[min(92vw,380px)] overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-am-dropdown">
             <header className="flex items-center justify-between border-b border-sky-100 px-4 py-4">
               <div>
                 <p className="text-sm font-semibold text-gray-950">Notificaciones</p>

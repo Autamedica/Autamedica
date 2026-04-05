@@ -84,7 +84,7 @@ function AuthenticatedPatientProfilePage({
           <p className="text-sm text-gray-500">Última actualización: {formatTimestamp(lastUpdatedAt)}</p>
         </div>
 
-        <section className="overflow-hidden rounded-[2rem] border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#f4fbff_100%)] shadow-[0_32px_80px_rgba(14,165,233,0.08)]">
+        <section className="overflow-hidden rounded-[2rem] border border-sky-100 bg-[linear-gradient(180deg,#ffffff_0%,#f4fbff_100%)] shadow-am-2xl">
           <div className="grid gap-6 px-6 py-7 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,0.8fr)] lg:px-8">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
@@ -124,7 +124,7 @@ function AuthenticatedPatientProfilePage({
               </div>
 
               <div className="mt-6 grid gap-3 md:grid-cols-2">
-                <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-[0_10px_30px_rgba(14,165,233,0.06)]">
+                <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-am-card">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
                     Agenda conectada
                   </p>
@@ -144,7 +144,7 @@ function AuthenticatedPatientProfilePage({
                   </p>
                 </div>
 
-                <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-[0_10px_30px_rgba(14,165,233,0.06)]">
+                <div className="rounded-[1.5rem] border border-sky-100 bg-white/90 p-4 shadow-am-card">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
                     Informes reutilizables
                   </p>
@@ -230,7 +230,7 @@ function AuthenticatedPatientProfilePage({
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(340px,1fr)]">
           <section className="space-y-6">
-            <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-[0_20px_60px_rgba(2,6,23,0.04)] sm:p-8">
+            <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-am-card-lg sm:p-8">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h2 className="font-heading text-3xl text-gray-950">Datos canónicos del perfil</h2>
@@ -403,7 +403,7 @@ function AuthenticatedPatientProfilePage({
                       void saveProfile();
                     }}
                     disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(14,165,233,0.26)] transition-transform disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
+                    className="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-am-primary-sm transition-transform disabled:cursor-wait disabled:opacity-80 active:scale-[0.98]"
                   >
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {isSaving ? 'Guardando...' : 'Guardar cambios'}
@@ -541,7 +541,7 @@ function AuthenticatedPatientProfilePage({
               ]}
             />
 
-            <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-[0_20px_50px_rgba(2,6,23,0.04)]">
+            <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-am-card-xl">
               <h2 className="font-heading text-2xl text-gray-950">Pendientes críticos</h2>
               <p className="mt-2 text-sm leading-6 text-gray-600">
                 Completá primero los campos que destraban más reutilización clínica.
@@ -571,7 +571,7 @@ function AuthenticatedPatientProfilePage({
               )}
             </div>
 
-            <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-[0_20px_50px_rgba(2,6,23,0.04)]">
+            <div className="rounded-[2rem] border border-sky-100 bg-white p-6 shadow-am-card-xl">
               <h2 className="font-heading text-2xl text-gray-950">Lectura transversal</h2>
               <div className="mt-5 space-y-4">
                 <div className="rounded-2xl bg-sky-50/70 px-4 py-3">
@@ -649,7 +649,7 @@ export default function PatientProfilePage() {
   if (!session.user) {
     return (
       <main className="min-h-screen bg-white px-5 py-8 text-gray-900">
-        <div className="mx-auto max-w-2xl rounded-[2rem] border border-sky-100 bg-white p-8 text-center shadow-[0_24px_80px_rgba(14,165,233,0.08)]">
+        <div className="mx-auto max-w-2xl rounded-[2rem] border border-sky-100 bg-white p-8 text-center shadow-am-2xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sky-50 text-sky-600">
             <UserCircle2 className="h-8 w-8" />
           </div>

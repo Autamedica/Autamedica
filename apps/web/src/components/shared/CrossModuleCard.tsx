@@ -14,7 +14,7 @@ export function CrossModuleCard({
   stats: Array<{ label: string; value: string }>;
 }) {
   const content = (
-    <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-[0_10px_30px_rgba(14,165,233,0.06)] transition-all hover:border-sky-200">
+    <div className="rounded-3xl border border-sky-100 bg-white p-5 shadow-am-card transition-all hover:border-sky-200">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="font-heading text-2xl text-gray-950">{title}</h3>

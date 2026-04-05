@@ -15,7 +15,7 @@ export function Field({
   return (
     <label className="block space-y-2">
       <span className="text-sm font-medium text-gray-900">{label}</span>
-      <div className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(2,6,23,0.04)] transition-colors">
+      <div className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-am-xs transition-colors focus-within:border-sky-300">
         {icon ? <span className="text-sky-500">{icon}</span> : null}
         <input
           {...props}
@@ -42,7 +42,7 @@ export function SelectField({
   return (
     <label className="block space-y-2">
       <span className="text-sm font-medium text-gray-900">{label}</span>
-      <div className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(2,6,23,0.04)] transition-colors">
+      <div className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white px-4 py-3 shadow-am-xs transition-colors focus-within:border-sky-300">
         {icon ? <span className="text-sky-500">{icon}</span> : null}
         <select
           {...props}

@@ -28,7 +28,7 @@ function DoctorPostCard({
   return (
     <article
       onClick={() => onOpen(post)}
-      className="cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md active:scale-[0.99]"
+      className="cursor-pointer overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03] transition-all hover:shadow-md active:scale-[0.99]"
     >
       <div className="p-5">
         <div className="flex items-start gap-3">
@@ -129,8 +129,8 @@ function DoctorPostDetailView({
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f8fa] text-stone-900">
-      <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="min-h-screen bg-am-surface-50 text-stone-900">
+      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-4">
           <button type="button" onClick={onBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
             <ArrowLeft className="h-5 w-5" />
@@ -143,7 +143,7 @@ function DoctorPostDetailView({
       </header>
 
       <main className="mx-auto max-w-3xl px-5 pb-48 pt-6">
-        <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03]">
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-700">
@@ -207,7 +207,7 @@ function DoctorPostDetailView({
               {comments.map((comment) => (
                 <div
                   key={comment.id}
-                  className="overflow-hidden rounded-xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-stone-950/[0.03]"
+                  className="overflow-hidden rounded-xl bg-white shadow-am-xs ring-1 ring-stone-950/[0.03]"
                 >
                   <div className="px-4 py-3.5">
                     <div className="flex items-center gap-2.5">
@@ -241,7 +241,7 @@ function DoctorPostDetailView({
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-am-sticky-top">
         <div className="mx-auto max-w-3xl px-5 py-3">
           {commentError && (
             <p className="mb-2 text-xs text-red-600">{commentError}</p>
@@ -370,7 +370,7 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f7f8fa]">
+      <div className="min-h-screen bg-am-surface-50">
         <div className="flex min-h-[70vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
         </div>
@@ -379,8 +379,8 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f8fa] text-stone-900">
-      <header className="sticky top-0 z-30 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="min-h-screen bg-am-surface-50 text-stone-900">
+      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
           <div className="flex items-center gap-3">
             <button type="button" onClick={handlePortalBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
@@ -395,7 +395,7 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
       </header>
 
       <main className="mx-auto max-w-3xl space-y-4 px-5 pb-16 pt-5">
-        <section className="rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ring-1 ring-stone-950/[0.03]">
+        <section className="rounded-2xl bg-white p-5 shadow-am-sm ring-1 ring-stone-950/[0.03]">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Ranking y comunidad</p>
           <h2 className="mt-2 text-xl font-bold text-stone-900">Casos abiertos para responder</h2>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
