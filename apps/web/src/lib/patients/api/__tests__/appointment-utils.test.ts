@@ -81,7 +81,6 @@ describe('computeEndTime', () => {
   it('computes end time 60 minutes after start', () => {
     const start = '2026-03-22T23:30:00.000Z';
     const result = computeEndTime(start, 60);
-    // Crosses midnight
     expect(result).toBe('2026-03-23T00:30:00.000Z');
   });
 
@@ -110,10 +109,10 @@ describe('mapAppointment', () => {
     updated_at: '2026-03-21T12:00:00.000Z',
     doctor: {
       id: 'doc-001',
-      specialty: 'Cardiología',
+      specialty: 'Cardiologia',
       profile: {
         first_name: 'Ana',
-        last_name: 'García',
+        last_name: 'Garcia',
       },
     },
   };
@@ -139,8 +138,8 @@ describe('mapAppointment', () => {
     expect(result.doctor).toEqual({
       id: 'doc-001',
       first_name: 'Ana',
-      last_name: 'García',
-      specialty: 'Cardiología',
+      last_name: 'Garcia',
+      specialty: 'Cardiologia',
       profile_picture_url: null,
     });
   });
