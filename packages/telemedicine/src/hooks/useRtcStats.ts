@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { logger } from '@autamedica/shared'
-import type { WebRTCClient } from '../webrtc-client'
+import type { WebRTCClient, ConnectionState } from '../webrtc-client'
 
 export interface RtcStatsData {
   rtt: number | null // Round trip time in ms
@@ -301,7 +301,7 @@ export function useRtcStats(
   useEffect(() => {
     if (!client) return
 
-    const handleConnectionState = (connectionState: string) => {
+    const handleConnectionState = (connectionState: ConnectionState) => {
       if (connectionState === 'connected' && opts.autoStart) {
         startCollection()
       } else if (connectionState !== 'connected') {
@@ -309,12 +309,10 @@ export function useRtcStats(
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    client.on('connection-state', handleConnectionState as any)
+    client.on('connection-state', handleConnectionState)
 
     return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      client.off('connection-state', handleConnectionState as any)
+      client.off('connection-state', handleConnectionState)
     }
   }, [client, opts.autoStart, startCollection, stopCollection])
 

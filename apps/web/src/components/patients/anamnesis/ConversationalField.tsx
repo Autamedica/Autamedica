@@ -30,10 +30,16 @@ interface SpeechRecognitionInstance extends EventTarget {
   start(): void
   stop(): void
 }
-type _SpeechRecognitionConstructor = {
+type SpeechRecognitionConstructor = {
   new (): SpeechRecognitionInstance
 }
-// Window.SpeechRecognition declared in AnamnesisField.tsx global augmentation
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor
+    webkitSpeechRecognition?: SpeechRecognitionConstructor
+  }
+}
 
 interface ConversationalFieldProps {
   field: AnamnesisField
@@ -334,8 +340,7 @@ function TextField({
       return
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const SpeechRecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition
     if (!SpeechRecognitionCtor) return
 
     const recognition = new SpeechRecognitionCtor()
@@ -366,8 +371,7 @@ function TextField({
     setListening(true)
   }, [listening])
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasSpeech = typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+  const hasSpeech = typeof window !== 'undefined' && (window.SpeechRecognition ?? window.webkitSpeechRecognition)
 
   return (
     <div className="space-y-4">
