@@ -4,12 +4,14 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    include: ['src/**/*.test.ts'],
+    exclude: ['dist/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/**/__tests__/**', 'src/server.ts']
+      exclude: ['src/**/*.test.ts', 'src/**/__tests__/**', 'src/server.ts'],
     },
-    setupFiles: ['./src/__tests__/setup.ts']
-  }
+    setupFiles: ['./src/__tests__/setup.ts'],
+  },
 });
