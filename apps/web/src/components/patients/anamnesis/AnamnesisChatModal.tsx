@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Loader2, Send, Sparkles, X } from 'lucide-react';
+import { logger } from '@autamedica/shared';
 import type { ExtractionGuidance } from '@/lib/patients/services/anamnesis-guidance.service';
 
 interface Message {
@@ -134,7 +135,7 @@ export function AnamnesisChatModal({
         onComplete(nextTurns);
       }
     } catch (error) {
-      console.error('Chat error:', error);
+      logger.error('[AnamnesisChatModal] Chat error', error);
       appendFallbackMessage();
     } finally {
       setIsTyping(false);

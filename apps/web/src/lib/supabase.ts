@@ -11,7 +11,7 @@
 import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import type { Database } from '@autamedica/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { AstroCookies } from 'astro';
+import type { AstroCookies, AstroCookieSetOptions } from 'astro';
 import { resolvePublicSupabaseEnv, resolveServiceRoleKey } from './runtime-env';
 
 function parseCookieHeader(request: Request): Array<{ name: string; value: string }> {
@@ -50,8 +50,7 @@ export function createSupabaseServerClient(
         },
         setAll(cookiesToSet: Parameters<NonNullable<CookieMethodsServer['setAll']>>[0]) {
           for (const { name, value, options } of cookiesToSet) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            cookies.set(name, value, options as any);
+            cookies.set(name, value, options as AstroCookieSetOptions);
           }
         }
       }

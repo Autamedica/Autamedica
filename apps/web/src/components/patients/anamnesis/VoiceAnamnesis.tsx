@@ -28,6 +28,9 @@ interface TranscriptEntry {
 }
 
 type VoiceState = 'idle' | 'connecting' | 'live' | 'listening' | 'processing' | 'speaking' | 'completed'
+
+// SpeechRecognition types in src/types/speech-recognition.d.ts
+
 type ConnectionMode = 'live' | 'relay'
 type CheckpointMode = 'partial' | 'final'
 
@@ -551,8 +554,7 @@ export function VoiceAnamnesis({
 
   // ── STT (relay mode only) — auto-sends when patient stops ──
   const startSTT = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition
     if (!SR) { setState('idle'); return }
 
     const r = new SR()
@@ -562,8 +564,7 @@ export function VoiceAnamnesis({
     recognitionRef.current = r
 
     let finalText = ''
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    r.onresult = (e: any) => {
+    r.onresult = (e: SpeechRecognitionEvent) => {
       let interim = ''
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) finalText += e.results[i][0].transcript
@@ -572,8 +573,7 @@ export function VoiceAnamnesis({
       setCurrentInput(finalText || interim)
       currentInputRef.current = finalText || interim
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    r.onerror = (e: any) => {
+    r.onerror = (e: SpeechRecognitionErrorEvent) => {
       if (e.error !== 'aborted' && e.error !== 'no-speech') logger.warn('[Voice] STT error', e.error)
       setState('idle')
     }

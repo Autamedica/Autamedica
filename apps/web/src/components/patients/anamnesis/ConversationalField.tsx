@@ -4,36 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { Check, Mic, MicOff, ChevronDown } from 'lucide-react'
 import type { AnamnesisField, AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
 
-// Web Speech API types — not in default TS lib
-interface SpeechRecognitionEvent extends Event {
-  readonly results: SpeechRecognitionResultList
-}
-interface SpeechRecognitionResultList {
-  readonly length: number
-  [index: number]: SpeechRecognitionResult
-}
-interface SpeechRecognitionResult {
-  readonly length: number
-  [index: number]: SpeechRecognitionAlternative
-}
-interface SpeechRecognitionAlternative {
-  readonly transcript: string
-  readonly confidence: number
-}
-interface SpeechRecognitionInstance extends EventTarget {
-  lang: string
-  continuous: boolean
-  interimResults: boolean
-  onresult: ((event: SpeechRecognitionEvent) => void) | null
-  onend: (() => void) | null
-  onerror: (() => void) | null
-  start(): void
-  stop(): void
-}
-type _SpeechRecognitionConstructor = {
-  new (): SpeechRecognitionInstance
-}
-// Window.SpeechRecognition declared in AnamnesisField.tsx global augmentation
+// SpeechRecognition types in src/types/speech-recognition.d.ts
 
 interface ConversationalFieldProps {
   field: AnamnesisField
@@ -334,8 +305,7 @@ function TextField({
       return
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const SpeechRecognitionCtor = window.SpeechRecognition ?? window.webkitSpeechRecognition
     if (!SpeechRecognitionCtor) return
 
     const recognition = new SpeechRecognitionCtor()
@@ -366,8 +336,7 @@ function TextField({
     setListening(true)
   }, [listening])
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasSpeech = typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+  const hasSpeech = typeof window !== 'undefined' && (window.SpeechRecognition ?? window.webkitSpeechRecognition)
 
   return (
     <div className="space-y-4">

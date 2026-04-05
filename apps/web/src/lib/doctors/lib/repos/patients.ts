@@ -33,7 +33,9 @@ export interface PatientRow {
 
 type PatientsClient = SupabaseClient<Database>
 
-function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()) {
+type PatientWithProfileQuery = ReturnType<ReturnType<PatientsClient['from']>['select']>
+
+function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()): PatientWithProfileQuery {
   return client
     .from('patients')
     .select(`
@@ -52,8 +54,7 @@ function queryWithProfile(client: PatientsClient = getBrowserSupabaseClient()) {
 
 export const patientsRepo = {
   async findAllActive(client: PatientsClient = getBrowserSupabaseClient()): Promise<PatientWithProfile[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (queryWithProfile(client) as any)
+    const { data, error } = await queryWithProfile(client)
       .eq('active', true)
       .order('created_at', { ascending: false })
 
@@ -103,8 +104,7 @@ export const patientsRepo = {
     companyId: string,
     client: PatientsClient = getBrowserSupabaseClient(),
   ): Promise<PatientWithProfile[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (queryWithProfile(client) as any)
+    const { data, error } = await queryWithProfile(client)
       .eq('company_id', companyId)
       .eq('active', true)
       .order('created_at', { ascending: false })

@@ -382,14 +382,7 @@ export {
 // Re-exports de tipos de autenticación
 // ==========================================
 
-// Los tipos de roles se mantienen en @autamedica/auth
-// pero se re-exportan aquí para conveniencia
-// TODO: Quitar estos re-exports una vez que auth esté compilado
-// export type { UserRole, Portal } from '@autamedica/auth';
-
-// ==========================================
-// TODO: Legacy types - migrar gradualmente
-// ==========================================
+// TODO(risk): [Auth re-exports] Removing these requires migrating all consumers to @autamedica/auth
 
 // Auth legacy (deprecated - usar @autamedica/auth directamente)
 export type {

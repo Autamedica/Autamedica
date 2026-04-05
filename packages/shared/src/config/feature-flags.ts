@@ -9,6 +9,8 @@
  * @module feature-flags
  */
 
+import { logger } from '../services/logger.service';
+
 function getEnv(key: string): string | undefined {
   // Astro/Vite browser: import.meta.env
   try {
@@ -93,7 +95,7 @@ export function validateFeatureFlags(): void {
   }
 
   if (warnings.length > 0 && !featureFlags.IS_PRODUCTION) {
-    warnings.forEach(w => console.warn(w));
+    warnings.forEach(w => logger.warn(w));
   }
 
   if (featureFlags.IS_PRODUCTION && isMockMode()) {
@@ -103,7 +105,7 @@ export function validateFeatureFlags(): void {
 
 export function logFeatureFlags(): void {
   if (featureFlags.IS_PRODUCTION) return;
-  console.log('Feature Flags:', {
+  logger.info('Feature Flags:', {
     mocks: { video: featureFlags.USE_MOCK_VIDEO, medical: featureFlags.USE_MOCK_MEDICAL_DATA, ai: featureFlags.USE_MOCK_AI },
     services: { livekit: featureFlags.USE_LIVEKIT, aiProvider: getAIProvider() },
     env: { production: featureFlags.IS_PRODUCTION, staging: featureFlags.IS_STAGING, dev: featureFlags.IS_DEVELOPMENT },

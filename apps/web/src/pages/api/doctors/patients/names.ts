@@ -49,8 +49,11 @@ export const POST: APIRoute = async ({ request }) => {
       return internalError()
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const nameMap = ((data ?? []) as any[]).reduce<Record<string, string>>((acc, row) => {
+    type PatientNameRow = {
+      id: string
+      profile: { first_name: string | null; last_name: string | null; email: string | null } | null
+    }
+    const nameMap = ((data ?? []) as PatientNameRow[]).reduce<Record<string, string>>((acc, row) => {
       const first = row.profile?.first_name?.trim()
       const last = row.profile?.last_name?.trim()
       const fullName = [first, last].filter(Boolean).join(' ').trim()

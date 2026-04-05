@@ -32,6 +32,12 @@ type TableInsert<Table extends TableName> = Tables[Table] extends { Insert: infe
 type TableUpdate<Table extends TableName> = Tables[Table] extends { Update: infer U } ? U : never;
 
 /**
+ * Untyped client reference for generic CRUD where TableName union resolves to never.
+ * PostgREST validates table/column names at runtime.
+ */
+type GenericDb = SupabaseClient;
+
+/**
  * Cliente Supabase singleton (lazy).
  * Evita evaluar variables de entorno al importar el módulo.
  */
@@ -257,9 +263,9 @@ export async function insertRecord<Table extends TableName, TInput extends Recor
   // Transformar input a snake_case para BD
   const dbPayload = (transform ? toSnake(data) : data) as TableInsert<Table>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic CRUD over union TableName resolves to never
-  const { data: inserted, error } = await (supabase.from(table) as any)
-    .insert(dbPayload as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const db = supabase as unknown as GenericDb;
+  const { data: inserted, error } = await db.from(table)
+    .insert(dbPayload as Record<string, unknown>)
     .select()
     .single();
 
@@ -295,9 +301,9 @@ export async function updateRecord<Table extends TableName, TInput extends Recor
   // Transformar input a snake_case para BD
   const dbPayload = (transform ? toSnake(data) : data) as TableUpdate<Table>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic CRUD over union TableName resolves to never
-  const { data: updated, error } = await (supabase.from(table) as any)
-    .update(dbPayload as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const db = supabase as unknown as GenericDb;
+  const { data: updated, error } = await db.from(table)
+    .update(dbPayload as Record<string, unknown>)
     .eq('id', id)
     .select()
     .single();
@@ -331,9 +337,9 @@ export async function softDelete<Table extends TableName>(
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic soft-delete over union TableName
-  const { error } = await (supabase.from(table) as any)
-    .update({ deleted_at: now } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const db = supabase as unknown as GenericDb;
+  const { error } = await db.from(table)
+    .update({ deleted_at: now })
     .eq('id', id);
 
   if (error) {
@@ -375,9 +381,9 @@ export async function restoreRecord<Table extends TableName>(
   table: Table,
   id: string
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic restore over union TableName
-  const { error } = await (supabase.from(table) as any)
-    .update({ deleted_at: null } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const db = supabase as unknown as GenericDb;
+  const { error } = await db.from(table)
+    .update({ deleted_at: null })
     .eq('id', id);
 
   if (error) {

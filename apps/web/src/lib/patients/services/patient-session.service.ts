@@ -98,8 +98,7 @@ export const patientSessionService = {
         .select('*')
         .eq('id', user.id)
         .maybeSingle()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data = tryLegacy.data as any
+      data = tryLegacy.data as DbRow | null
       error = tryLegacy.error
     }
 
@@ -127,8 +126,7 @@ export const patientSessionService = {
           email,
           role: 'patient',
           external_id: user.id,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
+        } satisfies DbRow)
         .select('*')
         .single())
 
@@ -145,8 +143,7 @@ export const patientSessionService = {
             email,
             role: 'patient',
             external_id: user.id,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } as any)
+          } satisfies DbRow)
           .select('*')
           .single())
 
@@ -169,8 +166,7 @@ export const patientSessionService = {
       if (Object.keys(updates).length > 0) {
         const updateTry = await (db
           .from('profiles')
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .update(updates as any)
+          .update(updates)
           .eq(profileRow['user_id'] ? 'user_id' : 'id', user.id)
           .select('*')
           .single())
@@ -257,8 +253,7 @@ export const patientSessionService = {
         .insert({
           user_id: userId,
           active: true,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any)
+        } satisfies DbRow)
         .select('*'))
 
       if (insertError) {

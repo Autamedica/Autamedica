@@ -14,6 +14,7 @@
 
 import type { SupabaseLike } from './supabase';
 import type { AppointmentReminder } from '@autamedica/types';
+import { logger } from '@autamedica/shared';
 import { getPendingReminders, markReminderSent, markReminderFailed } from './reminders';
 import { expireStaleOffers } from './waitlist';
 import {
@@ -144,8 +145,7 @@ async function processOneReminder(
     : buildReminder2h(messageData);
 
   if (config.dryRun) {
-     
-    console.log(`[DRY RUN] Would send to ${patientProfile.phone}:\n${message}`);
+    logger.info(`[DRY RUN] Would send to ${patientProfile.phone}:\n${message}`);
     await markReminderSent(supabase, reminder.id);
     return;
   }
