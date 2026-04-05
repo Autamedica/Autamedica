@@ -9,8 +9,8 @@ import { findProcessEnvViolations, formatViolations } from './lib/policy-checks.
 
 function rg(pattern, cwd = process.cwd()) {
   const res = spawnSync('rg', ['-n', pattern, 'apps', 'packages', '-S', '-g', '*.ts', '-g', '*.tsx'], { cwd, encoding: 'utf8' });
-  if (res.status === 2) return { code: 0, out: '' };
-  return { code: res.status, out: res.stdout.trim() };
+  if (res.error || res.status === 2) return { code: 0, out: '' };
+  return { code: res.status, out: (res.stdout ?? '').trim() };
 }
 
 function filterIgnoredLines(output, ignoredPatterns = []) {
