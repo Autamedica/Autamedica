@@ -28,6 +28,7 @@ export interface UpdateAppointmentPayload {
   status?: AppointmentStatus
   type?: AppointmentType
   notes?: string
+  reason?: string
   meeting_url?: string | null
   location?: string | null
 }

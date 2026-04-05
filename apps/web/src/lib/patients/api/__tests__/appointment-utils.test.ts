@@ -200,4 +200,10 @@ describe('mapAppointment', () => {
     const result = mapAppointment(row);
     expect(result.reason).toBeNull();
   });
+
+  it('returns undefined start_time when row.start_time is null', () => {
+    const row: DbAppointmentRow = { ...baseRow, start_time: null };
+    const result = mapAppointment(row);
+    expect(result.start_time).toBeUndefined();
+  });
 });

@@ -154,6 +154,7 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
       status?: AppointmentStatus
       type?: AppointmentType
       notes?: string
+      reason?: string
       meeting_url?: string | null
       location?: string | null
     },
@@ -167,6 +168,7 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
     if (patch.status !== undefined) updates.status = patch.status
     if (patch.type !== undefined) updates.type = mapTypeToDb(patch.type)
     if (patch.notes !== undefined) updates.notes = patch.notes
+    if (patch.reason !== undefined) updates.reason = patch.reason
     if (patch.meeting_url !== undefined) updates.meeting_url = patch.meeting_url
     if (patch.location !== undefined) updates.location = patch.location
 

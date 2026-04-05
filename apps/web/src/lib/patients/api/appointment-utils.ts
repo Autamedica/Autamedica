@@ -9,7 +9,7 @@ export type DbAppointmentRow = {
   id: string
   patient_id: string
   doctor_id: string | null
-  start_time: string
+  start_time: string | null
   end_time: string | null
   duration_minutes: number | null
   type: string | null
@@ -78,7 +78,7 @@ function mapStatus(status?: string | null): AppointmentStatus {
 }
 
 export function mapAppointment(row: DbAppointmentRow): AppointmentWithDoctor {
-  const startTime = row.start_time ? new Date(row.start_time).toISOString() : new Date().toISOString()
+  const startTime = row.start_time ? new Date(row.start_time).toISOString() : undefined
   const duration = row.duration_minutes ?? (row.end_time ? Math.max(5, Math.round((new Date(row.end_time).getTime() - new Date(row.start_time).getTime()) / 60000)) : 30)
 
   return {

@@ -22,6 +22,7 @@ export const UpdatePatientAppointmentSchema = z.object({
   status: AppointmentStatusEnum.optional(),
   type: AppointmentTypeEnum.optional(),
   notes: z.string().max(2000).optional(),
+  reason: z.string().max(1000).optional(),
   meeting_url: z.string().url().nullable().optional(),
   location: z.string().max(500).nullable().optional(),
 })

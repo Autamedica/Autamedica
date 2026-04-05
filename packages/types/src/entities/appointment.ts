@@ -194,5 +194,5 @@ export const requiresMeetingUrl = (type: AppointmentType): boolean => {
  * Verifica si el tipo de cita requiere ubicación física
  */
 export const requiresPhysicalLocation = (type: AppointmentType): boolean => {
-  return type === "lab_test" || type === "consultation" || type === "emergency";
+  return type === "lab_test" || type === "emergency";
 };
