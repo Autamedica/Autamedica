@@ -1,12 +1,12 @@
 /**
  * Hook: usePatientReports — fetches and manages patient medical reports.
  *
- * Architecture: Capa 2 (Hook/Controller) — manages state, delegates to API Client (Capa 4).
- * No business logic here — just state + API calls.
+ * Architecture: Capa 2 (Hook/Controller) — manages state, delegates to services.
  */
 import { useState, useEffect, useCallback } from 'react'
 import { fetchApi } from '@/lib/api-client'
 import { logger } from '@autamedica/shared'
+import { patientReportsService } from '@/lib/patients/services/patient-reports.service'
 
 export interface PatientReport {
   id: string
@@ -54,28 +54,7 @@ export function usePatientReports(): UsePatientReportsReturn {
   const downloadPdf = useCallback(async (reportId: string) => {
     try {
       setDownloading(reportId)
-
-      const response = await fetch(`/api/patients/reports/${reportId}/pdf`, {
-        credentials: 'include',
-      })
-
-      if (!response.ok) {
-        throw new Error(`PDF download failed: ${response.status}`)
-      }
-
-      const blob = await response.blob()
-      const filename = response.headers.get('Content-Disposition')
-        ?.match(/filename="(.+)"/)?.[1] ?? `informe-${reportId.slice(0, 8)}.pdf`
-
-      // Trigger browser download
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      await patientReportsService.downloadPdf(reportId)
     } catch (err) {
       logger.error('[usePatientReports] PDF download failed', err)
       setError('No se pudo descargar el PDF')

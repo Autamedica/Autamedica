@@ -3,24 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MediaState, ConnectionQuality, SessionParticipant, SessionEvent } from '@autamedica/types';
 import { logger } from '@autamedica/shared';
-
-interface ApiSession {
-  session_id: string;
-  room_id: string;
-  status: string;
-  scheduled_at: string | null;
-  started_at: string | null;
-  ended_at: string | null;
-}
-
-interface StartSessionResponse {
-  session: ApiSession;
-  signaling: {
-    room_id: string;
-    server_url: string;
-    ice_servers: Array<{ urls: string | string[]; username?: string; credential?: string }>;
-  };
-}
+import {
+  telemedicineService,
+  mapApiSession,
+  type ApiSession,
+  type StartSessionResponse,
+} from '@/lib/patients/services/telemedicine.service';
 
 interface UseTelemedicineReturn {
   session: ApiSession | null;
@@ -40,18 +28,6 @@ interface UseTelemedicineReturn {
   joinSession: (role?: string, sessionIdOverride?: string) => Promise<boolean>;
   leaveSession: (sessionIdOverride?: string) => Promise<boolean>;
   logEvent: (eventType: string, details?: string, sessionIdOverride?: string) => Promise<void>;
-}
-
-function mapApiSession(data: unknown): ApiSession {
-  const d = data as Record<string, unknown> | null | undefined;
-  return {
-    session_id: String(d?.session_id ?? d?.id ?? ''),
-    room_id: String(d?.room_id ?? ''),
-    status: String(d?.status ?? 'scheduled'),
-    scheduled_at: (d?.scheduled_at as string | null) ?? null,
-    started_at: (d?.started_at as string | null) ?? null,
-    ended_at: (d?.ended_at as string | null) ?? null,
-  };
 }
 
 export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
@@ -75,24 +51,10 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
     setLoading(true);
     setError(null);
     try {
-      const query = sessionId ? `/api/telemedicine/session?sessionId=${encodeURIComponent(sessionId)}` : '/api/telemedicine/session';
-      const res = await fetch(query, { credentials: 'include' });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'No se pudo obtener la sesión');
-      }
-      const json = await res.json();
-      if (json?.data) {
-        const payload = json.data;
-        const rawSession = payload.session ?? payload;
-        setSession(mapApiSession(rawSession));
-        setParticipants(payload.participants ?? []);
-        setEvents(payload.events ?? []);
-      } else {
-        setSession(null);
-        setParticipants([]);
-        setEvents([]);
-      }
+      const snapshot = await telemedicineService.getSession(sessionId);
+      setSession(snapshot.session);
+      setParticipants(snapshot.participants);
+      setEvents(snapshot.events);
     } catch (err) {
       logger.error('[useTelemedicine] fetchSession error', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -105,22 +67,11 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/telemedicine/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ appointment_id: appointmentId, doctor_id: doctorId }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'No se pudo iniciar la sesión');
-      }
-      const json = await res.json();
-      const apiSession = mapApiSession(json?.data?.session);
-      setSession(apiSession);
-      setParticipants(json?.data?.participants ?? []);
-      setEvents(json?.data?.events ?? []);
-      return json?.data as StartSessionResponse;
+      const data = await telemedicineService.startSession(appointmentId, doctorId);
+      setSession(mapApiSession(data.session));
+      setParticipants((data as unknown as { participants?: SessionParticipant[] }).participants ?? []);
+      setEvents((data as unknown as { events?: SessionEvent[] }).events ?? []);
+      return data;
     } catch (err) {
       logger.error('[useTelemedicine] startSession error', err);
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
@@ -139,20 +90,8 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
         localStreamRef.current.getTracks().forEach(track => track.stop());
         localStreamRef.current = null;
       }
-      const res = await fetch(`/api/telemedicine/session/${session.session_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'completed', ended: true }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'Error al finalizar sesión');
-      }
-      const json = await res.json().catch(() => null);
-      if (json?.data) {
-        setSession(prev => (prev ? { ...prev, status: json.data.status, ended_at: json.data.ended_at } : prev));
-      }
+      const result = await telemedicineService.endSession(session.session_id);
+      setSession(prev => (prev ? { ...prev, status: result.status, ended_at: result.ended_at } : prev));
       return true;
     } catch (err) {
       logger.error('[useTelemedicine] endSession error', err);
@@ -203,16 +142,7 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
     const targetSession = sessionIdOverride ?? session?.session_id;
     if (!targetSession) return false;
     try {
-      const res = await fetch(`/api/telemedicine/session/${targetSession}/participants`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'join_failed');
-      }
+      await telemedicineService.joinSession(targetSession, role);
       await fetchSession();
       return true;
     } catch (err) {
@@ -226,16 +156,7 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
     const targetSession = sessionIdOverride ?? session?.session_id;
     if (!targetSession) return false;
     try {
-      const res = await fetch(`/api/telemedicine/session/${targetSession}/participants`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ left: true }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'leave_failed');
-      }
+      await telemedicineService.leaveSession(targetSession);
       await fetchSession();
       return true;
     } catch (err) {
@@ -249,17 +170,7 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
     const targetSession = sessionIdOverride ?? session?.session_id;
     if (!targetSession) return;
     try {
-      const payload = { event_type: eventType, event_data: details ? { details } : undefined };
-      const res = await fetch(`/api/telemedicine/session/${targetSession}/events`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error || 'event_failed');
-      }
+      await telemedicineService.logEvent(targetSession, eventType, details);
       await fetchSession();
     } catch (err) {
       logger.error('[useTelemedicine] logEvent error', err);

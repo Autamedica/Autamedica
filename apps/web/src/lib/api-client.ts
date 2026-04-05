@@ -72,3 +72,28 @@ export async function fetchApi<T>(
   // Non-envelope JSON (rare, but support it)
   return json as T
 }
+
+/**
+ * Fetch a binary blob from an internal API route.
+ *
+ * Same credential handling as `fetchApi`, but returns the raw
+ * `Blob` instead of parsed JSON — useful for PDF downloads.
+ */
+export async function fetchBlob(
+  url: string,
+  options?: { signal?: AbortSignal },
+): Promise<{ blob: Blob; filename: string | null }> {
+  const res = await fetch(url, {
+    credentials: 'include',
+    signal: options?.signal,
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new ApiError(text || `HTTP ${res.status}`, res.status)
+  }
+
+  const disposition = res.headers.get('Content-Disposition')
+  const filename = disposition?.match(/filename="?([^"]+)"?/)?.[1] ?? null
+  return { blob: await res.blob(), filename }
+}
