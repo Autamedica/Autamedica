@@ -58,7 +58,8 @@ export async function resolvePatientContext(
     const authDebug = getRequestAuthDebug(request)
     // 1. PREFERRED: Use middleware-validated session from locals
     let userId: string | null = null
-    let userRole = extractRole(locals?.session?.user?.user_metadata)
+    let userRole = extractRole(locals?.session?.user?.app_metadata as Record<string, unknown> | undefined)
+      ?? extractRole(locals?.session?.user?.user_metadata)
 
     if (locals?.session?.user?.id) {
       userId = locals.session.user.id
@@ -71,8 +72,9 @@ export async function resolvePatientContext(
       try {
         const { data: { session } } = await supabase.auth.getSession()
         userId = session?.user?.id ?? null
-        if (!userRole && session?.user?.user_metadata) {
-          userRole = extractRole(session.user.user_metadata as Record<string, unknown>)
+        if (!userRole && session?.user) {
+          userRole = extractRole(session.user.app_metadata as Record<string, unknown>)
+            ?? extractRole(session.user.user_metadata as Record<string, unknown>)
         }
       } catch {
         logger.warn('[resolvePatientContext] getSession() threw', authDebug)

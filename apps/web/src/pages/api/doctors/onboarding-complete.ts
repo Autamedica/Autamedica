@@ -2,11 +2,12 @@ import type { APIRoute } from 'astro';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import { jsonOk, internalError } from '@/lib/api-helpers';
-import { withAuth, isAuthed } from '@/lib/api-auth';
+import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
+
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const auth = await withAuth(request);
+    const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 

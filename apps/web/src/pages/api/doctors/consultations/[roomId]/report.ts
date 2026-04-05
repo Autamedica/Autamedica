@@ -7,7 +7,8 @@ import {
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
-import { withAuth, isAuthed } from '@/lib/api-auth';
+import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
+
 
 export const PATCH: APIRoute = async ({ request, params }) => {
   const roomId = params.roomId;
@@ -16,7 +17,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const auth = await withAuth(request);
+    const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
@@ -51,7 +52,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const auth = await withAuth(request);
+    const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 

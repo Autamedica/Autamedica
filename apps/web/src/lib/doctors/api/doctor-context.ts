@@ -24,14 +24,16 @@ export async function resolveDoctorContext(
 ): Promise<DoctorContext | null> {
   try {
     let userId = locals?.session?.user?.id ?? null;
-    let userRole = extractRole(locals?.session?.user?.user_metadata);
+    let userRole = extractRole(locals?.session?.user?.app_metadata as Record<string, unknown> | undefined)
+      ?? extractRole(locals?.session?.user?.user_metadata);
 
     if (!userId) {
       const supabase = createAstroServerClientFromRequest(request, locals?.runtime?.env);
       const { data } = await supabase.auth.getUser();
       userId = data.user?.id ?? null;
-      if (!userRole && data.user?.user_metadata) {
-        userRole = extractRole(data.user.user_metadata as Record<string, unknown>);
+      if (!userRole && data.user) {
+        userRole = extractRole(data.user.app_metadata as Record<string, unknown>)
+          ?? extractRole(data.user.user_metadata as Record<string, unknown>);
       }
     }
 

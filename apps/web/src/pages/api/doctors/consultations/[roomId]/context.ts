@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { jsonOk, badRequest, forbidden, internalError } from '@/lib/api-helpers';
-import { withAuth, isAuthed } from '@/lib/api-auth';
+import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
+
 import { consultationContextService } from '@/lib/doctors/services/consultation-context.service';
 
 export const GET: APIRoute = async ({ request, params }) => {
@@ -10,7 +11,7 @@ export const GET: APIRoute = async ({ request, params }) => {
   if (!roomId) return badRequest('missing_room_id');
 
   try {
-    const auth = await withAuth(request);
+    const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
 
     const admin = createAstroAdminClient();
