@@ -44,10 +44,10 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       return badRequest('Date range must not exceed 30 days')
     }
 
-    // Verify doctor exists
+    // Verify doctor exists and get timezone
     const { data: doctor, error: doctorError } = await supabase
       .from('doctors')
-      .select('id')
+      .select('id, timezone')
       .eq('id', doctorId)
       .maybeSingle()
 
@@ -59,6 +59,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
       doctor_id: doctorId as UUID,
       date_from: dateFrom,
       date_to: dateTo,
+      timezone: 'timezone' in doctor ? (doctor.timezone as string) : undefined,
     })
 
     return jsonOk({

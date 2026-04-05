@@ -20,6 +20,31 @@ import type { SupabaseLike } from './supabase';
 const ART_OFFSET = '-03:00';
 
 /**
+ * Resolve the current UTC offset for any IANA timezone using Intl.
+ * Handles DST automatically (e.g. America/New_York → -05:00 or -04:00).
+ */
+function resolveOffset(timezone?: string | null): string {
+  if (!timezone || timezone === 'UTC') return timezone === 'UTC' ? '+00:00' : ART_OFFSET;
+  try {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(now);
+    const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value ?? '';
+    // Format: "GMT-3" or "GMT+5:30" → normalize to "-03:00" or "+05:30"
+    const match = tzPart.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/);
+    if (!match) return ART_OFFSET;
+    const sign = match[1];
+    const hours = match[2].padStart(2, '0');
+    const minutes = match[3] ?? '00';
+    return `${sign}${hours}:${minutes}`;
+  } catch {
+    return ART_OFFSET;
+  }
+}
+
+/**
  * Genera todos los slots disponibles para un doctor en un rango de fechas.
  *
  * 1. Lee disponibilidad semanal recurrente (doctor_availability)
@@ -31,7 +56,8 @@ export async function getAvailableSlots(
   supabase: SupabaseLike,
   query: SlotQuery,
 ): Promise<ScheduleSlot[]> {
-  const { doctor_id, date_from, date_to, appointment_type: _appointment_type } = query;
+  const { doctor_id, date_from, date_to, appointment_type: _appointment_type, timezone } = query;
+  const utcOffset = resolveOffset(timezone);
 
   // 1. Fetch weekly availability
   const { data: availability, error: availErr } = await supabase
@@ -89,6 +115,7 @@ export async function getAvailableSlots(
         30, // default duration for overrides
         null,
         bookedSlots,
+        utcOffset,
       );
       slots.push(...overrideSlots);
       continue;
@@ -108,6 +135,7 @@ export async function getAvailableSlots(
         avail.slot_duration,
         avail.location,
         bookedSlots,
+        utcOffset,
       );
       slots.push(...daySlots);
     }
@@ -169,6 +197,7 @@ function generateSlotsForTimeRange(
   slotDuration: number,
   location: string | null,
   bookedSlots: BookedRange[],
+  offset: string = ART_OFFSET,
 ): ScheduleSlot[] {
   const slots: ScheduleSlot[] = [];
 
@@ -179,8 +208,8 @@ function generateSlotsForTimeRange(
   const endH = endParts[0] ?? 0;
   const endM = endParts[1] ?? 0;
 
-  const dayStart = new Date(`${dateStr}T${pad(startH)}:${pad(startM)}:00${ART_OFFSET}`);
-  const dayEnd = new Date(`${dateStr}T${pad(endH)}:${pad(endM)}:00${ART_OFFSET}`);
+  const dayStart = new Date(`${dateStr}T${pad(startH)}:${pad(startM)}:00${offset}`);
+  const dayEnd = new Date(`${dateStr}T${pad(endH)}:${pad(endM)}:00${offset}`);
 
   let cursor = dayStart.getTime();
   const endMs = dayEnd.getTime();
