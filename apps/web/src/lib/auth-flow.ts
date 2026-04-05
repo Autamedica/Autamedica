@@ -116,6 +116,24 @@ function sanitizeReturnTo(returnTo: string | null | undefined): string | undefin
   return absolute.toString();
 }
 
+/**
+ * Detect EntryRole from a hostname subdomain (e.g. doctor.autamedica.com → 'doctor').
+ * Returns undefined for non-portal hosts (www, localhost, etc.).
+ */
+export function resolveEntryRoleFromHostname(hostname: string): EntryRole | undefined {
+  const lower = hostname.toLowerCase();
+  if (lower === 'doctor.autamedica.com' || lower === 'doctors.autamedica.com') {
+    return 'doctor';
+  }
+  if (lower === 'paciente.autamedica.com' || lower === 'patients.autamedica.com') {
+    return 'patient';
+  }
+  if (lower === 'empresa.autamedica.com' || lower === 'companies.autamedica.com') {
+    return 'company_admin';
+  }
+  return undefined;
+}
+
 export function resolveEntryRoleFromParams(params: URLSearchParams): EntryRole | undefined {
   const roleFromQuery = normalizeRole(params.get('role'));
   if (roleFromQuery) {

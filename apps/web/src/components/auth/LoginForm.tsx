@@ -6,6 +6,7 @@ import {
   ROLE_ENTRIES,
   buildAuthPath,
   resolveEntryRoleFromParams,
+  resolveEntryRoleFromHostname,
 } from '../../lib/auth-flow';
 import {
   checkExistingSession,
@@ -49,7 +50,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const resolvedRole = resolveEntryRoleFromParams(params);
+    const resolvedRole = resolveEntryRoleFromParams(params) ?? resolveEntryRoleFromHostname(window.location.hostname);
     const returnToParam = params.get('returnTo');
 
     setRole(resolvedRole);
