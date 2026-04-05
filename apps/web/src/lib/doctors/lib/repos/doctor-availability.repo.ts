@@ -18,6 +18,7 @@ export const doctorAvailabilityRepo = {
       .from('doctor_availability')
       .select('*')
       .eq('doctor_id', doctorId)
+      .eq('is_active', true)
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true })
 
