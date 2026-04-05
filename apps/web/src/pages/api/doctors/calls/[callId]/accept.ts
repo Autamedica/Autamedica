@@ -1,9 +1,8 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
-import { withAuthRole, isAuthed } from '@/lib/api-auth'
+import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth'
 import { jsonOk, internalError } from '@/lib/api-helpers'
 
-const DOCTOR_ROLES = ['doctor', 'organization_admin', 'platform_admin', 'admin'] as const
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
 
 export const POST: APIRoute = async ({ params, request }) => {

@@ -1,12 +1,14 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
-import { jsonOk, internalError, unauthorized } from '@/lib/api-helpers';
+import { jsonOk, internalError } from '@/lib/api-helpers';
+import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { rankingService } from '@/lib/doctors/services/ranking.service';
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ request }) => {
   try {
-    if (!locals.session) return unauthorized();
+    const auth = await withAuthRole(request, DOCTOR_ROLES);
+    if (!isAuthed(auth)) return auth;
 
     const admin = createAstroAdminClient();
     const result = await rankingService.getCommunityLeaderboard(admin);

@@ -4,9 +4,8 @@ import { logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { resolveDoctorId, resolveRoomParticipants } from '@/lib/doctors/lib/resolve-room';
 import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/api-helpers';
-import { withAuthRole, isAuthed } from '@/lib/api-auth';
+import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 
-const DOCTOR_ROLES = ['doctor', 'organization_admin', 'platform_admin', 'admin'] as const
 
 type AdminClient = SupabaseClient;
 

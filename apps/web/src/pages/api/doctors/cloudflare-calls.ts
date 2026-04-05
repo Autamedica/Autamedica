@@ -1,10 +1,10 @@
 import type { APIRoute } from 'astro';
 import { handleCloudflareCallsProxy } from '@autamedica/telemedicine/server';
-import { unauthorized } from '@/lib/api-helpers';
+import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth';
 
-export const POST: APIRoute = async ({ request, locals }) => {
-  // Use session from middleware (already validated via getUser() + refreshed if needed)
-  if (!locals.session) return unauthorized();
+export const POST: APIRoute = async ({ request }) => {
+  const auth = await withAuthRole(request, DOCTOR_ROLES);
+  if (!isAuthed(auth)) return auth;
 
   const result = await handleCloudflareCallsProxy(request, {
     appId: import.meta.env.CLOUDFLARE_CALLS_APP_ID,

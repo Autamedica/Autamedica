@@ -3,10 +3,9 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { buildAnamnesisExportHtml, buildAnamnesisSummary, logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { jsonOk, forbidden, notFound, badRequest, internalError } from '@/lib/api-helpers';
-import { withAuthRole, isAuthed } from '@/lib/api-auth';
+import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room';
 
-const DOCTOR_ROLES = ['doctor', 'organization_admin', 'platform_admin', 'admin'] as const
 
 type AdminClient = SupabaseClient;
 

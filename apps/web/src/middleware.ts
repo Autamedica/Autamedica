@@ -61,10 +61,10 @@ const AUTH_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const CSP_DIRECTIVES = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev",
   "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -424,7 +424,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Auth routes: redirect authenticated users to their dashboard
     if (isAuthRoute) {
       if (isAuthenticated) {
-        const userRole = extractRole(user.user_metadata as Record<string, unknown>);
+        const userRole = extractRole(user.app_metadata as Record<string, unknown>) ?? extractRole(user.user_metadata as Record<string, unknown>);
         if (!userRole) {
           return context.redirect('/auth/select-role');
         }
@@ -469,7 +469,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     // Role-based access control for protected routes
     if (isAuthenticated && isProtectedRoute) {
-      const userRole = extractRole(user.user_metadata as Record<string, unknown>);
+      const userRole = extractRole(user.app_metadata as Record<string, unknown>) ?? extractRole(user.user_metadata as Record<string, unknown>);
 
       if (!userRole) {
         return context.redirect('/auth/select-role');
