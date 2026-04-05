@@ -29,25 +29,8 @@ interface TranscriptEntry {
 
 type VoiceState = 'idle' | 'connecting' | 'live' | 'listening' | 'processing' | 'speaking' | 'completed'
 
-interface SpeechRecognitionEvent extends Event {
-  readonly resultIndex: number
-  readonly results: SpeechRecognitionResultList
-}
-interface SpeechRecognitionResultList {
-  readonly length: number
-  [index: number]: SpeechRecognitionResult
-}
-interface SpeechRecognitionResult {
-  readonly isFinal: boolean
-  readonly length: number
-  [index: number]: SpeechRecognitionAlternative
-}
-interface SpeechRecognitionAlternative {
-  readonly transcript: string
-}
-interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: string
-}
+// SpeechRecognition types in src/types/speech-recognition.d.ts
+
 type ConnectionMode = 'live' | 'relay'
 type CheckpointMode = 'partial' | 'final'
 
