@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
+import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
 import type { Appointment } from '@autamedica/types'
 import { Calendar, Clock, MapPin, Search, Stethoscope, UserRound, Video, X } from 'lucide-react'
 import { useRealPatients } from '@/hooks/doctors/useRealPatients'
@@ -66,6 +67,7 @@ export function CreateAppointmentModal({
   appointment,
 }: CreateAppointmentModalProps) {
   const isEditing = !!appointment
+  const { containerRef } = useFocusTrap({ isOpen: true, onClose })
   const { patients, loading: patientsLoading } = useRealPatients()
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
@@ -136,7 +138,13 @@ export function CreateAppointmentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
-      <div className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-3xl">
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEditing ? 'Editar Cita' : 'Programar Cita'}
+        className="flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-3xl"
+      >
         <div className="flex items-start justify-between border-b border-am-surface-200 px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-xl font-semibold text-am-surface-900">
@@ -315,7 +323,7 @@ export function CreateAppointmentModal({
               </label>
 
               {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {error}
                 </div>
               )}

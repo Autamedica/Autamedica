@@ -421,4 +421,26 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
       justify-content: center;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-word-inner {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .hero-title-accent {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .hero-scroll-hint {
+      animation: none;
+    }
+
+    .hero-video {
+      display: none;
+    }
+  }
 </style>

@@ -300,3 +300,27 @@ a {
     opacity: 1 !important;
   }
 }
+
+/* ═══════════════════════════════════════════
+   Reduced Motion — respect user preference
+   Disables decorative animations while keeping
+   essential state changes (opacity toggles)
+   ═══════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .am-skeleton {
+    animation: none;
+  }
+
+  .hero-video {
+    display: none;
+  }
+}

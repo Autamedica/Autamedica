@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusTrap } from '@/hooks/shared/useFocusTrap';
 import { Loader2, Send, Sparkles, X } from 'lucide-react';
 import { logger } from '@autamedica/shared';
 import type { ExtractionGuidance } from '@/lib/patients/services/anamnesis-guidance.service';
@@ -69,6 +70,7 @@ export function AnamnesisChatModal({
   const [isTyping, setIsTyping] = useState(false);
   const [turns, setTurns] = useState<ClarificationTurn[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { containerRef } = useFocusTrap({ isOpen: true, onClose });
 
   const appendFallbackMessage = useCallback(() => {
     setMessages((prev) => [
@@ -144,7 +146,13 @@ export function AnamnesisChatModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col h-[80vh]">
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Chat de aclaración clínica"
+        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col h-[80vh]"
+      >
         <div className="p-4 border-b flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-sky-600" />
@@ -155,7 +163,7 @@ export function AnamnesisChatModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef} aria-live="polite">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] p-3 rounded-2xl ${
