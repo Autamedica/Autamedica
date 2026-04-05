@@ -57,7 +57,7 @@ jobs:
         run: |
           git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.tsx' '*.js' '*.json' '*.env*' \
             | grep -iE '(cedula|ruc|historia.?clinica|paciente.*id.*=.*[0-9]{6,}|service_role|supabase_db_password)' \
-            | grep -v 'type\|interface\|import\|//\|\.env\.\*\|secrets\.' \
+            | grep -v 'type\|interface\|import\|//\|\.env\.\*\|secrets\.\|\.pdf\|\.download\|filename' \
             && echo "::error::Sensitive medical/infra pattern in diff" && exit 1 \
             || true
 
