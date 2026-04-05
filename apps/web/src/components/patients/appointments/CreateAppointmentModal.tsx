@@ -215,8 +215,6 @@ export function CreateAppointmentModal({
     }
   };
 
-  if (!isOpen) return null;
-
   /* ── Computed ──────────────────────────────────────────── */
 
   const days = useMemo(() => getDaysInRange(from, to), [from, to]);
@@ -261,6 +259,8 @@ export function CreateAppointmentModal({
   }, [firstAvailableDay, selectedDay, selectedDoctorId, slotsByDay]);
 
   const weekLabel = `${new Date(from + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} — ${new Date(to + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}`;
+
+  if (!isOpen) return null;
 
   return (
     <div
