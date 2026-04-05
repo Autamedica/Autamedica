@@ -58,10 +58,12 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-am-surface-900 p-8 transition-all duration-500 ease-out hover:border-white/20 hover:shadow-2xl hover:shadow-primary/20 group ${className} ${isLarge ? 'md:col-span-2 md:row-span-2 p-10' : ''}`}
-      style={isHovered ? {
-        background: 'radial-gradient(1000px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.06), transparent 40%), #1C1917',
-      } : undefined}
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#0A0A0A] p-8 transition-all duration-500 ease-out hover:border-white/20 hover:shadow-2xl hover:shadow-primary/20 group ${className} ${isLarge ? 'md:col-span-2 md:row-span-2 p-10' : ''}`}
+      style={{
+        background: isHovered
+          ? 'radial-gradient(1000px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.06), transparent 40%), #0A0A0A'
+          : '#0A0A0A',
+      }}
     >
       {/* Background Media Overlay */}
       {(videoSrc || imageSrc) && (
@@ -86,7 +88,7 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
               />
             )}
           </div>
-          <div className="absolute inset-0 z-0 bg-gradient-to-t from-am-surface-900 via-am-surface-900/80 to-transparent" />
+          <div className="absolute inset-0 z-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent" />
         </>
       )}
 
