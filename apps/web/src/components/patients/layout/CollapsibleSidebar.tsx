@@ -1,24 +1,17 @@
 'use client'
 
 import {
-    BarChart3,
     Bot,
-    Brain,
     Calendar,
     ChevronLeft,
     ChevronRight,
     ClipboardList,
     FileText,
-    Heart,
-    HelpCircle,
     Home,
     LogOut,
     MessageSquare,
     Settings,
-    Shield,
-    ShieldCheck,
     User,
-    Users,
     Video,
 } from 'lucide-react'
 import type { MouseEvent } from 'react'
@@ -39,24 +32,17 @@ type BottomItem = NavigationItem & {
 }
 
 const navigationItems: NavigationItem[] = [
-  { icon: Home, label: 'Inicio', href: '/', customIcon: '/images/premium/sidebar/home.webp' },
-  { icon: ClipboardList, label: 'Anamnesis', href: '/anamnesis' },
-  { icon: FileText, label: 'Historia clínica', href: '/medical-history', customIcon: '/images/premium/sidebar/medical_history.webp' },
-  { icon: Heart, label: 'Salud Reproductiva', href: '/reproductive-health' },
-  { icon: ShieldCheck, label: 'Prevención Embarazo', href: '/pregnancy-prevention', customIcon: '/images/premium/sidebar/pregnancy.webp' },
-  { icon: Shield, label: 'Salud Preventiva', href: '/preventive-health', customIcon: '/images/premium/sidebar/preventive_health.webp' },
-  { icon: Calendar, label: 'Citas', href: '/appointments', customIcon: '/images/premium/sidebar/appointments.webp' },
-  { icon: Video, label: 'Videollamada', href: '/appointments' },
-  { icon: MessageSquare, label: 'Comunidad', href: '/community' },
-  { icon: Brain, label: 'IA Diagnóstico', href: '/demo/symptom-analyzer' },
-  { icon: BarChart3, label: 'Indicadores', href: '/indicators' },
-  { icon: Users, label: 'Equipo médico', href: '/team' },
+  { icon: Home, label: 'Inicio', href: '/patients/dashboard', customIcon: '/images/premium/sidebar/home.webp' },
+  { icon: ClipboardList, label: 'Anamnesis', href: '/patients/anamnesis' },
+  { icon: FileText, label: 'Historia clínica', href: '/patients/medical-history', customIcon: '/images/premium/sidebar/medical_history.webp' },
+  { icon: Calendar, label: 'Citas', href: '/patients/appointments', customIcon: '/images/premium/sidebar/appointments.webp' },
+  { icon: Video, label: 'Videollamada', href: '/patients/appointments' },
+  { icon: MessageSquare, label: 'Comunidad', href: '/patients/community' },
 ]
 
 const bottomItems: BottomItem[] = [
   { icon: Bot, label: 'Asistente Auta', href: '#', assistant: true, openChat: true },
   { icon: Settings, label: 'Configuración', href: '/patients/settings' },
-  { icon: HelpCircle, label: 'Ayuda', href: '/help' },
 ]
 
 export function CollapsibleSidebar() {
@@ -99,7 +85,6 @@ export function CollapsibleSidebar() {
   }
 
   const isActive = (href: string): boolean => {
-    if (href === '/') return pathname === '/'
     return pathname === href || pathname.startsWith(`${href}/`)
   }
 
