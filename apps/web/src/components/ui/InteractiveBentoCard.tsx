@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { sanitizeHtml } from '../../lib/sanitize-html';
 
 interface InteractiveBentoCardProps {
   title: string;
