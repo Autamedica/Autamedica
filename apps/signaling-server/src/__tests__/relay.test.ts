@@ -1,3 +1,17 @@
+// ---------------------------------------------------------------------------
+// SCOPE: Signaling Protocol Contract Tests (unit-level)
+//
+// These tests verify the EXPECTED signaling protocol contract: message format,
+// validation guards, and routing logic (relay to room, error on invalid input,
+// drop on rate-limit). They exercise local handler functions that replicate the
+// server.ts event-handler logic, using mock sockets instead of a real Socket.IO
+// server.
+//
+// They do NOT import or test the actual server handlers in server.ts. Integration
+// tests against the real server (spinning up Socket.IO, connecting real clients,
+// verifying end-to-end relay) are needed separately.
+// ---------------------------------------------------------------------------
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   RTCSessionDescriptionInit,
@@ -10,17 +24,6 @@ import {
   isValidRoomId,
   isValidConnectionStats,
 } from '../validation.js';
-
-/**
- * Simulates the relay logic from server.ts event handlers.
- *
- * The signaling server receives events from one socket and forwards them
- * to all other sockets in the same room via `socket.to(roomId).emit(...)`.
- * These tests verify:
- *   1. Valid messages are relayed with correct shape
- *   2. Invalid messages are rejected before relay
- *   3. Rate-limited messages are dropped
- */
 
 function createMockSocket(userId: string, role: 'patient' | 'doctor' = 'patient') {
   const roomEmit = vi.fn();
