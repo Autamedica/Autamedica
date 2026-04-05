@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/shared/useFocusTrap';
 import {
   useVitalSigns,
   useMedicationLog,
@@ -23,13 +24,22 @@ function Modal({
   title: string;
   children: React.ReactNode;
 }) {
+  const { containerRef } = useFocusTrap({ isOpen, onClose });
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+      >
         <button
           onClick={onClose}
+          aria-label="Cerrar"
           className="absolute right-4 top-4 text-stone-500 transition hover:text-stone-600"
         >
           <X className="h-5 w-5" />
@@ -119,7 +129,7 @@ export function BloodPressureModal({
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
+          <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
             {error}
           </div>
         )}
@@ -232,7 +242,7 @@ export function MedicationModal({
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
+          <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
             {error}
           </div>
         )}
@@ -358,7 +368,7 @@ export function SymptomModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
+          <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
             {error}
           </div>
         )}
@@ -476,7 +486,7 @@ export function LabResultModal({
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
+          <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
             {error}
           </div>
         )}
@@ -598,7 +608,7 @@ export function CommunityPostModal({
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
+          <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-900">
             {error}
           </div>
         )}
