@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createBrowserClient } from '@autamedica/auth'
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { UnifiedVideoCall, createCallService, useAudioTranscription, useTurnCredentials } from '@autamedica/telemedicine'
 import type { TranscriptSegment } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
@@ -51,7 +51,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
 
   const getCallService = useCallback(() => {
     if (!callServiceRef.current) {
-      callServiceRef.current = createCallService(createBrowserClient())
+      callServiceRef.current = createCallService(getBrowserSupabaseClient())
     }
     return callServiceRef.current
   }, [])
@@ -431,7 +431,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
                 ? null
                 : (callSession.transport.cloudflareCallsApiUrl ?? null)
             }
-            supabase={callSession.runtime === 'webrtc-p2p' ? createBrowserClient() : undefined}
+            supabase={callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined}
             theme="doctor"
             onCallEnd={handleCallEnd}
             onCallStart={handleCallStart}
