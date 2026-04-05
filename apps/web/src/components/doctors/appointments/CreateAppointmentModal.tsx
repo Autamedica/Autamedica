@@ -164,10 +164,12 @@ export function CreateAppointmentModal({
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-am-surface-400" />
                 <input
+                  id="patient-search"
+                  aria-label="Buscar paciente por nombre o email"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar paciente por nombre o email"
-                  className="w-full rounded-2xl border border-am-surface-200 bg-am-surface-50 py-3 pl-10 pr-4 text-sm outline-none transition focus:border-am-primary-400 focus:bg-white"
+                  className="w-full rounded-2xl border border-am-surface-200 bg-am-surface-50 py-3 pl-10 pr-4 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400 focus:bg-white"
                 />
               </div>
             </div>
@@ -240,7 +242,7 @@ export function CreateAppointmentModal({
                     min={isEditing ? undefined : getInitialDate()}
                     value={form.date}
                     onChange={(event) => handleChange('date', event.target.value)}
-                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none transition focus:border-am-primary-400"
+                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400"
                   />
                 </label>
 
@@ -250,7 +252,7 @@ export function CreateAppointmentModal({
                     type="time"
                     value={form.time}
                     onChange={(event) => handleChange('time', event.target.value)}
-                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none transition focus:border-am-primary-400"
+                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400"
                   />
                 </label>
               </div>
@@ -261,7 +263,7 @@ export function CreateAppointmentModal({
                   <select
                     value={String(form.durationMinutes)}
                     onChange={(event) => handleChange('durationMinutes', Number(event.target.value))}
-                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none transition focus:border-am-primary-400"
+                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400"
                   >
                     <option value="15">15 min</option>
                     <option value="30">30 min</option>
@@ -275,7 +277,7 @@ export function CreateAppointmentModal({
                   <select
                     value={form.type}
                     onChange={(event) => handleChange('type', event.target.value as DoctorAppointmentType)}
-                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none transition focus:border-am-primary-400"
+                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400"
                   >
                     {APPOINTMENT_TYPES.map((type) => (
                       <option key={type.value} value={type.value}>
@@ -296,7 +298,7 @@ export function CreateAppointmentModal({
                     value={form.location}
                     onChange={(event) => handleChange('location', event.target.value)}
                     placeholder="Consultorio, sede o referencia"
-                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none transition focus:border-am-primary-400"
+                    className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400"
                   />
                 </label>
               )}
@@ -308,7 +310,7 @@ export function CreateAppointmentModal({
                   value={form.notes}
                   onChange={(event) => handleChange('notes', event.target.value)}
                   placeholder="Motivo breve, contexto o preparacion previa"
-                  className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none transition focus:border-am-primary-400"
+                  className="w-full rounded-2xl border border-am-surface-200 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-am-primary-400 focus-visible:ring-offset-2 transition focus:border-am-primary-400"
                 />
               </label>
 

@@ -535,7 +535,7 @@ export function CreateAppointmentModal({
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Ej: Consulta general, dolor de cabeza..."
-                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-500 transition-colors focus:border-stone-900 focus:outline-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-500 transition-colors focus:border-stone-900 focus-visible:outline-2 focus-visible:outline-stone-900 focus-visible:ring-2 focus-visible:ring-stone-900/20 focus-visible:ring-offset-2"
                   />
                 </div>
 
@@ -550,7 +550,7 @@ export function CreateAppointmentModal({
                     onChange={(e) => setNotes(e.target.value)}
                     rows={2}
                     placeholder="Información adicional para el médico..."
-                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-500 transition-colors focus:border-stone-900 focus:outline-none resize-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-500 transition-colors focus:border-stone-900 focus-visible:outline-2 focus-visible:outline-stone-900 focus-visible:ring-2 focus-visible:ring-stone-900/20 focus-visible:ring-offset-2 resize-none"
                   />
                 </div>
               </>

@@ -19,7 +19,7 @@ export function Field({
         {icon ? <span className="text-sky-500">{icon}</span> : null}
         <input
           {...props}
-          className={`w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400 ${props.className ?? ''}`}
+          className={`w-full bg-transparent text-sm text-gray-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 placeholder:text-gray-400 ${props.className ?? ''}`}
         />
       </div>
       {hint ? <p className="text-xs text-gray-500">{hint}</p> : null}
@@ -46,7 +46,7 @@ export function SelectField({
         {icon ? <span className="text-sky-500">{icon}</span> : null}
         <select
           {...props}
-          className={`w-full bg-transparent text-sm text-gray-900 outline-none ${props.className ?? ''}`}
+          className={`w-full bg-transparent text-sm text-gray-900 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${props.className ?? ''}`}
         >
           {children}
         </select>
