@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
+import { fetchApi } from '@/lib/api-client'
 import { AppointmentsTable } from '@/components/patients/appointments/AppointmentsTable'
 import { CreateAppointmentModal } from '@/components/patients/appointments/CreateAppointmentModal'
 import { ReviewModal } from '@/components/patients/appointments/ReviewModal'
@@ -79,20 +80,13 @@ export default function AppointmentsPage({
 
     const loadPatientProfileId = async () => {
       try {
-        const response = await fetch('/api/auth/me', { credentials: 'include' })
-        const payload = await response.json() as {
-          success?: boolean
-          data?: {
-            role?: string
-            _patientProfileId?: string
-          } | null
-        }
+        const data = await fetchApi<{ role?: string; _patientProfileId?: string } | null>('/api/auth/me')
 
-        if (cancelled || !payload?.success || payload.data?.role !== 'patient') {
+        if (cancelled || data?.role !== 'patient') {
           return
         }
 
-        setPatientProfileId(payload.data._patientProfileId ?? null)
+        setPatientProfileId(data._patientProfileId ?? null)
       } catch {
         // Non-blocking enhancement only.
       }

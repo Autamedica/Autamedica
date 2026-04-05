@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { fetchApi } from '@/lib/api-client'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import { MEDICAL_SPECIALTIES } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
@@ -49,27 +50,15 @@ export function ProfileForm() {
     setError(null)
 
     try {
-      const res = await fetch('/api/profiles/doctors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+      await fetchApi('/api/profiles/doctors', {
+        body: {
           license_number: licenseNumber.trim(),
           specialty,
           active: true,
-        }),
+        },
       })
 
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Error al guardar perfil')
-      }
-
-      await fetch('/api/doctors/onboarding-complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      })
+      await fetchApi('/api/doctors/onboarding-complete', { method: 'POST' })
 
       setSuccess(true)
       setTimeout(() => {

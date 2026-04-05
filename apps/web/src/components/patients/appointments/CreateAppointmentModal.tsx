@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { logger } from '@autamedica/shared';
+import { fetchApi } from '@/lib/api-client';
 import {
   X,
   Clock,
@@ -120,11 +121,10 @@ export function CreateAppointmentModal({
     if (!isOpen) return;
     let cancelled = false;
     setDoctorsLoading(true);
-    fetch('/api/patients/doctors', { credentials: 'include' })
-      .then((res) => res.json())
-      .then((result) => {
+    fetchApi<DoctorOption[]>('/api/patients/doctors')
+      .then((data) => {
         if (cancelled) return;
-        if (result.success) setDoctors(result.data ?? []);
+        setDoctors(data ?? []);
       })
       .catch((err) => logger.error('[CreateAppointmentModal] Error:', err))
       .finally(() => { if (!cancelled) setDoctorsLoading(false); });
@@ -139,12 +139,10 @@ export function CreateAppointmentModal({
     if (!selectedDoctorId) { setSlots([]); return; }
     setSlotsLoading(true);
     try {
-      const res = await fetch(
+      const data = await fetchApi<{ slots: SlotData[] }>(
         `/api/patients/doctors/${selectedDoctorId}/slots?from=${from}&to=${to}`,
-        { credentials: 'include' },
       );
-      const result = await res.json();
-      setSlots(result.success ? (result.data?.slots ?? []) : []);
+      setSlots(data?.slots ?? []);
     } catch (err) {
       logger.error('[CreateAppointmentModal] Slots error:', err);
       setSlots([]);

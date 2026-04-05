@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { fetchApi } from '@/lib/api-client';
 import { useFocusTrap } from '@/hooks/shared/useFocusTrap';
 import { Loader2, Send, Sparkles, X } from 'lucide-react';
 import { logger } from '@autamedica/shared';
@@ -105,27 +106,16 @@ export function AnamnesisChatModal({
     setIsTyping(true);
 
     try {
-      const response = await fetch('/api/patients/anamnesis/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      const data = await fetchApi<ChatApiResponse>('/api/patients/anamnesis/chat', {
+        body: {
           message: userMessage.content,
           history: messages,
           checkpoint,
           guidanceQuestions: guidance.questions.map((question) => question.text),
           coverageGaps: guidance.gaps,
           coverageSummary: guidance.coverageSummary,
-        }),
+        },
       });
-
-      const rawText = await response.text();
-      const data: ChatApiResponse | null = rawText
-        ? JSON.parse(rawText) as ChatApiResponse
-        : null;
-
-      if (!response.ok) {
-        throw new Error(data?.error ?? `chat_http_${response.status}`);
-      }
 
       if (!data || typeof data.reply !== 'string') {
         throw new Error('invalid_chat_response');
