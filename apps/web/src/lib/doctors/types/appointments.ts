@@ -1,6 +1,13 @@
-import type { Appointment, PatientWithProfile } from '@autamedica/types'
+/**
+ * Appointment types for the doctor portal.
+ *
+ * Canonical AppointmentType lives in @autamedica/types.
+ * DoctorAppointmentType is a subset used in doctor-facing forms.
+ */
 
-export type DoctorAppointmentType = 'telemedicine' | 'consultation' | 'follow_up' | 'emergency'
+import type { Appointment, PatientWithProfile, AppointmentType } from '@autamedica/types'
+
+export type DoctorAppointmentType = Extract<AppointmentType, 'telemedicine' | 'consultation' | 'follow_up' | 'emergency'>
 
 export interface DoctorAppointmentRecord extends Appointment {
   patient?: Pick<PatientWithProfile, 'id' | 'profile'> | null

@@ -1,8 +1,11 @@
 /**
- * @autamedica/types - Anamnesis (Historia Clínica Digital)
+ * @autamedica/types - Anamnesis (Historia Clinica Digital)
  *
  * Tipos para el sistema de anamnesis digital del paciente.
- * Cumple con normativas HIPAA y regulaciones argentinas de historias clínicas.
+ * Cumple con normativas HIPAA y regulaciones argentinas de historias clinicas.
+ *
+ * Las 13 secciones usan nombres en espanol, alineados con KNOWN_SECTIONS
+ * del anamnesis.service.ts y los registros reales en BD.
  */
 
 import type { Brand } from '../core/brand.types';
@@ -15,20 +18,25 @@ import type { BaseEntity } from '../core/base.types';
 // ==========================================
 
 export type AnamnesisId = Brand<string, 'AnamnesisId'>;
+
+/**
+ * Las 13 secciones de la anamnesis digital.
+ * Alineadas con KNOWN_SECTIONS en anamnesis.service.ts y la BD real.
+ */
 export type AnamnesisSection =
-  | 'personal_data'
-  | 'emergency_contacts'
-  | 'medical_history'
-  | 'family_history'
-  | 'allergies'
-  | 'current_medications'
-  | 'chronic_conditions'
-  | 'surgical_history'
-  | 'hospitalizations'
-  | 'gynecological_history'
-  | 'lifestyle'
-  | 'mental_health'
-  | 'consent';
+  | 'edad'
+  | 'ocupacion'
+  | 'motivo_consulta'
+  | 'enfermedades_previas'
+  | 'medicamentos'
+  | 'alergias'
+  | 'antecedentes_familiares'
+  | 'habitos'
+  | 'cardiovascular'
+  | 'respiratorio'
+  | 'digestivo'
+  | 'genitourinario'
+  | 'resumen_final';
 
 // ==========================================
 // Anamnesis Status
@@ -93,145 +101,100 @@ export interface AnamnesisUpdate {
 // Section Data Types
 // ==========================================
 
-export interface PersonalDataSection {
-  full_name: string;
-  date_of_birth: ISODateString;
-  gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  blood_type?: string;
-  dni: string;
-  phone: string;
-  email: string;
-  address: {
-    street: string;
-    city: string;
-    province: string;
-    zip_code: string;
-    country: string;
-  };
-  occupation?: string;
-  education_level?: string;
-  marital_status?: string;
+export interface EdadSection {
+  fecha_nacimiento: string;
+  edad: number;
 }
 
-export interface EmergencyContactSection {
-  name: string;
-  relationship: string;
-  phone: string;
-  alternative_phone?: string;
-  email?: string;
-  address?: string;
+export interface OcupacionSection {
+  ocupacion: string;
+  descripcion_tareas?: string;
+  exposicion_riesgos?: string[];
 }
 
-export interface MedicalHistoryItem {
-  condition: string;
-  icd10_code?: string;
-  diagnosed_date?: ISODateString;
-  status: 'active' | 'resolved' | 'chronic';
-  notes?: string;
+export interface MotivoConsultaSection {
+  motivo_principal: string;
+  cuando_empezo?: string;
+  intensidad?: number;
+  localizacion_corporal?: string[];
 }
 
-export interface FamilyHistoryItem {
-  relationship: string; // padre, madre, hermano, etc.
-  condition: string;
-  age_of_onset?: number;
-  deceased?: boolean;
-  notes?: string;
+export interface EnfermedadesPreviasSection {
+  enfermedades_cronicas?: string[];
+  cirugias_previas?: string[];
+  internaciones?: string[];
+  otras?: string;
 }
 
-export interface AllergyItem {
-  allergen: string;
-  type: 'medication' | 'food' | 'environmental' | 'other';
-  severity: 'mild' | 'moderate' | 'severe' | 'life_threatening';
-  reaction: string;
-  diagnosed_date?: ISODateString;
+export interface MedicamentosSection {
+  medicamentos: Array<{
+    nombre: string;
+    dosis?: string;
+    frecuencia?: string;
+  }>;
 }
 
-export interface CurrentMedicationItem {
-  medication_name: string;
-  dosage: string;
-  frequency: string;
-  route: string; // oral, topical, injection, etc.
-  start_date: ISODateString;
-  prescribing_doctor?: string;
-  reason: string;
+export interface AlergiasSection {
+  alergias: Array<{
+    alergeno: string;
+    tipo?: string;
+    severidad?: string;
+    reaccion?: string;
+  }>;
 }
 
-export interface ChronicConditionItem {
-  condition: string;
-  icd10_code?: string;
-  diagnosed_date: ISODateString;
-  treatment_plan?: string;
-  controlled: boolean;
-  monitoring_required: boolean;
+export interface AntecedentesFamiliaresSection {
+  padre_enfermedades?: string[];
+  madre_enfermedades?: string[];
+  hermanos_enfermedades?: string[];
+  otros?: string;
 }
 
-export interface SurgicalHistoryItem {
-  surgery_type: string;
-  date: ISODateString;
-  surgeon?: string;
-  hospital?: string;
-  complications?: string;
-  notes?: string;
+export interface HabitosSection {
+  tabaquismo?: string;
+  alcohol?: string;
+  drogas_recreativas?: boolean;
+  actividad_fisica?: string;
+  alimentacion?: string;
+  horas_sueno?: number;
 }
 
-export interface HospitalizationItem {
-  reason: string;
-  admission_date: ISODateString;
-  discharge_date: ISODateString;
-  hospital: string;
-  treating_doctor?: string;
-  outcome?: string;
+export interface CardiovascularSection {
+  dolor_pecho?: boolean;
+  palpitaciones?: boolean;
+  disnea_esfuerzo?: boolean;
+  edema_miembros?: boolean;
+  otros?: string;
 }
 
-export interface GynecologicalHistorySection {
-  menarche_age?: number;
-  menopause_age?: number;
-  menstrual_cycle_regular: boolean;
-  pregnancies?: number;
-  births?: number;
-  miscarriages?: number;
-  cesareans?: number;
-  last_pap_smear?: ISODateString;
-  last_mammogram?: ISODateString;
-  contraceptive_method?: string;
+export interface RespiratorioSection {
+  tos_cronica?: boolean;
+  expectoracion?: boolean;
+  sibilancias?: boolean;
+  disnea?: boolean;
+  otros?: string;
 }
 
-export interface LifestyleSection {
-  smoking_status: 'never' | 'former' | 'current';
-  smoking_packs_per_day?: number;
-  smoking_years?: number;
-  alcohol_consumption: 'never' | 'occasional' | 'moderate' | 'heavy';
-  alcohol_drinks_per_week?: number;
-  recreational_drugs: boolean;
-  recreational_drugs_details?: string;
-  exercise_frequency: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
-  exercise_type?: string;
-  diet_type?: string;
-  sleep_hours_per_night?: number;
-  sleep_quality: 'poor' | 'fair' | 'good' | 'excellent';
-  stress_level: 1 | 2 | 3 | 4 | 5; // 1 = low, 5 = high
+export interface DigestivoSection {
+  nauseas?: boolean;
+  vomitos?: boolean;
+  dolor_abdominal?: boolean;
+  diarrea?: boolean;
+  constipacion?: boolean;
+  otros?: string;
 }
 
-export interface MentalHealthSection {
-  anxiety_diagnosed: boolean;
-  depression_diagnosed: boolean;
-  other_mental_health_conditions?: string[];
-  currently_seeing_therapist: boolean;
-  psychiatric_medications?: string[];
-  history_of_self_harm: boolean;
-  suicidal_ideation_history: boolean;
-  support_system_quality: 'poor' | 'fair' | 'good' | 'excellent';
+export interface GenitourinarioSection {
+  disuria?: boolean;
+  hematuria?: boolean;
+  poliuria?: boolean;
+  incontinencia?: boolean;
+  otros?: string;
 }
 
-export interface ConsentSection {
-  data_sharing_consent: boolean;
-  research_participation_consent: boolean;
-  telemedicine_consent: boolean;
-  privacy_policy_accepted: boolean;
-  privacy_policy_accepted_date: ISODateString;
-  terms_of_service_accepted: boolean;
-  terms_of_service_accepted_date: ISODateString;
-  can_revoke_consent: boolean;
+export interface ResumenFinalSection {
+  resumen: string;
+  observaciones?: string;
 }
 
 // ==========================================
@@ -242,19 +205,19 @@ export interface AnamnesisSectionData {
   anamnesis_id: AnamnesisId;
   section: AnamnesisSection;
   data:
-    | PersonalDataSection
-    | EmergencyContactSection[]
-    | MedicalHistoryItem[]
-    | FamilyHistoryItem[]
-    | AllergyItem[]
-    | CurrentMedicationItem[]
-    | ChronicConditionItem[]
-    | SurgicalHistoryItem[]
-    | HospitalizationItem[]
-    | GynecologicalHistorySection
-    | LifestyleSection
-    | MentalHealthSection
-    | ConsentSection;
+    | EdadSection
+    | OcupacionSection
+    | MotivoConsultaSection
+    | EnfermedadesPreviasSection
+    | MedicamentosSection
+    | AlergiasSection
+    | AntecedentesFamiliaresSection
+    | HabitosSection
+    | CardiovascularSection
+    | RespiratorioSection
+    | DigestivoSection
+    | GenitourinarioSection
+    | ResumenFinalSection;
   completed: boolean;
   last_modified: ISODateString;
   validation_errors?: string[];
@@ -283,35 +246,35 @@ export interface AnamnesisProgressResponse {
 // ==========================================
 
 export const SECTION_ORDER: AnamnesisSection[] = [
-  'personal_data',
-  'emergency_contacts',
-  'medical_history',
-  'family_history',
-  'allergies',
-  'current_medications',
-  'chronic_conditions',
-  'surgical_history',
-  'hospitalizations',
-  'gynecological_history',
-  'lifestyle',
-  'mental_health',
-  'consent',
+  'edad',
+  'ocupacion',
+  'motivo_consulta',
+  'enfermedades_previas',
+  'medicamentos',
+  'alergias',
+  'antecedentes_familiares',
+  'habitos',
+  'cardiovascular',
+  'respiratorio',
+  'digestivo',
+  'genitourinario',
+  'resumen_final',
 ];
 
 export const SECTION_DISPLAY_NAMES: Record<AnamnesisSection, string> = {
-  personal_data: 'Datos Personales',
-  emergency_contacts: 'Contactos de Emergencia',
-  medical_history: 'Historia Médica',
-  family_history: 'Antecedentes Familiares',
-  allergies: 'Alergias',
-  current_medications: 'Medicamentos Actuales',
-  chronic_conditions: 'Condiciones Crónicas',
-  surgical_history: 'Historia Quirúrgica',
-  hospitalizations: 'Hospitalizaciones',
-  gynecological_history: 'Historia Ginecológica',
-  lifestyle: 'Estilo de Vida',
-  mental_health: 'Salud Mental',
-  consent: 'Consentimientos',
+  edad: 'Edad',
+  ocupacion: 'Ocupacion',
+  motivo_consulta: 'Motivo de Consulta',
+  enfermedades_previas: 'Enfermedades Previas',
+  medicamentos: 'Medicamentos',
+  alergias: 'Alergias',
+  antecedentes_familiares: 'Antecedentes Familiares',
+  habitos: 'Habitos',
+  cardiovascular: 'Sistema Cardiovascular',
+  respiratorio: 'Sistema Respiratorio',
+  digestivo: 'Sistema Digestivo',
+  genitourinario: 'Sistema Genitourinario',
+  resumen_final: 'Resumen Final',
 };
 
 export function isAnamnesisComplete(anamnesis: Anamnesis): boolean {
@@ -319,21 +282,20 @@ export function isAnamnesisComplete(anamnesis: Anamnesis): boolean {
 }
 
 export function calculateSectionWeight(section: AnamnesisSection): number {
-  // Different sections have different weights for completion
   const weights: Record<AnamnesisSection, number> = {
-    personal_data: 15,
-    emergency_contacts: 10,
-    medical_history: 12,
-    family_history: 8,
-    allergies: 10,
-    current_medications: 10,
-    chronic_conditions: 10,
-    surgical_history: 7,
-    hospitalizations: 5,
-    gynecological_history: 5,
-    lifestyle: 8,
-    mental_health: 5,
-    consent: 5,
+    edad: 5,
+    ocupacion: 5,
+    motivo_consulta: 15,
+    enfermedades_previas: 12,
+    medicamentos: 10,
+    alergias: 10,
+    antecedentes_familiares: 8,
+    habitos: 8,
+    cardiovascular: 7,
+    respiratorio: 7,
+    digestivo: 5,
+    genitourinario: 5,
+    resumen_final: 3,
   };
   return weights[section] || 5;
 }

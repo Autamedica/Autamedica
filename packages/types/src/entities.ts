@@ -43,7 +43,11 @@ export interface Appointment {
   doctorId: DoctorId;
   startTime: ISODateString;
   duration: number; // minutos
+<<<<<<< HEAD
   type: "consultation" | "follow_up" | "emergency" | "telemedicine" | "lab_test";
+=======
+  type: "consultation" | "follow_up" | "emergency";
+>>>>>>> 8c1b54d85 (fix(types): consolidate appointment types and align anamnesis sections)
   status: "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show";
   notes?: string;
   createdAt: ISODateString;

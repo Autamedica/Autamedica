@@ -18,8 +18,13 @@ import type { ISODateString } from "../core/brand.types";
 // ==========================================
 
 /**
+<<<<<<< HEAD
  * Tipos de cita médica (refleja CHECK constraint en BD)
  * DB: consultation, follow_up, emergency, telemedicine, lab_test
+=======
+ * Tipos de cita medica.
+ * Alineado con CHECK constraint appointments_type_check en BD.
+>>>>>>> 8c1b54d85 (fix(types): consolidate appointment types and align anamnesis sections)
  */
 export type AppointmentType =
   | "consultation"
@@ -37,8 +42,14 @@ export const APPOINTMENT_TYPES: readonly AppointmentType[] = [
 ] as const;
 
 /**
+<<<<<<< HEAD
  * Estados de cita médica (refleja CHECK constraint en BD)
  * DB: scheduled, confirmed, in_progress, completed, cancelled, no_show
+=======
+ * Estados de cita medica.
+ * Alineado con CHECK constraint appointments_status_check en BD.
+ * Nota: underscore en in_progress y no_show (no hyphens).
+>>>>>>> 8c1b54d85 (fix(types): consolidate appointment types and align anamnesis sections)
  */
 export type AppointmentStatus =
   | "scheduled"
