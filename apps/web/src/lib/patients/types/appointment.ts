@@ -15,8 +15,8 @@ export interface Appointment {
   id: string;
   patient_id: string;
   doctor_id: string | null;
-  start_time: string;
-  end_time: string | null;
+  start_time?: string;
+  end_time?: string | null;
   duration_minutes: number;
   status: AppointmentStatus;
   type: AppointmentType;
