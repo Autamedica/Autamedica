@@ -4,7 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, ChatStatusType, MedicalChatInsert, MedicalMessageInsert } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
-import type { IMedicalChatRepository } from '@/lib/patients/ports/medical-chat.port'
+import type { IMedicalChatRepository, MedicalChatRowWithRelations, MedicalMessageRow } from '@/lib/patients/ports/medical-chat.port'
 
 type Db = SupabaseClient<Database>
 
@@ -13,7 +13,7 @@ export function createMedicalChatAdapter(supabase: Db): IMedicalChatRepository {
     async listChats(options?: {
       patientId?: string
       activeOnly?: boolean
-    }): Promise<unknown[]> {
+    }): Promise<MedicalChatRowWithRelations[]> {
       let query = supabase.from('medical_chats').select(
         `
           *,
@@ -49,7 +49,7 @@ export function createMedicalChatAdapter(supabase: Db): IMedicalChatRepository {
         throw error
       }
 
-      return data ?? []
+      return (data ?? []) as MedicalChatRowWithRelations[]
     },
 
     async createChat(data: MedicalChatInsert): Promise<{ id: string }> {
@@ -97,7 +97,7 @@ export function createMedicalChatAdapter(supabase: Db): IMedicalChatRepository {
       }
     },
 
-    async listMessages(chatId: string): Promise<unknown[]> {
+    async listMessages(chatId: string): Promise<MedicalMessageRow[]> {
       const { data, error } = await supabase
         .from('medical_messages')
         .select('*')
@@ -109,7 +109,7 @@ export function createMedicalChatAdapter(supabase: Db): IMedicalChatRepository {
         throw error
       }
 
-      return data ?? []
+      return (data ?? []) as MedicalMessageRow[]
     },
 
     async insertMessage(
