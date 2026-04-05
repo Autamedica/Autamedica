@@ -434,11 +434,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     // Protected routes: redirect unauthenticated users to login
     const isProtectedRoute = isProtectedPath(pathname) || isPortalHostRoot;
-    const AUTH_BYPASS_ENABLED = import.meta.env.AUTH_BYPASS === 'true';
 
     if (!isAuthenticated && isProtectedRoute) {
-      if (AUTH_BYPASS_ENABLED) {
-        logger.warn('[AUTH_BYPASS] Bypass enabled for protected route without valid session', {
+      if (import.meta.env.DEV && import.meta.env.AUTH_BYPASS === 'true') {
+        logger.warn('[AUTH_BYPASS] Development-only bypass active — NEVER enable in production', {
           pathname,
           portal,
           ...authCookieDebug,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { sanitizeHtml } from '../../lib/sanitize-html';
 
 interface InteractiveBentoCardProps {
   title: string;
@@ -95,7 +96,7 @@ export const InteractiveBentoCard: React.FC<InteractiveBentoCardProps> = ({
         {iconSvg && (
           <div 
             className={`mb-6 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white backdrop-blur-md shadow-inner transition-transform duration-500 group-hover:scale-110 group-hover:bg-white/10 ${isLarge ? 'h-16 w-16' : 'h-12 w-12'}`}
-            dangerouslySetInnerHTML={{ __html: iconSvg }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(iconSvg) }}
           />
         )}
         
