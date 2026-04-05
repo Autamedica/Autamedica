@@ -69,8 +69,8 @@ export function useTelemedicine(sessionId?: string): UseTelemedicineReturn {
     try {
       const data = await telemedicineService.startSession(appointmentId, doctorId);
       setSession(mapApiSession(data.session));
-      setParticipants((data as unknown as { participants?: SessionParticipant[] }).participants ?? []);
-      setEvents((data as unknown as { events?: SessionEvent[] }).events ?? []);
+      setParticipants(data.participants ?? []);
+      setEvents(data.events ?? []);
       return data;
     } catch (err) {
       logger.error('[useTelemedicine] startSession error', err);

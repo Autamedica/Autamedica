@@ -16,6 +16,8 @@ export interface ApiSession {
 
 export interface StartSessionResponse {
   session: ApiSession
+  participants?: SessionParticipant[]
+  events?: SessionEvent[]
   signaling: {
     room_id: string
     server_url: string
