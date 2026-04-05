@@ -8,6 +8,7 @@ import { ReviewModal } from '@/components/patients/appointments/ReviewModal'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
 import { useReviews } from '@/hooks/patients/useReviews'
+import { ErrorBoundary } from '@/components/patients/ErrorBoundary'
 import { Calendar, Plus, CheckCircle, XCircle, CalendarPlus, Video, Loader2 } from 'lucide-react'
 import {
   getAppointmentStartIso,
@@ -184,6 +185,7 @@ export default function AppointmentsPage({
   }
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_#f7fbff_100%)]">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         {/* Header */}
@@ -378,5 +380,6 @@ export default function AppointmentsPage({
         />
       )}
     </div>
+    </ErrorBoundary>
   )
 }
