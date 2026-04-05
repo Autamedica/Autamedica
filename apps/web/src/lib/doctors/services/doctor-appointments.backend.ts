@@ -55,16 +55,16 @@ export const doctorAppointmentsBackendService = {
 
     const patch: AppointmentUpdate = {}
 
-    if (payload.scheduled_at) {
-      patch.start_time = payload.scheduled_at
+    if (payload.start_time) {
+      patch.start_time = payload.start_time
       const duration = payload.duration_minutes ?? 30
-      patch.end_time = computeEndTime(payload.scheduled_at, duration)
+      patch.end_time = computeEndTime(payload.start_time, duration)
     }
 
     if (payload.duration_minutes !== undefined) {
       patch.duration_minutes = payload.duration_minutes
-      if (payload.scheduled_at) {
-        patch.end_time = computeEndTime(payload.scheduled_at, payload.duration_minutes)
+      if (payload.start_time) {
+        patch.end_time = computeEndTime(payload.start_time, payload.duration_minutes)
       }
     }
 

@@ -186,8 +186,8 @@ export default function AppointmentsPage({
   const handleCreateAppointment = async (data: CreateAppointmentInput) => {
     const appointmentData = {
       ...data,
-      scheduled_at: data.scheduled_at
-        ? new Date(data.scheduled_at).toISOString()
+      start_time: data.start_time
+        ? new Date(data.start_time).toISOString()
         : new Date().toISOString(),
     }
     const newAppointment = await createAppointment(appointmentData)

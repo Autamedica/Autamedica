@@ -20,24 +20,24 @@ describe('mapDbTypeToAppointmentType', () => {
     expect(mapDbTypeToAppointmentType('emergency')).toBe('emergency');
   });
 
-  it('maps "consultation" to in_person', () => {
-    expect(mapDbTypeToAppointmentType('consultation')).toBe('in_person');
+  it('maps "consultation" to consultation', () => {
+    expect(mapDbTypeToAppointmentType('consultation')).toBe('consultation');
   });
 
-  it('maps "in_person" to in_person', () => {
-    expect(mapDbTypeToAppointmentType('in_person')).toBe('in_person');
+  it('maps "lab_test" to lab_test', () => {
+    expect(mapDbTypeToAppointmentType('lab_test')).toBe('lab_test');
   });
 
-  it('defaults to in_person for null', () => {
-    expect(mapDbTypeToAppointmentType(null)).toBe('in_person');
+  it('defaults to consultation for null', () => {
+    expect(mapDbTypeToAppointmentType(null)).toBe('consultation');
   });
 
-  it('defaults to in_person for undefined', () => {
-    expect(mapDbTypeToAppointmentType(undefined)).toBe('in_person');
+  it('defaults to consultation for undefined', () => {
+    expect(mapDbTypeToAppointmentType(undefined)).toBe('consultation');
   });
 
-  it('defaults to in_person for unknown string', () => {
-    expect(mapDbTypeToAppointmentType('something_else')).toBe('in_person');
+  it('defaults to consultation for unknown string', () => {
+    expect(mapDbTypeToAppointmentType('something_else')).toBe('consultation');
   });
 });
 
@@ -58,8 +58,8 @@ describe('mapTypeToDb', () => {
     expect(mapTypeToDb('consultation')).toBe('consultation');
   });
 
-  it('maps in_person to consultation', () => {
-    expect(mapTypeToDb('in_person')).toBe('consultation');
+  it('maps lab_test to lab_test', () => {
+    expect(mapTypeToDb('lab_test')).toBe('lab_test');
   });
 
   it('defaults to consultation for null', () => {
@@ -124,7 +124,7 @@ describe('mapAppointment', () => {
     expect(result.id).toBe('apt-001');
     expect(result.patient_id).toBe('pat-001');
     expect(result.doctor_id).toBe('doc-001');
-    expect(result.scheduled_at).toBe('2026-03-22T14:00:00.000Z');
+    expect(result.start_time).toBe('2026-03-22T14:00:00.000Z');
     expect(result.duration_minutes).toBe(30);
     expect(result.status).toBe('confirmed');
     expect(result.type).toBe('telemedicine');
@@ -199,5 +199,11 @@ describe('mapAppointment', () => {
     const row: DbAppointmentRow = { ...baseRow, reason: null, notes: null };
     const result = mapAppointment(row);
     expect(result.reason).toBeNull();
+  });
+
+  it('returns undefined start_time when row.start_time is null', () => {
+    const row: DbAppointmentRow = { ...baseRow, start_time: null };
+    const result = mapAppointment(row);
+    expect(result.start_time).toBeUndefined();
   });
 });

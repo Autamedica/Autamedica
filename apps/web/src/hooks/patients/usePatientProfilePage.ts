@@ -233,7 +233,7 @@ export function usePatientProfilePage(
       .filter((item) => item.status === 'in_progress')
       .sort(
         (left, right) =>
-          new Date(left.scheduled_at).getTime() - new Date(right.scheduled_at).getTime(),
+          new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
       )[0];
 
     if (inProgress) {
@@ -247,7 +247,7 @@ export function usePatientProfilePage(
                 .trim() || 'Tu médico'}`
             : 'Consulta en curso',
         specialty: inProgress.doctor?.specialty ?? null,
-        scheduledAt: inProgress.scheduled_at,
+        scheduledAt: inProgress.start_time,
         status: inProgress.status,
       };
     }
@@ -255,10 +255,10 @@ export function usePatientProfilePage(
     const now = Date.now();
     const nextScheduled = appointments.appointments
       .filter((item) => item.status === 'scheduled' || item.status === 'confirmed')
-      .filter((item) => new Date(item.scheduled_at).getTime() >= now)
+      .filter((item) => new Date(item.start_time).getTime() >= now)
       .sort(
         (left, right) =>
-          new Date(left.scheduled_at).getTime() - new Date(right.scheduled_at).getTime(),
+          new Date(left.start_time).getTime() - new Date(right.start_time).getTime(),
       )[0];
 
     if (!nextScheduled) {
@@ -275,7 +275,7 @@ export function usePatientProfilePage(
               .trim() || 'Tu médico'}`
           : 'Consulta programada',
       specialty: nextScheduled.doctor?.specialty ?? null,
-      scheduledAt: nextScheduled.scheduled_at,
+      scheduledAt: nextScheduled.start_time,
       status: nextScheduled.status,
     };
   }, [appointments.appointments]);

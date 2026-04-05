@@ -49,7 +49,7 @@ function buildAppointmentCandidates(
 
   return appointments.flatMap((appointment): PortalNotificationCandidate[] => {
     const doctorName = formatDoctorName(appointment.doctor);
-    const scheduledAtMs = new Date(appointment.scheduled_at).getTime();
+    const scheduledAtMs = new Date(appointment.start_time).getTime();
     const startsSoon = scheduledAtMs > now && scheduledAtMs - now <= reminderWindowMs;
 
     if (appointment.status === 'in_progress') {
@@ -65,9 +65,9 @@ function buildAppointmentCandidates(
         contextData: {
           appointmentId: appointment.id,
           doctorId: appointment.doctor_id,
-          scheduledAt: appointment.scheduled_at,
+          scheduledAt: appointment.start_time,
         },
-        createdAt: appointment.updated_at ?? appointment.scheduled_at,
+        createdAt: appointment.updated_at ?? appointment.start_time,
       }];
     }
 
@@ -79,7 +79,7 @@ function buildAppointmentCandidates(
       category: 'appointment',
       type: 'appointment_upcoming',
       title: 'Tenes un turno proximo',
-      body: `${doctorName} - ${formatAppointmentDate(appointment.scheduled_at)}`,
+      body: `${doctorName} - ${formatAppointmentDate(appointment.start_time)}`,
       actionUrl: '/patients/appointments',
       actionLabel: 'Ver turno',
       priority: 'high',
@@ -87,10 +87,10 @@ function buildAppointmentCandidates(
       contextData: {
         appointmentId: appointment.id,
         doctorId: appointment.doctor_id,
-        scheduledAt: appointment.scheduled_at,
+        scheduledAt: appointment.start_time,
         status: appointment.status,
       },
-      createdAt: appointment.scheduled_at,
+      createdAt: appointment.start_time,
     }];
   });
 }

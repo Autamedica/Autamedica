@@ -15,7 +15,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
   const body = (await request.json().catch(() => ({}))) as Partial<UpdateDoctorAppointmentInput>
 
   const hasFields =
-    body.scheduled_at !== undefined ||
+    body.start_time !== undefined ||
     body.duration_minutes !== undefined ||
     body.type !== undefined ||
     body.notes !== undefined ||
@@ -32,7 +32,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
       id,
       context.doctorId,
       {
-        scheduled_at: body.scheduled_at,
+        start_time: body.start_time,
         duration_minutes: body.duration_minutes,
         type: body.type,
         notes: body.notes,

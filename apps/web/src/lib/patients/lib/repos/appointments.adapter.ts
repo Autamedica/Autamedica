@@ -78,7 +78,7 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
     input: CreateAppointmentInput & { meeting_url?: string | null; location?: string | null },
   ): Promise<AppointmentWithDoctor> {
     const {
-      scheduled_at,
+      start_time,
       doctor_id,
       duration_minutes = 30,
       type,
@@ -89,7 +89,7 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
     } = input
 
     const effectiveType = mapTypeToDb(type as AppointmentType)
-    const end_time = computeEndTime(scheduled_at, duration_minutes)
+    const end_time = computeEndTime(start_time, duration_minutes)
     const combinedNotes = [reason, notes].filter(Boolean).join(' — ') || null
 
     let effectiveMeetingUrl = meeting_url ?? null
@@ -101,7 +101,7 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
       .insert({
         patient_id: patientId,
         doctor_id: doctor_id.trim(),
-        start_time: scheduled_at,
+        start_time,
         end_time,
         duration_minutes,
         type: effectiveType,
@@ -149,11 +149,12 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
     id: string,
     patientId: string,
     patch: {
-      scheduled_at?: string
+      start_time?: string
       duration_minutes?: number
       status?: AppointmentStatus
       type?: AppointmentType
       notes?: string
+      reason?: string
       meeting_url?: string | null
       location?: string | null
     },
@@ -162,19 +163,20 @@ export function createAppointmentAdapter(supabase: Db): IAppointmentsRepository 
       updated_at: new Date().toISOString(),
     }
 
-    if (patch.scheduled_at !== undefined) updates.start_time = patch.scheduled_at
+    if (patch.start_time !== undefined) updates.start_time = patch.start_time
     if (patch.duration_minutes !== undefined) updates.duration_minutes = patch.duration_minutes
     if (patch.status !== undefined) updates.status = patch.status
     if (patch.type !== undefined) updates.type = mapTypeToDb(patch.type)
     if (patch.notes !== undefined) updates.notes = patch.notes
+    if (patch.reason !== undefined) updates.reason = patch.reason
     if (patch.meeting_url !== undefined) updates.meeting_url = patch.meeting_url
     if (patch.location !== undefined) updates.location = patch.location
 
     // Recompute end_time when time/duration changes
-    if (patch.scheduled_at !== undefined && patch.duration_minutes !== undefined) {
-      updates.end_time = computeEndTime(patch.scheduled_at, patch.duration_minutes)
-    } else if (patch.scheduled_at !== undefined) {
-      updates.end_time = computeEndTime(patch.scheduled_at, patch.duration_minutes ?? 30)
+    if (patch.start_time !== undefined && patch.duration_minutes !== undefined) {
+      updates.end_time = computeEndTime(patch.start_time, patch.duration_minutes)
+    } else if (patch.start_time !== undefined) {
+      updates.end_time = computeEndTime(patch.start_time, patch.duration_minutes ?? 30)
     } else if (patch.duration_minutes !== undefined) {
       const { data: current } = await supabase
         .from('appointments')

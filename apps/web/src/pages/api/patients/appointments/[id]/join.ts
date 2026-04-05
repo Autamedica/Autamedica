@@ -8,7 +8,7 @@ import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
 import { badRequest, conflict, internalError, jsonOk, notFound, unauthorized } from '@/lib/api-helpers'
 
-const JOINABLE_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress', 'in-progress'])
+const JOINABLE_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
 
 async function ensurePatientJoined(
   actorSupabase: ReturnType<typeof createAstroServerClientFromRequest>,
@@ -32,7 +32,6 @@ function isCallAlignedWithAppointmentWindow(
   call: { created_at: string },
   appointment: {
     start_time?: string | null
-    scheduled_at?: string | null
     end_time?: string | null
     duration_minutes?: number | null
   },

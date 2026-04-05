@@ -32,15 +32,14 @@ export const AppointmentSnakeSchema = z.object({
     'emergency',
     'telemedicine',
     'lab_test',
-    'checkup'
   ]).nullable(),
   status: z.enum([
     'scheduled',
     'confirmed',
-    'in-progress',
+    'in_progress',
     'completed',
     'cancelled',
-    'no_show'
+    'no_show',
   ]).nullable(),
   notes: z.string().nullable(),
   location: z.string().nullable(),
@@ -159,8 +158,7 @@ export function requiresPhysicalLocation(apt: AppointmentSnake): boolean {
   const physicalTypes: AppointmentSnake['type'][] = [
     'consultation',
     'lab_test',
-    'checkup',
-    'emergency'
+    'emergency',
   ];
 
   return physicalTypes.includes(apt.type) && !apt.location;

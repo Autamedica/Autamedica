@@ -18,19 +18,15 @@ import type { ISODateString } from "../core/brand.types";
 // ==========================================
 
 /**
- * Tipos de cita médica
- * CORREGIDO según mejores prácticas médicas:
- * - "follow_up" con underscore (no guión)
- * - "lab_test" y "checkup" agregados
- * - "procedure" y "screening" removidos (poco comunes en telemedicina)
+ * Tipos de cita médica (refleja CHECK constraint en BD)
+ * DB: consultation, follow_up, emergency, telemedicine, lab_test
  */
 export type AppointmentType =
   | "consultation"
-  | "follow_up"      // CORREGIDO: era "follow-up"
+  | "follow_up"
   | "emergency"
   | "telemedicine"
-  | "lab_test"       // NUEVO
-  | "checkup";       // NUEVO
+  | "lab_test";
 
 export const APPOINTMENT_TYPES: readonly AppointmentType[] = [
   "consultation",
@@ -38,30 +34,27 @@ export const APPOINTMENT_TYPES: readonly AppointmentType[] = [
   "emergency",
   "telemedicine",
   "lab_test",
-  "checkup"
 ] as const;
 
 /**
- * Estados de cita médica
- * CORREGIDO según esquema real de BD:
- * - "confirmed" agregado (existe en BD)
- * - "rescheduled" removido (no es un estado final en BD)
+ * Estados de cita médica (refleja CHECK constraint en BD)
+ * DB: scheduled, confirmed, in_progress, completed, cancelled, no_show
  */
 export type AppointmentStatus =
   | "scheduled"
-  | "confirmed"      // NUEVO
-  | "in-progress"
+  | "confirmed"
+  | "in_progress"
   | "completed"
   | "cancelled"
-  | "no_show";       // CORREGIDO: con underscore
+  | "no_show";
 
 export const APPOINTMENT_STATUSES: readonly AppointmentStatus[] = [
   "scheduled",
   "confirmed",
-  "in-progress",
+  "in_progress",
   "completed",
   "cancelled",
-  "no_show"
+  "no_show",
 ] as const;
 
 // ==========================================
@@ -201,5 +194,5 @@ export const requiresMeetingUrl = (type: AppointmentType): boolean => {
  * Verifica si el tipo de cita requiere ubicación física
  */
 export const requiresPhysicalLocation = (type: AppointmentType): boolean => {
-  return type === "lab_test" || type === "checkup" || type === "emergency";
+  return type === "lab_test" || type === "emergency";
 };
