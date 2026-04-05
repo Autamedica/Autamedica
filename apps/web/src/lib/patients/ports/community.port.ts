@@ -65,4 +65,6 @@ export interface ICommunityRepository {
     },
   ): Promise<CommunityPost>
   deletePost(postId: string): Promise<void>
+  resolveDisplayName(userId: string): Promise<string | null>
+  findDoctorSpecialty(doctorId: string): Promise<string | null>
 }

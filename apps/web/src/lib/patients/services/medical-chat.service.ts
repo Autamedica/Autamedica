@@ -1,12 +1,12 @@
 /**
  * Service: Medical chat operations (fetch chats, create, update status, send messages, mark as read).
- * Pure async functions for DB queries and mutations.
+ * Business logic layer — delegates all DB access to medical-chat adapter.
  * No React dependencies. Called from useMedicalChats and useChatMessages hooks.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import type { ChatStatusType, MedicalChatInsert, MedicalMessageInsert } from '@autamedica/types'
-import { logger } from '@autamedica/shared'
+import { createMedicalChatAdapter } from '@/lib/patients/lib/repos/medical-chat.adapter'
 
 type Db = SupabaseClient<Database>
 
@@ -35,42 +35,10 @@ export const medicalChatService = {
       activeOnly?: boolean
     } = {},
   ): Promise<MedicalChatWithLastMessage[]> {
-    let query = supabase.from('medical_chats').select(
-      `
-        *,
-        specialist:reproductive_health_specialists!inner (
-          doctor:doctors!inner (
-            first_name,
-            last_name
-          )
-        ),
-        messages:medical_messages (
-          content,
-          author_type,
-          created_at,
-          is_read
-        )
-      `,
-    )
+    const chatRepo = createMedicalChatAdapter(supabase)
+    const rawData = await chatRepo.listChats(options)
 
-    if (options.patientId) {
-      query = query.eq('patient_id', options.patientId)
-    }
-
-    if (options.activeOnly) {
-      query = query.in('status', ['active', 'waiting_response'])
-    }
-
-    query = query.order('last_message_at', { ascending: false })
-
-    const { data, error: fetchError } = await query
-
-    if (fetchError) {
-      logger.error('[medicalChatService] fetchChats failed', fetchError)
-      throw fetchError
-    }
-
-    const transformedData: MedicalChatWithLastMessage[] = (data || []).map((dbItem) => {
+    const transformedData: MedicalChatWithLastMessage[] = (rawData || []).map((dbItem) => {
       const item = dbItem as unknown as Record<string, unknown> & {
         id: string
         patient_id: string
@@ -128,33 +96,8 @@ export const medicalChatService = {
     supabase: Db,
     data: MedicalChatInsert,
   ): Promise<{ id: string }> {
-    const insertData = {
-      patient_id: data.patient_id,
-      specialist_id: data.specialist_id,
-      subject: data.subject,
-      is_urgent: data.is_urgent || false,
-      status: 'active' as ChatStatusType,
-      last_message_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-
-    const { data: result, error: insertError } = await supabase
-      .from('medical_chats')
-      .insert(insertData)
-      .select()
-      .single()
-
-    if (insertError) {
-      logger.error('[medicalChatService] createChat failed', insertError)
-      throw insertError
-    }
-
-    if (!result || typeof result !== 'object' || !('id' in result)) {
-      throw new Error('Failed to retrieve chat ID')
-    }
-
-    return { id: result.id as string }
+    const chatRepo = createMedicalChatAdapter(supabase)
+    return chatRepo.createChat(data)
   },
 
   async updateChatStatus(
@@ -162,33 +105,13 @@ export const medicalChatService = {
     chatId: string,
     status: ChatStatusType,
   ): Promise<void> {
-    const { error: updateError } = await supabase
-      .from('medical_chats')
-      .update({
-        status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', chatId)
-
-    if (updateError) {
-      logger.error('[medicalChatService] updateChatStatus failed', updateError)
-      throw updateError
-    }
+    const chatRepo = createMedicalChatAdapter(supabase)
+    await chatRepo.updateChatStatus(chatId, status)
   },
 
   async fetchMessages(supabase: Db, chatId: string): Promise<unknown[]> {
-    const { data, error: fetchError } = await supabase
-      .from('medical_messages')
-      .select('*')
-      .eq('chat_id', chatId)
-      .order('created_at', { ascending: true })
-
-    if (fetchError) {
-      logger.error('[medicalChatService] fetchMessages failed', fetchError)
-      throw fetchError
-    }
-
-    return data || []
+    const chatRepo = createMedicalChatAdapter(supabase)
+    return chatRepo.listMessages(chatId)
   },
 
   async sendMessage(
@@ -197,54 +120,13 @@ export const medicalChatService = {
     userId: string,
     messageData: MedicalMessageInsert,
   ): Promise<void> {
-    const messageInsert = {
-      chat_id: chatId,
-      author_type: 'patient',
-      author_id: userId,
-      content_type: messageData.content_type || 'text',
-      content: messageData.content,
-      attachment_url: messageData.attachment_url,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    }
-
-    const { error: insertError } = await supabase
-      .from('medical_messages')
-      .insert(messageInsert)
-
-    if (insertError) {
-      logger.error('[medicalChatService] sendMessage failed', insertError)
-      throw insertError
-    }
-
-    // Update chat's last_message_at
-    const { error: updateError } = await supabase
-      .from('medical_chats')
-      .update({
-        last_message_at: new Date().toISOString(),
-        status: 'waiting_response',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', chatId)
-
-    if (updateError) {
-      logger.error('[medicalChatService] sendMessage chat update failed', updateError)
-      throw updateError
-    }
+    const chatRepo = createMedicalChatAdapter(supabase)
+    await chatRepo.insertMessage(chatId, userId, messageData)
+    await chatRepo.updateChatLastMessage(chatId, 'waiting_response')
   },
 
   async markMessageAsRead(supabase: Db, messageId: string): Promise<void> {
-    const { error } = await supabase
-      .from('medical_messages')
-      .update({
-        is_read: true,
-        read_at: new Date().toISOString(),
-      })
-      .eq('id', messageId)
-
-    if (error) {
-      logger.error('[medicalChatService] markMessageAsRead failed', error)
-      throw error
-    }
+    const chatRepo = createMedicalChatAdapter(supabase)
+    await chatRepo.markMessageAsRead(messageId)
   },
 }

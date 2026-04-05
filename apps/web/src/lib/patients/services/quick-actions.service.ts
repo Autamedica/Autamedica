@@ -6,6 +6,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
+import { createProfileAdapter } from '@/lib/patients/lib/repos/profile.adapter'
 
 type Db = SupabaseClient<Database>
 
@@ -29,16 +30,8 @@ async function resolveAuthenticatedPatientContext(supabase: Db): Promise<Authent
     throw new Error('No autenticado')
   }
 
-  const { data: patient, error: patientError } = await supabase
-    .from('patients')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('active', true)
-    .maybeSingle()
-
-  if (patientError) {
-    throw patientError
-  }
+  const profileRepo = createProfileAdapter(supabase)
+  const patient = await profileRepo.findActivePatientByUserId(user.id)
 
   if (!patient?.id) {
     throw new Error('Perfil de paciente no encontrado')

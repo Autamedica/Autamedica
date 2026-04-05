@@ -8,4 +8,5 @@ export interface IProfileRepository {
   upsertPatient(userId: string, payload: Partial<PatientUpdate>): Promise<unknown>
   ensureBoth(userId: string, email?: string | null): Promise<void>
   updateOnboardingComplete(userId: string): Promise<void>
+  findActivePatientByUserId(userId: string): Promise<{ id: string } | null>
 }
