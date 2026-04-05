@@ -157,11 +157,11 @@ export const anamnesisVersionService = {
 
     const prevVersion = await anamnesisVersionsRepo.getLatest(anamnesisId)
       .catch(() => null)
-    const nextVersionNumber = prevVersion ? prevVersion.version_number + 1 : 1
+    const nextVersionNumber = prevVersion ? prevVersion.versionNumber + 1 : 1
 
     let changesSummary: ChangesSummary | null = null
-    if (prevVersion && Array.isArray(prevVersion.sections_snapshot)) {
-      const prevSnapshot = prevVersion.sections_snapshot as unknown as SectionSnapshot[]
+    if (prevVersion && Array.isArray(prevVersion.sectionsSnapshot)) {
+      const prevSnapshot = prevVersion.sectionsSnapshot as unknown as SectionSnapshot[]
       changesSummary = computeDiff(prevSnapshot, currentSnapshot)
     }
 
@@ -175,7 +175,7 @@ export const anamnesisVersionService = {
       version_number: nextVersionNumber,
       trigger,
       sections_snapshot: currentSnapshot as unknown as Record<string, unknown>[],
-      extraction_snapshot: extraction?.extraction_result ?? null,
+      extraction_snapshot: extraction?.extractionResult ?? null,
       changes_summary: changesSummary ? {
         added: changesSummary.added,
         modified: changesSummary.modified,

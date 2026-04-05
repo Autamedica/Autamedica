@@ -26,13 +26,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return jsonOk({
       versions: versions.map(v => ({
         id: v.id,
-        version_number: v.version_number,
+        versionNumber: v.versionNumber,
         trigger: v.trigger,
         relevance: v.relevance,
-        changes_summary: v.changes_summary,
-        pdf_filename: v.pdf_filename,
+        changesSummary: v.changesSummary,
+        pdfFilename: v.pdfFilename,
         notes: v.notes,
-        created_at: v.created_at,
+        createdAt: v.createdAt,
       })),
     })
   } catch (e) {
