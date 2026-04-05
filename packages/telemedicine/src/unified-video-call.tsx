@@ -69,6 +69,10 @@ export interface UnifiedVideoCallProps {
   onError?: (error: unknown) => void
   persistCallStatus?: (status: CallStatus, reason?: string) => Promise<void>
   callService?: UnifiedVideoCallService
+  /** Supabase URL for best-effort call status persistence on page close */
+  supabaseUrl?: string
+  /** Supabase anon key for best-effort call status persistence on page close */
+  supabaseAnonKey?: string
   className?: string
   theme?: 'doctor' | 'patient'
   autoStart?: boolean
@@ -98,6 +102,8 @@ export function UnifiedVideoCall({
   onError,
   persistCallStatus: persistCallStatusOverride,
   callService: callServiceOverride,
+  supabaseUrl,
+  supabaseAnonKey,
   className = '',
   theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
@@ -588,6 +594,8 @@ export function UnifiedVideoCall({
     chatMessagesRef,
     chatMessages,
     isChatPanelOpen,
+    supabaseUrl,
+    supabaseAnonKey,
   })
 
   /* ── Actions ── */

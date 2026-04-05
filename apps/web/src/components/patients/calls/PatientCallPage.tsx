@@ -215,6 +215,8 @@ function PatientCallContent({ roomId }: { roomId: string }) {
       onCallEnd={handleCallEnd}
       persistCallStatus={handlePersistCallStatus}
       callService={getCallService()}
+      supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL}
+      supabaseAnonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
       autoStart
       className="h-screen"
     />

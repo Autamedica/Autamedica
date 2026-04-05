@@ -185,6 +185,9 @@ export class PeerConnectionFactory {
             attempts: peerState.iceRestartCount,
           })
           this.callLogger?.error('ice', 'ice_restart_limit_reached', { peerId: userId, attempts: peerState.iceRestartCount })
+          const iceError = new Error(`ICE restart exhausted after ${peerState.iceRestartCount} attempts for peer ${userId}`)
+          Object.assign(iceError, { code: 'ICE_RESTART_EXHAUSTED', peerId: userId, attempts: peerState.iceRestartCount })
+          this.callbacks.emit('error', iceError)
           return
         }
         const backoffMs = ICE_RESTART_BACKOFF_BASE_MS * Math.pow(2, peerState.iceRestartCount) + Math.random() * 1000

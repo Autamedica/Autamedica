@@ -36,6 +36,8 @@ interface UseCallLifecycleEffectsOptions {
   chatMessagesRef: RefObject<HTMLDivElement | null>
   chatMessages: unknown[]
   isChatPanelOpen: boolean
+  supabaseUrl?: string
+  supabaseAnonKey?: string
 }
 
 export function useCallLifecycleEffects({
@@ -56,6 +58,8 @@ export function useCallLifecycleEffects({
   chatMessagesRef,
   chatMessages,
   isChatPanelOpen,
+  supabaseUrl,
+  supabaseAnonKey,
 }: UseCallLifecycleEffectsOptions) {
   const hasAnnouncedCallStartRef = useRef(false)
 
@@ -94,6 +98,30 @@ export function useCallLifecycleEffects({
       void persistCallStatus('ended', 'connection_closed')
     }
   }, [callId, connectionState, hasStartedCallRef, isCallEstablished, manualHangupRef, persistCallStatus])
+
+  // Persist call status on page close via fetch+keepalive
+  useEffect(() => {
+    if (!callId || !hasStartedCallRef.current || !supabaseUrl || !supabaseAnonKey) return
+
+    const handleBeforeUnload = () => {
+      if (manualHangupRef.current) return
+      const url = `${new URL(supabaseUrl).origin}/functions/v1/update-call-status`
+      const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed' })
+      fetch(url, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
+        },
+        body: payload,
+      }).catch(() => { /* best-effort on page close */ })
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [callId, hasStartedCallRef, manualHangupRef, supabaseUrl, supabaseAnonKey])
 
   // Remote stream sync
   useEffect(() => {
