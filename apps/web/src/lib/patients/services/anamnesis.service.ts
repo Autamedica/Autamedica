@@ -10,6 +10,7 @@ import {
   type AnamnesisRecord,
   type AnamnesisSectionRecord,
 } from '@/lib/patients/lib/repos/anamnesis.adapter'
+import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps'
 import { anamnesisVersionService } from './anamnesis-version.service'
 
 type Db = SupabaseClient<Database>
@@ -60,6 +61,34 @@ function computeProgress(sections: AnamnesisSectionRecord[]): AnamnesisProgress 
     pendingSections: pending,
     totalSections: TOTAL_SECTIONS,
   }
+}
+
+/**
+ * For carry_forward_additive sections, merge new data with previous data
+ * ensuring arrays only grow (items can be added but never removed).
+ */
+function mergeAdditive(
+  previous: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = { ...incoming }
+
+  for (const [key, prevValue] of Object.entries(previous)) {
+    if (!Array.isArray(prevValue)) continue
+
+    const newValue = incoming[key]
+    if (!Array.isArray(newValue)) {
+      // If the incoming data doesn't have this array, preserve the previous
+      merged[key] = prevValue
+      continue
+    }
+
+    // Union: all previous items plus any new ones
+    const union = [...new Set([...prevValue, ...newValue])]
+    merged[key] = union
+  }
+
+  return merged
 }
 
 function computeAge(birthDate: string): number | null {
@@ -184,7 +213,19 @@ export const anamnesisService = {
     }
 
     const anamnesis = await anamnesisRepo.ensure(patientId)
-    const savedSection = await anamnesisRepo.upsertSection(anamnesis.id, section, data, completed) as AnamnesisSectionRecord
+
+    // Enforce carry_forward_additive: arrays can only grow, never shrink
+    let finalData = data
+    const stepDef = anamnesisSteps.find((s) => s.id === section)
+    if (stepDef?.mutability === 'carry_forward_additive') {
+      const existingSections = await anamnesisRepo.getSections(anamnesis.id)
+      const existing = existingSections.find((s) => s.section === section)
+      if (existing?.data && typeof existing.data === 'object') {
+        finalData = mergeAdditive(existing.data as Record<string, unknown>, data)
+      }
+    }
+
+    const savedSection = await anamnesisRepo.upsertSection(anamnesis.id, section, finalData, completed) as AnamnesisSectionRecord
 
     const sections = await anamnesisRepo.getSections(anamnesis.id) as AnamnesisSectionRecord[]
     const progress = computeProgress(sections)

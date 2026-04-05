@@ -18,6 +18,7 @@ import {
   resolveInitialStepIndex,
   resolveNextWizardStepIndex,
   resolvePageView,
+  validateRequiredFields,
   type AnamnesisAnalysisResult,
   type AnamnesisCheckpoint,
   type AnamnesisMode,
@@ -187,9 +188,11 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     initializedRef.current = true;
     setFormData(buildInitialFormData(sections, patientBirthDate));
 
+    const allCompleted = progress?.completedSections?.length === anamnesisSteps.length;
     const startIndex = resolveInitialStepIndex({
       patientBirthDate,
       completedSections: progress?.completedSections,
+      isRevisit: allCompleted,
     });
 
     if (startIndex > 0) {
@@ -328,6 +331,16 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
   }, [advanceToNextStep, dismissGuidance, handleGeneratePdf, updateAnamnesis]);
 
   const handleNext = useCallback(async () => {
+    // Validate required fields before saving (skip if carried-forward and not editing)
+    if (currentStep && !(isStepCarriedForward && !editingCarriedStep)) {
+      const stepData = formData[currentStep.id] ?? {};
+      const missing = validateRequiredFields(stepData, visibleFields);
+      if (missing.length > 0) {
+        setSaveError(`Completá los campos obligatorios: ${missing.join(', ')}`);
+        return;
+      }
+    }
+
     const saved = await saveCurrentStep();
     if (!saved) {
       return;
@@ -364,11 +377,16 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     advanceToNextStep();
   }, [
     advanceToNextStep,
+    currentStep,
     currentStepIndex,
+    editingCarriedStep,
     finalizeCheckpoint,
+    formData,
     isLastStep,
+    isStepCarriedForward,
     saveCurrentStep,
     triggerExtraction,
+    visibleFields,
   ]);
 
   const handleAnalysisContinue = useCallback(() => {
