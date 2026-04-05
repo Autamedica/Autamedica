@@ -63,13 +63,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
       - run: pnpm lint
+      - run: pnpm hardcode:check
+      - name: Detect hardcoded secrets
+        run: |
+          FOUND=0
+          if grep -rn "AIzaSy" --include="*.yml" --include="*.yaml" --include="*.ts" . | grep -v node_modules | grep -v '.env.example'; then FOUND=1; fi
+          if grep -rn "sk_live\|sk_test" --include="*.ts" --include="*.yml" . | grep -v node_modules; then FOUND=1; fi
+          if [ "$FOUND" = "1" ]; then echo "::error::Hardcoded secrets detected"; exit 1; fi
 
   unit-tests:
     name: Tests
     runs-on: self-hosted
     timeout-minutes: 10
     needs: [build-gate]
-    continue-on-error: true
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: pnpm/action-setup@v4
@@ -97,7 +103,7 @@ jobs:
           echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build-gate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint-gate.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tests | ${{ needs.unit-tests.result }} (non-blocking) |" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" ]]; then
+          echo "| Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" ]]; then
             exit 1
           fi
