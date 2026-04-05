@@ -3,8 +3,10 @@ import { createAstroAdminClient } from '@/lib/supabase';
 import { buildAnamnesisExportHtml, buildAnamnesisSummary, logger } from '@autamedica/shared';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { jsonOk, forbidden, notFound, badRequest, internalError } from '@/lib/api-helpers';
-import { withAuth, isAuthed } from '@/lib/api-auth';
+import { withAuthRole, isAuthed } from '@/lib/api-auth';
 import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room';
+
+const DOCTOR_ROLES = ['doctor', 'organization_admin', 'platform_admin', 'admin'] as const
 
 type AdminClient = SupabaseClient;
 
@@ -60,7 +62,7 @@ export const GET: APIRoute = async ({ request, params }) => {
       return badRequest('missing_patient_id');
     }
 
-    const auth = await withAuth(request);
+    const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 

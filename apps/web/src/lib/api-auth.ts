@@ -1,6 +1,6 @@
 import type { SupabaseClient, User, Session } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
-import { unauthorized } from '@/lib/api-helpers'
+import { unauthorized, forbidden } from '@/lib/api-helpers'
 import { createAstroServerClientFromRequest } from '@/lib/supabase'
 
 type TypedClient = SupabaseClient<Database>
@@ -35,6 +35,29 @@ export async function withAuth(
   if (error || !user) return unauthorized()
 
   return { user, supabase }
+}
+
+type UserRole = 'patient' | 'doctor' | 'admin' | 'company' | 'company_admin' | 'organization_admin' | 'platform_admin'
+
+/**
+ * Authenticate a request AND verify the user has one of the allowed roles.
+ * Returns 401 if not authenticated, 403 if role doesn't match.
+ */
+export async function withAuthRole(
+  request: Request,
+  allowedRoles: UserRole[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  locals?: { runtime?: { env?: any } },
+): Promise<AuthedRequest | Response> {
+  const result = await withAuth(request, locals)
+  if (result instanceof Response) return result
+
+  const role = result.user.user_metadata?.role as string | undefined
+  if (!role || !allowedRoles.includes(role as UserRole)) {
+    return forbidden(`role '${role ?? 'none'}' not in [${allowedRoles.join(', ')}]`)
+  }
+
+  return result
 }
 
 /**

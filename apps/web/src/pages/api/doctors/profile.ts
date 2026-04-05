@@ -11,10 +11,12 @@ import type { APIRoute } from 'astro'
 import { doctorBackendService } from '@/lib/doctors/services/doctor.backend'
 import { logger } from '@autamedica/shared'
 import { jsonOk, internalError } from '@/lib/api-helpers'
-import { withAuth, isAuthed } from '@/lib/api-auth'
+import { withAuthRole, isAuthed } from '@/lib/api-auth'
+
+const DOCTOR_ROLES = ['doctor', 'organization_admin', 'platform_admin', 'admin'] as const
 
 export const GET: APIRoute = async ({ request }) => {
-  const auth = await withAuth(request)
+  const auth = await withAuthRole(request, DOCTOR_ROLES)
   if (!isAuthed(auth)) return auth
 
   try {

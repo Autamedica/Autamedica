@@ -58,13 +58,17 @@ const AUTH_RATE_LIMIT_MAX = 20;          // requests per window
 const AUTH_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 
 // ── SECURITY HEADERS ──────────────────────────────────────────────────────────
-const CSP_REPORT_ONLY = [
+const CSP_DIRECTIVES = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
+  "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "media-src 'self' blob:",
   "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
 ].join('; ');
 
 function applySecurityHeaders(response: Response): void {
@@ -72,7 +76,7 @@ function applySecurityHeaders(response: Response): void {
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()');
-  response.headers.set('Content-Security-Policy-Report-Only', CSP_REPORT_ONLY);
+  response.headers.set('Content-Security-Policy', CSP_DIRECTIVES);
 
   if (import.meta.env.PROD) {
     response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

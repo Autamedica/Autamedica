@@ -1,21 +1,18 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
-import { badRequest, forbidden, internalError, jsonOk } from '@/lib/api-helpers'
-import { withAuth, isAuthed } from '@/lib/api-auth'
+import { badRequest, internalError, jsonOk } from '@/lib/api-helpers'
+import { withAuthRole, isAuthed } from '@/lib/api-auth'
 import { createAstroAdminClient } from '@/lib/supabase'
+
+const DOCTOR_ROLES = ['doctor', 'organization_admin', 'platform_admin', 'admin'] as const
 
 interface NamesRequestBody {
   patientIds?: string[]
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  const auth = await withAuth(request)
+  const auth = await withAuthRole(request, DOCTOR_ROLES)
   if (!isAuthed(auth)) return auth
-
-  const role = auth.user.user_metadata?.role ?? auth.user.app_metadata?.role
-  if (role !== 'doctor') {
-    return forbidden('doctor_only')
-  }
 
   try {
     const body = (await request.json()) as NamesRequestBody

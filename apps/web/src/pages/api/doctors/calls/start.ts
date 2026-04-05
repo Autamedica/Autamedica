@@ -1,13 +1,15 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
-import { withAuth, isAuthed } from '@/lib/api-auth'
+import { withAuthRole, isAuthed } from '@/lib/api-auth'
 import { badRequest, conflict, forbidden, internalError, jsonOk, notFound } from '@/lib/api-helpers'
+
+const DOCTOR_ROLES = ['doctor', 'organization_admin', 'platform_admin', 'admin'] as const
 import { createAstroAdminClient } from '@/lib/supabase'
 import { startTeleconsultationUseCase } from '@/lib/calls/usecases/start-teleconsultation.usecase'
 import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 
 export const POST: APIRoute = async ({ request }) => {
-  const auth = await withAuth(request)
+  const auth = await withAuthRole(request, DOCTOR_ROLES)
   if (!isAuthed(auth)) return auth
 
   const body = await request.json().catch(() => ({})) as {
