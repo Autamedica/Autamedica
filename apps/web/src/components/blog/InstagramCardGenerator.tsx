@@ -16,11 +16,12 @@ const FORMATS: Record<CardFormat, { width: number; height: number; label: string
   feed: { width: 1080, height: 1080, label: 'Feed (1:1)' },
 };
 
-const BRAND_GREEN = '#059669';
-const BRAND_GREEN_LIGHT = '#d1fae5';
-const TEXT_PRIMARY = '#171717';
-const TEXT_SECONDARY = '#525252';
-const TEXT_TERTIARY = '#a3a3a3';
+// AutaMedica brand palette (from globals.css design tokens)
+const BRAND_ACCENT = '#0EA5E9';    // --au-accent (sky blue)
+const BRAND_ACCENT_LIGHT = '#E0F2FE'; // light sky for badges/backgrounds
+const TEXT_PRIMARY = '#050505';     // --au-text-primary
+const TEXT_SECONDARY = '#334155';   // --au-text-secondary
+const TEXT_TERTIARY = '#64748b';    // --au-text-tertiary
 
 function wrapText(
   ctx: CanvasRenderingContext2D,
@@ -116,15 +117,15 @@ function drawCard(
 
   // Top accent gradient bar
   const grad = ctx.createLinearGradient(0, 0, width, 0);
-  grad.addColorStop(0, BRAND_GREEN);
-  grad.addColorStop(1, BRAND_GREEN_LIGHT);
+  grad.addColorStop(0, BRAND_ACCENT);
+  grad.addColorStop(1, BRAND_ACCENT_LIGHT);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, 6);
 
   // Logo text
   const logoY = isStories ? 120 : 90;
   ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = BRAND_GREEN;
+  ctx.fillStyle = BRAND_ACCENT;
   ctx.textAlign = 'left';
   ctx.fillText('AutaMedica', pad, logoY);
 
@@ -140,16 +141,16 @@ function drawCard(
   // Category badge
   const badgeY = sepY + 50;
   ctx.font = 'bold 24px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = BRAND_GREEN;
+  ctx.fillStyle = BRAND_ACCENT;
   const catMetrics = ctx.measureText(props.category.toUpperCase());
   const badgePadX = 16;
   const badgePadY = 8;
   const badgeH = 36;
-  ctx.fillStyle = BRAND_GREEN_LIGHT;
+  ctx.fillStyle = BRAND_ACCENT_LIGHT;
   ctx.beginPath();
   ctx.roundRect(pad, badgeY - badgeH + badgePadY, catMetrics.width + badgePadX * 2, badgeH + badgePadY, 6);
   ctx.fill();
-  ctx.fillStyle = BRAND_GREEN;
+  ctx.fillStyle = BRAND_ACCENT;
   ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
   ctx.fillText(props.category.toUpperCase(), pad + badgePadX, badgeY);
 
@@ -210,12 +211,12 @@ function drawCard(
 
   // Bottom branding
   ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
-  ctx.fillStyle = BRAND_GREEN;
+  ctx.fillStyle = BRAND_ACCENT;
   ctx.textAlign = 'center';
   ctx.fillText('autamedica.com', width / 2, height - 60);
 
   // Bottom accent line
-  ctx.fillStyle = BRAND_GREEN;
+  ctx.fillStyle = BRAND_ACCENT;
   ctx.fillRect(0, height - 6, width, 6);
 }
 
@@ -311,10 +312,10 @@ export default function InstagramCardGenerator(props: InstagramCardGeneratorProp
               style={{
                 flex: 1,
                 padding: '0.5rem',
-                border: `2px solid ${format === key ? BRAND_GREEN : '#e5e5e5'}`,
+                border: `2px solid ${format === key ? BRAND_ACCENT : '#e5e5e5'}`,
                 borderRadius: '8px',
-                background: format === key ? BRAND_GREEN_LIGHT : '#fff',
-                color: format === key ? BRAND_GREEN : TEXT_SECONDARY,
+                background: format === key ? BRAND_ACCENT_LIGHT : '#fff',
+                color: format === key ? BRAND_ACCENT : TEXT_SECONDARY,
                 fontWeight: 600,
                 fontSize: '0.875rem',
                 cursor: 'pointer',
@@ -352,7 +353,7 @@ export default function InstagramCardGenerator(props: InstagramCardGeneratorProp
           style={{
             width: '100%',
             padding: '0.75rem',
-            background: BRAND_GREEN,
+            background: BRAND_ACCENT,
             color: '#fff',
             border: 'none',
             borderRadius: '8px',
