@@ -66,6 +66,34 @@ interface LiveTokenRequestBody {
 }
 
 async function issueLiveToken(request: Request, locals?: AstroLocals) {
+  try {
+    return await issueLiveTokenInner(request, locals)
+  } catch (err) {
+    logger.error('[live-token] Unhandled error in live-token endpoint', err)
+    // Last-resort fallback: return wsUrl so the frontend can still connect via relay
+    const sessionId = crypto.randomUUID()
+    const rawUrl = import.meta.env.PUBLIC_SIGNALING_URL
+      ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
+    const signalingOrigin = new URL(rawUrl).origin
+    return json({
+      success: true,
+      data: {
+        wsUrl: `${signalingOrigin.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
+        sessionId,
+        model: 'gemini-3.1-flash-live-preview',
+        sessionConfig: {
+          mode: 'general',
+          patient: { name: null, age: null, completedSections: [], sectionData: {} },
+          guidanceQuestions: [],
+          coverageGaps: [],
+          maxModelTurns: 8,
+        },
+      },
+    })
+  }
+}
+
+async function issueLiveTokenInner(request: Request, locals?: AstroLocals) {
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
 
@@ -92,18 +120,30 @@ async function issueLiveToken(request: Request, locals?: AstroLocals) {
     body = await request.json().catch(() => ({})) as LiveTokenRequestBody
   }
 
-  const sessionConfig = await buildGeminiLiveSessionConfig({
-    userId: context.userId,
-    patientId: context.patientId,
-    checkpoint:
-      body.checkpoint === 'partial' || body.checkpoint === 'final'
-        ? body.checkpoint
-        : undefined,
-    guidanceQuestions: body.guidanceQuestions,
-    coverageGaps: body.coverageGaps,
-    coverageSummary: body.coverageSummary,
-    runtimeEnv: locals?.runtime?.env,
-  })
+  let sessionConfig: Awaited<ReturnType<typeof buildGeminiLiveSessionConfig>>
+  try {
+    sessionConfig = await buildGeminiLiveSessionConfig({
+      userId: context.userId,
+      patientId: context.patientId,
+      checkpoint:
+        body.checkpoint === 'partial' || body.checkpoint === 'final'
+          ? body.checkpoint
+          : undefined,
+      guidanceQuestions: body.guidanceQuestions,
+      coverageGaps: body.coverageGaps,
+      coverageSummary: body.coverageSummary,
+      runtimeEnv: locals?.runtime?.env,
+    })
+  } catch (err) {
+    logger.error('[live-token] Failed to build session config, using minimal fallback', err)
+    sessionConfig = {
+      mode: 'general',
+      patient: { name: null, age: null, completedSections: [], sectionData: {} },
+      guidanceQuestions: [],
+      coverageGaps: [],
+      maxModelTurns: 8,
+    }
+  }
 
   // Generate ephemeral token — browser connects DIRECTLY to Gemini, no proxy.
   try {
