@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'No Sé a Qué Especialista Ir: Cómo Elegir el Médico Correcto Según Tus Síntomas',
@@ -158,6 +159,8 @@ const article = {
             </p>
           </section>
         </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/turno-medico-especialista-correcto`} />
 
         <div class="blog-author">
           <div class="author-content">

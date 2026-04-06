@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Qué Datos Necesita Tu Médico Antes de una Consulta (y Por Qué Importa)',
@@ -164,6 +165,8 @@ const article = {
             </p>
           </section>
         </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/medico-datos-antes-consulta`} />
 
         <div class="blog-author">
           <div class="author-content">

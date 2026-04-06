@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Vacunarse Contra la Gripe en 2026 No Puede Esperar a Junio',
@@ -271,6 +272,8 @@ const article = {
         </div>
 
         <!-- Author Section -->
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/vacuna-antigripal-h3n2-2026`} />
+
         <div class="seo-sidebar-card blog-author-card">
           <h3>Sobre el Equipo</h3>
           <p>

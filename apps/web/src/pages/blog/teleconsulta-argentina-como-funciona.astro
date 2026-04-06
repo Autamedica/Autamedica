@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Teleconsulta en Argentina: Qué Podés Resolver Sin Salir de Tu Casa',
@@ -179,6 +180,8 @@ const article = {
             </p>
           </section>
         </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/teleconsulta-argentina-como-funciona`} />
 
         <div class="blog-author">
           <div class="author-content">
