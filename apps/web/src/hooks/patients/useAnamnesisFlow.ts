@@ -16,6 +16,7 @@ import {
   type FormDataMap,
   hasClarificationContext,
   PARTIAL_CHECKPOINT_AFTER_STEP,
+  resolvePostAnalysisAction,
   resolveInitialStepIndex,
   resolveNextWizardStepIndex,
   resolvePageView,
@@ -368,16 +369,6 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
         questionsCount: result?.questions?.length ?? 0,
       });
       setAnalysisResult(buildAnalysisResult(result));
-
-      if (result?.questions && result.questions.length > 0) {
-        logger.info('[AnamnesisFlow] FINAL checkpoint has clarification questions — showing overlay');
-        return;
-      }
-
-      logger.info('[AnamnesisFlow] FINAL checkpoint — no clarification needed, finalizing');
-      setShowAnalyzing(false);
-      setAnalysisResult(null);
-      await finalizeCheckpoint('final');
       return;
     }
 
@@ -427,15 +418,23 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
       guidanceNull: guidance === null,
     });
 
-    if (hasClarification) {
-      if (pendingCheckpoint === 'partial') {
-        logger.info('[AnamnesisFlow] Partial checkpoint — opening voice chat for clarification');
-        setShowVoiceChat(true);
-        return;
-      }
+    const nextAction = resolvePostAnalysisAction(pendingCheckpoint, hasClarification);
 
+    if (nextAction === 'open_voice') {
+      logger.info('[AnamnesisFlow] Partial checkpoint — opening voice chat for clarification');
+      setShowVoiceChat(true);
+      return;
+    }
+
+    if (nextAction === 'open_text') {
       logger.info('[AnamnesisFlow] Final checkpoint — opening text clarification modal');
       setShowClarification(true);
+      return;
+    }
+
+    if (nextAction === 'finalize') {
+      logger.info('[AnamnesisFlow] Final checkpoint — no clarification needed, finalizing after review');
+      void finalizeCheckpoint('final');
       return;
     }
 
@@ -443,7 +442,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     setPendingCheckpoint(null);
     dismissGuidance();
     advanceToNextStep();
-  }, [advanceToNextStep, dismissGuidance, guidance, pendingCheckpoint]);
+  }, [advanceToNextStep, dismissGuidance, finalizeCheckpoint, guidance, pendingCheckpoint]);
 
   const handlePrev = useCallback(async () => {
     if (isFirstStep) {

@@ -33,7 +33,7 @@ import { extractGeminiStructuredOutput } from './extraction-parser'
 import { extractBodySelectionsFromSections } from './body-selection'
 
 const GEMINI_GENERATE_CONTENT_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
-export const ANAMNESIS_EXTRACTION_PROMPT_VERSION = 'argente_interrogator_v6'
+export const ANAMNESIS_EXTRACTION_PROMPT_VERSION = 'argente_interrogator_v7'
 
 export function buildAnamnesisExtractionSystemPrompt(): string {
   return [
@@ -468,6 +468,7 @@ export function buildAnamnesisExtractionRequest(input: {
   clarificationTurns?: AnamnesisClarificationTurn[]
   modifiedSections?: string[]
   previousExtraction?: Record<string, unknown>
+  historicalContext?: AnamnesisExtractionRequest['historicalContext']
 }): AnamnesisExtractionRequest {
   const bodySelections = extractBodySelectionsFromSections(input.sections)
   const isRevisit = input.modifiedSections && input.modifiedSections.length > 0
@@ -488,6 +489,15 @@ export function buildAnamnesisExtractionRequest(input: {
       'Si la extraccion parcial ya identifico crossReferences, safetyFlags o qualityAlerts validos, mantenelos y complementalos con los datos nuevos.',
       'Si datos nuevos contradicen la extraccion parcial, prioriza los datos nuevos y marca la discrepancia en dataIntegrity.contradictions.',
       'Las secciones que no cambiaron desde el parcial deben mantener el mismo analisis salvo que nuevos datos obliguen a reconsiderar.',
+    )
+  }
+
+  if (input.historicalContext) {
+    guardrails.push(
+      'CONTEXTO LONGITUDINAL FILTRADO: historicalContext.globalContext representa antecedentes longitudinales estables del paciente (cronicos, medicacion, alergias). Consideralo siempre como contexto basal si aporta al analisis actual.',
+      'CONTEXTO LONGITUDINAL FILTRADO: historicalContext.relatedEpisodes incluye SOLO episodios previos que ya fueron filtrados como clinicamente relacionados con la consulta actual. Usalos como continuidad del problema actual, no como evidencia nueva independiente.',
+      'No arrastres episodios previos no listados en historicalContext.relatedEpisodes.',
+      'Si un episodio previo relacionado contradice la evidencia actual, prioriza la evidencia actual y marca la discrepancia en dataIntegrity.contradictions.',
     )
   }
 
@@ -514,6 +524,7 @@ export function buildAnamnesisExtractionRequest(input: {
     bodySelections,
     clarificationTurns: input.clarificationTurns ?? [],
     ...(input.previousExtraction ? { previousExtraction: input.previousExtraction } : {}),
+    ...(input.historicalContext ? { historicalContext: input.historicalContext } : {}),
   }
 }
 

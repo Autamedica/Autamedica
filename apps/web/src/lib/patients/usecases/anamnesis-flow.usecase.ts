@@ -8,6 +8,7 @@ import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis';
 export type AnamnesisMode = 'wizard' | 'conversational';
 export type AnamnesisCheckpoint = 'partial' | 'final';
 export type AnamnesisPageView = 'loading' | 'privacy' | 'wizard' | 'completed' | 'locked';
+export type PostAnalysisAction = 'open_voice' | 'open_text' | 'finalize' | 'advance';
 export type FormDataMap = Record<string, Record<string, AnamnesisFieldValue>>;
 
 export interface AnamnesisAnalysisResult {
@@ -179,6 +180,17 @@ export function hasClarificationContext(
   guidance: ExtractionGuidance | null,
 ): boolean {
   return Boolean(guidance && (guidance.questions.length > 0 || guidance.gaps.length > 0));
+}
+
+export function resolvePostAnalysisAction(
+  checkpoint: AnamnesisCheckpoint | null,
+  hasClarification: boolean,
+): PostAnalysisAction {
+  if (hasClarification) {
+    return checkpoint === 'partial' ? 'open_voice' : 'open_text';
+  }
+
+  return checkpoint === 'final' ? 'finalize' : 'advance';
 }
 
 export function buildClarificationTurnsFromTranscript(
