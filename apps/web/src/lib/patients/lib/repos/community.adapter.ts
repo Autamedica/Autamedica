@@ -330,10 +330,10 @@ export function createCommunityAdapter(supabase: Db): ICommunityRepository {
       const { error } = await db.from('post_reactions').upsert(
         {
           post_id: payload.postId,
-          user_id: payload.actorId,
+          patient_id: payload.actorId,
           reaction_type: payload.reactionType,
         },
-        { onConflict: 'post_id,user_id' },
+        { onConflict: 'post_id,patient_id' },
       );
 
       if (error) {
@@ -452,10 +452,10 @@ export function createCommunityAdapter(supabase: Db): ICommunityRepository {
       const { error } = await db.from('community_comment_reactions').upsert(
         {
           comment_id: payload.commentId,
-          user_id: payload.actorId,
+          patient_id: payload.actorId,
           reaction_type: payload.reactionType,
         },
-        { onConflict: 'comment_id,user_id' },
+        { onConflict: 'comment_id,patient_id' },
       );
 
       if (error) {
