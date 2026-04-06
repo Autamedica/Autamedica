@@ -1,0 +1,231 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Cuándo Llevar al Pediatra y Cuándo Alcanza con una Videollamada',
+  author: 'Equipo AutaMedica',
+  role: 'Pediatría',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Pediatría',
+};
+---
+
+<Layout
+  title="Consulta Pediátrica Online: Cuándo Sirve y Cuándo No | AutaMedica"
+  description="¿Tu hijo tiene fiebre a las 2am? Qué puede evaluar un pediatra por video y cuándo es imprescindible ir en persona. Guía práctica para padres."
+  canonical="https://www.autamedica.com/blog/consulta-pediatrica-online"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El Dilema de las 2 de la Mañana</h2>
+            <p>
+              Son las dos de la mañana. Tu hijo de tres años se despierta llorando, tiene 38.5 de
+              fiebre y una erupción en el pecho que no tenía cuando lo acostaste. ¿Qué hacés? ¿Lo
+              llevás a la guardia? ¿Esperás a mañana? ¿Le das ibuprofeno y rezás?
+            </p>
+            <p>
+              Este dilema lo viven miles de padres todas las noches. La guardia pediátrica a las 2am
+              significa vestir al chico enfermo, subirlo al auto, esperar dos horas en una sala llena
+              de otros chicos enfermos (exponiéndolo a más gérmenes), para que en muchos casos el
+              pediatra de guardia te diga: "es viral, dale ibuprofeno y controlá mañana con su
+              pediatra".
+            </p>
+            <p>
+              El viaje a la guardia no siempre es necesario. Pero tampoco se puede ignorar todo
+              esperando que pase solo. La pregunta real es: ¿cómo distinguir cuándo hay que ir y
+              cuándo alcanza con una orientación profesional a distancia?
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Puede Evaluar un Pediatra por Video</h2>
+            <p>
+              La teleconsulta pediátrica tiene un rango de acción más amplio de lo que muchos padres
+              imaginan. Un pediatra experimentado puede evaluar mucho a través de una cámara:
+            </p>
+            <ul>
+              <li><strong>Erupciones cutáneas:</strong> la mayoría de los exantemas infantiles (varicela, roséola, urticaria, dermatitis) son diagnosticables visualmente. Acercá la cámara a la zona afectada con buena iluminación y el pediatra puede orientar el diagnóstico</li>
+              <li><strong>Manejo de fiebre:</strong> el pediatra te guía sobre cuándo y cuánto medicar, qué signos de alarma buscar, y cuándo sí es necesario ir a la guardia. No necesita tocar al chico para esto</li>
+              <li><strong>Problemas de alimentación:</strong> rechazo del alimento, reflujo, dudas sobre lactancia, introducción de sólidos. Son consultas que se resuelven con conversación y observación</li>
+              <li><strong>Comportamiento y desarrollo:</strong> preocupaciones sobre sueño, berrinches, hitos del desarrollo, dificultades de aprendizaje. El pediatra observa al niño en su entorno natural, que a veces es más revelador que el consultorio</li>
+              <li><strong>Preguntas sobre medicación:</strong> dosis, efectos adversos, duración del tratamiento, interacciones con otros medicamentos</li>
+              <li><strong>Síntomas post-vacunación:</strong> fiebre, irritabilidad, hinchazón en el sitio de inyección — reacciones esperables que generan mucha ansiedad en los padres</li>
+              <li><strong>Seguimiento de cuadros ya diagnosticados:</strong> "le diagnosticaron bronquitis el lunes, hoy es miércoles y sigue con tos, ¿es normal?"</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Cuándo Hay que Ir en Persona</h2>
+            <p>
+              Hay situaciones donde la videollamada no alcanza y el examen físico es imprescindible:
+            </p>
+            <ul>
+              <li><strong>Dificultad respiratoria:</strong> si el chico respira rápido, se le hunden las costillas al respirar, tiene los labios azulados o hace ruidos al respirar (tiraje, quejido). Esto requiere auscultación y posiblemente saturometría</li>
+              <li><strong>Dolor de oído intenso:</strong> la otitis media — una de las consultas pediátricas más frecuentes — requiere otoscopía (mirar el tímpano con un instrumento). No se puede diagnosticar por video</li>
+              <li><strong>Dolor abdominal agudo:</strong> si el chico tiene dolor que no cede, vómitos persistentes, abdomen duro o sangre en las deposiciones, necesita palpación abdominal</li>
+              <li><strong>Fiebre en menores de 3 meses:</strong> un bebé de menos de 3 meses con fiebre requiere evaluación presencial siempre, sin excepciones. El riesgo de infección bacteriana grave es alto en este grupo etario</li>
+              <li><strong>Traumatismos:</strong> golpes en la cabeza, caídas de altura, sospecha de fractura. Requieren examen neurológico, palpación, y posiblemente estudios de imagen</li>
+              <li><strong>Convulsiones:</strong> cualquier episodio convulsivo requiere evaluación presencial inmediata</li>
+            </ul>
+            <p>
+              La regla general es: si el diagnóstico depende de tocar, auscultar o usar un instrumento,
+              la videollamada no alcanza. Si depende de ver, escuchar y conversar, muchas veces sí.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Videollamada Como Triage</h2>
+            <p>
+              Uno de los roles más valiosos de la teleconsulta pediátrica es el triage: ayudarte a
+              decidir qué hacer. No siempre la respuesta es "quedate tranquila, no es nada" ni
+              "andá urgente a la guardia". A veces es: "puede esperar hasta mañana pero pedile turno
+              con el pediatra", o "dale antitérmico ahora, observá estas señales, y si aparece alguna
+              de ellas, ahí sí andá a la guardia".
+            </p>
+            <p>
+              Este filtro tiene un valor enorme. Evita consultas de guardia innecesarias (con sus
+              horas de espera y exposición a contagios) y al mismo tiempo identifica tempranamente
+              las situaciones que sí requieren atención urgente. El pediatra por video no reemplaza
+              la guardia: la complementa, funcionando como un primer filtro profesional.
+            </p>
+          </section>
+
+          <section>
+            <h2>Consejos para una Buena Teleconsulta Pediátrica</h2>
+            <p>
+              La calidad de la videollamada depende mucho de cómo te preparás. Algunos consejos
+              prácticos:
+            </p>
+            <ul>
+              <li><strong>Buena iluminación:</strong> poné al chico cerca de una ventana o bajo una luz fuerte. Si el pediatra necesita ver una erupción o el color de la piel, la iluminación es clave</li>
+              <li><strong>Tené al chico cerca:</strong> parece obvio pero muchos padres llaman desde otra habitación para "no despertarlo". El pediatra necesita verlo, y si es posible, escucharlo</li>
+              <li><strong>Preparate con datos:</strong> antes de la consulta, anotá: cuándo empezaron los síntomas, qué temperatura tenía (con qué termómetro y dónde se la tomaste), si comió, si orinó, si tomó algún medicamento y a qué hora</li>
+              <li><strong>Mostrá, no describas:</strong> si hay una erupción, mostrala a la cámara en lugar de describirla. Si hay secreción nasal, mostrala. Si el chico tose, que tosa frente a la cámara — el tipo de tos le dice mucho al pediatra</li>
+              <li><strong>Tené a mano la libreta sanitaria:</strong> o al menos recordá las vacunas recientes y la medicación que toma habitualmente</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Consideraciones por Edad</h2>
+            <p>
+              No es lo mismo una teleconsulta con un recién nacido que con un chico de 8 años.
+            </p>
+            <p>
+              <strong>Recién nacidos (0-28 días):</strong> la ventana para teleconsulta es muy estrecha.
+              Cualquier síntoma en un recién nacido merece evaluación presencial. La excepción son
+              dudas sobre lactancia, cuidados del cordón umbilical o preguntas sobre normalidad
+              ("¿es normal que haga esto?") donde el pediatra puede orientar por video.
+            </p>
+            <p>
+              <strong>Lactantes (1-12 meses):</strong> la teleconsulta funciona bien para erupciones,
+              manejo de fiebre (en mayores de 3 meses), consultas de alimentación y seguimiento de
+              cuadros ya diagnosticados. La fiebre en menores de 3 meses siempre requiere presencial.
+            </p>
+            <p>
+              <strong>Niños pequeños (1-5 años):</strong> el rango más amplio para teleconsulta. El
+              chico ya puede señalar dónde le duele (con ayuda), se puede observar su nivel de
+              actividad, y la mayoría de las consultas frecuentes a esta edad (cuadros respiratorios
+              altos, gastroenteritis leves, exantemas) son evaluables por video.
+            </p>
+            <p>
+              <strong>Escolares (6-12 años):</strong> a esta edad el chico puede describir sus síntomas,
+              colaborar con la evaluación y seguir instrucciones del pediatra. Las teleconsultas
+              funcionan especialmente bien para seguimiento de enfermedades crónicas, consultas de
+              salud mental y orientación sobre actividad física.
+            </p>
+            <p>
+              La telemedicina pediátrica no promete reemplazar al consultorio. Promete algo más
+              modesto y más útil: que a las dos de la mañana, con tu hijo llorando, tengas acceso
+              a un profesional que te diga con conocimiento si esto puede esperar o si hay que ir
+              ahora. Esa respuesta, en ese momento, vale mucho.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de pediatría.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/guia-consulta-medica-online" class="seo-card">
+              <span class="seo-badge">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+            <a href="/blog/sala-espera-digital-greenroom" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>La Sala de Espera Digital</h4>
+            </a>
+            <a href="/blog/vacuna-antigripal-h3n2-2026" class="seo-card">
+              <span class="seo-badge">Vacunación</span>
+              <h4>Vacuna Antigripal H3N2 2026</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

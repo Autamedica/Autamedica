@@ -1,0 +1,292 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Tus Datos Médicos Son Tuyos: Qué Dice la Ley Argentina sobre Privacidad en Salud',
+  author: 'Equipo AutaMedica',
+  role: 'Marco Legal en Salud',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Marco Legal',
+};
+---
+
+<Layout
+  title="Privacidad de Datos de Salud en Argentina: Qué Dice la Ley | AutaMedica"
+  description="La ley argentina protege tus datos médicos como datos sensibles. Qué derechos tenés, quién puede acceder a tu historia clínica y cómo funciona la encriptación en salud digital."
+  canonical="https://www.autamedica.com/blog/privacidad-datos-salud-argentina"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Datos Sensibles: La Categoría Más Protegida</h2>
+            <p>
+              La Ley 25.326 de Protección de Datos Personales, sancionada en el año 2000, establece una
+              distinción fundamental: no todos los datos personales tienen el mismo nivel de protección.
+              Los datos de salud pertenecen a la categoría de "datos sensibles" — el nivel más alto de
+              protección que reconoce la legislación argentina.
+            </p>
+            <p>
+              ¿Qué significa esto en la práctica? Que tus diagnósticos, tratamientos, medicación, resultados
+              de laboratorio, imágenes médicas y cualquier información vinculada a tu estado de salud tienen
+              restricciones especiales para su recolección, almacenamiento, uso y cesión a terceros.
+            </p>
+            <p>
+              Nadie puede recopilar datos de salud sin tu consentimiento libre, expreso e informado.
+              Nadie puede usarlos para un fin distinto al que autorizaste. Y nadie puede compartirlos
+              con terceros sin tu autorización explícita o sin una orden judicial.
+            </p>
+            <p>
+              La excepción principal son los profesionales de salud y las instituciones sanitarias que te
+              atienden directamente. Ellos pueden acceder a tu información en la medida necesaria para
+              brindarte atención. Pero incluso dentro de una institución, no todo el personal tiene
+              acceso a todo: solo quienes participan de tu cuidado.
+            </p>
+          </section>
+
+          <section>
+            <h2>Tus Derechos: Acceso, Rectificación y Supresión</h2>
+            <p>
+              La ley te da tres derechos fundamentales sobre tus datos de salud, conocidos como derechos
+              ARCO (Acceso, Rectificación, Cancelación/supresión y Oposición):
+            </p>
+            <ul>
+              <li><strong>Derecho de acceso:</strong> podés pedir en cualquier momento que te informen qué datos tuyos tienen, de dónde los obtuvieron y para qué los usan. La institución tiene 10 días corridos para responder. Si se trata de tu historia clínica, la Ley 26.529 refuerza esto con un plazo de 48 horas</li>
+              <li><strong>Derecho de rectificación:</strong> si tus datos son inexactos o están desactualizados, podés exigir que los corrijan. Un diagnóstico erróneo que quedó registrado, una alergia que ya fue descartada, un medicamento que dejaste de tomar hace años</li>
+              <li><strong>Derecho de supresión:</strong> podés pedir que eliminen datos que ya no son necesarios o que fueron recopilados sin tu consentimiento. Con una salvedad importante en salud: la historia clínica tiene un plazo de conservación obligatorio de 15 años, por lo que no puede eliminarse antes de ese período</li>
+              <li><strong>Derecho de oposición:</strong> podés oponerte al tratamiento de tus datos cuando no se requiera tu consentimiento (por ejemplo, por razones de interés público) si tenés motivos legítimos</li>
+            </ul>
+            <p>
+              Estos derechos se ejercen mediante habeas data, el mecanismo legal que la Constitución
+              Nacional garantiza en su artículo 43. No necesitás abogado para ejercerlo: podés hacer
+              el reclamo directamente ante la institución y, si no responde o se niega, ante la Agencia
+              de Acceso a la Información Pública.
+            </p>
+          </section>
+
+          <section>
+            <h2>Consentimiento Informado en Salud Digital</h2>
+            <p>
+              El consentimiento informado en salud tiene dos dimensiones en el mundo digital. La primera
+              es clínica: antes de cualquier tratamiento o procedimiento, el médico debe explicarte en
+              lenguaje comprensible qué te van a hacer, por qué, qué alternativas hay y cuáles son los
+              riesgos. Tu aceptación queda documentada en la historia clínica.
+            </p>
+            <p>
+              La segunda dimensión es tecnológica: cuando usás una plataforma de salud digital, estás
+              confiando tus datos a un sistema informático. El consentimiento acá debe ser específico
+              (no genérico), informado (debés saber exactamente qué datos se recopilan y para qué) y
+              revocable (podés retirarlo en cualquier momento).
+            </p>
+            <p>
+              Un consentimiento válido no es una casilla que tildás sin leer. Es un documento que detalla:
+              qué datos se recopilan, con qué finalidad, durante cuánto tiempo se almacenan, quién puede
+              acceder a ellos, y cómo podés ejercer tus derechos. Si la plataforma cambia las condiciones,
+              debe pedirte un nuevo consentimiento.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo Funciona la Encriptación de Datos Médicos</h2>
+            <p>
+              Cuando tus datos viajan por internet — por ejemplo, cuando completás una anamnesis digital
+              o tu médico consulta tu historia clínica — van cifrados. Esto significa que aunque alguien
+              intercepte la comunicación, lo que obtiene es una secuencia de caracteres ilegibles sin
+              la clave de descifrado.
+            </p>
+            <p>
+              El estándar actual es TLS 1.3 para datos en tránsito (el mismo que usa tu banco cuando
+              hacés una transferencia online) y AES-256 para datos en reposo (cuando están almacenados
+              en el servidor). Para ponerlo en perspectiva: AES-256 tiene 2 elevado a la 256 combinaciones
+              posibles de clave. Con la tecnología actual, descifrar una sola clave por fuerza bruta
+              llevaría más tiempo que la edad del universo.
+            </p>
+            <p>
+              Pero la encriptación es solo una capa. Un sistema de salud digital seguro también implementa:
+            </p>
+            <ul>
+              <li><strong>Control de acceso basado en roles:</strong> tu clínico ve lo que necesita para atenderte, no toda tu historia. Tu oftalmólogo no ve tus notas de psiquiatría a menos que sea clínicamente relevante</li>
+              <li><strong>Autenticación multifactor:</strong> los profesionales acceden con credenciales verificadas más un segundo factor (código por celular, app de autenticación)</li>
+              <li><strong>Logs de auditoría:</strong> cada acceso a tu información queda registrado — quién accedió, cuándo, a qué dato y desde qué dispositivo. Estos logs son inalterables</li>
+              <li><strong>Backups cifrados:</strong> las copias de seguridad también están encriptadas, para que un robo físico del servidor no exponga los datos</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>HIPAA, GDPR y la Ley Argentina: Comparación</h2>
+            <p>
+              Si leíste sobre privacidad de datos de salud en otros países, probablemente encontraste
+              referencias a HIPAA (Estados Unidos) y GDPR (Unión Europea). ¿Cómo se compara Argentina?
+            </p>
+            <p>
+              La Ley 25.326 es anterior al GDPR (2018) pero comparte sus principios fundamentales:
+              consentimiento, finalidad específica, minimización de datos, y derechos del titular.
+              De hecho, la Unión Europea reconoció a Argentina como país con "nivel adecuado de protección",
+              lo que permite la transferencia de datos personales entre ambas jurisdicciones.
+            </p>
+            <p>
+              Respecto a HIPAA, la diferencia principal es que HIPAA es específica para el sector salud
+              en Estados Unidos, mientras que la Ley 25.326 es general para todos los datos personales,
+              con una protección reforzada para datos sensibles (incluyendo salud). HIPAA establece
+              estándares técnicos específicos que las instituciones de salud deben cumplir; la ley
+              argentina es más principista y menos prescriptiva en lo técnico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Anonimización e Investigación</h2>
+            <p>
+              Los datos de salud son extraordinariamente valiosos para la investigación médica. Patrones
+              epidemiológicos, eficacia de tratamientos, factores de riesgo poblacionales — todo esto
+              requiere datos de pacientes reales.
+            </p>
+            <p>
+              La ley permite el uso de datos de salud para investigación siempre que estén anonimizados.
+              Anonimizar no es simplemente borrar el nombre: es eliminar toda posibilidad de identificar
+              a la persona, directa o indirectamente. Esto incluye nombre, documento, dirección, pero
+              también combinaciones de datos que podrían identificarte (una enfermedad rara en un pueblo
+              chico, por ejemplo).
+            </p>
+            <p>
+              La anonimización bien hecha permite que tus datos contribuyan al avance de la medicina sin
+              que nadie pueda rastrearlos hasta vos. Es un equilibrio entre el derecho individual a la
+              privacidad y el beneficio colectivo del conocimiento médico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Los 15 Años de Conservación Obligatoria</h2>
+            <p>
+              La Ley 26.529 establece que las instituciones de salud deben conservar la historia clínica
+              por un mínimo de 15 años desde la última actuación registrada. Esto genera una tensión con
+              el derecho de supresión: no podés pedir que borren tu historia clínica antes de ese plazo.
+            </p>
+            <p>
+              La razón es médica: enfermedades que parecían curadas pueden reaparecer décadas después.
+              Tratamientos realizados en la juventud pueden tener consecuencias en la vejez. La historia
+              clínica completa es una herramienta de seguridad a largo plazo.
+            </p>
+            <p>
+              Lo que sí podés hacer es controlar quién accede a esa historia durante esos 15 años. La
+              conservación es obligatoria; el acceso irrestricto, no.
+            </p>
+          </section>
+
+          <section>
+            <h2>Mitos Comunes sobre Datos Médicos Digitales</h2>
+            <p>
+              <strong>"Si está en internet, cualquiera lo puede ver."</strong> No. Un sistema de salud
+              digital con las medidas de seguridad correctas es significativamente más seguro que una
+              carpeta de papel en un archivo al que accede cualquier empleado del hospital. El papel
+              no tiene logs de auditoría, no tiene encriptación y no tiene control de acceso.
+            </p>
+            <p>
+              <strong>"Mi obra social puede ver todo."</strong> Tu obra social tiene acceso a datos
+              administrativos (prestaciones realizadas, costos) pero no al contenido clínico detallado
+              de tu historia clínica. El médico auditor de la obra social puede acceder a información
+              clínica específica en casos justificados, pero no tiene acceso libre a todo tu historial.
+            </p>
+            <p>
+              <strong>"Mi empleador puede pedir mis datos de salud."</strong> No. Tu empleador puede
+              solicitar un certificado de aptitud laboral (apto/no apto), pero no tiene derecho a conocer
+              tus diagnósticos, tratamientos ni historia clínica. La Ley 25.326 lo prohíbe explícitamente.
+            </p>
+            <p>
+              <strong>"Si hackean la plataforma, se filtra todo."</strong> La encriptación en reposo
+              significa que incluso si alguien obtiene acceso no autorizado a la base de datos, los datos
+              son ilegibles sin las claves de descifrado. Es como robar una caja fuerte: tenerla no
+              significa poder abrirla.
+            </p>
+            <p>
+              La privacidad de tus datos de salud no es un ideal teórico. Es un derecho con marco legal,
+              herramientas técnicas de protección y mecanismos de reclamo. Conocerlo es el primer paso
+              para ejercerlo.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales en derecho sanitario y seguridad informática.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/historia-clinica-digital" class="seo-card">
+              <span class="seo-badge">Tecnología Médica</span>
+              <h4>Historia Clínica Digital</h4>
+            </a>
+            <a href="/blog/que-dice-la-ley-26529" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>Qué Dice la Ley 26.529</h4>
+            </a>
+            <a href="/blog/guia-consulta-medica-online" class="seo-card">
+              <span class="seo-badge">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
