@@ -6,7 +6,6 @@
  * POST /api/patients/anamnesis/live-token
  */
 import type { APIRoute } from 'astro'
-import { GoogleGenAI } from '@google/genai'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import {
   buildGeminiLiveSessionConfig,
@@ -145,20 +144,33 @@ async function issueLiveTokenInner(request: Request, locals?: AstroLocals) {
     }
   }
 
-  // Generate ephemeral token — browser connects DIRECTLY to Gemini, no proxy.
+  // Generate ephemeral token via REST — works in Workers (no SDK Node.js deps).
   try {
-    const client = new GoogleGenAI({ apiKey })
     const expireTime = new Date(now + 30 * 60 * 1000).toISOString()
     const newSessionExpireTime = new Date(now + 2 * 60 * 1000).toISOString()
 
-    const token = await client.authTokens.create({
-      config: {
-        uses: 1,
-        expireTime,
-        newSessionExpireTime,
-        httpOptions: { apiVersion: 'v1alpha' },
+    const tokenRes = await fetch(
+      'https://generativelanguage.googleapis.com/v1alpha/auth_tokens',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          uses: 1,
+          expire_time: expireTime,
+          new_session_expire_time: newSessionExpireTime,
+        }),
       },
-    })
+    )
+
+    if (!tokenRes.ok) {
+      const errText = await tokenRes.text().catch(() => 'unknown')
+      throw new Error(`Gemini auth_tokens ${tokenRes.status}: ${errText.slice(0, 200)}`)
+    }
+
+    const token = await tokenRes.json() as { name?: string }
 
     logger.info('[live-token] Ephemeral token created', {
       patientId: context.patientId,
