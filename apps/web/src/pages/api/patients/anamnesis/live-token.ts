@@ -1,18 +1,17 @@
 /**
- * API: Gemini Live session config (NO API key exposed).
- * Returns the Worker WebSocket URL plus a server-built session contract.
- * The browser only forwards this contract to the Worker after WS open.
+ * API: Gemini Live session — ephemeral token approach.
+ * Generates a short-lived token so the browser can connect DIRECTLY to Gemini Live API.
+ * No proxy needed — lower latency, no DO WebSocket relay issues.
  *
- * GET /api/patients/anamnesis/live-token
  * POST /api/patients/anamnesis/live-token
  */
 import type { APIRoute } from 'astro'
+import { GoogleGenAI } from '@google/genai'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import {
   buildGeminiLiveSessionConfig,
   type GeminiLiveCheckpoint,
 } from '@/lib/patients/server/gemini-live-session'
-import { isAnamnesisExtractionConfigured } from '@/lib/patients/server/ai-provider'
 import { logger } from '@autamedica/shared'
 
 function json(data: unknown, status = 200) {
@@ -27,16 +26,22 @@ const LIVE_LIMIT = 100
 const RATE_WINDOW_MS = 3_600_000
 const liveRateMap = new Map<string, { count: number; resetAt: number }>()
 
-/** Evict expired entries periodically to prevent unbounded growth */
 function evictExpiredEntries() {
   const now = Date.now()
   for (const [key, entry] of liveRateMap) {
     if (now >= entry.resetAt) liveRateMap.delete(key)
   }
 }
-// Run eviction every 10 minutes
 if (typeof globalThis !== 'undefined') {
   setInterval(evictExpiredEntries, 600_000).unref?.()
+}
+
+function resolveGeminiKey(runtimeEnv?: Record<string, unknown> | null): string | undefined {
+  if (runtimeEnv?.GEMINI_API_KEY && typeof runtimeEnv.GEMINI_API_KEY === 'string') return runtimeEnv.GEMINI_API_KEY
+  if (import.meta.env?.GEMINI_API_KEY) return String(import.meta.env.GEMINI_API_KEY)
+  // eslint-disable-next-line no-restricted-properties -- fallback for non-Astro runtimes (edge functions, workers)
+  if (typeof process !== 'undefined' && process.env?.GEMINI_API_KEY) return String(process.env.GEMINI_API_KEY)
+  return undefined
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -75,7 +80,8 @@ async function issueLiveToken(request: Request, locals?: AstroLocals) {
     entry.count++
   }
 
-  if (!isAnamnesisExtractionConfigured()) {
+  const apiKey = resolveGeminiKey(locals?.runtime?.env)
+  if (!apiKey) {
     return json({ success: false, error: 'ai_not_configured' }, 503)
   }
 
@@ -99,20 +105,50 @@ async function issueLiveToken(request: Request, locals?: AstroLocals) {
     runtimeEnv: locals?.runtime?.env,
   })
 
-  // Return WebSocket URL to the signaling worker's Gemini Live proxy.
-  // API key stays as a Worker secret. Session config is constructed server-side.
-  const sessionId = crypto.randomUUID()
-  const rawUrl = import.meta.env.PUBLIC_SIGNALING_URL
-    ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
-  const signalingOrigin = new URL(rawUrl).origin
+  // Generate ephemeral token — browser connects DIRECTLY to Gemini, no proxy.
+  try {
+    const client = new GoogleGenAI({ apiKey })
+    const expireTime = new Date(now + 30 * 60 * 1000).toISOString()
+    const newSessionExpireTime = new Date(now + 2 * 60 * 1000).toISOString()
 
-  return json({
-    success: true,
-    data: {
-      wsUrl: `${signalingOrigin.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
-      sessionId,
-      model: 'gemini-3.1-flash-live-preview',
-      sessionConfig,
-    },
-  })
+    const token = await client.authTokens.create({
+      config: {
+        uses: 1,
+        expireTime,
+        newSessionExpireTime,
+        httpOptions: { apiVersion: 'v1alpha' },
+      },
+    })
+
+    logger.info('[live-token] Ephemeral token created', {
+      patientId: context.patientId,
+      tokenName: token.name?.slice(0, 20),
+    })
+
+    return json({
+      success: true,
+      data: {
+        ephemeralToken: token.name,
+        model: 'gemini-3.1-flash-live-preview',
+        sessionConfig,
+      },
+    })
+  } catch (err) {
+    logger.error('[live-token] Failed to create ephemeral token', err)
+    // Fallback: return the worker WS URL (old approach) so it still works
+    const sessionId = crypto.randomUUID()
+    const rawUrl = import.meta.env.PUBLIC_SIGNALING_URL
+      ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
+    const signalingOrigin = new URL(rawUrl).origin
+
+    return json({
+      success: true,
+      data: {
+        wsUrl: `${signalingOrigin.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
+        sessionId,
+        model: 'gemini-3.1-flash-live-preview',
+        sessionConfig,
+      },
+    })
+  }
 }

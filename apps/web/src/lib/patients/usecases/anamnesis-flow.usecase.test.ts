@@ -32,7 +32,7 @@ describe('resolvePageView', () => {
       sessionLoading: false,
       anamnesisLoading: false,
       editMode: false,
-      anamnesis: { privacy_accepted: false, terms_accepted: false },
+      anamnesis: { privacyAccepted: false, termsAccepted: false },
     })).toBe('privacy');
   });
 
@@ -41,7 +41,7 @@ describe('resolvePageView', () => {
       sessionLoading: false,
       anamnesisLoading: false,
       editMode: true,
-      anamnesis: { status: 'completed', privacy_accepted: true, terms_accepted: true },
+      anamnesis: { status: 'completed', privacyAccepted: true, termsAccepted: true },
     })).toBe('wizard');
   });
 
@@ -50,7 +50,7 @@ describe('resolvePageView', () => {
       sessionLoading: false,
       anamnesisLoading: false,
       editMode: false,
-      anamnesis: { status: 'completed', privacy_accepted: true, terms_accepted: true },
+      anamnesis: { status: 'completed', privacyAccepted: true, termsAccepted: true },
     })).toBe('completed');
   });
 });

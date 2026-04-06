@@ -253,6 +253,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
 
   const saveCurrentStep = useCallback(async (): Promise<boolean> => {
     if (!currentStep) {
+      logger.warn('[AnamnesisFlow] saveCurrentStep — no currentStep');
       return false;
     }
 
@@ -261,14 +262,25 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
 
     try {
       const stepData = formData[currentStep.id] ?? {};
+      logger.info('[AnamnesisFlow] saveCurrentStep', {
+        step: currentStep.id,
+        fieldCount: Object.keys(stepData).length,
+      });
       const ok = await updateSection(currentStep.id as AnamnesisSection, stepData);
       if (!ok) {
+        logger.error('[AnamnesisFlow] saveCurrentStep — updateSection returned false', {
+          step: currentStep.id,
+        });
         setSaveError('No se pudo guardar esta sección');
         return false;
       }
 
       return true;
-    } catch {
+    } catch (err) {
+      logger.error('[AnamnesisFlow] saveCurrentStep — exception', {
+        step: currentStep.id,
+        error: err,
+      });
       setSaveError('Error al guardar');
       return false;
     } finally {
@@ -299,17 +311,26 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
   }, [isRevisit, progress]);
 
   const finalizeCheckpoint = useCallback(async (checkpoint: AnamnesisCheckpoint | null) => {
+    logger.info('[AnamnesisFlow] finalizeCheckpoint', { checkpoint });
     setShowVoiceChat(false);
     setShowClarification(false);
     setPendingCheckpoint(null);
     dismissGuidance();
 
     if (checkpoint === 'final') {
-      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+      logger.info('[AnamnesisFlow] Marking anamnesis as completed');
+      const ok = await updateAnamnesis({ status: 'completed' } as Record<string, unknown>);
+      if (!ok) {
+        logger.error('[AnamnesisFlow] finalizeCheckpoint(final) — failed to mark as completed');
+        setSaveError('No se pudo finalizar la anamnesis. Intentá de nuevo.');
+        return;
+      }
+      logger.info('[AnamnesisFlow] Generating PDF after final checkpoint');
       await handleGeneratePdf();
       return;
     }
 
+    logger.info('[AnamnesisFlow] Advancing to next step after checkpoint', { checkpoint });
     advanceToNextStep();
   }, [advanceToNextStep, dismissGuidance, handleGeneratePdf, updateAnamnesis]);
 
@@ -326,21 +347,34 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
 
     const saved = await saveCurrentStep();
     if (!saved) {
+      logger.error('[AnamnesisFlow] handleNext — saveCurrentStep failed', {
+        step: currentStep?.id,
+        stepIndex: currentStepIndex,
+      });
       return;
     }
 
     if (isLastStep) {
+      logger.info('[AnamnesisFlow] Last step reached — triggering FINAL checkpoint extraction', {
+        step: currentStep?.id,
+      });
       setPendingCheckpoint('final');
       setShowAnalyzing(true);
       setAnalysisResult(null);
 
       const result = await triggerExtraction('final');
+      logger.info('[AnamnesisFlow] FINAL extraction result', {
+        hasQuestions: !!(result?.questions?.length),
+        questionsCount: result?.questions?.length ?? 0,
+      });
       setAnalysisResult(buildAnalysisResult(result));
 
       if (result?.questions && result.questions.length > 0) {
+        logger.info('[AnamnesisFlow] FINAL checkpoint has clarification questions — showing overlay');
         return;
       }
 
+      logger.info('[AnamnesisFlow] FINAL checkpoint — no clarification needed, finalizing');
       setShowAnalyzing(false);
       setAnalysisResult(null);
       await finalizeCheckpoint('final');
@@ -348,11 +382,21 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     }
 
     if (currentStepIndex + 1 === PARTIAL_CHECKPOINT_AFTER_STEP) {
+      logger.info('[AnamnesisFlow] PARTIAL checkpoint reached at step', {
+        step: currentStep?.id,
+        stepIndex: currentStepIndex,
+        checkpointAt: PARTIAL_CHECKPOINT_AFTER_STEP,
+      });
       setPendingCheckpoint('partial');
       setShowAnalyzing(true);
       setAnalysisResult(null);
 
       const result = await triggerExtraction('partial');
+      logger.info('[AnamnesisFlow] PARTIAL extraction result', {
+        hasQuestions: !!(result?.questions?.length),
+        questionsCount: result?.questions?.length ?? 0,
+        guidanceNull: result === null,
+      });
       setAnalysisResult(buildAnalysisResult(result));
       return;
     }
@@ -376,16 +420,26 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     setShowAnalyzing(false);
     setAnalysisResult(null);
 
-    if (hasClarificationContext(guidance)) {
+    const hasClarification = hasClarificationContext(guidance);
+    logger.info('[AnamnesisFlow] handleAnalysisContinue', {
+      pendingCheckpoint,
+      hasClarification,
+      guidanceNull: guidance === null,
+    });
+
+    if (hasClarification) {
       if (pendingCheckpoint === 'partial') {
+        logger.info('[AnamnesisFlow] Partial checkpoint — opening voice chat for clarification');
         setShowVoiceChat(true);
         return;
       }
 
+      logger.info('[AnamnesisFlow] Final checkpoint — opening text clarification modal');
       setShowClarification(true);
       return;
     }
 
+    logger.info('[AnamnesisFlow] No clarification needed — dismissing guidance and advancing');
     setPendingCheckpoint(null);
     dismissGuidance();
     advanceToNextStep();
@@ -403,15 +457,29 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
 
   const handleAcceptPrivacy = useCallback(async () => {
     setSaving(true);
-    await updateAnamnesis({
-      privacy_accepted: true,
-      terms_accepted: true,
+    setSaveError(null);
+    logger.info('[AnamnesisFlow] Accepting privacy + terms');
+
+    const ok = await updateAnamnesis({
+      privacyAccepted: true,
+      termsAccepted: true,
     } as Record<string, unknown>);
+
+    if (!ok) {
+      logger.error('[AnamnesisFlow] handleAcceptPrivacy failed — updateAnamnesis returned false');
+      setSaveError('No se pudo aceptar los términos. Intentá de nuevo.');
+    }
+
     setSaving(false);
   }, [updateAnamnesis]);
 
   const handleClarificationComplete = useCallback(async (turns: ClarificationTurn[]) => {
     const activeCheckpoint = pendingCheckpoint;
+    logger.info('[AnamnesisFlow] handleClarificationComplete', {
+      checkpoint: activeCheckpoint,
+      turnsCount: turns.length,
+      turns: turns.map(t => ({ q: t.question.slice(0, 50), a: t.answer.slice(0, 50) })),
+    });
 
     turns.forEach((turn) => addClarification(turn.question, turn.answer));
     await finalizeCheckpoint(activeCheckpoint);
@@ -423,17 +491,18 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
       checkpoint: activeCheckpoint,
       hasGuidance: !!guidance,
       transcriptLength: data.transcript.length,
+      detectedSections: data.detectedSections,
       hasExtractedFields: !!data.extractedFields,
     });
 
     // Always save extracted fields to sections — even during checkpoints.
-    // The voice conversation produces data that must be part of the anamnesis.
     if (data.extractedFields) {
       const sectionUpdates: Record<string, Record<string, string>> = {};
 
       for (const [key, value] of Object.entries(data.extractedFields)) {
         const mapping = VOICE_FIELD_MAP[key];
         if (!mapping || !value) {
+          logger.debug('[AnamnesisFlow] Voice field skipped — no mapping', { key });
           continue;
         }
 
@@ -443,8 +512,18 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
         sectionUpdates[mapping.section][mapping.field] = value;
       }
 
+      logger.info('[AnamnesisFlow] Voice extraction — saving sections', {
+        sections: Object.keys(sectionUpdates),
+      });
+
       for (const [section, fields] of Object.entries(sectionUpdates)) {
-        await updateSection(section as AnamnesisSection, fields).catch(() => {});
+        const ok = await updateSection(section as AnamnesisSection, fields).catch((err) => {
+          logger.error('[AnamnesisFlow] Voice section save failed', { section, error: err });
+          return false;
+        });
+        if (!ok) {
+          logger.warn('[AnamnesisFlow] Voice section save returned false', { section });
+        }
       }
 
       logger.info('[AnamnesisFlow] Voice fields saved to sections', {

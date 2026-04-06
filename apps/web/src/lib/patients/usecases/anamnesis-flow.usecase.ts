@@ -28,8 +28,8 @@ interface ResolvePageViewInput {
   anamnesis: {
     locked?: boolean | null;
     status?: string | null;
-    privacy_accepted?: boolean | null;
-    terms_accepted?: boolean | null;
+    privacyAccepted?: boolean | null;
+    termsAccepted?: boolean | null;
   } | null;
 }
 
@@ -71,7 +71,7 @@ export function resolvePageView(input: ResolvePageViewInput): AnamnesisPageView 
     return 'completed';
   }
 
-  if (!anamnesis?.privacy_accepted || !anamnesis?.terms_accepted) {
+  if (!anamnesis?.privacyAccepted || !anamnesis?.termsAccepted) {
     return 'privacy';
   }
 

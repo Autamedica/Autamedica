@@ -84,6 +84,7 @@ export const anamnesisExtractionService = {
       sections: input.sections,
       clarificationTurns: input.clarificationTurns,
       modifiedSections: input.modifiedSections,
+      previousExtraction: input.previousExtraction,
     })
 
     const { providerName, modelName, result } = await executeAnamnesisExtraction(request)
