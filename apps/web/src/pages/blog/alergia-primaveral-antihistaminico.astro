@@ -1,0 +1,179 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Alergia Primaveral: Cuándo el Antihistamínico No Alcanza',
+  author: 'Equipo AutaMedica',
+  role: 'Alergología',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Alergología',
+};
+---
+
+<Layout
+  title="Alergia Primaveral: Cuándo el Antihistamínico No Alcanza | AutaMedica"
+  description="Rinitis alérgica estacional: cuándo el antihistamínico de venta libre no es suficiente, qué opciones existen y cuándo consultar al alergólogo."
+  canonical="https://www.autamedica.com/blog/alergia-primaveral-antihistaminico"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>No es "solo una alergia"</h2>
+            <p>
+              La rinitis alérgica estacional afecta a entre el 15% y el 25% de la población argentina, según estimaciones de la Asociación Argentina de Alergia e Inmunología Clínica. Los síntomas son conocidos: estornudos en serie, congestión nasal, picazón en ojos y nariz, goteo nasal claro. Lo que es menos conocido es el impacto real en la calidad de vida.
+            </p>
+            <p>
+              Estudios de carga de enfermedad muestran que la rinitis alérgica moderada-severa afecta el sueño, la concentración, el rendimiento laboral y escolar, y el estado de ánimo en un grado comparable a condiciones que se perciben como "más serias". Un paciente con rinitis alérgica no controlada pierde en promedio entre 3 y 5 días productivos por temporada, no necesariamente como ausentismo sino como presentismo con rendimiento disminuido.
+            </p>
+          </section>
+
+          <section>
+            <h2>El antihistamínico: qué hace y qué no</h2>
+            <p>
+              Los antihistamínicos de segunda generación (loratadina, cetirizina, desloratadina, fexofenadina) son el primer escalón del tratamiento. Bloquean el receptor H1 de la histamina, lo que reduce los estornudos, la picazón y el goteo nasal. Son de venta libre, razonablemente seguros y efectivos para síntomas leves a moderados.
+            </p>
+            <p>
+              Lo que el antihistamínico no hace bien es controlar la congestión nasal. La congestión se produce por inflamación de la mucosa, un mecanismo donde participan mediadores inflamatorios más allá de la histamina: leucotrienos, prostaglandinas, citoquinas. El antihistamínico no toca esos mediadores. Por eso muchos pacientes sienten que "el antihistamínico no me hace nada": en realidad les alivia parte de los síntomas, pero la congestión, que es el más incapacitante, persiste.
+            </p>
+            <p>
+              Otro dato importante: los antihistamínicos de primera generación (difenhidramina, clorfeniramina) causan somnolencia y deterioro cognitivo. Se siguen vendiendo en combinación con descongestivos en las farmacias argentinas. Si los estás tomando y manejás o necesitás concentración, estás asumiendo un riesgo innecesario cuando existen alternativas que no producen sedación.
+            </p>
+          </section>
+
+          <section>
+            <h2>Segundo escalón: los corticoides nasales</h2>
+            <p>
+              Cuando el antihistamínico no alcanza, las guías clínicas internacionales (ARIA, GINA) recomiendan como siguiente paso los corticoides nasales tópicos: budesonida, mometasona, fluticasona. Son el tratamiento más efectivo para la rinitis alérgica moderada-severa. Actúan sobre la inflamación subyacente, no solo sobre los síntomas.
+            </p>
+            <p>
+              Muchos pacientes le tienen miedo a la palabra "corticoide". Es importante aclarar: un corticoide nasal tópico no es lo mismo que un corticoide sistémico. La dosis que llega a la circulación general es mínima. Los efectos adversos locales más comunes son sequedad nasal y, raramente, epistaxis (sangrado nasal leve). Los perfiles de seguridad a largo plazo están bien estudiados.
+            </p>
+            <p>
+              En Argentina, varios corticoides nasales están disponibles sin receta. Sin embargo, usarlos correctamente requiere técnica: inclinar la cabeza ligeramente, apuntar hacia la pared lateral de la nariz (no hacia el tabique), no inhalar con fuerza. Una mala técnica reduce la eficacia y aumenta los efectos adversos. Si nunca te explicaron cómo usarlo, es probable que no le estés sacando el beneficio completo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo consultar al alergólogo</h2>
+            <p>
+              La automedicación con antihistamínicos y corticoides nasales es razonable para la rinitis leve-moderada de temporada. Pero hay señales de alarma que indican que necesitás una evaluación especializada.
+            </p>
+            <p>
+              Consultá si: los síntomas persisten más de 4 semanas a pesar del tratamiento, tenés congestión nasal unilateral (de un solo lado, lo cual puede indicar otra causa), presentás pérdida del olfato progresiva, tenés síntomas respiratorios bajos (tos persistente, sibilancias, dificultad para respirar) que sugieren asma asociada, o si la alergia interfiere significativamente con tu sueño, trabajo o actividades diarias.
+            </p>
+            <p>
+              El alergólogo puede hacer pruebas cutáneas (prick test) para identificar a qué alérgenos específicos reaccionás. Esto no es un capricho diagnóstico: saber si sos alérgico a gramíneas, ácaros o ambos cambia el enfoque del tratamiento y permite considerar la inmunoterapia (vacunas de alergia), que es el único tratamiento que modifica la historia natural de la enfermedad.
+            </p>
+          </section>
+
+          <section>
+            <h2>Inmunoterapia: el tratamiento que cambia la enfermedad</h2>
+            <p>
+              La inmunoterapia específica consiste en administrar dosis crecientes del alérgeno al que sos sensible, por vía subcutánea (inyecciones) o sublingual (gotas o comprimidos). El objetivo es que tu sistema inmunológico desarrolle tolerancia y deje de reaccionar de forma exagerada.
+            </p>
+            <p>
+              El tratamiento dura entre 3 y 5 años. Es el único que demostró reducir la progresión de la rinitis alérgica hacia el asma y el único que mantiene su efecto después de suspenderlo. Los antihistamínicos y corticoides controlan síntomas mientras los tomás; la inmunoterapia cambia la respuesta inmunológica de fondo.
+            </p>
+            <p>
+              En Argentina, la inmunoterapia está disponible a través de alergólogos y es cubierta por la mayoría de las obras sociales y prepagas. El principal obstáculo es la adherencia: un tratamiento de 3 a 5 años requiere compromiso del paciente. La modalidad sublingual (gotas) mejora la adherencia porque no requiere inyecciones ni visitas frecuentes al consultorio.
+            </p>
+          </section>
+
+          <section>
+            <h2>Medidas ambientales que sí sirven</h2>
+            <p>
+              Además de la medicación, hay medidas ambientales con evidencia de eficacia: mantener las ventanas cerradas en horarios de máxima polinización (mañana temprano y al atardecer), usar anteojos de sol al aire libre, ducharse y cambiarse de ropa al llegar a casa (el polen se adhiere a la ropa y el pelo), y usar filtros HEPA en ambientes cerrados.
+            </p>
+            <p>
+              Lo que no tiene evidencia sólida: los purificadores de aire ionizantes (pueden generar ozono), las dietas "antiinflamatorias" como tratamiento de la alergia respiratoria, y los suplementos de quercetina o vitamina C en dosis suprafisiológicas. No hacen daño, pero gastar plata en ellos en lugar de en un tratamiento probado es un costo de oportunidad.
+            </p>
+            <p>
+              La alergia estacional es una condición crónica tratable. Si cada primavera te resignás a estornudar y tomar una pastilla que no te alcanza, no es normal ni inevitable. Hay opciones mejores. Pero para acceder a ellas, el primer paso es dejar de pensar que "es solo una alergia".
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/alergia-primaveral-antihistaminico" description="Rinitis alérgica estacional: cuándo el antihistamínico no es suficiente, qué opciones existen y cuándo consultar al alergólogo." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de alergología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/dengue-argentina-prevencion-real" class="seo-card">
+              <span class="seo-badge">Infectología</span>
+              <h4>Dengue en Argentina: Prevención Real, No Pánico</h4>
+            </a>
+            <a href="/blog/golpe-calor-no-solo-tomar-agua" class="seo-card">
+              <span class="seo-badge">Emergencias</span>
+              <h4>Golpe de Calor: No Es Solo 'Tomá Agua'</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

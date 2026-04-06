@@ -1,0 +1,210 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Ansiedad vs Ataque de Pánico: Cómo Distinguirlos y Qué Hacer',
+  author: 'Equipo AutaMedica',
+  role: 'Psiquiatría',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Salud Mental',
+};
+---
+
+<Layout
+  title="Ansiedad vs Ataque de Pánico: Cómo Distinguirlos y Qué Hacer | AutaMedica"
+  description="Diferencias entre ansiedad y ataque de pánico: síntomas, duración, qué hacer durante un episodio y cuándo buscar ayuda profesional."
+  canonical="https://www.autamedica.com/blog/ansiedad-vs-ataque-panico"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>No es lo mismo estar ansioso que tener un ataque de pánico</h2>
+            <p>
+              La ansiedad y los ataques de pánico se confunden constantemente, tanto en conversaciones cotidianas como en redes sociales. "Tuve un ataque de pánico" se usa para describir desde nerviosismo antes de un examen hasta un episodio genuino de terror físico. La distinción importa porque el manejo es diferente y porque confundirlos puede retrasar un tratamiento adecuado.
+            </p>
+            <p>
+              La ansiedad es una emoción normal. Todos la experimentamos. Es la respuesta del cuerpo ante una amenaza percibida: el corazón late un poco más rápido, la atención se agudiza, los músculos se tensan. Es lo que te hace estudiar antes de un final o mirar a ambos lados antes de cruzar la calle. Se vuelve un problema cuando es desproporcionada, persistente y interfiere con tu vida diaria.
+            </p>
+            <p>
+              El ataque de pánico es otra cosa. Es un episodio súbito e intenso de miedo o malestar físico que alcanza su pico en minutos y produce síntomas tan severos que muchas personas creen que están teniendo un infarto o que se están muriendo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo se siente cada uno</h2>
+            <p>
+              <strong>Ansiedad generalizada:</strong> se instala de forma gradual, como una preocupación de fondo que no se va. Puede durar horas, días o semanas. Los síntomas son crónicos pero de intensidad moderada: tensión muscular (especialmente en cuello y mandíbula), dificultad para concentrarse, irritabilidad, problemas para dormir, fatiga, sensación de inquietud o "estar al borde". No suele tener un desencadenante puntual: es una preocupación difusa sobre múltiples temas (trabajo, salud, dinero, relaciones).
+            </p>
+            <p>
+              <strong>Ataque de pánico:</strong> aparece de golpe, a menudo sin un desencadenante claro. Alcanza su máxima intensidad en 10 minutos o menos. Los síntomas son agudos y físicamente abrumadores:
+            </p>
+            <ul>
+              <li>Palpitaciones o taquicardia intensa.</li>
+              <li>Sensación de falta de aire o ahogo.</li>
+              <li>Dolor o presión en el pecho.</li>
+              <li>Mareo, inestabilidad o sensación de desmayo.</li>
+              <li>Hormigueo en manos, pies o cara (parestesias).</li>
+              <li>Sudoración, temblores, escalofríos o oleadas de calor.</li>
+              <li>Náuseas o malestar abdominal.</li>
+              <li>Sensación de irrealidad (desrealización) o de estar separado de uno mismo (despersonalización).</li>
+              <li>Miedo a morir, a volverse loco o a perder el control.</li>
+            </ul>
+            <p>
+              El episodio dura típicamente entre 10 y 30 minutos. Rara vez supera la hora. Después queda un malestar residual de agotamiento y miedo a que vuelva a pasar.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por qué se confunde con un infarto</h2>
+            <p>
+              El dolor en el pecho, las palpitaciones y la falta de aire son síntomas compartidos entre un ataque de pánico y un infarto agudo de miocardio. En una guardia, es imposible distinguirlos solo por los síntomas. Por eso, si es la primera vez que experimentás estos síntomas, la indicación es consultar a una guardia. No es exageración: es el protocolo correcto.
+            </p>
+            <p>
+              En la guardia, te van a hacer un electrocardiograma, medir enzimas cardíacas y evaluar factores de riesgo. Si todo sale normal, el diagnóstico de ataque de pánico se establece por exclusión de causas cardíacas. Esto no significa que "no tenés nada": significa que lo que tenés no es cardíaco, pero sí es real y tratable.
+            </p>
+            <p>
+              La diferencia más útil para orientarte (pero que no reemplaza la evaluación médica): el dolor del ataque de pánico suele ser punzante, localizado y empeora con la respiración. El dolor del infarto suele ser opresivo, como "un elefante sentado en el pecho", e irradia al brazo izquierdo o la mandíbula. Pero hay excepciones, especialmente en mujeres, donde el infarto puede presentarse con síntomas atípicos.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué hacer durante un ataque de pánico</h2>
+            <p>
+              Si ya tuviste un ataque de pánico diagnosticado y reconocés que estás teniendo otro, estas estrategias pueden ayudar a reducir la intensidad y la duración:
+            </p>
+            <p>
+              <strong>Respiración controlada:</strong> la hiperventilación (respirar muy rápido y superficialmente) es lo que produce muchos de los síntomas: hormigueo, mareo, sensación de ahogo. Intentá respirar lento: inhalá por la nariz contando hasta 4, mantené el aire contando hasta 4, exhalá por la boca contando hasta 6. El objetivo no es relajarte (eso es difícil en pleno ataque): es reducir la hiperventilación.
+            </p>
+            <p>
+              <strong>Anclar en el presente:</strong> la técnica 5-4-3-2-1 te ayuda a salir del circuito de miedo. Nombrá 5 cosas que podés ver, 4 que podés tocar, 3 que podés escuchar, 2 que podés oler y 1 que podés saborear. Esto no es magia: es redirigir la atención del sistema nervioso desde la amenaza percibida hacia el entorno real.
+            </p>
+            <p>
+              <strong>Recordá que es temporal.</strong> Un ataque de pánico no dura para siempre. No te vas a morir. No te vas a volver loco. No vas a perder el control. Son minutos. Si podés, decite internamente: "Esto es un ataque de pánico. Ya sé lo que es. Va a pasar."
+            </p>
+            <p>
+              <strong>No huyas del lugar.</strong> Salir corriendo refuerza la asociación entre el lugar y el peligro. Si estás en un lugar seguro, quedate. Si necesitás moverte, hacelo caminando, no corriendo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo buscar ayuda profesional</h2>
+            <p>
+              Un ataque de pánico aislado no es necesariamente un trastorno. Muchas personas tienen uno o dos en su vida sin que se repitan. Pero hay señales de que necesitás evaluación profesional:
+            </p>
+            <ul>
+              <li>Ataques de pánico recurrentes (más de uno por mes).</li>
+              <li>Miedo persistente a tener otro ataque (ansiedad anticipatoria).</li>
+              <li>Cambios en tu comportamiento para evitar situaciones donde podrías tener un ataque (evitar el subte, evitar multitudes, evitar estar solo).</li>
+              <li>Ansiedad que interfiere con tu trabajo, relaciones o actividades cotidianas.</li>
+              <li>Uso de alcohol o sustancias para manejar la ansiedad.</li>
+              <li>Pensamientos de autolesión o suicidio.</li>
+            </ul>
+            <p>
+              El primer paso puede ser tu médico clínico, que puede descartar causas orgánicas (hipertiroidismo, arritmias, uso de sustancias) y derivarte a psiquiatría o psicología según corresponda.
+            </p>
+          </section>
+
+          <section>
+            <h2>Tratamiento: lo que funciona</h2>
+            <p>
+              Los trastornos de ansiedad y el trastorno de pánico son tratables. La evidencia respalda dos abordajes principales, que pueden combinarse:
+            </p>
+            <p>
+              <strong>Terapia cognitivo-conductual (TCC):</strong> es el tratamiento psicológico de primera línea para trastornos de ansiedad y pánico. Trabaja sobre los pensamientos catastróficos que amplifican la ansiedad y sobre las conductas de evitación que la mantienen. La exposición gradual a las situaciones temidas es un componente central. La eficacia es comparable a la de los fármacos, y los efectos se mantienen mejor a largo plazo.
+            </p>
+            <p>
+              <strong>Medicación:</strong> los inhibidores selectivos de la recaptación de serotonina (ISRS) como sertralina, escitalopram o paroxetina son la primera línea farmacológica. Tardan 2-4 semanas en hacer efecto. Las benzodiazepinas (alprazolam, clonazepam) actúan rápido pero generan tolerancia y dependencia, por lo que se reservan para uso puntual y de corto plazo, no como tratamiento crónico.
+            </p>
+            <p>
+              Lo que no funciona: "poné voluntad", "relajate", "no pienses en eso". Los trastornos de ansiedad no son falta de carácter. Son una disfunción en los circuitos cerebrales que regulan la respuesta al miedo. Se tratan con herramientas específicas, no con consejos genéricos.
+            </p>
+            <p>
+              Si estás pasando por esto, buscá ayuda. Los trastornos de ansiedad tienen tasas de respuesta al tratamiento superiores al 60-70%. No tiene por qué ser tu forma normal de vivir.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/ansiedad-vs-ataque-panico" description="Diferencias entre ansiedad y ataque de pánico: síntomas, duración, qué hacer durante un episodio y cuándo buscar ayuda profesional." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de psiquiatría.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/cuando-ir-guardia-cuando-esperar" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cuándo Ir a la Guardia y Cuándo Puede Esperar</h4>
+            </a>
+            <a href="/blog/dolor-cronico-analgesicos-riesgo" class="seo-card">
+              <span class="seo-badge">Medicina del Dolor</span>
+              <h4>Dolor Crónico: Por Qué Tu Médico No Te Da Más Analgésicos</h4>
+            </a>
+            <a href="/blog/segunda-opinion-medica-derecho" class="seo-card">
+              <span class="seo-badge">Derechos del Paciente</span>
+              <h4>Segunda Opinión Médica: Tu Derecho y Cómo Ejercerlo</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

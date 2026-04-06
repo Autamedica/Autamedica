@@ -1,0 +1,201 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico',
+  author: 'Equipo AutaMedica',
+  role: 'Laboratorio Clínico',
+  date: '6 de abril, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Educación Médica',
+};
+---
+
+<Layout
+  title="Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico | AutaMedica"
+  description="Guía para entender los valores más comunes de un análisis de sangre: hemograma, glucemia, colesterol, función renal y hepática. Qué significan los asteriscos y cuándo preocuparse de verdad."
+  canonical="https://www.autamedica.com/blog/como-leer-analisis-sangre"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El asterisco que arruina el día</h2>
+            <p>
+              Retirás tus análisis del laboratorio, abrís el PDF y ahí están: valores en rojo, asteriscos, flechas hacia arriba o hacia abajo. Inmediatamente sentís que algo anda mal. Buscás en Google y en cinco minutos ya te convenciste de que tenés tres enfermedades graves.
+            </p>
+            <p>
+              La realidad es diferente. Un valor fuera de rango no significa enfermedad. Los rangos de referencia que aparecen en el informe de laboratorio representan el intervalo donde cae el 95% de la población sana. Esto quiere decir que, estadísticamente, un 5% de personas completamente sanas va a tener al menos un valor "anormal" en cada análisis. Si te pidieron 20 parámetros, es esperable que uno o dos estén levemente fuera de rango sin que impliquen patología alguna.
+            </p>
+            <p>
+              Tu médico evalúa el resultado en contexto: tu historia clínica, tus síntomas, tus análisis previos, tu medicación. Un número aislado casi nunca alcanza para un diagnóstico.
+            </p>
+          </section>
+
+          <section>
+            <h2>El hemograma: la foto de tu sangre</h2>
+            <p>
+              El hemograma completo es el estudio más pedido del mundo. Analiza tres líneas celulares: glóbulos rojos, glóbulos blancos y plaquetas.
+            </p>
+            <p>
+              <strong>Glóbulos rojos y hemoglobina:</strong> los glóbulos rojos transportan oxígeno. La hemoglobina es la proteína dentro de ellos que hace el trabajo. Valores normales de hemoglobina: 12-16 g/dL en mujeres, 13.5-17.5 g/dL en hombres. Por debajo de esos rangos se habla de anemia. Pero una hemoglobina de 11.8 en una mujer con menstruaciones abundantes no tiene el mismo significado que una de 11.8 en un hombre de 60 años. El contexto importa más que el número.
+            </p>
+            <p>
+              <strong>Glóbulos blancos (leucocitos):</strong> son las células de defensa. Rango normal: 4.000 a 11.000/mm3. Un valor de 12.000 con resfrío es esperable y no requiere alarma. Un valor de 25.000 sin causa obvia sí merece evaluación. Los leucocitos se subdividen en neutrófilos, linfocitos, monocitos, eosinófilos y basófilos. La proporción entre ellos orienta sobre el tipo de proceso: infección bacteriana, viral, alergia, parasitosis.
+            </p>
+            <p>
+              <strong>Plaquetas:</strong> intervienen en la coagulación. Rango normal: 150.000 a 400.000/mm3. Un valor de 140.000 en un control de rutina no es emergencia. Un valor menor a 50.000 o mayor a 600.000 sí requiere atención.
+            </p>
+          </section>
+
+          <section>
+            <h2>Glucemia: más allá del número mágico</h2>
+            <p>
+              La glucemia en ayunas mide la concentración de azúcar en sangre después de al menos 8 horas sin comer. Valores de referencia: menor a 100 mg/dL es normal, entre 100 y 125 mg/dL se considera prediabetes, y 126 mg/dL o más en dos determinaciones separadas configura diagnóstico de diabetes.
+            </p>
+            <p>
+              Un detalle que pocos conocen: el ayuno debe ser de 8 a 12 horas. Menos de 8 horas puede dar valores falsamente elevados. Más de 14 horas puede provocar hipoglucemia reactiva. El café sin azúcar no rompe el ayuno, pero el café con leche sí.
+            </p>
+            <p>
+              Si tu glucemia dio 103 y te asustaste: una sola determinación no alcanza para diagnóstico. Tu médico probablemente pida repetirla o solicite una hemoglobina glicosilada (HbA1c), que refleja el promedio de glucosa de los últimos 2-3 meses y no depende de si ayunaste bien o mal.
+            </p>
+          </section>
+
+          <section>
+            <h2>Colesterol: las cifras que confunden</h2>
+            <p>
+              El perfil lipídico incluye colesterol total, LDL ("malo"), HDL ("bueno") y triglicéridos. Las guías argentinas de cardiología usan estos valores de referencia general:
+            </p>
+            <ul>
+              <li><strong>Colesterol total:</strong> deseable menor a 200 mg/dL.</li>
+              <li><strong>LDL:</strong> depende del riesgo cardiovascular. En una persona sin factores de riesgo, menor a 130 mg/dL es aceptable. En alguien con diabetes o antecedentes cardíacos, el objetivo baja a menos de 70 mg/dL.</li>
+              <li><strong>HDL:</strong> mayor a 40 mg/dL en hombres, mayor a 50 mg/dL en mujeres. Cuanto más alto, mejor.</li>
+              <li><strong>Triglicéridos:</strong> menor a 150 mg/dL. Valores por encima de 500 mg/dL tienen riesgo de pancreatitis.</li>
+            </ul>
+            <p>
+              El error más común es mirar el colesterol total aislado. Un colesterol total de 220 con HDL de 80 tiene un perfil de riesgo completamente distinto a un colesterol total de 220 con HDL de 30. La relación entre las fracciones importa más que el número absoluto. Tu médico calcula el riesgo cardiovascular global, no se queda con un solo valor.
+            </p>
+          </section>
+
+          <section>
+            <h2>Función renal y hepática: qué mirar</h2>
+            <p>
+              <strong>Creatinina y urea:</strong> evalúan la función de los riñones. La creatinina normal varía entre 0.6 y 1.2 mg/dL, pero depende de la masa muscular. Un fisicoculturista puede tener 1.4 mg/dL sin tener enfermedad renal. Una persona de 80 años con 1.3 mg/dL puede tener una función renal significativamente deteriorada. Por eso los nefrólogos usan la tasa de filtrado glomerular estimada (TFGe), que ajusta la creatinina por edad, sexo y peso.
+            </p>
+            <p>
+              <strong>Transaminasas (GOT/AST y GPT/ALT):</strong> son enzimas del hígado. Cuando las células hepáticas se dañan, liberan estas enzimas a la sangre. Rango normal: hasta 40 U/L aproximadamente. Causas comunes de elevación leve: hígado graso (la causa más frecuente en Argentina), medicamentos (paracetamol, estatinas, antiinflamatorios), alcohol, y ejercicio intenso reciente. Una GPT de 55 después de correr una maratón no es lo mismo que una GPT de 55 persistente durante meses.
+            </p>
+            <p>
+              <strong>Bilirrubina:</strong> si está elevada y sos de los que tienen "ojos amarillentos" desde siempre, es probable que tengas síndrome de Gilbert, una condición benigna que afecta al 5-10% de la población y no requiere tratamiento.
+            </p>
+          </section>
+
+          <section>
+            <h2>Tiroides, hierro y vitamina D: los clásicos</h2>
+            <p>
+              <strong>TSH (tirotropina):</strong> es el marcador más sensible de función tiroidea. Normal: 0.4-4.0 mUI/L aproximadamente. Una TSH de 5.2 en una mujer de 35 años con cansancio merece seguimiento. Una TSH de 5.2 en una mujer de 75 sin síntomas puede ser una variante normal del envejecimiento. No toda TSH levemente elevada necesita medicación.
+            </p>
+            <p>
+              <strong>Ferritina:</strong> refleja los depósitos de hierro del cuerpo. Un valor bajo (menor a 30 ng/mL) confirma deficiencia de hierro, la causa más común de anemia en mujeres premenopáusicas. Pero la ferritina también sube con inflamación, infección y enfermedad hepática. Una ferritina alta no siempre significa exceso de hierro.
+            </p>
+            <p>
+              <strong>Vitamina D:</strong> la deficiencia es frecuente en Argentina, especialmente en invierno y en personas que trabajan en interiores. Valores menores a 20 ng/mL se consideran deficientes, entre 20 y 30 insuficientes. Pero suplementar sin medir no es buena práctica: el exceso de vitamina D también puede causar problemas (hipercalcemia).
+            </p>
+          </section>
+
+          <section>
+            <h2>La regla de oro: no autodiagnosticarse</h2>
+            <p>
+              Un análisis de sangre es una herramienta. No es un veredicto. Cada valor tiene un contexto: tu edad, tu sexo, tu peso, tus medicamentos, lo que comiste, cuánto dormiste, si hiciste ejercicio, si estás cursando una infección. Interpretar un número aislado sin ese contexto es como leer una palabra suelta de un libro y pretender entender la historia.
+            </p>
+            <p>
+              Si tus análisis tienen algún valor fuera de rango, no entres en pánico. Anotá tus preguntas y llevalas a tu próxima consulta médica. Tu médico puede explicarte si ese asterisco tiene relevancia clínica o si es una variación estadística sin importancia.
+            </p>
+            <p>
+              Lo que sí podés hacer por tu cuenta: comparar tus valores actuales con los anteriores. La tendencia a lo largo del tiempo es más informativa que un dato puntual. Si tu colesterol LDL viene subiendo en los últimos tres controles, eso es una señal. Si un valor bajó de 135 a 132, no lo es.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/como-leer-analisis-sangre" description="Guía para entender los valores más comunes de un análisis de sangre: hemograma, glucemia, colesterol, función renal y hepática." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de laboratorio clínico.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/presion-arterial-normal-cuando-preocuparse" class="seo-card">
+              <span class="seo-badge">Cardiología</span>
+              <h4>Presión Arterial: Qué Es Normal y Cuándo Preocuparse</h4>
+            </a>
+            <a href="/blog/diabetes-tipo-2-antes-medicacion" class="seo-card">
+              <span class="seo-badge">Endocrinología</span>
+              <h4>Diabetes Tipo 2: Lo Que Podés Hacer Antes de Necesitar Medicación</h4>
+            </a>
+            <a href="/blog/cuando-ir-guardia-cuando-esperar" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cuándo Ir a la Guardia y Cuándo Puede Esperar</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

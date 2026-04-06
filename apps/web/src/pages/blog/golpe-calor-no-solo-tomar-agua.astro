@@ -1,0 +1,179 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Golpe de Calor: No Es Solo \'Tomá Agua\'',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina de Emergencias',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Emergencias',
+};
+---
+
+<Layout
+  title="Golpe de Calor: No Es Solo 'Tomá Agua' | AutaMedica"
+  description="Golpe de calor: fisiopatología real, signos de alarma, primeros auxilios basados en evidencia y por qué la hidratación sola no alcanza."
+  canonical="https://www.autamedica.com/blog/golpe-calor-no-solo-tomar-agua"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Golpe de calor no es insolación</h2>
+            <p>
+              Primero, una distinción que importa. La insolación (o agotamiento por calor) es un cuadro donde el cuerpo se sobrecalienta pero todavía puede regularse: la persona transpira, tiene la piel húmeda, puede sentir náuseas, mareos y debilidad. Es incómodo y requiere atención, pero generalmente se resuelve con hidratación, sombra y reposo.
+            </p>
+            <p>
+              El golpe de calor es otra cosa. Es una emergencia médica. La temperatura corporal supera los 40 grados centígrados y el sistema de termorregulación colapsa. La persona deja de transpirar (la piel está caliente y seca), puede presentar confusión, agitación, convulsiones o pérdida de conciencia. Sin tratamiento, la mortalidad supera el 50%. Con tratamiento oportuno, baja al 10-20%, pero puede dejar secuelas neurológicas permanentes.
+            </p>
+            <p>
+              En Argentina, las olas de calor son cada vez más frecuentes e intensas. El Servicio Meteorológico Nacional registró en los últimos años eventos con temperaturas sostenidas por encima de los 40 grados en amplias zonas del país. Las guardias hospitalarias se saturan. Y la mayoría de los casos graves podrían haberse prevenido.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por qué "tomá agua" no alcanza</h2>
+            <p>
+              La hidratación es importante, pero no es el único factor. El golpe de calor ocurre cuando la producción de calor (metabólica o ambiental) supera la capacidad de disipación del cuerpo. El cuerpo disipa calor por cuatro mecanismos: radiación, conducción, convección y evaporación (sudor). Cuando la temperatura ambiente supera los 35 grados y la humedad relativa es alta, la evaporación se vuelve ineficaz. Podés estar bien hidratado y sufrir un golpe de calor igual.
+            </p>
+            <p>
+              Los factores de riesgo van más allá de la sed: edad avanzada (la termorregulación se deteriora con la edad), obesidad (mayor producción de calor y menor disipación), medicamentos (diuréticos, betabloqueantes, anticolinérgicos, antipsicóticos reducen la capacidad de transpirar o de vasodilatación cutánea), ejercicio físico intenso con calor (el golpe de calor por ejercicio es la tercera causa de muerte en deportistas jóvenes), y condiciones crónicas como diabetes, insuficiencia cardíaca y enfermedad renal.
+            </p>
+            <p>
+              Un dato que sorprende: la mayoría de las muertes por golpe de calor no ocurren en la calle bajo el sol. Ocurren en departamentos sin ventilación cruzada ni aire acondicionado, donde personas mayores que viven solas se deshidratan progresivamente durante varios días de ola de calor.
+            </p>
+          </section>
+
+          <section>
+            <h2>Señales de alarma: cuándo es emergencia</h2>
+            <p>
+              El agotamiento por calor se presenta con: sed intensa, debilidad, sudoración profusa, piel húmeda, náuseas, dolor de cabeza, calambres musculares. La persona está consciente y orientada. Esto se maneja con reposo en ambiente fresco, hidratación oral (agua con sal o bebidas deportivas) y control de temperatura.
+            </p>
+            <p>
+              El golpe de calor se presenta con: temperatura corporal mayor a 40 grados, piel caliente y seca (ausencia de sudor), confusión o desorientación, agitación, habla incoherente, convulsiones, pérdida de conciencia. Si ves estos signos en alguien, es una emergencia: llamá al SAME (107) o al servicio de emergencias local inmediatamente.
+            </p>
+            <p>
+              La transición de agotamiento a golpe de calor puede ser rápida. No esperés a que la persona deje de transpirar para actuar. Si los síntomas de agotamiento no mejoran en 30 minutos con medidas básicas, buscá atención médica.
+            </p>
+          </section>
+
+          <section>
+            <h2>Primeros auxilios basados en evidencia</h2>
+            <p>
+              Mientras esperás la ambulancia, el objetivo es enfriar a la persona lo más rápido posible. Cada minuto cuenta. La evidencia muestra que la inmersión en agua fría (si está disponible) es el método más eficaz: reduce la temperatura corporal a una velocidad de 0.2 grados por minuto. Si no tenés una pileta o bañadera, aplicá hielo envuelto en tela en axilas, cuello, ingle (zonas con vasos sanguíneos superficiales) y mojá el cuerpo con agua mientras abanicás.
+            </p>
+            <p>
+              Lo que no debés hacer: dar antifebriles (paracetamol, ibuprofeno). El golpe de calor no es fiebre. La fiebre es una respuesta regulada del hipotálamo; el golpe de calor es un colapso del sistema termorregulador. Los antifebriles no funcionan y pueden empeorar el cuadro al sobrecargar un hígado ya estresado. Tampoco des alcohol (vasodilatador que empeora la hipotensión) ni bebidas muy frías por boca si la persona está confusa (riesgo de aspiración).
+            </p>
+          </section>
+
+          <section>
+            <h2>Prevención real, no consejos genéricos</h2>
+            <p>
+              Las recomendaciones genéricas ("tomar agua, usar gorra, evitar el sol del mediodía") son necesarias pero insuficientes. La prevención efectiva del golpe de calor requiere acciones específicas según el perfil de riesgo.
+            </p>
+            <p>
+              Para trabajadores al aire libre (construcción, agricultura, delivery): la regulación de la Superintendencia de Riesgos del Trabajo establece pausas obligatorias cuando la temperatura supera ciertos umbrales. En la práctica, muchos empleadores no las respetan. Si trabajás al aire libre con calor extremo, tu empleador tiene la obligación legal de proveer sombra, agua y pausas. Si no lo hace, la ART es responsable ante un evento adverso.
+            </p>
+            <p>
+              Para personas mayores que viven solas: el riesgo no es el mediodía en la plaza. Es la noche de la tercera jornada consecutiva de ola de calor, en un departamento sin aire acondicionado, cuando la temperatura interior no baja de 32 grados. La medida más efectiva es el contacto social: que alguien llame o visite a la persona mayor al menos dos veces al día durante la ola de calor.
+            </p>
+            <p>
+              Para deportistas: no entrenar entre las 11 y las 17 horas con temperaturas superiores a 30 grados, aclimatarse gradualmente (10-14 días de exposición progresiva), pesarse antes y después del entrenamiento para calcular la pérdida de líquido, y conocer los signos de agotamiento por calor para frenar antes de llegar al golpe.
+            </p>
+          </section>
+
+          <section>
+            <h2>Un problema de salud pública que se agrava</h2>
+            <p>
+              Con el cambio climático, las olas de calor serán más frecuentes, más intensas y más largas. El golpe de calor no es un evento anecdótico de un verano particularmente caluroso: es un problema de salud pública creciente. Las ciudades argentinas, con su densidad de cemento y escasez de espacios verdes, amplifican el efecto isla de calor urbano.
+            </p>
+            <p>
+              La respuesta no puede ser solo individual ("tomá agua"). Requiere infraestructura urbana, protocolos laborales, redes de contención para poblaciones vulnerables y un sistema de salud preparado para los picos de demanda. Mientras tanto, saber distinguir un agotamiento de un golpe de calor, y saber qué hacer en cada caso, puede ser la diferencia entre un susto y una tragedia.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/golpe-calor-no-solo-tomar-agua" description="Golpe de calor: fisiopatología real, signos de alarma, primeros auxilios y por qué la hidratación sola no alcanza." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina de emergencias.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/dengue-argentina-prevencion-real" class="seo-card">
+              <span class="seo-badge">Infectología</span>
+              <h4>Dengue en Argentina: Prevención Real, No Pánico</h4>
+            </a>
+            <a href="/blog/alergia-primaveral-antihistaminico" class="seo-card">
+              <span class="seo-badge">Alergología</span>
+              <h4>Alergia Primaveral: Cuándo el Antihistamínico No Alcanza</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

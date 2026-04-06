@@ -1,0 +1,179 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Ausentismo Laboral por Salud: Cuánto Cuesta y Qué Se Puede Prevenir',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina Laboral',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Empresas',
+};
+---
+
+<Layout
+  title="Ausentismo Laboral por Salud: Cuánto Cuesta y Qué Se Puede Prevenir | AutaMedica"
+  description="Datos sobre el costo real del ausentismo laboral por salud en Argentina: causas principales, impacto económico y estrategias de prevención basadas en evidencia."
+  canonical="https://www.autamedica.com/blog/ausentismo-laboral-salud-costo"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Un costo que no aparece en el balance</h2>
+            <p>
+              El ausentismo laboral por motivos de salud es uno de esos problemas que todas las empresas tienen y pocas miden con rigor. En Argentina, las estimaciones disponibles sugieren que el ausentismo por enfermedad o accidente representa entre el 4% y el 8% de las jornadas laborales anuales, dependiendo del sector. En manufactura y logística, donde el trabajo físico es intensivo, los números son más altos. En servicios, el problema es menos visible pero igualmente costoso.
+            </p>
+            <p>
+              El costo directo es el salario que se paga sin contraprestación productiva. Pero el costo real es mucho mayor: incluye la cobertura del puesto (horas extra de compañeros, contratación temporal), la pérdida de productividad del equipo, los retrasos en proyectos, el impacto en la moral del grupo y, en muchos casos, los costos de ART y seguros. La OIT estima que el costo total del ausentismo puede ser entre 1.5 y 3 veces el salario directo del ausente.
+            </p>
+          </section>
+
+          <section>
+            <h2>Las causas principales en Argentina</h2>
+            <p>
+              Los datos de las ART y de la Superintendencia de Riesgos del Trabajo permiten identificar patrones. Las causas más frecuentes de ausentismo por salud son: trastornos musculoesqueléticos (dolor lumbar, cervicalgia, tendinitis), enfermedades respiratorias (gripe, bronquitis, infecciones de vías aéreas superiores), trastornos de salud mental (ansiedad, depresión, burnout) y enfermedades gastrointestinales.
+            </p>
+            <p>
+              Los trastornos musculoesqueléticos lideran en días perdidos porque, aunque no son los más frecuentes en episodios, generan las licencias más largas. Un lumbago agudo puede significar entre 5 y 15 días de ausencia. Multiplicado por la cantidad de trabajadores que lo padecen, el impacto es enorme.
+            </p>
+            <p>
+              La salud mental merece atención especial. Las licencias por ansiedad y depresión crecieron significativamente en los últimos años. Son las más difíciles de gestionar porque el diagnóstico es menos visible, la duración es impredecible y el retorno al trabajo requiere un proceso gradual que pocas empresas tienen protocolizado.
+            </p>
+          </section>
+
+          <section>
+            <h2>Presentismo: el costo invisible</h2>
+            <p>
+              Peor que el ausentismo es el presentismo: el empleado que va a trabajar enfermo. Parece productivo en la planilla de asistencia, pero su rendimiento está disminuido, comete más errores, contagia a compañeros y retrasa su propia recuperación, lo que puede convertir un cuadro leve en una licencia larga.
+            </p>
+            <p>
+              Un estudio de Harvard Business Review estimó que el costo del presentismo supera al del ausentismo en una proporción de 3 a 1. En Argentina, donde la cultura laboral penaliza la ausencia y la cobertura de salud no siempre facilita la consulta rápida, el presentismo es un problema estructural. Un empleado que necesita medio día para ir al médico prefiere no ir porque "pierde el presentismo" (el plus salarial por asistencia perfecta).
+            </p>
+            <p>
+              La ironía es que el incentivo por presentismo, diseñado para reducir el ausentismo, puede estar aumentando el costo total de salud de la empresa.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué se puede prevenir (con datos)</h2>
+            <p>
+              No todo el ausentismo es prevenible. Una gripe es una gripe. Pero una proporción significativa, estimada entre el 30% y el 40%, responde a factores modificables: condiciones ergonómicas del puesto de trabajo, acceso oportuno a atención médica, programas de actividad física, gestión del estrés laboral y detección temprana de condiciones crónicas.
+            </p>
+            <p>
+              Las intervenciones con mayor evidencia de efectividad incluyen: evaluaciones ergonómicas del puesto de trabajo (reducen hasta un 40% las lesiones musculoesqueléticas), programas de vacunación antigripal corporativa (reducen entre un 30% y un 50% el ausentismo por gripe), acceso a consulta médica rápida (telemedicina o médico de planta) para resolver cuadros leves sin licencia completa, y programas de asistencia al empleado (EAP) para salud mental.
+            </p>
+            <p>
+              La clave es que estas intervenciones no son gastos: son inversiones con retorno medible. Una empresa que invierte en un programa de ergonomía y consulta médica accesible puede esperar un retorno de entre 2 y 6 dólares por cada dólar invertido, según estudios de la American College of Occupational and Environmental Medicine.
+            </p>
+          </section>
+
+          <section>
+            <h2>El rol de la consulta médica accesible</h2>
+            <p>
+              Uno de los factores más subestimados del ausentismo es la barrera de acceso a la consulta. Un empleado con dolor lumbar que necesita una evaluación tiene dos opciones: pedir un día de licencia para ir al médico (contribuyendo al ausentismo) o aguantar hasta que el cuadro empeore (presentismo que termina en licencia larga).
+            </p>
+            <p>
+              La teleconsulta resuelve parcialmente este dilema. Un empleado puede consultar durante la hora de almuerzo, desde su casa antes de entrar a trabajar, o incluso durante una pausa. No todas las consultas son resolubles a distancia, pero muchas sí: orientación sobre medicación, renovación de recetas crónicas, evaluación de cuadros leves, derivación a especialista cuando corresponde.
+            </p>
+            <p>
+              Empresas que implementaron teleconsulta como beneficio corporativo reportan reducciones de entre el 15% y el 25% en días de ausentismo por consultas médicas. El mecanismo es simple: si acceder al médico no requiere ausentarse, la consulta se hace antes y el cuadro se resuelve más rápido.
+            </p>
+          </section>
+
+          <section>
+            <h2>Medir para gestionar</h2>
+            <p>
+              La primera recomendación para cualquier empresa que quiera reducir el ausentismo por salud es medirlo correctamente. Esto implica ir más allá del índice de ausentismo general y desagregar por causa, por área, por estacionalidad y por duración del episodio.
+            </p>
+            <p>
+              Un índice de ausentismo del 6% anual no dice mucho. Saber que el 40% de ese 6% corresponde a trastornos musculoesqueléticos en el área de logística, concentrados en los meses de mayor actividad, permite diseñar una intervención específica. Sin datos desagregados, las empresas terminan invirtiendo en programas genéricos de bienestar que no atacan las causas reales.
+            </p>
+            <p>
+              El ausentismo por salud no es un problema de recursos humanos. Es un problema de gestión operativa que requiere datos, intervenciones basadas en evidencia y seguimiento sostenido. Las empresas que lo tratan así ven resultados. Las que lo tratan como un costo inevitable, lo pagan.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/ausentismo-laboral-salud-costo" description="Datos sobre el costo real del ausentismo laboral por salud en Argentina: causas principales, impacto económico y estrategias de prevención." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina laboral.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/telemedicina-beneficio-corporativo-roi" class="seo-card">
+              <span class="seo-badge">Empresas</span>
+              <h4>Telemedicina como Beneficio Corporativo: El ROI Real</h4>
+            </a>
+            <a href="/blog/burnout-medico-argentina" class="seo-card">
+              <span class="seo-badge">Profesionales</span>
+              <h4>Burnout Médico en Argentina</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

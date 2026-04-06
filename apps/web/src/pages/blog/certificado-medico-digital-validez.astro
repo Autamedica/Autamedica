@@ -1,0 +1,201 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'El Certificado Médico Digital: Qué Vale y Qué No en Argentina',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina Legal',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Marco Legal',
+};
+---
+
+<Layout
+  title="El Certificado Médico Digital: Qué Vale y Qué No en Argentina | AutaMedica"
+  description="Marco legal del certificado médico digital en Argentina: validez de la firma digital, telemedicina, recetas electrónicas y qué exigir cuando te piden un certificado."
+  canonical="https://www.autamedica.com/blog/certificado-medico-digital-validez"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El certificado que tu empleador no quiere aceptar</h2>
+            <p>
+              Hiciste una teleconsulta, el médico te diagnosticó una faringitis, te indicó reposo y te envió un certificado por email. Al día siguiente se lo presentás a recursos humanos y te dicen: "Necesitamos el certificado original, en papel, con firma y sello". La situación es más común de lo que parece, y la respuesta legal no es tan simple como parece.
+            </p>
+            <p>
+              En Argentina, el marco legal que regula los documentos digitales, las firmas electrónicas y la telemedicina se construyó en capas a lo largo de 25 años. Entender qué vale y qué no requiere conocer esas capas.
+            </p>
+          </section>
+
+          <section>
+            <h2>Firma digital vs firma electrónica: no son lo mismo</h2>
+            <p>
+              La Ley 25.506 de Firma Digital (2001) establece una distinción fundamental. La <strong>firma digital</strong> es el equivalente legal de la firma manuscrita: tiene plena validez jurídica y presunción de autoría. Para obtenerla, el profesional necesita un certificado emitido por un certificador licenciado por la Secretaría de Innovación Pública. En la práctica, pocos médicos la tienen.
+            </p>
+            <p>
+              La <strong>firma electrónica</strong> es cualquier otro mecanismo que identifique al firmante: una imagen de firma escaneada, un código QR, un sistema de autenticación de la plataforma de telemedicina. Tiene validez legal, pero con una diferencia clave: en caso de disputa, la carga de la prueba recae en quien la invoca. Es decir, si alguien cuestiona la autenticidad de un certificado con firma electrónica, quien lo presentó debe probar que es genuino.
+            </p>
+            <p>
+              En la práctica, la mayoría de los certificados digitales emitidos por plataformas de telemedicina llevan firma electrónica, no digital. Son legalmente válidos, pero pueden ser cuestionados por un empleador o una aseguradora que decida ser estricto.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Ley de Telemedicina y los certificados</h2>
+            <p>
+              La Ley 27.553 de Recetas Electrónicas y Teleasistencia (2020), reglamentada por el Decreto 98/2023, habilitó formalmente la prescripción electrónica y la emisión de certificados médicos a distancia en todo el territorio nacional. Los puntos clave:
+            </p>
+            <ul>
+              <li>Los profesionales de la salud pueden emitir recetas y certificados mediante plataformas de telemedicina registradas.</li>
+              <li>La receta electrónica tiene la misma validez que la receta manuscrita cuando cumple los requisitos de identificación del profesional y del paciente.</li>
+              <li>Las farmacias están obligadas a aceptar recetas electrónicas que cumplan los requisitos de la ley.</li>
+              <li>Cada jurisdicción provincial puede tener regulaciones adicionales.</li>
+            </ul>
+            <p>
+              La ley no dice explícitamente que un empleador deba aceptar un certificado digital. Lo que dice es que el certificado emitido por un profesional matriculado a través de una plataforma habilitada tiene la misma validez que uno presencial. La interpretación de esto en el ámbito laboral sigue dependiendo, en muchos casos, del convenio colectivo de trabajo aplicable y de la buena voluntad de recursos humanos.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué debe contener un certificado médico válido</h2>
+            <p>
+              Independientemente del formato (papel o digital), un certificado médico válido en Argentina debe incluir:
+            </p>
+            <ul>
+              <li>Nombre completo del paciente y número de documento.</li>
+              <li>Fecha y hora de la consulta.</li>
+              <li>Diagnóstico o motivo de la consulta (puede ser codificado con CIE-10 o en texto libre).</li>
+              <li>Indicación médica (reposo, días de licencia, restricciones).</li>
+              <li>Nombre completo del profesional, matrícula provincial o nacional, y especialidad.</li>
+              <li>Firma del profesional (manuscrita, digital o electrónica según el medio).</li>
+              <li>Identificación del establecimiento o plataforma donde se realizó la consulta.</li>
+            </ul>
+            <p>
+              Si tu certificado digital tiene todos estos elementos y fue emitido por un profesional matriculado, es legalmente válido. Si tu empleador lo rechaza, tiene la carga de explicar por qué un documento que cumple los requisitos legales no es aceptable.
+            </p>
+          </section>
+
+          <section>
+            <h2>Recetas electrónicas: qué se puede recetar a distancia</h2>
+            <p>
+              La Ley 27.553 habilitó la prescripción electrónica, pero con límites. Se pueden recetar a distancia medicamentos de venta bajo receta simple y bajo receta archivada. No se pueden recetar a distancia psicotrópicos ni estupefacientes (medicamentos del Listado II y III de la ley de estupefacientes), que requieren receta triplicada en papel.
+            </p>
+            <p>
+              En la práctica, esto significa que un médico puede recetarte un antibiótico, un antihipertensivo o un antidiabético por teleconsulta. Pero no puede recetarte benzodiazepinas (alprazolam, clonazepam) ni opioides (tramadol, codeína) de forma digital. Para estos últimos, necesitás una consulta presencial.
+            </p>
+            <p>
+              Las obras sociales y prepagas están obligadas a aceptar recetas electrónicas para la cobertura de medicamentos. Si tu obra social te dice que "solo acepta recetas en papel", está en incumplimiento de la normativa vigente.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué hacer si te rechazan un certificado digital</h2>
+            <p>
+              Si tu empleador rechaza un certificado digital emitido por un profesional matriculado a través de una plataforma de telemedicina, tenés algunas opciones:
+            </p>
+            <ul>
+              <li>Pedí que te especifiquen por escrito el motivo del rechazo.</li>
+              <li>Verificá tu convenio colectivo de trabajo: algunos CCT especifican requisitos formales del certificado médico. Si el CCT no menciona formato papel, el empleador no puede exigirlo.</li>
+              <li>Podés consultar con tu sindicato o con el Ministerio de Trabajo de tu jurisdicción.</li>
+              <li>Si el rechazo es sistemático, podés hacer una denuncia ante la Superintendencia de Servicios de Salud (si involucra cobertura médica) o ante la autoridad laboral provincial.</li>
+            </ul>
+            <p>
+              La realidad es que la adopción del certificado digital está avanzando, pero no es uniforme. Grandes empresas y el sector público lo aceptan mayoritariamente. Pymes y ciertos sectores todavía resisten. El marco legal está de tu lado, pero la implementación práctica sigue en transición.
+            </p>
+          </section>
+
+          <section>
+            <h2>El futuro que ya llegó (a medias)</h2>
+            <p>
+              Argentina tiene el marco legal para que toda la documentación médica sea digital. La Ley de Historia Clínica Electrónica (Ley 27.706, 2023) establece que las historias clínicas deben poder interoperar entre instituciones. La prescripción electrónica es legal desde 2020. Los certificados digitales tienen validez desde 2001.
+            </p>
+            <p>
+              Lo que falta no es legislación: es implementación. Interoperabilidad entre sistemas, capacitación de profesionales, actualización de recursos humanos en empresas, y una cultura que deje de equiparar "original" con "papel con sello azul". Mientras esa transición se completa, lo mejor que podés hacer es conocer tus derechos y exigir que se cumplan.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/certificado-medico-digital-validez" description="Marco legal del certificado médico digital en Argentina: validez de la firma digital, telemedicina y recetas electrónicas." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina legal.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/segunda-opinion-medica-derecho" class="seo-card">
+              <span class="seo-badge">Derechos del Paciente</span>
+              <h4>Segunda Opinión Médica: Tu Derecho y Cómo Ejercerlo</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+            <a href="/blog/medicamentos-genericos-originales-argentina" class="seo-card">
+              <span class="seo-badge">Farmacología</span>
+              <h4>Genéricos vs Originales: ¿Son Realmente Iguales?</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

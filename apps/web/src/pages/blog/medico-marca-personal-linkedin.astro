@@ -1,0 +1,176 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'El Médico como Marca Personal: Visibilidad Profesional Sin Caer en Influencer',
+  author: 'Equipo AutaMedica',
+  role: 'Comunicación Médica',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Profesionales',
+};
+---
+
+<Layout
+  title="El Médico como Marca Personal: Visibilidad Profesional Sin Caer en Influencer | AutaMedica"
+  description="Cómo un médico puede construir presencia profesional en LinkedIn y redes sin comprometer la ética ni convertirse en influencer de salud."
+  canonical="https://www.autamedica.com/blog/medico-marca-personal-linkedin"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Por qué la visibilidad profesional importa</h2>
+            <p>
+              Durante décadas, un médico construía su reputación boca a boca: un paciente satisfecho le recomendaba a otro, un colega derivaba porque conocía tu trabajo. Ese mecanismo sigue funcionando, pero ya no es suficiente. Hoy, el 77% de los pacientes busca información sobre su médico en internet antes de la primera consulta, según datos de encuestas de salud digital en Latinoamérica.
+            </p>
+            <p>
+              Esto no significa que necesites ser influencer. Significa que tu presencia digital es, quieras o no, tu primera impresión profesional. Un perfil de LinkedIn actualizado, un artículo sobre tu especialidad, una participación en un congreso documentada online: todo esto construye credibilidad verificable. La ausencia total de presencia digital, paradójicamente, también comunica algo.
+            </p>
+          </section>
+
+          <section>
+            <h2>La línea entre divulgación y marketing personal</h2>
+            <p>
+              El código de ética médica argentino es claro: está prohibida la publicidad que sea engañosa, que garantice resultados, que compare con otros profesionales o que utilice testimonios de pacientes. Lo que no está prohibido es la comunicación profesional: compartir conocimiento, explicar procedimientos, difundir prevención, participar en debates científicos.
+            </p>
+            <p>
+              La diferencia entre un médico que divulga y un influencer de salud no está en la plataforma sino en la intención y el rigor. Un divulgador cita fuentes, reconoce la incertidumbre, no promete resultados y mantiene la complejidad cuando es necesaria. Un influencer simplifica hasta la distorsión, personaliza la relación con el seguidor y monetiza la atención.
+            </p>
+            <p>
+              Podés estar en LinkedIn, en Instagram, en un blog, en un podcast, sin cruzar la línea. La clave es que cada contenido que publiques pase un filtro: "Si un colega de mi especialidad lee esto, va a pensar que es riguroso?" Si la respuesta es sí, adelante.
+            </p>
+          </section>
+
+          <section>
+            <h2>LinkedIn como herramienta profesional médica</h2>
+            <p>
+              LinkedIn es la red más subaprovechada por médicos en Argentina. A diferencia de Instagram (donde el formato visual favorece el espectáculo), LinkedIn premia el contenido técnico, la experiencia profesional y las conexiones institucionales.
+            </p>
+            <p>
+              Un perfil médico bien armado en LinkedIn incluye: título profesional con especialidad, resumen que describa tu enfoque clínico (no tu CV entero), experiencia laboral con instituciones verificables, publicaciones o presentaciones en congresos, y certificaciones relevantes. No necesitás publicar todos los días. Un artículo mensual sobre un tema de tu especialidad, bien escrito y con referencias, te posiciona mejor que 30 posteos genéricos.
+            </p>
+            <p>
+              El networking en LinkedIn no es "juntar contactos". Es conectar con colegas que derivan, con instituciones que buscan profesionales, con medios que necesitan fuentes médicas, con pacientes que investigan antes de consultar. Todo eso es legítimo, profesional y ético.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué publicar (y qué no)</h2>
+            <p>
+              Contenido que funciona: análisis de un paper reciente de tu especialidad, reflexión sobre un caso clínico anonimizado, explicación de un procedimiento para colegas o pacientes, opinión fundamentada sobre una política de salud, resumen de un congreso al que asististe.
+            </p>
+            <p>
+              Contenido que no funciona (o que es riesgoso): fotos en quirófano sin contexto educativo, antes y después de pacientes (incluso con consentimiento, es éticamente cuestionable), promesas de resultados, ataques a colegas o instituciones, opiniones sobre temas fuera de tu competencia.
+            </p>
+            <p>
+              Una regla práctica: no publiques nada que no dirías en una presentación de un ateneo hospitalario. Si el tono es el mismo que usarías frente a colegas y residentes, probablemente está bien. Si el tono se parece más a un story de Instagram que a una comunicación profesional, revisalo.
+            </p>
+          </section>
+
+          <section>
+            <h2>El tiempo: la excusa más honesta</h2>
+            <p>
+              La razón principal por la que los médicos no construyen presencia digital no es la ética ni el desinterés: es el tiempo. Con jornadas de 10 a 14 horas, pluriempleo y obligaciones de formación continua, sentarse a escribir un artículo parece un lujo.
+            </p>
+            <p>
+              La solución no es hacer más sino hacer poco y bien. Un artículo de 500 palabras por mes sobre algo que ya sabés lleva entre 30 y 60 minutos. Un perfil de LinkedIn bien completado se hace una vez y se actualiza dos veces al año. Un comentario sustantivo en la publicación de un colega toma tres minutos y genera más visibilidad que un posteo propio.
+            </p>
+            <p>
+              No necesitás una estrategia de contenidos, un calendario editorial ni un community manager. Necesitás decidir que tu trabajo merece ser visible y dedicarle una hora al mes. El costo de oportunidad de la invisibilidad, en derivaciones que no llegan y en oportunidades que no se abren, es mayor que esa hora.
+            </p>
+          </section>
+
+          <section>
+            <h2>Visibilidad como responsabilidad</h2>
+            <p>
+              Hay un argumento que va más allá de lo personal: si los médicos rigurosos no comunican, el espacio lo ocupan quienes no lo son. La desinformación en salud no se combate solo con verificadores de datos sino con profesionales que ofrecen una alternativa creíble, accesible y visible.
+            </p>
+            <p>
+              Cada vez que un endocrinólogo explica por qué Ozempic no es un suplemento dietético, o que una pediatra aclara que el calendario de vacunación no es negociable, o que un psiquiatra describe qué es y qué no es un ataque de pánico, están haciendo salud pública. Y lo pueden hacer desde un consultorio, desde un aula o desde un perfil profesional en internet. Lo importante es que lo hagan.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/medico-marca-personal-linkedin" description="Cómo un médico puede construir presencia profesional en redes sin comprometer la ética ni convertirse en influencer de salud." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de comunicación médica.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/burnout-medico-argentina" class="seo-card">
+              <span class="seo-badge">Profesionales</span>
+              <h4>Burnout Médico en Argentina: Los Números Que No Se Publican</h4>
+            </a>
+            <a href="/blog/como-cobrar-teleconsulta-argentina" class="seo-card">
+              <span class="seo-badge">Profesionales</span>
+              <h4>Cómo Cobrar una Teleconsulta en Argentina</h4>
+            </a>
+            <a href="/blog/ia-clinica-que-puede-hacer-hoy" class="seo-card">
+              <span class="seo-badge">Innovación en Salud</span>
+              <h4>IA Clínica: Qué Puede Hacer Hoy un Modelo de Lenguaje en Medicina</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

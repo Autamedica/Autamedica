@@ -1,0 +1,206 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Diabetes Tipo 2: Lo Que Podés Hacer Antes de Necesitar Medicación',
+  author: 'Equipo AutaMedica',
+  role: 'Endocrinología',
+  date: '6 de abril, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Endocrinología',
+};
+---
+
+<Layout
+  title="Diabetes Tipo 2: Lo Que Podés Hacer Antes de Necesitar Medicación | AutaMedica"
+  description="Prediabetes y diabetes tipo 2 temprana: qué cambios de estilo de vida tienen evidencia real, cuánto pueden retrasar la medicación y cuándo la metformina es inevitable."
+  canonical="https://www.autamedica.com/blog/diabetes-tipo-2-antes-medicacion"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Un diagnóstico que no es sentencia</h2>
+            <p>
+              Te hicieron un análisis de rutina y tu glucemia en ayunas dio 112 mg/dL. Tu médico dijo "prediabetes" y vos escuchaste "diabetes". Es un miedo comprensible: la diabetes tipo 2 es la enfermedad crónica más prevalente en Argentina, afecta al 12.7% de la población adulta según la última Encuesta Nacional de Factores de Riesgo. Pero prediabetes no es diabetes. Es una ventana de oportunidad.
+            </p>
+            <p>
+              La prediabetes se define como una glucemia en ayunas entre 100 y 125 mg/dL, o una hemoglobina glicosilada (HbA1c) entre 5.7% y 6.4%. Es un estado donde el cuerpo ya tiene dificultad para manejar la glucosa, pero todavía no cruzó el umbral diagnóstico de diabetes (glucemia en ayunas de 126 mg/dL o más, o HbA1c de 6.5% o más).
+            </p>
+            <p>
+              Sin intervención, aproximadamente el 25% de las personas con prediabetes desarrollarán diabetes tipo 2 en los próximos 3 a 5 años. Con intervención, esa progresión puede reducirse hasta un 58%. La evidencia es sólida y viene de ensayos clínicos grandes como el Diabetes Prevention Program (DPP), que siguió a más de 3.000 personas durante décadas.
+            </p>
+          </section>
+
+          <section>
+            <h2>El peso corporal: el factor más modificable</h2>
+            <p>
+              No hay forma de suavizar esto: la relación entre exceso de peso y diabetes tipo 2 es una de las más consistentes en toda la medicina. El 80-90% de las personas con diabetes tipo 2 tienen sobrepeso u obesidad. Y la pérdida de peso es la intervención más efectiva para prevenir o retrasar la enfermedad.
+            </p>
+            <p>
+              El DPP demostró que una pérdida del 7% del peso corporal (para alguien de 90 kg, eso son 6.3 kg) reducía el riesgo de progresar a diabetes en un 58%. No estamos hablando de llegar al "peso ideal" ni de transformaciones dramáticas. Estamos hablando de una reducción modesta pero sostenida.
+            </p>
+            <p>
+              El problema es que "bajá de peso" es un consejo que suena simple pero es difícil de implementar. No porque la gente no quiera, sino porque el entorno alimentario, los horarios laborales, el estrés y los factores genéticos conspiran contra ello. Por eso la recomendación médica no es "bajá de peso" a secas, sino "trabajemos juntos en un plan realista y sostenible". Si tu médico no te ofrece eso, pedilo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Actividad física: la metformina natural</h2>
+            <p>
+              El ejercicio mejora la sensibilidad a la insulina por un mecanismo que no depende de la pérdida de peso. Cuando un músculo se contrae, capta glucosa de la sangre sin necesitar insulina. Este efecto dura entre 24 y 72 horas después del ejercicio, lo que explica por qué la actividad física regular tiene un impacto acumulativo.
+            </p>
+            <p>
+              Las guías recomiendan 150 minutos semanales de actividad aeróbica moderada (caminata rápida, bicicleta, natación) más 2-3 sesiones de ejercicio de resistencia (pesas, bandas elásticas, peso corporal). El ejercicio de resistencia es particularmente importante porque aumenta la masa muscular, que es el principal tejido consumidor de glucosa.
+            </p>
+            <p>
+              Si no hacés actividad física actualmente, no arranques con 150 minutos. Empezá con 10 minutos de caminata después de cada comida. Este hábito específico tiene evidencia directa: caminar 10-15 minutos después de comer reduce los picos de glucosa postprandial de manera significativa. Es accesible, no requiere equipamiento y se puede incorporar a cualquier rutina.
+            </p>
+            <p>
+              El sedentarismo prolongado (estar sentado más de 8 horas por día sin interrupciones) es un factor de riesgo independiente. Incluso si hacés ejercicio, estar sentado el resto del día no anula el efecto negativo. La recomendación es levantarse y moverse al menos 2-3 minutos cada hora de sedestación.
+            </p>
+          </section>
+
+          <section>
+            <h2>Alimentación: lo que funciona y lo que no</h2>
+            <p>
+              No existe una "dieta para diabéticos" única. Lo que existe es evidencia sobre patrones alimentarios que mejoran el control glucémico:
+            </p>
+            <ul>
+              <li><strong>Reducir carbohidratos refinados:</strong> azúcar agregada, harinas blancas, gaseosas, jugos de fruta, golosinas. Estos alimentos producen picos rápidos de glucosa que estresan el páncreas.</li>
+              <li><strong>Aumentar fibra:</strong> verduras, legumbres, frutas enteras (no jugos), cereales integrales. La fibra enlentece la absorción de glucosa y mejora la saciedad. La recomendación es al menos 25-30 gramos por día.</li>
+              <li><strong>No eliminar grupos de alimentos.</strong> Las dietas extremas (cetogénica estricta, ayuno prolongado) pueden funcionar a corto plazo pero tienen baja adherencia a largo plazo. Lo que no se puede sostener, no funciona.</li>
+              <li><strong>El orden de los alimentos importa:</strong> estudios recientes muestran que comer primero las verduras y las proteínas, y dejar los carbohidratos para el final de la comida, reduce el pico de glucosa postprandial hasta un 30-40%.</li>
+            </ul>
+            <p>
+              Un punto importante: la restricción calórica severa ("dieta de 800 calorías") puede producir remisión de la prediabetes a corto plazo, pero tiene alta tasa de rebote y riesgo de pérdida muscular. El enfoque basado en evidencia es una reducción calórica moderada (500-750 kcal/día menos que tu gasto) sostenida en el tiempo.
+            </p>
+          </section>
+
+          <section>
+            <h2>El sueño y el estrés: los factores olvidados</h2>
+            <p>
+              Dormir menos de 6 horas por noche aumenta la resistencia a la insulina. El mecanismo es hormonal: la privación de sueño eleva el cortisol (hormona del estrés) y reduce la sensibilidad a la insulina al día siguiente. Un estudio publicado en Diabetologia mostró que una semana de restricción de sueño (4 horas por noche) redujo la sensibilidad a la insulina un 25% en adultos sanos.
+            </p>
+            <p>
+              El estrés crónico tiene un efecto similar. El cortisol elevado de forma persistente promueve la acumulación de grasa visceral (la grasa alrededor de los órganos abdominales), que es metabólicamente activa y produce resistencia a la insulina. No es casual que la incidencia de diabetes tipo 2 haya aumentado en Argentina en los últimos años en paralelo con las crisis económicas.
+            </p>
+            <p>
+              Esto no significa que el estrés o el insomnio "causen" diabetes. Significa que son factores contribuyentes que se suman al riesgo genético y al estilo de vida. Si estás en prediabetes y dormís mal o vivís estresado, abordar eso es parte del tratamiento, no un agregado opcional.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo la medicación es necesaria</h2>
+            <p>
+              Los cambios de estilo de vida son la primera línea de tratamiento. Pero hay situaciones donde la metformina u otros fármacos entran en escena desde el inicio:
+            </p>
+            <ul>
+              <li>HbA1c al momento del diagnóstico de 7.5% o más: los cambios de estilo de vida solos probablemente no alcancen.</li>
+              <li>Prediabetes con factores de riesgo múltiples (IMC mayor a 35, historia familiar fuerte, antecedente de diabetes gestacional): las guías ADA permiten iniciar metformina preventivamente.</li>
+              <li>Después de 3-6 meses de cambios de estilo de vida sin mejoría en los valores de glucemia o HbA1c.</li>
+            </ul>
+            <p>
+              La metformina no es un fracaso personal. Es un medicamento con más de 60 años de uso clínico, excelente perfil de seguridad, bajo costo y evidencia sólida. Si tu médico te la indica, no es porque "no te esforzaste lo suficiente": es porque tu cuerpo necesita ayuda farmacológica además de los cambios de hábitos.
+            </p>
+            <p>
+              Lo que sí es un error es tomar medicación y no cambiar hábitos. La metformina no reemplaza la actividad física ni la alimentación adecuada. Son complementarios.
+            </p>
+          </section>
+
+          <section>
+            <h2>El monitoreo: tu herramienta más valiosa</h2>
+            <p>
+              Si estás en prediabetes o diabetes tipo 2 temprana, el seguimiento es fundamental. Tu médico debería pedirte una HbA1c cada 3-6 meses (refleja el control de los últimos 2-3 meses) y una glucemia en ayunas periódica.
+            </p>
+            <p>
+              Los sensores de monitoreo continuo de glucosa (como Freestyle Libre) están cada vez más accesibles en Argentina y permiten ver en tiempo real cómo responde tu cuerpo a lo que comés, a la actividad física y al estrés. No son necesarios para todos los pacientes, pero pueden ser una herramienta educativa valiosa para entender tu metabolismo particular.
+            </p>
+            <p>
+              La diabetes tipo 2 no aparece de un día para el otro. Se construye durante años de resistencia a la insulina progresiva. La ventana de prediabetes es tu oportunidad de intervenir antes de que el daño sea permanente. Consultá con tu endocrinólogo o clínico para diseñar un plan que se ajuste a tu realidad.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/diabetes-tipo-2-antes-medicacion" description="Prediabetes y diabetes tipo 2 temprana: qué cambios de estilo de vida tienen evidencia real y cuándo la medicación es necesaria." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de endocrinología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/glp1-argentina-ozempic-wegovy-mounjaro" class="seo-card">
+              <span class="seo-badge">Endocrinología</span>
+              <h4>GLP-1 en Argentina: Ozempic, Wegovy y Mounjaro</h4>
+            </a>
+            <a href="/blog/como-leer-analisis-sangre" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico</h4>
+            </a>
+            <a href="/blog/presion-arterial-normal-cuando-preocuparse" class="seo-card">
+              <span class="seo-badge">Cardiología</span>
+              <h4>Presión Arterial: Qué Es Normal y Cuándo Preocuparse</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
