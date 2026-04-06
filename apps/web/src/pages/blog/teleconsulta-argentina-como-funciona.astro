@@ -1,0 +1,237 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Teleconsulta en Argentina: Qué Podés Resolver Sin Salir de Tu Casa',
+  author: 'Equipo AutaMedica',
+  role: 'Telemedicina',
+  date: '6 de abril, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Telemedicina',
+};
+---
+
+<Layout
+  title="Teleconsulta en Argentina: Qué Podés Resolver Sin Salir de Tu Casa | AutaMedica"
+  description="Qué permite la ley de telemedicina argentina, qué se puede resolver por videollamada, qué no, y cómo funciona una teleconsulta de calidad."
+  canonical="https://www.autamedica.com/blog/teleconsulta-argentina-como-funciona"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El marco legal: qué dice la Ley 27.553</h2>
+            <p>
+              Desde 2020, la Ley 27.553 regula la telemedicina en Argentina. No fue una improvisación
+              pandémica: el proyecto venía discutiéndose desde 2018 y la emergencia sanitaria aceleró
+              su aprobación. Lo que establece es claro: las consultas médicas a distancia, mediante
+              plataformas digitales, tienen la misma validez legal que las presenciales.
+            </p>
+            <p>
+              Esto incluye la posibilidad de prescribir medicamentos con receta electrónica firmada
+              digitalmente, registrar la consulta en la historia clínica, y emitir certificados médicos.
+              El consentimiento informado del paciente es obligatorio, y la plataforma debe garantizar
+              la confidencialidad de los datos (Ley 25.326 de Protección de Datos Personales).
+            </p>
+            <p>
+              En la práctica, esto significa que no estás en una zona gris legal cuando hacés una
+              teleconsulta. El médico que te atiende por video tiene las mismas obligaciones y
+              responsabilidades que si estuvieras en su consultorio.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué se puede resolver por teleconsulta</h2>
+            <p>
+              La lista es más larga de lo que la mayoría imagina:
+            </p>
+            <ul>
+              <li><strong>Seguimiento de enfermedades crónicas:</strong> diabetes, hipertensión, hipotiroidismo, asma. El control periódico no siempre requiere examen físico: revisar estudios, ajustar medicación y evaluar síntomas se hace perfectamente por video.</li>
+              <li><strong>Salud mental:</strong> psiquiatría y psicología son las especialidades con mayor adopción de telemedicina. La evidencia muestra que la terapia por video tiene eficacia comparable a la presencial para depresión, ansiedad y trastornos del ánimo.</li>
+              <li><strong>Dermatología:</strong> muchas condiciones de piel se diagnostican visualmente. Con una cámara de buena resolución, un dermatólogo puede evaluar lesiones, erupciones, lunares y acné.</li>
+              <li><strong>Pediatría:</strong> consultas por cuadros virales comunes, control de desarrollo, orientación a padres. El pediatra guía al adulto para que examine al niño mientras observa por cámara.</li>
+              <li><strong>Segunda opinión médica:</strong> cuando ya tenés un diagnóstico y querés confirmarlo con otro profesional, la teleconsulta es ideal porque toda la información ya está documentada.</li>
+              <li><strong>Consultas de orientación:</strong> no sabés si tu síntoma justifica una guardia, querés saber a qué especialista ir, necesitás interpretar un resultado de laboratorio.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Qué no se puede (y no se debe) resolver a distancia</h2>
+            <p>
+              La telemedicina tiene límites claros y es importante conocerlos:
+            </p>
+            <ul>
+              <li><strong>Emergencias:</strong> dolor de pecho agudo, dificultad respiratoria severa, ACV, traumatismos. Llamá al 107 o andá a la guardia.</li>
+              <li><strong>Examen físico imprescindible:</strong> auscultación cardíaca o pulmonar, palpación abdominal, examen neurológico completo, examen ginecológico.</li>
+              <li><strong>Procedimientos:</strong> suturas, drenajes, biopsias, inyecciones. Todo lo que requiere manos sobre el paciente.</li>
+              <li><strong>Primera consulta con cuadro complejo:</strong> cuando el médico necesita examinar al paciente completo para formarse una impresión diagnóstica.</li>
+            </ul>
+            <p>
+              Un buen profesional sabe cuándo la teleconsulta alcanza y cuándo hay que derivar a
+              presencial. Esa capacidad de juicio es parte de la calidad de atención, no una limitación
+              de la tecnología.
+            </p>
+          </section>
+
+          <section>
+            <h2>La calidad de video importa más de lo que pensás</h2>
+            <p>
+              Hacer una consulta médica por Zoom o WhatsApp Video es como operar con un bisturí de
+              plástico: técnicamente es un bisturí, pero no está diseñado para eso. Las aplicaciones
+              de video de consumo priorizan ancho de banda bajo y conexiones masivas. La medicina
+              necesita otra cosa: resolución suficiente para ver una lesión de piel, audio claro para
+              auscultar a distancia, y estabilidad para que la conexión no se caiga en medio de un
+              momento clínico relevante.
+            </p>
+            <p>
+              Las plataformas de telemedicina serias optimizan la calidad de video para el contexto
+              clínico. Esto incluye priorizar resolución sobre velocidad cuando el médico necesita ver
+              detalle (modo dermatología), adaptar automáticamente la calidad según la conexión del
+              paciente (sin que se caiga la llamada), y garantizar cifrado de extremo a extremo para
+              la confidencialidad de la consulta.
+            </p>
+          </section>
+
+          <section>
+            <h2>GreenRoom: prepararse antes de que el médico te vea</h2>
+            <p>
+              Uno de los problemas más frustrantes de las videollamadas médicas es descubrir que tu
+              cámara no funciona, tu micrófono no capta bien, o tu conexión es inestable recién cuando
+              el médico ya te está esperando. Los minutos de consulta se van en resolver problemas
+              técnicos.
+            </p>
+            <p>
+              El concepto de GreenRoom viene del mundo del broadcasting: es el espacio donde te
+              preparás antes de salir al aire. Aplicado a telemedicina, es una sala previa donde
+              verificás tu cámara, micrófono, parlantes e iluminación antes de que empiece la consulta.
+              El sistema te muestra cómo te ve el médico, te avisa si hay problemas de audio, y te da
+              recomendaciones (sentate frente a una ventana, acercate al router, cerrá las apps que
+              consumen ancho de banda).
+            </p>
+            <p>
+              Parece menor, pero reduce drásticamente los problemas técnicos durante la consulta.
+              En AutaMedica, el GreenRoom es parte del flujo estándar: nadie entra a una videollamada
+              sin haber verificado que todo funciona.
+            </p>
+          </section>
+
+          <section>
+            <h2>Adaptación automática de calidad</h2>
+            <p>
+              Argentina tiene una diversidad enorme de conexiones a internet. Un paciente en Puerto
+              Madero tiene fibra óptica. Un paciente en un pueblo de Santiago del Estero tiene 3G
+              inestable. Si la plataforma no se adapta a esta realidad, excluye a quien más necesita
+              la telemedicina.
+            </p>
+            <p>
+              Los sistemas adaptativos monitorean la calidad de conexión en tiempo real y ajustan la
+              resolución de video, el bitrate de audio y la compresión para mantener la llamada estable.
+              Si la conexión se degrada, se prioriza el audio (que el médico te escuche) sobre el video.
+              Si se recupera, la calidad sube automáticamente.
+            </p>
+            <p>
+              Esto no es un lujo técnico: es accesibilidad. La telemedicina que solo funciona con
+              conexiones de primer mundo no es telemedicina. Es un consultorio privado con cámara.
+            </p>
+          </section>
+
+          <section>
+            <h2>El circuito completo de una teleconsulta de calidad</h2>
+            <p>
+              Cuando todo funciona como debe, el flujo es el siguiente: el paciente agenda su turno,
+              completa la anamnesis digital antes de la consulta (síntomas, antecedentes, medicación),
+              entra al GreenRoom para verificar su setup técnico, y se conecta con el médico que ya
+              leyó su información clínica.
+            </p>
+            <p>
+              La consulta arranca con contexto. El médico no pregunta desde cero: confirma, profundiza,
+              evalúa. Después de la consulta, el paciente recibe un resumen con diagnóstico, indicaciones
+              y recetas electrónicas si corresponde. Todo queda registrado en la historia clínica digital.
+            </p>
+            <p>
+              Es un circuito cerrado donde cada pieza se conecta con la siguiente. No es "una videollamada
+              con un médico". Es una consulta médica completa que usa la tecnología para ser más eficiente,
+              más accesible y mejor documentada que muchas consultas presenciales actuales.
+            </p>
+          </section>
+        </div>
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de telemedicina.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/guia-consulta-medica-online" class="seo-card">
+              <span class="seo-badge">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+            <a href="/blog/telemedicina-revolucion-salud" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>La Revolución de la Telemedicina</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="seo-card">
+              <span class="seo-badge">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

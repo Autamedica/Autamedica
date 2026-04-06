@@ -1,0 +1,222 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Anamnesis Digital: Qué Es y Por Qué Tu Médico la Necesita Antes de Verte',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina Interna',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Salud Digital',
+};
+---
+
+<Layout
+  title="Anamnesis Digital: Qué Es y Por Qué Tu Médico la Necesita Antes de Verte | AutaMedica"
+  description="Qué es la anamnesis médica, por qué importa y cómo la versión digital ahorra tiempo en cada consulta. De Hipócrates al formulario inteligente."
+  canonical="https://www.autamedica.com/blog/anamnesis-digital-que-es"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Una palabra que casi nadie conoce (pero te afecta cada vez que vas al médico)</h2>
+            <p>
+              Anamnesis. La mayoría de las personas nunca escucharon esta palabra, pero la experimentan
+              cada vez que pisan un consultorio. Es ese momento en el que el médico te pregunta qué te
+              pasa, desde cuándo, qué tomaste, qué enfermedades tuviste, qué operaciones te hicieron,
+              si alguien en tu familia tuvo algo similar. Esa conversación estructurada tiene nombre
+              técnico: anamnesis. Y es, probablemente, la herramienta diagnóstica más antigua de la
+              medicina.
+            </p>
+            <p>
+              Hipócrates ya la practicaba hace 2.400 años. No tenía tomógrafos ni laboratorios. Tenía
+              preguntas. Y con esas preguntas, bien formuladas, podía orientar un diagnóstico con una
+              precisión que todavía hoy asombra a los historiadores de la medicina. El principio no
+              cambió: antes de examinar, hay que escuchar.
+            </p>
+          </section>
+
+          <section>
+            <h2>El problema: diez minutos perdidos en cada consulta</h2>
+            <p>
+              En la práctica real argentina, un médico clínico tiene turnos de 15 a 20 minutos. De ese
+              tiempo, entre 8 y 12 minutos se van en recopilar información que el paciente ya dio antes
+              en otra consulta, en otro centro, con otro profesional. Nombre, edad, obra social, motivo
+              de consulta, antecedentes, medicación, alergias. Todo de cero, cada vez.
+            </p>
+            <p>
+              El paciente repite. El médico anota. Ambos pierden tiempo. Y lo peor: en esos diez minutos
+              apurados, se pierden datos. El paciente olvida mencionar un medicamento. El médico no llega
+              a preguntar por antecedentes familiares. La consulta termina con información incompleta, y
+              ninguno de los dos lo sabe hasta que aparece un problema.
+            </p>
+            <p>
+              Multiplicá esto por las 4 o 5 consultas anuales promedio de un adulto, y el desperdicio
+              es enorme. No solo en tiempo: en calidad de atención.
+            </p>
+          </section>
+
+          <section>
+            <h2>Del papel al formulario digital: qué cambió</h2>
+            <p>
+              La primera evolución fue pasar del cuaderno del médico al formulario impreso. La segunda,
+              pasar del formulario impreso al sistema informático del hospital. Pero ambas compartían un
+              problema: el paciente llenaba datos en el momento de la consulta, con el médico esperando,
+              en un contexto de ansiedad y apuro.
+            </p>
+            <p>
+              La anamnesis digital propone algo diferente: que el paciente complete su información
+              <strong>antes</strong> de la consulta, desde su casa, con tiempo, sin presión. Un formulario
+              guiado que va preguntando paso a paso: motivo de consulta, historia de la enfermedad actual,
+              antecedentes personales, familiares, medicación, alergias, hábitos.
+            </p>
+            <p>
+              La diferencia no es solo de formato. Es de profundidad. Cuando tenés tiempo para pensar,
+              recordás que tu abuela tuvo diabetes. Recordás el nombre exacto del medicamento que te cayó
+              mal. Recordás que la molestia empezó hace tres semanas, no "hace unos días". Esos detalles
+              cambian diagnósticos.
+            </p>
+          </section>
+
+          <section>
+            <h2>El marco semiológico detrás del formulario</h2>
+            <p>
+              Un formulario digital mal diseñado es tan inútil como un papel suelto. Lo que hace que una
+              anamnesis digital funcione es la estructura semiológica detrás. En Argentina, la referencia
+              es el tratado de Argente-Álvarez, que define cómo interrogar cada síntoma con precisión
+              clínica.
+            </p>
+            <p>
+              Cuando un sistema pregunta por un dolor, no alcanza con "dónde te duele". La semiología
+              exige caracterizar: aparición (súbita o gradual), localización exacta, intensidad (escala
+              del 1 al 10), carácter (punzante, opresivo, quemante), irradiación, factores atenuantes y
+              desencadenantes. Esto se conoce como el acrónimo ALICIADO, y es lo que diferencia una queja
+              vaga de un dato clínico útil.
+            </p>
+            <p>
+              Los formularios digitales bien construidos siguen esta lógica: hacen las preguntas correctas
+              en el orden correcto, adaptándose según las respuestas. Si decís que te duele el pecho, las
+              preguntas siguientes no son las mismas que si te duele la rodilla.
+            </p>
+          </section>
+
+          <section>
+            <h2>Accesibilidad: no todos tipean cómodo</h2>
+            <p>
+              Un obstáculo real de los formularios digitales es que no toda la población se siente cómoda
+              escribiendo en una pantalla. Adultos mayores, personas con baja alfabetización digital,
+              pacientes con limitaciones motrices. Ignorar esto es diseñar para el 30% y excluir al 70%.
+            </p>
+            <p>
+              Las plataformas que toman esto en serio ofrecen alternativas: modo wizard (una pregunta por
+              pantalla, con botones grandes y opciones predefinidas), entrada por voz (el paciente habla
+              y el sistema transcribe), y la posibilidad de que un familiar o cuidador complete el
+              formulario en nombre del paciente.
+            </p>
+            <p>
+              La tecnología no sirve si no es accesible. Y en salud, excluir al que más necesita atención
+              por una barrera de interfaz es inaceptable.
+            </p>
+          </section>
+
+          <section>
+            <h2>Lo que cambia para el médico (y para vos)</h2>
+            <p>
+              Cuando un médico abre la consulta y ya tiene la anamnesis completa en pantalla, la dinámica
+              cambia por completo. En vez de gastar diez minutos recopilando lo básico, arranca leyendo un
+              resumen estructurado: motivo de consulta, cronología del síntoma, antecedentes relevantes,
+              medicación actual, alertas automáticas (interacciones, alergias documentadas).
+            </p>
+            <p>
+              Los primeros minutos se usan para confirmar, profundizar y examinar. No para anotar.
+              El paciente siente que el médico "ya sabe" su caso. El médico siente que puede concentrarse
+              en lo que importa: evaluar, pensar, decidir.
+            </p>
+            <p>
+              Plataformas como AutaMedica implementan este modelo: el paciente completa la anamnesis antes
+              de la consulta, el sistema la estructura según criterios semiológicos, y el médico la recibe
+              lista para usar. No reemplaza la conversación clínica. La potencia.
+            </p>
+          </section>
+        </div>
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina interna.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/medico-datos-antes-consulta" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Qué Datos Necesita Tu Médico Antes de una Consulta</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+            <a href="/blog/historia-clinica-digital" class="seo-card">
+              <span class="seo-badge">Tecnología Médica</span>
+              <h4>Historia Clínica Digital</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
