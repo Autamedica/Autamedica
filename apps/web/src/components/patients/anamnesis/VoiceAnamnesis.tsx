@@ -50,6 +50,7 @@ interface LiveSessionConfig {
     name: string | null
     age: number | null
     completedSections: string[]
+    sectionData?: Record<string, Record<string, unknown>>
   }
   guidanceQuestions: string[]
   coverageGaps: string[]
@@ -67,6 +68,51 @@ interface LiveTokenResponse {
 
 const TOTAL_BLOCKS = 8
 const LIVE_COMPLETION_TAG = '[CHECKPOINT_COMPLETO]'
+
+function summarizeSectionData(sectionData?: Record<string, Record<string, unknown>>): string {
+  if (!sectionData || Object.keys(sectionData).length === 0) return ''
+  const lines: string[] = []
+  for (const [section, data] of Object.entries(sectionData)) {
+    const entries = Object.entries(data)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false)
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+    if (entries.length > 0) {
+      lines.push(`[${section}] ${entries.join('; ')}`)
+    }
+  }
+  return lines.join('\n')
+}
+
+function buildGuidedCheckpointInstruction(config: LiveSessionConfig): string {
+  const name = config.patient.name ?? 'paciente'
+  const age = config.patient.age ? `, ${config.patient.age} años` : ''
+  const completed = config.patient.completedSections.join(', ') || 'ninguna'
+  const existingData = summarizeSectionData(config.patient.sectionData)
+  const gaps = config.coverageGaps.length > 0
+    ? `\n\nÁreas con información insuficiente:\n- ${config.coverageGaps.join('\n- ')}`
+    : ''
+  const questions = config.guidanceQuestions.length > 0
+    ? `\n\nPreguntas específicas a explorar:\n- ${config.guidanceQuestions.join('\n- ')}`
+    : ''
+  const summary = config.coverageSummary
+    ? `\n\nResumen del análisis previo: ${config.coverageSummary}`
+    : ''
+
+  return `Sos un médico residente de AutaMedica realizando una refinación semiológica por voz.
+
+Paciente: ${name}${age}.
+Secciones ya completadas: ${completed}.
+${existingData ? `\nDatos ya registrados del formulario:\n${existingData}` : ''}
+${summary}${gaps}${questions}
+
+INSTRUCCIONES:
+- NO repitas preguntas que ya fueron respondidas en los datos del formulario.
+- Tu objetivo es REFINAR semiológicamente: profundizar en síntomas reportados, explorar características (localización, irradiación, intensidad, duración, factores agravantes/atenuantes, temporalidad).
+- Si el paciente reportó un síntoma, preguntá detalles clínicos: ¿desde cuándo? ¿cómo es el dolor? ¿qué lo mejora o empeora? ¿se asocia con algo?
+- Hacé UNA pregunta por turno, máximo ${config.maxModelTurns} preguntas.
+- Español argentino informal (vos, tuteo).
+- Sé breve y directo — esto es voz, no texto.`
+}
 
 function resample(buf: Float32Array, from: number, to: number): Float32Array {
   if (from === to) return buf
@@ -301,7 +347,7 @@ export function VoiceAnamnesis({
 
         const config = tokenData.sessionConfig
         const systemText = config.mode === 'guided_checkpoint'
-          ? `Sos un médico residente de AutaMedica haciendo aclaraciones por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. Hacé UNA pregunta por turno, máximo ${config.maxModelTurns} preguntas. Español argentino informal.`
+          ? buildGuidedCheckpointInstruction(config)
           : `Sos un médico residente de AutaMedica haciendo una anamnesis por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. Seguí 8 bloques: motivo, enfermedad actual, antecedentes, medicación, alergias, hábitos, revisión por sistemas, cierre. UNA pregunta por turno. Español argentino informal.`
 
         const session = await ai.live.connect({
@@ -749,6 +795,19 @@ export function VoiceAnamnesis({
   const startRelayMode = useCallback(async () => {
     setState('processing')
     try {
+      // Read guidance directly from prop to avoid stale ref race
+      const questionsForRelay = guidance?.questions?.map((q) => q.text) ?? guidanceQuestions.current
+      const gapsForRelay = guidance?.gaps ?? coverageGaps.current
+      const summaryForRelay = guidance?.coverageSummary ?? coverageSummary
+      logger.info('[Voice] startRelayMode — guidance context', {
+        hasGuidanceProp: !!guidance,
+        questionsFromProp: guidance?.questions?.length ?? 0,
+        questionsFromRef: guidanceQuestions.current.length,
+        questionsForRelay: questionsForRelay.length,
+        gapsForRelay: gapsForRelay.length,
+        checkpoint,
+      })
+
       const result = await fetchApi<RelayResponse>(
         '/api/patients/anamnesis/live-relay',
         {
@@ -757,9 +816,9 @@ export function VoiceAnamnesis({
             text: '',
             patientContext: true,
             checkpoint,
-            guidanceQuestions: guidanceQuestions.current,
-            coverageGaps: coverageGaps.current,
-            coverageSummary,
+            guidanceQuestions: questionsForRelay,
+            coverageGaps: gapsForRelay,
+            coverageSummary: summaryForRelay,
           },
         },
       )
@@ -776,7 +835,7 @@ export function VoiceAnamnesis({
       setError('No se pudo conectar con el asistente')
       setState('idle')
     }
-  }, [addEntry, checkpoint, coverageSummary, speakTTS])
+  }, [addEntry, checkpoint, coverageSummary, guidance, speakTTS])
 
   useEffect(() => {
     startRelayModeRef.current = startRelayMode
