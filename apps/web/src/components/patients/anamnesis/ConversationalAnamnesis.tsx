@@ -9,6 +9,7 @@ import { VoiceAnamnesis } from './VoiceAnamnesis'
 import { ConversationalField } from './ConversationalField'
 import { ClarificationStep } from './ClarificationStep'
 import { AnalysisResultOverlay } from './AnalysisResultOverlay'
+import { SmartBookingSuggestion } from './SmartBookingSuggestion'
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
 import type { AnamnesisSection } from '@autamedica/types'
 import type { GuidanceQuestion } from '@/lib/patients/services/anamnesis-guidance.service'
@@ -88,6 +89,7 @@ export function ConversationalAnamnesis({
     questions: GuidanceQuestion[]
   } | null>(null)
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null)
+  const [showSmartBooking, setShowSmartBooking] = useState(false)
 
   const answerCountRef = useRef(0)
   const hasDirtyAnswers = useRef(false)
@@ -238,7 +240,7 @@ export function ConversationalAnamnesis({
         return
       }
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>)
-      onComplete()
+      setShowSmartBooking(true)
     }
   }, [answerQuestion, shouldCheckpoint, isLast, persistCurrentState, triggerExtraction, updateAnamnesis, onComplete])
 
@@ -262,11 +264,12 @@ export function ConversationalAnamnesis({
     setShowClarification(false)
     if (pendingCheckpoint === 'final') {
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>)
-      onComplete()
+      setShowSmartBooking(true)
+      return
     }
     setPendingCheckpoint(null)
     dismissGuidance()
-  }, [addClarification, pendingCheckpoint, updateAnamnesis, dismissGuidance, onComplete])
+  }, [addClarification, pendingCheckpoint, updateAnamnesis, dismissGuidance])
 
   const handleClarificationSkip = useCallback(async () => {
     const hasCritical = guidance?.questions?.some(q => q.priority === 'critical')
@@ -274,11 +277,12 @@ export function ConversationalAnamnesis({
     setShowClarification(false)
     if (pendingCheckpoint === 'final') {
       await updateAnamnesis({ status: 'completed' } as Record<string, unknown>)
-      onComplete()
+      setShowSmartBooking(true)
+      return
     }
     setPendingCheckpoint(null)
     dismissGuidance()
-  }, [guidance, pendingCheckpoint, updateAnamnesis, dismissGuidance, onComplete])
+  }, [guidance, pendingCheckpoint, updateAnamnesis, dismissGuidance])
 
   // --- Compute progress across all phases ---
   const totalPhases = 1 + aiQuestions.length + totalVisible
@@ -529,6 +533,13 @@ export function ConversationalAnamnesis({
             />
           </div>
         </div>
+      )}
+
+      {showSmartBooking && (
+        <SmartBookingSuggestion
+          onClose={onComplete}
+          onBooked={onComplete}
+        />
       )}
     </div>
   )
