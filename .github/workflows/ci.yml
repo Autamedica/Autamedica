@@ -5,6 +5,7 @@ on:
     branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -77,7 +78,6 @@ jobs:
           if grep -rn "AIzaSy" --include="*.yml" --include="*.yaml" --include="*.ts" . | grep -v node_modules | grep -v '.env.example'; then FOUND=1; fi
           if grep -rn "sk_live\|sk_test" --include="*.ts" --include="*.yml" . | grep -v node_modules; then FOUND=1; fi
           if [ "$FOUND" = "1" ]; then echo "::error::Hardcoded secrets detected"; exit 1; fi
-
   unit-tests:
     name: Tests
     runs-on: ubuntu-latest
@@ -109,6 +109,7 @@ jobs:
         run: |
           psql "$SUPABASE_DB_URL" -f supabase/tests/rls_smoke.sql
           psql "$SUPABASE_DB_URL" -f supabase/tests/rls_core_tables.sql
+
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
@@ -130,4 +131,5 @@ jobs:
           echo "| RLS | ${{ needs.rls-tests.result }} (non-blocking) |" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" ]]; then
             exit 1
-          fi
+            fi
+
