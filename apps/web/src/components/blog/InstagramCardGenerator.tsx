@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 
 type CardFormat = 'stories' | 'feed';
 
@@ -51,51 +52,17 @@ function wrapText(
   return lines;
 }
 
-function generateQRMatrix(data: string): boolean[][] {
-  // Minimal QR-like pattern generator. This creates a visually recognizable
-  // grid pattern rather than a spec-compliant QR code, since we avoid external deps.
-  // The actual URL is printed below the code as fallback.
-  const size = 25;
-  const matrix: boolean[][] = Array.from({ length: size }, () =>
-    Array.from({ length: size }, () => false),
-  );
-
-  // Finder patterns (top-left, top-right, bottom-left)
-  const drawFinder = (row: number, col: number) => {
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        const isOuter = r === 0 || r === 6 || c === 0 || c === 6;
-        const isInner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-        matrix[row + r][col + c] = isOuter || isInner;
-      }
-    }
-  };
-  drawFinder(0, 0);
-  drawFinder(0, size - 7);
-  drawFinder(size - 7, 0);
-
-  // Timing patterns
-  for (let i = 8; i < size - 8; i++) {
-    matrix[6][i] = i % 2 === 0;
-    matrix[i][6] = i % 2 === 0;
-  }
-
-  // Data area — deterministic hash of input
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    hash = ((hash << 5) - hash + data.charCodeAt(i)) | 0;
-  }
-  for (let r = 9; r < size - 8; r++) {
-    for (let c = 9; c < size - 8; c++) {
-      hash = ((hash << 5) - hash + r * 31 + c * 17) | 0;
-      matrix[r][c] = (hash & 1) === 1;
-    }
-  }
-
-  return matrix;
+/** Generate a real QR code as a data URL using the qrcode library */
+async function generateQRDataUrl(url: string, size: number): Promise<string> {
+  return QRCode.toDataURL(url, {
+    width: size,
+    margin: 0,
+    color: { dark: '#171717', light: '#ffffff' },
+    errorCorrectionLevel: 'M',
+  });
 }
 
-function drawCard(
+async function drawCard(
   canvas: HTMLCanvasElement,
   format: CardFormat,
   props: Omit<InstagramCardGeneratorProps, 'onClose'>,
@@ -178,21 +145,16 @@ function drawCard(
     y += descSize * 1.5;
   }
 
-  // QR code
+  // Real QR code
   const qrSize = isStories ? 200 : 150;
   const qrY = isStories ? height - 520 : height - 340;
   const qrX = (width - qrSize) / 2;
 
-  const matrix = generateQRMatrix(props.url);
-  const cellSize = qrSize / matrix.length;
-  ctx.fillStyle = TEXT_PRIMARY;
-  for (let r = 0; r < matrix.length; r++) {
-    for (let c = 0; c < matrix[r].length; c++) {
-      if (matrix[r][c]) {
-        ctx.fillRect(qrX + c * cellSize, qrY + r * cellSize, cellSize, cellSize);
-      }
-    }
-  }
+  const qrDataUrl = await generateQRDataUrl(props.url, qrSize);
+  const qrImg = new Image();
+  qrImg.src = qrDataUrl;
+  await new Promise<void>((resolve) => { qrImg.onload = () => resolve(); });
+  ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
   // URL below QR
   const urlY = qrY + qrSize + 36;
@@ -225,7 +187,7 @@ export default function InstagramCardGenerator(props: InstagramCardGeneratorProp
 
   const redraw = useCallback(() => {
     if (!canvasRef.current) return;
-    drawCard(canvasRef.current, format, props);
+    void drawCard(canvasRef.current, format, props);
   }, [format, props]);
 
   useEffect(() => {
