@@ -12,6 +12,8 @@ export interface DoctorStats {
   todayCount: number;
   patientsCount: number;
   historyCount: number;
+  rankingPosition?: number | null;
+  unreadCommunityCount?: number;
   nextAppointment: {
     time: string;
     patientName: string;
@@ -61,7 +63,7 @@ async function resolvePatientName(patientId: string): Promise<string> {
  * Get doctor stats: active appointments, today's appointments, unique patients, medical records count.
  * Returns next upcoming appointment with patient name resolved.
  */
-export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
+export async function getDoctorStats(doctorId: string, userId?: string): Promise<DoctorStats> {
   const supabase = getBrowserSupabaseClient();
 
   const now = new Date();
@@ -69,23 +71,44 @@ export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
   const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
   const nowIso = now.toISOString();
 
-  const [apptResult, patientsResult, recordsResult] = await Promise.all([
+  const promises: Promise<unknown>[] = [
     supabase
       .from('appointments')
       .select('id, start_time, status, patient_id')
       .eq('doctor_id', doctorId)
       .gte('start_time', startOfDay)
-      .order('start_time', { ascending: true }),
+      .order('start_time', { ascending: true }) as unknown as Promise<unknown>,
     supabase
       .from('patient_care_team')
       .select('patient_id', { count: 'exact', head: true })
       .eq('doctor_id', doctorId)
-      .eq('active', true),
+      .eq('active', true) as unknown as Promise<unknown>,
     supabase
       .from('medical_records')
       .select('id', { count: 'exact', head: true })
-      .eq('doctor_id', doctorId),
-  ]);
+      .eq('doctor_id', doctorId) as unknown as Promise<unknown>,
+    supabase
+      .from('doctor_ranking_metrics')
+      .select('rank_position')
+      .eq('doctor_id', doctorId)
+      .maybeSingle() as unknown as Promise<unknown>
+  ];
+
+  if (userId) {
+    promises.push(
+      (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+        .from('portal_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('audience', 'doctor')
+        .eq('category', 'community')
+        .is('read_at', null) as unknown as Promise<unknown>
+    );
+  }
+
+  const results = await Promise.all(promises);
+  const [apptResult, patientsResult, recordsResult, rankingResult] = results;
+  const notificationsResult = userId ? results[4] : null;
 
   if (apptResult.error) {
     logger.error('[doctor-stats] getDoctorStats failed', apptResult.error)
@@ -107,6 +130,8 @@ export async function getDoctorStats(doctorId: string): Promise<DoctorStats> {
     todayCount: todayAppointments.length,
     patientsCount: patientsResult.count ?? 0,
     historyCount: recordsResult.count ?? 0,
+    rankingPosition: rankingResult?.data?.rank_position ?? null,
+    unreadCommunityCount: notificationsResult?.count ?? 0,
     nextAppointment: nextAppt
       ? {
           time: new Date(nextAppt.start_time).toLocaleTimeString('es-AR', {

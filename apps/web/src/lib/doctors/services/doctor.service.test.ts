@@ -15,8 +15,10 @@ import { doctorService } from './doctor.service'
 const DOCTOR_A = {
   id: 'doc-1',
   userId: 'u-1',
-  firstName: 'Ana',
-  lastName: 'Garcia',
+  profile: {
+    first_name: 'Ana',
+    last_name: 'Garcia',
+  },
   specialty: 'Cardiology',
   licenseNumber: 'LIC-001',
   active: true,
@@ -25,8 +27,10 @@ const DOCTOR_A = {
 const DOCTOR_B = {
   id: 'doc-2',
   userId: 'u-2',
-  firstName: 'Carlos',
-  lastName: 'Lopez',
+  profile: {
+    first_name: 'Carlos',
+    last_name: 'Lopez',
+  },
   specialty: 'Neurology',
   licenseNumber: 'LIC-002',
   active: true,

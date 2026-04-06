@@ -19,7 +19,7 @@ interface UseDoctorStatsReturn {
  *
  * Capas: Component → useDoctorStats (controller) → DoctorStatsService → Supabase
  */
-export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
+export function useDoctorStats(doctorId?: string, userId?: string): UseDoctorStatsReturn {
   const [stats, setStats] = useState<DoctorStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +33,7 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
     try {
       setLoading(true)
       setError(null)
-      const data = await getDoctorStats(doctorId)
+      const data = await getDoctorStats(doctorId, userId)
       setStats(data)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error loading stats'
@@ -42,7 +42,7 @@ export function useDoctorStats(doctorId?: string): UseDoctorStatsReturn {
     } finally {
       setLoading(false)
     }
-  }, [doctorId])
+  }, [doctorId, userId])
 
   useEffect(() => {
     if (!doctorId) return

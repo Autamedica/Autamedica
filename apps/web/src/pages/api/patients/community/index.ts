@@ -1,7 +1,7 @@
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers';
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 import { communityService } from '@/lib/patients/services/community.service';
-import { createAstroAdminClient } from '@/lib/supabase';
+import { createAstroServerClientFromRequest } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { APIRoute } from 'astro';
 
@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const overview = await communityService.getOverview(createAstroAdminClient(), context, {
+    const overview = await communityService.getOverview(createAstroServerClientFromRequest(request), context, {
       limit,
       sortBy: sortBy === 'popular' ? 'popular' : 'recent',
       groupId,

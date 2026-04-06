@@ -14,15 +14,12 @@ interface SidebarNavigationProps {
   items: SidebarItem[]
   activeSection: string | null
   isSidebarCollapsed: boolean
-  clinicalEnd: number
-  toolsEnd: number
   onItemClick: (id: string) => void
 }
 
-function getIconGroupStyles(index: number, clinicalEnd: number, toolsEnd: number, isActive: boolean): string {
+function getIconGroupStyles(index: number, isActive: boolean): string {
   if (!isActive) return ''
-  if (index <= clinicalEnd) return 'bg-sky-50 text-sky-600'
-  if (index <= toolsEnd) return 'bg-violet-50 text-violet-600'
+  if (index <= 2) return 'bg-sky-50 text-sky-600'
   return 'bg-gray-100 text-gray-600'
 }
 
@@ -30,16 +27,14 @@ export function SidebarNavigation({
   items,
   activeSection,
   isSidebarCollapsed,
-  clinicalEnd,
-  toolsEnd,
   onItemClick,
 }: SidebarNavigationProps): JSX.Element {
   return (
     <nav className="space-y-0.5 overflow-y-auto flex-1">
       {items.map(({ id, icon: Icon, label, count, badge, nextAppointmentTime }, index) => {
         const isActive = activeSection === id
-        const groupLabel = !isSidebarCollapsed && (index === 0 ? 'Clínica' : index === clinicalEnd + 1 ? 'Herramientas' : index === toolsEnd + 1 ? 'Plataforma' : null)
-        const iconGroupStyle = getIconGroupStyles(index, clinicalEnd, toolsEnd, isActive)
+        const groupLabel = !isSidebarCollapsed && (index === 0 ? 'Clínica' : index === 3 ? 'Plataforma' : null)
+        const iconGroupStyle = getIconGroupStyles(index, isActive)
         return (
           <div key={id}>
             {groupLabel && (
@@ -47,7 +42,7 @@ export function SidebarNavigation({
                 {groupLabel}
               </p>
             )}
-            {!isSidebarCollapsed && index > 0 && (index === clinicalEnd + 1 || index === toolsEnd + 1) && (
+            {!isSidebarCollapsed && index > 0 && index === 3 && (
               <div className="mx-2.5 mb-2.5 h-px bg-am-surface-200" />
             )}
             <button

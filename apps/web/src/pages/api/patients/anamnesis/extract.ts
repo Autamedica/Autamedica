@@ -84,6 +84,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const patientLabel = [profile?.first_name, profile?.last_name]
       .filter(Boolean).join(' ') || 'Paciente'
 
+    // For the FINAL checkpoint, chain the partial extraction as context.
+    // The AI sees what it already analyzed and can refine instead of starting from scratch.
+    let previousExtraction: Record<string, unknown> | undefined
+    if (checkpoint === 'final') {
+      const partialRecord = await anamnesisExtractionRepo.getByCheckpoint(anamnesis.id, 'partial')
+      if (partialRecord?.extraction_result) {
+        previousExtraction = partialRecord.extraction_result
+        logger.info('[anamnesis/extract] Chaining partial extraction into final', {
+          partialId: partialRecord.id,
+        })
+      }
+    }
+
     const extractionTimeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('extraction_timeout')), 60_000),
     )
@@ -101,6 +114,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       clarificationTurns: clarificationTurns as AnamnesisClarificationTurn[],
       checkpoint,
       modifiedSections,
+      previousExtraction,
     })])
 
     logger.info('[anamnesis/extract] Extraction completed', {

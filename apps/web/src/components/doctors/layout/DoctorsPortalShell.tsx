@@ -165,7 +165,7 @@ export function DoctorsPortalShell({
 
   const { user } = useAuthenticatedUser()
   const { doctor } = useCurrentDoctor(user?.id)
-  const { stats, loading: statsLoading } = useDoctorStats(doctor?.id)
+  const { stats, loading: statsLoading } = useDoctorStats(doctor?.id, user?.id)
 
   const userName = resolveDoctorDisplayName(doctor?.profile, user?.profile)
   const doctorSpecialty = doctor?.specialty || 'Especialidad pendiente'
@@ -174,6 +174,8 @@ export function DoctorsPortalShell({
   const patientsCount = stats?.patientsCount ?? undefined
   const appointmentsCount = stats?.todayCount || 0
   const historyCount = stats?.historyCount ?? undefined
+  const rankingPositionBadge = stats?.rankingPosition ? `#${stats.rankingPosition}` : undefined
+  const communityUnreadCount = stats?.unreadCommunityCount ?? 0
 
   const [signingOut, setSigningOut] = useState(false)
   
@@ -209,14 +211,12 @@ export function DoctorsPortalShell({
       { id: 'patients', icon: Users, label: 'Pacientes', count: patientsCount },
       { id: 'appointments', icon: Calendar, label: 'Citas', count: appointmentsCount, nextAppointmentTime: stats?.nextAppointment?.time ?? null },
       { id: 'records', icon: FileText, label: 'Historiales', count: historyCount },
-      { id: 'vitals', icon: Activity, label: 'Signos Vitales' },
-      { id: 'diagnosis', icon: Brain, label: 'Asistente Clínico' },
-      { id: 'ranking', icon: Star, label: 'Ranking' },
-      { id: 'community', icon: MessageCircle, label: 'Comunidad' },
+      { id: 'ranking', icon: Star, label: 'Ranking', badge: rankingPositionBadge },
+      { id: 'community', icon: MessageCircle, label: 'Comunidad', count: communityUnreadCount },
       { id: 'marketplace', icon: MapPin, label: 'Cobertura' },
       { id: 'settings', icon: Settings, label: 'Configuracion' },
     ],
-    [patientsCount, appointmentsCount, historyCount, stats?.nextAppointment?.time],
+    [patientsCount, appointmentsCount, historyCount, stats?.nextAppointment?.time, rankingPositionBadge, communityUnreadCount],
   )
 
   const tabs = useMemo<TabConfig[]>(
@@ -243,19 +243,14 @@ export function DoctorsPortalShell({
 
   const hasPatientWorkspace = Boolean(selectedPatientId) && !activeSection
 
-  const clinicalEnd = 3
-  const toolsEnd = 4
-
   const navItems = sidebarItems.map(({ id, icon: Icon, label, count, badge }, index) => {
     const isActive = activeSection === id
     const groupLabel =
       index === 0
         ? 'Clínica'
-        : index === clinicalEnd + 1
-          ? 'Herramientas'
-          : index === toolsEnd + 1
-            ? 'Plataforma'
-            : null
+        : index === 3
+          ? 'Plataforma'
+          : null
 
     return (
       <div key={id}>
@@ -452,12 +447,15 @@ export function DoctorsPortalShell({
               {!isSidebarCollapsed && (
                 <button
                   type="button"
-                  onClick={() => {
-                    resetWorkspace()
-                  }}
-                  className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-surface-500 transition-colors hover:text-am-doctor-600"
+                  onClick={() => resetWorkspace()}
+                  className="group flex items-center gap-2.5 text-left transition-all active:scale-95"
                 >
-                  Menú
+                  <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-am-doctor-500 to-am-primary-600 shadow-md shadow-am-doctor-500/20 transition-transform group-hover:scale-105">
+                    <Activity className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-sm font-bold tracking-tight text-am-surface-900 transition-colors group-hover:text-am-doctor-600">
+                    AutaMedica
+                  </span>
                 </button>
               )}
               {isSidebarCollapsed && (
@@ -485,8 +483,6 @@ export function DoctorsPortalShell({
               items={sidebarItems}
               activeSection={activeSection}
               isSidebarCollapsed={isSidebarCollapsed}
-              clinicalEnd={clinicalEnd}
-              toolsEnd={toolsEnd}
               onItemClick={handleSidebarItemClick}
             />
             <div className={`mt-auto space-y-2 ${isSidebarCollapsed ? '' : ''}`}>

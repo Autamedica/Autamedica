@@ -305,7 +305,7 @@ export const communityService = {
 
   async getDoctorFeed(
     supabase: Db,
-    _context: { userId: string; doctorId: string },
+    context: { userId: string; doctorId: string },
     options?: {
       limit?: number;
       sortBy?: CommunitySortBy;
@@ -315,9 +315,27 @@ export const communityService = {
     const sortBy = options?.sortBy ?? 'recent';
     const communityRepo = createCommunityAdapter(supabase);
 
-    return communityRepo.listPosts({ limit, sortBy }).catch((error) => {
+    try {
+      const posts = await communityRepo.listPosts({ limit, sortBy });
+      if (posts.length === 0) return [];
+
+      const postIds = posts.map(p => p.id);
+      const { data: comments } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+        .from('community_post_comments')
+        .select('post_id')
+        .in('post_id', postIds)
+        .eq('doctor_author_id', context.doctorId)
+        .is('deleted_at', null);
+
+      const commentedPostIds = new Set((comments || []).map((c: unknown) => (c as { post_id: string }).post_id));
+
+      return posts.map(post => ({
+        ...post,
+        viewer_has_commented: commentedPostIds.has(post.id)
+      }));
+    } catch (error) {
       logger.warn('[communityService] getDoctorFeed degraded to empty state', error);
       return [];
-    });
+    }
   },
 };

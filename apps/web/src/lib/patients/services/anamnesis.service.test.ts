@@ -168,7 +168,7 @@ describe('anamnesisService', () => {
         'anamnesis-1',
         expect.objectContaining({
           status: 'completed',
-          completed_at: expect.any(String),
+          completedAt: expect.any(String),
         }),
       )
       expect(result).toBeDefined()

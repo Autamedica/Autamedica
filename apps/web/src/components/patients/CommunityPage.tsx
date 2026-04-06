@@ -5,6 +5,7 @@ import { communityBrowserService } from '@/lib/patients/services/community.brows
 import type { CommunityComment, CommunityGroup, CommunityPost } from '@/lib/patients/types/community';
 import {
   ArrowLeft,
+  Bell,
   ChevronLeft,
   Eye,
   Heart,
@@ -48,6 +49,8 @@ function PostCard({
     try { await onReact(post.id); } finally { setReacting(false); }
   }
 
+  const isUpdated = post.updated_at && post.updated_at !== post.created_at;
+
   return (
     <article
       onClick={() => onOpen(post)}
@@ -65,7 +68,9 @@ function PostCard({
               <span className={`text-sm truncate ${post.is_anonymous ? 'font-medium text-stone-500 italic' : 'font-semibold text-stone-900'}`}>
                 {post.is_anonymous ? 'Anónimo' : post.author_display_name ?? 'Paciente'}
               </span>
-              <span className="text-xs text-stone-300">{timeAgo(post.created_at)}</span>
+              <span className="text-xs text-stone-300">
+                {isUpdated ? `Actualizado ${timeAgo(post.updated_at)}` : timeAgo(post.created_at)}
+              </span>
             </div>
 
             {post.title && (
@@ -429,14 +434,19 @@ export default function CommunityPage() {
             </a>
             <h1 className="text-lg font-bold">Comunidad</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => openComposer()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.97]"
-          >
-            <Plus className="h-4 w-4" />
-            Publicar
-          </button>
+          <div className="flex items-center gap-3">
+            <a href="/patients/notifications" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
+              <Bell className="h-5 w-5" />
+            </a>
+            <button
+              type="button"
+              onClick={() => openComposer()}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.97]"
+            >
+              <Plus className="h-4 w-4" />
+              Publicar
+            </button>
+          </div>
         </div>
       </header>
 

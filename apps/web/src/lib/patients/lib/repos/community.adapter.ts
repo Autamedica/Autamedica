@@ -124,6 +124,7 @@ function mapPost(row: DbRow): CommunityPost {
     comment_count: asNumber(row.comment_count),
     view_count: asNumber(row.view_count),
     created_at: asText(row.created_at) ?? new Date().toISOString(),
+    updated_at: asText(row.updated_at) ?? asText(row.created_at) ?? new Date().toISOString(),
     group:
       group && typeof group === 'object' && !Array.isArray(group)
         ? mapGroup(group as DbRow)
@@ -190,7 +191,7 @@ export function createCommunityAdapter(supabase: Db): ICommunityRepository {
       query =
         options.sortBy === 'popular'
           ? query.order('reaction_count', { ascending: false }).order('created_at', { ascending: false })
-          : query.order('created_at', { ascending: false });
+          : query.order('updated_at', { ascending: false });
 
       const { data, error } = await query;
 

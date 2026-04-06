@@ -33,6 +33,7 @@ export interface ExtractionServiceInput {
   clarificationTurns?: AnamnesisClarificationTurn[]
   checkpoint: ExtractionCheckpoint
   modifiedSections?: string[]
+  previousExtraction?: Record<string, unknown>
 }
 
 export interface NextQuestion {

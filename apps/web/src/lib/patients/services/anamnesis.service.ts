@@ -154,7 +154,7 @@ export const anamnesisService = {
     }
 
     if (typeof updates.completionPercentage === 'number') {
-      cleanUpdates.completionPercentage = updates.completionPercentage
+      cleanUpdates.completionPercentage = Math.max(0, Math.min(100, updates.completionPercentage))
     }
 
     if (updates.completedAt) {

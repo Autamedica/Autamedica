@@ -38,7 +38,9 @@ export interface CommunityPost {
   comment_count: number;
   view_count: number;
   created_at: string;
+  updated_at: string;
   group?: CommunityGroup | null;
+  viewer_has_commented?: boolean;
 }
 
 export interface CommunityOverview {

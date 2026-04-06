@@ -3,7 +3,7 @@
 import { ClientWrapper } from '@/components/doctors/ClientWrapper';
 import { doctorCommunityBrowserService } from '@/lib/doctors/services/community.browser';
 import type { CommunityComment, CommunityPost } from '@/lib/patients/types/community';
-import { ArrowLeft, ChevronLeft, Eye, Loader2, MessageCircle, Send } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ChevronLeft, Eye, Loader2, MessageCircle, Send } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function timeAgo(dateStr: string): string {
@@ -64,13 +64,20 @@ function DoctorPostCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-5 border-t border-stone-100/70 px-5 py-2.5 text-xs text-stone-400">
-        <span className="inline-flex items-center gap-1.5 font-medium">
-          <MessageCircle className="h-3.5 w-3.5" /> {post.comment_count}
-        </span>
-        <span className="inline-flex items-center gap-1.5 font-medium">
-          <Eye className="h-3.5 w-3.5" /> {post.view_count}
-        </span>
+      <div className="flex items-center justify-between border-t border-stone-100/70 px-5 py-2.5 text-xs text-stone-400">
+        <div className="flex items-center gap-5">
+          <span className="inline-flex items-center gap-1.5 font-medium">
+            <MessageCircle className="h-3.5 w-3.5" /> {post.comment_count}
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium">
+            <Eye className="h-3.5 w-3.5" /> {post.view_count}
+          </span>
+        </div>
+        {post.viewer_has_commented && (
+          <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-600">
+            <CheckCircle className="h-3.5 w-3.5" /> Ya respondiste
+          </span>
+        )}
       </div>
     </article>
   );
