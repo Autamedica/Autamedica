@@ -105,13 +105,15 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Run RLS tests
-        if: ${{ secrets.SUPABASE_DB_URL != '' }}
-        run: |
-          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_smoke.sql
-          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_core_tables.sql
-
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "Skipping RLS tests: SUPABASE_DB_URL not set"
+            exit 0
+          fi
+          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_smoke.sql
+          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_core_tables.sql
 
   ci-status:
     name: CI
