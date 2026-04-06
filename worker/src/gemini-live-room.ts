@@ -2,6 +2,10 @@
  * Durable Object: Proxies browser WebSocket ↔ Gemini Live API WebSocket.
  * API key stays server-side. Browser sends/receives audio via this proxy.
  *
+ * IMPORTANT: Uses the classic WebSocket model (NOT Hibernation API) because
+ * outbound WebSocket connections (to Gemini) are closed when the DO hibernates.
+ * The DO must stay awake for the entire session duration.
+ *
  * Flow:
  * 1. Browser connects to /gemini-live?sessionId=xxx
  * 2. DO connects outbound to Gemini Live API with server-side API key
@@ -278,25 +282,27 @@ export class GeminiLiveRoom implements DurableObject {
       )
     }
 
-    // Accept client WebSocket
+    // Accept client WebSocket — CLASSIC model (no hibernation)
+    // This keeps the DO alive for the entire session so the outbound WS to Gemini stays open.
     const pair = new WebSocketPair()
     const [client, server] = Object.values(pair)
-    server.accept()
+    server.accept() // Classic accept — NOT state.acceptWebSocket()
     this.clientWs = server
 
-    server.addEventListener('message', async (event) => {
-      await this.webSocketMessage(server, event.data)
+    // Client message handler (classic event listener)
+    server.addEventListener('message', (event) => {
+      void this.handleClientMessage(typeof event.data === 'string' ? event.data : '')
     })
-    server.addEventListener('close', async () => {
-      await this.webSocketClose()
+
+    server.addEventListener('close', () => {
+      this.cleanup()
     })
-    server.addEventListener('error', async () => {
-      await this.webSocketError()
+
+    server.addEventListener('error', () => {
+      this.cleanup()
     })
 
     // Connect to Gemini Live API (outbound WebSocket from DO)
-    // NOTE: Cloudflare Workers cannot use fetch() with wss:// URLs.
-    // Must use the standard WebSocket constructor for outbound WS connections.
     try {
       const geminiUrl = `${GEMINI_WS_BASE}?key=${apiKey}`
       let geminiWs: WebSocket
@@ -321,6 +327,7 @@ export class GeminiLiveRoom implements DurableObject {
       this.geminiWs.addEventListener('message', (event) => {
         if (this.clientWs) {
           try {
+            // Forward as-is: string or ArrayBuffer
             this.clientWs.send(event.data)
           } catch { /* client disconnected */ }
         }
@@ -352,9 +359,9 @@ export class GeminiLiveRoom implements DurableObject {
     return new Response(null, { status: 101, webSocket: client })
   }
 
-  // Client → Gemini relay
-  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    if (typeof message === 'string' && !this.setupSent) {
+  // Client → Gemini relay (classic model)
+  private async handleClientMessage(message: string): Promise<void> {
+    if (!this.setupSent) {
       const sessionConfig = parseSessionConfigMessage(message)
       if (sessionConfig) {
         this.initializeGeminiSession(sessionConfig)
@@ -373,7 +380,7 @@ export class GeminiLiveRoom implements DurableObject {
       this.initializeGeminiSession(DEFAULT_SESSION_CONFIG)
     }
 
-    // Forward to Gemini as-is (client sends realtimeInput audio chunks)
+    // Forward to Gemini as-is (client sends realtimeInput audio chunks or clientContent)
     if (this.geminiWs) {
       try {
         this.geminiWs.send(message)
@@ -382,14 +389,6 @@ export class GeminiLiveRoom implements DurableObject {
         this.cleanup()
       }
     }
-  }
-
-  async webSocketClose(): Promise<void> {
-    this.cleanup()
-  }
-
-  async webSocketError(): Promise<void> {
-    this.cleanup()
   }
 
   private sendToClient(msg: { type: string; data: unknown }): void {

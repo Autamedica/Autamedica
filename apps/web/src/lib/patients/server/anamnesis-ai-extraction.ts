@@ -467,6 +467,7 @@ export function buildAnamnesisExtractionRequest(input: {
   sections: AnamnesisSectionRecord[]
   clarificationTurns?: AnamnesisClarificationTurn[]
   modifiedSections?: string[]
+  previousExtraction?: Record<string, unknown>
 }): AnamnesisExtractionRequest {
   const bodySelections = extractBodySelectionsFromSections(input.sections)
   const isRevisit = input.modifiedSections && input.modifiedSections.length > 0
@@ -479,6 +480,16 @@ export function buildAnamnesisExtractionRequest(input: {
     'Mantener separados hechos, inferencias y datos faltantes.',
     'Usar bodySelections como evidencia anatomica estructurada cuando exista.',
   ]
+
+  if (input.previousExtraction) {
+    guardrails.push(
+      'CHECKPOINT FINAL CON EXTRACCION PARCIAL PREVIA: Se adjunta el resultado de la extraccion parcial (checkpoint 6) como previousExtraction.',
+      'Usa esta extraccion previa como base. Refina, corrige y completa — no empieces de cero.',
+      'Si la extraccion parcial ya identifico crossReferences, safetyFlags o qualityAlerts validos, mantenelos y complementalos con los datos nuevos.',
+      'Si datos nuevos contradicen la extraccion parcial, prioriza los datos nuevos y marca la discrepancia en dataIntegrity.contradictions.',
+      'Las secciones que no cambiaron desde el parcial deben mantener el mismo analisis salvo que nuevos datos obliguen a reconsiderar.',
+    )
+  }
 
   if (isRevisit) {
     guardrails.push(
@@ -502,6 +513,7 @@ export function buildAnamnesisExtractionRequest(input: {
     sourceSections: input.sections,
     bodySelections,
     clarificationTurns: input.clarificationTurns ?? [],
+    ...(input.previousExtraction ? { previousExtraction: input.previousExtraction } : {}),
   }
 }
 

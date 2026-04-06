@@ -58,8 +58,9 @@ interface LiveSessionConfig {
 }
 
 interface LiveTokenResponse {
-  wsUrl: string
-  sessionId: string
+  ephemeralToken?: string
+  wsUrl?: string
+  sessionId?: string
   model: string
   sessionConfig: LiveSessionConfig
 }
@@ -264,7 +265,7 @@ export function VoiceAnamnesis({
       return
     }
 
-    // Step 2: Get WS URL
+    // Step 2: Get token/URL
     try {
       // Read guidance directly from prop (not refs) to avoid stale data race
       const questionsForToken = guidance?.questions?.map((q) => q.text) ?? guidanceQuestions.current
@@ -283,7 +284,135 @@ export function VoiceAnamnesis({
           },
         },
       )
-      if (!tokenData?.wsUrl) throw new Error('No wsUrl')
+
+      // ── Ephemeral token path: SDK handles WebSocket lifecycle ──
+      if (tokenData?.ephemeralToken) {
+        logger.info('[Voice] Ephemeral token received, connecting via SDK', {
+          model: tokenData.model,
+          mode: tokenData.sessionConfig.mode,
+          tokenPrefix: tokenData.ephemeralToken.slice(0, 15) + '...',
+        })
+
+        const { GoogleGenAI, Modality } = await import('@google/genai')
+        const ai = new GoogleGenAI({
+          apiKey: tokenData.ephemeralToken,
+          httpOptions: { apiVersion: 'v1alpha' },
+        })
+
+        const config = tokenData.sessionConfig
+        const systemText = config.mode === 'guided_checkpoint'
+          ? `Sos un médico residente de AutaMedica haciendo aclaraciones por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. Hacé UNA pregunta por turno, máximo ${config.maxModelTurns} preguntas. Español argentino informal.`
+          : `Sos un médico residente de AutaMedica haciendo una anamnesis por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. Seguí 8 bloques: motivo, enfermedad actual, antecedentes, medicación, alergias, hábitos, revisión por sistemas, cierre. UNA pregunta por turno. Español argentino informal.`
+
+        const session = await ai.live.connect({
+          model: tokenData.model,
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } } },
+            systemInstruction: systemText,
+          },
+          callbacks: {
+            onopen() {
+              logger.info('[Voice] SDK Live session opened')
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onmessage(msg: any) {
+              if (msg.serverContent?.modelTurn?.parts) {
+                setModelTurns((prev) => prev + 1)
+                const parts = msg.serverContent?.modelTurn?.parts ?? []
+                for (const part of parts) {
+                  if (part.functionCall?.name === 'complete_checkpoint') {
+                    const summary = part.functionCall.args?.summary ?? 'Aclaración registrada.'
+                    setSummaryText(summary)
+                    stateRef.current = 'completed'
+                    cleanup()
+                    setState('completed')
+                    return
+                  }
+                  if (part.inlineData?.data) playAudio(base64ToFloat32(part.inlineData.data))
+                  if (part.text) {
+                    const normalizedText = part.text.replace(LIVE_COMPLETION_TAG, '').trim()
+                    if (normalizedText) addEntry('assistant', normalizedText)
+                    if (part.text.includes(LIVE_COMPLETION_TAG)) {
+                      setSummaryText(normalizedText)
+                      stateRef.current = 'completed'
+                      cleanup()
+                      setState('completed')
+                      return
+                    }
+                  }
+                }
+              }
+              if (msg.serverContent?.inputTranscription) {
+                addEntry('user', msg.serverContent.inputTranscription)
+              }
+            },
+            onerror(err: unknown) {
+              logger.error('[Voice] SDK Live session error', err)
+              setError('La sesión de voz se interrumpió.')
+              cleanup()
+              setState('idle')
+              setMode(null)
+              setStarted(false)
+            },
+            onclose() {
+              if (stateRef.current !== 'completed') {
+                setMode(null)
+                setStarted(false)
+                setState('idle')
+              }
+            },
+          },
+        })
+
+        // Store session for sending audio
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(wsRef as React.MutableRefObject<any>).current = session
+
+        // Step 4: Audio pipeline with SDK
+        const ctx = new AudioContext({ sampleRate: 16000 })
+        audioCtxRef.current = ctx
+        const source = ctx.createMediaStreamSource(stream)
+
+        await ctx.audioWorklet.addModule('/vad-processor.js')
+        const vadNode = new AudioWorkletNode(ctx, 'vad-processor')
+
+        vadNode.port.onmessage = (event: MessageEvent<{ rms: number; buffer: Float32Array }>) => {
+          const { rms, buffer: inputData } = event.data
+          const isSpeaking = rms > vadThreshold
+
+          if (isSpeaking) {
+            lastAudioTimeRef.current = Date.now()
+            if (!vadActiveRef.current) {
+              vadActiveRef.current = true
+              stopAllAudio()
+            }
+          } else if (vadActiveRef.current && Date.now() - lastAudioTimeRef.current > 1000) {
+            vadActiveRef.current = false
+          }
+
+          if ((isSpeaking || vadActiveRef.current) && (wsRef.current as unknown as { sendRealtimeInput?: unknown })?.sendRealtimeInput) {
+            const resampled = resample(inputData, ctx.sampleRate, 16000)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(wsRef.current as any).sendRealtimeInput({ audio: { data: float32ToBase64Pcm16(resampled), mimeType: 'audio/pcm' } })
+          }
+        }
+
+        source.connect(vadNode)
+        vadNode.connect(ctx.destination)
+
+        // Send initial text to trigger Gemini's first question
+        session.sendClientContent({ turns: [{ role: 'user', parts: [{ text: 'Hola, estoy listo.' }] }], turnComplete: true })
+
+        setMode('live')
+        setStarted(true)
+        setState('live')
+        logger.info('[Voice] SDK Gemini Live connected — ephemeral token')
+        return
+      }
+
+      // ── Legacy worker proxy path (fallback if no ephemeral token) ──
+      if (!tokenData?.wsUrl) throw new Error('No wsUrl and no ephemeralToken')
 
       // Step 3: Connect WebSocket
       const ws = new WebSocket(tokenData.wsUrl)
@@ -432,13 +561,20 @@ export function VoiceAnamnesis({
       // Step 5: Handle Gemini Live responses
       ws.onmessage = async (event) => {
         try {
-          let textData = event.data;
-          if (textData instanceof Blob) {
-            textData = await textData.text();
-          } else if (textData instanceof ArrayBuffer) {
-            textData = new TextDecoder().decode(textData);
+          // Gemini may send ArrayBuffer/Blob via Cloudflare DO relay — decode to string
+          let raw: string
+          if (typeof event.data === 'string') {
+            raw = event.data
+          } else if (event.data instanceof Blob) {
+            raw = await event.data.text()
+          } else if (event.data instanceof ArrayBuffer) {
+            raw = new TextDecoder().decode(event.data)
+          } else {
+            logger.warn('[Voice] Unknown WS message type', typeof event.data)
+            return
           }
-          const msg = JSON.parse(textData) as {
+
+          const msg = JSON.parse(raw) as {
             type?: string
             data?: unknown
             serverContent?: {
@@ -504,8 +640,27 @@ export function VoiceAnamnesis({
       setStarted(true)
       setState('live')
       logger.info('[Voice] Gemini Live connected — real-time audio active')
+
+      // Nudge: send a realtimeInput.text to trigger Gemini's first response.
+      // The system instruction tells Gemini to greet the patient and ask the first question.
+      // After this, the mic audio stream takes over via VAD → realtimeInput.audio.
+      ws.send(JSON.stringify({
+        realtimeInput: { text: 'Hola, estoy listo para la anamnesis.' },
+      }))
+      logger.info('[Voice] Sent initial text nudge to trigger Gemini first turn')
     } catch (err) {
-      logger.warn('[Voice] Live mode failed, falling back to relay', err)
+      // Capture detailed error info — SDK errors can be opaque
+      const errorDetail = {
+        message: err instanceof Error ? err.message : String(err),
+        name: err instanceof Error ? err.name : typeof err,
+        stack: err instanceof Error ? err.stack?.split('\n').slice(0, 4).join(' | ') : undefined,
+        raw: JSON.stringify(err, Object.getOwnPropertyNames(err instanceof Error ? err : {})),
+        cause: (err as { cause?: unknown })?.cause,
+        status: (err as { status?: number })?.status,
+        statusText: (err as { statusText?: string })?.statusText,
+      }
+      logger.error('[Voice] Live mode failed — detailed error:', errorDetail)
+      logger.warn('[Voice] Falling back to relay mode')
       // Stop mic tracks — relay will use STT instead
       stream.getTracks().forEach(t => t.stop())
       mediaStreamRef.current = null

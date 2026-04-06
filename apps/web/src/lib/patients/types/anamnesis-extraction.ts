@@ -157,6 +157,7 @@ export interface AnamnesisExtractionRequest {
   sourceSections: AnamnesisSectionRecord[]
   bodySelections: BodyMapSelection[]
   clarificationTurns?: AnamnesisClarificationTurn[]
+  previousExtraction?: Record<string, unknown>
 }
 
 export interface AnamnesisExtractionAlert {

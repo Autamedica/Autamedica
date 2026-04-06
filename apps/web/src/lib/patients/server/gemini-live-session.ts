@@ -7,6 +7,8 @@ export interface GeminiLivePatientContext {
   name: string | null;
   age: number | null;
   completedSections: string[];
+  /** Key clinical data from completed sections — feeds the system instruction */
+  sectionData: Record<string, Record<string, unknown>>;
 }
 
 export interface GeminiLiveSessionConfig {
@@ -93,13 +95,19 @@ async function fetchPatientContext(
   ]);
 
   let completedSections: string[] = [];
+  const sectionData: Record<string, Record<string, unknown>> = {};
   if (anamnesisRes.data?.id) {
     const { data: sections } = await admin
       .from('anamnesis_sections')
-      .select('section')
+      .select('section, data')
       .eq('anamnesis_id', anamnesisRes.data.id)
       .eq('completed', true);
     completedSections = sections?.map((section) => section.section) ?? [];
+    for (const section of sections ?? []) {
+      if (section.data && typeof section.data === 'object') {
+        sectionData[section.section] = section.data as Record<string, unknown>;
+      }
+    }
   }
 
   const firstName = profileRes.data?.first_name?.trim() ?? '';
@@ -109,6 +117,7 @@ async function fetchPatientContext(
     name: [firstName, lastName].filter(Boolean).join(' ') || null,
     age: calculateAge(patientRes.data?.birth_date),
     completedSections,
+    sectionData,
   };
 }
 

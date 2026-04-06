@@ -30,9 +30,20 @@ export const UpdateMetaSchema = z
     status: AnamnesisStatusEnum.optional(),
     privacy_accepted: z.boolean().optional(),
     terms_accepted: z.boolean().optional(),
+    privacyAccepted: z.boolean().optional(),
+    termsAccepted: z.boolean().optional(),
     completion_percentage: z.number().int().min(0).max(100).optional(),
+    completionPercentage: z.number().int().min(0).max(100).optional(),
     completed_at: z.string().datetime().optional(),
+    completedAt: z.string().datetime().optional(),
   })
+  .transform((obj) => ({
+    ...(obj.status && { status: obj.status }),
+    ...((obj.privacyAccepted ?? obj.privacy_accepted) != null && { privacyAccepted: obj.privacyAccepted ?? obj.privacy_accepted }),
+    ...((obj.termsAccepted ?? obj.terms_accepted) != null && { termsAccepted: obj.termsAccepted ?? obj.terms_accepted }),
+    ...((obj.completionPercentage ?? obj.completion_percentage) != null && { completionPercentage: obj.completionPercentage ?? obj.completion_percentage }),
+    ...((obj.completedAt ?? obj.completed_at) != null && { completedAt: obj.completedAt ?? obj.completed_at }),
+  }))
   .refine((obj) => Object.keys(obj).length > 0, {
     message: 'At least one field is required',
   })
