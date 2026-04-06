@@ -1,0 +1,216 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'No Sé a Qué Especialista Ir: Cómo Elegir el Médico Correcto Según Tus Síntomas',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina General',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Guía Práctica',
+};
+---
+
+<Layout
+  title="No Sé a Qué Especialista Ir: Cómo Elegir el Médico Correcto | AutaMedica"
+  description="Guía práctica para elegir el especialista correcto según tus síntomas. Cuándo ir al clínico, cuándo al especialista, y cómo el triage digital ayuda."
+  canonical="https://www.autamedica.com/blog/turno-medico-especialista-correcto"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El laberinto de las especialidades médicas</h2>
+            <p>
+              Te duele la cabeza hace una semana. Googleás "dolor de cabeza persistente" y en 30 segundos
+              ya leíste sobre migrañas, tumores cerebrales, sinusitis, hipertensión y estrés. Cada resultado
+              apunta a un especialista distinto: neurólogo, otorrino, cardiólogo, psiquiatra. Y vos seguís
+              sin saber a quién llamar.
+            </p>
+            <p>
+              No es tu culpa. El sistema de salud tiene más de 50 especialidades reconocidas en Argentina, y
+              la mayoría de las personas solo conocen un puñado. La consecuencia es predecible: o vas directo
+              a la guardia (que no es para eso), o sacás turno con el especialista equivocado (y perdés semanas),
+              o directamente no consultás (y el problema avanza).
+            </p>
+          </section>
+
+          <section>
+            <h2>Mapa básico: síntomas comunes y a quién consultar</h2>
+            <p>
+              Sin pretender reemplazar una evaluación médica, hay orientaciones generales que pueden ahorrarte
+              tiempo y frustración:
+            </p>
+            <ul>
+              <li><strong>Dolor de cabeza recurrente:</strong> empezá por un clínico. Si el patrón sugiere migraña o hay señales neurológicas (aura visual, hormigueo, debilidad), el clínico te deriva a neurología.</li>
+              <li><strong>Dolor de pecho:</strong> si es agudo y repentino, guardia. Si es crónico o aparece con el esfuerzo, cardiología. Si empeora al respirar hondo, puede ser neumonología o traumatología costal.</li>
+              <li><strong>Problemas de piel:</strong> dermatología directamente. Es una de las pocas especialidades donde la consulta directa suele ser lo más eficiente.</li>
+              <li><strong>Ansiedad, insomnio, cambios de ánimo:</strong> psiquiatría si necesitás evaluación farmacológica, psicología si buscás terapia. Un clínico puede orientarte si no sabés cuál necesitás.</li>
+              <li><strong>Dolor articular o muscular:</strong> traumatología si fue un golpe o esfuerzo. Reumatología si es dolor difuso, matutino o en múltiples articulaciones.</li>
+              <li><strong>Problemas digestivos crónicos:</strong> gastroenterología. Si es agudo con fiebre o vómitos persistentes, guardia.</li>
+            </ul>
+            <p>
+              La regla general: si no tenés claro a qué especialista ir, <strong>un buen clínico es siempre
+              el mejor punto de partida</strong>. Su trabajo es exactamente ese: evaluar el cuadro completo y
+              derivar al especialista correcto.
+            </p>
+          </section>
+
+          <section>
+            <h2>El clínico como puerta de entrada (y por qué funciona)</h2>
+            <p>
+              En muchos países, el sistema de salud está diseñado para que el médico generalista sea el primer
+              contacto obligatorio. En Argentina no es obligatorio, pero es la decisión más inteligente cuando
+              hay incertidumbre.
+            </p>
+            <p>
+              Un clínico ve el panorama completo. No se enfoca en un órgano o sistema: evalúa al paciente
+              entero. Esa visión global es la que permite conectar síntomas que parecen no tener relación.
+              El cansancio, la caída de pelo y el frío constante que te llevaban al endocrinólogo, al
+              dermatólogo y al reumatólogo por separado, un clínico los reconoce como hipotiroidismo en
+              una sola consulta.
+            </p>
+            <p>
+              El problema es que sacar turno con un clínico también puede demorar semanas. Y acá es donde
+              la tecnología puede ayudar.
+            </p>
+          </section>
+
+          <section>
+            <h2>Triage digital: lo que hace el hospital, pero antes de llegar</h2>
+            <p>
+              Cuando llegás a una guardia, lo primero que pasa es un triage: un profesional evalúa rápidamente
+              la gravedad de tu situación y te asigna prioridad. Es un sistema probado que salva vidas al
+              ordenar la demanda según urgencia real.
+            </p>
+            <p>
+              El triage digital aplica la misma lógica pero antes de que saques turno. Describís tus síntomas,
+              respondés preguntas estructuradas (cuándo empezó, qué tan intenso es, qué otros síntomas tenés),
+              y el sistema sugiere qué especialidad es la más adecuada para tu caso.
+            </p>
+            <p>
+              No diagnostica. No reemplaza al médico. Lo que hace es reducir la probabilidad de que termines
+              en el consultorio equivocado. Si describís dolor de cabeza con aura visual y antecedentes
+              familiares de migraña, te sugiere neurología. Si describís palpitaciones con ansiedad y problemas
+              de sueño, te sugiere empezar por un clínico o psiquiatría.
+            </p>
+          </section>
+
+          <section>
+            <h2>El costo de elegir mal (y no es solo plata)</h2>
+            <p>
+              Cada turno con el especialista equivocado representa semanas perdidas. Semanas en las que el
+              síntoma puede empeorar, la ansiedad crece, y el paciente se frustra con un sistema que parece
+              no funcionar. En algunos casos, la demora tiene consecuencias clínicas reales.
+            </p>
+            <p>
+              Un estudio del Hospital Garrahan mostró que el 35% de las derivaciones a especialistas
+              pediátricos eran evitables con una mejor evaluación inicial. El dato no es menor: cada turno
+              innecesario con un especialista es un turno que otro paciente, que sí lo necesitaba, no consiguió.
+            </p>
+            <p>
+              El sistema se satura no porque falten médicos (aunque también), sino porque la demanda no está
+              bien distribuida. Ordenar esa distribución es un problema de información, no de infraestructura.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo funciona la orientación inteligente de turnos</h2>
+            <p>
+              Algunas plataformas de telemedicina están incorporando sistemas de orientación que combinan
+              la información del paciente con algoritmos de triage validados clínicamente. El flujo es
+              sencillo: describís qué te pasa, el sistema hace preguntas de refinamiento, y te muestra
+              las especialidades recomendadas junto con profesionales disponibles.
+            </p>
+            <p>
+              En AutaMedica, este proceso está integrado con la anamnesis digital. La información que
+              cargás sobre tus síntomas no solo sirve para orientar la especialidad: llega al médico
+              antes de la consulta, para que no arranquen de cero. Es un circuito que optimiza los dos
+              lados: el paciente llega al médico correcto, y el médico recibe al paciente con contexto.
+            </p>
+            <p>
+              No es magia. Es información bien organizada al servicio de una decisión que, hasta ahora,
+              dependía del azar o de tener un familiar médico que te orientara.
+            </p>
+          </section>
+        </div>
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina general.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/anamnesis-digital-que-es" class="seo-card">
+              <span class="seo-badge">Salud Digital</span>
+              <h4>Anamnesis Digital: Qué Es y Por Qué Importa</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina</h4>
+            </a>
+            <a href="/blog/no-show-turnos-medicos" class="seo-card">
+              <span class="seo-badge">Sistema de Salud</span>
+              <h4>Por Qué el 30% de los Turnos Quedan Vacíos</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

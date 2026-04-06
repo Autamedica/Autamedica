@@ -1,0 +1,198 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Preguntas de Salud que No Te Animás a Hacer en el Consultorio',
+  author: 'Equipo AutaMedica',
+  role: 'Salud Comunitaria',
+  date: '6 de abril, 2026',
+  readTime: '5 min',
+  image: '/images/article_telemed.webp',
+  category: 'Bienestar',
+};
+---
+
+<Layout
+  title="Preguntas de Salud que No Te Animás a Hacer en el Consultorio | AutaMedica"
+  description="Estudios muestran que los pacientes olvidan hasta el 80% de lo que dice el médico. Las comunidades de salud moderadas ayudan a llenar ese vacío."
+  canonical="https://www.autamedica.com/blog/comunidad-pacientes-preguntas-salud"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Lo que no se pregunta no se trata</h2>
+            <p>
+              Un estudio publicado en el Journal of the Royal Society of Medicine encontró que los
+              pacientes olvidan entre el 40% y el 80% de la información que el médico les da durante
+              la consulta. Pero hay un dato menos citado y más preocupante: muchos pacientes nunca
+              llegan a hacer las preguntas que realmente les importan.
+            </p>
+            <p>
+              Las razones son variadas y profundamente humanas. Vergüenza ("no quiero que piense que
+              soy hipocondríaco"). Miedo ("si pregunto, capaz me dice algo grave"). Percepción de
+              apuro ("el doctor tiene mucha gente esperando, no lo quiero molestar"). Y en algunos
+              casos, simplemente no saben cómo formular la pregunta.
+            </p>
+            <p>
+              El resultado es un vacío de información que el paciente llena como puede: Google, grupos
+              de WhatsApp, consejos de conocidos. Fuentes que van desde lo útil hasta lo peligroso, sin
+              ningún filtro de calidad.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por qué los foros de salud tradicionales fallaron</h2>
+            <p>
+              Internet se llenó de foros de salud en los 2000. Yahoo Answers, foros de medicina,
+              comunidades de Facebook. El problema fue siempre el mismo: cualquiera podía responder
+              cualquier cosa. Una persona con buena intención pero sin formación médica podía
+              recomendar dejar una medicación, sugerir diagnósticos aterradores, o promover
+              tratamientos sin evidencia.
+            </p>
+            <p>
+              La intención era buena: conectar personas con experiencias similares. La ejecución fue
+              desastrosa. Sin moderación profesional, estos espacios generaron más ansiedad que alivio.
+              Y muchos profesionales de salud los condenaron en bloque, perdiendo de vista el problema
+              real que los pacientes estaban intentando resolver: necesitaban hablar sobre su salud
+              en un espacio sin la presión del consultorio.
+            </p>
+          </section>
+
+          <section>
+            <h2>Comunidades moderadas: el punto medio que funciona</h2>
+            <p>
+              Una comunidad de salud moderada no es un foro abierto ni un consultorio virtual. Es un
+              espacio intermedio donde los pacientes pueden compartir experiencias, hacer preguntas y
+              encontrar información confiable, bajo la supervisión de profesionales que garantizan
+              que el contenido no sea dañino.
+            </p>
+            <p>
+              Las reglas son claras: nadie diagnostica, nadie prescribe, nadie da consejos médicos
+              desde la experiencia personal como si fueran verdades universales. Lo que sí se permite
+              es compartir cómo se sintieron, qué preguntas le hicieron al médico, qué les ayudó a
+              entender mejor su condición. Experiencia, no prescripción.
+            </p>
+            <p>
+              Los moderadores profesionales revisan el contenido, eliminan desinformación, y cuando una
+              pregunta requiere respuesta médica, la derivan al canal correspondiente. No reemplazan al
+              médico: complementan lo que el médico no tiene tiempo de dar en 15 minutos de consulta.
+            </p>
+          </section>
+
+          <section>
+            <h2>El valor de la anonimidad en salud</h2>
+            <p>
+              Hay preguntas que las personas no hacen con su nombre real. Preguntas sobre salud sexual,
+              salud mental, consumo de sustancias, síntomas que generan vergüenza. En una comunidad
+              donde podés participar sin revelar tu identidad, esas preguntas aparecen. Y con ellas,
+              la posibilidad de que alguien las lea, se identifique y busque ayuda.
+            </p>
+            <p>
+              La anonimidad no es una debilidad del sistema: es una feature. Permite que la persona que
+              nunca consultaría por vergüenza encuentre información que la empuje a hacerlo. Y permite
+              que quien ya consultó pero no entendió la explicación del médico, encuentre una versión
+              en lenguaje cotidiano que la haga clic.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo se ve esto en la práctica</h2>
+            <p>
+              En plataformas como AutaMedica, la comunidad de pacientes funciona como un espacio moderado
+              donde conviven preguntas frecuentes, experiencias compartidas y contenido educativo validado.
+              Los pacientes pueden publicar preguntas de forma anónima, otros pacientes pueden responder
+              desde su experiencia, y el contenido es revisado para evitar desinformación.
+            </p>
+            <p>
+              No es un reemplazo de la consulta médica. Es lo que pasa entre consultas: ese espacio donde
+              las dudas crecen, la ansiedad se acumula, y la información confiable marca la diferencia
+              entre un paciente que maneja su salud activamente y uno que sufre en silencio hasta el
+              próximo turno.
+            </p>
+            <p>
+              La salud no ocurre solo en el consultorio. Ocurre todos los días, en cada decisión, en cada
+              duda que aparece a las 11 de la noche y no tiene a quién preguntarle. Las comunidades
+              moderadas existen para que esa duda no termine en un hilo de Reddit sin verificar.
+            </p>
+          </section>
+        </div>
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de salud comunitaria.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/ansiedad-cronica-herramientas" class="seo-card">
+              <span class="seo-badge">Salud Mental</span>
+              <h4>Ansiedad Crónica: Herramientas que Funcionan</h4>
+            </a>
+            <a href="/blog/medico-datos-antes-consulta" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Qué Datos Necesita Tu Médico</h4>
+            </a>
+            <a href="/blog/guia-consulta-medica-online" class="seo-card">
+              <span class="seo-badge">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
