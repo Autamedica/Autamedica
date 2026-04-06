@@ -317,24 +317,33 @@ export function VoiceAnamnesis({
 
       vadNode.port.onmessage = (event: MessageEvent<{ rms: number; buffer: Float32Array }>) => {
         const { rms, buffer: inputData } = event.data
-        
+
+        // ── Anti-feedback: suppress VAD while Gemini audio is playing ──
+        // Without this, the mic picks up speaker output → VAD fires →
+        // sends Gemini's own voice back → Gemini interprets as barge-in → stops talking.
+        const isGeminiPlaying = activeSourcesRef.current.size > 0
+        if (isGeminiPlaying) {
+          // Don't process mic input while assistant is speaking.
+          // User must wait for Gemini to finish, or the barge-in threshold
+          // needs to be much higher (handled below).
+          vadActiveRef.current = false
+          return
+        }
+
         const isSpeaking = rms > vadThreshold
 
         if (isSpeaking) {
           lastAudioTimeRef.current = Date.now()
           if (!vadActiveRef.current) {
             vadActiveRef.current = true
-            // Real barge-in: stop assistant when user speaks
             stopAllAudio()
           }
         } else if (vadActiveRef.current && Date.now() - lastAudioTimeRef.current > 1000) {
-          // Keep sending for 1 sec after voice stops
           vadActiveRef.current = false
         }
 
         if (wsRef.current?.readyState === WebSocket.OPEN && (isSpeaking || vadActiveRef.current)) {
           const resampled = resample(inputData, audioCtx.sampleRate, 16000)
-          // Updated Gemini Multimodal Live API schema for v1alpha/v1beta
           wsRef.current.send(JSON.stringify({
             realtimeInput: {
               audio: {
