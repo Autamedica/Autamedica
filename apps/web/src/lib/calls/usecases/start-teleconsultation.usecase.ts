@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
+import { logger } from '@autamedica/shared'
 import type { CallStatus } from '@autamedica/telemedicine'
 import type { ICallStartRepository } from '@/lib/calls/ports/call-start.port'
 import { resolveDoctorId, doctorHasPatientAccess } from '@/lib/doctors/lib/resolve-room'
 import { isTelemedicineCallWindowOpen } from '@/lib/calls/lib/telemedicine-window'
+import { appointmentBackendService } from '@/lib/doctors/services/appointment.backend'
 
 type Db = SupabaseClient<Database>
 
@@ -146,17 +148,29 @@ export async function startTeleconsultationUseCase(
     }
   }
 
-  const call = await actorCallRepo.createCall(doctorId, input.patientId, input.appointmentId)
-  const status = await ensureRinging(actorCallRepo, call.id, call.status)
+    const call = await actorCallRepo.createCall(doctorId, input.patientId, input.appointmentId)
+    const status = await ensureRinging(actorCallRepo, call.id, call.status)
 
-  return {
-    kind: 'ok',
-    data: {
-      callId: call.id,
-      roomId: call.room_id,
-      status,
-      appointmentId: call.appointment_id ?? input.appointmentId ?? null,
-      reused: false,
-    },
-  }
+    // Transition appointment to in_progress if applicable
+    if (input.appointmentId) {
+      try {
+        await appointmentBackendService.transitionStatus(input.appointmentId, 'in_progress');
+      } catch (err) {
+        logger.warn('[startTeleconsultation] Appointment transition to in_progress failed', {
+          appointmentId: input.appointmentId,
+          error: err,
+        });
+      }
+    }
+
+    return {
+      kind: 'ok',
+      data: {
+        callId: call.id,
+        roomId: call.room_id,
+        status,
+        appointmentId: call.appointment_id ?? input.appointmentId ?? null,
+        reused: false,
+      },
+    }
 }

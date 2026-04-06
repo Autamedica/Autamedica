@@ -320,7 +320,8 @@ export const communityService = {
       if (posts.length === 0) return [];
 
       const postIds = posts.map(p => p.id);
-      const { data: comments } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: comments } = await (supabase as any)
         .from('community_post_comments')
         .select('post_id')
         .in('post_id', postIds)

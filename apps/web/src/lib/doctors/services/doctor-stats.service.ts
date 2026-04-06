@@ -71,44 +71,45 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
   const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).toISOString();
   const nowIso = now.toISOString();
 
-  const promises: Promise<unknown>[] = [
+  const [
+    apptResult,
+    patientsResult,
+    recordsResult,
+    rankingResult,
+    notificationsResult
+  ] = await Promise.all([
     supabase
       .from('appointments')
       .select('id, start_time, status, patient_id')
       .eq('doctor_id', doctorId)
       .gte('start_time', startOfDay)
-      .order('start_time', { ascending: true }) as unknown as Promise<unknown>,
+      .order('start_time', { ascending: true }),
     supabase
       .from('patient_care_team')
       .select('patient_id', { count: 'exact', head: true })
       .eq('doctor_id', doctorId)
-      .eq('active', true) as unknown as Promise<unknown>,
+      .eq('active', true),
     supabase
       .from('medical_records')
       .select('id', { count: 'exact', head: true })
-      .eq('doctor_id', doctorId) as unknown as Promise<unknown>,
+      .eq('doctor_id', doctorId),
     supabase
       .from('doctor_ranking_metrics')
       .select('rank_position')
       .eq('doctor_id', doctorId)
-      .maybeSingle() as unknown as Promise<unknown>
-  ];
-
-  if (userId) {
-    promises.push(
-      (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
-        .from('portal_notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('audience', 'doctor')
-        .eq('category', 'community')
-        .is('read_at', null) as unknown as Promise<unknown>
-    );
-  }
-
-  const results = await Promise.all(promises);
-  const [apptResult, patientsResult, recordsResult, rankingResult] = results;
-  const notificationsResult = userId ? results[4] : null;
+      .maybeSingle(),
+    userId
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
+          .from('portal_notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('audience', 'doctor')
+          .eq('category', 'community')
+          .is('read_at', null)
+      : Promise.resolve({ data: null, error: null, count: 0 })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ]) as any[];
 
   if (apptResult.error) {
     logger.error('[doctor-stats] getDoctorStats failed', apptResult.error)

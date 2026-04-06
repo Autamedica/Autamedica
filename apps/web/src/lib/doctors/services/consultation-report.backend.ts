@@ -10,6 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { GenerateReportRequest } from '@autamedica/types';
 import { resolvePatientProfile } from '@/lib/doctors/lib/resolve-room';
 import { consultationReportRepo } from '../lib/repos/consultation-report';
+import { appointmentBackendService } from './appointment.backend';
 
 type AdminClient = SupabaseClient;
 
@@ -101,6 +102,17 @@ export async function generateAndSaveReport(
     visibility: 'care_team',
     date_recorded: new Date().toISOString(),
   });
+
+  if (appointmentId) {
+    try {
+      await appointmentBackendService.transitionStatus(appointmentId, 'completed');
+    } catch (err) {
+      logger.warn('[consultation-report] Appointment transition to completed failed', {
+        appointmentId,
+        error: err,
+      });
+    }
+  }
 
   logger.info('[consultation-report] Generated and saved', {
     roomId,
