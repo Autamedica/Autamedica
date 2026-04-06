@@ -266,15 +266,20 @@ export function VoiceAnamnesis({
 
     // Step 2: Get WS URL
     try {
+      // Read guidance directly from prop (not refs) to avoid stale data race
+      const questionsForToken = guidance?.questions?.map((q) => q.text) ?? guidanceQuestions.current
+      const gapsForToken = guidance?.gaps ?? coverageGaps.current
+      const summaryForToken = guidance?.coverageSummary ?? coverageSummary
+
       const tokenData = await fetchApi<LiveTokenResponse>(
         '/api/patients/anamnesis/live-token',
         {
           method: 'POST',
           body: {
             checkpoint,
-            guidanceQuestions: guidanceQuestions.current,
-            coverageGaps: coverageGaps.current,
-            coverageSummary,
+            guidanceQuestions: questionsForToken,
+            coverageGaps: gapsForToken,
+            coverageSummary: summaryForToken,
           },
         },
       )

@@ -265,16 +265,37 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
           </select>
         );
 
-      case 'multiselect':
+      case 'multiselect': {
+        const currentArr = Array.isArray(value) ? value as string[] : [];
+        const NONE_VALUES = ['ninguna', 'ninguno', 'none', 'no'];
+        const isNoneOption = (v: string) => NONE_VALUES.includes(v.toLowerCase());
+
+        const toggleOption = (optionValue: string) => {
+          const isNone = isNoneOption(optionValue);
+          const wasSelected = currentArr.includes(optionValue);
+
+          if (wasSelected) {
+            // Deselect
+            updateFieldValue(currentArr.filter(v => v !== optionValue));
+          } else if (isNone) {
+            // "Ninguna" selected → clear everything else, keep only "ninguna"
+            updateFieldValue([optionValue]);
+          } else {
+            // Normal option → remove any "ninguna" and add this one
+            updateFieldValue([...currentArr.filter(v => !isNoneOption(v)), optionValue]);
+          }
+        };
+
         return (
           <div className="grid gap-2.5 md:grid-cols-2">
             {field.options?.map((option) => {
-              const currentArr = Array.isArray(value) ? value as string[] : [];
               const isSelected = currentArr.includes(option.value);
               return (
-                <label
+                <button
+                  type="button"
                   key={option.value}
-                  className={`group flex cursor-pointer items-start gap-3.5 rounded-xl border bg-white px-4 py-3.5 shadow-sm transition-all active:scale-[0.98] ${
+                  onClick={() => toggleOption(option.value)}
+                  className={`group flex cursor-pointer items-start gap-3.5 rounded-xl border bg-white px-4 py-3.5 text-left shadow-sm transition-all active:scale-[0.98] ${
                     isSelected
                       ? 'border-stone-900 ring-1 ring-stone-900'
                       : 'border-stone-200 hover:border-stone-300 hover:shadow-md'
@@ -293,11 +314,12 @@ export function AnamnesisField({ field, value, onChange, onComplete }: Anamnesis
                       <p className="mt-0.5 text-[13px] leading-snug text-stone-400">{option.explanation}</p>
                     )}
                   </div>
-                </label>
+                </button>
               );
             })}
           </div>
         );
+      }
 
       case 'boolean':
         return (

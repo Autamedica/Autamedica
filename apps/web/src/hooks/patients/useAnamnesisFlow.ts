@@ -1,6 +1,6 @@
 'use client';
 
-import { getClientEnvOrDefault } from '@autamedica/shared';
+import { getClientEnvOrDefault, logger } from '@autamedica/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnamnesisSection } from '@autamedica/types';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
@@ -419,14 +419,15 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
 
   const handleVoiceDataExtracted = useCallback(async (data: VoiceExtractionPayload) => {
     const activeCheckpoint = pendingCheckpoint;
+    logger.info('[AnamnesisFlow] handleVoiceDataExtracted', {
+      checkpoint: activeCheckpoint,
+      hasGuidance: !!guidance,
+      transcriptLength: data.transcript.length,
+      hasExtractedFields: !!data.extractedFields,
+    });
 
-    if (activeCheckpoint && guidance) {
-      const turns = buildClarificationTurnsFromTranscript(data.transcript);
-      turns.forEach((turn) => addClarification(turn.question, turn.answer));
-      await finalizeCheckpoint(activeCheckpoint);
-      return;
-    }
-
+    // Always save extracted fields to sections — even during checkpoints.
+    // The voice conversation produces data that must be part of the anamnesis.
     if (data.extractedFields) {
       const sectionUpdates: Record<string, Record<string, string>> = {};
 
@@ -446,20 +447,45 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
         await updateSection(section as AnamnesisSection, fields).catch(() => {});
       }
 
-      await anamnesisPdfService.createVersion('Actualización por conversación de voz con IA').catch(() => {});
+      logger.info('[AnamnesisFlow] Voice fields saved to sections', {
+        sections: Object.keys(sectionUpdates),
+      });
     }
 
+    // Register clarification turns from the voice transcript
+    if (activeCheckpoint && guidance) {
+      const turns = buildClarificationTurnsFromTranscript(data.transcript);
+      logger.info('[AnamnesisFlow] Voice clarification turns registered', { turnsCount: turns.length });
+      turns.forEach((turn) => addClarification(turn.question, turn.answer));
+    }
+
+    // Finalize: advance the wizard (partial → next step, final → complete + PDF)
+    if (activeCheckpoint) {
+      await finalizeCheckpoint(activeCheckpoint);
+      return;
+    }
+
+    // No checkpoint: standalone voice update
     setShowVoiceChat(false);
     window.location.reload();
   }, [addClarification, finalizeCheckpoint, guidance, pendingCheckpoint, updateSection]);
 
   const handleVoiceSwitchToText = useCallback(() => {
+    logger.info('[AnamnesisFlow] handleVoiceSwitchToText — exiting voice, clearing checkpoint state');
     setShowVoiceChat(false);
+    setShowAnalyzing(false);
+    setAnalysisResult(null);
 
+    // If there's a pending checkpoint with guidance questions, offer text clarification.
+    // Otherwise, clear the checkpoint entirely and advance to prevent looping.
     if (pendingCheckpoint && guidance) {
       setShowClarification(true);
+    } else {
+      setPendingCheckpoint(null);
+      dismissGuidance();
+      advanceToNextStep();
     }
-  }, [guidance, pendingCheckpoint]);
+  }, [advanceToNextStep, dismissGuidance, guidance, pendingCheckpoint]);
 
   const selectUpdateSection = useCallback((stepId: string) => {
     const targetIndex = anamnesisSteps.findIndex((step) => step.id === stepId);
