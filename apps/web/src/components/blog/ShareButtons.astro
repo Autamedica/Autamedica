@@ -81,7 +81,8 @@ const encodedUrl = encodeURIComponent(url);
 ></div>
 
 <script>
-  document.addEventListener('astro:page-load', () => {
+  // Use both events: DOMContentLoaded for initial load, astro:page-load for View Transitions
+  function initInstagramCard() {
     const trigger = document.getElementById('ig-card-trigger');
     const root = document.getElementById('ig-card-root');
     if (!trigger || !root) return;
@@ -91,14 +92,15 @@ const encodedUrl = encodeURIComponent(url);
     trigger.addEventListener('click', async () => {
       if (mounted) return;
       mounted = true;
-      root.style.display = 'block';
 
-      const React = await import('react');
-      const { createRoot } = await import('react-dom/client');
-      const { default: InstagramCardGenerator } = await import('./InstagramCardGenerator');
+      try {
+        root.style.display = 'block';
 
-      const reactRoot = createRoot(root);
-      const render = () => {
+        const React = await import('react');
+        const { createRoot } = await import('react-dom/client');
+        const { default: InstagramCardGenerator } = await import('./InstagramCardGenerator');
+
+        const reactRoot = createRoot(root);
         reactRoot.render(
           React.createElement(InstagramCardGenerator, {
             title: root.dataset.title ?? '',
@@ -113,10 +115,19 @@ const encodedUrl = encodeURIComponent(url);
             },
           }),
         );
-      };
-      render();
+      } catch (err) {
+        console.error('[InstagramCard] Failed to load:', err);
+        root.style.display = 'none';
+        mounted = false;
+      }
     });
-  });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInstagramCard);
+  } else {
+    initInstagramCard();
+  }
+  document.addEventListener('astro:page-load', initInstagramCard);
 </script>
 
 <style>
