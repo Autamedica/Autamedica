@@ -102,10 +102,10 @@ jobs:
     timeout-minutes: 5
     needs: [build-gate]
     continue-on-error: true
-    if: ${{ vars.SUPABASE_DB_URL != '' || secrets.SUPABASE_DB_URL != '' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Run RLS tests
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
         run: |
           psql "$SUPABASE_DB_URL" -f supabase/tests/rls_smoke.sql
           psql "$SUPABASE_DB_URL" -f supabase/tests/rls_core_tables.sql
