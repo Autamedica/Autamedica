@@ -1,0 +1,11 @@
+---
+import PatientAppLayout from '@/layouts/PatientAppLayout.astro';
+import { ReproductiveHealthHub } from '@/components/patients/medical/ReproductiveHealthHub';
+
+const title = 'Salud Reproductiva | AutaMedica';
+const description = 'Información y acompañamiento en salud reproductiva';
+---
+
+<PatientAppLayout title={title} description={description} activeTab="historial">
+  <ReproductiveHealthHub client:visible />
+</PatientAppLayout>

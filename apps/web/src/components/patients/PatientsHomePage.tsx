@@ -11,10 +11,12 @@ import {
   ChevronRight,
   Clock,
   ClipboardList,
+  Heart,
   LogOut,
   MessageCircle,
   Pill,
   Settings,
+  Shield,
   User,
   Video,
 } from 'lucide-react'
@@ -173,7 +175,9 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     { key: 'turnos', label: 'Mis turnos', sub: 'Agendá citas', href: '/patients/appointments', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100 hover:border-violet-200' },
     { key: 'recetas', label: 'Mis Recetas', sub: 'Billetera digital', href: '/patients/medical-history', icon: Pill, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100 hover:border-emerald-200' },
     { key: 'anamnesis', label: 'Anamnesis', sub: 'Historia clínica', href: '/patients/anamnesis', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-200' },
-    { key: 'comunidad', label: 'Comunidad', sub: 'Otros pacientes', href: '/patients/community', icon: MessageCircle, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
+    { key: 'preventivo', label: 'Salud Preventiva', sub: 'Controles médicos', href: '/patients/preventive-health', icon: Shield, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100 hover:border-teal-200' },
+    { key: 'reproductiva', label: 'Salud Reproductiva', sub: 'IVE/ILE e información', href: '/patients/reproductive-health', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
+    { key: 'comunidad', label: 'Comunidad', sub: 'Otros pacientes', href: '/patients/community', icon: MessageCircle, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50', border: 'border-fuchsia-100 hover:border-fuchsia-200' },
   ] as const
 
   return (

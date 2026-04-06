@@ -567,10 +567,10 @@ export const CATEGORY_LABELS: Record<ScreeningCategory, string> = {
  * Colores por categoría
  */
 export const CATEGORY_COLORS: Record<ScreeningCategory, { bg: string; text: string; border: string }> = {
-  cardiovascular: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-300' },
-  cancer: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-300' },
-  metabolic: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-300' },
+  cardiovascular: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  cancer: { bg: 'bg-am-primary-50', text: 'text-am-primary-700', border: 'border-am-primary-200' },
+  metabolic: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
   bone: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
-  preventive: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-300' },
-  other: { bg: 'bg-stone-50', text: 'text-stone-700', border: 'border-stone-300' }
+  preventive: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  other: { bg: 'bg-[var(--au-surface)]', text: 'text-[var(--au-text-secondary)]', border: 'border-[var(--au-border)]' }
 };

@@ -22,7 +22,7 @@ interface PreventiveScreeningsProps {
 const statusConfig = {
   overdue: {
     label: 'Atrasado',
-    color: 'bg-red-50 border-red-300',
+    color: 'bg-red-50 border-red-200',
     textColor: 'text-red-900',
     icon: AlertCircle,
     iconColor: 'text-red-600',
@@ -36,10 +36,10 @@ const statusConfig = {
   },
   up_to_date: {
     label: 'Al día',
-    color: 'bg-green-50 border-green-300',
-    textColor: 'text-green-900',
+    color: 'bg-emerald-50 border-emerald-200',
+    textColor: 'text-emerald-900',
     icon: CheckCircle,
-    iconColor: 'text-green-700',
+    iconColor: 'text-emerald-700',
   },
 };
 
@@ -109,7 +109,7 @@ export function PreventiveScreenings({ screenings, locale }: PreventiveScreening
                       ? 'bg-red-200 text-red-900'
                       : screening.priority === 'medium'
                       ? 'bg-amber-200 text-amber-900'
-                      : 'bg-stone-200 text-stone-900'
+                      : 'bg-am-surface-200 text-[var(--au-text-primary)]'
                   }`}
                 >
                   {priorityConfig[screening.priority]}

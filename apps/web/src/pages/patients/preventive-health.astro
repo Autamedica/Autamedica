@@ -1,0 +1,11 @@
+---
+import PatientAppLayout from '@/layouts/PatientAppLayout.astro';
+import PreventiveHealthPage from '@/components/patients/preventive/PreventiveHealthPage';
+
+const title = 'Salud Preventiva | AutaMedica';
+const description = 'Tus screenings preventivos y recomendaciones médicas';
+---
+
+<PatientAppLayout title={title} description={description} activeTab="historial">
+  <PreventiveHealthPage client:visible />
+</PatientAppLayout>
