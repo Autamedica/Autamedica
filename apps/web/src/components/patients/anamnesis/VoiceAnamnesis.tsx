@@ -346,28 +346,64 @@ export function VoiceAnamnesis({
         }
       }
       
-      // Audio processing chain: clean signal before VAD
-      // 1. High-pass filter — eliminates room rumble (<85Hz: AC, traffic, fans)
+      // ── Audio processing chain: clean signal before VAD ──
+      // Goal: only human voice (300Hz–3.5kHz) reaches Gemini.
+      // Noise (keyboard, fan, traffic, clicks) must NOT trigger barge-in.
+
+      // 1. High-pass — cut everything below 200Hz (room rumble, AC, bass, traffic)
       const highpass = audioCtx.createBiquadFilter()
       highpass.type = 'highpass'
-      highpass.frequency.value = 85
+      highpass.frequency.value = 200
       highpass.Q.value = 0.7
 
-      // 2. Compressor — normalizes inconsistent mic levels and peaks
+      // 2. Low-pass — cut everything above 4kHz (hiss, clicks, high-freq noise)
+      const lowpass = audioCtx.createBiquadFilter()
+      lowpass.type = 'lowpass'
+      lowpass.frequency.value = 4000
+      lowpass.Q.value = 0.7
+
+      // 3. EQ Band 1: Low shelf — attenuate 300Hz area (-6dB)
+      //    Reduces remaining low-mid rumble that passes the highpass
+      const lowShelf = audioCtx.createBiquadFilter()
+      lowShelf.type = 'lowshelf'
+      lowShelf.frequency.value = 300
+      lowShelf.gain.value = -6
+
+      // 4. EQ Band 2: Mid peaking — boost voice presence at 1.5kHz (+3dB)
+      //    Human voice fundamental + first harmonics live here
+      const midPeak = audioCtx.createBiquadFilter()
+      midPeak.type = 'peaking'
+      midPeak.frequency.value = 1500
+      midPeak.Q.value = 1.0
+      midPeak.gain.value = 3
+
+      // 5. EQ Band 3: High shelf — attenuate above 3kHz (-4dB)
+      //    Reduces keyboard clicks, mouse sounds, paper rustling
+      const highShelf = audioCtx.createBiquadFilter()
+      highShelf.type = 'highshelf'
+      highShelf.frequency.value = 3000
+      highShelf.gain.value = -4
+
+      // 6. Compressor — tames peaks (cough, sudden noises) so they don't
+      //    spike above the VAD threshold. Preserves soft speech.
       const compressor = audioCtx.createDynamicsCompressor()
-      compressor.threshold.value = -30
-      compressor.knee.value = 20
-      compressor.ratio.value = 4
-      compressor.attack.value = 0.003
-      compressor.release.value = 0.15
+      compressor.threshold.value = -25
+      compressor.knee.value = 15
+      compressor.ratio.value = 6
+      compressor.attack.value = 0.002
+      compressor.release.value = 0.2
 
-      // 3. Makeup gain — compensate compression
+      // 7. Makeup gain — compensate the attenuation from EQ + compression
       const makeupGain = audioCtx.createGain()
-      makeupGain.gain.value = 1.4
+      makeupGain.gain.value = 1.8
 
-      // Chain: source → highpass → compressor → gain → VAD → destination
+      // Chain: source → highpass → lowpass → EQ(3 bands) → compressor → gain → VAD
       source.connect(highpass)
-      highpass.connect(compressor)
+      highpass.connect(lowpass)
+      lowpass.connect(lowShelf)
+      lowShelf.connect(midPeak)
+      midPeak.connect(highShelf)
+      highShelf.connect(compressor)
       compressor.connect(makeupGain)
       makeupGain.connect(vadNode)
       vadNode.connect(audioCtx.destination)
