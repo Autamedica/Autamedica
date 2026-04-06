@@ -17,7 +17,7 @@ pnpm seo:validate:assets || exit 1
 
 # 2. Unit tests — atrapa tests rotos antes de que lleguen a CI
 echo "🧪 Ejecutando tests unitarios..."
-pnpm test:unit --run || {
+pnpm test:unit -- --run || {
   echo "❌ Tests unitarios fallaron. Corregir antes de push."
   exit 1
 }
