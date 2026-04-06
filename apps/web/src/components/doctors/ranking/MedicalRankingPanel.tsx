@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, ShieldAlert, MessageCircle, Heart, Activity } from 'lucide-react'
+import { Award, Star, TrendingUp, Users, Clock, ThumbsUp, FileText, Medal, Crown, Trophy, ShieldAlert, MessageCircle, Heart, Activity, type LucideIcon } from 'lucide-react'
 import { fetchApi, ApiError } from '@/lib/api-client'
 import { CommunityQuestionsWidget } from './CommunityQuestionsWidget'
 
