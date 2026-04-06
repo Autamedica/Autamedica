@@ -94,6 +94,8 @@ export interface ScheduleSlot {
   duration_minutes: number;
   location: string | null;
   is_available: boolean;
+  /** Slot permite overbooking por alta probabilidad de no-show en cita existente */
+  overbook_eligible: boolean;
 }
 
 export interface SlotQuery {
@@ -247,7 +249,7 @@ export interface SchedulingConfig {
 export const DEFAULT_SCHEDULING_CONFIG: SchedulingConfig = {
   reminder_hours_before: [24, 2],
   waitlist_offer_expiry_hours: 4,
-  noshow_overbooking_threshold: 0.4,
+  noshow_overbooking_threshold: 0.3,
   max_advance_booking_days: 60,
   min_advance_booking_minutes: 60,
 };
