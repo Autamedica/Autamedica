@@ -1,0 +1,249 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Te Avisamos Si Se Libera un Turno: Cómo Funciona la Lista de Espera Inteligente',
+  author: 'Equipo AutaMedica',
+  role: 'Gestión de Turnos',
+  date: '6 de abril, 2026',
+  readTime: '5 min',
+  image: '/images/article_telemed.webp',
+  category: 'Guía Práctica',
+};
+---
+
+<Layout
+  title="Lista de Espera Inteligente: Cómo Funciona | AutaMedica"
+  description="¿No hay turnos disponibles? La lista de espera inteligente te avisa automáticamente cuando se libera un lugar. Entendé cómo funciona el modelo de oferta y expiración."
+  canonical="https://www.autamedica.com/blog/lista-espera-inteligente"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La Frustración de "No Hay Turnos Disponibles"</h2>
+            <p>
+              Entrás al sistema de turnos de tu obra social. Buscás un cardiólogo. La primera fecha disponible
+              es dentro de 47 días. Probás con otro profesional: 52 días. Llamás por teléfono: "No hay
+              disponibilidad, señora, llame la semana que viene". Y la semana que viene pasa lo mismo.
+            </p>
+            <p>
+              Este escenario no es exageración. En el sistema de salud argentino, la demora promedio para
+              conseguir turno con un especialista oscila entre 3 y 8 semanas dependiendo de la especialidad
+              y la cobertura. Dermatología, endocrinología, reumatología y neurología suelen ser las más
+              saturadas. Y mientras tanto, tu problema de salud sigue ahí.
+            </p>
+            <p>
+              Lo paradójico es que todos los días se cancelan turnos. Pacientes que mejoraron, que se olvidaron,
+              que tuvieron un imprevisto. Esos espacios se liberan, pero nadie se entera a tiempo. El turno
+              queda vacío. El médico pierde productividad. Y vos seguís esperando.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Modelo Tradicional: Llamar y Esperar</h2>
+            <p>
+              La lista de espera tradicional funciona así: dejás tu nombre y tu teléfono en la secretaría del
+              consultorio. Si alguien cancela, la secretaria revisa una lista en papel o una planilla de Excel
+              y empieza a llamar. Primero al que está arriba de la lista. Si no contesta, al segundo. Si tampoco,
+              al tercero. A veces llaman a las 9 de la mañana para un turno a las 10. A veces no llaman nunca.
+            </p>
+            <p>
+              El problema es evidente: es un sistema manual, lento y poco confiable. Depende de que una persona
+              recuerde revisar la lista, tenga tiempo de llamar, y encuentre a alguien disponible en el momento
+              justo. En la práctica, muchos turnos cancelados nunca se reasignan. Se pierden.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Lista de Espera Inteligente: Cómo Funciona</h2>
+            <p>
+              Una lista de espera inteligente automatiza todo el proceso. Cuando no hay turnos disponibles con
+              el profesional que necesitás, te sumás a la lista. No es una lista pasiva: es un sistema activo
+              que monitorea cancelaciones en tiempo real.
+            </p>
+            <p>
+              El momento en que un paciente cancela su turno — ya sea desde la app, por teléfono o porque no
+              se presentó — el sistema detecta el espacio libre y ejecuta una secuencia automática:
+            </p>
+            <ul>
+              <li><strong>Identifica candidatos:</strong> revisa quiénes están en la lista de espera para ese profesional, en ese horario compatible</li>
+              <li><strong>Prioriza:</strong> ordena según criterios objetivos (urgencia médica, tiempo en espera, preferencias horarias)</li>
+              <li><strong>Notifica:</strong> envía una notificación inmediata al primer candidato elegible</li>
+              <li><strong>Espera confirmación:</strong> le da un tiempo limitado (por ejemplo, 15 minutos) para aceptar o rechazar</li>
+              <li><strong>Escala:</strong> si no responde o rechaza, ofrece el turno al siguiente en la lista</li>
+            </ul>
+            <p>
+              Todo esto ocurre en minutos, sin intervención humana. El turno cancelado a las 14:07 puede estar
+              reasignado a las 14:12.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Modelo de Oferta y Expiración</h2>
+            <p>
+              Un concepto clave de este sistema es que la oferta de turno tiene una ventana de tiempo. No es
+              "te aviso y esperamos indefinidamente a que contestes". Es: "se liberó un turno para mañana a
+              las 10, tenés 15 minutos para confirmarlo".
+            </p>
+            <p>
+              ¿Por qué el límite de tiempo? Porque si el primer candidato tarda dos horas en responder, el
+              turno se desperdicia igual. La ventana corta garantiza que el espacio se llene rápido o pase
+              al siguiente candidato sin demora.
+            </p>
+            <p>
+              Si no respondés dentro del tiempo, no perdés tu lugar en la lista. Simplemente se te ofrece
+              la próxima oportunidad disponible. El sistema entiende que no siempre podés responder al instante
+              — quizás estabas en una reunión, quizás no viste la notificación. No hay penalización. Pero el
+              turno no puede esperar.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo se Determina la Prioridad</h2>
+            <p>
+              No todas las esperas son iguales. Un paciente que necesita un control de rutina no tiene la misma
+              urgencia que uno con síntomas activos o una derivación de otro especialista. La lista de espera
+              inteligente usa criterios múltiples para ordenar la cola:
+            </p>
+            <ul>
+              <li><strong>Indicación médica:</strong> si tu médico derivante marcó la consulta como urgente o prioritaria, subís en la lista</li>
+              <li><strong>Tiempo de espera:</strong> a igualdad de condiciones, quien esperó más tiempo tiene prioridad</li>
+              <li><strong>Compatibilidad horaria:</strong> si el turno liberado es a las 8am y vos indicaste que solo podés después de las 14, no tiene sentido ofrecértelo</li>
+              <li><strong>Historial de respuesta:</strong> si en oportunidades anteriores aceptaste rápido, el sistema aprende que sos un candidato confiable</li>
+            </ul>
+            <p>
+              Este modelo es transparente. Podés ver tu posición estimada en la lista y los criterios que
+              aplican. No hay favoritismos ni "acomodos": es un algoritmo con reglas claras.
+            </p>
+          </section>
+
+          <section>
+            <h2>Beneficios para Todos los Actores</h2>
+            <p>
+              <strong>Para el paciente:</strong> dejás de depender de llamar todos los días para ver si "se
+              liberó algo". Te anotás una vez y el sistema trabaja por vos. Si se abre un hueco, te enterás
+              al instante. Pasás de ser pasivo a tener un agente que busca turnos en tu nombre.
+            </p>
+            <p>
+              <strong>Para el médico:</strong> los turnos cancelados se rellenan automáticamente. Menos huecos
+              en la agenda significa menos tiempo muerto y mejor aprovechamiento de las horas de consultorio.
+              Un médico que atiende 20 pacientes por día y tiene 3 cancelaciones promedio puede recuperar
+              esos 3 espacios de forma consistente.
+            </p>
+            <p>
+              <strong>Para el sistema de salud:</strong> cada turno que se pierde es un recurso desperdiciado.
+              En un sistema saturado como el argentino, optimizar la ocupación de turnos existentes es más
+              rápido y barato que crear nuevos consultorios o contratar más profesionales. La lista de espera
+              inteligente no agrega oferta: hace que la oferta existente se use mejor.
+            </p>
+            <p>
+              <strong>Para la secretaría:</strong> se elimina la tarea manual de llamar paciente por paciente.
+              El tiempo que la secretaria dedicaba a reasignar turnos cancelados ahora se libera para otras
+              tareas administrativas.
+            </p>
+          </section>
+
+          <section>
+            <h2>Un Cambio de Paradigma en la Gestión de Turnos</h2>
+            <p>
+              La lista de espera inteligente no es ciencia ficción ni tecnología de punta inalcanzable. Es
+              la aplicación de lógica simple — monitorear, notificar, confirmar — con herramientas que ya
+              existen. Lo que cambia es pasar de un proceso manual y reactivo a uno automático y proactivo.
+            </p>
+            <p>
+              El resultado es un sistema donde los turnos cancelados dejan de ser huecos perdidos y se
+              convierten en oportunidades. Donde esperar un turno con un especialista deja de ser una
+              lotería pasiva y se convierte en una cola organizada, transparente y eficiente.
+            </p>
+            <p>
+              En un sistema de salud donde la demanda supera a la oferta, no alcanza con crear más turnos.
+              Hay que asegurarse de que los que ya existen se aprovechen al máximo. La lista de espera
+              inteligente es exactamente eso: hacer que cada turno cuente.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de gestión de turnos y sistemas de salud.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/guia-consulta-medica-online" class="seo-card">
+              <span class="seo-badge">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+            <a href="/blog/telemedicina-revolucion-salud" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>¿Por Qué la Telemedicina es la Revolución?</h4>
+            </a>
+            <a href="/blog/historia-clinica-digital" class="seo-card">
+              <span class="seo-badge">Tecnología Médica</span>
+              <h4>Historia Clínica Digital</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

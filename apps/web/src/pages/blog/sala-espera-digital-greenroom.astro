@@ -1,0 +1,251 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+
+const article = {
+  title: 'Probá Tu Cámara Antes de que el Médico Te Vea: La Sala de Espera Digital',
+  author: 'Equipo AutaMedica',
+  role: 'Telemedicina',
+  date: '6 de abril, 2026',
+  readTime: '5 min',
+  image: '/images/article_telemed.webp',
+  category: 'Telemedicina',
+};
+---
+
+<Layout
+  title="Sala de Espera Digital: Probá Tu Cámara Antes de la Consulta | AutaMedica"
+  description="El GreenRoom te permite verificar cámara, micrófono y conexión antes de que empiece tu videoconsulta. Menos interrupciones técnicas, más tiempo con tu médico."
+  canonical="https://www.autamedica.com/blog/sala-espera-digital-greenroom"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Los Primeros 3 Minutos Perdidos</h2>
+            <p>
+              Si alguna vez hiciste una videollamada médica, probablemente conocés este ritual: "¿Me
+              escuchás?". "Sí, pero no te veo". "Esperá que reinicio la cámara". "Ahora te veo pero
+              se escucha entrecortado". "¿Podés hablar más fuerte?". Tres minutos de consulta perdidos
+              antes de empezar.
+            </p>
+            <p>
+              En una reunión de trabajo, perder 3 minutos es una molestia menor. En una consulta médica
+              de 15 minutos, es el 20% del tiempo disponible. Y no es solo tiempo: es contexto. El
+              paciente estaba listo para contar lo que le pasa, el médico estaba concentrado para
+              escuchar, y de repente ambos están peleando con la tecnología en lugar de hablar de salud.
+            </p>
+            <p>
+              El problema no es que la telemedicina sea inherentemente difícil. Es que la mayoría de
+              las plataformas tiran al paciente directamente a la videollamada sin verificar que su
+              setup funcione. Es como subirse a un avión sin hacer el checklist de pre-vuelo.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Concepto de GreenRoom: Tu Checklist Pre-Consulta</h2>
+            <p>
+              El GreenRoom — o sala de espera digital — es un espacio previo a la videollamada donde
+              verificás que todo funcione antes de conectarte con el médico. El nombre viene del mundo
+              del espectáculo: el "green room" es la sala donde los artistas se preparan antes de salir
+              al escenario.
+            </p>
+            <p>
+              En el contexto de una teleconsulta, el GreenRoom te muestra:
+            </p>
+            <ul>
+              <li><strong>Tu propia imagen de video:</strong> ves cómo te ve el médico. ¿Hay suficiente luz? ¿Se ve tu cara o estás a contraluz? ¿La cámara está a la altura correcta?</li>
+              <li><strong>Tu nivel de audio:</strong> un indicador visual que se mueve cuando hablás. Si el indicador no responde, algo está mal con el micrófono antes de que te des cuenta en la consulta</li>
+              <li><strong>Tu calidad de conexión:</strong> una medición de la velocidad y estabilidad de tu internet. Si tu conexión es inestable, el sistema te avisa antes de entrar</li>
+              <li><strong>Selector de dispositivos:</strong> si tenés auriculares, cámara externa o micrófono dedicado, podés elegir cuál usar y verificar que funcione</li>
+            </ul>
+            <p>
+              Todo esto ocurre antes de que el médico te vea. Cuando finalmente te conectás a la
+              consulta, ya sabés que todo funciona. Sin sorpresas, sin interrupciones técnicas.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Verifica el Sistema Automáticamente</h2>
+            <p>
+              Además de lo que vos podés verificar visualmente, el GreenRoom ejecuta una serie de
+              comprobaciones técnicas en segundo plano:
+            </p>
+            <p>
+              <strong>Resolución de video.</strong> El sistema detecta la resolución real que tu cámara
+              está entregando. Si tu cámara puede dar 720p pero por alguna razón está enviando 240p
+              (un driver desactualizado, otra app usando la cámara), te avisa. Para una consulta médica
+              donde el doctor puede necesitar ver una erupción cutánea o el color de una herida, la
+              resolución importa.
+            </p>
+            <p>
+              <strong>Latencia y estabilidad.</strong> No alcanza con tener buena velocidad: la conexión
+              tiene que ser estable. Una conexión de 50 Mbps con picos de latencia de 500ms genera una
+              experiencia peor que una de 5 Mbps estable. El GreenRoom mide ambas cosas y te da un
+              indicador claro: verde (sin problemas), amarillo (puede haber interrupciones menores) o
+              rojo (la conexión no es adecuada para video).
+            </p>
+            <p>
+              <strong>Echo y ruido de fondo.</strong> El sistema detecta si hay eco (señal de que no
+              estás usando auriculares y el micrófono captura el sonido del parlante) y si hay ruido
+              ambiental excesivo. En ambos casos, te sugiere una acción concreta: "usá auriculares"
+              o "buscá un lugar más tranquilo".
+            </p>
+          </section>
+
+          <section>
+            <h2>Calidad Adaptativa: El Sistema Se Ajusta a Vos</h2>
+            <p>
+              No todos tienen fibra óptica. Un paciente en una localidad rural puede tener 2 Mbps
+              de bajada en un buen día. Un adulto mayor puede estar usando un celular viejo con una
+              cámara básica. La telemedicina no puede ser exclusiva para quienes tienen el mejor
+              equipamiento.
+            </p>
+            <p>
+              La calidad adaptativa resuelve esto. Si el GreenRoom detecta que tu conexión es limitada,
+              el sistema baja automáticamente la resolución de video para priorizar la fluidez del audio.
+              Porque en una consulta médica, escucharse bien es más importante que verse en alta
+              definición.
+            </p>
+            <p>
+              Si la conexión mejora durante la llamada, la calidad sube progresivamente. Si empeora,
+              baja. Todo esto ocurre sin que tengas que tocar nada. El sistema se adapta en tiempo real
+              a las condiciones de tu red, manteniendo la mejor calidad posible en cada momento.
+            </p>
+            <p>
+              En casos extremos — cuando la conexión no soporta ni video de baja calidad — el sistema
+              puede pasar automáticamente a modo solo audio, que funciona con anchos de banda muy
+              bajos. Mejor una consulta solo por voz que una consulta interrumpida o que no se hace.
+            </p>
+          </section>
+
+          <section>
+            <h2>Menos Interrupciones Técnicas, Más Medicina</h2>
+            <p>
+              Los números hablan por sí solos. En plataformas de telemedicina sin GreenRoom, entre el
+              15% y el 25% del tiempo de consulta se pierde en problemas técnicos. Eso es un paciente
+              de cada cuatro o cinco que no aprovecha su turno completo.
+            </p>
+            <p>
+              Con un sistema de verificación previa, esas interrupciones se reducen drásticamente.
+              Los problemas se detectan y resuelven antes de que empiece la consulta, no durante.
+              El médico no pierde tiempo haciendo soporte técnico. El paciente no se frustra.
+            </p>
+            <p>
+              Para el médico, esto tiene un impacto directo en la calidad de atención. Quince minutos
+              de consulta real son quince minutos de evaluación, diagnóstico y tratamiento. No doce
+              minutos de medicina y tres de "¿ahora me escuchás?".
+            </p>
+          </section>
+
+          <section>
+            <h2>La Psicología de Estar Preparado</h2>
+            <p>
+              Hay un aspecto que rara vez se menciona: el efecto psicológico de sentirse listo. Una
+              persona que entra a una videoconsulta sabiendo que su cámara funciona, que se escucha
+              bien y que su conexión es estable, llega más relajada. No tiene la ansiedad de "¿va a
+              funcionar?".
+            </p>
+            <p>
+              Esto es particularmente relevante en consultas de salud mental, donde la ansiedad
+              tecnológica puede interferir con la apertura emocional del paciente. Y en consultas con
+              adultos mayores, donde la inseguridad con la tecnología puede generar frustración y
+              resistencia a usar telemedicina en el futuro.
+            </p>
+            <p>
+              El GreenRoom normaliza la experiencia. Es el equivalente digital de la sala de espera
+              física: un espacio de transición donde te preparás para la consulta. La diferencia es
+              que en lugar de revistas viejas, te da herramientas para asegurarte de que la tecnología
+              no va a ser un obstáculo.
+            </p>
+            <p>
+              Una buena teleconsulta empieza antes de que el médico y el paciente se vean. Empieza
+              cuando el paciente verifica que todo funciona, revisa sus notas sobre lo que quiere
+              preguntar, y entra a la videollamada con la tranquilidad de que la tecnología ya está
+              resuelta. Lo que queda es lo que importa: hablar de salud.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de telemedicina e ingeniería de comunicaciones.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/guia-consulta-medica-online" class="seo-card">
+              <span class="seo-badge">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+            <a href="/blog/telemedicina-revolucion-salud" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>¿Por Qué la Telemedicina es la Revolución?</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="seo-card">
+              <span class="seo-badge">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
