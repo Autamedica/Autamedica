@@ -8,7 +8,7 @@ import {
 } from '@/lib/api-helpers';
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 import { communityService } from '@/lib/patients/services/community.service';
-import { createAstroServerClientFromRequest } from '@/lib/supabase';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { APIRoute } from 'astro';
 
@@ -26,7 +26,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   const body = (await request.json().catch(() => null)) as { reactionType?: string } | null;
 
   try {
-    await communityService.addCommentReaction(createAstroServerClientFromRequest(request), context, {
+    await communityService.addCommentReaction(createAstroAdminClient(), context, {
       commentId,
       reactionType: body?.reactionType ?? 'helpful',
     });

@@ -10,7 +10,7 @@ import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 import { createCommunityAdapter } from '@/lib/patients/lib/repos/community.adapter';
 import { communityService } from '@/lib/patients/services/community.service';
 import type { CreateCommunityCommentInput } from '@/lib/patients/types/community';
-import { createAstroServerClientFromRequest } from '@/lib/supabase';
+import { createAstroAdminClient, createAstroServerClientFromRequest } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { APIRoute } from 'astro';
 
@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    const comment = await communityService.createComment(createAstroServerClientFromRequest(request), context, {
+    const comment = await communityService.createComment(createAstroAdminClient(), context, {
       postId,
       content: body.content ?? '',
       anonymous: body.anonymous,

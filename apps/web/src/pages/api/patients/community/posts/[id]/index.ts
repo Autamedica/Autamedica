@@ -9,7 +9,7 @@ import {
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 import { communityService } from '@/lib/patients/services/community.service';
 import type { UpdateCommunityPostInput } from '@/lib/patients/types/community';
-import { createAstroServerClientFromRequest } from '@/lib/supabase';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { APIRoute } from 'astro';
 
@@ -30,7 +30,7 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    const post = await communityService.updatePost(createAstroServerClientFromRequest(request), context, postId, body);
+    const post = await communityService.updatePost(createAstroAdminClient(), context, postId, body);
     return jsonOk(post);
   } catch (error) {
     const code = (error as { code?: string }).code;
@@ -64,7 +64,7 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    await communityService.deletePost(createAstroServerClientFromRequest(request), context, postId);
+    await communityService.deletePost(createAstroAdminClient(), context, postId);
     return jsonOk({ success: true });
   } catch (error) {
     const code = (error as { code?: string }).code;
