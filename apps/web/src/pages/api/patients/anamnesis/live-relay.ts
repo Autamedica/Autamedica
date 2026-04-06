@@ -64,16 +64,29 @@ function shortenQuestionForVoice(question: string, maxLength = 160): string {
     : `${shortened}?`
 }
 
+function summarizeSectionData(sectionData?: Record<string, Record<string, unknown>>): string {
+  if (!sectionData || Object.keys(sectionData).length === 0) return ''
+  const lines: string[] = []
+  for (const [section, data] of Object.entries(sectionData)) {
+    const entries = Object.entries(data)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false)
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+    if (entries.length > 0) lines.push(`[${section}] ${entries.join('; ')}`)
+  }
+  return lines.join('\n')
+}
+
 function buildSystemInstruction(
-  patientInfo?: { name: string; age: number; completedSections: string[] },
+  patientInfo?: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>> },
   guidance?: GuidanceContext,
 ): string {
+  const existingData = summarizeSectionData(patientInfo?.sectionData)
   const context = patientInfo
-    ? `\nCONTEXTO DEL PACIENTE:\n- Nombre: ${patientInfo.name}\n- Edad: ${patientInfo.age} años\n- Secciones ya completadas: ${patientInfo.completedSections.length > 0 ? patientInfo.completedSections.join(', ') : 'ninguna'}\nSi ya tiene secciones completadas, enfocate en lo que falta o pudo haber cambiado.\n`
+    ? `\nCONTEXTO DEL PACIENTE:\n- Nombre: ${patientInfo.name}\n- Edad: ${patientInfo.age} años\n- Secciones ya completadas: ${patientInfo.completedSections.length > 0 ? patientInfo.completedSections.join(', ') : 'ninguna'}${existingData ? `\n\nDATOS YA REGISTRADOS EN EL FORMULARIO:\n${existingData}\n\nIMPORTANTE: NO repitas preguntas sobre datos que ya están registrados arriba. Tu rol es REFINAR semiológicamente: profundizar en síntomas reportados, explorar características (localización, irradiación, intensidad, duración, factores agravantes/atenuantes).` : '\nSi ya tiene secciones completadas, enfocate en lo que falta o pudo haber cambiado.'}\n`
     : ''
 
   if (guidance && (guidance.questions.length > 0 || guidance.gaps.length > 0)) {
-    return `Sos un médico residente de AutaMedica realizando una ACLARACION POR VOZ de una anamnesis ya iniciada.
+    return `Sos un médico residente de AutaMedica realizando una REFINACIÓN SEMIOLÓGICA por voz de una anamnesis ya iniciada.
 ${context}
 CHECKPOINT ACTUAL: ${guidance.checkpoint ?? 'partial'}
 RESUMEN DE COBERTURA: ${guidance.coverageSummary ?? 'Sin resumen'}
@@ -82,7 +95,7 @@ PREGUNTAS PRIORITARIAS A RESOLVER:
 ${guidance.questions.length > 0 ? guidance.questions.map((question, index) => `${index + 1}. ${question}`).join('\n') : '- Pedí una aclaración clínica relevante.'}
 
 OBJETIVO:
-- Hacé una aclaración breve por voz, enfocada solo en cerrar los huecos anteriores.
+- REFINÁ semiológicamente los síntomas ya reportados: preguntá detalles clínicos (¿desde cuándo? ¿cómo es? ¿qué lo mejora o empeora? ¿se asocia con algo?).
 - Preguntá UNA sola cosa por turno.
 - Si el paciente ya respondió una de las preguntas prioritarias, pasá a la siguiente sin repetir.
 - No abras bloques nuevos ni hagas una anamnesis completa desde cero.
@@ -196,7 +209,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           .single()
         if (profile?.first_name) {
           greeting = isGuidedClarification
-            ? `Hola ${profile.first_name}. ${openingQuestion || 'Necesito una aclaración breve para completar la información.'}`
+            ? `Hola ${profile.first_name}. ${openingQuestion || 'Necesito hacerte un par de preguntas para completar algunos detalles clínicos.'}`
             : `Hola ${profile.first_name}, soy el asistente de AutaMedica. Contame, ¿qué te trae hoy a la consulta?`
         }
       } catch { /* use default greeting */ }
@@ -223,7 +236,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!apiKey) return json({ success: false, error: 'ai_not_configured' }, 503)
 
   // Fetch patient context on first real message (history empty = first turn)
-  let patientInfo: { name: string; age: number; completedSections: string[] } | undefined
+  let patientInfo: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>> } | undefined
   if (wantsContext && history.length === 0) {
     try {
       const admin = createAstroAdminClient()
@@ -243,16 +256,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
 
         let completedSections: string[] = []
+        const sectionData: Record<string, Record<string, unknown>> = {}
         if (anamnesisRes.data?.id) {
           const { data: sections } = await admin
             .from('anamnesis_sections')
-            .select('section')
+            .select('section, data')
             .eq('anamnesis_id', anamnesisRes.data.id)
             .eq('completed', true)
           completedSections = sections?.map(s => s.section) ?? []
+          for (const s of sections ?? []) {
+            if (s.data && typeof s.data === 'object') {
+              sectionData[s.section] = s.data as Record<string, unknown>
+            }
+          }
         }
 
-        patientInfo = { name, age, completedSections }
+        patientInfo = { name, age, completedSections, sectionData }
       }
     } catch (err) {
       logger.warn('[live-relay] Failed to fetch patient context', err)
