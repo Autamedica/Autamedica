@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Te Avisamos Si Se Libera un Turno: Cómo Funciona la Lista de Espera Inteligente',
@@ -219,6 +220,7 @@ const article = {
           </div>
         </div>
       </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/lista-espera-inteligente`} />
     </article>
   </main>
   <Footer />
