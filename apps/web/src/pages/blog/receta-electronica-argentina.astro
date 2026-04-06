@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Receta Electrónica en Argentina: Qué Dice la Ley y Cómo Funciona en la Práctica',
@@ -267,6 +268,7 @@ const article = {
           </div>
         </div>
       </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/receta-electronica-argentina`} />
     </article>
   </main>
   <Footer />

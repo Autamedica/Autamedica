@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: '5 Señales que Tu Cuerpo Te Da y que un Médico Nunca Ignoraría',
@@ -268,6 +269,7 @@ const article = {
           </div>
         </div>
       </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/red-flags-senales-cuerpo`} />
     </article>
   </main>
   <Footer />

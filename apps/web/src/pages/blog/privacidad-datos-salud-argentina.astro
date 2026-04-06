@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Tus Datos Médicos Son Tuyos: Qué Dice la Ley Argentina sobre Privacidad en Salud',
@@ -262,6 +263,7 @@ const article = {
           </div>
         </div>
       </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/privacidad-datos-salud-argentina`} />
     </article>
   </main>
   <Footer />

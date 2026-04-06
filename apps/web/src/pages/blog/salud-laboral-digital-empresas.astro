@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Salud Laboral Digital: Cómo las Empresas Cuidan a Sus Equipos Sin Burocracia',
@@ -247,6 +248,7 @@ const article = {
           </div>
         </div>
       </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/salud-laboral-digital-empresas`} />
     </article>
   </main>
   <Footer />

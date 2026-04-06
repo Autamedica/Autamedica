@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: '¿Tomás la Medicación Todos los Días? Lo Que la IA Puede Detectar',
@@ -236,6 +237,7 @@ const article = {
           </div>
         </div>
       </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/adherencia-medicacion-ia`} />
     </article>
   </main>
   <Footer />
