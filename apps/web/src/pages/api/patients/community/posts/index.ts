@@ -2,7 +2,7 @@ import { badRequest, internalError, jsonOk, notFound, unauthorized } from '@/lib
 import { resolvePatientContext } from '@/lib/patients/api/patient-context';
 import { communityService } from '@/lib/patients/services/community.service';
 import type { CreateCommunityPostInput } from '@/lib/patients/types/community';
-import { createAstroServerClientFromRequest } from '@/lib/supabase';
+import { createAstroAdminClient } from '@/lib/supabase';
 import { logger } from '@autamedica/shared';
 import type { APIRoute } from 'astro';
 
@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const post = await communityService.createPost(createAstroServerClientFromRequest(request), context, body);
+    const post = await communityService.createPost(createAstroAdminClient(), context, body);
     return jsonOk(post, 201);
   } catch (error) {
     const code = (error as { code?: string }).code;
