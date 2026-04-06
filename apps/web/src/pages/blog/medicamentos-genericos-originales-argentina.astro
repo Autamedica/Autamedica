@@ -1,0 +1,206 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Genéricos vs Originales: ¿Son Realmente Iguales?',
+  author: 'Equipo AutaMedica',
+  role: 'Farmacología Clínica',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Farmacología',
+};
+---
+
+<Layout
+  title="Genéricos vs Originales: ¿Son Realmente Iguales? | AutaMedica"
+  description="Qué son los medicamentos genéricos, cómo se regulan en Argentina, qué significa bioequivalencia y en qué casos importa la marca. Información basada en evidencia para decidir con tu médico."
+  canonical="https://www.autamedica.com/blog/medicamentos-genericos-originales-argentina"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La pregunta que todo paciente se hace en la farmacia</h2>
+            <p>
+              Vas a la farmacia con una receta. El farmacéutico te ofrece dos opciones: el medicamento de marca a $45.000 o el genérico a $12.000. Te dice que "es lo mismo". Vos dudás. Tu vecina te dijo que los genéricos "no hacen efecto". Tu obra social solo cubre el genérico. Y tu médico escribió el nombre de marca en la receta.
+            </p>
+            <p>
+              Este escenario se repite millones de veces por mes en Argentina. Y la confusión no es del paciente: es del sistema. La información disponible es contradictoria, los intereses comerciales son enormes y la regulación argentina tiene particularidades que vale la pena entender.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué es un medicamento genérico (y qué no es)</h2>
+            <p>
+              Un medicamento genérico contiene el mismo principio activo, en la misma dosis y en la misma forma farmacéutica que el original (llamado "innovador" o "de referencia"). Lo que cambia son los excipientes (los componentes inactivos que le dan forma, color, sabor) y el proceso de manufactura.
+            </p>
+            <p>
+              Lo que un genérico no es: una imitación barata ni un producto inferior. La diferencia de precio se explica porque el laboratorio que fabrica el genérico no tuvo que invertir en los 10-15 años de investigación y desarrollo que costó crear la molécula original. Cuando la patente vence, otros laboratorios pueden fabricar el mismo principio activo sin ese costo hundido.
+            </p>
+            <p>
+              En Argentina, la Ley 25.649 de Prescripción por Nombre Genérico (2002) establece que los médicos deben incluir el nombre genérico (denominación común internacional o DCI) en toda receta. Pueden agregar una marca comercial, pero el nombre genérico es obligatorio. El farmacéutico está habilitado a ofrecer alternativas con el mismo principio activo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Bioequivalencia: la prueba que importa</h2>
+            <p>
+              La pregunta clave no es si el genérico tiene el mismo principio activo (eso es un requisito básico), sino si se absorbe de la misma manera en el cuerpo. Esto se llama bioequivalencia: se administra el genérico y el original a un grupo de voluntarios sanos y se mide la concentración del fármaco en sangre a lo largo del tiempo.
+            </p>
+            <p>
+              Para ser bioequivalente, el genérico debe alcanzar una concentración máxima (Cmax) y una exposición total (AUC) que esté entre el 80% y el 125% del original. Esto no significa que pueda tener 20% menos de efecto: es un intervalo de confianza estadístico. En la práctica, la mayoría de los genéricos aprobados caen dentro de un rango de 3-5% de diferencia con el original.
+            </p>
+            <p>
+              El problema en Argentina: ANMAT no exige estudios de bioequivalencia para todas las categorías de medicamentos. Los exige para un listado específico de fármacos considerados de "riesgo sanitario significativo" (Disposición ANMAT 758/2009 y actualizaciones). Para el resto, basta con demostrar que la disolución del comprimido en laboratorio es similar (estudio de disolución in vitro), sin probarlo en personas.
+            </p>
+            <p>
+              Esto no significa que esos genéricos sean malos. Significa que para algunos fármacos, la evidencia es menos robusta que para otros. Es una diferencia regulatoria, no necesariamente clínica.
+            </p>
+          </section>
+
+          <section>
+            <h2>Fármacos donde la marca puede importar</h2>
+            <p>
+              Hay una categoría de medicamentos llamados "de estrecho margen terapéutico" donde la diferencia entre la dosis que funciona y la dosis que produce toxicidad es pequeña. En estos casos, pequeñas variaciones en la absorción pueden tener consecuencias clínicas:
+            </p>
+            <ul>
+              <li><strong>Antiepilépticos</strong> (carbamazepina, fenitoína, ácido valproico): cambiar de marca puede alterar los niveles séricos y desencadenar convulsiones o toxicidad.</li>
+              <li><strong>Anticoagulantes</strong> (warfarina): variaciones en la absorción pueden cambiar el INR (medida de coagulación), con riesgo de sangrado o trombosis.</li>
+              <li><strong>Levotiroxina</strong> (hormona tiroidea): requiere dosificación precisa. Cambiar de marca puede necesitar reajuste de dosis.</li>
+              <li><strong>Inmunosupresores</strong> (ciclosporina, tacrolimus): usados en trasplantados, donde la ventana terapéutica es crítica.</li>
+              <li><strong>Antiarrítmicos:</strong> digoxina, amiodarona.</li>
+            </ul>
+            <p>
+              Para estos fármacos, la recomendación médica habitual es: una vez que encontrás una marca que funciona, no cambiar sin supervisión. Esto no significa que el genérico sea peor: significa que la consistencia importa más que la marca en sí.
+            </p>
+          </section>
+
+          <section>
+            <h2>Fármacos donde da igual</h2>
+            <p>
+              Para la gran mayoría de los medicamentos de uso habitual, la diferencia entre genérico y original es clínicamente irrelevante:
+            </p>
+            <ul>
+              <li>Analgésicos y antiinflamatorios (ibuprofeno, paracetamol, diclofenac).</li>
+              <li>Antibióticos orales (amoxicilina, azitromicina, ciprofloxacina).</li>
+              <li>Antihipertensivos (enalapril, losartán, amlodipina).</li>
+              <li>Estatinas (atorvastatina, rosuvastatina).</li>
+              <li>Inhibidores de bomba de protones (omeprazol, pantoprazol).</li>
+              <li>Antidiabéticos orales (metformina, glimepirida).</li>
+            </ul>
+            <p>
+              En estos casos, pagar más por la marca original es una decisión personal, no médica. La evidencia no muestra diferencias clínicas significativas.
+            </p>
+          </section>
+
+          <section>
+            <h2>El efecto nocebo: cuando la desconfianza genera síntomas</h2>
+            <p>
+              Existe un fenómeno documentado llamado efecto nocebo: si un paciente cree que un medicamento no va a funcionar, es más probable que reporte que no funcionó. Esto no es simulación: es neurobiología. La expectativa negativa modifica la percepción del dolor, las náuseas y otros síntomas.
+            </p>
+            <p>
+              Estudios clínicos han mostrado que cuando se cambia a un paciente de un medicamento de marca a un genérico sin decirle, la tasa de reportes de "menor efectividad" es mínima. Cuando se le avisa del cambio, la tasa sube significativamente. El envase y el precio modifican la percepción del efecto.
+            </p>
+            <p>
+              Esto no significa que debas ignorar tus síntomas. Significa que si cambias de marca y "sentís que no te hace efecto", vale la pena considerar si el cambio de expectativa puede estar influyendo antes de asumir que el genérico es inferior. Hablalo con tu médico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo decidir: una conversación con tu médico</h2>
+            <p>
+              La decisión entre genérico y original no debería tomarse en la farmacia bajo presión de tiempo y precio. Debería ser parte de una conversación con tu médico:
+            </p>
+            <ul>
+              <li>¿Mi medicamento es de los que requieren consistencia de marca?</li>
+              <li>¿El genérico disponible tiene estudio de bioequivalencia aprobado por ANMAT?</li>
+              <li>¿Puedo hacer un período de prueba con monitoreo?</li>
+            </ul>
+            <p>
+              Si tu médico te receta un medicamento por nombre genérico y el farmacéutico te ofrece una marca que conocés, preguntá por qué. Si tu médico escribió una marca específica, preguntá si hay una razón clínica o si es intercambiable. En la mayoría de los casos, el genérico es una opción segura, efectiva y más accesible.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/medicamentos-genericos-originales-argentina" description="Qué son los medicamentos genéricos, cómo se regulan en Argentina, qué significa bioequivalencia y en qué casos importa la marca." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de farmacología clínica.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/dolor-cronico-analgesicos-riesgo" class="seo-card">
+              <span class="seo-badge">Medicina del Dolor</span>
+              <h4>Dolor Crónico: Por Qué Tu Médico No Te Da Más Analgésicos</h4>
+            </a>
+            <a href="/blog/glp1-argentina-ozempic-wegovy-mounjaro" class="seo-card">
+              <span class="seo-badge">Endocrinología</span>
+              <h4>GLP-1 en Argentina: Ozempic, Wegovy y Mounjaro</h4>
+            </a>
+            <a href="/blog/como-leer-analisis-sangre" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

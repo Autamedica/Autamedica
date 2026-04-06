@@ -1,0 +1,192 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Vacunas en Adultos: Cuáles Te Faltan y No Lo Sabés',
+  author: 'Equipo AutaMedica',
+  role: 'Infectología',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Infectología',
+};
+---
+
+<Layout
+  title="Vacunas en Adultos: Cuáles Te Faltan y No Lo Sabés | AutaMedica"
+  description="Calendario de vacunación para adultos en Argentina: qué vacunas necesitás según tu edad, cuáles son gratuitas y obligatorias, y por qué muchos adultos tienen esquemas incompletos."
+  canonical="https://www.autamedica.com/blog/vacunas-adultos-cuales-faltan"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Las vacunas no terminan en la infancia</h2>
+            <p>
+              La mayoría de los adultos argentinos cree que su esquema de vacunación está completo porque se vacunaron de chicos. La realidad es distinta. Algunas vacunas de la infancia pierden eficacia con los años y necesitan refuerzos. Otras vacunas se incorporaron al calendario después de que muchos adultos ya habían pasado la edad de recibirlas. Y hay vacunas que son específicas para adultos y que nunca formaron parte del calendario infantil.
+            </p>
+            <p>
+              Según datos del Ministerio de Salud de la Nación, la cobertura de vacunación en adultos es significativamente menor que en niños. Mientras que las vacunas pediátricas alcanzan coberturas superiores al 80% en la mayoría de las jurisdicciones, las vacunas del calendario adulto raramente superan el 50%.
+            </p>
+          </section>
+
+          <section>
+            <h2>El calendario nacional para adultos</h2>
+            <p>
+              Argentina tiene un Calendario Nacional de Vacunación que incluye vacunas gratuitas y obligatorias para todas las edades. Para adultos, las vacunas del calendario incluyen:
+            </p>
+            <ul>
+              <li><strong>Doble bacteriana (dT) o triple bacteriana acelular (dTpa):</strong> protege contra difteria y tétanos (y tos convulsa en el caso de la triple). Se necesita un refuerzo cada 10 años durante toda la vida. Si no recordás cuándo fue tu último refuerzo, probablemente necesites uno.</li>
+              <li><strong>Hepatitis B:</strong> tres dosis. Si naciste antes de 2000, es probable que no la hayas recibido en la infancia (se incorporó al calendario infantil en 2000). Es gratuita y obligatoria para todos los adultos en Argentina. Si no tenés registro de haberla recibido, podés iniciar o completar el esquema en cualquier vacunatorio público.</li>
+              <li><strong>Triple viral (sarampión, rubéola, paperas):</strong> si naciste después de 1965, necesitás al menos dos dosis en la vida. Muchos adultos nacidos entre 1965 y 1998 tienen esquema incompleto porque la segunda dosis se incorporó al calendario recién en 1998.</li>
+              <li><strong>Fiebre amarilla:</strong> una dosis para residentes de zonas endémicas (Misiones, Corrientes, entre otras) y viajeros a zonas de riesgo. Una sola dosis confiere protección de por vida según las guías actuales de la OMS.</li>
+              <li><strong>Antigripal:</strong> una dosis anual para grupos de riesgo: mayores de 65 años, embarazadas, personal de salud, personas con enfermedades crónicas (diabetes, EPOC, cardiopatías, inmunosupresión).</li>
+              <li><strong>Antineumocócica:</strong> para mayores de 65 años y personas con factores de riesgo. Protege contra la neumonía bacteriana por neumococo, una causa frecuente de hospitalización y muerte en adultos mayores.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Vacunas que no están en el calendario pero deberías conocer</h2>
+            <p>
+              Hay vacunas que no forman parte del calendario nacional obligatorio pero que tienen indicación médica específica:
+            </p>
+            <p>
+              <strong>Herpes zóster (culebrilla):</strong> el virus de la varicela queda latente en el cuerpo después de la infección infantil y puede reactivarse décadas después como herpes zóster. Afecta al 30% de las personas en algún momento de la vida, y el riesgo aumenta a partir de los 50 años. La vacuna recombinante (Shingrix) tiene una eficacia superior al 90% y está disponible en Argentina, aunque no es gratuita. El costo es significativo, pero la neuralgia postherpética (dolor crónico después del episodio) puede ser incapacitante.
+            </p>
+            <p>
+              <strong>HPV (virus del papiloma humano):</strong> el calendario argentino incluye la vacuna contra HPV para adolescentes de 11 años (varones y mujeres). Pero muchos adultos jóvenes no la recibieron porque se incorporó al calendario en 2011 para mujeres y en 2017 para varones. Las guías permiten la vacunación hasta los 26 años (y en algunos casos hasta los 45 años). Consultá con tu médico si tiene sentido en tu caso.
+            </p>
+            <p>
+              <strong>COVID-19:</strong> la vacunación contra SARS-CoV-2 sigue siendo recomendada con refuerzos periódicos, especialmente para mayores de 50 años, inmunosuprimidos y personal de salud. Las formulaciones se actualizan según las variantes circulantes.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo saber qué te falta</h2>
+            <p>
+              Si tenés tu libreta de vacunación de la infancia, ese es el punto de partida. Pero muchos adultos no la conservan. En ese caso:
+            </p>
+            <ul>
+              <li>Podés consultar el Registro Federal de Vacunación (NOMIVAC), que centraliza las dosis aplicadas en el sistema público. Algunas jurisdicciones permiten acceder online con DNI.</li>
+              <li>Si no hay registro disponible, tu médico puede indicar análisis de anticuerpos (serología) para hepatitis B, sarampión, rubéola y varicela, para determinar si tenés inmunidad o necesitás vacunarte.</li>
+              <li>Si no hay forma de verificar y no hay contraindicación, la recomendación es vacunar. Recibir una vacuna de más no es peligroso; no recibir una que necesitás sí puede serlo.</li>
+            </ul>
+            <p>
+              El lugar más accesible para actualizarte es el vacunatorio del hospital público o centro de salud de tu jurisdicción. Todas las vacunas del calendario nacional son gratuitas y no requieren orden médica.
+            </p>
+          </section>
+
+          <section>
+            <h2>Situaciones especiales</h2>
+            <p>
+              Hay grupos de adultos que necesitan vacunas adicionales o tienen contraindicaciones específicas:
+            </p>
+            <p>
+              <strong>Embarazadas:</strong> la vacuna antigripal y la triple bacteriana acelular (dTpa) se indican en cada embarazo para proteger al recién nacido. La dTpa se aplica a partir de la semana 20 de gestación. Las vacunas a virus vivos (triple viral, fiebre amarilla, varicela) están contraindicadas durante el embarazo.
+            </p>
+            <p>
+              <strong>Inmunosuprimidos:</strong> pacientes con HIV, en quimioterapia, trasplantados o en tratamiento con biológicos tienen restricciones con vacunas a virus vivos pero necesitan especialmente las vacunas inactivadas (antigripal, antineumocócica, hepatitis B). El esquema debe ser supervisado por el infectólogo.
+            </p>
+            <p>
+              <strong>Personal de salud:</strong> además del calendario habitual, se requiere vacunación contra hepatitis B con control de anticuerpos (anti-HBs), antigripal anual, y en muchas instituciones, varicela si no hay antecedente de enfermedad.
+            </p>
+            <p>
+              <strong>Viajeros:</strong> según el destino, pueden necesitar fiebre amarilla, hepatitis A, fiebre tifoidea, meningococo o rabia. La consulta al viajero se hace idealmente 4-6 semanas antes del viaje en un centro de medicina del viajero.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por qué importa vacunarse de adulto</h2>
+            <p>
+              Las enfermedades prevenibles por vacunas no son exclusivas de la infancia. El tétanos puede contraerse a cualquier edad a través de una herida contaminada. La neumonía neumocócica es más frecuente y más grave en adultos mayores que en niños. La tos convulsa en adultos es leve, pero un adulto con tos convulsa puede contagiar a un lactante que todavía no completó su esquema, con consecuencias potencialmente fatales.
+            </p>
+            <p>
+              Vacunarse no es solo protegerte a vos. Es proteger a las personas vulnerables de tu entorno: tus hijos, tus padres mayores, tus pacientes si trabajás en salud, tus vecinos inmunosuprimidos. La inmunidad colectiva funciona cuando la cobertura es alta en todas las edades, no solo en los chicos.
+            </p>
+            <p>
+              Si no sabés cuál es tu estado de vacunación, tu próxima consulta médica es una buena oportunidad para averiguarlo. Tu médico puede revisar tu historial y armarte un plan para ponerte al día.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/vacunas-adultos-cuales-faltan" description="Calendario de vacunación para adultos en Argentina: qué vacunas necesitás según tu edad y cuáles son gratuitas y obligatorias." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de infectología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/cuando-ir-guardia-cuando-esperar" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cuándo Ir a la Guardia y Cuándo Puede Esperar</h4>
+            </a>
+            <a href="/blog/como-leer-analisis-sangre" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico</h4>
+            </a>
+            <a href="/blog/certificado-medico-digital-validez" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>El Certificado Médico Digital: Qué Vale y Qué No en Argentina</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
