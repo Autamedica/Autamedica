@@ -174,25 +174,25 @@ describe('anamnesisService', () => {
       expect(result).toBeDefined()
     })
 
-    it('passes completion_percentage through without clamping (over 100)', async () => {
+    it('clamps completion_percentage over 100 to 100', async () => {
       await anamnesisService.updateMeta(fakeSupabase(), 'patient-1', {
         completionPercentage: 150,
       })
 
       expect(mockUpdateMeta).toHaveBeenCalledWith(
         'anamnesis-1',
-        expect.objectContaining({ completionPercentage: 150 }),
+        expect.objectContaining({ completionPercentage: 100 }),
       )
     })
 
-    it('passes negative completion_percentage through without clamping', async () => {
+    it('clamps negative completion_percentage to 0', async () => {
       await anamnesisService.updateMeta(fakeSupabase(), 'patient-1', {
         completionPercentage: -20,
       })
 
       expect(mockUpdateMeta).toHaveBeenCalledWith(
         'anamnesis-1',
-        expect.objectContaining({ completionPercentage: -20 }),
+        expect.objectContaining({ completionPercentage: 0 }),
       )
     })
 

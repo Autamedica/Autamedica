@@ -79,11 +79,11 @@ describe('communityService', () => {
       expect(mockRepo.ensureMembership).toHaveBeenCalledWith(
         ['user-1', 'patient-1'],
         'group-1',
-        'user-1'
+        'patient-1'
       );
       expect(mockRepo.createPost).toHaveBeenCalledWith({
         groupId: 'group-1',
-        authorId: 'user-1',
+        authorId: 'patient-1',
         authorDisplayName: 'Test User',
         title: 'Test Title',
         content: 'Test content',
@@ -116,7 +116,7 @@ describe('communityService', () => {
     });
 
     it('updates post if user is the author', async () => {
-      mockRepo.findPostById.mockResolvedValue({ id: 'post-1', author_id: 'user-1' });
+      mockRepo.findPostById.mockResolvedValue({ id: 'post-1', author_id: 'patient-1' });
       mockRepo.updatePost.mockResolvedValue({ id: 'post-1', content: 'updated' });
 
       const result = await communityService.updatePost(mockSupabase, mockContext, 'post-1', {
@@ -142,7 +142,7 @@ describe('communityService', () => {
     });
 
     it('deletes post successfully', async () => {
-      mockRepo.findPostById.mockResolvedValue({ id: 'post-1', author_id: 'user-1' });
+      mockRepo.findPostById.mockResolvedValue({ id: 'post-1', author_id: 'patient-1' });
 
       await communityService.deletePost(mockSupabase, mockContext, 'post-1');
       expect(mockRepo.deletePost).toHaveBeenCalledWith('post-1');
