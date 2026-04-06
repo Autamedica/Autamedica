@@ -22,10 +22,6 @@ const DOCTOR_A = {
   specialty: 'Cardiology',
   licenseNumber: 'LIC-001',
   active: true,
-  profile: {
-    first_name: 'Ana',
-    last_name: 'Garcia',
-  },
 }
 
 const DOCTOR_B = {
