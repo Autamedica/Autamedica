@@ -24,6 +24,11 @@ const TEXT_PRIMARY = '#050505';     // --au-text-primary
 const TEXT_SECONDARY = '#334155';   // --au-text-secondary
 const TEXT_TERTIARY = '#64748b';    // --au-text-tertiary
 
+// Typography — matches AutaMedica design tokens (Source Serif 4 + Plus Jakarta Sans)
+// Google Fonts are loaded in the page, so Canvas can use them after document.fonts.ready
+const FONT_HEADING = "'Source Serif 4', Georgia, 'Times New Roman', serif";
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif";
+
 function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -68,6 +73,9 @@ async function drawCard(
   format: CardFormat,
   props: Omit<InstagramCardGeneratorProps, 'onClose'>,
 ) {
+  // Wait for Google Fonts to load before drawing
+  await document.fonts.ready;
+
   const { width, height } = FORMATS[format];
   canvas.width = width;
   canvas.height = height;
@@ -91,7 +99,7 @@ async function drawCard(
 
   // Logo text
   const logoY = isStories ? 120 : 90;
-  ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
+  ctx.font = `bold 36px ${FONT_HEADING}`;
   ctx.fillStyle = BRAND_ACCENT;
   ctx.textAlign = 'left';
   ctx.fillText('AutaMedica', pad, logoY);
@@ -107,7 +115,7 @@ async function drawCard(
 
   // Category badge
   const badgeY = sepY + 50;
-  ctx.font = 'bold 24px system-ui, -apple-system, sans-serif';
+  ctx.font = `bold 24px ${FONT_BODY}`;
   ctx.fillStyle = BRAND_ACCENT;
   const catMetrics = ctx.measureText(props.category.toUpperCase());
   const badgePadX = 16;
@@ -118,13 +126,13 @@ async function drawCard(
   ctx.roundRect(pad, badgeY - badgeH + badgePadY, catMetrics.width + badgePadX * 2, badgeH + badgePadY, 6);
   ctx.fill();
   ctx.fillStyle = BRAND_ACCENT;
-  ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+  ctx.font = `bold 22px ${FONT_BODY}`;
   ctx.fillText(props.category.toUpperCase(), pad + badgePadX, badgeY);
 
   // Title
   const titleY = badgeY + 60;
   const titleSize = isStories ? 64 : 54;
-  ctx.font = `bold ${titleSize}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `bold ${titleSize}px ${FONT_HEADING}`;
   ctx.fillStyle = TEXT_PRIMARY;
   ctx.textAlign = 'left';
   const titleLines = wrapText(ctx, props.title, contentWidth, isStories ? 6 : 4);
@@ -137,7 +145,7 @@ async function drawCard(
   // Description
   const descY = y + 30;
   const descSize = isStories ? 32 : 28;
-  ctx.font = `${descSize}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `${descSize}px ${FONT_BODY}`;
   ctx.fillStyle = TEXT_SECONDARY;
   const descLines = wrapText(ctx, props.description, contentWidth, isStories ? 4 : 3);
   y = descY;
@@ -159,7 +167,7 @@ async function drawCard(
 
   // URL below QR
   const urlY = qrY + qrSize + 36;
-  ctx.font = '24px system-ui, -apple-system, sans-serif';
+  ctx.font = `24px ${FONT_BODY}`;
   ctx.fillStyle = TEXT_TERTIARY;
   ctx.textAlign = 'center';
   const shortUrl = props.url.replace(/^https?:\/\//, '');
@@ -167,12 +175,12 @@ async function drawCard(
 
   // Author
   const authorY = urlY + 50;
-  ctx.font = '26px system-ui, -apple-system, sans-serif';
+  ctx.font = `26px ${FONT_BODY}`;
   ctx.fillStyle = TEXT_SECONDARY;
   ctx.fillText(props.author, width / 2, authorY);
 
   // Bottom branding
-  ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
+  ctx.font = `bold 28px ${FONT_HEADING}`;
   ctx.fillStyle = BRAND_ACCENT;
   ctx.textAlign = 'center';
   ctx.fillText('autamedica.com', width / 2, height - 60);
