@@ -22,8 +22,8 @@ function json(data: unknown, status = 200) {
   })
 }
 
-/** In-memory rate limit: 3 live sessions per patient per hour */
-const LIVE_LIMIT = 3
+/** In-memory rate limit: 100 live sessions per patient per hour (increased for testing) */
+const LIVE_LIMIT = 100
 const RATE_WINDOW_MS = 3_600_000
 const liveRateMap = new Map<string, { count: number; resetAt: number }>()
 

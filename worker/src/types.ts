@@ -29,6 +29,7 @@ export interface GeminiLivePatientContext {
   name: string | null
   age: number | null
   completedSections: string[]
+  sectionData?: Record<string, Record<string, unknown>>
 }
 
 export interface GeminiLiveSessionConfig {

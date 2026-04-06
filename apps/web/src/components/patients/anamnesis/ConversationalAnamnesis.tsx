@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, forwardRef } from 'react'
 import { ArrowLeft, Check, Loader2, MessageCircle, Sparkles, Send, Mic } from 'lucide-react'
 import { useConversationalAnamnesis } from '@/hooks/patients/useConversationalAnamnesis'
 import { useAnamnesisGuidance } from '@/hooks/patients/useAnamnesisGuidance'
@@ -535,8 +535,6 @@ export function ConversationalAnamnesis({
 }
 
 // --- AI Question Component ---
-
-import { forwardRef } from 'react'
 
 interface AiQuestionViewProps {
   question: AiQuestion

@@ -116,7 +116,7 @@ export function VoiceAnamnesis({
   const [relayOpeningTurnCount, setRelayOpeningTurnCount] = useState(0)
   const [extractedFields, setExtractedFields] = useState<Record<string, string> | null>(null)
   const [summaryText, setSummaryText] = useState('')
-  const [vadThreshold, setVadThreshold] = useState(0.02)
+  const [vadThreshold, setVadThreshold] = useState(0.005)
 
   const vadActiveRef = useRef(false)
   const lastAudioTimeRef = useRef<number>(0)
@@ -187,8 +187,16 @@ export function VoiceAnamnesis({
 
   useEffect(() => { return () => cleanup() }, [cleanup])
 
-  const addEntry = useCallback((role: 'user' | 'assistant', text: string) => {
-    setTranscript(prev => [...prev, { role, text, timestamp: Date.now() }])
+  const addEntry = useCallback((role: 'user' | 'assistant', text: unknown) => {
+    let resolvedText = '';
+    if (typeof text === 'string') {
+      resolvedText = text;
+    } else if (text && typeof text === 'object' && 'text' in text) {
+      resolvedText = String(text.text);
+    } else {
+      resolvedText = String(text);
+    }
+    setTranscript(prev => [...prev, { role, text: resolvedText, timestamp: Date.now() }])
   }, [])
 
   const playAudio = useCallback((data: Float32Array) => {
@@ -221,6 +229,17 @@ export function VoiceAnamnesis({
     setState('connecting')
     setError(null)
 
+    // Bypass Autoplay Policy: Initialize AudioContext synchronously attached to the user gesture
+    let ctx = audioCtxRef.current
+    if (!ctx || ctx.state === 'closed') {
+      const AudioContextCtor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      ctx = new AudioContextCtor({ sampleRate: 16000 })
+      audioCtxRef.current = ctx
+    }
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {})
+    }
+
     if (forceRelay) {
       await startRelayModeRef.current()
       return
@@ -230,7 +249,13 @@ export function VoiceAnamnesis({
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true },
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       })
       mediaStreamRef.current = stream
     } catch {
@@ -265,9 +290,15 @@ export function VoiceAnamnesis({
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'session_config', data: tokenData.sessionConfig }))
         }
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
           try {
-            const msg = JSON.parse(event.data)
+            let textData = event.data;
+            if (textData instanceof Blob) {
+              textData = await textData.text();
+            } else if (textData instanceof ArrayBuffer) {
+              textData = new TextDecoder().decode(textData);
+            }
+            const msg = JSON.parse(textData)
             if (msg.type === 'connected') { clearTimeout(timeout); resolve(); return }
             if (msg.type === 'error') { clearTimeout(timeout); reject(new Error(msg.data || 'WS error')); return }
           } catch { /* ignore parse errors during setup */ }
@@ -276,12 +307,13 @@ export function VoiceAnamnesis({
       })
 
       // Step 4: WS connected — setup audio pipeline
-      const ctx = new AudioContext({ sampleRate: 16000 })
-      audioCtxRef.current = ctx
-      const source = ctx.createMediaStreamSource(stream)
+      // `ctx` was already synchronously created/resumed at the top of this function
+      if (!ctx) throw new Error('AudioContext not initialized')
+      const audioCtx = ctx
+      const source = audioCtx.createMediaStreamSource(stream)
       
-      await ctx.audioWorklet.addModule('/vad-processor.js')
-      const vadNode = new AudioWorkletNode(ctx, 'vad-processor')
+      await audioCtx.audioWorklet.addModule('/vad-processor.js')
+      const vadNode = new AudioWorkletNode(audioCtx, 'vad-processor')
 
       vadNode.port.onmessage = (event: MessageEvent<{ rms: number; buffer: Float32Array }>) => {
         const { rms, buffer: inputData } = event.data
@@ -301,22 +333,55 @@ export function VoiceAnamnesis({
         }
 
         if (wsRef.current?.readyState === WebSocket.OPEN && (isSpeaking || vadActiveRef.current)) {
-          const resampled = resample(inputData, ctx.sampleRate, 16000)
+          const resampled = resample(inputData, audioCtx.sampleRate, 16000)
+          // Updated Gemini Multimodal Live API schema for v1alpha/v1beta
           wsRef.current.send(JSON.stringify({
             realtimeInput: {
-              mediaChunks: [{ data: float32ToBase64Pcm16(resampled), mimeType: 'audio/pcm;rate=16000' }],
+              audio: {
+                mimeType: 'audio/pcm;rate=16000',
+                data: float32ToBase64Pcm16(resampled)
+              }
             },
           }))
         }
       }
       
-      source.connect(vadNode)
-      vadNode.connect(ctx.destination)
+      // Audio processing chain: clean signal before VAD
+      // 1. High-pass filter — eliminates room rumble (<85Hz: AC, traffic, fans)
+      const highpass = audioCtx.createBiquadFilter()
+      highpass.type = 'highpass'
+      highpass.frequency.value = 85
+      highpass.Q.value = 0.7
+
+      // 2. Compressor — normalizes inconsistent mic levels and peaks
+      const compressor = audioCtx.createDynamicsCompressor()
+      compressor.threshold.value = -30
+      compressor.knee.value = 20
+      compressor.ratio.value = 4
+      compressor.attack.value = 0.003
+      compressor.release.value = 0.15
+
+      // 3. Makeup gain — compensate compression
+      const makeupGain = audioCtx.createGain()
+      makeupGain.gain.value = 1.4
+
+      // Chain: source → highpass → compressor → gain → VAD → destination
+      source.connect(highpass)
+      highpass.connect(compressor)
+      compressor.connect(makeupGain)
+      makeupGain.connect(vadNode)
+      vadNode.connect(audioCtx.destination)
 
       // Step 5: Handle Gemini Live responses
-      ws.onmessage = (event) => {
+      ws.onmessage = async (event) => {
         try {
-          const msg = JSON.parse(event.data) as {
+          let textData = event.data;
+          if (textData instanceof Blob) {
+            textData = await textData.text();
+          } else if (textData instanceof ArrayBuffer) {
+            textData = new TextDecoder().decode(textData);
+          }
+          const msg = JSON.parse(textData) as {
             type?: string
             data?: unknown
             serverContent?: {

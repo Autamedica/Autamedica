@@ -17,9 +17,9 @@ import type {
 } from './types'
 
 const GEMINI_MODEL = 'models/gemini-3.1-flash-live-preview'
-const GEMINI_WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent'
+const GEMINI_WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent'
 const MAX_SESSION_DURATION_MS = 10 * 60 * 1000 // 10 min
-const MAX_MESSAGES = 500 // safety cap
+const MAX_MESSAGES = 100000 // Increased safety cap for high-frequency audio chunk streaming
 const SESSION_CONFIG_TIMEOUT_MS = 1_500
 
 const DEFAULT_SESSION_CONFIG: GeminiLiveSessionConfig = {
@@ -30,49 +30,128 @@ const DEFAULT_SESSION_CONFIG: GeminiLiveSessionConfig = {
   maxModelTurns: 8,
 }
 
+/** Human-readable labels for section field IDs */
+const FIELD_LABELS: Record<string, string> = {
+  sintoma_principal: 'Síntoma principal',
+  cuando_empezo: 'Inicio',
+  intensidad_sintoma: 'Intensidad',
+  frecuencia: 'Frecuencia',
+  enfermedades_cronicas: 'Enfermedades crónicas',
+  cirugias: 'Cirugías',
+  internaciones: 'Internaciones',
+  lista_medicamentos: 'Medicamentos',
+  lista_alergias: 'Alergias',
+  padre_vive: 'Padre vivo',
+  madre_vive: 'Madre vivo',
+  enfermedades_familiares: 'Enfermedades familiares',
+  tabaco: 'Tabaco',
+  alcohol: 'Alcohol',
+  ejercicio: 'Ejercicio',
+  horas_sueno: 'Horas de sueño',
+  ocupacion_actual: 'Ocupación',
+  dolor_pecho: 'Dolor de pecho',
+  disnea: 'Dificultad respiratoria',
+  tos: 'Tos',
+  nauseas: 'Náuseas',
+  dolor_abdominal: 'Dolor abdominal',
+  disuria: 'Dolor al orinar',
+}
+
+function formatSectionData(data: Record<string, unknown>): string {
+  const lines: string[] = []
+  for (const [key, value] of Object.entries(data)) {
+    if (value == null || value === '' || value === false) continue
+    const label = FIELD_LABELS[key] ?? key.replace(/_/g, ' ')
+    const display = value === true ? 'Sí'
+      : Array.isArray(value) ? (value as string[]).filter(Boolean).join(', ') || 'Ninguno'
+      : String(value)
+    lines.push(`  ${label}: ${display}`)
+  }
+  return lines.join('\n')
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  edad: 'Datos demográficos',
+  ocupacion: 'Ocupación',
+  motivo_consulta: 'Motivo de consulta',
+  enfermedades_previas: 'Antecedentes personales',
+  medicamentos: 'Medicación',
+  alergias: 'Alergias',
+  antecedentes_familiares: 'Antecedentes familiares',
+  habitos: 'Hábitos',
+  cardiovascular: 'Sistema cardiovascular',
+  respiratorio: 'Sistema respiratorio',
+  digestivo: 'Sistema digestivo',
+  genitourinario: 'Sistema genitourinario',
+  resumen_final: 'Resumen',
+}
+
 function formatPatientContext(patient: GeminiLivePatientContext): string {
-  const details: string[] = []
-  if (patient.name) {
-    details.push(`- Nombre: ${patient.name}`)
-  }
-  if (typeof patient.age === 'number') {
-    details.push(`- Edad: ${patient.age} años`)
-  }
-  if (patient.completedSections.length > 0) {
-    details.push(`- Secciones ya registradas: ${patient.completedSections.join(', ')}`)
+  const header: string[] = []
+  if (patient.name) header.push(`Nombre: ${patient.name}`)
+  if (typeof patient.age === 'number') header.push(`Edad: ${patient.age} años`)
+
+  const sectionBlocks: string[] = []
+  if (patient.sectionData && Object.keys(patient.sectionData).length > 0) {
+    for (const [sectionId, data] of Object.entries(patient.sectionData)) {
+      const label = SECTION_LABELS[sectionId] ?? sectionId
+      const formatted = formatSectionData(data)
+      if (formatted) {
+        sectionBlocks.push(`[${label}]\n${formatted}`)
+      }
+    }
   }
 
-  if (details.length === 0) {
-    return ''
-  }
+  if (header.length === 0 && sectionBlocks.length === 0) return ''
 
-  return `\nCONTEXTO DEL PACIENTE:\n${details.join('\n')}\n`
+  return `
+HISTORIA CLÍNICA DEL PACIENTE (datos ya registrados):
+${header.join(' | ')}
+${sectionBlocks.length > 0 ? '\n' + sectionBlocks.join('\n\n') : '(sin datos previos)'}
+`
 }
 
 function buildGeneralSystemInstruction(config: GeminiLiveSessionConfig): string {
-  return `Sos un médico residente de AutaMedica realizando una anamnesis estructurada por voz.
+  const hasData = config.patient.sectionData && Object.keys(config.patient.sectionData).length > 0
+  const maxTurns = config.maxModelTurns || 5
+
+  return `Sos un médico residente de AutaMedica. Estás haciendo una consulta de anamnesis por voz con un paciente real.
+
 ${formatPatientContext(config.patient)}
-PROTOCOLO — Seguí este orden EXACTO, un bloque por mensaje:
 
-BLOQUE 1 — Motivo de consulta: preguntá qué le pasa y desde cuándo.
-BLOQUE 2 — Enfermedad actual: temporalidad, intensidad (1-10), factores agravantes y atenuantes.
-BLOQUE 3 — Antecedentes personales: enfermedades previas, cirugías, internaciones.
-BLOQUE 4 — Medicación actual: qué toma, dosis si la sabe.
-BLOQUE 5 — Alergias: medicamentos, alimentos, otros.
-BLOQUE 6 — Hábitos: tabaco, alcohol, ejercicio, sueño (todo en una pregunta).
-BLOQUE 7 — Revisión por sistemas: según el motivo, 1-2 síntomas asociados.
-BLOQUE 8 — Cierre: resumen de 3-4 líneas confirmando lo registrado.
+${hasData ? `YA TENÉS los datos del paciente arriba. NO repitas preguntas sobre lo que ya sabés. Usá esa información para hacer preguntas CLÍNICAS de seguimiento.` : `El paciente es nuevo. Empezá preguntando qué le pasa.`}
 
-REGLAS:
-- UNA pregunta por mensaje, corta y directa
-- Español argentino informal (voseo), tono cálido
-- Hablá SIEMPRE en segunda persona dirigiéndote al paciente (vos tenés, no el paciente tiene)
-- NUNCA hables del paciente en tercera persona
-- Si el paciente ya dio información de un bloque, saltalo
-- Banderas rojas (dolor de pecho, dificultad respiratoria, pérdida de consciencia): mencionalo con calma
-- NO diagnostiques ni sugieras tratamientos
-- NO uses abreviaturas médicas (decí tensión arterial, no TA)
-- Después del BLOQUE 8, despedite brevemente`
+PROTOCOLO DE CONSULTA — Máximo ${maxTurns} intervenciones tuyas:
+
+TURNO 1 — SALUDO + APERTURA:
+Saludá brevemente. ${hasData ? 'Mencioná que ya leíste su historia y preguntá directamente sobre lo más relevante (ej: si tiene dolor de cabeza, preguntá cómo está hoy).' : 'Preguntá qué lo trae hoy.'}
+
+TURNO 2 — EXPLORACIÓN CLÍNICA:
+Basándote en lo que dijo el paciente (y los datos previos si los hay), hacé UNA pregunta clínica enfocada:
+- Si hay dolor: localización, irradiación, intensidad, agravantes, atenuantes
+- Si hay síntomas: temporalidad, patrón, impacto en la vida diaria
+- Correlacioná con los antecedentes si hay (ej: si toma ibuprofeno y tiene gastritis, preguntá por eso)
+
+TURNO 3 — INTERROGATORIO DIRIGIDO:
+Preguntá sobre lo que FALTA para armar un cuadro clínico completo:
+- Medicación actual y si la está tomando correctamente
+- Alergias que no haya mencionado
+- Algún antecedente familiar relevante al motivo de consulta
+
+TURNO 4 — PRECISAR:
+Confirmá o refiná lo más importante de lo que dijo. Una pregunta corta para cerrar un cabo suelto clínico.
+
+TURNO 5 — CIERRE:
+Hacé un resumen breve de lo que registraste (2-3 oraciones), agradecé y despedite.
+
+REGLAS INQUEBRANTABLES:
+- Español argentino informal (voseo). Tono cálido, profesional, directo.
+- Hablá SIEMPRE en segunda persona (vos tenés, vos dijiste).
+- NUNCA repitas información que ya tenés de la historia clínica.
+- UNA pregunta por turno, máximo 25 palabras.
+- NO diagnostiques. NO sugieras tratamiento. NO uses jerga médica.
+- Si detectás una bandera roja (dolor de pecho, disnea, pérdida de consciencia), mencionalo con calma y sugerí consulta urgente.
+- Máximo ${maxTurns} intervenciones tuyas. No estirés la conversación.`
 }
 
 function buildGuidedCheckpointInstruction(config: GeminiLiveSessionConfig): string {
@@ -82,32 +161,31 @@ function buildGuidedCheckpointInstruction(config: GeminiLiveSessionConfig): stri
     : '- Pedí una aclaración clínica puntual.'
   const gaps = config.coverageGaps.length > 0 ? config.coverageGaps.join(', ') : 'sin especificar'
 
-  return `Sos un médico residente de AutaMedica realizando una ACLARACION POR VOZ sobre una anamnesis ya iniciada.
+  return `Sos un médico residente de AutaMedica. Estás haciendo una ACLARACIÓN BREVE por voz sobre una anamnesis ya registrada.
+
 ${formatPatientContext(config.patient)}
-CHECKPOINT ACTUAL: ${checkpointLabel}
-RESUMEN DE COBERTURA: ${config.coverageSummary ?? 'Sin resumen'}
-AREAS CON DATOS FALTANTES: ${gaps}
-PREGUNTAS PRIORITARIAS:
+
+CHECKPOINT: ${checkpointLabel}
+COBERTURA: ${config.coverageSummary ?? 'Sin resumen'}
+DATOS FALTANTES: ${gaps}
+PREGUNTAS A RESOLVER:
 ${questions}
 
-OBJETIVO:
-- Pedí aclaraciones breves solo sobre lo que falta.
-- Hacé UNA sola pregunta por turno.
-- Si el paciente ya respondió algo prioritario, pasá a lo siguiente sin repetir.
-- Máximo ${config.maxModelTurns} preguntas del modelo antes del cierre.
+PROTOCOLO — Máximo ${config.maxModelTurns} intervenciones:
+
+TURNO 1: Saludá brevemente, mencioná que ya tenés sus datos y que necesitás aclarar algo puntual.
+TURNOS 2-${config.maxModelTurns - 1}: UNA pregunta por turno, directa, basada en las PREGUNTAS A RESOLVER de arriba. Correlacioná con los datos que ya tenés.
+TURNO ${config.maxModelTurns}: Resumí lo aclarado y llamá a la función complete_checkpoint.
 
 REGLAS:
-- Español argentino informal (voseo), tono cálido y profesional.
-- Hablá SIEMPRE en segunda persona.
-- Máximo 18 palabras o 160 caracteres por turno cuando preguntes.
-- No abras bloques nuevos ni hagas una anamnesis completa desde cero.
-- No diagnostiques ni sugieras tratamientos.
-- No uses abreviaturas médicas.
+- Español argentino informal (voseo), tono cálido.
+- Máximo 20 palabras por pregunta.
+- NUNCA repitas lo que ya sabés de la historia clínica.
+- NO diagnostiques. NO sugieras tratamiento.
 
-FINALIZACIÓN OBLIGATORIA:
-Cuando ya tengas suficiente información o agotes las preguntas prioritarias:
-1. Llamá a la función complete_checkpoint pasándole un breve resumen de lo que acabás de aclarar.
-2. NO hagas más preguntas ni hables después de llamar a la función.`
+FINALIZACIÓN:
+Cuando tengas la info o agotes las preguntas: llamá complete_checkpoint con un resumen breve.
+NO hables más después de llamar a la función.`
 }
 
 function buildSystemInstruction(config: GeminiLiveSessionConfig): string {
@@ -143,6 +221,9 @@ function parseSessionConfigMessage(raw: string): GeminiLiveSessionConfig | null 
         completedSections: Array.isArray(data.patient.completedSections)
           ? data.patient.completedSections.filter((value): value is string => typeof value === 'string')
           : [],
+        sectionData: data.patient.sectionData && typeof data.patient.sectionData === 'object'
+          ? data.patient.sectionData as Record<string, Record<string, unknown>>
+          : undefined,
       },
       guidanceQuestions: Array.isArray(data.guidanceQuestions)
         ? data.guidanceQuestions.filter((value): value is string => typeof value === 'string')
@@ -200,8 +281,18 @@ export class GeminiLiveRoom implements DurableObject {
     // Accept client WebSocket
     const pair = new WebSocketPair()
     const [client, server] = Object.values(pair)
-    this.state.acceptWebSocket(server, ['gemini-live'])
+    server.accept()
     this.clientWs = server
+
+    server.addEventListener('message', async (event) => {
+      await this.webSocketMessage(server, event.data)
+    })
+    server.addEventListener('close', async () => {
+      await this.webSocketClose()
+    })
+    server.addEventListener('error', async () => {
+      await this.webSocketError()
+    })
 
     // Connect to Gemini Live API (outbound WebSocket from DO)
     // NOTE: Cloudflare Workers cannot use fetch() with wss:// URLs.
@@ -226,17 +317,19 @@ export class GeminiLiveRoom implements DurableObject {
 
       this.geminiWs = geminiWs
 
-      // Gemini → Client relay
+      // Gemini → Client relay (pure relay, no server-side nudge)
       this.geminiWs.addEventListener('message', (event) => {
         if (this.clientWs) {
           try {
-            this.clientWs.send(typeof event.data === 'string' ? event.data : event.data)
+            this.clientWs.send(event.data)
           } catch { /* client disconnected */ }
         }
       })
 
-      this.geminiWs.addEventListener('close', () => {
-        this.sendToClient({ type: 'session-end', data: 'AI session ended' })
+      this.geminiWs.addEventListener('close', (event) => {
+        const closeInfo = `code=${event.code} reason=${event.reason || 'none'} wasClean=${event.wasClean}`
+        console.log('[GeminiLive] Gemini WS closed:', closeInfo)
+        this.sendToClient({ type: 'session-end', data: `AI session ended (${closeInfo})` })
         this.cleanup()
       })
 
@@ -362,6 +455,7 @@ export class GeminiLiveRoom implements DurableObject {
 
     this.geminiWs.send(JSON.stringify(setupMsg))
     this.setupSent = true
+    
     this.sendToClient({
       type: 'connected',
       data: {
