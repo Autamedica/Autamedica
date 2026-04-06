@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const canonicalUrl = 'https://www.autamedica.com/blog/cuales-son-los-3-tipos-de-telemedicina';
 const publishedTime = '2026-03-26T00:00:00Z';
@@ -301,6 +302,8 @@ const articleSchema = {
             <p class="blog-cta-desc">Teleconsulta en tiempo real, seguimiento asincrónico y monitoreo. Todo en una sola plataforma, con médicos verificados.</p>
             <a href="https://www.autamedica.com" class="seo-btn-primary">Consultar ahora</a>
           </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/cuales-son-los-3-tipos-de-telemedicina`} />
 
           <div class="blog-related">
             <h3>Artículos relacionados</h3>

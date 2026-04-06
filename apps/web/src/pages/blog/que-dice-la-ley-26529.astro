@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: '¿Qué dice la ley 26529?',
@@ -173,6 +174,8 @@ const article = {
             <p class="blog-cta-desc">Consentimiento informado digital, historia clínica accesible y confidencialidad garantizada.</p>
             <a href="https://www.autamedica.com" class="seo-btn-primary">Consultar ahora</a>
           </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/que-dice-la-ley-26529`} />
 
           <div class="blog-related">
             <h3>Artículos relacionados</h3>
