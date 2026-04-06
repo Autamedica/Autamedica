@@ -15,8 +15,11 @@ export {
 // Conflict detection
 export {
   checkConflict,
+  checkConflictWithOverbook,
   findNextAvailable,
 } from './conflicts';
+
+export type { ConflictResult } from './conflicts';
 
 // Waitlist management
 export {

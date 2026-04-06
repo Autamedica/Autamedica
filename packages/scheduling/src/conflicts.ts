@@ -3,13 +3,25 @@
  *
  * Complementa el trigger de DB check_appointment_conflict() con validación client-side
  * para UX inmediata antes de intentar el INSERT.
+ *
+ * Soporta overbooking: si todas las citas en conflicto tienen alta probabilidad de no-show,
+ * el conflicto se considera "soft" y se permite la reserva.
  */
 
+import { logger } from '@autamedica/shared';
 import type { SupabaseLike } from './supabase';
+import { predictNoShowProbability } from './noshow-predictor';
+
+const OVERBOOKING_THRESHOLD = 0.3;
+
+export interface ConflictResult {
+  hasConflict: boolean;
+  overbookAllowed: boolean;
+}
 
 /**
  * Verifica si hay conflicto con una cita existente para un doctor en un rango de tiempo.
- * Retorna true si HAY conflicto (el slot NO está disponible).
+ * Retorna true si HAY conflicto real (el slot NO está disponible y no es overbookable).
  */
 export async function checkConflict(
   supabase: SupabaseLike,
@@ -17,17 +29,54 @@ export async function checkConflict(
   startTime: string,
   endTime: string,
 ): Promise<boolean> {
+  const result = await checkConflictWithOverbook(supabase, doctorId, startTime, endTime);
+  return result.hasConflict && !result.overbookAllowed;
+}
+
+/**
+ * Verifica conflicto con detalle de overbooking.
+ * Permite que el caller distinga entre conflicto duro y overbookable.
+ */
+export async function checkConflictWithOverbook(
+  supabase: SupabaseLike,
+  doctorId: string,
+  startTime: string,
+  endTime: string,
+): Promise<ConflictResult> {
   const { data, error } = await supabase
     .from('appointments')
-    .select('id')
+    .select('id, patient_id, start_time')
     .eq('doctor_id', doctorId)
     .not('status', 'in', '("cancelled","no_show")')
     .lt('start_time', endTime)
-    .gt('end_time', startTime)
-    .limit(1);
+    .gt('end_time', startTime);
 
   if (error) throw new Error(`Error checking conflict: ${error.message}`);
-  return (data?.length ?? 0) > 0;
+
+  if (!data || data.length === 0) {
+    return { hasConflict: false, overbookAllowed: false };
+  }
+
+  // Check if all conflicting appointments have high no-show risk
+  const predictions = await Promise.all(
+    data.map(async (appt: { id: string; patient_id: string; start_time: string }) => {
+      const dt = new Date(appt.start_time);
+      return predictNoShowProbability(
+        supabase, appt.patient_id, doctorId, dt.getDay(), dt.getHours(),
+      );
+    }),
+  );
+
+  const allHighRisk = predictions.every((p) => p.probability > OVERBOOKING_THRESHOLD);
+
+  if (allHighRisk) {
+    logger.info(
+      `[scheduling] Overbooking permitido: doctor=${doctorId} slot=${startTime} — ` +
+      `${data.length} cita(s) en conflicto con alta probabilidad de no-show`,
+    );
+  }
+
+  return { hasConflict: true, overbookAllowed: allHighRisk };
 }
 
 /**
