@@ -3,7 +3,7 @@
  * Manages screening recommendations, scheduling, and completion.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database, ScreeningRecommendation, ScreeningFrequencyType } from '@autamedica/types'
+import type { Database, ScreeningRecommendation, ScreeningFrequencyType, PreventiveScreening, ISODateString } from '@autamedica/types'
 import { isScreeningApplicable, calculateNextDueDate, calculateAge } from '@autamedica/types'
 import { logger } from '@autamedica/shared'
 import { preventiveScreeningsRepo } from '@/lib/patients/lib/repos/preventive-screenings.repo'
@@ -37,14 +37,15 @@ export const preventiveScreeningsService = {
       return []
     }
 
-    const age = calculateAge(new Date(patientData.birth_date))
+    const age = calculateAge(patientData.birth_date as ISODateString)
     const gender = patientData.gender as 'male' | 'female'
     const assignedIds = new Set(existing.map((s: { screening_id: string }) => s.screening_id))
 
     const recommendations: ScreeningRecommendation[] = []
 
-    for (const screening of catalog) {
-      if (assignedIds.has(screening.id)) continue
+    for (const row of catalog) {
+      if (assignedIds.has(row.id)) continue
+      const screening = row as unknown as PreventiveScreening
       if (!isScreeningApplicable(screening, age, gender)) continue
 
       recommendations.push({

@@ -22,7 +22,7 @@ export const PATCH: APIRoute = async ({ request, locals, params }) => {
 
     const result = action === 'complete'
       ? await preventiveScreeningsService.completeScreening(admin, context.patientId, screeningId, body.resultSummary)
-      : await preventiveScreeningsService.cancelScreening(admin, context.patientId, screeningId)
+      : await preventiveScreeningsService.cancelScreening(admin, screeningId)
 
     return jsonOk(result)
   } catch (err) {

@@ -13,11 +13,11 @@ export default function PreventiveHealthPage() {
 
   const screeningViews = myScreenings.map((s) => ({
     id: s.id,
-    title: s.preventive_screening?.name ?? 'Control médico',
-    description: s.preventive_screening?.description ?? '',
-    recommended_frequency: s.preventive_screening?.recommended_frequency ?? '',
+    title: s.screening?.name ?? 'Control médico',
+    description: s.screening?.description ?? '',
+    recommended_frequency: s.screening?.recommended_frequency ?? '',
     status: (s.status === 'completed' ? 'up_to_date' : s.status === 'scheduled' ? 'due_soon' : 'overdue') as 'overdue' | 'due_soon' | 'up_to_date',
-    priority: s.preventive_screening?.is_mandatory ? 'high' as const : 'medium' as const,
+    priority: s.screening?.is_mandatory ? 'high' as const : 'medium' as const,
     last_done_date: s.completed_date ?? undefined,
     next_due_date: s.next_due_date ?? new Date().toISOString(),
   }))
