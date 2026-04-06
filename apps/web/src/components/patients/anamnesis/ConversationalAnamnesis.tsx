@@ -235,8 +235,13 @@ export function ConversationalAnamnesis({
       await persistCurrentState()
       hasDirtyAnswers.current = false
       setPendingCheckpoint('final')
-      await triggerExtraction('final')
-      setShowVoiceCheckpoint('final')
+      const result = await triggerExtraction('final')
+      if (result?.hasCritical) {
+        setShowClarification(true)
+        return
+      }
+      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>)
+      setShowSmartBooking(true)
     }
   }, [answerQuestion, shouldCheckpoint, isLast, persistCurrentState, triggerExtraction, updateAnamnesis, onComplete])
 
