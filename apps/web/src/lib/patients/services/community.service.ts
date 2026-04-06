@@ -48,7 +48,7 @@ function resolveCommunityActor(context: PatientCommunityContext): {
   actorId: string;
   actorIds: string[];
 } {
-  const actorId = context.userId;
+  const actorId = context.patientId;
   const actorIds = Array.from(new Set([context.userId, context.patientId].filter(Boolean)));
 
   return { actorId, actorIds };
