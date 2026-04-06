@@ -116,7 +116,7 @@ export function VoiceAnamnesis({
   const [relayOpeningTurnCount, setRelayOpeningTurnCount] = useState(0)
   const [extractedFields, setExtractedFields] = useState<Record<string, string> | null>(null)
   const [summaryText, setSummaryText] = useState('')
-  const [vadThreshold, setVadThreshold] = useState(0.005)
+  const [vadThreshold, setVadThreshold] = useState(0.015)
 
   const vadActiveRef = useRef(false)
   const lastAudioTimeRef = useRef<number>(0)
@@ -346,66 +346,73 @@ export function VoiceAnamnesis({
         }
       }
       
-      // ── Audio processing chain: clean signal before VAD ──
-      // Goal: only human voice (300Hz–3.5kHz) reaches Gemini.
-      // Noise (keyboard, fan, traffic, clicks) must NOT trigger barge-in.
+      // ── AGGRESSIVE audio processing chain ──
+      // ONLY human speech (300Hz–3kHz) passes. Everything else gets crushed.
 
-      // 1. High-pass — cut everything below 200Hz (room rumble, AC, bass, traffic)
+      // 1. Steep high-pass 300Hz — kills ALL low-frequency noise
+      //    Fans, AC, traffic, footsteps, room resonance = gone
       const highpass = audioCtx.createBiquadFilter()
       highpass.type = 'highpass'
-      highpass.frequency.value = 200
-      highpass.Q.value = 0.7
+      highpass.frequency.value = 300
+      highpass.Q.value = 1.0
 
-      // 2. Low-pass — cut everything above 4kHz (hiss, clicks, high-freq noise)
+      // 2. Second high-pass 300Hz (cascaded = steeper slope, -24dB/oct)
+      const highpass2 = audioCtx.createBiquadFilter()
+      highpass2.type = 'highpass'
+      highpass2.frequency.value = 300
+      highpass2.Q.value = 0.7
+
+      // 3. Steep low-pass 3kHz — kills clicks, hiss, keyboard, mouse
       const lowpass = audioCtx.createBiquadFilter()
       lowpass.type = 'lowpass'
-      lowpass.frequency.value = 4000
-      lowpass.Q.value = 0.7
+      lowpass.frequency.value = 3000
+      lowpass.Q.value = 1.0
 
-      // 3. EQ Band 1: Low shelf — attenuate 300Hz area (-6dB)
-      //    Reduces remaining low-mid rumble that passes the highpass
-      const lowShelf = audioCtx.createBiquadFilter()
-      lowShelf.type = 'lowshelf'
-      lowShelf.frequency.value = 300
-      lowShelf.gain.value = -6
+      // 4. Second low-pass 3kHz (cascaded = -24dB/oct)
+      const lowpass2 = audioCtx.createBiquadFilter()
+      lowpass2.type = 'lowpass'
+      lowpass2.frequency.value = 3000
+      lowpass2.Q.value = 0.7
 
-      // 4. EQ Band 2: Mid peaking — boost voice presence at 1.5kHz (+3dB)
-      //    Human voice fundamental + first harmonics live here
-      const midPeak = audioCtx.createBiquadFilter()
-      midPeak.type = 'peaking'
-      midPeak.frequency.value = 1500
-      midPeak.Q.value = 1.0
-      midPeak.gain.value = 3
+      // 5. EQ: Narrow voice boost at 1kHz (+6dB, Q=2)
+      //    Makes speech stand out clearly above any residual noise
+      const voiceBoost = audioCtx.createBiquadFilter()
+      voiceBoost.type = 'peaking'
+      voiceBoost.frequency.value = 1000
+      voiceBoost.Q.value = 2.0
+      voiceBoost.gain.value = 6
 
-      // 5. EQ Band 3: High shelf — attenuate above 3kHz (-4dB)
-      //    Reduces keyboard clicks, mouse sounds, paper rustling
-      const highShelf = audioCtx.createBiquadFilter()
-      highShelf.type = 'highshelf'
-      highShelf.frequency.value = 3000
-      highShelf.gain.value = -4
+      // 6. EQ: Notch at 2.5kHz (-8dB) — where keyboard clicks live
+      const clickNotch = audioCtx.createBiquadFilter()
+      clickNotch.type = 'peaking'
+      clickNotch.frequency.value = 2500
+      clickNotch.Q.value = 3.0
+      clickNotch.gain.value = -8
 
-      // 6. Compressor — tames peaks (cough, sudden noises) so they don't
-      //    spike above the VAD threshold. Preserves soft speech.
+      // 7. Hard compressor — ratio 12:1 acts as a limiter
+      //    Crushes sudden noises (cough, door, object falling)
       const compressor = audioCtx.createDynamicsCompressor()
-      compressor.threshold.value = -25
-      compressor.knee.value = 15
-      compressor.ratio.value = 6
-      compressor.attack.value = 0.002
-      compressor.release.value = 0.2
+      compressor.threshold.value = -20
+      compressor.knee.value = 5
+      compressor.ratio.value = 12
+      compressor.attack.value = 0.001
+      compressor.release.value = 0.1
 
-      // 7. Makeup gain — compensate the attenuation from EQ + compression
-      const makeupGain = audioCtx.createGain()
-      makeupGain.gain.value = 1.8
+      // 8. Noise gate via gain — silence anything below threshold
+      //    The VAD already gates, but this pre-gates the signal
+      const gateGain = audioCtx.createGain()
+      gateGain.gain.value = 2.5
 
-      // Chain: source → highpass → lowpass → EQ(3 bands) → compressor → gain → VAD
+      // Chain: source → 2x highpass → 2x lowpass → voice boost → click notch → compressor → gate/gain → VAD
       source.connect(highpass)
-      highpass.connect(lowpass)
-      lowpass.connect(lowShelf)
-      lowShelf.connect(midPeak)
-      midPeak.connect(highShelf)
-      highShelf.connect(compressor)
-      compressor.connect(makeupGain)
-      makeupGain.connect(vadNode)
+      highpass.connect(highpass2)
+      highpass2.connect(lowpass)
+      lowpass.connect(lowpass2)
+      lowpass2.connect(voiceBoost)
+      voiceBoost.connect(clickNotch)
+      clickNotch.connect(compressor)
+      compressor.connect(gateGain)
+      gateGain.connect(vadNode)
       vadNode.connect(audioCtx.destination)
 
       // Step 5: Handle Gemini Live responses
