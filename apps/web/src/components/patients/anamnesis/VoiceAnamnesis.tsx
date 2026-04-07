@@ -185,7 +185,7 @@ export function VoiceAnamnesis({
   const [vadThreshold, setVadThreshold] = useState(0.015)
   const triggerHaptic = (pattern: number | number[]) => {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate(pattern);
+      if (typeof navigator !== "undefined" && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) { console.log("Haptic blocked by browser policy"); } }
     }
   };
 
@@ -1067,7 +1067,7 @@ export function VoiceAnamnesis({
               </p>
               {showRetry && (
                 <button
-                  onClick={start}
+                  onClick={() => { triggerHaptic(10); start(); }}
                   className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50"
                 >
                   <Mic className="h-4 w-4" />
@@ -1076,7 +1076,7 @@ export function VoiceAnamnesis({
               )}
             </div>
           ) : (
-            <button onClick={start} disabled={state === 'connecting'} className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50">
+            <button onClick={() => { triggerHaptic(10); start(); }} disabled={state === 'connecting'} className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50">
               {state === 'connecting' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
               Iniciar
             </button>
