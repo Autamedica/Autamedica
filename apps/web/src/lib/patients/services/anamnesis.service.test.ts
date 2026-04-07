@@ -174,7 +174,7 @@ describe('anamnesisService', () => {
       expect(result).toBeDefined()
     })
 
-    it('clamps completion_percentage over 100 to 100', async () => {
+    it('clamps completion_percentage to 100 when it exceeds the max', async () => {
       await anamnesisService.updateMeta(fakeSupabase(), 'patient-1', {
         completionPercentage: 150,
       })
@@ -185,7 +185,7 @@ describe('anamnesisService', () => {
       )
     })
 
-    it('clamps negative completion_percentage to 0', async () => {
+    it('clamps completion_percentage to 0 when it is negative', async () => {
       await anamnesisService.updateMeta(fakeSupabase(), 'patient-1', {
         completionPercentage: -20,
       })

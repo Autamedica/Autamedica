@@ -21,6 +21,31 @@ export interface AnamnesisSectionRecord {
   updated_at?: string | null
 }
 
+export interface HistoricalContextField {
+  values: string[]
+  sourceVersionNumber: number | null
+}
+
+export interface AnamnesisHistoricalEpisode {
+  versionNumber: number
+  createdAt: string
+  chiefComplaint: string | null
+  chronicConditions: string[]
+  relatedSystems: string[]
+  relationScore: number
+  relationReasons: string[]
+  notes: string | null
+}
+
+export interface AnamnesisHistoricalContext {
+  globalContext: {
+    chronicConditions: HistoricalContextField
+    medications: HistoricalContextField
+    allergies: HistoricalContextField
+  } | null
+  relatedEpisodes: AnamnesisHistoricalEpisode[]
+}
+
 export type OccupationCategory =
   | 'student'
   | 'administrative'
@@ -158,6 +183,7 @@ export interface AnamnesisExtractionRequest {
   bodySelections: BodyMapSelection[]
   clarificationTurns?: AnamnesisClarificationTurn[]
   previousExtraction?: Record<string, unknown>
+  historicalContext?: AnamnesisHistoricalContext
 }
 
 export interface AnamnesisExtractionAlert {

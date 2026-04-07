@@ -68,6 +68,25 @@ interface LiveTokenResponse {
 
 const TOTAL_BLOCKS = 8
 const LIVE_COMPLETION_TAG = '[CHECKPOINT_COMPLETO]'
+const PLAYBACK_GUARD_MS = 350
+
+function getTranscriptionText(transcription: unknown): string | null {
+  if (!transcription) return null
+  if (typeof transcription === 'string') {
+    const text = transcription.trim()
+    return text || null
+  }
+  if (typeof transcription === 'object' && 'text' in transcription) {
+    const maybeText = (transcription as { text?: unknown }).text
+    const text = typeof maybeText === 'string' ? maybeText.trim() : String(maybeText ?? '').trim()
+    if (!text) return null
+    if ('finished' in transcription && (transcription as { finished?: boolean }).finished === false) {
+      return null
+    }
+    return text
+  }
+  return null
+}
 
 function summarizeSectionData(sectionData?: Record<string, Record<string, unknown>>): string {
   if (!sectionData || Object.keys(sectionData).length === 0) return ''
@@ -169,6 +188,7 @@ export function VoiceAnamnesis({
   const lastAudioTimeRef = useRef<number>(0)
   const activeSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set())
   const audioQueueTimeRef = useRef<number>(0)
+  const playbackGuardUntilRef = useRef<number>(0)
 
   const guidanceQuestions = useRef<string[]>([])
   const coverageGaps = useRef<string[]>([])
@@ -192,6 +212,7 @@ export function VoiceAnamnesis({
   const currentInputRef = useRef('')
   const ttsSessionRef = useRef(0)
   const ttsTimeoutRef = useRef<number | null>(null)
+  const autoStartAttemptedRef = useRef(false)
   const startSTTRef = useRef<() => void>(() => {})
   const startRelayModeRef = useRef<() => Promise<void>>(async () => {})
   const finishRef = useRef<() => void>(() => {})
@@ -266,6 +287,9 @@ export function VoiceAnamnesis({
     activeSourcesRef.current.add(src)
     src.onended = () => {
       activeSourcesRef.current.delete(src)
+      if (activeSourcesRef.current.size === 0) {
+        playbackGuardUntilRef.current = Date.now() + PLAYBACK_GUARD_MS
+      }
     }
   }, [])
 
@@ -339,7 +363,7 @@ export function VoiceAnamnesis({
           tokenPrefix: tokenData.ephemeralToken.slice(0, 15) + '...',
         })
 
-        const { GoogleGenAI, Modality } = await import('@google/genai')
+        const { GoogleGenAI, Modality, ActivityHandling, TurnCoverage } = await import('@google/genai')
         const ai = new GoogleGenAI({
           apiKey: tokenData.ephemeralToken,
           httpOptions: { apiVersion: 'v1alpha' },
@@ -354,8 +378,14 @@ export function VoiceAnamnesis({
           model: tokenData.model,
           config: {
             responseModalities: [Modality.AUDIO],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Aoede' } } },
-            systemInstruction: systemText,
+            systemInstruction: { parts: [{ text: systemText }] },
+            inputAudioTranscription: {},
+            realtimeInputConfig: {
+              // We endpoint client-side, so Gemini expects explicit activityStart/activityEnd.
+              automaticActivityDetection: { disabled: true },
+              activityHandling: ActivityHandling.START_OF_ACTIVITY_INTERRUPTS,
+              turnCoverage: TurnCoverage.TURN_INCLUDES_ONLY_ACTIVITY,
+            },
           },
           callbacks: {
             onopen() {
@@ -389,19 +419,29 @@ export function VoiceAnamnesis({
                   }
                 }
               }
-              if (msg.serverContent?.inputTranscription) {
-                addEntry('user', msg.serverContent.inputTranscription)
+              const transcriptText = getTranscriptionText(msg.serverContent?.inputTranscription)
+              if (transcriptText) {
+                addEntry('user', transcriptText)
               }
             },
             onerror(err: unknown) {
-              logger.error('[Voice] SDK Live session error', err)
+              const errDetail = err instanceof Error
+                ? { message: err.message, name: err.name, stack: err.stack?.split('\n').slice(0, 3).join(' | ') }
+                : err
+              logger.error('[Voice] SDK Live session error', errDetail)
               setError('La sesión de voz se interrumpió.')
               cleanup()
               setState('idle')
               setMode(null)
               setStarted(false)
             },
-            onclose() {
+            onclose(ev: unknown) {
+              const closeEv = ev as { code?: number; reason?: string } | undefined
+              logger.warn('[Voice] SDK Live session closed', {
+                code: closeEv?.code,
+                reason: closeEv?.reason,
+                wasCompleted: stateRef.current === 'completed',
+              })
               if (stateRef.current !== 'completed') {
                 setMode(null)
                 setStarted(false)
@@ -425,6 +465,14 @@ export function VoiceAnamnesis({
 
         vadNode.port.onmessage = (event: MessageEvent<{ rms: number; buffer: Float32Array }>) => {
           const { rms, buffer: inputData } = event.data
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const liveSession = wsRef.current as any
+          const isAssistantPlaying = activeSourcesRef.current.size > 0
+          const isPlaybackCoolingDown = Date.now() < playbackGuardUntilRef.current
+          if (isAssistantPlaying || isPlaybackCoolingDown) {
+            vadActiveRef.current = false
+            return
+          }
           const isSpeaking = rms > vadThreshold
 
           if (isSpeaking) {
@@ -432,23 +480,31 @@ export function VoiceAnamnesis({
             if (!vadActiveRef.current) {
               vadActiveRef.current = true
               stopAllAudio()
+              if (liveSession?.sendRealtimeInput) {
+                liveSession.sendRealtimeInput({ activityStart: {} })
+              }
             }
-          } else if (vadActiveRef.current && Date.now() - lastAudioTimeRef.current > 1000) {
+          } else if (vadActiveRef.current && Date.now() - lastAudioTimeRef.current > 800) {
+            // User stopped speaking — close the manual VAD turn so Gemini can respond.
             vadActiveRef.current = false
+            if (liveSession?.sendRealtimeInput) {
+              liveSession.sendRealtimeInput({ activityEnd: {} })
+            }
           }
 
-          if ((isSpeaking || vadActiveRef.current) && (wsRef.current as unknown as { sendRealtimeInput?: unknown })?.sendRealtimeInput) {
+          if ((isSpeaking || vadActiveRef.current) && liveSession?.sendRealtimeInput) {
             const resampled = resample(inputData, ctx.sampleRate, 16000)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ;(wsRef.current as any).sendRealtimeInput({ audio: { data: float32ToBase64Pcm16(resampled), mimeType: 'audio/pcm' } })
+            liveSession.sendRealtimeInput({ audio: { data: float32ToBase64Pcm16(resampled), mimeType: 'audio/pcm;rate=16000' } })
           }
         }
 
         source.connect(vadNode)
         vadNode.connect(ctx.destination)
 
-        // Send initial text to trigger Gemini's first question
-        session.sendClientContent({ turns: [{ role: 'user', parts: [{ text: 'Hola, estoy listo.' }] }], turnComplete: true })
+        // Gemini Live (constrained) does not accept clientContent — only realtimeInput audio.
+        // The model will speak first after hearing the patient's mic input.
+        // We add a UI prompt so the patient knows to start talking.
+        addEntry('assistant', 'Hola, soy el asistente de AutaMedica. Contame, ¿en qué puedo ayudarte?')
 
         setMode('live')
         setStarted(true)
@@ -502,7 +558,8 @@ export function VoiceAnamnesis({
         // Without this, the mic picks up speaker output → VAD fires →
         // sends Gemini's own voice back → Gemini interprets as barge-in → stops talking.
         const isGeminiPlaying = activeSourcesRef.current.size > 0
-        if (isGeminiPlaying) {
+        const isPlaybackCoolingDown = Date.now() < playbackGuardUntilRef.current
+        if (isGeminiPlaying || isPlaybackCoolingDown) {
           // Don't process mic input while assistant is speaking.
           // User must wait for Gemini to finish, or the barge-in threshold
           // needs to be much higher (handled below).
@@ -723,6 +780,12 @@ export function VoiceAnamnesis({
     stopAllAudio,
     vadThreshold,
   ])
+
+  useEffect(() => {
+    if (!isGuidedCheckpoint || started || autoStartAttemptedRef.current) return
+    autoStartAttemptedRef.current = true
+    void start()
+  }, [isGuidedCheckpoint, started, start])
 
   // ── TTS (relay mode only) ──
   const speakTTS = useCallback((text: string, autoListen = true) => {
@@ -972,22 +1035,46 @@ export function VoiceAnamnesis({
 
   // ══════════ PRE-START ══════════
   if (!started) {
+    const showRetry = isGuidedCheckpoint && state !== 'connecting'
     return (
       <div className="space-y-4">
         <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-100">
-            <Mic className="h-8 w-8 text-sky-600" />
+            {state === 'connecting'
+              ? <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+              : <Mic className="h-8 w-8 text-sky-600" />}
           </div>
-          <h3 className="text-lg font-bold text-stone-900 mb-2">Anamnesis por voz</h3>
+          <h3 className="text-lg font-bold text-stone-900 mb-2">
+            {isGuidedCheckpoint ? 'Preparando voz' : 'Anamnesis por voz'}
+          </h3>
           <p className="text-sm text-stone-500 mb-5">
             {isGuidedCheckpoint
-              ? 'Gemini te va a hacer preguntas puntuales sobre los datos que faltan y va a registrar tus respuestas por voz.'
+              ? 'Te vamos a hacer preguntas puntuales sobre lo pendiente y registrar tus respuestas por voz.'
               : 'Hablá naturalmente. El asistente te hace ~8 preguntas y cierra solo.'}
           </p>
-          <button onClick={start} disabled={state === 'connecting'} className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50">
-            {state === 'connecting' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
-            Iniciar
-          </button>
+          {isGuidedCheckpoint ? (
+            <div className="space-y-3">
+              <p className="text-xs text-stone-400">
+                {state === 'connecting'
+                  ? 'Activando micrófono y conexión...'
+                  : 'Si algo falla, podés volver a intentarlo.'}
+              </p>
+              {showRetry && (
+                <button
+                  onClick={start}
+                  className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50"
+                >
+                  <Mic className="h-4 w-4" />
+                  Reintentar
+                </button>
+              )}
+            </div>
+          ) : (
+            <button onClick={start} disabled={state === 'connecting'} className="mx-auto flex items-center gap-2 rounded-full bg-sky-600 px-8 py-4 text-base font-semibold text-white shadow-lg hover:bg-sky-700 disabled:opacity-50">
+              {state === 'connecting' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
+              Iniciar
+            </button>
+          )}
         </div>
         {error && <p className="text-xs text-red-500 text-center">{error}</p>}
         <button onClick={onSwitchToText} className="w-full text-center text-sm text-stone-400 underline hover:text-stone-600">
@@ -1003,7 +1090,7 @@ export function VoiceAnamnesis({
       <div className="space-y-4">
         <div className="flex items-center justify-center gap-2 text-xs text-sky-600">
           <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
-          {isGuidedCheckpoint ? 'Gemini Live — aclaración guiada en tiempo real' : 'Gemini Live — audio en tiempo real'}
+          {isGuidedCheckpoint ? 'Aclaración guiada en tiempo real' : 'Audio en tiempo real'}
         </div>
 
         {isGuidedCheckpoint && (
@@ -1031,8 +1118,8 @@ export function VoiceAnamnesis({
           </div>
           <p className="text-sm text-stone-500">
             {isGuidedCheckpoint
-              ? 'Respondé en voz alta. Gemini te escucha y te va guiando con preguntas puntuales.'
-              : 'Hablá libremente — Gemini te escucha en tiempo real'}
+              ? 'Respondé en voz alta. Te guiamos con preguntas puntuales.'
+              : 'Hablá libremente. Te escuchamos en tiempo real.'}
           </p>
           <div className="w-full max-w-xs space-y-1">
             <div className="flex justify-between text-xs text-stone-400">

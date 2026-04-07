@@ -144,9 +144,6 @@ jobs:
     name: Clinical
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Non-blocking: clinical observability tables (vital_signs, medication_logs, etc.)
-    # are not yet implemented. Re-enable as blocking when migrations land.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -158,7 +155,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages:core
-      - run: node scripts/ci/verify-clinical-observability.mjs
+      - name: Verify clinical observability (non-blocking)
+        run: |
+          if ! node scripts/ci/verify-clinical-observability.mjs; then
+            echo "::warning::Clinical observability gaps detected; check is non-blocking until the missing schema lands."
+          fi
 
   policy:
     name: Policies

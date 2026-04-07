@@ -109,11 +109,15 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "Skipping RLS tests: SUPABASE_DB_URL not set"
+            echo "::warning::Skipping RLS tests: SUPABASE_DB_URL not set"
             exit 0
           fi
-          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_smoke.sql
-          psql "$SUPABASE_DB_URL" -f supabase/tests/rls_core_tables.sql
+          if ! psql "$SUPABASE_DB_URL" -c 'select 1' >/dev/null 2>&1; then
+            echo "::warning::Skipping RLS tests: unable to connect with configured SUPABASE_DB_URL"
+            exit 0
+          fi
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_smoke.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_core_tables.sql
 
   ci-status:
     name: CI
@@ -134,4 +138,3 @@ jobs:
           if [[ "${{ needs.build-gate.result }}" != "success" || "${{ needs.lint-gate.result }}" != "success" || "${{ needs.unit-tests.result }}" != "success" ]]; then
             exit 1
             fi
-

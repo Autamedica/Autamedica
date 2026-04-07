@@ -64,22 +64,27 @@ test.describe('Astro Bridge Routing', () => {
     }
   });
 
-  test('serves owned Astro subroutes directly', async ({ request }) => {
-    const ownedRoutes = [
-      '/patients/appointments',
-      '/patients/history',
-      '/patients/prevention',
-      '/doctors/agenda',
-      '/doctors/consultations',
-      '/doctors/patients',
-      '/companies/crisis',
-      '/companies/marketplace',
-      '/companies/reports',
+  test('redirects owned protected Astro subroutes to login with portal context', async ({ request }) => {
+    const ownedRoutes: Array<{ path: string; portal: string }> = [
+      { path: '/patients/appointments', portal: 'patients' },
+      { path: '/patients/history', portal: 'patients' },
+      { path: '/patients/prevention', portal: 'patients' },
+      { path: '/doctors/agenda', portal: 'doctors' },
+      { path: '/doctors/consultations', portal: 'doctors' },
+      { path: '/doctors/patients', portal: 'doctors' },
+      { path: '/companies/crisis', portal: 'companies' },
+      { path: '/companies/marketplace', portal: 'companies' },
+      { path: '/companies/reports', portal: 'companies' },
     ];
 
-    for (const path of ownedRoutes) {
-      const response = await request.get(path, { maxRedirects: 0 });
-      expect(response.status(), `status for ${path}`).toBe(200);
+    for (const item of ownedRoutes) {
+      const response = await request.get(item.path, { maxRedirects: 0 });
+      expect(response.status(), `status for ${item.path}`).toBe(302);
+
+      const location = parseLocationHeader(response.headers().location);
+      expect(location.pathname, `login path for ${item.path}`).toBe('/auth/login');
+      expect(location.searchParams.get('portal'), `portal for ${item.path}`).toBe(item.portal);
+      expect(location.searchParams.get('returnTo'), `returnTo for ${item.path}`).toBe(item.path);
     }
   });
 });

@@ -3,6 +3,7 @@ import {
   buildClarificationTurnsFromTranscript,
   buildInitialFormData,
   hasClarificationContext,
+  resolvePostAnalysisAction,
   resolveInitialStepIndex,
   resolveNextWizardStepIndex,
   resolvePageView,
@@ -161,5 +162,24 @@ describe('buildClarificationTurnsFromTranscript', () => {
     ])).toEqual([
       { question: 'Aclaración por voz', answer: 'Me siento cansado' },
     ]);
+  });
+});
+
+describe('resolvePostAnalysisAction', () => {
+  it('opens voice clarification for partial checkpoints with follow-up', () => {
+    expect(resolvePostAnalysisAction('partial', true)).toBe('open_voice');
+  });
+
+  it('opens text clarification for final checkpoints with follow-up', () => {
+    expect(resolvePostAnalysisAction('final', true)).toBe('open_text');
+  });
+
+  it('finalizes when the final checkpoint has no follow-up', () => {
+    expect(resolvePostAnalysisAction('final', false)).toBe('finalize');
+  });
+
+  it('advances when a non-final checkpoint has no follow-up', () => {
+    expect(resolvePostAnalysisAction('partial', false)).toBe('advance');
+    expect(resolvePostAnalysisAction(null, false)).toBe('advance');
   });
 });

@@ -16,10 +16,15 @@ import {
   createAnamnesisExtractionAdapter,
   type ExtractionCheckpoint,
 } from '@/lib/patients/lib/repos/anamnesis-extraction.adapter'
+import {
+  createAnamnesisVersionsAdapter,
+  type AnamnesisVersion,
+} from '@/lib/patients/lib/repos/anamnesis-versions.adapter'
 import type {
   AnamnesisClarificationTurn,
   AnamnesisSectionRecord,
 } from '@/lib/patients/types/anamnesis-extraction'
+import { buildHistoricalContext } from '@/lib/patients/usecases/anamnesis-historical-context.usecase'
 
 type Db = SupabaseClient<Database>
 
@@ -76,6 +81,42 @@ export const anamnesisExtractionService = {
       throw new Error('AI extraction not configured -- missing API keys')
     }
 
+    let historicalContext: ReturnType<typeof buildHistoricalContext> = null
+    if (input.checkpoint === 'final') {
+      const anamnesisVersionsRepo = createAnamnesisVersionsAdapter(supabase)
+      const versions = await anamnesisVersionsRepo.listByAnamnesis(input.anamnesisId)
+        .catch((err) => {
+          logger.warn('[ExtractionService] Failed to load anamnesis versions for historical context', {
+            anamnesisId: input.anamnesisId,
+            error: err instanceof Error ? err.message : err,
+          })
+          return []
+        })
+
+      historicalContext = buildHistoricalContext({
+        currentSections: input.sections,
+        versions: versions.map((version: AnamnesisVersion) => ({
+          versionNumber: version.version_number,
+          createdAt: version.created_at,
+          notes: version.notes,
+          relevance: version.relevance,
+          sectionsSnapshot: version.sections_snapshot?.map((section: Record<string, unknown>) => ({
+            section: typeof section.section === 'string' ? section.section : '',
+            data: typeof section.data === 'object' && section.data !== null ? section.data as Record<string, unknown> : {},
+            completed: typeof section.completed === 'boolean' ? section.completed : null,
+          })),
+          extractionSnapshot: version.extraction_snapshot ?? null,
+        })),
+      })
+
+      logger.info('[ExtractionService] Historical context evaluated', {
+        anamnesisId: input.anamnesisId,
+        versionsCount: versions.length,
+        hasGlobalContext: Boolean(historicalContext?.globalContext),
+        relatedEpisodesCount: historicalContext?.relatedEpisodes.length ?? 0,
+      })
+    }
+
     const request = buildAnamnesisExtractionRequest({
       patientId: input.patientId,
       patientLabel: input.patientLabel,
@@ -85,6 +126,7 @@ export const anamnesisExtractionService = {
       clarificationTurns: input.clarificationTurns,
       modifiedSections: input.modifiedSections,
       previousExtraction: input.previousExtraction,
+      historicalContext: historicalContext ?? undefined,
     })
 
     const { providerName, modelName, result } = await executeAnamnesisExtraction(request)
