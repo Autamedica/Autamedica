@@ -57,6 +57,15 @@ jobs:
           npx playwright test tests/e2e/astro-bridge-routing.spec.ts \
             --config=tests/e2e/playwright.astro-bridge.config.ts \
             --reporter=github
+        env:
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+          PUBLIC_SIGNALING_URL: ${{ secrets.PUBLIC_SIGNALING_URL }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
+          PUBLIC_PATIENTS_URL: https://paciente.autamedica.com
+          PUBLIC_DOCTORS_URL: https://doctor.autamedica.com
+          PUBLIC_COMPANIES_URL: https://empresa.autamedica.com
+          PUBLIC_ADMIN_URL: https://autamedica-admin.pages.dev
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
