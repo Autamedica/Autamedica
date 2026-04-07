@@ -1,0 +1,284 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Propofol y Fentanilo: Por Qué los Anestésicos Matan Cuando se Usan Fuera del Quirófano',
+  author: 'Equipo AutaMedica',
+  role: 'Anestesiología',
+  date: '7 de abril, 2026',
+  readTime: '14 min',
+  image: '/images/article_mental.webp',
+  category: 'Seguridad en Salud',
+};
+---
+
+<Layout
+  title="Propofol y Fentanilo: Riesgos Reales del Uso Recreativo de Anestésicos | AutaMedica"
+  description="Análisis profundo sobre por qué los anestésicos hospitalarios (propofol, fentanilo) matan cuando se usan fuera del contexto médico. Caso Zalazar. Riesgos para profesionales de salud."
+  canonical="https://www.autamedica.com/blog/propofol-fentanilo-uso-recreativo-riesgos"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-07T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Introducción: El Caso que Desveló una Crisis Silenciosa</h2>
+            <p>
+              En febrero de 2026, el Hospital Italiano de Buenos Aires reportó la sustracción de medicamentos controlados. Semanas después, la muerte de Alejandro Zalazar, un médico de 34 años, en su departamento de Palermo, reveló una realidad incómoda: profesionales de la salud estaban usando anestésicos hospitalarios para fiestas recreativas. La autopsia confirmó sobredosis de propofol y fentanilo.
+            </p>
+            <p>
+              Este no es un artículo de escándalo. Es un análisis de por qué estos medicamentos, seguros dentro del quirófano bajo supervisión médica, matan casi instantáneamente cuando se usan sin esa supervisión. Y por qué el riesgo es mayor para quien tiene acceso a ellos.
+            </p>
+          </section>
+
+          <section>
+            <h2>¿Qué Son Propofol y Fentanilo?</h2>
+            <p>
+              <strong>Propofol (Diprivan)</strong> es el anestésico intravenoso más usado en el mundo. Actúa en segundos, induce sueño profundo, y se elimina rápido del cuerpo. En el quirófano, su acción es predecible y controlada. El paciente está intubado (con tubo respiratorio), monitoreado constantemente, y rodeado de equipo de resucitación.
+            </p>
+            <p>
+              <strong>Fentanilo</strong> es un opioide sintético 50-100 veces más potente que la morfina. En medicina, se usa para anestesia y control del dolor post-operatorio. La dosis terapéutica se mide en microgramos (millonésimas de gramo). El margen entre dosis eficaz y dosis letal es peligrosamente estrecho.
+            </p>
+            <p>
+              Cuando están juntos, el efecto es sinérgico: el propofol deprime el centro respiratorio, el fentanilo potencia esa depresión. El resultado es paro respiratorio.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por Qué Son Seguros en el Quirófano (y Letales Afuera)</h2>
+            <p>
+              La seguridad de estos medicamentos en medicina depende de una cadena de protecciones que desaparece fuera del hospital:
+            </p>
+            <ul>
+              <li><strong>Monitoreo continuo:</strong> En quirófano, hay oximetría de pulso, capnografía (medición de CO2 exhalado), ECG, tensión arterial automática. Se sabe al instante si la respiración falla.</li>
+              <li><strong>Vía aérea asegurada:</strong> El paciente está intubado. Si cae la saturación de oxígeno, se ventila manualmente o mecánicamente de inmediato.</li>
+              <li><strong>Reversores disponibles:</strong> Flumazenil (reversor de sedantes) y naloxona (reversor de opioides) están a metros de distancia.</li>
+              <li><strong>Dosis calculadas:</strong> Un anestesiólogo calcula la dosis según peso, edad, comorbilidades. No es "a ojo".</li>
+              <li><strong>Personal entrenado:</strong> En caso de complicación, hay equipo capacitado en reanimación cardiopulmonar.</li>
+            </ul>
+            <p>
+              Fuera del quirófano: no hay monitores. Si desaturan, no hay oxígeno suplementario. Si paran, no hay reanimación. La naloxona no estaba a mano en la fiesta donde Zalazar murió.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Realidad Fisiológica de la Sobredosis</h2>
+            <p>
+              Cuando propofol y fentanilo se administran intravenosos sin supervisión:
+            </p>
+            <ul>
+              <li><strong>Minuto 0-2:</strong> Pérdida de consciencia. El usuario cree que está controlado. No lo está.</li>
+              <li><strong>Minuto 2-5:</strong> Depresión respiratoria severa. La frecuencia respiratoria cae a 4-6 por minuto (normal es 12-20). El CO2 sube, la saturación de oxígeno baja.</li>
+              <li><strong>Minuto 5-10:</strong> Paro respiratorio. Los músculos respiratorios dejan de funcionar. Sin ventilación asistida, la saturación de oxígeno cae a <60% (muerte tisular comienza en <50%).</li>
+              <li><strong>Minuto 10+:</strong> Paro cardíaco. Sin oxígeno, el corazón se detiene. Sin RCP inmediata, daño cerebral irreversible en 4-6 minutos.</li>
+            </ul>
+            <p>
+              El problema: en una fiesta privada, nadie sabe RCP. Nadie tiene oxígeno. La llamada al 911 llega tarde.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por Qué los Profesionales de Salud Son Vulnerables</h2>
+            <p>
+              El caso del Hospital Italiano ilustra un patrón peligroso: los que más fácilmente acceden a estos medicamentos son los que menos están preparados para sus riesgos en contexto recreativo.
+            </p>
+            <p>
+              <strong>Falsa sensación de seguridad:</strong> Un residente o anestesiólogo sabe cómo funciona el propofol en quirófano. Cree que puede manejarlo "de forma controlada" fuera. Pero la diferencia entre "controlado" y "descontrolado" es la infraestructura, no el conocimiento.
+            </p>
+            <p>
+              <strong>Acceso facilitado:</strong> Hay documentación de cómo se sustrajeron medicamentos del Hospital Italiano. No fue un robo visible: fue un desvío gradual. Quien tiene acceso a la farmacia tiene poder. Poder es adictivo.
+            </p>
+            <p>
+              <strong>Estigma inverso:</strong> Un profesional de salud no puede admitir que usa drogas sin destruir su carrera. Así que lo esconde. Lo hace en privado. Y cuando sale mal, es tarde.
+            </p>
+            <p>
+              <strong>Tolerancia cruzada:</strong> Los profesionales médicos a menudo están expuestos a otros estresores (burnout, depresión, ansiedad no tratada). El anestésico se vuelve automedicación. La automedicación escala.
+            </p>
+          </section>
+
+          <section>
+            <h2>Las Señales de Alerta (Que a Menudo se Ignoran)</h2>
+            <p>
+              Si conocés a un profesional de salud con acceso a medicamentos, hay señales:
+            </p>
+            <ul>
+              <li><strong>Cambios en comportamiento:</strong> Aislamiento, irritabilidad, cambios de humor bruscos</li>
+              <li><strong>Ausencias no explicadas del trabajo:</strong> Permisos frecuentes, turnos cambiados</li>
+              <li><strong>Presentación personal descuidada:</strong> Ropa sucia, higiene personal abandonada</li>
+              <li><strong>Discrepancias en registros:</strong> Medicamentos no contabilizados, "dosis rotas", "errores de cálculo"</li>
+              <li><strong>Relaciones deterioradas:</strong> Problemas con colegas, conflictos con supervisores</li>
+              <li><strong>Referencias vagas a "fiestas" o "reuniones":</strong> Especialmente si incluyen la palabra "propo"</li>
+            </ul>
+            <p>
+              Ninguna de estas señales es prueba. Pero juntas, merecen conversación, no denuncia. La intervención temprana salva vidas.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Diferencia Entre Adicción y "Uso Recreativo"</h2>
+            <p>
+              El caso del Hospital Italiano fue descrito inicialmente como "fiestas con anestésicos". Eso minimiza lo que pasó.
+            </p>
+            <p>
+              Lo que pasó fue:
+            </p>
+            <ul>
+              <li>Sustracción de medicamentos controlados (delito)</li>
+              <li>Uso de sustancias potencialmente adictivas sin supervisión</li>
+              <li>Escalonamiento: de "una vez" a "Propo fest" (eventos recurrentes)</li>
+              <li>Tolerancia: necesidad de dosis mayores para el mismo efecto</li>
+              <li>Muerte por sobredosis</li>
+            </ul>
+            <p>
+              Eso no es "uso recreativo". Es adicción. Y la adicción en profesionales de salud no es debilidad moral. Es una enfermedad médica. Que mata.
+            </p>
+          </section>
+
+          <section>
+            <h2>¿Qué Dice la Evidencia Sobre la Prevención?</h2>
+            <p>
+              Estudios en profesionales de salud con trastorno por uso de sustancias muestran que:
+            </p>
+            <ul>
+              <li><strong>Screening regularizado funciona:</strong> Test de orina aleatorios en programas voluntarios detectan uso temprano</li>
+              <li><strong>Monitoreo del acceso a medicamentos:</strong> Sistemas que cuentan dosis, detectan discrepancias, previenen sustracción</li>
+              <li><strong>Acceso a tratamiento sin penalización:</strong> Los programas que ofrecen rehabilitación sin riesgo de cárcel tienen mejor adherencia</li>
+              <li><strong>Educación continuada sobre riesgos:</strong> No es predicador. Es evidencia. Funciona mejor que amenazas.</li>
+              <li><strong>Pares de apoyo:</strong> Otro profesional de salud en recuperación es más creíble que un gerente</li>
+            </ul>
+            <p>
+              El Hospital Italiano ahora enfrenta preguntas sobre por qué su sistema de control no detectó sustracción más temprano. La respuesta es que el monitoreo de medicamentos en Argentina, como en muchos lugares, es vulnerable.
+            </p>
+          </section>
+
+          <section>
+            <h2>Para Personas Cercanas a Profesionales de Salud</h2>
+            <p>
+              Si sospechas que alguien cercano a ti (médico, enfermero, técnico) está usando medicamentos de forma no prescrita:
+            </p>
+            <ol>
+              <li><strong>No ignores:</strong> El silencio es cómplice. Pero no denuncies de forma que destruya la carrera antes de intentar intervención.</li>
+              <li><strong>Busca programas específicos:</strong> Muchos colegios médicos tienen programas confidenciales de recuperación para profesionales.</li>
+              <li><strong>Si hay riesgo inmediato:</strong> No es "chismear" llamar a emergencias si ves signos de sobredosis.</li>
+              <li><strong>Habla en privado primero:</strong> Si es alguien cercano y parece temprano, una conversación honesta puede hacer diferencia.</li>
+            </ol>
+          </section>
+
+          <section>
+            <h2>La Lección de Alejandro Zalazar</h2>
+            <p>
+              No sabemos si Alejandro Zalazar quería morir. Probablemente no. Probablemente pensó que porque entendía la farmacología, podía controlarla. Probablemente no sabía que la tolerancia lo había empujado a dosis letales. Probablemente creía que "esta vez" sería igual que la anterior.
+            </p>
+            <p>
+              La sobredosis por anestésicos no genera síntomas de alerta que te permitan revertir en el último segundo. No es como una sobredosis de heroína donde hay tiempo de llama a emergencias. Propofol y fentanilo intravenosos deprimen la respiración en minutos. Si nadie está ahí, no hay salvación.
+            </p>
+            <p>
+              Lo que pasó en el Hospital Italiano no es un escándalo de un "médico con problemas". Es un fallo del sistema. Un sistema que no detectó sustracción. Un sistema que no ofreció apoyo cuando las señales estaban ahí. Un sistema que permitió que alguien con acceso a sustancias letales estuviera solo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Conclusión</h2>
+            <p>
+              Propofol y fentanilo son medicamentos esenciales y seguros cuando se usan correctamente. Pero "correctamente" significa en quirófano, monitoreado, con equipo de resucitación a mano.
+            </p>
+            <p>
+              Fuera de ese contexto, no son "drogas recreativas". Son veneno. Y para quien tiene acceso a ellos, el riesgo no es teórico. Es real. Zalazar lo descubrió demasiado tarde.
+            </p>
+            <p>
+              Si conocés a alguien en esa situación, intervén. Si sos vos, pidé ayuda. El Colegio Médico tiene programas. Existen. No estás solo.
+            </p>
+          </section>
+
+          <p style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #ddd; font-size: 0.95rem; color: #666;">
+            <strong>Nota:</strong> Este artículo está dedicado a la memoria de Alejandro Zalazar y a los profesionales de salud que luchan contra la adicción. La adicción es una enfermedad médica. Merece tratamiento, no castigo. En AutaMedica ofrecemos consultas confidenciales para profesionales de salud con preocupaciones sobre uso de sustancias.
+          </p>
+        </div>
+      </div>
+    </article>
+
+    <!-- Author Section -->
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/propofol-fentanilo-uso-recreativo-riesgos`} category={article.category} author={article.author} />
+
+    <div class="blog-author">
+      <div class="author-content">
+        <h3>Sobre el Equipo</h3>
+        <p>
+          <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de anestesiología y medicina ocupacional.
+        </p>
+      </div>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="blog-related">
+      <h3>Artículos Relacionados</h3>
+      <div class="seo-grid-3">
+        <a href="/blog/burnout-medico-argentina" class="seo-card">
+          <span class="seo-badge">Salud Ocupacional</span>
+          <h4>Burnout Médico: Realidad en Argentina</h4>
+        </a>
+        <a href="/blog/dolor-cronico-analgesicos-riesgo" class="seo-card">
+          <span class="seo-badge">Medicamentos</span>
+          <h4>Dolor Crónico y Analgésicos: El Riesgo Real</h4>
+        </a>
+        <a href="/blog/historia-clinica-digital" class="seo-card">
+          <span class="seo-badge">Tecnología</span>
+          <h4>Historia Clínica Digital</h4>
+        </a>
+      </div>
+    </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
