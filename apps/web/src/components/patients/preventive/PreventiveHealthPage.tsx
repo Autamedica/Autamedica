@@ -23,80 +23,89 @@ export default function PreventiveHealthPage() {
   }))
 
   return (
-    <div
-      className="min-h-screen pb-4"
-      style={{ background: 'var(--au-bg)', color: 'var(--au-text-primary)' }}
-    >
-      <div className="px-5 pt-8 pb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-2xl"
-            style={{ background: 'rgba(14, 165, 233, 0.12)' }}
-          >
-            <Shield className="h-5 w-5" style={{ color: 'var(--au-accent)' }} />
-          </div>
-          <h1 className="text-xl font-bold">Salud Preventiva</h1>
-        </div>
-        <p className="mt-2 text-sm" style={{ color: 'var(--au-text-tertiary)' }}>
-          Tus controles médicos recomendados y próximos estudios
-        </p>
-      </div>
-
-      <div className="px-5">
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: 'var(--au-accent)' }} />
-            <span className="ml-3 text-sm" style={{ color: 'var(--au-text-tertiary)' }}>Cargando controles...</span>
-          </div>
-        )}
-
-        {error && !isLoading && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-            {error}
-          </div>
-        )}
-
-        {!isLoading && !error && screeningViews.length === 0 && recommendations.length === 0 && (
-          <div className="rounded-xl border p-8 text-center" style={{ borderColor: 'var(--au-border)' }}>
-            <Shield className="mx-auto h-10 w-10 mb-3" style={{ color: 'var(--au-text-tertiary)' }} />
-            <p className="font-medium" style={{ color: 'var(--au-text-secondary)' }}>
-              Aún no tienes controles preventivos asignados
-            </p>
-            <p className="mt-1 text-sm" style={{ color: 'var(--au-text-tertiary)' }}>
-              Completa tu perfil para recibir recomendaciones personalizadas
+    <div className="min-h-screen bg-white pb-20 pt-4 md:pt-10">
+      <div className="mx-auto max-w-5xl px-6">
+        {/* Header Minimalista */}
+        <header className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 border border-gray-100">
+                <Shield className="h-4 w-4 text-gray-400" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
+                Salud Preventiva
+              </h1>
+            </div>
+            <p className="mt-2 text-sm font-medium text-gray-500 max-w-md">
+              Gestiona tus chequeos recomendados y mantén un seguimiento profesional de tu bienestar.
             </p>
           </div>
-        )}
+        </header>
 
-        {!isLoading && !error && (screeningViews.length > 0 || recommendations.length > 0) && (
-          <div className="space-y-8">
-            {screeningViews.length > 0 && (
-              <section>
-                <h2 className="text-sm font-semibold mb-4 opacity-70 uppercase tracking-wider">Tus controles activos</h2>
-                <PreventiveScreenings screenings={screeningViews} />
-              </section>
-            )}
+        <main>
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-800" />
+              <span className="mt-4 text-xs font-semibold uppercase tracking-widest text-gray-400">Actualizando datos</span>
+            </div>
+          )}
 
-            {recommendations.length > 0 && (
-              <section>
-                <h2 className="text-sm font-semibold mb-4 opacity-70 uppercase tracking-wider">
-                  Recomendados para tu edad y sexo
-                </h2>
-                <PreventiveScreenings
-                  screenings={recommendations.map((r) => ({
-                    id: r.screening.id,
-                    title: r.screening.name,
-                    description: r.screening.description,
-                    recommended_frequency: r.screening.recommended_frequency,
-                    status: 'due_soon' as const,
-                    priority: r.urgency,
-                    next_due_date: r.next_due_date ?? new Date().toISOString(),
-                  }))}
-                />
-              </section>
-            )}
-          </div>
-        )}
+          {error && !isLoading && (
+            <div className="rounded-2xl border border-red-100 bg-red-50/50 p-6 text-center">
+              <p className="text-sm font-semibold text-red-800">{error}</p>
+            </div>
+          )}
+
+          {!isLoading && !error && screeningViews.length === 0 && recommendations.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 py-24 text-center">
+              <div className="rounded-2xl bg-gray-50 p-4 mb-6">
+                <Shield className="h-8 w-8 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">Sin controles asignados</h3>
+              <p className="mt-2 text-sm text-gray-500 max-w-xs mx-auto">
+                Completa la información de tu perfil para generar un plan de prevención personalizado.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && !error && (screeningViews.length > 0 || recommendations.length > 0) && (
+            <div className="space-y-16">
+              {screeningViews.length > 0 && (
+                <section>
+                  <div className="mb-6 flex items-center gap-4">
+                    <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                      Controles Activos
+                    </h2>
+                    <div className="h-px flex-1 bg-gray-50" />
+                  </div>
+                  <PreventiveScreenings screenings={screeningViews} />
+                </section>
+              )}
+
+              {recommendations.length > 0 && (
+                <section>
+                  <div className="mb-6 flex items-center gap-4">
+                    <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                      Sugerencias Profesionales
+                    </h2>
+                    <div className="h-px flex-1 bg-gray-50" />
+                  </div>
+                  <PreventiveScreenings
+                    screenings={recommendations.map((r) => ({
+                      id: r.screening.id,
+                      title: r.screening.name,
+                      description: r.screening.description,
+                      recommended_frequency: r.screening.recommended_frequency,
+                      status: 'due_soon' as const,
+                      priority: r.urgency,
+                      next_due_date: r.next_due_date ?? new Date().toISOString(),
+                    }))}
+                  />
+                </section>
+              )}
+            </div>
+          )}
+        </main>
       </div>
     </div>
   )

@@ -22,31 +22,31 @@ interface PreventiveScreeningsProps {
 const statusConfig = {
   overdue: {
     label: 'Atrasado',
-    color: 'bg-red-50 border-red-200',
-    textColor: 'text-red-900',
+    color: 'border-red-100 bg-white',
+    badgeColor: 'bg-red-50 text-red-700',
     icon: AlertCircle,
-    iconColor: 'text-red-600',
+    iconColor: 'text-red-500',
   },
   due_soon: {
     label: 'Próximo',
-    color: 'bg-amber-50 border-amber-300',
-    textColor: 'text-amber-900',
+    color: 'border-amber-100 bg-white',
+    badgeColor: 'bg-amber-50 text-amber-700',
     icon: Clock,
-    iconColor: 'text-amber-700',
+    iconColor: 'text-amber-500',
   },
   up_to_date: {
     label: 'Al día',
-    color: 'bg-emerald-50 border-emerald-200',
-    textColor: 'text-emerald-900',
+    color: 'border-emerald-100 bg-white',
+    badgeColor: 'bg-emerald-50 text-emerald-700',
     icon: CheckCircle,
-    iconColor: 'text-emerald-700',
+    iconColor: 'text-emerald-500',
   },
 };
 
 const priorityConfig = {
-  high: 'Alta',
-  medium: 'Media',
-  low: 'Baja',
+  high: { label: 'Alta', color: 'text-red-600 bg-red-50' },
+  medium: { label: 'Media', color: 'text-amber-600 bg-amber-50' },
+  low: { label: 'Baja', color: 'text-gray-600 bg-gray-50' },
 };
 
 export function PreventiveScreenings({ screenings, locale }: PreventiveScreeningsProps) {
@@ -62,65 +62,59 @@ export function PreventiveScreenings({ screenings, locale }: PreventiveScreening
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 lg:gap-6">
       {screenings.map((screening) => {
         const status = statusConfig[screening.status];
         const Icon = status.icon;
+        const priority = priorityConfig[screening.priority];
 
         return (
           <div
             key={screening.id}
-            className={`border-2 rounded-xl p-6 ${status.color}`}
+            className={`group relative overflow-hidden rounded-2xl border p-5 transition-all duration-200 hover:border-gray-300 hover:shadow-sm ${status.color}`}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Icon className={`h-6 w-6 ${status.iconColor}`} />
+            <div className="flex items-start justify-between">
+              <div className="flex gap-4">
+                <div className={`mt-1 rounded-full p-1 ${status.iconColor} bg-opacity-10`}>
+                  <Icon className="h-5 w-5" />
+                </div>
                 <div>
-                  <h3 className={`text-lg font-bold ${status.textColor}`}>
+                  <h3 className="text-base font-semibold text-gray-900 leading-tight">
                     {screening.title}
                   </h3>
-                  <p className={`text-sm ${status.textColor} opacity-80`}>
+                  <p className="mt-1 text-sm text-gray-500 leading-relaxed max-w-[280px]">
                     {screening.description}
                   </p>
                 </div>
               </div>
+              
+              <div className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${status.badgeColor}`}>
+                {status.label}
+              </div>
             </div>
 
-            <div className={`space-y-2 text-sm ${status.textColor}`}>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Frecuencia:</span>
-                <span>{screening.recommended_frequency}</span>
+            <div className="mt-6 flex flex-wrap gap-y-3 border-t border-gray-50 pt-5">
+              <div className="w-1/2 pr-2">
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">Frecuencia</p>
+                <p className="mt-0.5 text-xs font-medium text-gray-700">{screening.recommended_frequency}</p>
               </div>
-              {screening.last_done_date && (
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Último control:</span>
-                  <span>{formatDate(screening.last_done_date)}</span>
+              
+              <div className="w-1/2 pl-2">
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">Próximo</p>
+                <p className="mt-0.5 text-xs font-semibold text-gray-900">{formatDate(screening.next_due_date)}</p>
+              </div>
+
+              <div className="flex w-full items-center justify-between mt-2">
+                <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${priority.color}`}>
+                  Prioridad {priority.label}
                 </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Próximo control:</span>
-                <span className="font-semibold">{formatDate(screening.next_due_date)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Prioridad:</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    screening.priority === 'high'
-                      ? 'bg-red-200 text-red-900'
-                      : screening.priority === 'medium'
-                      ? 'bg-amber-200 text-amber-900'
-                      : 'bg-am-surface-200 text-[var(--au-text-primary)]'
-                  }`}
-                >
-                  {priorityConfig[screening.priority]}
-                </span>
+                
+                <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-900 transition-colors hover:text-blue-600">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Agendar
+                </button>
               </div>
             </div>
-
-            <button className="mt-4 w-full btn-primary-ivory px-4 py-2 text-sm inline-flex items-center justify-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Agendar control
-            </button>
           </div>
         );
       })}
