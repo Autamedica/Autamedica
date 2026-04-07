@@ -90,6 +90,7 @@ export function ConversationalAnamnesis({
   } | null>(null)
   const [pendingCheckpoint, setPendingCheckpoint] = useState<'partial' | 'final' | null>(null)
   const [showSmartBooking, setShowSmartBooking] = useState(false)
+  const [showVoiceCheckpoint, setShowVoiceCheckpoint] = useState<'partial' | 'final' | null>(null)
 
   const answerCountRef = useRef(0)
   const hasDirtyAnswers = useRef(false)
@@ -234,13 +235,8 @@ export function ConversationalAnamnesis({
       await persistCurrentState()
       hasDirtyAnswers.current = false
       setPendingCheckpoint('final')
-      const result = await triggerExtraction('final')
-      if (result?.hasCritical) {
-        setShowClarification(true)
-        return
-      }
-      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>)
-      setShowSmartBooking(true)
+      await triggerExtraction('final')
+      setShowVoiceCheckpoint('final')
     }
   }, [answerQuestion, shouldCheckpoint, isLast, persistCurrentState, triggerExtraction, updateAnamnesis, onComplete])
 
@@ -283,6 +279,17 @@ export function ConversationalAnamnesis({
     setPendingCheckpoint(null)
     dismissGuidance()
   }, [guidance, pendingCheckpoint, updateAnamnesis, dismissGuidance])
+
+  const handleVoiceCheckpointDone = useCallback(async () => {
+    setShowVoiceCheckpoint(null)
+    if (pendingCheckpoint === 'final') {
+      await updateAnamnesis({ status: 'completed' } as Record<string, unknown>)
+      setShowSmartBooking(true)
+    } else {
+      setPendingCheckpoint(null)
+      dismissGuidance()
+    }
+  }, [pendingCheckpoint, updateAnamnesis, dismissGuidance])
 
   // --- Compute progress across all phases ---
   const totalPhases = 1 + aiQuestions.length + totalVisible
@@ -532,6 +539,18 @@ export function ConversationalAnamnesis({
               isSubmitting={saving}
             />
           </div>
+        </div>
+      )}
+
+      {showVoiceCheckpoint && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+          <VoiceAnamnesis
+            checkpoint={showVoiceCheckpoint}
+            guidance={guidance}
+            onDataExtracted={async () => { await handleVoiceCheckpointDone() }}
+            onSwitchToText={() => { void handleVoiceCheckpointDone() }}
+            existingSections={[...completedStepIds]}
+          />
         </div>
       )}
 
