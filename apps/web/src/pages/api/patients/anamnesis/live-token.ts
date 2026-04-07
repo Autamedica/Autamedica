@@ -31,7 +31,8 @@ function evictExpiredEntries() {
     if (now >= entry.resetAt) liveRateMap.delete(key)
   }
 }
-// Evict lazily per-request — setInterval crashes Cloudflare Workers module init
+// Evict expired entries lazily on each request instead of setInterval
+// (setInterval is not available in Cloudflare Workers module scope)
 
 function resolveGeminiKey(runtimeEnv?: Record<string, unknown> | null): string | undefined {
   if (runtimeEnv?.GEMINI_API_KEY && typeof runtimeEnv.GEMINI_API_KEY === 'string') return runtimeEnv.GEMINI_API_KEY
@@ -67,7 +68,9 @@ async function issueLiveToken(request: Request, locals?: AstroLocals) {
   try {
     return await issueLiveTokenInner(request, locals)
   } catch (err) {
-    try { logger.error('[live-token] Unhandled error', err) } catch { /* logging must not crash fallback */ }
+    try {
+      logger.error('[live-token] Unhandled error in live-token endpoint', err)
+    } catch { /* logging must never crash the fallback */ }
     // Last-resort fallback: return wsUrl so the frontend can still connect via relay
     try {
       const sessionId = crypto.randomUUID()
@@ -90,6 +93,7 @@ async function issueLiveToken(request: Request, locals?: AstroLocals) {
         },
       })
     } catch {
+      // Absolute last resort — plain JSON without any external deps
       return new Response(
         JSON.stringify({ success: false, error: 'internal_error' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } },
