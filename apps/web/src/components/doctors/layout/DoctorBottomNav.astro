@@ -1,0 +1,49 @@
+---
+import { Calendar, LayoutDashboard, MessageCircle, User, Video } from 'lucide-react';
+
+interface Props {
+  activeTab?: 'agenda' | 'ranking' | 'telemedicina' | 'comunidad' | 'perfil';
+}
+
+const { activeTab } = Astro.props;
+
+const TABS = [
+  { key: 'agenda', label: 'Cita', href: '/doctors/agenda', icon: Calendar },
+  { key: 'ranking', label: 'Ranking', href: '/doctors/dashboard', icon: LayoutDashboard },
+  { key: 'telemedicina', label: 'Telemedicina', href: '/doctors/call', icon: Video, center: true },
+  { key: 'comunidad', label: 'Comunidad', href: '/doctors/community', icon: MessageCircle },
+  { key: 'perfil', label: 'Perfil', href: '/doctors/perfil', icon: User },
+];
+---
+
+<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur-xl sm:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+  <div class="mx-auto flex max-w-lg items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+    {TABS.map(({ key, label, href, icon: Icon, center }) => {
+      const isActive = activeTab === key;
+
+      if (center) {
+        return (
+          <a href={href} class="group -mt-8 flex flex-col items-center gap-1 pb-3">
+            <div
+              class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-xl ring-4 ring-white transition-all hover:scale-105 active:scale-95"
+            >
+              <Icon className="h-8 w-8 text-white animate-pulse" />
+            </div>
+            <span class="text-[10px] font-bold text-blue-600 mt-0.5">
+              {label}
+            </span>
+          </a>
+        );
+      }
+
+      return (
+        <a href={href} class="flex flex-col items-center gap-1 px-3 py-3">
+          <Icon className={`h-6 w-6 transition-all ${isActive ? 'text-blue-600 scale-110' : 'text-gray-400'}`} />
+          <span class={`text-[10px] font-medium transition-colors ${isActive ? 'text-blue-600 font-bold' : 'text-gray-500'}`}>
+            {label}
+          </span>
+        </a>
+      );
+    })}
+  </div>
+</nav>

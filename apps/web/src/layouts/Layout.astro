@@ -7,6 +7,7 @@ import CookieBanner from '../components/CookieBanner.astro';
 import OfflineBanner from '../components/OfflineBanner.astro';
 import SeoScrollAnimations from '../components/SeoScrollAnimations.astro';
 import FadeInObserver from '../components/FadeInObserver.astro';
+import DoctorBottomNav from '../components/doctors/layout/DoctorBottomNav.astro';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
 import { SessionSync as PatientSessionSync } from '../components/patients/SessionSync';
@@ -45,6 +46,17 @@ const isPatientHost =
   Astro.url.hostname === 'patients.autamedica.com' ||
   Astro.url.pathname.startsWith('/patients') ||
   devPortal === 'patient';
+const isDoctorHost =
+  Astro.url.hostname === 'doctor.autamedica.com' ||
+  Astro.url.hostname === 'doctors.autamedica.com' ||
+  Astro.url.pathname.startsWith('/doctors') ||
+  devPortal === 'doctor';
+
+const activeTabDoctor = Astro.url.pathname.includes('/agenda') ? 'agenda' :
+  Astro.url.pathname.includes('/dashboard') ? 'ranking' :
+  Astro.url.pathname.includes('/call') ? 'telemedicina' :
+  Astro.url.pathname.includes('/community') ? 'comunidad' :
+  Astro.url.pathname.includes('/perfil') ? 'perfil' : 'agenda';
 ---
 
 <!doctype html>
@@ -149,5 +161,6 @@ const isPatientHost =
     <FadeInObserver />
 
     {isPatientHost && <PatientSessionSync client:load />}
+    {isDoctorHost && <DoctorBottomNav activeTab={activeTabDoctor} />}
   </body>
 </html>
