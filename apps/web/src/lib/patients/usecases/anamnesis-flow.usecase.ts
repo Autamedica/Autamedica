@@ -187,7 +187,7 @@ export function resolvePostAnalysisAction(
   hasClarification: boolean,
 ): PostAnalysisAction {
   if (hasClarification) {
-    return checkpoint === 'partial' ? 'open_voice' : 'open_text';
+    return 'open_voice';
   }
 
   return checkpoint === 'final' ? 'finalize' : 'advance';

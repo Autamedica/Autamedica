@@ -421,14 +421,8 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
     const nextAction = resolvePostAnalysisAction(pendingCheckpoint, hasClarification);
 
     if (nextAction === 'open_voice') {
-      logger.info('[AnamnesisFlow] Partial checkpoint — opening voice chat for clarification');
+      logger.info('[AnamnesisFlow] Checkpoint — opening voice chat for clarification', { pendingCheckpoint });
       setShowVoiceChat(true);
-      return;
-    }
-
-    if (nextAction === 'open_text') {
-      logger.info('[AnamnesisFlow] Final checkpoint — opening text clarification modal');
-      setShowClarification(true);
       return;
     }
 
