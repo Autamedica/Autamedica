@@ -64,7 +64,7 @@ const CSP_DIRECTIVES = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com",
   "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
