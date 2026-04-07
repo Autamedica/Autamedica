@@ -170,8 +170,8 @@ describe('resolvePostAnalysisAction', () => {
     expect(resolvePostAnalysisAction('partial', true)).toBe('open_voice');
   });
 
-  it('opens text clarification for final checkpoints with follow-up', () => {
-    expect(resolvePostAnalysisAction('final', true)).toBe('open_text');
+  it('opens voice clarification for final checkpoints with follow-up', () => {
+    expect(resolvePostAnalysisAction('final', true)).toBe('open_voice');
   });
 
   it('finalizes when the final checkpoint has no follow-up', () => {
