@@ -36,7 +36,7 @@ jobs:
         run: pnpm audit --audit-level=moderate 2>&1 || echo "::warning::Moderate vulnerabilities found"
 
       - name: High/Critical
-        run: pnpm audit --audit-level=high
+        run: node scripts/ci/check-high-audit.mjs
 
   secret-scan:
     name: Secrets
@@ -55,8 +55,10 @@ jobs:
       - name: Medical patterns
         if: github.event_name == 'pull_request'
         run: |
-          git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.tsx' '*.js' '*.json' '*.env*' \
-            | grep -iE '(cedula|ruc|historia.?clinica|paciente.*id.*=.*[0-9]{6,}|service_role|supabase_db_password)' \
+          git diff --unified=0 ${{ github.event.pull_request.base.sha }} ${{ github.sha }} -- '*.ts' '*.tsx' '*.js' '*.json' '*.env*' \
+            | grep -E '^\+' \
+            | grep -vE '^\+\+\+' \
+            | grep -iE '((^|[^[:alnum:]_])(cedula|ruc)([^[:alnum:]_]|$)|historia.?clinica|paciente.*id.*=.*[0-9]{6,}|service_role|supabase_db_password)' \
             | grep -v 'type\|interface\|import\|//\|\.env\.\*\|secrets\.\|\.pdf\|\.download\|filename' \
             && echo "::error::Sensitive medical/infra pattern in diff" && exit 1 \
             || true
