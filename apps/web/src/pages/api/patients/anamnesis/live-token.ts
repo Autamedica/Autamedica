@@ -31,9 +31,7 @@ function evictExpiredEntries() {
     if (now >= entry.resetAt) liveRateMap.delete(key)
   }
 }
-if (typeof globalThis !== 'undefined') {
-  setInterval(evictExpiredEntries, 600_000).unref?.()
-}
+// Evict lazily per-request — setInterval crashes Cloudflare Workers module init
 
 function resolveGeminiKey(runtimeEnv?: Record<string, unknown> | null): string | undefined {
   if (runtimeEnv?.GEMINI_API_KEY && typeof runtimeEnv.GEMINI_API_KEY === 'string') return runtimeEnv.GEMINI_API_KEY
@@ -68,33 +66,42 @@ async function issueLiveToken(request: Request, locals?: AstroLocals) {
   try {
     return await issueLiveTokenInner(request, locals)
   } catch (err) {
-    logger.error('[live-token] Unhandled error in live-token endpoint', err)
+    try { logger.error('[live-token] Unhandled error', err) } catch { /* logging must not crash fallback */ }
     // Last-resort fallback: return wsUrl so the frontend can still connect via relay
-    const sessionId = crypto.randomUUID()
-    const rawUrl = import.meta.env.PUBLIC_SIGNALING_URL
-      ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
-    const signalingOrigin = new URL(rawUrl).origin
-    return json({
-      success: true,
-      data: {
-        wsUrl: `${signalingOrigin.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
-        sessionId,
-        model: 'gemini-3.1-flash-live-preview',
-        sessionConfig: {
-          mode: 'general',
-          patient: { name: null, age: null, completedSections: [], sectionData: {} },
-          guidanceQuestions: [],
-          coverageGaps: [],
-          maxModelTurns: 8,
+    try {
+      const sessionId = crypto.randomUUID()
+      const rawUrl = import.meta.env.PUBLIC_SIGNALING_URL
+        ?? 'https://autamedica-signaling-server.marques-eduardo95466020.workers.dev'
+      const signalingOrigin = new URL(rawUrl).origin
+      return json({
+        success: true,
+        data: {
+          wsUrl: `${signalingOrigin.replace(/^http/, 'ws')}/gemini-live?sessionId=${sessionId}`,
+          sessionId,
+          model: 'gemini-3.1-flash-live-preview',
+          sessionConfig: {
+            mode: 'general',
+            patient: { name: null, age: null, completedSections: [], sectionData: {} },
+            guidanceQuestions: [],
+            coverageGaps: [],
+            maxModelTurns: 8,
+          },
         },
-      },
-    })
+      })
+    } catch {
+      return new Response(
+        JSON.stringify({ success: false, error: 'internal_error' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
   }
 }
 
 async function issueLiveTokenInner(request: Request, locals?: AstroLocals) {
   const context = await resolvePatientContext(request, locals)
   if (!context) return json({ success: false, error: 'unauthorized' }, 401)
+
+  evictExpiredEntries()
 
   const now = Date.now()
   const entry = liveRateMap.get(context.patientId)
@@ -162,6 +169,7 @@ async function issueLiveTokenInner(request: Request, locals?: AstroLocals) {
           expire_time: expireTime,
           new_session_expire_time: newSessionExpireTime,
         }),
+        signal: AbortSignal.timeout(8000),
       },
     )
 
