@@ -27,16 +27,16 @@ const article = {
   <Navbar />
   <main>
     <!-- Article Header -->
-    <section class="seo-hero" style="text-align:left;">
+    <div class="seo-hero" style="text-align:left">
       <div class="seo-container">
         <a href="/blog" class="blog-back">&larr; Volver al blog</a>
         <h1>{article.title}</h1>
         <div class="blog-meta">
           <span class="seo-badge">{article.category}</span>
-          <span class="blog-read-time">{article.readTime} de lectura</span>
+          <span>{article.readTime} de lectura</span>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Article Image -->
     <div class="blog-image">
@@ -348,10 +348,62 @@ const article = {
       </div>
     </article>
 
-    <ShareButtons
-      url="https://www.autamedica.com/blog/vyvanse-ritalin-tdah-uso-terapeutico"
-      title={article.title}
-    />
+    <!-- Author Section -->
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/vyvanse-ritalin-tdah-uso-terapeutico`} category={article.category} author={article.author} />
+
+    <div class="blog-author">
+      <div class="author-content">
+        <h3>Sobre el Equipo</h3>
+        <p>
+          <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de psiquiatría.
+        </p>
+      </div>
+    </div>
+
+    <!-- Related Articles -->
+    <div class="blog-related">
+      <h3>Artículos Relacionados</h3>
+      <div class="seo-grid-3">
+        <a href="/blog/ansiedad-cronica-herramientas" class="seo-card">
+          <span class="seo-badge">Salud Mental</span>
+          <h4>Ansiedad Crónica: Herramientas Reales para el Día a Día</h4>
+        </a>
+        <a href="/blog/terapia-online-salud-mental" class="seo-card">
+          <span class="seo-badge">Salud Mental</span>
+          <h4>Terapia Online para Salud Mental</h4>
+        </a>
+        <a href="/blog/guia-consulta-medica-online" class="seo-card">
+          <span class="seo-badge">Telemedicina</span>
+          <h4>Guía Consulta Médica Online</h4>
+        </a>
+      </div>
+    </div>
+      </div>
+    </article>
   </main>
   <Footer />
 </Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
