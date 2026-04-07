@@ -56,22 +56,46 @@ export default function PreventiveHealthPage() {
           </div>
         )}
 
-        {!isLoading && !error && screeningViews.length === 0 && (
+        {!isLoading && !error && screeningViews.length === 0 && recommendations.length === 0 && (
           <div className="rounded-xl border p-8 text-center" style={{ borderColor: 'var(--au-border)' }}>
             <Shield className="mx-auto h-10 w-10 mb-3" style={{ color: 'var(--au-text-tertiary)' }} />
             <p className="font-medium" style={{ color: 'var(--au-text-secondary)' }}>
-              No tenés controles preventivos asignados todavía
+              Aún no tienes controles preventivos asignados
             </p>
             <p className="mt-1 text-sm" style={{ color: 'var(--au-text-tertiary)' }}>
-              {recommendations.length > 0
-                ? `Tenés ${recommendations.length} recomendaciones disponibles`
-                : 'Completá tu perfil para recibir recomendaciones personalizadas'}
+              Completa tu perfil para recibir recomendaciones personalizadas
             </p>
           </div>
         )}
 
-        {!isLoading && !error && screeningViews.length > 0 && (
-          <PreventiveScreenings screenings={screeningViews} />
+        {!isLoading && !error && (screeningViews.length > 0 || recommendations.length > 0) && (
+          <div className="space-y-8">
+            {screeningViews.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold mb-4 opacity-70 uppercase tracking-wider">Tus controles activos</h2>
+                <PreventiveScreenings screenings={screeningViews} />
+              </section>
+            )}
+
+            {recommendations.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold mb-4 opacity-70 uppercase tracking-wider">
+                  Recomendados para tu edad y sexo
+                </h2>
+                <PreventiveScreenings
+                  screenings={recommendations.map((r) => ({
+                    id: r.screening.id,
+                    title: r.screening.name,
+                    description: r.screening.description,
+                    recommended_frequency: r.screening.recommended_frequency,
+                    status: 'due_soon' as const,
+                    priority: r.urgency,
+                    next_due_date: r.next_due_date ?? new Date().toISOString(),
+                  }))}
+                />
+              </section>
+            )}
+          </div>
         )}
       </div>
     </div>
