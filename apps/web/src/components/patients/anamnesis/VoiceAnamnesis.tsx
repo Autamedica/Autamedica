@@ -183,6 +183,11 @@ export function VoiceAnamnesis({
   const [extractedFields, setExtractedFields] = useState<Record<string, string> | null>(null)
   const [summaryText, setSummaryText] = useState('')
   const [vadThreshold, setVadThreshold] = useState(0.015)
+  const triggerHaptic = (pattern: number | number[]) => {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  };
 
   const vadActiveRef = useRef(false)
   const lastAudioTimeRef = useRef<number>(0)
@@ -394,6 +399,7 @@ export function VoiceAnamnesis({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onmessage(msg: any) {
               if (msg.serverContent?.modelTurn?.parts) {
+                triggerHaptic([20, 50, 20]);
                 setModelTurns((prev) => prev + 1)
                 const parts = msg.serverContent?.modelTurn?.parts ?? []
                 for (const part of parts) {
@@ -477,7 +483,7 @@ export function VoiceAnamnesis({
           if (isSpeaking) {
             lastAudioTimeRef.current = Date.now()
             if (!vadActiveRef.current) {
-              vadActiveRef.current = true
+              vadActiveRef.current = true; triggerHaptic(10);
               stopAllAudio()
               if (liveSession?.sendRealtimeInput) {
                 liveSession.sendRealtimeInput({ activityStart: {} })
@@ -571,7 +577,7 @@ export function VoiceAnamnesis({
         if (isSpeaking) {
           lastAudioTimeRef.current = Date.now()
           if (!vadActiveRef.current) {
-            vadActiveRef.current = true
+            vadActiveRef.current = true; triggerHaptic(10);
             stopAllAudio()
           }
         } else if (vadActiveRef.current && Date.now() - lastAudioTimeRef.current > 1000) {
@@ -698,6 +704,7 @@ export function VoiceAnamnesis({
           if (msg.type === 'session-end') { finishRef.current(); return }
 
           if (msg.serverContent?.modelTurn?.parts) {
+                triggerHaptic([20, 50, 20]);
             setModelTurns((prev) => prev + 1)
             for (const part of msg.serverContent.modelTurn.parts) {
               if (part.functionCall?.name === 'complete_checkpoint') {

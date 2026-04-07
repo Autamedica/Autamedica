@@ -349,7 +349,7 @@ function scoreRelation(
     reasons.push('version previa marcada como seguimiento')
   }
 
-  if (score < 4) {
+  if (score < 3) {
     return null
   }
 

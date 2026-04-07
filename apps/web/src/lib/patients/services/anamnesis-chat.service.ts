@@ -73,10 +73,10 @@ export async function processAnamnesisChat(
   ${context.coverageSummary ? `Resumen de cobertura: ${context.coverageSummary}.` : ''}
   ${coverageGaps.length > 0 ? `Áreas con datos faltantes: ${coverageGaps.join(', ')}.` : ''}
   ${guidanceQuestions.length > 0 ? `Prioriza cerrar estas preguntas clínicas: ${guidanceQuestions.join(' | ')}.` : ''}
-  Haz solo UNA pregunta concreta por turno.
+  Haz solo UNA pregunta muy breve por turno. Sé extremadamente conciso.
   No des diagnósticos, tratamientos ni consejos terapéuticos.
   Si ya tienes suficiente información para cerrar la intervención, responde solo con "FINALIZAR_INTERVENCION" seguido de una despedida cordial.
-  No preguntes más de 3 cosas en total.`;
+  No preguntes más de 2 cosas en total. Prioriza velocidad.`;
 
   const result = await chat.sendMessage(prompt);
   const responseText = result.response.text();
