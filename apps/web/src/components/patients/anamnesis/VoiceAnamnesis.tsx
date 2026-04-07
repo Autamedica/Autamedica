@@ -453,7 +453,7 @@ export function VoiceAnamnesis({
 
         // Store session for sending audio
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(wsRef as React.MutableRefObject<any>).current = session
+        ;(wsRef as unknown as { current: unknown }).current = session
 
         // Step 4: Audio pipeline with SDK
         const ctx = new AudioContext({ sampleRate: 16000 })
