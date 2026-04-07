@@ -452,7 +452,6 @@ export function VoiceAnamnesis({
         })
 
         // Store session for sending audio
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(wsRef as unknown as { current: unknown }).current = session
 
         // Step 4: Audio pipeline with SDK
@@ -1015,9 +1014,9 @@ export function VoiceAnamnesis({
   // ══════════ COMPLETED ══════════
   if (state === 'completed') {
     return (
-      <div className="space-y-6">
-        <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-100">
+      <div className="mx-auto w-full max-w-lg space-y-6 px-4 sm:px-0">
+        <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 sm:p-6 text-center">
+          <div className="mx-auto mb-3 sm:mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-sky-100">
             <CheckCircle2 className="h-8 w-8 text-sky-600" />
           </div>
           <h3 className="text-lg font-bold text-stone-900 mb-2">Anamnesis completada</h3>
@@ -1037,9 +1036,9 @@ export function VoiceAnamnesis({
   if (!started) {
     const showRetry = isGuidedCheckpoint && state !== 'connecting'
     return (
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-6 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-100">
+      <div className="mx-auto w-full max-w-lg space-y-4 px-4 sm:px-0">
+        <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 sm:p-6 text-center">
+          <div className="mx-auto mb-3 sm:mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-sky-100">
             {state === 'connecting'
               ? <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
               : <Mic className="h-8 w-8 text-sky-600" />}
@@ -1087,7 +1086,7 @@ export function VoiceAnamnesis({
   // ══════════ LIVE MODE (Gemini 3.1 Flash Live) ══════════
   if (isLive) {
     return (
-      <div className="space-y-4">
+      <div className="mx-auto w-full max-w-lg space-y-3 sm:space-y-4 px-4 sm:px-0">
         <div className="flex items-center justify-center gap-2 text-xs text-sky-600">
           <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
           {isGuidedCheckpoint ? 'Aclaración guiada en tiempo real' : 'Audio en tiempo real'}
@@ -1100,7 +1099,7 @@ export function VoiceAnamnesis({
         )}
 
         {/* Transcript */}
-        <div className="space-y-3 max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-4">
+        <div className="space-y-3 max-h-[40vh] sm:max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-3 sm:p-4">
           {transcript.map((entry, i) => (
             <div key={i} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
@@ -1112,9 +1111,9 @@ export function VoiceAnamnesis({
         </div>
 
         {/* Live indicator and VAD Slider */}
-        <div className="flex flex-col items-center gap-4 py-4">
-          <div className="h-20 w-20 rounded-full bg-sky-500 flex items-center justify-center animate-pulse shadow-lg shadow-sky-200">
-            <Mic className="h-10 w-10 text-white" />
+        <div className="flex flex-col items-center gap-3 sm:gap-4 py-3 sm:py-4">
+          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-sky-500 flex items-center justify-center animate-pulse shadow-lg shadow-sky-200">
+            <Mic className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
           </div>
           <p className="text-sm text-stone-500">
             {isGuidedCheckpoint
@@ -1165,7 +1164,7 @@ export function VoiceAnamnesis({
 
   // ══════════ RELAY MODE (fallback) ══════════
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-lg space-y-3 sm:space-y-4 px-4 sm:px-0">
       {/* Progress */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs text-stone-400">
@@ -1178,7 +1177,7 @@ export function VoiceAnamnesis({
       </div>
 
       {/* Chat */}
-      <div className="space-y-3 max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-4">
+      <div className="space-y-3 max-h-[40vh] sm:max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-3 sm:p-4">
         {transcript.map((entry, i) => (
           <div key={i} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${

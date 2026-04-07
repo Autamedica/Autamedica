@@ -543,7 +543,7 @@ export function ConversationalAnamnesis({
       )}
 
       {showVoiceCheckpoint && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white overflow-y-auto py-6 sm:py-8">
           <VoiceAnamnesis
             checkpoint={showVoiceCheckpoint}
             guidance={guidance}
