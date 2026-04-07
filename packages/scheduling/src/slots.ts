@@ -3,6 +3,7 @@
  *
  * Lee doctor_availability + doctor_availability_overrides,
  * resta appointments existentes, retorna solo slots libres.
+ * Evalúa probabilidad de no-show para marcar slots como overbook_eligible.
  *
  * All slot timestamps use explicit UTC-3 (Argentina Standard Time) offset
  * to avoid implicit local-timezone issues during DST transitions in other locales.
@@ -14,10 +15,15 @@ import type {
   ScheduleSlot,
   SlotQuery,
 } from '@autamedica/types';
+import { logger } from '@autamedica/shared';
 import type { SupabaseLike } from './supabase';
+import { predictNoShowProbability } from './noshow-predictor';
 
 /** Argentina Standard Time offset (UTC-3). Argentina doesn't observe DST. */
 const ART_OFFSET = '-03:00';
+
+/** Probabilidad de no-show por encima de la cual se permite overbooking */
+const OVERBOOKING_THRESHOLD = 0.3;
 
 /**
  * Resolve the current UTC offset for any IANA timezone using Intl.
@@ -50,7 +56,8 @@ function resolveOffset(timezone?: string | null): string {
  * 1. Lee disponibilidad semanal recurrente (doctor_availability)
  * 2. Aplica overrides puntuales (doctor_availability_overrides)
  * 3. Resta citas existentes (appointments activas)
- * 4. Retorna solo slots libres
+ * 4. Evalúa no-show para detectar slots overbookables
+ * 5. Retorna slots con flag overbook_eligible
  */
 export async function getAvailableSlots(
   supabase: SupabaseLike,
@@ -79,10 +86,10 @@ export async function getAvailableSlots(
 
   if (overErr) throw new Error(`Error fetching overrides: ${overErr.message}`);
 
-  // 3. Fetch existing appointments in the date range
+  // 3. Fetch existing appointments (include patient_id for no-show prediction)
   const { data: appointments, error: apptErr } = await supabase
     .from('appointments')
-    .select('start_time, end_time, duration_minutes, status')
+    .select('start_time, end_time, duration_minutes, status, patient_id')
     .eq('doctor_id', doctor_id)
     .gte('start_time', `${date_from}T00:00:00`)
     .lte('start_time', `${date_to}T23:59:59`)
@@ -90,9 +97,11 @@ export async function getAvailableSlots(
 
   if (apptErr) throw new Error(`Error fetching appointments: ${apptErr.message}`);
 
-  // 4. Generate slots
+  // 4. Generate slots with overbooking analysis
   const overrideMap = buildOverrideMap(overrides ?? []);
-  const bookedSlots = buildBookedSet(appointments ?? []);
+  const rawAppointments: AppointmentRow[] = appointments ?? [];
+  const bookedSlots = buildBookedSet(rawAppointments);
+  const overbookableRanges = await computeOverbookableRanges(supabase, rawAppointments, doctor_id);
 
   const slots: ScheduleSlot[] = [];
   const startDate = new Date(date_from);
@@ -106,16 +115,10 @@ export async function getAvailableSlots(
     const override = overrideMap.get(dateStr);
     if (override) {
       if (!override.is_available) continue; // Doctor off this day
-      // Use override hours instead of weekly schedule
       const overrideSlots = generateSlotsForTimeRange(
-        doctor_id,
-        dateStr,
-        override.start_time ?? '00:00',
-        override.end_time ?? '23:59',
-        30, // default duration for overrides
-        null,
-        bookedSlots,
-        utcOffset,
+        doctor_id, dateStr,
+        override.start_time ?? '00:00', override.end_time ?? '23:59',
+        30, null, bookedSlots, overbookableRanges, utcOffset,
       );
       slots.push(...overrideSlots);
       continue;
@@ -128,14 +131,10 @@ export async function getAvailableSlots(
 
     for (const avail of dayAvailabilities) {
       const daySlots = generateSlotsForTimeRange(
-        doctor_id,
-        dateStr,
-        avail.start_time,
-        avail.end_time,
-        avail.slot_duration,
-        avail.location,
-        bookedSlots,
-        utcOffset,
+        doctor_id, dateStr,
+        avail.start_time, avail.end_time,
+        avail.slot_duration, avail.location,
+        bookedSlots, overbookableRanges, utcOffset,
       );
       slots.push(...daySlots);
     }
@@ -145,14 +144,15 @@ export async function getAvailableSlots(
 }
 
 /**
- * Retorna slots disponibles solo (filtro de conveniencia)
+ * Retorna slots disponibles o elegibles para overbooking.
+ * Un slot overbook_eligible está ocupado pero la cita existente tiene alta probabilidad de no-show.
  */
 export async function getOpenSlots(
   supabase: SupabaseLike,
   query: SlotQuery,
 ): Promise<ScheduleSlot[]> {
   const all = await getAvailableSlots(supabase, query);
-  return all.filter((s) => s.is_available);
+  return all.filter((s) => s.is_available || s.overbook_eligible);
 }
 
 // ==========================================
@@ -172,14 +172,15 @@ interface BookedRange {
   end: number;
 }
 
-function buildBookedSet(
-  appointments: Array<{
-    start_time: string;
-    end_time: string | null;
-    duration_minutes: number | null;
-    status: string;
-  }>,
-): BookedRange[] {
+interface AppointmentRow {
+  start_time: string;
+  end_time: string | null;
+  duration_minutes: number | null;
+  status: string;
+  patient_id: string;
+}
+
+function buildBookedSet(appointments: AppointmentRow[]): BookedRange[] {
   return appointments.map((a) => {
     const start = new Date(a.start_time).getTime();
     const end = a.end_time
@@ -187,6 +188,51 @@ function buildBookedSet(
       : start + (a.duration_minutes ?? 30) * 60 * 1000;
     return { start, end };
   });
+}
+
+/**
+ * Evalúa predicción de no-show para cada cita existente.
+ * Retorna rangos horarios donde la probabilidad supera el umbral de overbooking.
+ */
+async function computeOverbookableRanges(
+  supabase: SupabaseLike,
+  appointments: AppointmentRow[],
+  doctorId: string,
+): Promise<BookedRange[]> {
+  if (appointments.length === 0) return [];
+
+  const ranges: BookedRange[] = [];
+  const uniquePatients = [...new Set(appointments.map((a) => a.patient_id))];
+  const predictionCache = new Map<string, number>();
+
+  await Promise.all(
+    uniquePatients.map(async (patientId) => {
+      const appt = appointments.find((a) => a.patient_id === patientId);
+      if (!appt) return;
+      const dt = new Date(appt.start_time);
+      const prediction = await predictNoShowProbability(
+        supabase, patientId, doctorId, dt.getDay(), dt.getHours(),
+      );
+      predictionCache.set(patientId, prediction.probability);
+    }),
+  );
+
+  for (const appt of appointments) {
+    const probability = predictionCache.get(appt.patient_id) ?? 0;
+    if (probability > OVERBOOKING_THRESHOLD) {
+      const start = new Date(appt.start_time).getTime();
+      const end = appt.end_time
+        ? new Date(appt.end_time).getTime()
+        : start + (appt.duration_minutes ?? 30) * 60 * 1000;
+
+      logger.info(
+        `[scheduling] Slot overbookable: paciente=${appt.patient_id} probabilidad=${(probability * 100).toFixed(0)}% (umbral=${OVERBOOKING_THRESHOLD * 100}%)`,
+      );
+      ranges.push({ start, end });
+    }
+  }
+
+  return ranges;
 }
 
 function generateSlotsForTimeRange(
@@ -197,6 +243,7 @@ function generateSlotsForTimeRange(
   slotDuration: number,
   location: string | null,
   bookedSlots: BookedRange[],
+  overbookableRanges: BookedRange[],
   offset: string = ART_OFFSET,
 ): ScheduleSlot[] {
   const slots: ScheduleSlot[] = [];
@@ -223,6 +270,10 @@ function generateSlotsForTimeRange(
       (b) => b.start < slotEnd && b.end > slotStart,
     );
 
+    const isOverbookEligible = isBooked && overbookableRanges.some(
+      (b) => b.start < slotEnd && b.end > slotStart,
+    );
+
     slots.push({
       doctor_id: doctorId as import('@autamedica/types').UUID,
       date: dateStr,
@@ -231,6 +282,7 @@ function generateSlotsForTimeRange(
       duration_minutes: slotDuration,
       location,
       is_available: !isBooked,
+      overbook_eligible: isOverbookEligible,
     });
 
     cursor += durationMs;

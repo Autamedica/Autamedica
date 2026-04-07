@@ -1,0 +1,201 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Inyecciones para Bajar de Peso: Lo Que Tu Médico Necesita Que Sepas Antes de Empezar',
+  author: 'Equipo AutaMedica',
+  role: 'Endocrinología',
+  date: '6 de abril, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Guía Práctica',
+};
+---
+
+<Layout
+  title="Inyecciones para Bajar de Peso: Lo Que Tu Médico Necesita Que Sepas Antes de Empezar | AutaMedica"
+  description="Antes de empezar un GLP-1 para bajar de peso, hay cosas que tu médico va a querer que entiendas. Efectos, expectativas y lo que no te dicen en redes."
+  canonical="https://www.autamedica.com/blog/inyecciones-bajar-peso-que-saber"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Lo que Instagram no te cuenta</h2>
+            <p>
+              Los reels de transformación son convincentes. Cuatro semanas, una inyección semanal, y la persona muestra un antes y después que parece irreal. Y en muchos casos, lo es. No porque sea falso, sino porque omite todo lo que pasa entre esas dos fotos.
+            </p>
+            <p>
+              La realidad clínica de los agonistas GLP-1 no se parece a un reel de 30 segundos. El tratamiento empieza con una dosis baja que no produce casi ningún efecto visible durante las primeras semanas. La dosis se sube gradualmente, cada cuatro semanas, hasta llegar a la dosis terapéutica. Este proceso de titulación tarda entre dos y cuatro meses, dependiendo del fármaco y de cómo lo toleres.
+            </p>
+            <p>
+              El efecto pleno sobre el peso no se ve hasta los tres a seis meses de tratamiento. Eso no es lo que muestra la red social, y la diferencia de expectativas puede llevar a abandonar un tratamiento que necesita tiempo para funcionar, o peor, a buscar dosis más altas sin supervisión médica.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo es el tratamiento real</h2>
+            <p>
+              La inyección es subcutánea, es decir, se aplica debajo de la piel, no en el músculo. Se puede aplicar en el abdomen, el muslo o la parte posterior del brazo. La aguja es pequeña, similar a la de insulina, y la mayoría de los pacientes reportan que la molestia es mínima después de las primeras aplicaciones.
+            </p>
+            <p>
+              La frecuencia depende del fármaco. Semaglutida (Ozempic, Wegovy) y tirzepatida (Mounjaro) son semanales. Liraglutida (Saxenda) es diaria. La inyección semanal fue un cambio significativo en la adherencia: es más fácil recordar un día de la semana que todos los días.
+            </p>
+            <p>
+              El médico define la dosis inicial y el esquema de titulación. No es lo mismo para todos. Tu historial clínico, tus comorbilidades, otros medicamentos que tomes y tu tolerancia individual determinan cómo se escala. Autoajustar la dosis es peligroso y frecuente en quienes compran sin prescripción.
+            </p>
+          </section>
+
+          <section>
+            <h2>Las primeras semanas</h2>
+            <p>
+              Las náuseas son el efecto adverso más frecuente al inicio. Afectan a casi la mitad de los pacientes y suelen ser más intensas en los primeros días después de cada aumento de dosis. Hay estrategias que tu médico puede recomendarte: comer porciones pequeñas, evitar alimentos grasos, mantener una hidratación adecuada.
+            </p>
+            <p>
+              El apetito baja de forma notable, y eso es el efecto buscado, no un efecto adverso. Pero hay un matiz importante: que no tengas hambre no significa que no necesites comer. La restricción calórica excesiva por falta de apetito puede derivar en deficiencia de nutrientes, pérdida de masa muscular y fatiga.
+            </p>
+            <p>
+              Tu médico o nutricionista puede ayudarte a establecer un piso calórico y proteico que asegure que estás perdiendo grasa, no músculo ni salud. Este es uno de los motivos por los que el seguimiento profesional no es opcional.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué tiene que monitorear tu médico</h2>
+            <p>
+              Estos fármacos no son "inyectarse y olvidar". Requieren seguimiento activo. Tu médico va a pedir análisis de laboratorio periódicos: función renal (estos fármacos pueden afectar los riñones en personas predispuestas), función tiroidea (existe una señal preclínica en roedores de tumores tiroideos, aunque no se confirmó en humanos), perfil hepático y marcadores pancreáticos.
+            </p>
+            <p>
+              La evaluación de la vesícula biliar es relevante porque la pérdida rápida de peso aumenta el riesgo de cálculos biliares, independientemente del fármaco. Si tenés antecedentes de enfermedad vesicular, tu médico necesita saberlo antes de prescribir.
+            </p>
+            <p>
+              Un aspecto que muchos pacientes desconocen es la necesidad de monitorear la composición corporal. No alcanza con la balanza. Un estudio de densitometría (DXA) puede mostrar si estás perdiendo grasa, músculo o ambos. Perder peso a costa de masa muscular es contraproducente a largo plazo. Consultá con tu médico sobre qué estudios necesitás.
+            </p>
+          </section>
+
+          <section>
+            <h2>Lo que funciona junto con el fármaco</h2>
+            <p>
+              La evidencia es clara: los agonistas GLP-1 producen mejores resultados cuando se combinan con cambios sostenidos de hábitos. No como complemento estético, sino como parte integral del tratamiento.
+            </p>
+            <p>
+              El ejercicio de fuerza (pesas, bandas elásticas, ejercicios con el propio cuerpo) es particularmente importante para preservar la masa muscular durante la pérdida de peso. Dos a tres sesiones semanales pueden marcar una diferencia significativa en la composición corporal final.
+            </p>
+            <p>
+              La ingesta de proteína adecuada (generalmente entre 1.2 y 1.6 gramos por kilogramo de peso corporal por día) ayuda a proteger el músculo. Cuando el apetito está suprimido por el fármaco, priorizar la proteína en cada comida se vuelve una estrategia clave.
+            </p>
+            <p>
+              El fármaco es una herramienta. No es la solución. Sin el contexto de alimentación, movimiento y seguimiento médico, el resultado es parcial y temporal.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo suspender</h2>
+            <p>
+              Hay situaciones claras en las que el tratamiento debe suspenderse. Si los efectos gastrointestinales no ceden después de semanas de ajuste de dosis y estrategias de manejo, tu médico puede decidir cambiar de fármaco o suspender.
+            </p>
+            <p>
+              Dolor abdominal severo que se irradia a la espalda es una señal de alarma que requiere atención inmediata: puede indicar pancreatitis, una complicación rara pero seria. No esperés a la próxima consulta programada si esto ocurre.
+            </p>
+            <p>
+              El embarazo es una contraindicación absoluta. Si estás planificando un embarazo, el fármaco debe suspenderse al menos dos meses antes de buscar la concepción. Discutí esto con tu médico desde el inicio del tratamiento si estás en edad fértil.
+            </p>
+            <p>
+              La pregunta más difícil es si se puede suspender cuando se logró el objetivo de peso. La evidencia sugiere que la mayoría de los pacientes recuperan el peso al suspender, lo que plantea la pregunta de si el tratamiento es crónico. Esta es una conversación que necesitás tener con tu médico, no una decisión que se toma solo.
+            </p>
+          </section>
+
+          <section>
+            <h2>El costo real del tratamiento</h2>
+            <p>
+              El fármaco es solo una parte del costo. El precio de la inyección mensual va de ~$52 USD (Dutide, biosimilar argentino de semaglutida con cobertura del 40%) hasta $474 USD o más (Wegovy en dosis de mantenimiento). La aparición de biosimilares nacionales cambió radicalmente la ecuación: en junio de 2025, Novo Nordisk bajó el precio de Ozempic un 49% en Argentina ante la competencia de Dutide (laboratorio Elea), que contiene el mismo principio activo. El tratamiento incluye más que el fármaco: consultas de seguimiento con endocrinólogo (mensuales al inicio, bimestrales después), análisis de laboratorio periódicos, evaluación nutricional, y en algunos casos evaluación cardiovascular previa.
+            </p>
+            <p>
+              Con el biosimilar, un presupuesto realista para los primeros seis meses de tratamiento, incluyendo todo lo anterior, está en el rango de $100 a $300 USD mensuales. Si se elige un fármaco de marca o de segunda generación (tirzepatida), el rango sube a $400-$700 USD. Es un dato que conviene conocer antes de empezar, no después.
+            </p>
+            <p>
+              Algunas prepagas y obras sociales están empezando a cubrir parcialmente Wegovy (desde su aprobación ANMAT para obesidad), pero la cobertura varía por plan y por aseguradora. Dutide, al ser producción nacional, tiende a tener mejor cobertura por obras sociales. Tu médico puede orientarte sobre las opciones de cobertura disponibles en tu caso. Consultá con tu médico antes de empezar cualquier tratamiento.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/inyecciones-bajar-peso-que-saber" description="Antes de empezar un GLP-1 para bajar de peso, hay cosas que tu médico va a querer que entiendas. Efectos, expectativas y lo que no te dicen en redes." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de endocrinología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/glp1-argentina-ozempic-wegovy-mounjaro" class="seo-card">
+              <span class="seo-badge">Endocrinología</span>
+              <h4>GLP-1 en Argentina: Ozempic, Wegovy y Mounjaro</h4>
+            </a>
+            <a href="/blog/retatrutide-proximo-farmaco-peso" class="seo-card">
+              <span class="seo-badge">Investigación Médica</span>
+              <h4>Retatrutide: El Triple Agonista Que Promete 28% de Pérdida de Peso</h4>
+            </a>
+            <a href="/blog/red-flags-senales-cuerpo" class="seo-card">
+              <span class="seo-badge">Prevención</span>
+              <h4>5 Señales que Tu Cuerpo Te Da y que un Médico Nunca Ignoraría</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

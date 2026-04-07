@@ -81,5 +81,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/web
           packageManager: pnpm
-          command: pages deploy apps/web/dist --project-name=autamedica-web --branch=main
+          command: pages deploy dist --project-name=autamedica-web --branch=main

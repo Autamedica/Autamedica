@@ -1,0 +1,193 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Presión Arterial: Qué Es Normal y Cuándo Preocuparse',
+  author: 'Equipo AutaMedica',
+  role: 'Cardiología',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Cardiología',
+};
+---
+
+<Layout
+  title="Presión Arterial: Qué Es Normal y Cuándo Preocuparse | AutaMedica"
+  description="Qué significan los números de la presión arterial, cuáles son los rangos normales, cómo medirla correctamente en casa y cuándo consultar al médico."
+  canonical="https://www.autamedica.com/blog/presion-arterial-normal-cuando-preocuparse"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Dos números que dicen mucho</h2>
+            <p>
+              Cuando te toman la presión, te dicen dos números: "12/8", "14/9", "16/10". El primer número (sistólica) es la presión cuando el corazón se contrae y bombea sangre. El segundo (diastólica) es la presión cuando el corazón se relaja entre latidos. Ambos se miden en milímetros de mercurio (mmHg), una unidad que viene de los tensiómetros originales que usaban una columna de mercurio.
+            </p>
+            <p>
+              La presión arterial no es un número fijo. Varía a lo largo del día, con el esfuerzo físico, el estrés, el café, la posición del cuerpo, la temperatura, la vejiga llena. Una sola medición no define si tenés hipertensión. Lo que importa es el patrón a lo largo del tiempo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Los rangos: qué es normal y qué no</h2>
+            <p>
+              Las guías de la Sociedad Argentina de Hipertensión Arterial (SAHA) y las guías internacionales definen estos rangos para adultos:
+            </p>
+            <ul>
+              <li><strong>Óptima:</strong> menor a 120/80 mmHg.</li>
+              <li><strong>Normal:</strong> 120-129/80-84 mmHg.</li>
+              <li><strong>Normal alta (prehipertensión):</strong> 130-139/85-89 mmHg. No es hipertensión todavía, pero es una señal de alerta.</li>
+              <li><strong>Hipertensión grado 1:</strong> 140-159/90-99 mmHg.</li>
+              <li><strong>Hipertensión grado 2:</strong> 160-179/100-109 mmHg.</li>
+              <li><strong>Hipertensión grado 3:</strong> 180/110 mmHg o más. Requiere evaluación médica urgente.</li>
+            </ul>
+            <p>
+              Un detalle que se pierde en las redes sociales: estos rangos aplican a mediciones realizadas en consultorio médico, en condiciones estandarizadas (sentado, en reposo, después de 5 minutos de calma). La presión que te tomás en la farmacia mientras hacés las compras no tiene el mismo valor diagnóstico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo medirla bien en casa</h2>
+            <p>
+              Si tu médico te pidió que controles tu presión en casa, la técnica importa tanto como el aparato. Un tensiómetro digital de brazo (no de muñeca) validado es suficiente. La Sociedad Argentina de Hipertensión publica un listado de aparatos validados.
+            </p>
+            <p>
+              El protocolo correcto: sentarte cómodo con los pies en el piso, apoyar el brazo sobre una mesa a la altura del corazón, no haber fumado ni tomado café en los 30 minutos previos, no haber hecho ejercicio en la última hora, y orinar antes si tenés ganas. Colocar el manguito sobre la piel (no sobre la ropa) a 2-3 cm por encima del pliegue del codo. Quedarte quieto y en silencio durante la medición.
+            </p>
+            <p>
+              Lo ideal es tomar dos mediciones separadas por un minuto y anotar el promedio. Hacerlo a la misma hora, preferiblemente a la mañana antes de tomar medicación y a la noche. Durante una semana, esto genera un perfil mucho más confiable que cualquier medición aislada en consultorio.
+            </p>
+          </section>
+
+          <section>
+            <h2>La hipertensión de guardapolvo blanco (y la enmascarada)</h2>
+            <p>
+              Hay personas cuya presión sube en el consultorio pero es normal en su casa. Esto se llama "hipertensión de guardapolvo blanco" y afecta al 15-30% de los pacientes con presión elevada en consultorio. No es que estén fingiendo: la ansiedad de la consulta produce una respuesta fisiológica real. El riesgo cardiovascular de estos pacientes es menor que el de los hipertensos verdaderos, pero no es cero.
+            </p>
+            <p>
+              Más preocupante es el fenómeno opuesto: la hipertensión enmascarada. Presión normal en el consultorio pero elevada en la vida diaria. Afecta al 10-15% de las personas con presión "normal" en consultorio. Estos pacientes tienen un riesgo cardiovascular similar al de los hipertensos diagnosticados, pero no reciben tratamiento porque nadie detecta el problema.
+            </p>
+            <p>
+              Por eso las guías recomiendan el monitoreo ambulatorio de presión arterial (MAPA o Holter de presión), un dispositivo que mide la presión cada 15-30 minutos durante 24 horas. Es el gold standard para confirmar o descartar hipertensión cuando hay dudas.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo preocuparse de verdad</h2>
+            <p>
+              Una presión de 150/95 en un control aislado no es emergencia. Una presión sostenidamente por encima de 140/90 en múltiples mediciones sí requiere evaluación médica y probablemente tratamiento.
+            </p>
+            <p>
+              Situaciones que requieren consulta urgente:
+            </p>
+            <ul>
+              <li>Presión sistólica mayor a 180 o diastólica mayor a 120, con o sin síntomas.</li>
+              <li>Presión elevada acompañada de dolor de cabeza intenso, visión borrosa, dolor en el pecho, dificultad para respirar o sangrado nasal que no cede.</li>
+              <li>Presión elevada en una embarazada (cualquier valor por encima de 140/90 en el embarazo requiere evaluación inmediata por riesgo de preeclampsia).</li>
+            </ul>
+            <p>
+              La hipertensión es llamada "asesina silenciosa" porque rara vez produce síntomas hasta que el daño a órganos ya está establecido. No esperes a sentirte mal para controlarte. La Sociedad Argentina de Cardiología recomienda medir la presión arterial al menos una vez al año a partir de los 18 años. Si tenés antecedentes familiares de hipertensión, empezar antes.
+            </p>
+          </section>
+
+          <section>
+            <h2>Más allá de la medicación</h2>
+            <p>
+              Si tu presión está en rango normal alto o hipertensión grado 1 sin daño de órgano, tu médico probablemente te proponga cambios de estilo de vida antes de medicación. La evidencia respalda estas medidas:
+            </p>
+            <ul>
+              <li><strong>Reducir el sodio:</strong> menos de 5 gramos de sal por día (una cucharadita). Puede bajar la presión 5-6 mmHg.</li>
+              <li><strong>Actividad física:</strong> 150 minutos semanales de ejercicio aeróbico moderado. Reducción esperada: 5-8 mmHg.</li>
+              <li><strong>Peso:</strong> cada kilogramo de peso perdido reduce la presión aproximadamente 1 mmHg.</li>
+              <li><strong>Alcohol:</strong> limitar a un trago por día en mujeres, dos en hombres.</li>
+              <li><strong>Dieta DASH:</strong> rica en frutas, verduras, lácteos descremados, y baja en grasas saturadas. Reducción esperada: 8-14 mmHg.</li>
+            </ul>
+            <p>
+              Estas medidas no son complementarias a la medicación: pueden ser suficientes por sí solas en hipertensión leve. Pero requieren constancia. Consultá con tu médico para un plan personalizado.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/presion-arterial-normal-cuando-preocuparse" description="Qué significan los números de la presión arterial, cuáles son los rangos normales, cómo medirla correctamente en casa y cuándo consultar." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de cardiología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/como-leer-analisis-sangre" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico</h4>
+            </a>
+            <a href="/blog/diabetes-tipo-2-antes-medicacion" class="seo-card">
+              <span class="seo-badge">Endocrinología</span>
+              <h4>Diabetes Tipo 2: Lo Que Podés Hacer Antes de Necesitar Medicación</h4>
+            </a>
+            <a href="/blog/cuando-ir-guardia-cuando-esperar" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cuándo Ir a la Guardia y Cuándo Puede Esperar</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

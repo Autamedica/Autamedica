@@ -1,0 +1,186 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Cómo Cobrar una Teleconsulta en Argentina: Facturación y Obras Sociales',
+  author: 'Equipo AutaMedica',
+  role: 'Gestión Médica',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Profesionales',
+};
+---
+
+<Layout
+  title="Cómo Cobrar una Teleconsulta en Argentina: Facturación y Obras Sociales | AutaMedica"
+  description="Guía práctica para médicos argentinos: cómo facturar teleconsultas, qué cubren las obras sociales, monotributo, factura electrónica y nomencladores vigentes."
+  canonical="https://www.autamedica.com/blog/como-cobrar-teleconsulta-argentina"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El marco legal existe, pero es un rompecabezas</h2>
+            <p>
+              Desde la sanción de la Ley 27.553 de Receta Electrónica y Teleconsulta en 2020 y su reglamentación en 2022, la teleconsulta es una práctica médica reconocida legalmente en Argentina. Esto significa que podés cobrar por ella. El problema es que el cómo depende de una combinación de factores: tu situación fiscal, el financiador (obra social, prepaga, paciente particular) y la especialidad.
+            </p>
+            <p>
+              La ley establece que la teleconsulta debe equipararse a la consulta presencial en términos de cobertura. En la práctica, la implementación varía enormemente entre financiadores. Algunas obras sociales la cubren sin diferencia, otras exigen códigos específicos, y algunas todavía la tratan como una prestación de segunda categoría con menor reembolso.
+            </p>
+          </section>
+
+          <section>
+            <h2>Nomencladores y códigos de facturación</h2>
+            <p>
+              El Nomenclador Nacional de Prestaciones Médicas incluye códigos para teleconsulta. El más utilizado es el equivalente a la consulta de primera vez o seguimiento, según corresponda, con el agregado de la modalidad "a distancia" o "virtual". Sin embargo, no todos los nomencladores de obras sociales se actualizaron para reflejar esto.
+            </p>
+            <p>
+              Si facturás a través de una obra social o prepaga, el primer paso es verificar con su departamento de prestaciones qué código aceptan para teleconsulta. Algunos financiadores usan el mismo código que la consulta presencial. Otros crearon códigos específicos. Pedir el detalle por escrito evita rechazos de facturación posteriores.
+            </p>
+            <p>
+              Para el PAMI, la teleconsulta está incluida en el nomenclador desde 2021, con código específico. La cobertura es equivalente a la presencial. Para OSDE, Swiss Medical y otras prepagas grandes, la cobertura suele estar vigente pero con requisitos variables: algunas exigen que la plataforma utilizada esté homologada, otras aceptan cualquier medio que garantice historia clínica.
+            </p>
+          </section>
+
+          <section>
+            <h2>Facturación para pacientes particulares</h2>
+            <p>
+              Si atendés pacientes que pagan de su bolsillo, la facturación es más directa. Necesitás emitir factura electrónica por cada consulta. Si sos monotributista (la situación más común entre médicos que recién empiezan con teleconsulta), emitís factura C desde el portal de AFIP o mediante un sistema de facturación.
+            </p>
+            <p>
+              El monto lo definís vos. No hay un arancel obligatorio para consultas particulares, aunque los colegios médicos provinciales publican aranceles sugeridos que sirven como referencia. A abril de 2026, el arancel sugerido por el Colegio Médico de la Provincia de Buenos Aires para una consulta de consultorio ronda los $25.000-$35.000 ARS. Muchos profesionales cobran la teleconsulta al mismo valor que la presencial; otros aplican un descuento del 10-20% argumentando menor costo operativo.
+            </p>
+            <p>
+              Un punto importante: la factura debe describir la prestación. "Consulta médica a distancia" o "Teleconsulta — [especialidad]" son descripciones aceptables. No uses descripciones genéricas como "servicios profesionales" porque pueden generar problemas si el paciente necesita presentar la factura a su obra social para reembolso.
+            </p>
+          </section>
+
+          <section>
+            <h2>Monotributo, responsable inscripto y otras yerbas</h2>
+            <p>
+              La mayoría de los médicos que hacen teleconsulta particular operan como monotributistas. Las categorías de monotributo se actualizan periódicamente; verificá que tu facturación mensual no supere el tope de tu categoría. Si hacés muchas teleconsultas, es posible que necesites una categoría más alta o pasar a responsable inscripto.
+            </p>
+            <p>
+              Si sos responsable inscripto, facturás con IVA. La consulta médica está exenta de IVA según el artículo 7 de la Ley de IVA (inciso h, punto 7), por lo que emitís factura A o B con IVA exento. Esto aplica tanto a consultas presenciales como a teleconsultas.
+            </p>
+            <p>
+              Un error frecuente: algunos médicos no facturan las teleconsultas "porque es algo informal". Esto es un riesgo fiscal. AFIP tiene acceso a los movimientos bancarios y de billeteras digitales. Si recibís transferencias recurrentes por montos similares sin facturar, estás expuesto a una fiscalización. Facturá todo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Medios de cobro: transferencia, Mercado Pago y débito automático</h2>
+            <p>
+              Los medios de cobro más usados para teleconsulta en Argentina son la transferencia bancaria, Mercado Pago y las plataformas de pago integradas en los sistemas de gestión médica.
+            </p>
+            <p>
+              La transferencia bancaria (CBU/CVU) es la opción más económica: sin comisión para el receptor si es entre cuentas bancarias. Mercado Pago cobra una comisión que varía entre el 3% y el 5% según el método de pago del paciente, pero ofrece la ventaja de link de pago, que podés enviar junto con el turno confirmado.
+            </p>
+            <p>
+              Algunas plataformas de telemedicina incluyen pasarela de pago integrada, lo que permite que el paciente pague antes de la consulta. Esto reduce el ausentismo (el paciente que pagó tiene mayor probabilidad de presentarse) y simplifica la conciliación.
+            </p>
+            <p>
+              Sea cual sea el medio, mantené un registro separado que vincule cada pago con la factura emitida y la consulta realizada. La trazabilidad es tu mejor protección ante cualquier reclamo fiscal o profesional.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué pasa con el consentimiento y la historia clínica</h2>
+            <p>
+              La ley exige consentimiento informado para la teleconsulta, que puede ser verbal con registro en la historia clínica o digital. Además, la consulta debe quedar documentada en la historia clínica del paciente con la misma rigurosidad que una consulta presencial: motivo de consulta, examen (lo que sea posible a distancia), diagnóstico presuntivo, indicaciones y plan.
+            </p>
+            <p>
+              El registro en historia clínica no es solo una obligación legal: es tu respaldo ante cualquier reclamo. Una teleconsulta sin registro es, legalmente, como si no hubiera ocurrido. Y facturar una consulta que "no ocurrió" genera un problema adicional.
+            </p>
+          </section>
+
+          <section>
+            <h2>Resumen operativo</h2>
+            <p>
+              Para cobrar teleconsultas en Argentina de forma legal y sostenible: verificá la cobertura del financiador y el código de facturación correcto, emití factura electrónica por cada consulta, mantené registro en historia clínica, obtené consentimiento, y usá un medio de cobro trazable. No es un trámite complejo, pero requiere orden desde el primer día. Corregir la informalidad retroactivamente siempre sale más caro.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/como-cobrar-teleconsulta-argentina" description="Guía práctica para médicos argentinos: cómo facturar teleconsultas, qué cubren las obras sociales, monotributo y nomencladores vigentes." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de gestión médica.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/burnout-medico-argentina" class="seo-card">
+              <span class="seo-badge">Profesionales</span>
+              <h4>Burnout Médico en Argentina: Los Números Que No Se Publican</h4>
+            </a>
+            <a href="/blog/medico-marca-personal-linkedin" class="seo-card">
+              <span class="seo-badge">Profesionales</span>
+              <h4>El Médico como Marca Personal</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

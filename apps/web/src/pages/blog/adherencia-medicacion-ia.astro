@@ -1,0 +1,268 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: '¿Tomás la Medicación Todos los Días? Lo Que la IA Puede Detectar',
+  author: 'Equipo AutaMedica',
+  role: 'Farmacología Clínica',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Salud Digital',
+};
+---
+
+<Layout
+  title="Adherencia a la Medicación: Lo Que la IA Puede Detectar | AutaMedica"
+  description="El 50% de los pacientes crónicos no toma su medicación correctamente. Cómo la inteligencia artificial cruza datos para detectar problemas de adherencia antes de que escalen."
+  canonical="https://www.autamedica.com/blog/adherencia-medicacion-ia"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El Problema Invisible: La Mitad No Toma Su Medicación</h2>
+            <p>
+              La Organización Mundial de la Salud lo dice con datos contundentes: en enfermedades crónicas,
+              la adherencia al tratamiento ronda el 50% en países desarrollados. En países en desarrollo,
+              la cifra es peor. Esto significa que de cada dos pacientes con hipertensión, diabetes o
+              hipotiroidismo, uno no toma su medicación como fue indicada.
+            </p>
+            <p>
+              El impacto es enorme. La no adherencia es responsable de hasta el 25% de las hospitalizaciones
+              en adultos mayores. Genera descompensaciones evitables, consultas de urgencia que podrían
+              prevenirse y un deterioro progresivo que el paciente atribuye a "la enfermedad que avanza"
+              cuando en realidad es el tratamiento que no se cumple.
+            </p>
+            <p>
+              Y el problema es que rara vez se detecta a tiempo. El paciente dice "sí, doctor, me lo tomo
+              todos los días" — no por mentir, sino porque genuinamente cree que lo hace. Pero saltear una
+              dosis tres veces por semana ya es suficiente para que el tratamiento pierda eficacia.
+            </p>
+          </section>
+
+          <section>
+            <h2>¿Por Qué la Gente No Toma Sus Medicamentos?</h2>
+            <p>
+              Las razones son múltiples y rara vez se reducen a "me olvido". Un análisis más profundo revela
+              un mapa complejo de barreras:
+            </p>
+            <ul>
+              <li><strong>Olvido genuino:</strong> la vida cotidiana compite con la rutina de medicación. Sin un recordatorio externo, es fácil saltear dosis, especialmente en tratamientos de toma múltiple diaria</li>
+              <li><strong>Efectos adversos:</strong> muchos pacientes reducen o abandonan la medicación porque los efectos secundarios impactan su calidad de vida. La tos del enalapril, la fatiga de los betabloqueantes, los calambres de las estatinas</li>
+              <li><strong>Costo:</strong> en Argentina, el gasto de bolsillo en medicamentos puede representar hasta el 40% del ingreso de un jubilado. Cuando hay que elegir entre comer y comprar remedios, la medicación pierde</li>
+              <li><strong>Percepción de mejoría:</strong> "ya me siento bien, ¿para qué seguir tomando?". Esto es particularmente peligroso en hipertensión y colesterol alto, enfermedades silenciosas que no generan síntomas hasta que hacen daño severo</li>
+              <li><strong>Complejidad del régimen:</strong> un paciente con tres enfermedades crónicas puede tener 7 u 8 medicamentos distintos, con horarios diferentes, algunos en ayunas, otros con comida, otros separados de ciertos alimentos</li>
+              <li><strong>Desconfianza:</strong> "no quiero depender de pastillas", "prefiero lo natural", "un amigo me dijo que eso hace mal al hígado"</li>
+            </ul>
+            <p>
+              Ninguna de estas razones es irracional. Todas son humanas. Y todas son detectables si se
+              hace la pregunta correcta en el momento correcto.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo la IA Cruza Datos para Detectar No Adherencia</h2>
+            <p>
+              Acá es donde la inteligencia artificial cambia las reglas. No se trata de vigilar al paciente
+              ni de poner una cámara para ver si traga la pastilla. Se trata de detectar patrones en los
+              datos que el paciente ya genera durante su atención médica.
+            </p>
+            <p>
+              Un ejemplo concreto: un paciente hipertenso reporta en su anamnesis que tiene cefaleas
+              frecuentes. Toma enalapril 10mg indicado hace 6 meses. Sus últimos dos controles de presión
+              arterial muestran valores por encima del objetivo. La IA cruza estos tres datos y genera
+              una señal: "posible no adherencia al tratamiento antihipertensivo — considerar explorar
+              adherencia antes de escalar dosis".
+            </p>
+            <p>
+              Otro ejemplo: un paciente diabético tipo 2 con hemoglobina glicosilada en aumento progresivo
+              a pesar de tener indicada metformina. La IA detecta que el paciente reportó "malestar
+              estomacal frecuente" en las últimas dos consultas. Conexión: la metformina causa molestias
+              gastrointestinales en un porcentaje significativo de pacientes, y eso lleva a que muchos
+              reduzcan la dosis por cuenta propia.
+            </p>
+            <p>
+              La IA no diagnostica. No reemplaza al médico. Lo que hace es conectar puntos que en una
+              consulta de 15 minutos, con 30 pacientes en el día, pueden pasar desapercibidos.
+            </p>
+          </section>
+
+          <section>
+            <h2>Iatrogenia y Screening de Interacciones</h2>
+            <p>
+              Hay otro problema que la IA puede detectar y que es aún más sutil: la iatrogenia. Es decir,
+              el daño causado por el propio tratamiento médico. No por negligencia, sino por la complejidad
+              inherente de manejar múltiples medicamentos simultáneamente.
+            </p>
+            <p>
+              Un paciente que toma warfarina (anticoagulante) y su traumatólogo le receta ibuprofeno por
+              un dolor de rodilla. Ambas indicaciones son correctas por separado. Juntas, el riesgo de
+              sangrado se multiplica. Si cada médico ve solo su parte, nadie detecta el conflicto.
+            </p>
+            <p>
+              La anamnesis estructurada captura todos los medicamentos que toma el paciente — no solo los
+              que le indicó un médico particular, sino todos: los recetados, los de venta libre, los
+              suplementos, las "gotitas naturales". Con esa información completa, los sistemas de IA
+              pueden cruzar cada par de fármacos contra bases de datos de interacciones conocidas y
+              generar alertas antes de que el problema ocurra.
+            </p>
+            <p>
+              Esto no es paranoia tecnológica. Las reacciones adversas a medicamentos son la cuarta causa
+              de muerte en países desarrollados según algunos estudios. La mayoría son prevenibles si se
+              tiene la información completa.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Anamnesis Estructurada Como Fuente de Datos</h2>
+            <p>
+              Todo esto funciona solo si los datos existen en formato utilizable. Un médico que anota
+              "pte refiere tomar medicación irregular" en una nota de texto libre no le da a la IA nada
+              con lo que trabajar. Es información atrapada en lenguaje natural, sin estructura, sin
+              codificación.
+            </p>
+            <p>
+              La anamnesis estructurada resuelve esto de raíz. Cuando el paciente completa su cuestionario
+              previo a la consulta, cada medicamento se registra con nombre genérico, dosis, frecuencia y
+              adherencia autorreportada. Cada síntoma se codifica. Cada antecedente se vincula.
+            </p>
+            <p>
+              El resultado es un dataset limpio que la IA puede analizar en tiempo real. No necesita
+              interpretar caligrafía ni desambiguar abreviaturas. Los datos ya están en el formato correcto
+              para detectar patrones.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Rol del Farmacéutico en la Cadena</h2>
+            <p>
+              Un actor frecuentemente subestimado en la adherencia es el farmacéutico. En Argentina, la
+              farmacia comunitaria es muchas veces el último punto de contacto antes de que el paciente
+              tome (o deje de tomar) su medicación.
+            </p>
+            <p>
+              Un sistema de salud digital que integre al farmacéutico en la cadena de información puede
+              detectar señales tempranas: un paciente que no renueva su receta en el plazo esperado, que
+              compra la medicación con intervalos irregulares, o que pide solo la mitad de las cajas
+              indicadas "porque no me alcanza".
+            </p>
+            <p>
+              Estos datos, combinados con la información clínica de la anamnesis y los controles médicos,
+              completan el panorama. La adherencia no se mide solo preguntándole al paciente: se infiere
+              cruzando múltiples fuentes de datos.
+            </p>
+          </section>
+
+          <section>
+            <h2>Soporte, No Vigilancia</h2>
+            <p>
+              Es importante aclarar lo que esto no es. No es un sistema de control ni de castigo. Nadie
+              va a llamarte para retarte si no tomaste la pastilla. No hay un score de "buen paciente"
+              ni penalizaciones por incumplimiento.
+            </p>
+            <p>
+              Es un sistema de soporte. Si la IA detecta un patrón compatible con no adherencia, el médico
+              recibe una señal que dice "vale la pena explorar este tema en la próxima consulta". A partir
+              de ahí, la conversación es entre el médico y el paciente: ¿qué está pasando? ¿hay un efecto
+              adverso que no mencionaste? ¿el costo es una barrera? ¿hay una alternativa que funcione mejor
+              para tu rutina?
+            </p>
+            <p>
+              La tecnología detecta. El humano interviene. El paciente decide. Esa cadena no se altera.
+              Lo que cambia es que el problema deja de ser invisible. En lugar de descubrirse cuando el
+              paciente llega a la guardia con una crisis hipertensiva, se detecta en un control de rutina,
+              cuando todavía hay tiempo de corregir el rumbo.
+            </p>
+            <p>
+              La adherencia a la medicación no es un problema de voluntad. Es un problema de sistemas.
+              Y los sistemas se pueden mejorar.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de farmacología clínica.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/historia-clinica-digital" class="seo-card">
+              <span class="seo-badge">Tecnología Médica</span>
+              <h4>Historia Clínica Digital</h4>
+            </a>
+            <a href="/blog/5-senales-alerta-cardiaca" class="seo-card">
+              <span class="seo-badge">Cardiología</span>
+              <h4>5 Señales de Alerta Cardíaca</h4>
+            </a>
+            <a href="/blog/telemedicina-cardiologia" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Telemedicina en Cardiología</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/adherencia-medicacion-ia`} category={article.category} author={article.author} />
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

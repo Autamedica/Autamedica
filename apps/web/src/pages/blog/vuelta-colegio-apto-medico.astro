@@ -1,0 +1,179 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Vuelta al Colegio: El Apto Médico Que Nadie Lee (y Debería)',
+  author: 'Equipo AutaMedica',
+  role: 'Pediatría',
+  date: '6 de abril, 2026',
+  readTime: '5 min',
+  image: '/images/article_telemed.webp',
+  category: 'Pediatría',
+};
+---
+
+<Layout
+  title="Vuelta al Colegio: El Apto Médico Que Nadie Lee (y Debería) | AutaMedica"
+  description="Qué debería incluir un apto médico escolar real, qué detecta cuando se hace bien y por qué el trámite burocrático esconde una oportunidad de prevención."
+  canonical="https://www.autamedica.com/blog/vuelta-colegio-apto-medico"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El trámite que esconde un control de salud</h2>
+            <p>
+              Cada febrero o marzo, millones de familias argentinas pasan por la misma rutina: sacar turno con el pediatra, llevar al chico, esperar, y conseguir el papel que dice "apto para actividad física". El colegio lo pide, los padres lo cumplen, el papel se entrega y nadie lo vuelve a mirar. Es un trámite administrativo que debería ser un control de salud.
+            </p>
+            <p>
+              La diferencia entre un trámite y un control de salud está en lo que se hace durante esos 15 o 20 minutos de consulta. Un apto médico bien hecho es la oportunidad de detectar problemas que de otra forma pasarían inadvertidos hasta que sean sintomáticos. Un apto médico mal hecho es un sello en un papel.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué debería incluir un apto médico real</h2>
+            <p>
+              Las guías de la Sociedad Argentina de Pediatría y la Sociedad Argentina de Cardiología recomiendan que el examen predeportivo escolar incluya, como mínimo: anamnesis (antecedentes personales y familiares), examen físico general, evaluación cardiovascular (auscultación cardíaca, toma de presión arterial, evaluación de pulsos periféricos), evaluación del aparato locomotor (postura, columna, miembros), control de peso y talla con percentilos, evaluación de agudeza visual, y revisión del calendario de vacunación.
+            </p>
+            <p>
+              Los antecedentes familiares son particularmente relevantes: muerte súbita en familiares de primer grado menores de 50 años, cardiopatías congénitas, arritmias conocidas (síndrome de QT largo, Brugada, Wolff-Parkinson-White), miocardiopatía hipertrófica. Estas preguntas pueden parecer excesivas para un chico de 8 años, pero la muerte súbita en deportistas jóvenes es un evento raro y devastador que en muchos casos tiene antecedentes familiares identificables.
+            </p>
+            <p>
+              El electrocardiograma (ECG) no es obligatorio en Argentina para el apto escolar, a diferencia de Italia, donde es mandatorio desde los años 80. La evidencia sobre si el ECG de screening reduce la muerte súbita es debatida: los estudios italianos sugieren que sí, pero los análisis de costo-efectividad en otros países no siempre lo respaldan. Lo que sí es claro: si la auscultación o los antecedentes sugieren algo, el ECG es imprescindible.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué detecta cuando se hace bien</h2>
+            <p>
+              Un apto médico hecho con atención puede detectar: soplos cardíacos que requieren evaluación (la mayoría son funcionales e inocentes, pero algunos no), hipertensión arterial (sí, los chicos también pueden tener presión alta, especialmente con la prevalencia creciente de sobrepeso infantil), escoliosis en etapa tratable (la adolescencia temprana es la ventana para intervenir), problemas de visión que afectan el rendimiento escolar, retraso del crecimiento o desviaciones de la curva de peso, y vacunas pendientes.
+            </p>
+            <p>
+              El sobrepeso y la obesidad infantil merecen mención especial. Argentina tiene una de las tasas más altas de sobrepeso infantil de Latinoamérica: según la Encuesta Nacional de Nutrición y Salud, más del 40% de los chicos en edad escolar tiene exceso de peso. El apto médico anual es una de las pocas oportunidades de detectar una tendencia de aumento de peso y abordarla tempranamente, antes de que se consolide.
+            </p>
+          </section>
+
+          <section>
+            <h2>Los problemas del sistema actual</h2>
+            <p>
+              El sistema actual tiene fallas estructurales. Primera: muchos colegios piden "apto médico" sin especificar qué debe incluir. Un certificado que dice "apto" firmado por cualquier médico cumple el requisito administrativo, pero puede no incluir ninguna evaluación real.
+            </p>
+            <p>
+              Segunda: la demanda se concentra en febrero-marzo, lo que satura los consultorios. Los turnos se acortan, la evaluación se apura, y el resultado es un sello en lugar de un examen. Distribuir los aptos a lo largo del año (por ejemplo, en el mes del cumpleaños del chico) mejoraría la calidad sin aumentar el costo.
+            </p>
+            <p>
+              Tercera: no existe un sistema de seguimiento. Si el médico detecta algo en el apto, no hay un mecanismo formal para asegurar que el chico sea evaluado por el especialista correspondiente. El hallazgo queda en el certificado y en la buena voluntad de los padres. Un sistema digital que vincule el hallazgo con una derivación activa cambiaría la ecuación.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué pueden hacer los padres</h2>
+            <p>
+              Primero: no tratarlo como un trámite. Si tu pediatra te da un turno de 5 minutos, pide un turno de control de salud, no "un apto para el colegio". La consulta es diferente cuando el pediatra sabe que tiene tiempo para evaluar.
+            </p>
+            <p>
+              Segundo: llevar los antecedentes. Si hay historia familiar de problemas cardíacos, muerte súbita, enfermedades metabólicas o cualquier condición relevante, mencionalo activamente. El pediatra no puede preguntar lo que no sabe que tiene que preguntar.
+            </p>
+            <p>
+              Tercero: verificar el calendario de vacunación. El apto médico es una oportunidad para ponerse al día con vacunas pendientes. En Argentina, la cobertura de vacunas del calendario nacional bajó en los últimos años. Un refuerzo atrasado de triple viral o de triple bacteriana acelular puede resolverse en la misma visita.
+            </p>
+            <p>
+              Cuarto: leer el apto. Si el médico escribe "apto con observaciones" o "derivar a cardiología", eso no es una formalidad. Es una indicación médica que requiere acción.
+            </p>
+          </section>
+
+          <section>
+            <h2>Un papel que podría salvar vidas</h2>
+            <p>
+              El apto médico escolar es, en el mejor de los casos, la única consulta médica que muchos chicos tienen en todo el año. En familias sin obra social o con dificultades de acceso, puede ser el único contacto con el sistema de salud. Tratarlo como un sello burocrático es desperdiciar una oportunidad de prevención que no tiene equivalente.
+            </p>
+            <p>
+              La muerte súbita en deportistas escolares es rara, pero cuando ocurre, en muchos casos había signos que un examen cuidadoso podría haber detectado. La escoliosis detectada a los 11 años se trata con un corsé; detectada a los 16, puede requerir cirugía. El sobrepeso identificado a los 7 años se puede abordar con cambios graduales; a los 14, es mucho más difícil de revertir.
+            </p>
+            <p>
+              El apto médico escolar no necesita ser más complejo. Necesita ser tomado en serio. Por los médicos que lo hacen, por los colegios que lo piden, y por los padres que lo llevan.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/vuelta-colegio-apto-medico" description="Qué debería incluir un apto médico escolar real, qué detecta cuando se hace bien y por qué el trámite esconde una oportunidad de prevención." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de pediatría.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/dengue-argentina-prevencion-real" class="seo-card">
+              <span class="seo-badge">Infectología</span>
+              <h4>Dengue en Argentina: Prevención Real, No Pánico</h4>
+            </a>
+            <a href="/blog/alergia-primaveral-antihistaminico" class="seo-card">
+              <span class="seo-badge">Alergología</span>
+              <h4>Alergia Primaveral: Cuándo el Antihistamínico No Alcanza</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

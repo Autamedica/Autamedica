@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: 'Telemedicina en Cardiología: Consultantes Online Seguras y Eficaces',
@@ -273,6 +274,8 @@ const article = {
         </div>
 
         <!-- Author Section -->
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/telemedicina-cardiologia`} category={article.category} author={article.author} />
+
         <div class="seo-sidebar-card blog-author-card">
           <h3>Sobre el Equipo</h3>
           <p>

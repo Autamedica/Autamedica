@@ -1,0 +1,191 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'IA Clínica: Qué Puede Hacer Hoy un Modelo de Lenguaje en Medicina',
+  author: 'Equipo AutaMedica',
+  role: 'Informática Médica',
+  date: '6 de abril, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Innovación en Salud',
+};
+---
+
+<Layout
+  title="IA Clínica: Qué Puede Hacer Hoy un Modelo de Lenguaje en Medicina | AutaMedica"
+  description="Qué pueden y qué no pueden hacer los modelos de lenguaje (LLM) en la práctica clínica real: evidencia, limitaciones y el rol del médico."
+  canonical="https://www.autamedica.com/blog/ia-clinica-que-puede-hacer-hoy"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El estado real de la IA en medicina</h2>
+            <p>
+              Los titulares dicen que la inteligencia artificial va a reemplazar a los médicos. La realidad es más prosaica y más interesante. Los modelos de lenguaje grandes (LLM) como GPT-4, Claude y Gemini demostraron capacidades notables en tareas clínicas específicas, pero también limitaciones que hacen imposible, hoy, confiarles decisiones médicas sin supervisión humana.
+            </p>
+            <p>
+              Para entender qué puede hacer un LLM en medicina hoy, conviene separar tres cosas: qué mostró la evidencia en evaluaciones controladas, qué se está usando en la práctica clínica real y qué queda pendiente para que estas herramientas sean seguras a escala.
+            </p>
+          </section>
+
+          <section>
+            <h2>Dónde los LLM muestran utilidad demostrada</h2>
+            <p>
+              <strong>Documentación clínica.</strong> La generación de notas de evolución, resúmenes de consulta e informes de alta es probablemente el caso de uso más maduro. Sistemas como Ambient de Nuance (Microsoft) y DAX transcriben la conversación médico-paciente y generan una nota estructurada. Estudios en sistemas de salud de Estados Unidos reportan una reducción del 50% en el tiempo dedicado a documentación, con tasas de aceptación del borrador superiores al 70%.
+            </p>
+            <p>
+              <strong>Triage y orientación inicial.</strong> Los LLM pueden procesar un conjunto de síntomas y sugerir posibles diagnósticos diferenciales. En evaluaciones como USMLE (examen de licencia médica de EE.UU.), GPT-4 superó el umbral de aprobación con margen. Esto no los convierte en diagnosticadores confiables, pero sí en herramientas útiles para estructurar el razonamiento clínico inicial, especialmente en atención primaria.
+            </p>
+            <p>
+              <strong>Extracción de información de textos médicos.</strong> Leer un informe de laboratorio complejo, una nota de interconsulta extensa o un paper de 40 páginas y extraer los datos relevantes es una tarea donde los LLM son consistentemente superiores en velocidad al humano promedio, con una precisión que ronda el 85-95% dependiendo del tipo de texto.
+            </p>
+            <p>
+              <strong>Educación médica.</strong> La capacidad de explicar mecanismos fisiopatológicos, generar casos clínicos para estudio y responder preguntas en formato socrático está bien documentada. Varias facultades de medicina están incorporando LLM como tutores complementarios.
+            </p>
+          </section>
+
+          <section>
+            <h2>Dónde los LLM todavía fallan</h2>
+            <p>
+              <strong>Alucinaciones clínicas.</strong> Los LLM generan información plausible pero falsa. En medicina, esto puede significar citar un estudio que no existe, recomendar una dosis incorrecta o inventar una interacción medicamentosa. La tasa de alucinación varía según el modelo y la tarea, pero ningún LLM actual tiene tasa cero. En un entorno donde la información incorrecta puede dañar al paciente, esto es un problema fundamental, no un detalle técnico.
+            </p>
+            <p>
+              <strong>Razonamiento causal.</strong> Los LLM son excelentes en correlación y reconocimiento de patrones, pero débiles en razonamiento causal verdadero. Un médico experimentado no solo sabe que "dolor torácico + disnea puede ser TEP": entiende por qué, puede sopesar la probabilidad pre-test según el contexto del paciente, y sabe cuándo la presentación atípica es más peligrosa que la típica. Los LLM simulan este razonamiento sin tenerlo.
+            </p>
+            <p>
+              <strong>Integración de contexto no textual.</strong> La palpación de un abdomen, el aspecto general del paciente al entrar al consultorio, el tono de voz que sugiere ansiedad versus dolor real, la evaluación del entorno socioeconómico durante una visita domiciliaria. Todo esto es información clínica que un LLM no tiene y no puede tener.
+            </p>
+            <p>
+              <strong>Responsabilidad legal.</strong> Si un LLM sugiere un tratamiento y el paciente tiene un evento adverso, la responsabilidad recae sobre el médico que tomó la decisión. El marco regulatorio actual, en Argentina y en la mayoría de los países, no contempla la IA como un actor con responsabilidad propia. Esto no es solo un tecnicismo legal: define quién rinde cuentas.
+            </p>
+          </section>
+
+          <section>
+            <h2>El modelo que funciona: human-in-the-loop</h2>
+            <p>
+              La evidencia converge en un punto: los LLM funcionan mejor en medicina cuando asisten al profesional, no cuando lo reemplazan. El modelo se llama "human-in-the-loop" y significa que la IA genera un borrador, una sugerencia o un análisis, y el médico revisa, corrige y decide.
+            </p>
+            <p>
+              Este modelo tiene ventajas concretas. Reduce la carga administrativa (la IA escribe, el médico valida). Amplifica la capacidad de análisis (la IA lee 200 páginas de historia clínica en segundos, el médico interpreta los hallazgos). Democratiza el acceso a conocimiento (un médico generalista puede consultar un razonamiento especializado al instante).
+            </p>
+            <p>
+              Pero también tiene un riesgo documentado: el sesgo de automatización. Cuando una herramienta es acertada la mayoría de las veces, el humano tiende a confiar en ella incluso cuando se equivoca. Estudios de aviación y radiología muestran que la supervisión humana se degrada con el tiempo cuando el sistema automatizado es "casi siempre correcto". Este es el desafío central de la implementación de IA clínica.
+            </p>
+          </section>
+
+          <section>
+            <h2>El contexto argentino</h2>
+            <p>
+              Argentina tiene particularidades que afectan la adopción de IA clínica. La historia clínica electrónica no está universalizada: muchos hospitales públicos todavía usan registros en papel o sistemas digitales fragmentados. Sin datos estructurados, los LLM no pueden operar sobre la historia del paciente.
+            </p>
+            <p>
+              La regulación de dispositivos médicos basados en IA (Software as a Medical Device, SaMD) por parte de ANMAT está en desarrollo. No existe todavía un marco claro para aprobar, monitorear y regular herramientas clínicas que usen LLM. Esto no significa que sea ilegal usarlas, pero sí que no hay un estándar de validación local.
+            </p>
+            <p>
+              Por otro lado, la comunidad médica argentina tiene una tradición fuerte de adopción tecnológica temprana. Cirugía robótica, telemedicina durante la pandemia, digitalización de farmacias: hay antecedentes de integración rápida cuando la herramienta demuestra valor práctico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué debería pedir un médico antes de usar una herramienta de IA</h2>
+            <p>
+              Si estás evaluando una herramienta de IA para tu práctica clínica, hay preguntas que deberías hacerle al proveedor antes de confiar en ella.
+            </p>
+            <p>
+              Primero: con qué datos fue entrenada y si esos datos incluyen población latinoamericana. Los sesgos de entrenamiento se traducen en sesgos clínicos. Un modelo entrenado predominantemente con datos de pacientes anglosajones puede tener rendimiento inferior con patologías prevalentes en Argentina.
+            </p>
+            <p>
+              Segundo: cuál es la tasa de error documentada para la tarea específica que vas a usar. "Nuestra IA es muy precisa" no es una respuesta. Un número con intervalo de confianza sí lo es.
+            </p>
+            <p>
+              Tercero: dónde se procesan los datos del paciente. Si la herramienta envía datos clínicos a servidores en el exterior sin consentimiento explícito del paciente, hay un problema de privacidad que trasciende lo tecnológico.
+            </p>
+            <p>
+              La IA clínica no es el futuro. Ya es el presente. Pero la diferencia entre una implementación útil y una peligrosa está en los detalles que los titulares no mencionan.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/ia-clinica-que-puede-hacer-hoy" description="Qué pueden y qué no pueden hacer los modelos de lenguaje en la práctica clínica real: evidencia, limitaciones y el rol del médico." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de informática médica.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/burnout-medico-argentina" class="seo-card">
+              <span class="seo-badge">Profesionales</span>
+              <h4>Burnout Médico en Argentina: Los Números Que No Se Publican</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+            <a href="/blog/telemedicina-beneficio-corporativo-roi" class="seo-card">
+              <span class="seo-badge">Empresas</span>
+              <h4>Telemedicina como Beneficio Corporativo: El ROI Real</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

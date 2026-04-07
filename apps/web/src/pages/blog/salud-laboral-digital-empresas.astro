@@ -1,0 +1,279 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Salud Laboral Digital: Cómo las Empresas Cuidan a Sus Equipos Sin Burocracia',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina Laboral',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Empresas',
+};
+---
+
+<Layout
+  title="Salud Laboral Digital: Menos Burocracia, Mejor Cuidado | AutaMedica"
+  description="Exámenes preocupacionales, periódicos y de egreso digitalizados. Cómo las plataformas de salud laboral simplifican el cumplimiento normativo para empresas y empleados."
+  canonical="https://www.autamedica.com/blog/salud-laboral-digital-empresas"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El Problema: Salud Laboral = Papelerío</h2>
+            <p>
+              En Argentina, la salud laboral está regulada por un marco normativo extenso: la Ley 19.587
+              de Higiene y Seguridad en el Trabajo, la Ley 24.557 de Riesgos del Trabajo y sus decretos
+              reglamentarios. Estas leyes exigen exámenes médicos preocupacionales, periódicos, de cambio
+              de actividad, de reingreso y de egreso. Todo documentado, todo archivado, todo auditado.
+            </p>
+            <p>
+              Para una empresa con 200 empleados, esto significa coordinar cientos de turnos médicos al año,
+              gestionar resultados en papel, mantener legajos actualizados, responder requerimientos de la
+              ART, y asegurar que nadie se quede sin su examen periódico dentro del plazo reglamentario.
+            </p>
+            <p>
+              El resultado habitual: una persona de RRHH dedicada casi exclusivamente a perseguir turnos,
+              una pila de certificados médicos en una carpeta, empleados que pierden medio día de trabajo
+              para ir al centro médico laboral, y una auditoría que siempre encuentra algo fuera de regla.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Exige la Normativa Argentina</h2>
+            <p>
+              Para entender por qué la digitalización es relevante, conviene repasar qué exige la ley:
+            </p>
+            <ul>
+              <li><strong>Examen preocupacional:</strong> obligatorio antes del ingreso. Determina la aptitud del trabajador para el puesto. No puede usarse como criterio discriminatorio — no puede rechazarse a alguien por una condición preexistente, pero sí debe documentarse el estado de salud basal</li>
+              <li><strong>Examen periódico:</strong> según la actividad y los riesgos asociados, puede ser anual, semestral o con otra frecuencia. Detecta patologías vinculadas al trabajo de forma temprana</li>
+              <li><strong>Examen de cambio de actividad:</strong> cuando un trabajador pasa a un puesto con riesgos diferentes</li>
+              <li><strong>Examen de reingreso:</strong> tras una ausencia prolongada por enfermedad o accidente</li>
+              <li><strong>Examen de egreso:</strong> optativo pero recomendado. Documenta el estado de salud al momento de la desvinculación, lo que protege tanto al trabajador como a la empresa ante futuros reclamos</li>
+            </ul>
+            <p>
+              Cada uno de estos exámenes genera un registro que debe conservarse, y el incumplimiento
+              puede derivar en sanciones de la Superintendencia de Riesgos del Trabajo y complicaciones
+              legales ante accidentes laborales.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo la Digitalización Simplifica el Proceso</h2>
+            <p>
+              Una plataforma de salud laboral digital no elimina la obligación de hacer los exámenes.
+              Lo que elimina es la burocracia que rodea al proceso:
+            </p>
+            <p>
+              <strong>Agendamiento centralizado.</strong> En lugar de que RRHH coordine turnos por teléfono
+              con tres centros médicos distintos, el sistema permite que cada empleado reserve su turno
+              desde su celular, eligiendo fecha, hora y centro más conveniente. RRHH ve en tiempo real
+              quién tiene turno, quién completó el examen y quién está pendiente.
+            </p>
+            <p>
+              <strong>Legajo de salud digital.</strong> Los resultados de cada examen se cargan directamente
+              en el sistema. No hay papeles que perder, no hay certificados que escanear. El médico
+              laboral completa el informe en la plataforma y el resultado queda disponible
+              inmediatamente para RRHH (apto/no apto/apto con restricciones) y para el empleado
+              (sus resultados completos).
+            </p>
+            <p>
+              <strong>Alertas de vencimiento.</strong> El sistema sabe cuándo vence cada examen periódico
+              y envía alertas automáticas — al empleado para que agende su turno y a RRHH para que
+              haga seguimiento. Cero sorpresas en las auditorías.
+            </p>
+            <p>
+              <strong>Reportes de cumplimiento.</strong> Un dashboard que muestra en tiempo real: porcentaje
+              de cumplimiento por área, exámenes vencidos, próximos a vencer y completados. RRHH ya
+              no necesita armar planillas manuales para la reunión con la ART.
+            </p>
+          </section>
+
+          <section>
+            <h2>Beneficios para Recursos Humanos</h2>
+            <p>
+              <strong>Visibilidad total.</strong> En lugar de una carpeta con certificados que hay que
+              revisar uno por uno, RRHH tiene un panel con el estado de salud laboral de toda la
+              organización. Puede filtrar por área, por tipo de examen, por estado de cumplimiento.
+              La información que antes requería horas de trabajo manual ahora está a un clic.
+            </p>
+            <p>
+              <strong>Reducción del ausentismo operativo.</strong> Cuando un examen médico laboral requiere
+              que el empleado se ausente medio día, eso es productividad perdida multiplicada por cada
+              persona de la organización. Con agendamiento flexible y centros múltiples, el empleado
+              elige el momento que menos impacta en su trabajo. Algunas evaluaciones complementarias
+              pueden hacerse por videoconsulta.
+            </p>
+            <p>
+              <strong>Trazabilidad para auditorías.</strong> Cada acción queda registrada con fecha, hora
+              y responsable. Cuándo se agendó el turno, cuándo se realizó el examen, quién lo evaluó,
+              cuándo se emitió el resultado. Esta trazabilidad es oro en una auditoría de la SRT.
+            </p>
+            <p>
+              <strong>Datos para decisiones.</strong> Con datos estructurados de salud laboral, RRHH puede
+              identificar patrones: áreas con mayor incidencia de problemas musculoesqueléticos, puestos
+              donde la exposición a ruido genera más derivaciones, épocas del año con picos de consultas.
+              Esto permite pasar de una gestión reactiva a una preventiva.
+            </p>
+          </section>
+
+          <section>
+            <h2>Beneficios para los Empleados</h2>
+            <p>
+              <strong>Menos tiempo fuera del trabajo.</strong> Elegir tu propio turno, en un centro cercano
+              a tu casa o a tu oficina, en un horario que te convenga, reduce significativamente el
+              impacto del examen en tu jornada. Ya no es "el miércoles de 8 a 12 en el centro médico
+              de zona norte aunque vivas en zona sur".
+            </p>
+            <p>
+              <strong>Acceso a tus propios resultados.</strong> En el modelo tradicional, el empleado
+              muchas veces no ve sus propios resultados detallados — solo recibe el "apto" o "no apto".
+              Con una plataforma digital, tenés acceso a tus resultados completos: análisis de sangre,
+              audiometría, espirometría, todo. Esa información es tuya y te sirve más allá del ámbito
+              laboral.
+            </p>
+            <p>
+              <strong>Historial consolidado.</strong> Si cambiás de empresa, tu historial de exámenes
+              laborales puede acompañarte. Esto es particularmente valioso para trabajadores de
+              industrias con riesgos específicos, donde la exposición acumulada a ciertos agentes
+              necesita seguimiento longitudinal.
+            </p>
+          </section>
+
+          <section>
+            <h2>Privacidad: Qué Ve la Empresa y Qué No</h2>
+            <p>
+              Este es un punto crítico y frecuentemente malentendido. La Ley 25.326 es clara: los
+              datos de salud son datos sensibles. El empleador tiene derecho a saber si el trabajador
+              es apto para el puesto. No tiene derecho a conocer sus diagnósticos específicos.
+            </p>
+            <p>
+              En la práctica, esto significa que RRHH recibe: "apto", "no apto" o "apto con
+              restricciones" (y en este caso, cuáles son las restricciones laborales, no el diagnóstico
+              que las genera). El detalle clínico — qué tiene el empleado, qué medicación toma, qué
+              antecedentes familiares tiene — queda entre el empleado y el médico laboral.
+            </p>
+            <p>
+              Una plataforma de salud laboral bien diseñada refleja esta separación en su arquitectura:
+              dos niveles de acceso, con datos clínicos visibles solo para profesionales médicos y datos
+              administrativos (aptitud, restricciones, cumplimiento) visibles para RRHH.
+            </p>
+            <p>
+              Esta separación no es opcional ni de buena voluntad: es un requisito legal. Y la
+              digitalización, lejos de ponerla en riesgo, la refuerza. En el modelo papel, un
+              certificado médico detallado puede quedar a la vista en un escritorio. En un sistema
+              digital con control de acceso, cada dato tiene un nivel de visibilidad definido y
+              auditable.
+            </p>
+          </section>
+
+          <section>
+            <h2>De la Obligación al Cuidado Real</h2>
+            <p>
+              La salud laboral en Argentina nació como una obligación legal. Y para muchas empresas,
+              sigue siendo exactamente eso: un trámite que hay que cumplir para evitar multas. Los
+              exámenes se hacen, los certificados se archivan, y nadie vuelve a mirarlos hasta que
+              hay un problema.
+            </p>
+            <p>
+              La digitalización tiene el potencial de cambiar esto. Cuando los datos están estructurados
+              y son accesibles, dejan de ser un trámite y se convierten en una herramienta. Una empresa
+              que detecta que el 30% de su personal administrativo tiene problemas de columna puede
+              invertir en sillas ergonómicas antes de que esos problemas se conviertan en licencias.
+              Una que identifica estrés crónico en un área específica puede intervenir antes de que
+              el burnout genere rotación.
+            </p>
+            <p>
+              El cumplimiento normativo es la línea base. Lo que la tecnología permite es ir más allá:
+              usar los datos de salud laboral no solo para cumplir con la ley, sino para cuidar
+              genuinamente a las personas que hacen funcionar la organización.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina laboral y gestión de RRHH.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/privacidad-datos-salud-argentina" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>Privacidad de Datos de Salud en Argentina</h4>
+            </a>
+            <a href="/blog/historia-clinica-digital" class="seo-card">
+              <span class="seo-badge">Tecnología Médica</span>
+              <h4>Historia Clínica Digital</h4>
+            </a>
+            <a href="/blog/telemedicina-revolucion-salud" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>¿Por Qué la Telemedicina es la Revolución?</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/salud-laboral-digital-empresas`} category={article.category} author={article.author} />
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

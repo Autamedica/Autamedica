@@ -1,0 +1,189 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Dengue en Argentina: Prevención Real, No Pánico',
+  author: 'Equipo AutaMedica',
+  role: 'Infectología',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Infectología',
+};
+---
+
+<Layout
+  title="Dengue en Argentina: Prevención Real, No Pánico | AutaMedica"
+  description="Dengue en Argentina: datos epidemiológicos actualizados, prevención basada en evidencia, signos de alarma y qué hacer si sospechás que lo tenés."
+  canonical="https://www.autamedica.com/blog/dengue-argentina-prevencion-real"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La situación epidemiológica actual</h2>
+            <p>
+              El dengue dejó de ser una enfermedad tropical lejana para Argentina. Las temporadas 2023-2024 y 2024-2025 registraron los brotes más grandes de la historia del país, con cientos de miles de casos confirmados y una expansión geográfica que alcanzó provincias que históricamente no tenían circulación del virus, incluyendo Buenos Aires, Córdoba y Mendoza.
+            </p>
+            <p>
+              Esta expansión no es casualidad. Responde a una combinación de factores: el mosquito Aedes aegypti (el vector principal) amplió su rango geográfico hacia el sur favorecido por el aumento de las temperaturas, la urbanización genera criaderos artificiales permanentes, y los viajes internos distribuyen el virus desde zonas endémicas hacia zonas receptivas. Argentina no es un país con dengue estacional: se está convirtiendo en un país con dengue endémico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué es el dengue (sin simplificaciones)</h2>
+            <p>
+              El dengue es una enfermedad viral transmitida por la picadura del mosquito Aedes aegypti infectado. Existen cuatro serotipos del virus (DEN-1, DEN-2, DEN-3, DEN-4). La infección por un serotipo confiere inmunidad permanente contra ese serotipo, pero no contra los otros tres. Peor aún: una segunda infección por un serotipo diferente tiene mayor riesgo de evolucionar a dengue grave.
+            </p>
+            <p>
+              El cuadro clásico incluye fiebre alta (mayor a 38.5 grados), dolor retroocular (detrás de los ojos), cefalea intensa, mialgias y artralgias (dolor muscular y articular), y exantema (erupción cutánea). La mayoría de los casos son leves y se resuelven en 7 a 10 días. Pero entre el 5% y el 10% de los pacientes pueden evolucionar a dengue grave, que se caracteriza por extravasación de plasma, hemorragias y falla orgánica. El dengue grave tiene una mortalidad del 2-5% sin tratamiento adecuado y menor al 1% con manejo hospitalario oportuno.
+            </p>
+          </section>
+
+          <section>
+            <h2>Signos de alarma: cuándo ir al médico urgente</h2>
+            <p>
+              La fase crítica del dengue ocurre típicamente entre el tercer y el séptimo día de enfermedad, cuando la fiebre empieza a bajar. Paradójicamente, la mejoría de la fiebre puede coincidir con el empeoramiento del cuadro. Los signos de alarma que requieren atención médica inmediata son:
+            </p>
+            <p>
+              Dolor abdominal intenso y sostenido, vómitos persistentes (tres o más en una hora, o que impiden la hidratación oral), sangrado de mucosas (encías, nariz, en materia fecal o en orina), acumulación de líquidos (ascitis, derrame pleural visible como dificultad para respirar), decaimiento marcado o irritabilidad (especialmente en niños), y hepatomegalia dolorosa (hígado agrandado y sensible a la palpación).
+            </p>
+            <p>
+              Si tenés dengue confirmado o sospechado y presentás cualquiera de estos signos, no esperes: acudí a una guardia. La diferencia entre dengue leve y dengue grave puede ser cuestión de horas, y la intervención temprana (hidratación intravenosa, monitoreo) reduce dramáticamente la mortalidad.
+            </p>
+          </section>
+
+          <section>
+            <h2>Prevención: lo que funciona y lo que no</h2>
+            <p>
+              <strong>Lo que funciona:</strong> eliminar criaderos de mosquitos. El Aedes aegypti se reproduce en agua estancada limpia, en recipientes pequeños: platos de macetas, neumáticos abandonados, baldes, piletas sin mantenimiento, tapitas de gaseosa. La fumigación adulticida (las camionetas que tiran insecticida) es una medida de emergencia que mata mosquitos adultos pero no los huevos ni las larvas. A las 48 horas del fumigado, si los criaderos siguen, hay mosquitos nuevos.
+            </p>
+            <p>
+              La medida más efectiva es la eliminación de criaderos a nivel domiciliario. Esto no es una tarea del municipio: es una tarea de cada persona en su casa y en su manzana. Un solo recipiente con agua en un patio puede generar cientos de mosquitos por semana. La revisión semanal del hogar y el peridomicilio (patio, terraza, balcón) es más efectiva que toda la fumigación municipal combinada.
+            </p>
+            <p>
+              <strong>Repelentes:</strong> los que contienen DEET (N,N-dietil-meta-toluamida) en concentración del 25-30% o icaridina al 20% son los más efectivos. Duran entre 6 y 8 horas. Los repelentes "naturales" (citronela, eucalipto) tienen una duración de protección mucho menor (30-60 minutos) y no son recomendados como protección primaria en zonas de alta circulación viral.
+            </p>
+            <p>
+              <strong>Lo que no funciona:</strong> las pulseras repelentes (no tienen evidencia), los dispositivos ultrasónicos (no afectan a los mosquitos), el vinagre en recipientes (no repele), y fumigar el interior de la casa con aerosoles comerciales como única medida (mata los mosquitos presentes pero no previene la entrada de nuevos).
+            </p>
+          </section>
+
+          <section>
+            <h2>La vacuna: estado actual en Argentina</h2>
+            <p>
+              La vacuna Qdenga (TAK-003, de Takeda) fue aprobada por ANMAT y está disponible en Argentina. Es una vacuna de virus vivo atenuado que se administra en dos dosis con tres meses de intervalo. Está indicada para personas de 4 a 60 años, independientemente de si tuvieron dengue previo.
+            </p>
+            <p>
+              Los datos de eficacia muestran una reducción del 84% de las hospitalizaciones por dengue y del 61% de los casos sintomáticos en los primeros 54 meses post-vacunación. La eficacia varía por serotipo: es mayor contra DEN-1 y DEN-2, y menor contra DEN-3 y DEN-4.
+            </p>
+            <p>
+              A abril de 2026, la vacuna no está incluida en el Calendario Nacional de Vacunación. Está disponible en vacunatorios privados a un costo de entre $40.000 y $60.000 ARS por dosis (total: dos dosis). Algunas prepagas la cubren parcialmente. La decisión de vacunarse debe evaluarse con el médico considerando el riesgo epidemiológico de la zona donde vivís, tus antecedentes y la relación costo-beneficio individual.
+            </p>
+          </section>
+
+          <section>
+            <h2>Si te da dengue: manejo en casa</h2>
+            <p>
+              La mayoría de los casos de dengue se manejan ambulatoriamente (en casa) con medidas simples: reposo, hidratación abundante (agua, suero oral, caldos), control de fiebre con paracetamol (acetaminofén). El paracetamol es el único antitérmico recomendado.
+            </p>
+            <p>
+              <strong>Está contraindicado tomar ibuprofeno, aspirina, diclofenac o cualquier antiinflamatorio no esteroide (AINE).</strong> Estos medicamentos inhiben la agregación plaquetaria y aumentan el riesgo de sangrado, que es precisamente la complicación más peligrosa del dengue. Este es uno de los puntos donde la automedicación habitual puede ser letal: mucha gente toma ibuprofeno para la fiebre y los dolores musculares sin saber que tiene dengue.
+            </p>
+            <p>
+              Control de temperatura cada 6 horas, ingesta de líquidos mínima de 2 a 3 litros por día, reposo relativo, y control médico diario o cada 48 horas entre el día 3 y el día 7 de la enfermedad (la ventana crítica). Si en algún momento aparecen signos de alarma, guardia.
+            </p>
+          </section>
+
+          <section>
+            <h2>Convivir con el dengue sin paralizarse</h2>
+            <p>
+              El dengue llegó para quedarse en Argentina. Ni el pánico ni la negación son respuestas útiles. Lo que sí sirve: conocer la enfermedad, eliminar criaderos con constancia, usar repelente cuando corresponde, saber cuándo consultar, no automedicarse con AINEs ante cuadros febriles en temporada de dengue, y evaluar la vacunación con tu médico.
+            </p>
+            <p>
+              La prevención del dengue no es espectacular. No hay una bala mágica. Es un trabajo sostenido, domiciliario, comunitario y silencioso. Funciona cuando se hace con constancia, no cuando se hace con miedo.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/dengue-argentina-prevencion-real" description="Dengue en Argentina: datos epidemiológicos, prevención basada en evidencia, signos de alarma y qué hacer si sospechás que lo tenés." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de infectología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/golpe-calor-no-solo-tomar-agua" class="seo-card">
+              <span class="seo-badge">Emergencias</span>
+              <h4>Golpe de Calor: No Es Solo 'Tomá Agua'</h4>
+            </a>
+            <a href="/blog/alergia-primaveral-antihistaminico" class="seo-card">
+              <span class="seo-badge">Alergología</span>
+              <h4>Alergia Primaveral: Cuándo el Antihistamínico No Alcanza</h4>
+            </a>
+            <a href="/blog/vuelta-colegio-apto-medico" class="seo-card">
+              <span class="seo-badge">Pediatría</span>
+              <h4>Vuelta al Colegio: El Apto Médico Que Nadie Lee</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

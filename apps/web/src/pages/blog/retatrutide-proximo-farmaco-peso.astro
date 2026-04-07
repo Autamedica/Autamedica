@@ -1,0 +1,194 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Retatrutide: El Triple Agonista Que Promete 28% de Pérdida de Peso — Qué Sabemos Hasta Ahora',
+  author: 'Equipo AutaMedica',
+  role: 'Endocrinología',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Investigación Médica',
+};
+---
+
+<Layout
+  title="Retatrutide: El Triple Agonista Que Promete 28% de Pérdida de Peso — Qué Sabemos Hasta Ahora | AutaMedica"
+  description="Retatrutide actúa sobre tres receptores hormonales a la vez. Los ensayos muestran resultados sin precedentes, pero aún no está aprobado. Estado actual de la evidencia."
+  canonical="https://www.autamedica.com/blog/retatrutide-proximo-farmaco-peso"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>De GLP-1 simple a triple agonista</h2>
+            <p>
+              La historia de los fármacos para obesidad basados en hormonas intestinales tiene una progresión clara. Primero llegó la liraglutida (Saxenda), que actúa sobre un solo receptor: el GLP-1. Producía pérdidas de peso modestas, del 5 al 8%, pero demostró que el enfoque hormonal funcionaba.
+            </p>
+            <p>
+              Después vino la semaglutida (Ozempic, Wegovy), que actúa sobre el mismo receptor GLP-1 pero con una molécula optimizada para durar más y ser más potente. Las pérdidas de peso subieron al 15% en ensayos clínicos.
+            </p>
+            <p>
+              La tirzepatida (Mounjaro) agregó un segundo receptor: el GIP (péptido insulinotrópico dependiente de glucosa). Con dos receptores activados simultáneamente, los resultados treparon al 22%. Y ahora, retatrutide propone activar un tercer receptor: el del glucagón.
+            </p>
+            <p>
+              Cada generación no reemplaza a la anterior necesariamente, sino que amplía el espectro de acción hormonal. Más receptores no significa automáticamente "mejor" para todos los pacientes, pero sí abre nuevas posibilidades terapéuticas.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué hace el tercer receptor: glucagón</h2>
+            <p>
+              El glucagón es conocido por su rol en elevar la glucosa en sangre, lo opuesto a la insulina. Pero tiene otro efecto menos discutido: aumenta el gasto energético y promueve la lipólisis (quema de grasa). En otras palabras, el glucagón le dice al cuerpo que use sus reservas de energía.
+            </p>
+            <p>
+              El problema histórico de usar glucagón como herramienta terapéutica es que sube la glucosa, algo contraproducente en pacientes con diabetes o prediabetes. La solución de retatrutide es combinar la activación del receptor de glucagón con la activación simultánea de GLP-1, que estimula la insulina y contrarresta la hiperglucemia.
+            </p>
+            <p>
+              El resultado teórico es un fármaco que reduce el apetito (GLP-1), mejora la utilización de nutrientes (GIP) y aumenta el gasto calórico (glucagón), todo al mismo tiempo. Los ensayos clínicos sugieren que esta combinación produce resultados que superan a cualquier fármaco previo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Los números del TRIUMPH-4</h2>
+            <p>
+              El ensayo TRIUMPH-4, conducido por Eli Lilly, es el estudio de fase 3 más relevante hasta la fecha para retatrutide. Los resultados, publicados durante 2025, muestran una pérdida de peso promedio del 28.7% del peso corporal en la dosis más alta, a las 48 semanas de tratamiento.
+            </p>
+            <p>
+              Para ponerlo en contexto: un paciente de 100 kg podría esperar perder, en promedio, 28.7 kg en un año. Esto supera los 22% de tirzepatida y los 15% de semaglutida en condiciones de ensayo clínico comparables.
+            </p>
+            <p>
+              Un dato adicional del TRIUMPH-4 que recibió atención es la reducción del dolor articular. En pacientes con obesidad y osteoartritis de rodilla, el dolor se redujo un 75.8%. Esto tiene sentido mecánico: menos peso es menos carga articular, pero la magnitud de la mejora fue notable.
+            </p>
+            <p>
+              Es importante recordar que estos son resultados de ensayo clínico, con todo lo que eso implica: pacientes seleccionados, seguimiento intensivo, adherencia controlada. Los resultados de mundo real probablemente sean menores, como ocurrió con semaglutida y tirzepatida.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué falta para que llegue al mercado</h2>
+            <p>
+              A abril de 2026, retatrutide no está aprobado por ninguna agencia regulatoria. Eli Lilly completó los ensayos de fase 3 y se espera el envío regulatorio a la FDA durante 2026. Si la revisión sigue el cronograma habitual, la aprobación en Estados Unidos podría llegar en 2027.
+            </p>
+            <p>
+              La llegada a Argentina depende de que Eli Lilly solicite la aprobación ante ANMAT después de obtener la aprobación FDA, un proceso que históricamente tarda entre 12 y 24 meses. Esto sitúa la disponibilidad local estimada entre 2028 y 2029, si todo avanza sin contratiempos.
+            </p>
+            <p>
+              Un punto que requiere atención: retatrutide no está disponible hoy. Cualquier oferta de venta online de retatrutide a nivel local o internacional es, en el mejor de los casos, un producto de investigación no aprobado para uso humano, y en el peor, una falsificación. Consultá con tu médico antes de considerar cualquier tratamiento que no esté disponible por canales regulados.
+            </p>
+          </section>
+
+          <section>
+            <h2>Las preguntas sin responder</h2>
+            <p>
+              A pesar de los resultados prometedores, hay preguntas fundamentales que todavía no tienen respuesta. La más importante es el perfil de seguridad a largo plazo. Los datos disponibles cubren 48 semanas de tratamiento. Para un fármaco que probablemente se use de forma crónica, necesitamos datos de dos, cinco y diez años.
+            </p>
+            <p>
+              El efecto sobre la masa muscular es otra incógnita. A mayor pérdida de peso, mayor riesgo de perder músculo junto con grasa. Con un 28% de pérdida de peso, la proporción de músculo perdido podría ser significativa, pero los datos publicados de composición corporal son todavía limitados.
+            </p>
+            <p>
+              El rebote post-suspensión es una pregunta que persigue a toda esta clase de fármacos. Si la semaglutida muestra recuperación de dos tercios del peso al suspender, ¿qué pasa con retatrutide? No hay datos publicados al respecto. Es razonable asumir que el patrón será similar, pero necesitamos confirmación.
+            </p>
+            <p>
+              El costo proyectado es otra variable. Los fármacos de triple agonismo probablemente sean más caros que los duales, que ya son más caros que los simples. Si tirzepatida cuesta ~$533 USD mensuales en Argentina (~$373 USD con programa de descuento del 30%), el precio de retatrutide podría ser superior. Sin embargo, el mercado argentino demostró capacidad de generar alternativas accesibles: la aparición de Dutide (biosimilar de semaglutida, ~$52 USD/mes con cobertura) forzó una baja del 49% en el precio de Ozempic. Si Argentina replica ese modelo con futuros biosimilares de tirzepatida o retatrutide, la accesibilidad podría mejorar significativamente.
+            </p>
+          </section>
+
+          <section>
+            <h2>El futuro del tratamiento de obesidad</h2>
+            <p>
+              Retatrutide no está solo en el pipeline. Varios fármacos de próxima generación están en desarrollo avanzado. Amycretina, de Novo Nordisk, combina GLP-1 con amilina y mostró pérdidas de peso superiores al 25% en fase 2. Survodutide, de Boehringer Ingelheim, es otro dual agonista GLP-1/glucagón con resultados prometedores, especialmente para hígado graso.
+            </p>
+            <p>
+              Quizás el cambio más significativo sea la llegada de los agonistas orales. Orforglipron, de Eli Lilly, es una pastilla diaria (no inyección) que actúa sobre el receptor GLP-1. Los ensayos de fase 3 muestran eficacia comparable a la semaglutida inyectable. Si se aprueba, podría cambiar radicalmente la accesibilidad de estos tratamientos.
+            </p>
+            <p>
+              Lo que estos fármacos representan, más allá de las moléculas individuales, es un cambio de paradigma. La obesidad empieza a tratarse como lo que la evidencia muestra que es: una enfermedad crónica con bases biológicas, no un déficit de voluntad personal. Este cambio de marco tiene implicaciones para la cobertura de salud, la regulación y la forma en que la sociedad entiende el peso corporal.
+            </p>
+            <p>
+              Ninguno de estos fármacos, presentes o futuros, es una solución completa por sí solo. Son herramientas que funcionan dentro de un abordaje integral que incluye alimentación, movimiento, salud mental y seguimiento médico. Consultá con tu médico antes de empezar cualquier tratamiento.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/retatrutide-proximo-farmaco-peso" description="Retatrutide actúa sobre tres receptores hormonales a la vez. Los ensayos muestran resultados sin precedentes, pero aún no está aprobado. Estado actual de la evidencia." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de endocrinología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/glp1-argentina-ozempic-wegovy-mounjaro" class="seo-card">
+              <span class="seo-badge">Endocrinología</span>
+              <h4>GLP-1 en Argentina: Ozempic, Wegovy y Mounjaro</h4>
+            </a>
+            <a href="/blog/inyecciones-bajar-peso-que-saber" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Inyecciones para Bajar de Peso: Lo Que Tu Médico Necesita Que Sepas</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

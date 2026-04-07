@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
 
 const article = {
   title: '¿Qué es R1, R2, R3, R4 en medicina?',
@@ -136,6 +137,8 @@ const article = {
               bajo supervisión certificada.
             </p>
           </section>
+
+          <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/que-es-r1-r2-r3-r4-en-medicina`} category={article.category} author={article.author} />
 
           <div class="blog-cta">
             <p class="blog-cta-title">En AutaMédica, todos los médicos son especialistas certificados</p>

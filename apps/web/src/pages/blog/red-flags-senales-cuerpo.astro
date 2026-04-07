@@ -1,0 +1,300 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: '5 Señales que Tu Cuerpo Te Da y que un Médico Nunca Ignoraría',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina de Emergencias',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Prevención',
+};
+---
+
+<Layout
+  title="5 Señales que Tu Cuerpo Te Da y que un Médico Nunca Ignoraría | AutaMedica"
+  description="Las banderas rojas en medicina son síntomas que requieren evaluación urgente. Cinco señales concretas, qué significan y cuándo consultar."
+  canonical="https://www.autamedica.com/blog/red-flags-senales-cuerpo"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Qué Son las "Banderas Rojas" en Medicina</h2>
+            <p>
+              En medicina, una "bandera roja" (red flag) es un síntoma o signo que alerta al profesional
+              sobre la posibilidad de una enfermedad grave subyacente. No significa que tengas esa
+              enfermedad. Significa que ese síntoma merece ser evaluado con urgencia para descartarla.
+            </p>
+            <p>
+              Los médicos aprenden estas banderas rojas durante la residencia y las usan como filtros
+              mentales en cada consulta. Son las preguntas que un clínico experimentado hace casi
+              automáticamente: "¿el dolor de cabeza empezó de golpe o fue gradual?", "¿bajaste de peso
+              sin proponértelo?", "¿tuviste debilidad repentina en algún brazo o pierna?"
+            </p>
+            <p>
+              Este artículo no busca alarmar. Busca educar. La mayoría de las veces, estos síntomas
+              tienen causas benignas. Pero conocerlos puede hacer la diferencia entre consultar a tiempo
+              y dejar pasar algo importante. Ninguna de estas señales es un diagnóstico por sí sola.
+              Todas requieren evaluación profesional.
+            </p>
+          </section>
+
+          <section>
+            <h2>1. El Dolor de Cabeza "Peor de Tu Vida"</h2>
+            <p>
+              Todos tenemos dolor de cabeza alguna vez. Cefaleas tensionales, migrañas, dolor por sinusitis.
+              Esos dolores son molestos pero generalmente benignos. La bandera roja es un dolor de cabeza
+              que aparece de golpe, alcanza su máxima intensidad en segundos, y que el paciente describe
+              como "el peor dolor de cabeza de mi vida".
+            </p>
+            <p>
+              Este patrón se llama cefalea en trueno (thunderclap headache) y es el modo en que puede
+              presentarse una hemorragia subaracnoidea: sangrado entre las membranas que cubren el cerebro,
+              frecuentemente causado por la ruptura de un aneurisma cerebral. Es una emergencia
+              neuroquirúrgica.
+            </p>
+            <p>
+              <strong>Lo que no significa:</strong> Un dolor de cabeza fuerte pero gradual, que empieza
+              suave y va creciendo a lo largo de horas, rara vez es una hemorragia subaracnoidea. Las
+              migrañas pueden ser intensísimas pero tienen un patrón de inicio y progresión distinto.
+            </p>
+            <p>
+              <strong>Cuándo consultar:</strong> Dolor de cabeza de inicio súbito y máxima intensidad
+              inmediata. Dolor de cabeza acompañado de rigidez de nuca, vómitos en escopeta, pérdida de
+              conciencia o confusión. Guardia, no consultorio.
+            </p>
+          </section>
+
+          <section>
+            <h2>2. Dolor de Pecho con el Esfuerzo</h2>
+            <p>
+              El pecho duele por muchas razones. Contracturas musculares, reflujo gastroesofágico, ansiedad,
+              costocondritis. La mayoría son benignas. La bandera roja es el dolor que aparece con el
+              esfuerzo físico y desaparece con el reposo.
+            </p>
+            <p>
+              Este patrón es característico de la angina de pecho: insuficiencia en el riego sanguíneo del
+              corazón, generalmente por obstrucción parcial de las arterias coronarias. Cuando hacés
+              esfuerzo, el corazón necesita más sangre, las arterias estrechas no alcanzan a proveerla, y
+              aparece el dolor. Cuando parás, la demanda baja y el dolor cede.
+            </p>
+            <p>
+              <strong>Lo que no significa:</strong> Un dolor de pecho que está presente todo el día
+              independientemente de lo que hagas, que cambia con la posición o con la respiración, o que
+              podés reproducir presionando con el dedo, rara vez es cardíaco. Pero la única forma de
+              saberlo con certeza es con evaluación médica.
+            </p>
+            <p>
+              <strong>Cuándo consultar:</strong> Dolor de pecho que aparece al caminar, subir escaleras
+              o hacer ejercicio y cede con el reposo. Dolor de pecho que se irradia al brazo izquierdo,
+              la mandíbula o la espalda. Dolor de pecho acompañado de falta de aire, sudoración fría o
+              náuseas. Si el dolor no cede en reposo: guardia inmediata.
+            </p>
+          </section>
+
+          <section>
+            <h2>3. Pérdida de Peso Inexplicable</h2>
+            <p>
+              Bajar de peso a propósito con dieta y ejercicio es esperable. Bajar de peso sin intentarlo,
+              más del 5% de tu peso corporal en un mes (por ejemplo, 4 kilos en alguien de 80), es una
+              bandera roja que todo médico investiga.
+            </p>
+            <p>
+              Las causas posibles son variadas: hipertiroidismo (la tiroides acelerada quema calorías de
+              más), diabetes descompensada (el cuerpo pierde glucosa por orina), enfermedades
+              inflamatorias intestinales (malabsorción de nutrientes), depresión severa (pérdida de apetito),
+              y sí, también neoplasias (cánceres que consumen energía del organismo).
+            </p>
+            <p>
+              <strong>Lo que no significa:</strong> Fluctuaciones de 1-2 kilos son normales. Perder peso
+              durante una gastroenteritis o una gripe fuerte es esperable y transitorio. La bandera roja
+              es la pérdida sostenida e involuntaria.
+            </p>
+            <p>
+              <strong>Cuándo consultar:</strong> Si perdiste más del 5% de tu peso en 1-2 meses sin estar
+              haciendo dieta ni ejercicio. Si la pérdida se acompaña de cansancio, fiebre, sudoración
+              nocturna o cambios en el apetito. No es urgencia de guardia, pero sí motivo de consulta
+              médica pronta.
+            </p>
+          </section>
+
+          <section>
+            <h2>4. Déficit Neurológico Súbito</h2>
+            <p>
+              Esto incluye debilidad repentina en un brazo o pierna, dificultad para hablar (las palabras
+              salen trabadas o no encontrás la palabra correcta), visión borrosa o pérdida de visión en
+              un ojo, asimetría facial (un lado de la cara "se cae"), o confusión súbita.
+            </p>
+            <p>
+              Estos son los signos clásicos de un accidente cerebrovascular (ACV), ya sea isquémico
+              (obstrucción de una arteria cerebral) o hemorrágico (ruptura de un vaso cerebral). El ACV
+              es la primera causa de discapacidad en adultos en Argentina, y el tratamiento es
+              extremadamente sensible al tiempo: cada minuto sin tratamiento se pierden neuronas.
+            </p>
+            <p>
+              La regla mnemotécnica internacional es FAST: Face (asimetría facial), Arms (debilidad en
+              brazos), Speech (dificultad para hablar), Time (llamar al servicio de emergencias
+              inmediatamente).
+            </p>
+            <p>
+              <strong>Lo que no significa:</strong> Hormigueo transitorio en las manos después de dormir
+              en mala posición, o mareo al levantarte rápido, no son déficits neurológicos. La clave es
+              "súbito" y "no provocado".
+            </p>
+            <p>
+              <strong>Cuándo consultar:</strong> Inmediatamente. Llamar al servicio de emergencias. No
+              esperar a ver si pasa. No manejar hasta el hospital. Cada minuto cuenta.
+            </p>
+          </section>
+
+          <section>
+            <h2>5. Fiebre Persistente por Más de Dos Semanas</h2>
+            <p>
+              La fiebre es una respuesta normal del cuerpo a infecciones. Una gripe da fiebre por 3-5 días.
+              Una infección urinaria, por 2-3 días con antibióticos. La bandera roja es la fiebre que
+              persiste más de dos semanas sin causa clara, lo que en medicina se llama "fiebre de origen
+              desconocido" (FOD).
+            </p>
+            <p>
+              Las causas de FOD se agrupan en cuatro categorías: infecciones (tuberculosis, endocarditis,
+              abscesos ocultos), enfermedades autoinmunes (lupus, vasculitis, enfermedad de Still),
+              neoplasias (linfomas, leucemias), y misceláneas (fiebre por medicamentos, tromboembolismo).
+            </p>
+            <p>
+              No es que dos semanas de fiebre signifiquen cáncer. Significa que hay algo que el cuerpo
+              está combatiendo y que necesita investigación. La fiebre es el síntoma. La causa puede ser
+              tratable y muchas veces benigna, pero necesita diagnóstico.
+            </p>
+            <p>
+              <strong>Lo que no significa:</strong> Febrícula (37.2-37.5) después de una vacuna o durante
+              la ovulación es normal. Fiebre de 2-3 días durante un cuadro viral clásico es normal. La
+              bandera roja es la persistencia más allá de lo esperado para una causa común.
+            </p>
+            <p>
+              <strong>Cuándo consultar:</strong> Si tenés fiebre (más de 38 grados) por más de dos semanas
+              sin diagnóstico claro. Si la fiebre se acompaña de sudoración nocturna que empapa la ropa
+              de cama, pérdida de peso o ganglios inflamados. Consulta médica programada, no necesariamente
+              guardia, salvo que la fiebre sea muy alta o te sientas muy mal.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo los Sistemas de Screening Detectan Estas Señales</h2>
+            <p>
+              Los formularios de anamnesis digital bien diseñados incluyen preguntas de screening que
+              buscan estas banderas rojas de forma sistemática. No dependen de que el paciente sepa que
+              su síntoma es preocupante. Le preguntan directamente: "¿tuviste dolor de cabeza de inicio
+              súbito?", "¿perdiste peso sin proponértelo?", "¿tuviste debilidad o dificultad para hablar
+              de forma repentina?"
+            </p>
+            <p>
+              Cuando un paciente responde afirmativamente a una pregunta de screening, el sistema genera
+              una alerta que el médico ve antes de la consulta. No es un diagnóstico — es una señal de
+              que esa área necesita exploración prioritaria. El médico decide qué hacer con la alerta
+              basándose en el contexto clínico completo.
+            </p>
+            <p>
+              Este enfoque es especialmente valioso en teleconsulta, donde el médico no puede observar
+              al paciente caminando hacia el consultorio, no puede notar la palidez o la pérdida de peso
+              a simple vista, y depende más de la información que el paciente reporta activamente.
+            </p>
+            <p>
+              Conocer estas señales no te convierte en médico. Pero sí te convierte en un paciente más
+              informado, capaz de reconocer cuándo algo merece atención urgente y cuándo puede esperar.
+              Ese conocimiento, combinado con acceso rápido a un profesional, puede hacer una diferencia
+              real.
+            </p>
+            <blockquote>
+              Este artículo es educativo y no reemplaza la consulta médica. Si tenés alguno de estos
+              síntomas, consultá a un profesional de salud.
+            </blockquote>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina de emergencias.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/5-senales-alerta-cardiaca" class="seo-card">
+              <span class="seo-badge">Cardiología</span>
+              <h4>5 Señales de Alerta Cardíaca</h4>
+            </a>
+            <a href="/blog/diagrama-corporal-donde-duele" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Señalar Dónde Duele: Localización y Diagnóstico</h4>
+            </a>
+            <a href="/blog/guia-consulta-medica-online" class="seo-card">
+              <span class="seo-badge">Guía</span>
+              <h4>Guía Consulta Médica Online</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/red-flags-senales-cuerpo`} category={article.category} author={article.author} />
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

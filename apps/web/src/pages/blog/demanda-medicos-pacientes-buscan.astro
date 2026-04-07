@@ -1,0 +1,210 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Lo Que los Pacientes Buscan y los Médicos No Ven: El Problema de la Demanda Invisible',
+  author: 'Equipo AutaMedica',
+  role: 'Gestión de Salud',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Sistema de Salud',
+};
+---
+
+<Layout
+  title="Demanda Invisible en Salud: Lo Que los Pacientes Buscan y los Médicos No Ven | AutaMedica"
+  description="Pacientes buscan especialistas y no encuentran disponibilidad. Los médicos no saben que los buscan. Cómo la visibilidad de demanda conecta oferta y necesidad."
+  canonical="https://www.autamedica.com/blog/demanda-medicos-pacientes-buscan"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La desconexión que nadie mide</h2>
+            <p>
+              Un paciente en Tucumán busca un cardiólogo. Encuentra que el más cercano con turno
+              disponible está a 45 días. Cierra la app, se frustra, y decide "esperar a ver si se me
+              pasa". En la otra punta, un cardiólogo en Tucumán tiene 4 slots libres esta semana que
+              no se llenan porque está en una plataforma diferente, o porque su agenda no es visible
+              en el lugar donde el paciente buscó.
+            </p>
+            <p>
+              Esta historia se repite miles de veces al día en Argentina. Pacientes que buscan y no
+              encuentran. Médicos que tienen disponibilidad y no saben que alguien los necesita. La
+              oferta y la demanda existen, pero no se ven entre sí. En economía, esto se llama falla
+              de información. En salud, tiene consecuencias clínicas reales.
+            </p>
+          </section>
+
+          <section>
+            <h2>La señal que se pierde</h2>
+            <p>
+              En el comercio electrónico, cada búsqueda fallida es un dato. Si mil personas buscan
+              "zapatillas running talle 42" y no hay stock, el vendedor lo sabe al día siguiente y
+              repone. En salud, la búsqueda fallida desaparece. El paciente que buscó cardiólogo y
+              no encontró turno no deja rastro. Nadie contó esa demanda. Nadie la reportó. Nadie
+              tomó una decisión basándose en ella.
+            </p>
+            <p>
+              Esta es la demanda invisible: la necesidad real de atención médica que existe pero que
+              el sistema no registra porque ocurre fuera de los canales formales. El paciente buscó
+              en Google, llamó a tres consultorios, preguntó en su obra social, y eventualmente
+              desistió o fue a una guardia. En ninguno de esos puntos se capturó la información de
+              qué especialidad necesitaba y no encontró.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué pasaría si los médicos vieran la demanda</h2>
+            <p>
+              Imaginá que un endocrinólogo recibe un reporte semanal: "23 pacientes buscaron
+              endocrinología en tu zona esta semana. 14 no encontraron turno disponible en los
+              próximos 15 días." Ese dato cambia decisiones.
+            </p>
+            <p>
+              El médico puede decidir abrir slots adicionales. Puede habilitar horarios de
+              teleconsulta para las consultas que no requieren examen físico. Puede considerar sumar
+              un día más de atención. No porque alguien le vendió una plataforma, sino porque ve
+              datos concretos de pacientes que lo necesitan y no lo están encontrando.
+            </p>
+            <p>
+              Para el paciente, el beneficio es directo: más disponibilidad. Para el médico, también:
+              agenda más llena sin necesidad de hacer marketing, publicidad ni pagina web. La demanda
+              ya existe. Solo necesita hacerse visible.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo funciona la visibilidad de demanda</h2>
+            <p>
+              El mecanismo es conceptualmente simple: cuando un paciente busca una especialidad y no
+              encuentra turno disponible (o solo encuentra turnos a más de 15 días), esa búsqueda se
+              registra como demanda no satisfecha. Se agrega por especialidad, por zona geográfica y
+              por período.
+            </p>
+            <p>
+              Los médicos de esa especialidad y zona reciben esos datos agregados (nunca datos
+              individuales de pacientes, por privacidad). Ven tendencias: "la demanda de dermatología
+              en zona norte creció un 40% este mes", "hay 35 búsquedas semanales de psiquiatría
+              infantil sin oferta disponible".
+            </p>
+            <p>
+              No se trata de presionar al médico para que trabaje más. Se trata de darle información
+              que hoy no tiene para que pueda tomar decisiones informadas sobre cómo organizar su
+              práctica. Algunos médicos responderán abriendo más horarios. Otros verán una oportunidad
+              de subespecialización. Otros simplemente confirmarán que su agenda llena refleja una
+              demanda real.
+            </p>
+          </section>
+
+          <section>
+            <h2>El beneficio bidireccional (sin marketing)</h2>
+            <p>
+              Lo interesante de este modelo es que resuelve un problema para ambos lados sin recurrir
+              a la lógica de "vender turnos" o "promocionar médicos". No es un marketplace donde el
+              médico paga por aparecer primero. Es un sistema de información donde la demanda real
+              guía la oferta.
+            </p>
+            <p>
+              El paciente encuentra médicos que de otra manera no hubiera encontrado, porque ahora
+              tienen disponibilidad visible. El médico encuentra pacientes que de otra manera no
+              hubiera tenido, porque ahora sabe que lo necesitan. No hay intermediario que cobre
+              comisión por la conexión. Hay datos que hacen visible lo que antes era invisible.
+            </p>
+            <p>
+              En plataformas como AutaMedica, este circuito forma parte del diseño del sistema de
+              turnos: cada búsqueda alimenta la visibilidad de demanda, y cada médico tiene acceso
+              a los datos agregados de su especialidad y zona. Es información, no publicidad.
+              Conexión orgánica entre necesidad y disponibilidad.
+            </p>
+            <p>
+              El problema de la demanda invisible no se resuelve con más médicos (aunque también
+              hacen falta). Se resuelve conectando mejor a los que ya existen con los que ya los
+              necesitan. Es un problema de información. Y la información, bien organizada, es la
+              solución más barata y más efectiva que existe.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/demanda-medicos-pacientes-buscan`} category={article.category} author={article.author} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de gestión de salud.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/no-show-turnos-medicos" class="seo-card">
+              <span class="seo-badge">Sistema de Salud</span>
+              <h4>Por Qué el 30% de los Turnos Quedan Vacíos</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+            <a href="/blog/turno-medico-especialista-correcto" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cómo Elegir el Especialista Correcto</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

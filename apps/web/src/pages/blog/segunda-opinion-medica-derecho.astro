@@ -1,0 +1,198 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Segunda Opinión Médica: Tu Derecho y Cómo Ejercerlo',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina Legal',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Derechos del Paciente',
+};
+---
+
+<Layout
+  title="Segunda Opinión Médica: Tu Derecho y Cómo Ejercerlo | AutaMedica"
+  description="La segunda opinión médica es un derecho en Argentina. Cuándo pedirla, cómo hacerlo sin ofender a tu médico y qué dice la ley sobre el acceso a tu historia clínica."
+  canonical="https://www.autamedica.com/blog/segunda-opinion-medica-derecho"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Pedir otra opinión no es desconfiar</h2>
+            <p>
+              Te diagnosticaron algo que no esperabas. O te propusieron una cirugía. O un tratamiento largo y costoso. Y algo adentro tuyo dice: "Quiero escuchar a otro médico". Inmediatamente aparece la culpa: "¿Mi médico se va a ofender?", "¿Estoy desconfiando sin motivo?", "¿Voy a parecer un paciente difícil?".
+            </p>
+            <p>
+              No. Pedir una segunda opinión es un acto de responsabilidad sobre tu propia salud. No es desconfianza: es prudencia. Y en Argentina, es un derecho amparado por ley.
+            </p>
+          </section>
+
+          <section>
+            <h2>El marco legal en Argentina</h2>
+            <p>
+              La Ley 26.529 de Derechos del Paciente (2009) establece en su artículo 2 el derecho a la información sanitaria, la autonomía de la voluntad y la interconsulta médica. Tenés derecho a:
+            </p>
+            <ul>
+              <li>Recibir información clara y comprensible sobre tu diagnóstico, pronóstico y opciones de tratamiento.</li>
+              <li>Solicitar la opinión de otro profesional de la salud sobre tu caso.</li>
+              <li>Acceder a tu historia clínica completa. La ley te garantiza el acceso a toda la documentación médica que te pertenece.</li>
+              <li>Rechazar un tratamiento propuesto (consentimiento informado), excepto en situaciones de emergencia donde no puedas expresar tu voluntad.</li>
+            </ul>
+            <p>
+              Las obras sociales y prepagas están obligadas a cubrir la consulta médica con otro profesional de su cartilla. No pueden negarte una derivación ni condicionarla a la opinión del primer médico. Si lo hacen, podés reclamar ante la Superintendencia de Servicios de Salud.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cuándo tiene sentido pedir una segunda opinión</h2>
+            <p>
+              No todas las situaciones requieren segunda opinión. Un resfrío no la necesita. Una fractura de muñeca vista en radiografía tampoco. Pero hay escenarios donde es razonable y hasta recomendable:
+            </p>
+            <ul>
+              <li><strong>Diagnóstico de enfermedad grave o crónica:</strong> cáncer, enfermedades autoinmunes, patologías neurológicas. El impacto es alto y la precisión diagnóstica es crucial.</li>
+              <li><strong>Cirugía propuesta:</strong> especialmente si es electiva (no de emergencia). La indicación quirúrgica depende del criterio del cirujano, y distintos cirujanos pueden tener criterios distintos.</li>
+              <li><strong>Tratamiento con efectos secundarios significativos:</strong> quimioterapia, inmunosupresores, tratamientos biológicos. Vale la pena confirmar que es la mejor opción antes de empezar.</li>
+              <li><strong>Síntomas que no mejoran con el tratamiento indicado:</strong> si después de un tiempo razonable no hay mejoría, un par de ojos nuevos puede identificar algo que se pasó por alto.</li>
+              <li><strong>Diagnóstico incierto:</strong> cuando tu médico te dice "puede ser X o Y" y no hay certeza, otro profesional puede tener una perspectiva diferente.</li>
+              <li><strong>Sentís que no te escucharon:</strong> si la consulta fue apurada, no te explicaron bien o sentís que tus síntomas fueron minimizados, buscar otra opinión es válido.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Cómo hacerlo bien</h2>
+            <p>
+              La segunda opinión funciona mejor cuando se hace de forma organizada:
+            </p>
+            <p>
+              <strong>Reuní tu documentación.</strong> Pedí a tu médico actual una copia de los estudios realizados (imágenes, laboratorios, biopsias). La Ley 26.529 te garantiza el acceso a esta información. Muchos centros médicos la entregan en formato digital. Si te ponen trabas, hacé el reclamo por escrito citando la ley.
+            </p>
+            <p>
+              <strong>Elegí un profesional con experiencia en tu patología.</strong> Si te diagnosticaron un tumor de hígado, la segunda opinión tiene más valor si viene de un hepatólogo o un cirujano hepatobiliar que si viene de un médico clínico generalista. La especialización importa.
+            </p>
+            <p>
+              <strong>No omitas el diagnóstico previo.</strong> El segundo médico necesita saber qué se evaluó antes para no repetir estudios innecesarios y para poder contrastar su opinión con la primera. Ocultar el diagnóstico previo "para no influenciarlo" suele ser contraproducente.
+            </p>
+            <p>
+              <strong>No busques confirmación, buscá claridad.</strong> Si vas al segundo médico esperando que te diga lo que querés escuchar, el ejercicio pierde valor. El objetivo es tener más información para tomar una mejor decisión, no validar una preferencia previa.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué pasa si las opiniones no coinciden</h2>
+            <p>
+              Dos opiniones distintas no significan que uno tenga razón y el otro esté equivocado. La medicina no es matemática: hay áreas de incertidumbre donde la evidencia permite más de un abordaje razonable. Un cirujano puede proponer operar y otro puede proponer un tratamiento conservador, y ambos pueden estar dentro de las guías clínicas vigentes.
+            </p>
+            <p>
+              Si las opiniones divergen significativamente, tenés opciones:
+            </p>
+            <ul>
+              <li>Pedir una tercera opinión (especialmente si la decisión tiene consecuencias irreversibles).</li>
+              <li>Solicitar una junta médica: que ambos profesionales discutan el caso. Esto es más factible en instituciones grandes.</li>
+              <li>Preguntar a cada profesional qué evidencia respalda su recomendación. No tenés que ser médico para pedir que te expliquen el razonamiento.</li>
+            </ul>
+            <p>
+              Al final, la decisión es tuya. El principio de autonomía del paciente significa que, una vez informado, vos decidís qué tratamiento aceptás y cuál rechazás. Los médicos recomiendan; el paciente decide.
+            </p>
+          </section>
+
+          <section>
+            <h2>Tu historia clínica te pertenece</h2>
+            <p>
+              Un obstáculo frecuente para pedir segunda opinión es la dificultad para acceder a la propia historia clínica. Algunos centros médicos tratan la historia clínica como propiedad de la institución. La ley argentina es clara: la historia clínica es del paciente.
+            </p>
+            <p>
+              La Ley 26.529 establece que el paciente tiene derecho a que se le entregue copia de su historia clínica en un plazo de 48 horas. La institución puede cobrar el costo de reproducción, pero no puede negar el acceso. Si un centro te dice que "no se puede" o que "tenés que venir con un abogado", están en infracción.
+            </p>
+            <p>
+              Estudios complementarios (radiografías, tomografías, resonancias, biopsias) también forman parte de tu documentación médica. Podés pedir que te los entreguen en formato digital (CD, pendrive, link de descarga). Si los estudios están en una plataforma online del centro, podés solicitar credenciales de acceso.
+            </p>
+            <p>
+              Conocer tus derechos no es ser "paciente difícil". Es ser un paciente informado. Y un paciente informado toma mejores decisiones sobre su salud.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/segunda-opinion-medica-derecho" description="La segunda opinión médica es un derecho en Argentina. Cuándo pedirla, cómo hacerlo y qué dice la ley sobre el acceso a tu historia clínica." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina legal.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/certificado-medico-digital-validez" class="seo-card">
+              <span class="seo-badge">Marco Legal</span>
+              <h4>El Certificado Médico Digital: Qué Vale y Qué No en Argentina</h4>
+            </a>
+            <a href="/blog/cuando-ir-guardia-cuando-esperar" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cuándo Ir a la Guardia y Cuándo Puede Esperar</h4>
+            </a>
+            <a href="/blog/dolor-cronico-analgesicos-riesgo" class="seo-card">
+              <span class="seo-badge">Medicina del Dolor</span>
+              <h4>Dolor Crónico: Por Qué Tu Médico No Te Da Más Analgésicos</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

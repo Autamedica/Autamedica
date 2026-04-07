@@ -1,0 +1,216 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'GLP-1 en Argentina: Ozempic, Wegovy y Mounjaro — Qué Son, Cuánto Cuestan y Qué Dice la Evidencia',
+  author: 'Equipo AutaMedica',
+  role: 'Endocrinología',
+  date: '6 de abril, 2026',
+  readTime: '10 min',
+  image: '/images/article_telemed.webp',
+  category: 'Endocrinología',
+};
+---
+
+<Layout
+  title="GLP-1 en Argentina: Ozempic, Wegovy y Mounjaro — Qué Son, Cuánto Cuestan y Qué Dice la Evidencia | AutaMedica"
+  description="Semaglutida, tirzepatida y liraglutida: qué son los agonistas GLP-1, cómo funcionan, cuánto cuestan en Argentina (incluido el biosimilar Dutide desde $52 USD/mes) y qué dice la evidencia científica real."
+  canonical="https://www.autamedica.com/blog/glp1-argentina-ozempic-wegovy-mounjaro"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Qué es el GLP-1 y por qué importa</h2>
+            <p>
+              Antes de hablar de marcas comerciales, conviene entender qué es el GLP-1. El péptido similar al glucagón tipo 1 es una hormona que tu cuerpo ya produce. La fabrican las células L del intestino delgado cada vez que comés, y cumple varias funciones: le dice al páncreas que libere insulina, le dice al estómago que se vacíe más lento y le dice al cerebro que ya comiste suficiente.
+            </p>
+            <p>
+              Lo que hacen los fármacos llamados "agonistas de GLP-1" es imitar esa hormona, pero con una vida media mucho más larga. Donde el GLP-1 natural dura dos minutos en sangre, la semaglutida dura una semana. El resultado es una señal de saciedad sostenida que reduce el apetito de forma consistente.
+            </p>
+            <p>
+              Esto no es magia metabólica. Es una hormona que el cuerpo ya conoce, administrada en dosis terapéuticas. Entender esto es importante para no caer en la narrativa de "droga para bajar de peso" que simplifica un mecanismo biológico complejo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Los fármacos disponibles en Argentina (2026)</h2>
+            <p>
+              A abril de 2026, hay cinco fármacos basados en GLP-1 con presencia en el mercado argentino. El panorama cambió significativamente en junio de 2025, cuando Novo Nordisk redujo el precio de Ozempic un 49% en Argentina ante la competencia de Dutide, un biosimilar nacional de semaglutida producido por laboratorio Elea.
+            </p>
+            <p>
+              <strong>Ozempic (semaglutida 1 mg):</strong> aprobado por ANMAT para diabetes tipo 2. Su uso para control de peso es off-label en Argentina, lo que significa que un médico puede prescribirlo con ese fin, pero la obra social o prepaga no está obligada a cubrirlo. Costo estimado: ~$143 USD mensuales (~$210.000 ARS), tras la baja de precio del 49% en junio de 2025.
+            </p>
+            <p>
+              <strong>Dutide (semaglutida, Elea):</strong> biosimilar argentino de semaglutida, producido por laboratorio Elea. Contiene el mismo principio activo que Ozempic. Argentina no reconoce la patente de semaglutida, lo que habilita la fabricación local. Costo estimado: ~$52 USD mensuales con cobertura de obra social del 40%. Es el cambio más relevante para la accesibilidad de los tratamientos GLP-1 en el país.
+            </p>
+            <p>
+              <strong>Wegovy (semaglutida):</strong> la misma molécula que Ozempic, pero en dosis más alta y con aprobación específica de ANMAT para tratamiento de obesidad, obtenida en el cuarto trimestre de 2025. Costo estimado: ~$241 USD mensuales para la dosis de 1 mg, ~$474 USD mensuales para la dosis de mantenimiento de 2.4 mg.
+            </p>
+            <p>
+              <strong>Mounjaro (tirzepatida):</strong> un dual agonista que actúa sobre dos receptores, GLP-1 y GIP. Los ensayos clínicos muestran resultados superiores a la semaglutida en pérdida de peso. Costo estimado para la dosis de 5 mg: ~$533 USD mensuales (con programa de descuento del 30%: ~$373 USD).
+            </p>
+            <p>
+              <strong>Obetide:</strong> otra alternativa nacional. Costo estimado: ~$160 USD mensuales.
+            </p>
+            <p>
+              <strong>Saxenda (liraglutida):</strong> la primera generación de agonistas GLP-1 para peso. Requiere inyección diaria (no semanal) y tiene una eficacia menor que semaglutida y tirzepatida. Costo estimado: entre $180 y $250 USD mensuales.
+            </p>
+            <p>
+              Estos precios son orientativos y pueden variar según la farmacia, la presentación y el tipo de cambio (referencia: ~1470 ARS/USD). La aparición de biosimilares nacionales como Dutide representa un punto de inflexión: por primera vez, el tratamiento con semaglutida está al alcance de un rango amplio de pacientes argentinos. Ninguno de los precios incluye los costos asociados de seguimiento médico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué dice la evidencia real</h2>
+            <p>
+              Los números que circulan en redes sociales suelen venir de ensayos clínicos controlados, donde los participantes reciben seguimiento intensivo, dieta supervisada, ejercicio estructurado y adherencia casi perfecta. La realidad clínica es diferente.
+            </p>
+            <p>
+              El programa STEP (semaglutida) reportó una pérdida de peso promedio del 15% del peso corporal en ensayo clínico. En estudios de mundo real, ese número baja a 7.7%. El programa SURMOUNT (tirzepatida) reportó 22.5% en ensayo clínico y 12.4% en mundo real.
+            </p>
+            <p>
+              La diferencia no significa que los fármacos no funcionen. Significa que la adherencia, la dieta, el ejercicio y el seguimiento médico constante son parte fundamental del resultado. El fármaco solo, sin cambio de contexto, produce resultados modestos. Con acompañamiento profesional integral, los resultados mejoran sustancialmente.
+            </p>
+            <p>
+              Es importante que tengas esta información antes de generar expectativas. Un médico endocrinólogo puede orientarte sobre qué resultado es realista para tu caso particular.
+            </p>
+          </section>
+
+          <section>
+            <h2>Efectos adversos que debés conocer</h2>
+            <p>
+              Los agonistas GLP-1 no son inocuos. El efecto adverso más frecuente son las náuseas, que afectan al 40-50% de los pacientes al inicio del tratamiento. Otros efectos gastrointestinales comunes incluyen vómitos, diarrea y estreñimiento. La mayoría disminuye con el tiempo y con la titulación gradual de la dosis.
+            </p>
+            <p>
+              Existen efectos más serios, aunque menos frecuentes: pancreatitis aguda (inflamación del páncreas), enfermedad de vesícula biliar (cálculos, colecistitis) y, en pacientes con diabetes, riesgo de hipoglucemia si se combinan con insulina o sulfonilureas.
+            </p>
+            <p>
+              Un efecto que ganó atención mediática es la pérdida de masa muscular junto con la grasa, lo que puede derivar en sarcopenia (pérdida patológica de músculo). El concepto coloquial de "Ozempic face" se refiere a la pérdida de volumen facial que acompaña a la pérdida rápida de peso. Esto no es exclusivo de estos fármacos, sino de cualquier descenso de peso significativo, pero la velocidad a la que ocurre con GLP-1 lo hace más visible.
+            </p>
+            <p>
+              Consultá con tu médico antes de empezar cualquier tratamiento. Estos efectos no son motivo de pánico, pero sí de vigilancia profesional.
+            </p>
+          </section>
+
+          <section>
+            <h2>El problema del rebote</h2>
+            <p>
+              Uno de los datos menos discutidos en redes sociales es qué pasa cuando se suspende el fármaco. El ensayo STEP 1 Extension mostró que, un año después de suspender semaglutida, los participantes recuperaron dos tercios del peso perdido. Otros estudios reportan cifras similares.
+            </p>
+            <p>
+              Esto tiene una implicación directa: estos fármacos no son un tratamiento de curso finito, como un antibiótico. Son tratamientos crónicos, como la medicación para la hipertensión. Si se suspende, el efecto desaparece. Y el costo, por lo tanto, no es de tres o seis meses: es indefinido.
+            </p>
+            <p>
+              Para un paciente argentino, el costo de sostener el tratamiento de forma indefinida varía enormemente según el fármaco elegido: desde ~$52 USD mensuales con Dutide y cobertura de obra social, hasta $474 USD o más con Wegovy en dosis de mantenimiento. Es una decisión económica que hay que evaluar con honestidad antes de empezar. Tu médico puede ayudarte a planificar esto de forma realista.
+            </p>
+          </section>
+
+          <section>
+            <h2>Quién es candidato (y quién no)</h2>
+            <p>
+              Las guías clínicas internacionales son claras: estos fármacos están indicados para personas con un índice de masa corporal (IMC) igual o mayor a 30, o igual o mayor a 27 con al menos una comorbilidad asociada (diabetes tipo 2, hipertensión, dislipidemia, apnea del sueño).
+            </p>
+            <p>
+              No son para "bajar 5 kilos para el verano". No son un suplemento estético. Su uso en personas sin indicación médica expone a efectos adversos sin beneficio clínico proporcional, y contribuye al desabastecimiento que afecta a pacientes diabéticos que los necesitan para control glucémico.
+            </p>
+            <p>
+              Existen contraindicaciones absolutas: antecedente personal o familiar de carcinoma medular de tiroides, síndrome de neoplasia endocrina múltiple tipo 2 (MEN2), y embarazo. Mujeres en edad fértil deben suspender el fármaco al menos dos meses antes de buscar un embarazo.
+            </p>
+          </section>
+
+          <section>
+            <h2>El rol del médico en este tratamiento</h2>
+            <p>
+              Los agonistas GLP-1 requieren prescripción médica. No son de venta libre y no deberían serlo. La titulación de dosis necesita supervisión (se empieza bajo y se sube gradualmente), el monitoreo de efectos adversos requiere consultas periódicas, y la evaluación de si el tratamiento está siendo efectivo demanda análisis que solo un profesional puede hacer.
+            </p>
+            <p>
+              El peligro de la compra sin receta, facilitada por marketplace y redes sociales, es real. Fármacos falsificados, dosis incorrectas, ausencia de seguimiento, interacciones con otros medicamentos. La accesibilidad no puede reemplazar la supervisión clínica.
+            </p>
+            <p>
+              Si estás considerando un tratamiento con GLP-1, el primer paso no es la farmacia: es una consulta con un endocrinólogo o un médico clínico con experiencia en obesidad. Consultá con tu médico antes de empezar cualquier tratamiento.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/glp1-argentina-ozempic-wegovy-mounjaro" description="Semaglutida, tirzepatida y liraglutida: qué son los agonistas GLP-1, cómo funcionan, cuánto cuestan en Argentina y qué dice la evidencia científica real." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de endocrinología.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/inyecciones-bajar-peso-que-saber" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Inyecciones para Bajar de Peso: Lo Que Tu Médico Necesita Que Sepas</h4>
+            </a>
+            <a href="/blog/retatrutide-proximo-farmaco-peso" class="seo-card">
+              <span class="seo-badge">Investigación Médica</span>
+              <h4>Retatrutide: El Triple Agonista Que Promete 28% de Pérdida de Peso</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina: Qué Podés Resolver</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

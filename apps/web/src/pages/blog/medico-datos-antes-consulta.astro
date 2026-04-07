@@ -1,0 +1,225 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Qué Datos Necesita Tu Médico Antes de una Consulta (y Por Qué Importa)',
+  author: 'Equipo AutaMedica',
+  role: 'Semiología Médica',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Educación Médica',
+};
+---
+
+<Layout
+  title="Qué Datos Necesita Tu Médico Antes de una Consulta (y Por Qué Importa) | AutaMedica"
+  description="Desde la perspectiva médica: qué información necesita un doctor antes de atenderte, cómo se estructura y por qué cambia la calidad de la consulta."
+  canonical="https://www.autamedica.com/blog/medico-datos-antes-consulta"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Lo que el médico piensa cuando decís "me duele la cabeza"</h2>
+            <p>
+              Desde el lado del paciente, "me duele la cabeza" parece una descripción suficiente. Desde
+              el lado del médico, esa frase abre un abanico de cientos de posibilidades diagnósticas.
+              Cefalea tensional, migraña con o sin aura, cefalea en racimos, hipertensión arterial,
+              sinusitis, trastorno temporomandibular, abstinencia de cafeína, efecto secundario de
+              medicación, lesión ocupante de espacio. Y la lista sigue.
+            </p>
+            <p>
+              Para reducir esas cientos de posibilidades a las dos o tres más probables, el médico
+              necesita información específica. No es curiosidad: es método. La entrevista médica
+              estructurada (anamnesis) es la herramienta diagnóstica más poderosa que existe, más que
+              cualquier estudio de imagen o laboratorio. Se estima que el 70-80% de los diagnósticos
+              se orientan correctamente solo con la historia clínica, antes de tocar al paciente.
+            </p>
+          </section>
+
+          <section>
+            <h2>Los cinco pilares de la historia clínica</h2>
+            <p>
+              Todo médico, sin importar la especialidad, necesita la misma estructura básica de
+              información:
+            </p>
+            <ul>
+              <li><strong>Motivo de consulta (en tus palabras):</strong> no lo que vos pensás que tenés, sino lo que sentís. "Me duele acá", "no puedo dormir", "tengo una mancha nueva". El médico traduce tu lenguaje cotidiano a terminología clínica.</li>
+              <li><strong>Enfermedad actual (cronología):</strong> cuándo empezó, cómo progresó, qué lo mejora, qué lo empeora. La línea de tiempo es crítica: un dolor de cabeza de 3 horas tiene una lista de diagnósticos diferente a uno de 3 meses.</li>
+              <li><strong>Antecedentes personales y familiares:</strong> enfermedades previas, cirugías, internaciones. Enfermedades de padres, hermanos y abuelos. Un padre con infarto a los 45 cambia completamente la evaluación de tu dolor de pecho.</li>
+              <li><strong>Medicación y alergias:</strong> todo lo que tomás, incluyendo suplementos y medicación que compraste sin receta. Alergias medicamentosas documentadas, con el tipo de reacción.</li>
+              <li><strong>Revisión por sistemas:</strong> preguntas breves sobre cada sistema del cuerpo para detectar síntomas asociados que el paciente no mencionó porque no los conectó con su motivo de consulta.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>ALICIADO: cómo un médico descompone un síntoma</h2>
+            <p>
+              En la semiología argentina (la disciplina que enseña a interrogar y examinar pacientes),
+              existe un acrónimo que todo estudiante de medicina aprende en segundo año: ALICIADO.
+              Describe las siete dimensiones que caracterizan cualquier síntoma:
+            </p>
+            <ul>
+              <li><strong>A — Aparición:</strong> ¿empezó de golpe o gradualmente? ¿Estabas haciendo algo en particular?</li>
+              <li><strong>L — Localización:</strong> ¿dónde exactamente? ¿Podés señalarlo con un dedo o es difuso?</li>
+              <li><strong>I — Intensidad:</strong> del 1 al 10, ¿cuánto duele? ¿Te despierta de noche? ¿Te impide trabajar?</li>
+              <li><strong>C — Carácter:</strong> ¿es punzante, opresivo, quemante, pulsátil, tipo cólico?</li>
+              <li><strong>I — Irradiación:</strong> ¿se extiende a otra zona? Un dolor de pecho que irradia al brazo izquierdo cuenta una historia muy diferente a uno que no se mueve.</li>
+              <li><strong>A — Atenuantes:</strong> ¿qué lo mejora? ¿Reposo, calor, un analgésico, comer, una posición específica?</li>
+              <li><strong>DO — Desencadenantes y otros:</strong> ¿qué lo provoca o empeora? ¿Tiene horario? ¿Se acompaña de otros síntomas?</li>
+            </ul>
+            <p>
+              Cuando un paciente llega diciendo "me duele la cabeza" y el médico le hace estas siete
+              preguntas, en cinco minutos tiene un perfil semiológico que reduce drásticamente el
+              diagnóstico diferencial. La información estructurada no es burocracia: es precisión.
+            </p>
+          </section>
+
+          <section>
+            <h2>El cruce medicación-síntomas: buscando iatrogenia</h2>
+            <p>
+              Una de las tareas más importantes (y más difíciles de hacer bajo presión de tiempo) es
+              cruzar la medicación del paciente con sus síntomas actuales. Se estima que entre el 5% y
+              el 10% de las consultas ambulatorias en Argentina están motivadas por efectos adversos de
+              medicamentos que el paciente no reconoce como tales.
+            </p>
+            <p>
+              El ejemplo clásico: paciente que consulta por tos seca crónica. Fue al neumonólogo, al
+              otorrino, se hizo estudios. Nadie le preguntó qué medicación toma. Resulta que empezó
+              enalapril (antihipertensivo) hace seis meses. La tos seca es un efecto adverso conocido
+              de los IECA (inhibidores de la enzima convertidora de angiotensina). Se cambia el
+              antihipertensivo y la tos desaparece.
+            </p>
+            <p>
+              Cuando el médico tiene la lista completa de medicación antes de la consulta, estos cruces
+              se hacen en segundos. Sin esa lista, se pierden semanas en estudios innecesarios.
+            </p>
+          </section>
+
+          <section>
+            <h2>Red flags: las señales que el médico busca activamente</h2>
+            <p>
+              Dentro de la información que el paciente aporta, hay datos que activan alarmas clínicas
+              inmediatas. Se conocen como "red flags" (señales de alerta) y cambian completamente la
+              urgencia de la evaluación:
+            </p>
+            <ul>
+              <li>Pérdida de peso involuntaria mayor a 5 kg en menos de 6 meses</li>
+              <li>Fiebre persistente sin causa clara por más de 2 semanas</li>
+              <li>Dolor que despierta de noche (diferente al dolor que impide dormir)</li>
+              <li>Síntomas neurológicos nuevos: debilidad, visión doble, dificultad para hablar</li>
+              <li>Sangrado inexplicado (heces, orina, esputo)</li>
+            </ul>
+            <p>
+              Estas señales no siempre indican algo grave, pero requieren evaluación rápida. Un sistema
+              de anamnesis digital bien diseñado las detecta automáticamente y las destaca para el
+              médico, garantizando que no se pierdan en el flujo de la consulta.
+            </p>
+          </section>
+
+          <section>
+            <h2>Cómo la anamnesis digital cambia esta dinámica</h2>
+            <p>
+              Cuando toda esta información llega al médico estructurada y completa antes de que empiece
+              la consulta, la dinámica cambia radicalmente. El médico lee el motivo de consulta
+              caracterizado con ALICIADO, revisa antecedentes relevantes, verifica la medicación,
+              identifica red flags señalados automáticamente, y cruza la información en busca de
+              patrones.
+            </p>
+            <p>
+              Los primeros minutos de la consulta pasan de "contame qué te pasa" a "veo que tenés un
+              dolor opresivo en el pecho que aparece con el esfuerzo desde hace dos semanas, y que tu
+              padre tuvo un infarto a los 50. Vamos a profundizar en esto." El paciente siente que lo
+              escucharon antes de hablar. El médico siente que puede pensar en vez de anotar.
+            </p>
+            <p>
+              Plataformas como AutaMedica implementan este flujo: la anamnesis se completa antes de la
+              consulta siguiendo criterios semiológicos, el sistema destaca hallazgos relevantes, y el
+              médico recibe un resumen clínico listo para usar. No es inteligencia artificial que
+              diagnostica: es información organizada que potencia al profesional.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/medico-datos-antes-consulta`} category={article.category} author={article.author} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de semiología médica.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/anamnesis-digital-que-es" class="seo-card">
+              <span class="seo-badge">Salud Digital</span>
+              <h4>Anamnesis Digital: Qué Es y Por Qué Importa</h4>
+            </a>
+            <a href="/blog/historia-clinica-digital" class="seo-card">
+              <span class="seo-badge">Tecnología Médica</span>
+              <h4>Historia Clínica Digital</h4>
+            </a>
+            <a href="/blog/turno-medico-especialista-correcto" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cómo Elegir el Especialista Correcto</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

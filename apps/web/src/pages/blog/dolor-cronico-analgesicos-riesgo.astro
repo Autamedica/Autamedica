@@ -1,0 +1,182 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Dolor Crónico: Por Qué Tu Médico No Te Da Más Analgésicos',
+  author: 'Equipo AutaMedica',
+  role: 'Clínica Médica',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Medicina del Dolor',
+};
+---
+
+<Layout
+  title="Dolor Crónico: Por Qué Tu Médico No Te Da Más Analgésicos | AutaMedica"
+  description="Por qué los analgésicos crónicos pueden empeorar el dolor, qué alternativas existen y cómo funciona el tratamiento moderno del dolor crónico."
+  canonical="https://www.autamedica.com/blog/dolor-cronico-analgesicos-riesgo"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La frustración de escuchar "no"</h2>
+            <p>
+              Tenés dolor lumbar desde hace meses. O migrañas que vuelven cada semana. O una fibromialgia que no te deja dormir. Vas al médico y en lugar de darte algo más fuerte, te dice que no. Te habla de "ejercicio", de "terapia cognitiva", de "no depender de la medicación". Y vos sentís que no te cree, que minimiza tu dolor, que no entiende lo que vivís.
+            </p>
+            <p>
+              Esa frustración es legítima. Pero la razón por la que tu médico no te aumenta los analgésicos no es falta de empatía: es evidencia. En las últimas dos décadas, la medicina aprendió (a un costo enorme) que el tratamiento del dolor crónico con analgésicos escalonados tiene límites peligrosos. Y que hay alternativas que funcionan mejor a largo plazo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Dolor agudo vs dolor crónico: dos enfermedades distintas</h2>
+            <p>
+              El dolor agudo es una señal de alarma. Te quemás la mano, te duele, retirás la mano. Tiene una causa identificable, una función protectora y se resuelve cuando la causa se trata. Los analgésicos funcionan bien aquí: reducen la señal mientras el cuerpo sana.
+            </p>
+            <p>
+              El dolor crónico es otra cosa. Se define como dolor que persiste más de 3 meses, más allá del tiempo esperado de curación. En muchos casos, la lesión original ya sanó pero el sistema nervioso sigue enviando señales de dolor. El problema ya no está en el tejido dañado: está en cómo el cerebro procesa las señales de dolor.
+            </p>
+            <p>
+              Esto no significa que el dolor sea "imaginario" o "psicológico". Es neurobiológico. Las vías del dolor se sensibilizan: neuronas que antes no respondían al dolor empiezan a hacerlo (alodinia), y estímulos que antes producían dolor leve ahora producen dolor intenso (hiperalgesia). Es una enfermedad del sistema nervioso central, no del lugar donde sentís el dolor.
+            </p>
+          </section>
+
+          <section>
+            <h2>El problema de los antiinflamatorios crónicos</h2>
+            <p>
+              El ibuprofeno, el diclofenac y el naproxeno son antiinflamatorios no esteroideos (AINEs). Son excelentes para el dolor agudo: una torcedura, un dolor de muelas, una inflamación post-quirúrgica. Pero su uso crónico (más de 2-3 semanas de forma continua) tiene riesgos que se acumulan:
+            </p>
+            <ul>
+              <li><strong>Daño gastrointestinal:</strong> gastritis, úlceras, sangrado digestivo. El riesgo aumenta con la edad, con el uso concomitante de aspirina y con antecedentes de úlcera.</li>
+              <li><strong>Daño renal:</strong> los AINEs reducen el flujo sanguíneo al riñón. En personas con función renal ya comprometida (adultos mayores, diabéticos, hipertensos), pueden precipitar insuficiencia renal.</li>
+              <li><strong>Riesgo cardiovascular:</strong> el uso prolongado de AINEs (excepto naproxeno, que tiene un perfil algo mejor) aumenta el riesgo de infarto y ACV. El riesgo es proporcional a la dosis y la duración.</li>
+              <li><strong>Cefalea por abuso de analgésicos:</strong> el uso frecuente de cualquier analgésico (AINEs, paracetamol, triptanes) más de 10-15 días por mes puede transformar una cefalea episódica en una cefalea crónica diaria. El analgésico se convierte en parte del problema.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Opioides: la lección que costó millones de vidas</h2>
+            <p>
+              En los años 90, la industria farmacéutica promovió los opioides (tramadol, oxicodona, fentanilo) como tratamiento seguro y efectivo para el dolor crónico no oncológico. La idea era que el dolor crónico justificaba opioides crónicos. La consecuencia fue la crisis de opioides en Estados Unidos: más de 500.000 muertes por sobredosis entre 1999 y 2023.
+            </p>
+            <p>
+              Argentina no tuvo una crisis de opioides de esa magnitud, pero no es inmune al problema. El tramadol es el opioide más prescripto en el país y genera dependencia física y tolerancia (necesitás más dosis para el mismo efecto). La evidencia actual es clara: para el dolor crónico no oncológico (lumbalgia, fibromialgia, artrosis), los opioides no son superiores a los no opioides a largo plazo, y tienen riesgos mucho mayores.
+            </p>
+            <p>
+              Cuando tu médico no te receta tramadol para tu dolor de espalda crónico, no te está negando un tratamiento efectivo. Te está protegiendo de un tratamiento que, a largo plazo, probablemente empeore tu situación.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué funciona para el dolor crónico</h2>
+            <p>
+              El tratamiento moderno del dolor crónico es multimodal: combina varias estrategias que actúan sobre distintos mecanismos. Ninguna sola es suficiente, pero juntas pueden mejorar significativamente la calidad de vida.
+            </p>
+            <ul>
+              <li><strong>Ejercicio graduado:</strong> es la intervención con más evidencia para lumbalgia crónica, fibromialgia, artrosis y dolor cervical. No se trata de "aguantar el dolor y hacer fuerza", sino de un programa progresivo supervisado por un kinesiólogo. La actividad física reduce la sensibilización central y mejora la capacidad funcional.</li>
+              <li><strong>Terapia cognitivo-conductual (TCC):</strong> no es "ir al psicólogo porque el dolor es mental". Es una técnica estructurada que modifica los patrones de pensamiento catastrófico ("este dolor nunca se va a ir", "no puedo hacer nada") y las conductas de evitación que perpetúan el dolor crónico. Tiene nivel de evidencia A para dolor crónico.</li>
+              <li><strong>Fármacos neuromoduladores:</strong> antidepresivos duales (duloxetina, amitriptilina) y anticonvulsivantes (pregabalina, gabapentina) actúan sobre las vías centrales del dolor. No se recetan porque "estés deprimido", sino porque modulan la transmisión del dolor a nivel del sistema nervioso central.</li>
+              <li><strong>Educación en neurociencia del dolor:</strong> entender cómo funciona el dolor crónico reduce la amenaza percibida y puede disminuir la intensidad del dolor. No es charlatanería: es una intervención con ensayos clínicos que muestran reducción de dolor y discapacidad.</li>
+              <li><strong>Técnicas de manejo del estrés:</strong> mindfulness, respiración, relajación muscular progresiva. El estrés amplifica el dolor crónico a través del eje hipotálamo-hipófisis-adrenal. Reducir el estrés reduce la amplificación.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Cuándo los analgésicos sí tienen lugar</h2>
+            <p>
+              Nada de lo anterior significa que los analgésicos no sirven nunca. Tienen un rol claro:
+            </p>
+            <ul>
+              <li>Dolor agudo (traumatismo, post-quirúrgico, infección): analgésicos por tiempo limitado, con plan de descenso.</li>
+              <li>Reagudización de dolor crónico: un "rescate" puntual con paracetamol o AINEs es razonable, siempre que no se convierta en uso diario.</li>
+              <li>Dolor oncológico: los opioides tienen un rol establecido en el manejo del dolor por cáncer, donde el beneficio supera claramente el riesgo.</li>
+            </ul>
+            <p>
+              Si vivís con dolor crónico y sentís que no te escuchan, pedí una derivación a un especialista en dolor o a una clínica de dolor. El abordaje multidisciplinario (médico del dolor, kinesiólogo, psicólogo) tiene mejores resultados que cualquier estrategia aislada. No es que tu dolor no sea real. Es que el tratamiento correcto no siempre viene en forma de pastilla.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/dolor-cronico-analgesicos-riesgo" description="Por qué los analgésicos crónicos pueden empeorar el dolor, qué alternativas existen y cómo funciona el tratamiento moderno del dolor crónico." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de clínica médica.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/medicamentos-genericos-originales-argentina" class="seo-card">
+              <span class="seo-badge">Farmacología</span>
+              <h4>Genéricos vs Originales: ¿Son Realmente Iguales?</h4>
+            </a>
+            <a href="/blog/ansiedad-vs-ataque-panico" class="seo-card">
+              <span class="seo-badge">Salud Mental</span>
+              <h4>Ansiedad vs Ataque de Pánico: Cómo Distinguirlos y Qué Hacer</h4>
+            </a>
+            <a href="/blog/segunda-opinion-medica-derecho" class="seo-card">
+              <span class="seo-badge">Derechos del Paciente</span>
+              <h4>Segunda Opinión Médica: Tu Derecho y Cómo Ejercerlo</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

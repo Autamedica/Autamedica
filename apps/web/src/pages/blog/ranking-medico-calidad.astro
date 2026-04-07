@@ -1,0 +1,293 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Cómo Se Mide la Calidad de un Médico (Sin Caer en Yelp)',
+  author: 'Equipo AutaMedica',
+  role: 'Calidad Asistencial',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Calidad Médica',
+};
+---
+
+<Layout
+  title="Cómo Se Mide la Calidad de un Médico (Sin Caer en Yelp) | AutaMedica"
+  description="Las estrellas de reseñas no miden calidad clínica. Qué métricas realmente importan para evaluar a un profesional de salud: puntualidad, resultados, comunicación."
+  canonical="https://www.autamedica.com/blog/ranking-medico-calidad"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El Problema de las Cinco Estrellas</h2>
+            <p>
+              Calificar un restaurante con estrellas tiene sentido: la comida te gustó o no te gustó,
+              el servicio fue bueno o malo, y tu experiencia subjetiva es todo lo que importa. Pero
+              calificar a un médico con el mismo sistema es profundamente problemático.
+            </p>
+            <p>
+              Un cirujano que te dice que necesitás una operación que no querías escuchar puede recibir
+              una estrella de un paciente frustrado. Un médico que receta antibióticos innecesarios
+              porque el paciente los pidió puede recibir cinco estrellas de un paciente satisfecho.
+              La calidad percibida por el paciente y la calidad clínica real no siempre coinciden.
+            </p>
+            <p>
+              Un estudio publicado en JAMA Internal Medicine encontró una correlación débil o nula entre
+              las calificaciones de satisfacción del paciente y los resultados clínicos objetivos.
+              Peor aún: en algunos casos, los médicos con mejores calificaciones de satisfacción tenían
+              peores resultados clínicos, posiblemente porque evitaban conversaciones difíciles o
+              accedían a pedidos inapropiados de los pacientes para mantener la "satisfacción".
+            </p>
+            <p>
+              Esto no significa que la opinión del paciente no importe. Significa que necesita
+              complementarse con métricas objetivas para dar una imagen real.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Mide Realmente la Calidad Médica</h2>
+            <p>
+              Las organizaciones de calidad asistencial (como el Institute for Healthcare Improvement
+              o la Joint Commission) evalúan a los profesionales de salud en múltiples dimensiones.
+              Ninguna dimensión sola cuenta la historia completa.
+            </p>
+            <p>
+              <strong>Puntualidad y respeto por el tiempo.</strong> Un médico que consistentemente
+              empieza las consultas 45 minutos tarde no está "muy ocupado" — tiene un problema de
+              gestión de agenda que impacta directamente en la experiencia del paciente. Esta métrica
+              es objetiva, medible y relevante.
+            </p>
+            <p>
+              <strong>Tasa de completitud.</strong> ¿El médico completa la historia clínica? ¿Registra
+              los diagnósticos con codificación estándar? ¿Documenta el plan terapéutico? Un
+              profesional que no documenta pone en riesgo la continuidad del cuidado del paciente.
+            </p>
+            <p>
+              <strong>Adherencia a guías clínicas.</strong> Para condiciones donde existen guías de
+              práctica clínica basadas en evidencia, ¿el médico las sigue? Un diabetólogo que nunca
+              pide HbA1c, o un cardiólogo que no evalúa riesgo cardiovascular con scores validados,
+              no está siguiendo el estándar de cuidado.
+            </p>
+            <p>
+              <strong>Calidad de comunicación.</strong> Esto sí se mide desde la perspectiva del
+              paciente, pero con preguntas estructuradas: "¿El médico le explicó su diagnóstico en
+              términos que usted entendió?", "¿Sintió que tuvo tiempo suficiente para hacer preguntas?",
+              "¿Entendió las instrucciones sobre su tratamiento?" No es "¿le gustó el médico?" sino
+              "¿la comunicación fue efectiva?"
+            </p>
+            <p>
+              <strong>Resultados clínicos.</strong> En especialidades donde es medible: ¿cómo evolucionan
+              los pacientes? Tasas de complicaciones post-quirúrgicas, control de enfermedades crónicas
+              en la población de pacientes, tasas de reinternación. Estas métricas requieren ajuste por
+              complejidad del paciente (un cirujano que opera casos difíciles va a tener más
+              complicaciones que uno que solo opera casos simples).
+            </p>
+          </section>
+
+          <section>
+            <h2>"Médico Simpático" No Es lo Mismo que "Buen Médico"</h2>
+            <p>
+              Hay médicos brillantes que tienen un trato seco. Hay médicos encantadores que no se
+              actualizan desde que se recibieron. Lo ideal es un profesional que combine competencia
+              clínica con habilidades de comunicación, pero si hay que elegir, la competencia es
+              innegociable y la simpatía es deseable.
+            </p>
+            <p>
+              Esto genera una tensión real en los sistemas de evaluación. Si le preguntás a un paciente
+              "¿cómo fue su experiencia?", va a ponderar fuertemente la calidez del trato, el tiempo
+              de espera y si le "cayó bien" el médico. Estos factores importan para la experiencia del
+              paciente, pero no para la calidad clínica.
+            </p>
+            <p>
+              Un oncólogo que te dice con honestidad que tu pronóstico es reservado y te explica las
+              opciones reales puede recibir una mala calificación de satisfacción. Un oncólogo que
+              minimiza la gravedad para no incomodar puede recibir una buena calificación pero te está
+              haciendo un flaco favor.
+            </p>
+            <p>
+              La solución no es ignorar la opinión del paciente. Es estructurarla para que mida lo que
+              realmente importa: ¿entendiste tu diagnóstico?, ¿te explicaron las opciones?, ¿te sentiste
+              escuchado?, ¿sabés qué tenés que hacer ahora? Estas preguntas capturan la calidad de la
+              comunicación sin reducirla a "¿te gustó?"
+            </p>
+          </section>
+
+          <section>
+            <h2>Métricas Estructuradas vs. Opinión Libre</h2>
+            <p>
+              La diferencia entre un sistema de calificación tipo Yelp y un sistema de evaluación de
+              calidad médica es la estructura. En Yelp, escribís lo que querés y ponés las estrellas
+              que sentís. En un sistema de calidad, respondés preguntas específicas diseñadas para
+              medir dimensiones concretas.
+            </p>
+            <p>
+              Las encuestas de calidad asistencial validadas (como CAHPS en Estados Unidos o sus
+              adaptaciones latinoamericanas) usan preguntas como:
+            </p>
+            <ul>
+              <li>"Durante esta visita, ¿cuántas veces el médico le explicó las cosas de forma que usted pudiera entender?" (Siempre / Casi siempre / A veces / Nunca)</li>
+              <li>"Durante esta visita, ¿cuántas veces el médico escuchó atentamente lo que usted decía?" (Siempre / Casi siempre / A veces / Nunca)</li>
+              <li>"¿Le dieron instrucciones claras sobre qué hacer si los síntomas empeoran?" (Sí / No)</li>
+              <li>"¿Cuánto tiempo esperó después de la hora programada de su turno?" (0-15 min / 15-30 min / 30-60 min / Más de 60 min)</li>
+            </ul>
+            <p>
+              Estas respuestas son comparables entre profesionales, agregables estadísticamente y
+              accionables. "El Dr. González tiene un 95% de respuestas 'Siempre' en escucha activa
+              pero solo 60% en claridad de instrucciones post-consulta" es información que permite
+              mejorar. "El Dr. González tiene 4.2 estrellas" no dice nada útil.
+            </p>
+          </section>
+
+          <section>
+            <h2>Sistemas de Logros vs. Estrellas: Una Alternativa</h2>
+            <p>
+              Algunas plataformas están explorando sistemas de reconocimiento basados en logros
+              verificables en lugar de calificaciones subjetivas. En lugar de "4.5 estrellas", un
+              profesional puede tener badges como:
+            </p>
+            <ul>
+              <li><strong>Puntualidad consistente:</strong> Más del 90% de las consultas empezaron dentro de los 10 minutos del horario programado</li>
+              <li><strong>Documentación completa:</strong> El 95% de las consultas tienen historia clínica, diagnóstico codificado y plan terapéutico registrado</li>
+              <li><strong>Comunicación efectiva:</strong> Más del 85% de los pacientes reportaron entender las instrucciones de su tratamiento</li>
+              <li><strong>Disponibilidad de seguimiento:</strong> El profesional responde consultas de seguimiento dentro de las 24 horas hábiles</li>
+            </ul>
+            <p>
+              Cada badge tiene criterios objetivos y verificables. No es una opinión: es un dato. Y
+              el paciente puede decidir qué dimensiones le importan más. Para alguien con una agenda
+              apretada, la puntualidad puede ser decisiva. Para alguien con una enfermedad compleja,
+              la completitud de la documentación puede ser más importante.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Ética de Evaluar Médicos</h2>
+            <p>
+              Evaluar a un profesional de salud tiene implicancias éticas que no se aplican a evaluar
+              un restaurante. Un médico cuya reputación se basa en calificaciones de pacientes puede
+              verse incentivado a evitar pacientes complejos (que son más propensos a dar malas
+              calificaciones), a prescribir lo que el paciente pide en lugar de lo que necesita, o
+              a evitar diagnósticos difíciles que generan insatisfacción.
+            </p>
+            <p>
+              Un sistema de evaluación responsable tiene que balancear transparencia con justicia.
+              Transparencia para que el paciente tenga información para elegir. Justicia para que el
+              médico sea evaluado en las dimensiones que controla y con ajuste por la complejidad de
+              sus pacientes.
+            </p>
+            <p>
+              También hay un componente de volumen mínimo. Un médico con tres calificaciones no tiene
+              un perfil estadísticamente significativo. Las evaluaciones necesitan masa crítica para
+              ser confiables, y mostrar promedios con pocas observaciones puede ser más engañoso que
+              no mostrar nada.
+            </p>
+          </section>
+
+          <section>
+            <h2>Hacia un Sistema que Funcione para Todos</h2>
+            <p>
+              El objetivo no es castigar médicos ni crear rankings sensacionalistas. Es dar información
+              útil a los pacientes y feedback constructivo a los profesionales. Un médico que descubre
+              que sus pacientes consistentemente reportan no entender las instrucciones de tratamiento
+              tiene algo concreto para mejorar. Eso es más útil que saber que tiene 3.8 estrellas.
+            </p>
+            <p>
+              En AutaMedica, la evaluación de calidad se basa en métricas objetivas y verificables:
+              tiempos de espera reales, completitud de la documentación clínica, tasas de seguimiento,
+              y encuestas estructuradas de comunicación. No hay estrellas. Hay datos que reflejan
+              dimensiones concretas de la calidad asistencial.
+            </p>
+            <p>
+              La calidad médica no se reduce a un número. Es multidimensional, contextual y evoluciona
+              con el tiempo. Medirla bien requiere la misma rigurosidad que la medicina misma: datos
+              objetivos, metodología validada y respeto por la complejidad del acto médico.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de calidad asistencial.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/recordatorios-whatsapp-turnos" class="seo-card">
+              <span class="seo-badge">Sistema de Salud</span>
+              <h4>Recordatorios de Turnos por WhatsApp</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="seo-card">
+              <span class="seo-badge">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+            <a href="/blog/telemedicina-revolucion-salud" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>¿Por Qué la Telemedicina es la Revolución?</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/ranking-medico-calidad`} category={article.category} author={article.author} />
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

@@ -1,0 +1,239 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Por Qué el 30% de los Turnos Médicos Quedan Vacíos (y Qué Se Puede Hacer)',
+  author: 'Equipo AutaMedica',
+  role: 'Gestión de Salud',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Sistema de Salud',
+};
+---
+
+<Layout
+  title="Por Qué el 30% de los Turnos Médicos Quedan Vacíos | AutaMedica"
+  description="El ausentismo en turnos médicos afecta a todo el sistema de salud. Causas, impacto en cascada, y soluciones que ya funcionan en la práctica."
+  canonical="https://www.autamedica.com/blog/no-show-turnos-medicos"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>Un problema silencioso que cuesta millones</h2>
+            <p>
+              Cada día, en hospitales y consultorios de toda Argentina, entre el 25% y el 40% de los
+              turnos agendados quedan vacíos. El paciente no aparece. No avisa. El médico espera. El
+              consultorio permanece vacío durante un slot que otro paciente podría haber usado.
+            </p>
+            <p>
+              Los números globales son similares: la Organización Mundial de la Salud reporta tasas de
+              no-show (ausentismo) del 20% al 30% como promedio internacional. En sistemas de salud
+              pública con alta demanda, como el argentino, las cifras tienden al extremo superior.
+            </p>
+            <p>
+              No es un inconveniente menor. Es una de las ineficiencias más costosas del sistema de
+              salud, y afecta a todos: al paciente que no consigue turno porque "no hay disponibilidad",
+              al médico que pierde tiempo productivo, y al sistema que gasta recursos en atención que
+              nunca ocurre.
+            </p>
+          </section>
+
+          <section>
+            <h2>Por qué los pacientes no van (y no es solo olvido)</h2>
+            <p>
+              La explicación simplista es "se olvidaron". La realidad es más compleja:
+            </p>
+            <ul>
+              <li><strong>Olvido genuino:</strong> el turno se sacó hace tres semanas. Sin recordatorio, se pierde entre las obligaciones diarias. Es la causa más común y la más fácil de resolver.</li>
+              <li><strong>Mejoría espontánea:</strong> el síntoma que motivó la consulta desapareció. El paciente asume que ya no necesita ir (a veces correctamente, a veces no).</li>
+              <li><strong>Encontró otro médico:</strong> sacó turno en dos lugares "por las dudas" y fue al que le quedaba más cerca o al que lo atendía antes.</li>
+              <li><strong>Barreras logísticas:</strong> transporte, cuidado de hijos, horario laboral incompatible. Problemas que eran manejables cuando sacó el turno pero se complicaron después.</li>
+              <li><strong>Costo:</strong> aunque la consulta sea "gratis" en el sistema público, el viaje, el estacionamiento, el día de trabajo perdido no lo son.</li>
+              <li><strong>Ansiedad:</strong> miedo al diagnóstico, miedo al procedimiento, o simplemente incomodidad con el entorno médico.</li>
+            </ul>
+            <p>
+              Cada causa requiere una estrategia diferente. Mandar un SMS genérico el día anterior
+              resuelve el olvido pero no la ansiedad ni el costo. Entender por qué los pacientes no
+              van es el primer paso para reducir el ausentismo.
+            </p>
+          </section>
+
+          <section>
+            <h2>El efecto cascada: más grave de lo que parece</h2>
+            <p>
+              Cuando un paciente no aparece, el daño no se limita a un slot vacío. El efecto se
+              propaga:
+            </p>
+            <p>
+              <strong>El médico pierde productividad.</strong> Un especialista con agenda de 20 pacientes
+              que tiene 6 ausencias pierde el 30% de su jornada. No puede reasignar ese tiempo porque
+              no sabe de antemano quién no va a venir. El resultado: un profesional capacitado sentado
+              sin pacientes mientras afuera hay lista de espera de semanas.
+            </p>
+            <p>
+              <strong>Otro paciente no consiguió ese turno.</strong> El slot que quedó vacío fue un turno
+              que el sistema marcó como "ocupado". Otro paciente que llamó esa semana escuchó "no hay
+              disponibilidad hasta el mes que viene". Ese paciente sigue esperando un turno que ya se
+              desperdició.
+            </p>
+            <p>
+              <strong>El sistema pierde recursos.</strong> Personal administrativo que gestionó el turno,
+              preparación del consultorio, insumos reservados. En el sistema público, donde cada peso
+              cuenta, este desperdicio se acumula hasta volverse un problema presupuestario real.
+            </p>
+          </section>
+
+          <section>
+            <h2>Soluciones que ya funcionan</h2>
+            <p>
+              <strong>Recordatorios inteligentes.</strong> No todos los canales funcionan igual. Un estudio
+              del Hospital Italiano de Buenos Aires mostró que los recordatorios por WhatsApp tienen una
+              tasa de lectura del 95%, comparado con el 20% del email y el 60% del SMS. Además, incluir
+              la opción de "cancelar con un toque" si no vas a poder asistir permite liberar el turno
+              para otro paciente.
+            </p>
+            <p>
+              <strong>Lista de espera automática.</strong> Cuando alguien cancela, el sistema ofrece el
+              turno liberado al siguiente paciente en lista de espera, automáticamente. Sin llamadas
+              telefónicas del personal administrativo, sin perder horas intentando llenar el hueco.
+              El turno liberado a las 8 de la mañana puede estar reasignado a las 8:02.
+            </p>
+            <p>
+              <strong>Confirmación activa.</strong> En lugar de asumir que el paciente va a venir, pedirle
+              que confirme 24-48 horas antes. Si no confirma, el turno se libera preventivamente. Simple
+              pero efectivo: reduce el no-show en un 20-30% en las instituciones que lo implementan.
+            </p>
+            <p>
+              <strong>Modelos predictivos.</strong> Con datos históricos, es posible identificar patrones:
+              turnos de lunes a las 8 tienen más ausentismo que turnos de miércoles a las 16. Pacientes
+              que cancelaron las últimas 3 citas tienen alta probabilidad de no aparecer a la cuarta.
+              Esta información permite sobre-agendar selectivamente (como hacen las aerolíneas) y
+              asignar recordatorios más intensivos a los pacientes de alto riesgo.
+            </p>
+          </section>
+
+          <section>
+            <h2>Overbooking inteligente: la lección de las aerolíneas (con cuidado)</h2>
+            <p>
+              Las aerolíneas sobrevenden pasajes porque saben que un porcentaje de pasajeros no se va
+              a presentar. Es un modelo basado en datos que maximiza la ocupación. La pregunta es: ¿se
+              puede aplicar en salud?
+            </p>
+            <p>
+              Con cautela, sí. Si un médico tiene una tasa histórica de no-show del 25%, agendar 25
+              pacientes en 20 slots tiene sentido matemático. Pero la salud no es aviación: si todos
+              aparecen, no podés dejar a 5 pacientes "en tierra". La clave es combinar overbooking leve
+              (10-15%) con mecanismos de flexibilidad: teleconsulta para las consultas desbordadas,
+              atención breve para seguimientos simples, y la posibilidad de reasignar rápidamente.
+            </p>
+            <p>
+              Es una herramienta que requiere datos, calibración y responsabilidad ética. No es "meter
+              más pacientes". Es usar datos para que menos turnos queden vacíos sin degradar la
+              experiencia de nadie.
+            </p>
+          </section>
+
+          <section>
+            <h2>La tecnología como articulador</h2>
+            <p>
+              Ninguna de estas soluciones funciona de forma aislada. Lo que funciona es la combinación:
+              recordatorios que facilitan la cancelación, cancelaciones que alimentan la lista de espera,
+              lista de espera que reasigna automáticamente, y datos que permiten predecir y prevenir.
+            </p>
+            <p>
+              Plataformas de gestión de turnos como AutaMedica integran estos mecanismos en un flujo
+              continuo. El paciente recibe recordatorio, puede cancelar o confirmar con un toque, el
+              turno liberado se ofrece automáticamente al siguiente en espera, y el sistema aprende
+              de cada interacción para mejorar sus predicciones.
+            </p>
+            <p>
+              El objetivo no es castigar al paciente que no va. Es crear un sistema donde faltar sea
+              fácil de comunicar y donde cada turno vacío se llene antes de que se desperdicie. Un
+              problema de millones resuelto con información y diseño inteligente.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/no-show-turnos-medicos`} category={article.category} author={article.author} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de gestión de salud.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/demanda-medicos-pacientes-buscan" class="seo-card">
+              <span class="seo-badge">Sistema de Salud</span>
+              <h4>El Problema de la Demanda Invisible</h4>
+            </a>
+            <a href="/blog/turno-medico-especialista-correcto" class="seo-card">
+              <span class="seo-badge">Guía Práctica</span>
+              <h4>Cómo Elegir el Especialista Correcto</h4>
+            </a>
+            <a href="/blog/teleconsulta-argentina-como-funciona" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>Teleconsulta en Argentina</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

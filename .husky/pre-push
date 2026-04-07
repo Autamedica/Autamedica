@@ -15,7 +15,14 @@ echo "🔎 Validando paridad SEO..."
 pnpm seo:validate:parity || exit 1
 pnpm seo:validate:assets || exit 1
 
-# 2. Turbo directory permissions (previene fallos opacos en CI local)
+# 2. Unit tests — atrapa tests rotos antes de que lleguen a CI
+echo "🧪 Ejecutando tests unitarios..."
+pnpm test:unit -- --run || {
+  echo "❌ Tests unitarios fallaron. Corregir antes de push."
+  exit 1
+}
+
+# 3. Turbo directory permissions (previene fallos opacos en CI local)
 for TURBO_DIR in $(find . -maxdepth 3 -type d -name ".turbo" \
   -not -path "./node_modules/*" \
   -not -path "./apps/*/node_modules/*" \

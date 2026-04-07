@@ -1,0 +1,268 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Tu Salud Tiene Historia: Por Qué Importa Ver Cómo Cambiaste en el Tiempo',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina Interna',
+  date: '6 de abril, 2026',
+  readTime: '6 min',
+  image: '/images/article_telemed.webp',
+  category: 'Salud Digital',
+};
+---
+
+<Layout
+  title="Tu Salud Tiene Historia: Por Qué Importa Ver Cómo Cambiaste en el Tiempo | AutaMedica"
+  description="Las enfermedades crónicas necesitan contexto temporal. Cómo las historias clínicas versionadas permiten ver tu evolución de salud y mejorar las decisiones médicas."
+  canonical="https://www.autamedica.com/blog/historia-clinica-versionada"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La Foto vs. la Película</h2>
+            <p>
+              Imaginá que vas al médico y te hacen un análisis de sangre. Tu glucemia da 110 mg/dL. ¿Es
+              bueno o malo? Depende. Si hace un año dabas 85, esa subida de 25 puntos es una tendencia
+              preocupante. Si hace un año dabas 140, esa bajada de 30 puntos es un logro terapéutico.
+              El número solo no dice nada. El contexto temporal lo dice todo.
+            </p>
+            <p>
+              La mayoría de los sistemas de salud funcionan como una foto: te muestran cómo estás hoy.
+              Pero las enfermedades crónicas — diabetes, hipertensión, hipotiroidismo, artritis,
+              depresión — son películas. Se desarrollan en meses y años. Un solo fotograma no cuenta
+              la historia.
+            </p>
+            <p>
+              La historia clínica versionada resuelve esto: cada actualización crea una nueva versión,
+              sin borrar la anterior. Podés ver tu salud como una línea de tiempo, no como un instante
+              congelado.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Problema de los Registros Estáticos</h2>
+            <p>
+              En el modelo tradicional de historia clínica — sea papel o digital — cada consulta produce
+              una nota que se agrega al legajo. Pero esas notas son aditivas, no comparativas. Si querés
+              saber cómo cambió la presión arterial de un paciente en los últimos dos años, tenés que
+              revisar manualmente docenas de notas de consulta y extraer los valores uno por uno.
+            </p>
+            <p>
+              Este trabajo lo hace el médico mentalmente cuando tiene tiempo. Pero en una consulta de
+              15 minutos, con un paciente que tiene cinco problemas crónicos, no hay tiempo para revisar
+              dos años de historial. El médico ve el último análisis, pregunta "¿cómo te sentís?", y
+              decide en base a la foto de hoy.
+            </p>
+            <p>
+              El resultado es que los cambios graduales pasan desapercibidos. Una HbA1c que sube de 6.5%
+              a 7.2% a lo largo de 18 meses, de a 0.1% por trimestre, es invisible en cada consulta
+              individual. Pero vista en perspectiva, es una pérdida clara de control glucémico que
+              requiere ajuste terapéutico.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Significa "Versionado" en una Historia Clínica</h2>
+            <p>
+              El concepto viene de la ingeniería de software, donde cada cambio en un archivo se guarda
+              como una nueva "versión" sin perder las anteriores. Si algo sale mal, podés volver atrás.
+              Si querés comparar, podés ver qué cambió entre una versión y otra.
+            </p>
+            <p>
+              Aplicado a la salud, el versionado significa que cada vez que se actualiza tu información
+              clínica — un nuevo medicamento, un cambio de dosis, un diagnóstico nuevo, un resultado de
+              laboratorio — se crea un registro nuevo sin sobrescribir el anterior. La versión 1 de tu
+              anamnesis dice que tomás enalapril 10mg. La versión 2, tres meses después, dice que tomás
+              enalapril 20mg. La versión 3 agrega losartán porque el enalapril solo no alcanzó.
+            </p>
+            <p>
+              Cada versión tiene fecha, motivo del cambio y quién lo registró. Es una cadena temporal
+              completa que cualquier médico puede recorrer para entender no solo qué tenés hoy, sino
+              cómo llegaste hasta acá.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Ejemplo de la Diabetes: Dos Años en una Línea de Tiempo</h2>
+            <p>
+              Carlos tiene 58 años y diabetes tipo 2 diagnosticada hace tres años. Su endocrinólogo
+              lo ve cada tres meses. Veamos cómo cambia su historial en una línea de tiempo versionada:
+            </p>
+            <ul>
+              <li><strong>Marzo 2024:</strong> HbA1c 6.8%. Metformina 850mg x2. Peso 92kg. Control adecuado</li>
+              <li><strong>Junio 2024:</strong> HbA1c 7.0%. Misma medicación. Peso 94kg. El médico refuerza dieta</li>
+              <li><strong>Septiembre 2024:</strong> HbA1c 7.3%. Se agrega empagliflozina 10mg. Peso 95kg</li>
+              <li><strong>Diciembre 2024:</strong> HbA1c 7.1%. Bajó a 93kg (la empagliflozina ayuda con el peso)</li>
+              <li><strong>Marzo 2025:</strong> HbA1c 6.9%. Peso 91kg. La combinación está funcionando</li>
+              <li><strong>Junio 2025:</strong> HbA1c 6.6%. Peso 89kg. Mejor control en un año</li>
+            </ul>
+            <p>
+              Vista así, la historia de Carlos tiene sentido. La tendencia al descontrol, la intervención
+              farmacológica, la respuesta gradual. Ninguna consulta individual cuenta esta historia. Solo
+              la secuencia temporal la revela.
+            </p>
+            <p>
+              Ahora imaginá que Carlos cambia de médico. Sin versionado, el nuevo endocrinólogo ve un
+              paciente con HbA1c 6.6% y dos medicamentos. Parece bien controlado. Pero no sabe que hace
+              un año estaba en 7.3% y que la mejora es reciente. No sabe que el paciente tiende al
+              descontrol si relaja la dieta. Esa información temporal cambia las recomendaciones.
+            </p>
+          </section>
+
+          <section>
+            <h2>Revisitas: "¿Cambió Algo Desde la Última Vez?"</h2>
+            <p>
+              Una de las aplicaciones más directas del versionado es la revisita médica. Cuando volvés
+              al médico después de tres o seis meses, la pregunta clave es: ¿qué cambió?
+            </p>
+            <p>
+              En el modelo estático, el médico te pregunta "¿cambió algo?" y vos respondés de memoria.
+              Tal vez te olvidás de que cambiaste un medicamento, o de que tuviste una infección urinaria
+              que te trató otro médico, o de que empezaste a tener insomnio hace dos meses.
+            </p>
+            <p>
+              Con un registro versionado, el sistema sabe exactamente qué cambió entre tu última visita
+              y hoy. Puede mostrarle al médico un resumen: "Desde la última consulta: se agregó
+              omeprazol 20mg (indicado por gastroenterólogo), peso subió 2kg, nuevo síntoma reportado:
+              insomnio de conciliación." El médico no tiene que preguntar — ya lo sabe.
+            </p>
+            <p>
+              Esto también funciona al revés. Si nada cambió en tu medicación y tus síntomas crónicos
+              están estables, la revisita puede ser más breve y enfocada. El sistema identifica qué
+              secciones de tu historia están estables (y no requieren revisión) y cuáles tienen cambios
+              que necesitan atención.
+            </p>
+          </section>
+
+          <section>
+            <h2>La Línea de Tiempo Visual: Tu Evolución de Salud</h2>
+            <p>
+              Los números en una tabla son útiles para el médico. Pero para el paciente, una visualización
+              temporal es mucho más comprensible. Ver tu peso en un gráfico que baja de 95kg a 89kg en
+              seis meses es motivador. Ver tu presión arterial estabilizarse después de un cambio de
+              medicamento es tranquilizador. Ver que tus episodios de migraña se redujeron de cuatro por
+              mes a uno por mes después de empezar un tratamiento preventivo es evidencia concreta de que
+              el tratamiento funciona.
+            </p>
+            <p>
+              La línea de tiempo también ayuda a detectar correlaciones que de otra forma pasarían
+              desapercibidas. "Ah, mirá, tus dolores de cabeza aumentaron el mismo mes que empezaste a
+              tomar ese nuevo medicamento para la presión." Esas correlaciones temporales son difíciles
+              de detectar cuando los datos están dispersos en notas de texto de distintas consultas.
+            </p>
+          </section>
+
+          <section>
+            <h2>Versionado en la Práctica: Cómo Funciona</h2>
+            <p>
+              En AutaMedica, la anamnesis del paciente es un documento vivo que se versiona automáticamente.
+              Cada sección tiene una política de mutabilidad definida. Los antecedentes familiares, por
+              ejemplo, se arrastran de una versión a otra porque no cambian (tu padre sigue siendo
+              hipertenso). La medicación actual se confirma en cada visita porque puede haber cambios.
+              Los síntomas actuales se registran frescos cada vez porque son específicos del momento.
+            </p>
+            <p>
+              Cuando un paciente vuelve para una revisita, el sistema no le pide que llene todo de nuevo.
+              Le muestra qué tenía antes y le pregunta qué cambió. Los datos estables se arrastran
+              automáticamente. Los datos que pueden cambiar piden confirmación. Los datos por visita se
+              piden de cero. Es eficiente para el paciente y completo para el médico.
+            </p>
+            <p>
+              El resultado es un registro clínico que crece con el paciente. No se sobrescribe, no se
+              pierde, no depende de la memoria de nadie. Cada versión es una capa más de contexto que
+              hace la siguiente consulta más informada y la siguiente decisión médica más precisa.
+            </p>
+            <p>
+              Tu salud no es un instante. Es una historia que se desarrolla en el tiempo. Merece un
+              registro que refleje eso.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina interna.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/historia-clinica-digital" class="seo-card">
+              <span class="seo-badge">Tecnología Médica</span>
+              <h4>Historia Clínica Digital: Por Qué es Crucial</h4>
+            </a>
+            <a href="/blog/anamnesis-por-voz-ia" class="seo-card">
+              <span class="seo-badge">Innovación en Salud</span>
+              <h4>Completar Tu Historia Clínica Hablando</h4>
+            </a>
+            <a href="/blog/red-flags-senales-cuerpo" class="seo-card">
+              <span class="seo-badge">Prevención</span>
+              <h4>5 Señales que Tu Cuerpo Te Da</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/historia-clinica-versionada`} category={article.category} author={article.author} />
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

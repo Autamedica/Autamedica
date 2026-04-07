@@ -1,0 +1,219 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Cuándo Ir a la Guardia y Cuándo Puede Esperar: Guía de Triage Domiciliario',
+  author: 'Equipo AutaMedica',
+  role: 'Medicina de Emergencias',
+  date: '6 de abril, 2026',
+  readTime: '7 min',
+  image: '/images/article_telemed.webp',
+  category: 'Guía Práctica',
+};
+---
+
+<Layout
+  title="Cuándo Ir a la Guardia y Cuándo Puede Esperar: Guía de Triage Domiciliario | AutaMedica"
+  description="Guía práctica para decidir si un síntoma requiere guardia inmediata o puede esperar a un turno programado. Señales de alarma, criterios de urgencia y qué hacer mientras esperás."
+  canonical="https://www.autamedica.com/blog/cuando-ir-guardia-cuando-esperar"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>El dilema de las tres de la mañana</h2>
+            <p>
+              Son las tres de la mañana. Tu hijo tiene fiebre, o vos tenés un dolor que no cede, o alguien en casa vomitó por tercera vez. La pregunta es siempre la misma: ¿voy a la guardia o espero? Ir cuando no hace falta significa horas de espera innecesaria, exposición a infecciones y saturación del sistema. No ir cuando sí hace falta puede ser peligroso.
+            </p>
+            <p>
+              La realidad es que la mayoría de las consultas de guardia en Argentina no son emergencias. Estudios del sistema público estiman que entre el 60% y el 70% de las consultas en guardias corresponden a patologías que podrían resolverse en un consultorio con turno programado. Esto no es culpa del paciente: es consecuencia de la dificultad para conseguir turnos, la falta de información clara y el miedo legítimo ante síntomas desconocidos.
+            </p>
+            <p>
+              Esta guía no reemplaza el criterio médico. Pero sí te da un marco para tomar una decisión más informada mientras decidís qué hacer.
+            </p>
+          </section>
+
+          <section>
+            <h2>Señales de alarma: ir a la guardia sin dudar</h2>
+            <p>
+              Hay síntomas que requieren atención inmediata. No importa la hora, no importa la distancia, no importa si "seguro no es nada". Ante cualquiera de estos, la indicación es ir a la guardia o llamar al servicio de emergencias (107 en Argentina):
+            </p>
+            <ul>
+              <li><strong>Dolor en el pecho</strong> que dura más de 5 minutos, especialmente si irradia al brazo izquierdo, mandíbula o espalda. No esperar a que "se pase".</li>
+              <li><strong>Dificultad para respirar</strong> en reposo, labios o dedos azulados (cianosis), o sensación de que "no entra el aire".</li>
+              <li><strong>Pérdida súbita de fuerza o sensibilidad</strong> en un lado del cuerpo, dificultad para hablar o entender, visión borrosa repentina. Son signos de accidente cerebrovascular (ACV) y cada minuto cuenta.</li>
+              <li><strong>Sangrado que no se detiene</strong> después de 10 minutos de presión directa.</li>
+              <li><strong>Convulsiones</strong> en alguien sin diagnóstico previo de epilepsia, o convulsiones que duran más de 5 minutos.</li>
+              <li><strong>Fiebre en bebés menores de 3 meses:</strong> cualquier temperatura axilar igual o mayor a 38°C en un recién nacido es motivo de consulta urgente.</li>
+              <li><strong>Trauma severo:</strong> caídas de altura, accidentes de tránsito, golpes en la cabeza con pérdida de conocimiento o vómitos posteriores.</li>
+              <li><strong>Reacción alérgica grave:</strong> hinchazón de labios, lengua o garganta, dificultad para tragar o respirar después de una picadura, alimento o medicamento.</li>
+            </ul>
+            <p>
+              La regla es simple: si el síntoma apareció de golpe, es intenso y nunca lo tuviste antes, consultá. Mejor una consulta de guardia "de más" que una emergencia atendida tarde.
+            </p>
+          </section>
+
+          <section>
+            <h2>Situaciones que pueden esperar a un turno</h2>
+            <p>
+              No todo lo que preocupa es urgente. Muchas situaciones, aunque molestas o incómodas, pueden resolverse mejor con un turno programado donde el médico tenga tiempo de evaluarte con calma:
+            </p>
+            <ul>
+              <li><strong>Dolor de garganta sin dificultad para respirar ni tragar.</strong> La mayoría son virales y se resuelven en 3-5 días. Si persiste más de una semana, consultá por turno.</li>
+              <li><strong>Fiebre en adultos sin otros síntomas de alarma</strong> (sin confusión, sin dificultad respiratoria, sin rigidez de nuca). Antipirético, hidratación y turno al día siguiente.</li>
+              <li><strong>Dolor muscular o articular</strong> de aparición gradual, sin trauma, sin deformidad visible.</li>
+              <li><strong>Síntomas urinarios</strong> (ardor, frecuencia) sin fiebre ni dolor lumbar intenso. Una infección urinaria baja puede esperar 24 horas.</li>
+              <li><strong>Erupciones cutáneas</strong> sin fiebre, sin compromiso de mucosas, sin dolor. Un sarpullido que no duele y no se expande puede esperar.</li>
+              <li><strong>Dolor abdominal leve</strong> que no empeora, sin vómitos persistentes, sin fiebre, sin distensión.</li>
+            </ul>
+            <p>
+              La clave es la evolución: si el síntoma mejora o se mantiene estable, probablemente pueda esperar. Si empeora progresivamente, cambia de carácter o se suman otros síntomas, reconsiderá.
+            </p>
+          </section>
+
+          <section>
+            <h2>La zona gris: cuándo es razonable dudar</h2>
+            <p>
+              Entre la emergencia clara y el malestar menor hay una zona amplia donde la decisión no es obvia. Algunos criterios que pueden ayudarte:
+            </p>
+            <p>
+              <strong>Dolor abdominal:</strong> si es constante, intenso y lleva más de 6 horas sin ceder, conviene consultar. Si se localiza en fosa ilíaca derecha (zona del apéndice) o si hay fiebre asociada, no esperar.
+            </p>
+            <p>
+              <strong>Fiebre alta (más de 39°C) que no baja con antitérmicos:</strong> en adultos, si después de tomar paracetamol o ibuprofeno la temperatura no baja al menos un grado en una hora, es razonable consultar esa noche.
+            </p>
+            <p>
+              <strong>Vómitos o diarrea persistentes:</strong> si llevás más de 12 horas sin poder retener líquidos, existe riesgo de deshidratación. En niños pequeños y adultos mayores, el umbral es más bajo.
+            </p>
+            <p>
+              <strong>Dolor de cabeza:</strong> el peor dolor de cabeza de tu vida, de inicio súbito ("como un trueno"), requiere guardia. Una cefalea tensional habitual que responde a analgésicos comunes puede esperar.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué hacer mientras decidís</h2>
+            <p>
+              Mientras evaluás si ir o esperar, hay medidas básicas que podés tomar:
+            </p>
+            <ul>
+              <li><strong>Medir y anotar.</strong> Temperatura, hora de inicio del síntoma, frecuencia de vómitos o episodios. Cuando llegues a la guardia, estos datos le ahorran tiempo al médico.</li>
+              <li><strong>No automedicarte con antibióticos.</strong> Los antibióticos no sirven para virus y pueden enmascarar un cuadro bacteriano. Paracetamol e ibuprofeno para fiebre y dolor son razonables mientras esperás.</li>
+              <li><strong>Hidratación.</strong> Sorbos pequeños y frecuentes. No tomar grandes cantidades de golpe si hay náuseas.</li>
+              <li><strong>No buscar diagnósticos en internet.</strong> Buscar síntomas en Google genera ansiedad desproporcionada y no reemplaza una evaluación médica.</li>
+            </ul>
+            <p>
+              Si tenés acceso a una teleconsulta, muchas de las situaciones de zona gris pueden orientarse remotamente. Un médico puede ayudarte a decidir si necesitás ir a la guardia o si podés esperar, sin que te muevas de tu casa.
+            </p>
+          </section>
+
+          <section>
+            <h2>Poblaciones especiales: cuándo el umbral baja</h2>
+            <p>
+              Hay grupos donde la regla de "puede esperar" se vuelve más estricta:
+            </p>
+            <p>
+              <strong>Embarazadas:</strong> sangrado vaginal, dolor abdominal, pérdida de líquido, disminución de movimientos fetales o fiebre alta son motivo de consulta urgente. No esperar.
+            </p>
+            <p>
+              <strong>Adultos mayores de 65:</strong> la fiebre puede estar ausente incluso en infecciones graves. Confusión, caídas recientes, debilidad generalizada o dejar de comer/beber son señales de alarma silenciosas.
+            </p>
+            <p>
+              <strong>Pacientes inmunosuprimidos</strong> (quimioterapia, trasplante, HIV con CD4 bajo, corticoides crónicos): fiebre de cualquier grado requiere evaluación urgente por riesgo de infección oportunista.
+            </p>
+            <p>
+              <strong>Niños menores de 2 años:</strong> deshidratación avanza rápido. Menos de 3 pañales mojados en 24 horas, llanto sin lágrimas, fontanela hundida: guardia.
+            </p>
+          </section>
+
+          <section>
+            <h2>Un sistema de salud que necesita que decidas bien</h2>
+            <p>
+              La guardia no es un consultorio abierto las 24 horas. Es un recurso diseñado para estabilizar emergencias. Cada consulta no urgente le agrega tiempo de espera a alguien que sí está en riesgo. Esto no es para culpabilizar a nadie: es para que entiendas que decidir bien te beneficia a vos y al sistema.
+            </p>
+            <p>
+              Si después de leer esta guía seguís con dudas, eso en sí mismo es una respuesta: consultá. Pero hacelo con la información que tengas: qué sentís, desde cuándo, cómo evolucionó, qué tomaste. Un relato organizado le permite al médico de guardia evaluarte más rápido y mejor.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url="https://www.autamedica.com/blog/cuando-ir-guardia-cuando-esperar" description="Guía práctica para decidir si un síntoma requiere guardia inmediata o puede esperar a un turno programado." author={article.author} category={article.category} />
+
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de medicina de emergencias.
+            </p>
+          </div>
+        </div>
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/como-leer-analisis-sangre" class="seo-card">
+              <span class="seo-badge">Educación Médica</span>
+              <h4>Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico</h4>
+            </a>
+            <a href="/blog/presion-arterial-normal-cuando-preocuparse" class="seo-card">
+              <span class="seo-badge">Cardiología</span>
+              <h4>Presión Arterial: Qué Es Normal y Cuándo Preocuparse</h4>
+            </a>
+            <a href="/blog/ansiedad-vs-ataque-panico" class="seo-card">
+              <span class="seo-badge">Salud Mental</span>
+              <h4>Ansiedad vs Ataque de Pánico: Cómo Distinguirlos y Qué Hacer</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>

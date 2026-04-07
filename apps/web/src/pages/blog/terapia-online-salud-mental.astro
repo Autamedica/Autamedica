@@ -1,0 +1,310 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Terapia Online: Mitos, Evidencia y Cuándo Sí Conviene',
+  author: 'Equipo AutaMedica',
+  role: 'Salud Mental',
+  date: '6 de abril, 2026',
+  readTime: '8 min',
+  image: '/images/article_telemed.webp',
+  category: 'Salud Mental',
+};
+---
+
+<Layout
+  title="Terapia Online: Mitos, Evidencia y Cuándo Conviene | AutaMedica"
+  description="La terapia online tiene evidencia sólida para depresión, ansiedad y TEPT. Mitos desmentidos, limitaciones reales y cómo elegir entre presencial y virtual."
+  canonical="https://www.autamedica.com/blog/terapia-online-salud-mental"
+  ogImage="/images/seo/og-main.webp"
+  ogType="article"
+  publishedTime="2026-04-06T00:00:00Z"
+  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+>
+  <Navbar />
+  <main>
+    <!-- Article Header -->
+    <div class="seo-hero" style="text-align:left">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">&larr; Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span>{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Article Image -->
+    <div class="blog-image">
+      <img src={article.image} alt={article.title} loading="eager" />
+    </div>
+
+    <!-- Article Content -->
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La Explosión Post-Pandemia</h2>
+            <p>
+              La pandemia de COVID-19 forzó un experimento masivo y no planificado: millones de personas
+              que nunca habían considerado la terapia online de repente no tenían otra opción. Terapeutas
+              que llevaban décadas atendiendo en consultorio tuvieron que adaptarse a la videollamada en
+              cuestión de días.
+            </p>
+            <p>
+              Lo que sorprendió a muchos — profesionales y pacientes por igual — fue que funcionó. No
+              perfectamente, no para todos, no para todo. Pero la evidencia acumulada desde 2020 muestra
+              que la terapia online no es un sustituto de emergencia: es una modalidad legítima con
+              resultados clínicos comparables a la presencial en muchos cuadros.
+            </p>
+            <p>
+              En Argentina, donde el acceso a salud mental siempre fue desigual — concentrado en grandes
+              ciudades, con listas de espera largas y costos altos para quienes no tienen cobertura —
+              la terapia online abrió una puerta que no conviene cerrar.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Dice la Evidencia Científica</h2>
+            <p>
+              No se trata de opiniones ni de marketing de plataformas. Hay ensayos clínicos aleatorizados
+              — el estándar de oro en investigación médica — que comparan terapia online versus presencial:
+            </p>
+            <p>
+              <strong>Depresión:</strong> múltiples meta-análisis (estudios que combinan resultados de
+              muchos ensayos) muestran que la terapia cognitivo-conductual online produce reducciones
+              similares en síntomas depresivos comparada con la presencial. Un estudio de 2020 publicado
+              en The Lancet Psychiatry con más de 2.000 participantes no encontró diferencias
+              significativas en eficacia.
+            </p>
+            <p>
+              <strong>Trastornos de ansiedad:</strong> la evidencia es igualmente sólida. Trastorno de
+              ansiedad generalizada, fobia social y trastorno de pánico responden bien a terapia online,
+              particularmente con enfoques cognitivo-conductuales y de exposición gradual.
+            </p>
+            <p>
+              <strong>Trastorno de estrés postraumático (TEPT):</strong> ensayos recientes muestran que
+              las terapias basadas en exposición — donde el paciente trabaja con recuerdos traumáticos
+              en un entorno controlado — pueden realizarse de forma segura y eficaz por video. Para
+              muchos pacientes con TEPT, el hecho de estar en su casa durante la sesión proporciona
+              una sensación de seguridad que facilita el trabajo terapéutico.
+            </p>
+            <p>
+              <strong>Trastornos de la conducta alimentaria:</strong> la evidencia es mixta pero
+              prometedora. El seguimiento nutricional y la terapia cognitiva funcionan bien online.
+              La evaluación de peso y signos físicos puede requerir complemento presencial.
+            </p>
+          </section>
+
+          <section>
+            <h2>Qué Funciona Mejor Online</h2>
+            <p>
+              No todas las modalidades terapéuticas se adaptan igual al formato virtual. Las que mejor
+              funcionan comparten características: son estructuradas, orientadas a objetivos y se basan
+              más en la conversación que en la presencia física.
+            </p>
+            <ul>
+              <li><strong>Terapia cognitivo-conductual (TCC):</strong> su estructura con tareas entre sesiones, registros y técnicas específicas se adapta naturalmente al formato online</li>
+              <li><strong>Terapias de seguimiento:</strong> pacientes estabilizados que necesitan sesiones de mantenimiento. La comodidad del online favorece la continuidad</li>
+              <li><strong>Manejo de medicación psiquiátrica:</strong> consultas de control donde se evalúa eficacia y efectos adversos de psicofármacos. No requieren examen físico</li>
+              <li><strong>Psicoeducación:</strong> sesiones orientadas a que el paciente entienda su condición, aprenda estrategias de manejo y desarrolle herramientas de afrontamiento</li>
+              <li><strong>Terapia de pareja:</strong> ambos miembros pueden conectarse desde el mismo lugar o desde distintos, según lo que sea más productivo terapéuticamente</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Cuándo Es Mejor Presencial</h2>
+            <p>
+              La honestidad profesional exige reconocer las limitaciones. Hay situaciones donde la
+              terapia online no es la mejor opción:
+            </p>
+            <ul>
+              <li><strong>Crisis aguda con riesgo de autolesión o suicidio:</strong> cuando hay riesgo inminente, se necesita contención que la distancia física no permite. El terapeuta online puede hacer una evaluación de riesgo y activar una cadena de contención, pero la intervención de crisis requiere presencia</li>
+              <li><strong>Trastornos psicóticos activos:</strong> pacientes con desorganización del pensamiento severa pueden tener dificultades con el formato virtual. La evaluación del estado mental completo se hace mejor en persona</li>
+              <li><strong>Niños menores de 12 años:</strong> la terapia infantil depende en gran medida del juego, la observación del comportamiento no verbal y la interacción en un espacio terapéutico. El formato video limita estas herramientas</li>
+              <li><strong>Terapia grupal:</strong> la dinámica de grupo — que depende de la comunicación no verbal, los silencios compartidos y la energía del espacio — se pierde parcialmente en una videollamada con múltiples participantes</li>
+              <li><strong>Pacientes sin espacio privado:</strong> si la persona vive en un departamento chico con familia, tener una sesión de terapia donde pueda hablar libremente puede ser imposible. La privacidad es condición necesaria</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>La Alianza Terapéutica a Través de una Pantalla</h2>
+            <p>
+              La objeción más frecuente a la terapia online es: "¿se puede construir una relación
+              terapéutica genuina a través de una pantalla?". La alianza terapéutica — la conexión
+              de confianza entre paciente y terapeuta — es el predictor más fuerte de resultados
+              positivos en cualquier forma de psicoterapia. Si esa alianza se debilita por el formato,
+              todo lo demás pierde sentido.
+            </p>
+            <p>
+              Los estudios dicen que sí, se puede. Investigaciones que miden alianza terapéutica con
+              escalas validadas (como la Working Alliance Inventory) muestran puntuaciones comparables
+              entre modalidad online y presencial. Con condiciones: el terapeuta debe adaptar su
+              técnica al medio (contacto visual mirando a cámara, no a la pantalla; pausas más
+              explícitas; verificación verbal de emociones que en persona se leen en el cuerpo).
+            </p>
+            <p>
+              Hay algo interesante que reportan muchos terapeutas: algunos pacientes se abren más
+              rápido en el formato online. La distancia física paradójicamente reduce la sensación de
+              exposición. Estar en tu propio espacio, con tus propios objetos alrededor, puede generar
+              una sensación de seguridad que el consultorio ajeno no provee.
+            </p>
+          </section>
+
+          <section>
+            <h2>Ventajas Prácticas que Impactan en la Adherencia</h2>
+            <p>
+              Más allá de la eficacia clínica, la terapia online tiene ventajas logísticas que impactan
+              directamente en la adherencia al tratamiento — y la adherencia es crucial en salud mental.
+            </p>
+            <p>
+              <strong>Sin traslado.</strong> En Buenos Aires, llegar al consultorio del psicólogo puede
+              significar 40 minutos de viaje. Ida y vuelta son casi dos horas dedicadas al traslado
+              para una sesión de 50 minutos. Para una persona con ansiedad, ese viaje en transporte
+              público puede ser la razón por la que cancela. Para alguien con depresión, la barrera
+              de "salir de casa" puede ser insuperable en los días malos.
+            </p>
+            <p>
+              <strong>Consistencia en la frecuencia.</strong> La terapia funciona con constancia. Una
+              sesión por semana, todas las semanas. Cuando el traslado, el clima o los compromisos
+              laborales compiten con la sesión, la sesión pierde. Online, la barrera es abrir una app.
+            </p>
+            <p>
+              <strong>Acceso desde localidades chicas.</strong> En Argentina, la distribución de
+              psicólogos y psiquiatras es extremadamente desigual. Buenos Aires tiene la mayor densidad
+              de psicólogos por habitante del mundo. Pero si vivís en una localidad de 5.000 habitantes
+              en el interior, tus opciones presenciales pueden ser una sola persona o ninguna. La
+              terapia online elimina la restricción geográfica.
+            </p>
+          </section>
+
+          <section>
+            <h2>El Modelo Híbrido: Lo Mejor de Ambos Mundos</h2>
+            <p>
+              Cada vez más profesionales de salud mental trabajan con un modelo híbrido: algunas sesiones
+              presenciales, otras online, según la necesidad del momento. Es un enfoque pragmático que
+              reconoce que no todas las semanas son iguales.
+            </p>
+            <p>
+              Sesiones de inicio y evaluación diagnóstica: presencial, para establecer la alianza y
+              hacer una evaluación completa. Sesiones de seguimiento estables: online, para mantener
+              la continuidad sin la barrera del traslado. Momentos de crisis o temas que requieren
+              mayor contención: presencial. Semanas donde el paciente viaja, está enfermo o tiene un
+              compromiso laboral: online, para no perder la sesión.
+            </p>
+            <p>
+              Este modelo reconoce que la rigidez mata la adherencia. Y la adherencia es lo que
+              determina si la terapia funciona o no.
+            </p>
+          </section>
+
+          <section>
+            <h2>Psicólogo vs. Psiquiatra: Cuándo Cada Uno</h2>
+            <p>
+              Una confusión frecuente: ¿necesito un psicólogo o un psiquiatra? La respuesta depende
+              de lo que te pasa.
+            </p>
+            <p>
+              El <strong>psicólogo</strong> trabaja con psicoterapia: conversación estructurada,
+              técnicas terapéuticas, herramientas de afrontamiento. Es la primera línea para ansiedad,
+              depresión leve a moderada, problemas de relación, duelo, estrés crónico y desarrollo
+              personal.
+            </p>
+            <p>
+              El <strong>psiquiatra</strong> es médico y puede recetar medicación. Es necesario cuando
+              los síntomas son severos (depresión que impide funcionar, ataques de pánico frecuentes,
+              insomnio crónico), cuando hay sospecha de un trastorno que requiere medicación (bipolar,
+              esquizofrenia, TDAH) o cuando la psicoterapia sola no está dando resultados suficientes.
+            </p>
+            <p>
+              Muchas veces el tratamiento óptimo combina ambos: psicoterapia para trabajar los patrones
+              de pensamiento y comportamiento, y medicación para estabilizar la bioquímica cerebral.
+              Ambos profesionales pueden atender por video con resultados comparables a la presencialidad.
+            </p>
+          </section>
+
+          <section>
+            <h2>Reducción del Estigma: La Barrera Invisible</h2>
+            <p>
+              A pesar de los avances, ir al psicólogo o al psiquiatra sigue cargando estigma en muchos
+              ámbitos. "¿Estás viendo un psicólogo? ¿Estás mal?". En entornos laborales, en familias
+              tradicionales, en pueblos chicos donde todo se sabe, la consulta de salud mental todavía
+              genera comentarios.
+            </p>
+            <p>
+              La terapia online reduce esta barrera de forma tangible. No hay sala de espera donde
+              alguien te reconozca. No hay que pedir permiso en el trabajo para "ir al psicólogo".
+              No hay que explicarle a nadie adónde vas. Te conectás desde tu habitación, cerrás la
+              puerta, y nadie necesita saberlo.
+            </p>
+            <p>
+              Esto no resuelve el estigma social de fondo. Pero reduce la fricción de dar el primer
+              paso. Y en salud mental, el primer paso es muchas veces lo más difícil. Si la modalidad
+              online hace que más personas accedan a tratamiento por primera vez, su impacto va más
+              allá de la conveniencia: es una cuestión de acceso a la salud.
+            </p>
+          </section>
+        </div>
+
+        <!-- Author Section -->
+        <div class="blog-author">
+          <div class="author-content">
+            <h3>Sobre el Equipo</h3>
+            <p>
+              <strong>Equipo AutaMedica</strong> — contenido revisado por profesionales de salud mental.
+            </p>
+          </div>
+        </div>
+
+        <!-- Related Articles -->
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/ansiedad-cronica-herramientas" class="seo-card">
+              <span class="seo-badge">Salud Mental</span>
+              <h4>Ansiedad Crónica: Herramientas</h4>
+            </a>
+            <a href="/blog/sala-espera-digital-greenroom" class="seo-card">
+              <span class="seo-badge">Telemedicina</span>
+              <h4>La Sala de Espera Digital</h4>
+            </a>
+            <a href="/blog/acceso-especialistas-provincias" class="seo-card">
+              <span class="seo-badge">Acceso</span>
+              <h4>Acceso a Especialistas en Provincias</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/terapia-online-salud-mental`} category={article.category} author={article.author} />
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); text-align: left; }
+  .blog-prose h3 { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--au-text-primary); margin: var(--space-8) 0 var(--space-3); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-prose blockquote { border-left: 3px solid var(--au-accent); padding-left: var(--space-4); margin: var(--space-6) 0; color: var(--au-text-tertiary); font-style: italic; }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-back:hover { text-decoration: underline; }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-author { background: var(--au-accent-soft); border: 1px solid var(--au-border-hover); border-radius: var(--radius-md); padding: var(--space-8); margin: var(--space-12) auto; max-width: 720px; }
+  .blog-author h3 { font-size: var(--text-lg); color: var(--au-text-primary); margin-bottom: var(--space-3); }
+  .blog-author p { color: var(--au-text-secondary); margin: 0; }
+  .blog-related { max-width: 720px; margin: var(--space-16) auto; }
+  .blog-related h3 { font-size: var(--text-xl); color: var(--au-text-primary); margin-bottom: var(--space-6); }
+  .blog-related .seo-card { text-decoration: none; display: block; }
+  .blog-related .seo-card h4 { color: var(--au-text-primary); font-size: var(--text-base); font-weight: var(--font-medium); line-height: 1.4; margin: var(--space-3) 0 0; }
+</style>
