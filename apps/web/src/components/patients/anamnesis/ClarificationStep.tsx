@@ -36,11 +36,11 @@ export function ClarificationStep({
   const hasAnyAnswer = Object.values(answers).some(v => v.trim())
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8">
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-sky-50">
-          <Sparkles className="h-7 w-7 text-sky-700" />
+        <div className="mx-auto mb-3 sm:mb-4 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-sky-50">
+          <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-sky-700" />
         </div>
         <h2 className="text-xl font-bold text-gray-900">
           {isPartial
