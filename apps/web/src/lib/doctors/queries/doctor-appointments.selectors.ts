@@ -27,12 +27,13 @@ export type DoctorDailyAgendaView = {
 
 const CALLABLE_APPOINTMENT_STATUSES = new Set(['scheduled', 'confirmed', 'in_progress'])
 
-function isSameLocalDay(iso: string, reference: Date): boolean {
+function isSameLocalDay(iso: string, referenceDate: Date): boolean {
+  if (!iso) return false
   const value = new Date(iso)
   return (
-    value.getFullYear() === reference.getFullYear()
-    && value.getMonth() === reference.getMonth()
-    && value.getDate() === reference.getDate()
+    value.getFullYear() === referenceDate.getFullYear() &&
+    value.getMonth() === referenceDate.getMonth() &&
+    value.getDate() === referenceDate.getDate()
   )
 }
 
@@ -44,9 +45,9 @@ function safeTimestamp(iso: string | null | undefined): number {
 
 function canStartTelemedicineCall(appointment: Appointment): boolean {
   return (
-    appointment.type === 'telemedicine'
-    && CALLABLE_APPOINTMENT_STATUSES.has(appointment.status ?? 'scheduled')
-    && isTelemedicineCallWindowOpen(appointment)
+    appointment.type === 'telemedicine' &&
+    CALLABLE_APPOINTMENT_STATUSES.has(appointment.status ?? 'scheduled') &&
+    isTelemedicineCallWindowOpen(appointment)
   )
 }
 
@@ -54,19 +55,18 @@ function sortAgendaAppointments(left: Appointment, right: Appointment, now: numb
   const leftCallable = canStartTelemedicineCall(left)
   const rightCallable = canStartTelemedicineCall(right)
 
-  if (leftCallable !== rightCallable) {
-    return leftCallable ? -1 : 1
-  }
+  // Prioritize active telemedicine calls
+  if (leftCallable !== rightCallable) return leftCallable ? -1 : 1
 
   const leftStart = safeTimestamp(left.start_time)
   const rightStart = safeTimestamp(right.start_time)
   const leftIsFuture = leftStart >= now
   const rightIsFuture = rightStart >= now
 
-  if (leftIsFuture !== rightIsFuture) {
-    return leftIsFuture ? -1 : 1
-  }
+  // Prioritize future appointments over past ones
+  if (leftIsFuture !== rightIsFuture) return leftIsFuture ? -1 : 1
 
+  // If both are future, ascending order. If both are past, descending order.
   return leftIsFuture ? leftStart - rightStart : rightStart - leftStart
 }
 
@@ -74,15 +74,24 @@ export function selectDoctorAppointmentBoardView(
   appointments: Appointment[],
   referenceTime: number = Date.now(),
 ): DoctorAppointmentBoardView {
-  const sortedAppointments = [...appointments].sort((left, right) => sortAgendaAppointments(left, right, referenceTime))
+  const sortedAppointments = [...appointments].sort((a, b) => sortAgendaAppointments(a, b, referenceTime))
   const referenceDay = new Date(referenceTime)
+
+  // Use a single pass (O(N)) to calculate all metrics instead of multiple array filters (O(N*4))
+  const metrics = sortedAppointments.reduce(
+    (acc, apt) => {
+      if (isSameLocalDay(apt.start_time, referenceDay)) acc.todayCount++
+      if (apt.type === 'telemedicine') acc.telemedicineCount++
+      if (apt.status === 'scheduled') acc.pendingCount++
+      if (apt.status === 'confirmed') acc.confirmedCount++
+      return acc
+    },
+    { todayCount: 0, telemedicineCount: 0, pendingCount: 0, confirmedCount: 0 }
+  )
 
   return {
     sortedAppointments,
-    todayCount: sortedAppointments.filter((apt) => isSameLocalDay(apt.start_time, referenceDay)).length,
-    telemedicineCount: sortedAppointments.filter((apt) => apt.type === 'telemedicine').length,
-    pendingCount: sortedAppointments.filter((apt) => apt.status === 'scheduled').length,
-    confirmedCount: sortedAppointments.filter((apt) => apt.status === 'confirmed').length,
+    ...metrics,
   }
 }
 
@@ -90,25 +99,39 @@ export function selectDoctorDailyAgendaView(
   appointments: Appointment[],
   referenceDate: Date = new Date(),
 ): DoctorDailyAgendaView {
-  const todayAppointments = appointments
-    .filter((appointment) => isSameLocalDay(appointment.start_time, referenceDate) && appointment.status !== 'cancelled')
-    .sort((left, right) => safeTimestamp(left.start_time) - safeTimestamp(right.start_time))
-
   const nowMs = referenceDate.getTime()
-  const upcomingToday = todayAppointments
-    .filter((appointment) => safeTimestamp(appointment.start_time) >= nowMs - 2 * 60 * 60 * 1000)
-    .slice(0, 3)
-
   const startOfWeek = new Date(referenceDate)
   startOfWeek.setDate(referenceDate.getDate() - referenceDate.getDay())
   startOfWeek.setHours(0, 0, 0, 0)
+  
   const endOfWeek = new Date(startOfWeek)
   endOfWeek.setDate(startOfWeek.getDate() + 7)
 
-  const weekCount = appointments.filter((appointment) => {
-    const start = safeTimestamp(appointment.start_time)
-    return start >= startOfWeek.getTime() && start < endOfWeek.getTime() && appointment.status !== 'cancelled'
-  }).length
+  let weekCount = 0
+  const todayAppointments: Appointment[] = []
+
+  // Single pass to collect today's appointments and week's count
+  for (const appointment of appointments) {
+    if (appointment.status === 'cancelled') continue
+
+    const startMs = safeTimestamp(appointment.start_time)
+    
+    if (startMs >= startOfWeek.getTime() && startMs < endOfWeek.getTime()) {
+      weekCount++
+    }
+
+    if (isSameLocalDay(appointment.start_time, referenceDate)) {
+      todayAppointments.push(appointment)
+    }
+  }
+
+  // Sort today's appointments
+  todayAppointments.sort((a, b) => safeTimestamp(a.start_time) - safeTimestamp(b.start_time))
+
+  // Find next 3 appointments starting from up to 2 hours ago
+  const upcomingToday = todayAppointments
+    .filter((apt) => safeTimestamp(apt.start_time) >= nowMs - 2 * 60 * 60 * 1000)
+    .slice(0, 3)
 
   return {
     todayAppointments,
@@ -121,44 +144,37 @@ export function selectDoctorPatientAppointmentInsights(
   appointments: Appointment[],
   referenceTime: number = Date.now(),
 ): DoctorPatientAppointmentInsight {
-  const nextAppointmentByPatient = new Map<string, {
-    id: string
-    start_time: string
-    type: string | null
-  }>()
+  const nextAppointmentByPatient = new Map<string, { id: string; start_time: string; type: string | null }>()
   const completedByPatient = new Map<string, number>()
+  
+  let upcomingAppointmentsCount = 0
 
-  const futureAppointments = appointments
-    .filter((appointment) => {
-      const startsAt = safeTimestamp(appointment.start_time)
-      return (
-        (appointment.status === 'scheduled' || appointment.status === 'confirmed')
-        && startsAt > referenceTime
-      )
-    })
-    .sort((left, right) => safeTimestamp(left.start_time) - safeTimestamp(right.start_time))
+  // Sort first to ensure we pick the earliest upcoming appointment per patient
+  const sortedAppointments = [...appointments].sort(
+    (a, b) => safeTimestamp(a.start_time) - safeTimestamp(b.start_time)
+  )
 
-  for (const appointment of futureAppointments) {
-    if (appointment.patient_id && !nextAppointmentByPatient.has(appointment.patient_id)) {
-      nextAppointmentByPatient.set(appointment.patient_id, {
-        id: appointment.id,
-        start_time: appointment.start_time,
-        type: appointment.type,
-      })
+  for (const appointment of sortedAppointments) {
+    const { status, patient_id, start_time, type, id } = appointment
+    if (!patient_id) continue
+
+    if (status === 'completed') {
+      const currentCount = completedByPatient.get(patient_id) ?? 0
+      completedByPatient.set(patient_id, currentCount + 1)
+      continue
     }
-  }
 
-  for (const appointment of appointments) {
-    if (appointment.status === 'completed' && appointment.patient_id) {
-      completedByPatient.set(
-        appointment.patient_id,
-        (completedByPatient.get(appointment.patient_id) ?? 0) + 1,
-      )
+    if ((status === 'scheduled' || status === 'confirmed') && safeTimestamp(start_time) > referenceTime) {
+      upcomingAppointmentsCount++
+      // Since it's sorted, the first one we see is the "next" one
+      if (!nextAppointmentByPatient.has(patient_id)) {
+        nextAppointmentByPatient.set(patient_id, { id, start_time, type })
+      }
     }
   }
 
   return {
-    upcomingAppointmentsCount: futureAppointments.length,
+    upcomingAppointmentsCount,
     nextAppointmentByPatient,
     completedByPatient,
   }
