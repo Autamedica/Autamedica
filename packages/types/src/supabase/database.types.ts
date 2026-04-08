@@ -15,6 +15,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      prescriptions: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          doctor_id: string
+          patient_id: string
+          appointment_id: string | null
+          cuir: string | null
+          status: 'draft' | 'signed' | 'sent' | 'dispensed_partial' | 'dispensed_total' | 'cancelled' | 'expired'
+          clinical_data: Json
+          vendor_name: string
+          vendor_id: string | null
+          qr_code_content: string | null
+          signed_pdf_url: string | null
+          organization_id: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          doctor_id: string
+          patient_id: string
+          appointment_id?: string | null
+          cuir?: string | null
+          status?: 'draft' | 'signed' | 'sent' | 'dispensed_partial' | 'dispensed_total' | 'cancelled' | 'expired'
+          clinical_data: Json
+          vendor_name: string
+          vendor_id?: string | null
+          qr_code_content?: string | null
+          signed_pdf_url?: string | null
+          organization_id?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          doctor_id?: string
+          patient_id?: string
+          appointment_id?: string | null
+          cuir?: string | null
+          status?: 'draft' | 'signed' | 'sent' | 'dispensed_partial' | 'dispensed_total' | 'cancelled' | 'expired'
+          clinical_data?: Json
+          vendor_name?: string
+          vendor_id?: string | null
+          qr_code_content?: string | null
+          signed_pdf_url?: string | null
+          organization_id?: string | null
+        }
+        Relationships: []
+      }
+      prescription_audit_events: {
+        Row: {
+          id: string
+          prescription_id: string
+          event_type: string
+          user_id: string
+          timestamp: string
+          ip_address: string | null
+          user_agent: string | null
+          signature_hash: string | null
+        }
+        Insert: {
+          id?: string
+          prescription_id: string
+          event_type: string
+          user_id: string
+          timestamp?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          signature_hash?: string | null
+        }
+        Update: {
+          id?: string
+          prescription_id?: string
+          event_type?: string
+          user_id?: string
+          timestamp?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          signature_hash?: string | null
+        }
+        Relationships: []
+      }
+
       ai_user_faq: {
         Row: {
           active: boolean
