@@ -163,6 +163,8 @@ export function getAnamnesisExtractionResponseSchema(): Record<string, unknown> 
             'fever',
             'dizziness',
             'back_pain',
+            'neuro',
+            'mood_disorder',
             'other',
           ]),
           medicationFamilies: {
@@ -276,6 +278,17 @@ export function getAnamnesisExtractionResponseSchema(): Record<string, unknown> 
                 'other',
               ],
             },
+          },
+          vitals: {
+            type: ['object', 'null'],
+            additionalProperties: false,
+            properties: {
+              bloodPressure: { type: ['string', 'null'], description: 'Formato: 120/80' },
+              heartRate: { type: ['integer', 'null'], description: 'bpm' },
+              weightKg: { type: ['number', 'null'], description: 'kg' },
+              heightCm: { type: ['integer', 'null'], description: 'cm' },
+              temperature: { type: ['number', 'null'], description: 'Celsius' },
+            }
           },
         },
         required: [

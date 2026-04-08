@@ -1,5 +1,6 @@
 ---
-export const prerender = true
+import { NeuroTriageShowcase } from '@/components/doctors/medical/NeuroTriageShowcase';
+export const prerender = false
 ---
 <!DOCTYPE html>
 <html lang="es">
@@ -376,6 +377,12 @@ export const prerender = true
       <span class="screen-tag">Medical Records</span>
     </div>
   </div>
+  
+  <!-- Neuro Triage Visualization -->
+  <div class="mb-12">
+    <NeuroTriageShowcase client:load />
+  </div>
+
   <div class="browser-frame">
     <div class="browser-bar">
       <div class="browser-dots"><div class="browser-dot red"></div><div class="browser-dot yellow"></div><div class="browser-dot green"></div></div>

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import type { JSX } from 'react'
 import { useState } from 'react'
+import { NeuroStabilityCard } from './NeuroStabilityCard'
 
 interface MedicalHistoryTabProps {
   patientId: UUID | null
@@ -166,6 +167,19 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
             {records.map((record) => {
               const typeInfo = getConsultationTypeInfo(record.consultation_type)
               const isExpanded = expandedRecord === record.id
+
+              if (record.type === 'neuro_stability_report') {
+                return (
+                  <div key={record.id} className="space-y-2">
+                    <NeuroStabilityCard
+                      score={record.content.score}
+                      reasons={record.content.reasons}
+                      vitals={record.content.vitals_snapshot}
+                      dateRecorded={record.consultation_date || record.created_at}
+                    />
+                  </div>
+                )
+              }
 
               return (
                 <div

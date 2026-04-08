@@ -8,7 +8,7 @@ const articles = [
     slug: 'cuando-ir-guardia-cuando-esperar',
     title: 'Cuándo Ir a la Guardia y Cuándo Puede Esperar: Guía de Triage Domiciliario',
     excerpt: 'Guía práctica para decidir si un síntoma requiere guardia inmediata o puede esperar a un turno programado. Señales de alarma, criterios de urgencia y qué hacer mientras esperás.',
-    author: 'Equipo AutaMedica',
+    author: 'Dr. Andrés Portnoy',
     date: '6 de abril, 2026',
     readTime: '7 min',
     category: 'Guía Práctica',
@@ -18,609 +18,76 @@ const articles = [
     slug: 'como-leer-analisis-sangre',
     title: 'Cómo Leer Tus Análisis de Sangre Sin Entrar en Pánico',
     excerpt: 'Guía para entender los valores más comunes de un análisis de sangre: hemograma, glucemia, colesterol, función renal y hepática. Qué significan los asteriscos y cuándo preocuparse de verdad.',
-    author: 'Equipo AutaMedica',
+    author: 'Staff Médico AutaMedica',
     date: '6 de abril, 2026',
     readTime: '8 min',
     category: 'Educación Médica',
-    image: '/images/blog/analisis-sangre-guia.png',
+    image: '/images/blog/analisis-sangre.png',
   },
   {
     slug: 'medicamentos-genericos-originales-argentina',
     title: 'Genéricos vs Originales: ¿Son Realmente Iguales?',
     excerpt: 'Qué son los medicamentos genéricos, cómo se regulan en Argentina, qué significa bioequivalencia y en qué casos importa la marca. Información basada en evidencia para decidir con tu médico.',
-    author: 'Equipo AutaMedica',
+    author: 'Staff Médico AutaMedica',
     date: '6 de abril, 2026',
     readTime: '7 min',
     category: 'Farmacología',
-    image: '/images/article_telemed.webp',
+    image: '/images/blog/medicamentos-genericos.png',
   },
   {
     slug: 'presion-arterial-normal-cuando-preocuparse',
     title: 'Presión Arterial: Qué Es Normal y Cuándo Preocuparse',
     excerpt: 'Qué significan los números de la presión arterial, cuáles son los rangos normales, cómo medirla correctamente en casa y cuándo consultar al médico.',
-    author: 'Equipo AutaMedica',
+    author: 'Staff Médico AutaMedica',
     date: '6 de abril, 2026',
     readTime: '6 min',
     category: 'Cardiología',
-    image: '/images/blog/presion-arterial-control.png',
-  },
-  {
-    slug: 'diabetes-tipo-2-antes-medicacion',
-    title: 'Diabetes Tipo 2: Lo Que Podés Hacer Antes de Necesitar Medicación',
-    excerpt: 'Prediabetes y diabetes tipo 2 temprana: qué cambios de estilo de vida tienen evidencia real, cuánto pueden retrasar la medicación y cuándo la metformina es inevitable.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '8 min',
-    category: 'Endocrinología',
-    image: '/images/blog/diabetes-glp1-control.png',
-  },
-  {
-    slug: 'dolor-cronico-analgesicos-riesgo',
-    title: 'Dolor Crónico: Por Qué Tu Médico No Te Da Más Analgésicos',
-    excerpt: 'Por qué los analgésicos crónicos pueden empeorar el dolor, qué alternativas existen y cómo funciona el tratamiento moderno del dolor crónico.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Medicina del Dolor',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'segunda-opinion-medica-derecho',
-    title: 'Segunda Opinión Médica: Tu Derecho y Cómo Ejercerlo',
-    excerpt: 'La segunda opinión médica es un derecho en Argentina. Cuándo pedirla, cómo hacerlo sin ofender a tu médico y qué dice la ley sobre el acceso a tu historia clínica.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Derechos del Paciente',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'vacunas-adultos-cuales-faltan',
-    title: 'Vacunas en Adultos: Cuáles Te Faltan y No Lo Sabés',
-    excerpt: 'Calendario de vacunación para adultos en Argentina: qué vacunas necesitás según tu edad, cuáles son gratuitas y obligatorias, y por qué muchos adultos tienen esquemas incompletos.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Infectología',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'ansiedad-vs-ataque-panico',
-    title: 'Ansiedad vs Ataque de Pánico: Cómo Distinguirlos y Qué Hacer',
-    excerpt: 'Diferencias entre ansiedad y ataque de pánico: síntomas, duración, qué hacer durante un episodio y cuándo buscar ayuda profesional.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Salud Mental',
-    image: '/images/blog/salud-mental-calma.png',
-  },
-  {
-    slug: 'telemedicina-revolucion-salud',
-    title: '¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina?',
-    excerpt: 'Desde reducir esperas hasta acceso a especialistas de todo el país. Descubrí cómo la telemedicina está transformando la atención médica.',
-    author: 'Equipo AutaMedica',
-    date: '22 de marzo, 2026',
-    readTime: '7 min',
-    category: 'Telemedicina',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'certificado-medico-digital-validez',
-    title: 'El Certificado Médico Digital: Qué Vale y Qué No en Argentina',
-    excerpt: 'Marco legal del certificado médico digital en Argentina: validez de la firma digital, telemedicina, recetas electrónicas y qué exigir cuando te piden un certificado.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Marco Legal',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'burnout-medico-argentina',
-    title: 'Burnout Médico en Argentina: Los Números Que No Se Publican',
-    excerpt: 'Datos reales sobre el síndrome de burnout en médicos argentinos: prevalencia, causas sistémicas, impacto en la atención y qué dicen los estudios locales.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '8 min',
-    category: 'Profesionales',
-    image: '/images/blog/medico-burnout.png',
+    image: '/images/blog/presion-arterial.png',
   },
   {
     slug: 'ia-clinica-que-puede-hacer-hoy',
     title: 'IA Clínica: Qué Puede Hacer Hoy un Modelo de Lenguaje en Medicina',
     excerpt: 'Qué pueden y qué no pueden hacer los modelos de lenguaje (LLM) en la práctica clínica real: evidencia, limitaciones y el rol del médico.',
-    author: 'Equipo AutaMedica',
+    author: 'Staff Médico AutaMedica',
     date: '6 de abril, 2026',
     readTime: '8 min',
     category: 'Innovación en Salud',
-    image: '/images/ai_molecular.webp',
-  },
-  {
-    slug: 'como-cobrar-teleconsulta-argentina',
-    title: 'Cómo Cobrar una Teleconsulta en Argentina: Facturación y Obras Sociales',
-    excerpt: 'Guía práctica para médicos argentinos: cómo facturar teleconsultas, qué cubren las obras sociales, monotributo, factura electrónica y nomencladores vigentes.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Profesionales',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'medico-marca-personal-linkedin',
-    title: 'El Médico como Marca Personal: Visibilidad Profesional Sin Caer en Influencer',
-    excerpt: 'Cómo un médico puede construir presencia profesional en LinkedIn y redes sin comprometer la ética ni convertirse en influencer de salud.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Profesionales',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'ausentismo-laboral-salud-costo',
-    title: 'Ausentismo Laboral por Salud: Cuánto Cuesta y Qué Se Puede Prevenir',
-    excerpt: 'Datos sobre el costo real del ausentismo laboral por salud en Argentina: causas principales, impacto económico y estrategias de prevención basadas en evidencia.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Empresas',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'telemedicina-beneficio-corporativo-roi',
-    title: 'Telemedicina como Beneficio Corporativo: El ROI Real',
-    excerpt: 'Análisis del retorno real de inversión de la telemedicina como beneficio corporativo: datos de implementación, reducción de ausentismo y satisfacción del empleado.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Empresas',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'alergia-primaveral-antihistaminico',
-    title: 'Alergia Primaveral: Cuándo el Antihistamínico No Alcanza',
-    excerpt: 'Rinitis alérgica estacional: cuándo el antihistamínico de venta libre no es suficiente, qué opciones existen y cuándo consultar al alergólogo.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Alergología',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'golpe-calor-no-solo-tomar-agua',
-    title: "Golpe de Calor: No Es Solo 'Tomá Agua'",
-    excerpt: 'Golpe de calor: fisiopatología real, signos de alarma, primeros auxilios basados en evidencia y por qué la hidratación sola no alcanza.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Emergencias',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'dengue-argentina-prevencion-real',
-    title: 'Dengue en Argentina: Prevención Real, No Pánico',
-    excerpt: 'Dengue en Argentina: datos epidemiológicos actualizados, prevención basada en evidencia, signos de alarma y qué hacer si sospechás que lo tenés.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Infectología',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'vuelta-colegio-apto-medico',
-    title: 'Vuelta al Colegio: El Apto Médico Que Nadie Lee (y Debería)',
-    excerpt: 'Qué debería incluir un apto médico escolar real, qué detecta cuando se hace bien y por qué el trámite burocrático esconde una oportunidad de prevención.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '5 min',
-    category: 'Pediatría',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'glp1-argentina-ozempic-wegovy-mounjaro',
-    title: 'GLP-1 en Argentina: Ozempic, Wegovy y Mounjaro — Qué Son, Cuánto Cuestan y Qué Dice la Evidencia',
-    excerpt: 'Semaglutida, tirzepatida y liraglutida: qué son los agonistas GLP-1, cómo funcionan, cuánto cuestan en Argentina y qué dice la evidencia científica real.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '10 min',
-    category: 'Endocrinología',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'inyecciones-bajar-peso-que-saber',
-    title: 'Inyecciones para Bajar de Peso: Lo Que Tu Médico Necesita Que Sepas Antes de Empezar',
-    excerpt: 'Antes de empezar un GLP-1 para bajar de peso, hay cosas que tu médico va a querer que entiendas. Efectos, expectativas y lo que no te dicen en redes.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '8 min',
-    category: 'Guía Práctica',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'retatrutide-proximo-farmaco-peso',
-    title: 'Retatrutide: El Triple Agonista Que Promete 28% de Pérdida de Peso — Qué Sabemos Hasta Ahora',
-    excerpt: 'Retatrutide actúa sobre tres receptores hormonales a la vez. Los ensayos muestran resultados sin precedentes, pero aún no está aprobado. Estado actual de la evidencia.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Investigación Médica',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'terapia-online-salud-mental',
-    title: 'Terapia Online: Mitos, Evidencia y Cuándo Sí Conviene',
-    excerpt: 'Múltiples estudios muestran eficacia comparable a la terapia presencial para depresión y ansiedad. Qué funciona mejor online y qué no.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '8 min',
-    category: 'Salud Mental',
-    image: '/images/article_mental.webp',
-  },
-  {
-    slug: 'consulta-pediatrica-online',
-    title: 'Cuándo Llevar al Pediatra y Cuándo Alcanza con una Videollamada',
-    excerpt: '¿Es esto una urgencia o puede esperar? Qué puede evaluar un pediatra por video y cuándo sí o sí hay que ir presencial.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Pediatría',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'salud-laboral-digital-empresas',
-    title: 'Salud Laboral Digital: Cómo las Empresas Cuidan a Sus Equipos Sin Burocracia',
-    excerpt: 'Exámenes preocupacionales, periódicos y de egreso sin papeles. Qué dice la ley y cómo la digitalización reduce tiempos.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Empresas',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'sala-espera-digital-greenroom',
-    title: 'Probá Tu Cámara Antes de que el Médico Te Vea: La Sala de Espera Digital',
-    excerpt: 'El "¿me escuchás?" consume minutos de consulta. La sala de espera digital elimina los problemas técnicos antes de empezar.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '5 min',
-    category: 'Telemedicina',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'privacidad-datos-salud-argentina',
-    title: 'Tus Datos Médicos Son Tuyos: Qué Dice la Ley Argentina sobre Privacidad en Salud',
-    excerpt: 'Ley 25.326, datos sensibles, cifrado y habeas data. Todo lo que necesitás saber sobre la privacidad de tu información médica.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Marco Legal',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'adherencia-medicacion-ia',
-    title: '¿Tomás la Medicación Todos los Días? Lo Que la IA Puede Detectar',
-    excerpt: 'El 50% de los pacientes crónicos no toma su medicación como debería. Cómo el cruce de datos puede detectar — y ayudar.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Salud Digital',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'lista-espera-inteligente',
-    title: 'Te Avisamos Si Se Libera un Turno: Cómo Funciona la Lista de Espera Inteligente',
-    excerpt: 'Alguien cancela, vos recibís un aviso. La lista de espera inteligente conecta turnos libres con pacientes que esperan.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '5 min',
-    category: 'Guía Práctica',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'anamnesis-por-voz-ia',
-    title: 'Completar Tu Historia Clínica Hablando: Cómo la IA Entiende lo que Contás',
-    excerpt: 'Para quienes no escriben rápido o prefieren hablar. Cómo funciona la entrada por voz en una anamnesis médica digital.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Innovación en Salud',
-    image: '/images/narrative_ai.webp',
-  },
-  {
-    slug: 'diagrama-corporal-donde-duele',
-    title: 'Señalar Dónde Duele: Por Qué la Localización Cambia el Diagnóstico',
-    excerpt: 'El mismo dolor en distintas zonas puede significar cosas muy diferentes. Cómo los mapas corporales ayudan al diagnóstico.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '5 min',
-    category: 'Educación Médica',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'historia-clinica-versionada',
-    title: 'Tu Salud Tiene Historia: Por Qué Importa Ver Cómo Cambiaste en el Tiempo',
-    excerpt: 'Los registros médicos estáticos solo muestran el presente. El versionado permite ver la evolución de tu salud.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Salud Digital',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'red-flags-senales-cuerpo',
-    title: '5 Señales que Tu Cuerpo Te Da y que un Médico Nunca Ignoraría',
-    excerpt: 'No todo es urgencia, pero hay señales que merecen atención inmediata. Educación, no alarma.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Prevención',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'receta-electronica-argentina',
-    title: 'Receta Electrónica en Argentina: Qué Dice la Ley y Cómo Funciona en la Práctica',
-    excerpt: 'La Ley 27.553 habilitó la prescripción digital. Cómo funciona, qué acepta la farmacia y qué falta por resolver.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '8 min',
-    category: 'Marco Legal',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'recordatorios-whatsapp-turnos',
-    title: 'Por Qué Tu Médico Te Manda un WhatsApp Antes del Turno (y Por Qué Funciona)',
-    excerpt: 'WhatsApp tiene 95% de penetración en Argentina. Usarlo para recordatorios médicos reduce ausencias un 25-40%.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '5 min',
-    category: 'Sistema de Salud',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'ranking-medico-calidad',
-    title: 'Cómo Se Mide la Calidad de un Médico (Sin Caer en Yelp)',
-    excerpt: 'Las estrellas no miden calidad clínica. Métricas estructuradas, puntualidad y resultados: otro enfoque.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Calidad Médica',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'anamnesis-digital-que-es',
-    title: 'Anamnesis Digital: Qué Es y Por Qué Tu Médico la Necesita Antes de Verte',
-    excerpt: 'Qué es la anamnesis médica, de Hipócrates al formulario inteligente. Por qué diez minutos de cada consulta se pierden repitiendo información.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Salud Digital',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'turno-medico-especialista-correcto',
-    title: 'No Sé a Qué Especialista Ir: Cómo Elegir el Médico Correcto Según Tus Síntomas',
-    excerpt: 'Guía práctica de síntomas y especialidades. Cuándo empezar por un clínico, cuándo ir directo al especialista, y cómo el triage digital ayuda.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Guía Práctica',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'comunidad-pacientes-preguntas-salud',
-    title: 'Preguntas de Salud que No Te Animás a Hacer en el Consultorio',
-    excerpt: 'Los pacientes olvidan hasta el 80% de lo que dice el médico. Las comunidades de salud moderadas llenan ese vacío con información confiable.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '5 min',
-    category: 'Bienestar',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'teleconsulta-argentina-como-funciona',
-    title: 'Teleconsulta en Argentina: Qué Podés Resolver Sin Salir de Tu Casa',
-    excerpt: 'Qué permite la Ley 27.553, qué se puede resolver por video, qué no, y cómo funciona una teleconsulta de calidad con GreenRoom y adaptación automática.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '8 min',
-    category: 'Telemedicina',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'medico-datos-antes-consulta',
-    title: 'Qué Datos Necesita Tu Médico Antes de una Consulta (y Por Qué Importa)',
-    excerpt: 'Desde la perspectiva médica: los cinco pilares de la historia clínica, el método ALICIADO, y cómo la anamnesis digital cambia la dinámica de consulta.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Educación Médica',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'no-show-turnos-medicos',
-    title: 'Por Qué el 30% de los Turnos Médicos Quedan Vacíos (y Qué Se Puede Hacer)',
-    excerpt: 'El ausentismo en turnos médicos afecta a todo el sistema. Causas reales, efecto cascada, y soluciones que ya funcionan: recordatorios, waitlist y overbooking inteligente.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '7 min',
-    category: 'Sistema de Salud',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'demanda-medicos-pacientes-buscan',
-    title: 'Lo Que los Pacientes Buscan y los Médicos No Ven: El Problema de la Demanda Invisible',
-    excerpt: 'Pacientes buscan especialistas y no encuentran. Los médicos no saben que los buscan. Cómo la visibilidad de demanda conecta necesidad con disponibilidad.',
-    author: 'Equipo AutaMedica',
-    date: '6 de abril, 2026',
-    readTime: '6 min',
-    category: 'Sistema de Salud',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'cuales-son-los-3-tipos-de-telemedicina',
-    title: '¿Cuáles son los 3 tipos de telemedicina?',
-    excerpt: 'Teleconsulta en tiempo real, store-and-forward y telemonitoreo: qué resuelve cada modalidad y cómo se combinan en la práctica clínica.',
-    author: 'Equipo AutaMedica',
-    date: '26 de marzo, 2026',
-    readTime: '6 min',
-    category: 'Telemedicina',
-    image: '/images/blog/telemedicina-tipos.png',
-  },
-  {
-    slug: 'vacuna-antigripal-h3n2-2026',
-    title: 'Vacunarse Contra la Gripe en 2026 No Puede Esperar a Junio',
-    excerpt: 'La campaña antigripal arrancó tres semanas antes por la nueva variante H3N2. Quiénes tienen vacuna gratuita, cuándo aplicarla y por qué la cobertura importa más que nunca.',
-    author: 'Equipo AutaMedica',
-    date: '23 de marzo, 2026',
-    readTime: '9 min',
-    category: 'Infectología',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'telemedicina-cardiologia',
-    title: 'Telemedicina en Cardiología: Consultas Online Seguras y Eficaces',
-    excerpt: 'Cómo funciona la telemedicina cardíaca, qué se puede evaluar virtualmente, limitaciones, y seguridad de las consultas cardíacas online.',
-    author: 'Equipo AutaMedica',
-    date: '25 de marzo, 2026',
-    readTime: '11 min',
-    category: 'Cardiología',
-    image: '/images/article_cardio.webp',
-  },
-  {
-    slug: 'guia-consulta-medica-online',
-    title: 'Guía Completa: Cómo Hacer una Consulta Médica Online Sin Complicaciones',
-    excerpt: 'Paso a paso: cómo prepararse, qué necesitás, cómo funciona una consulta telemédica, y qué esperar. Guía práctica para tu primer consulta.',
-    author: 'Equipo AutaMedica',
-    date: '24 de marzo, 2026',
-    readTime: '8 min',
-    category: 'Guía Práctica',
-    image: '/images/blog/consulta-online-guia.png',
-  },
-  {
-    slug: 'acceso-especialistas-provincias',
-    title: 'Acceso a Especialistas en Provincias: La Brecha Que la Telemedicina Cierra',
-    excerpt: 'Datos sobre la brecha de especialistas en Argentina. En provincias, esperar un cardiólogo puede tomar meses. Cómo la telemedicina lo resuelve.',
-    author: 'Equipo AutaMedica',
-    date: '23 de marzo, 2026',
-    readTime: '9 min',
-    category: 'Telemedicina',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: 'telemedicina-revolucion-salud',
-    title: '¿Por Qué la Telemedicina es la Revolución de la Salud en Argentina?',
-    excerpt: 'Desde reducir esperas hasta acceso a especialistas de todo el país. Descubrí cómo la telemedicina está transformando la atención médica.',
-    author: 'Equipo AutaMedica',
-    date: '22 de marzo, 2026',
-    readTime: '7 min',
-    category: 'Telemedicina',
-    image: '/images/article_telemed.webp',
-  },
-  {
-    slug: '5-senales-alerta-cardiaca',
-    title: '5 Señales de Alerta Cardíaca que No Hay que Ignorar',
-    excerpt: 'El dolor de pecho no es la única señal. Hay síntomas sutiles que pueden indicar un problema cardiovascular.',
-    author: 'Equipo AutaMedica',
-    date: '20 de marzo, 2026',
-    readTime: '8 min',
-    category: 'Cardiología',
-    image: '/images/article_cardio.webp',
-  },
-  {
-    slug: 'ansiedad-cronica-herramientas',
-    title: 'Ansiedad Crónica: Herramientas que Funcionan Sin Medicación',
-    excerpt: 'Estrategias basadas en evidencia para gestionar la ansiedad del día a día. Técnicas que podés aplicar ahora mismo.',
-    author: 'Equipo AutaMedica',
-    date: '18 de marzo, 2026',
-    readTime: '10 min',
-    category: 'Salud Mental',
-    image: '/images/article_mental.webp',
-  },
-  {
-    slug: 'dermatologia-acne-adulto',
-    title: 'Acné en Adultos: Causas, Tratamientos y Cuándo Consultar',
-    excerpt: 'No es solo cosa de adolescentes. El acné adulto tiene causas diferentes y requiere abordaje especial.',
-    author: 'Equipo AutaMedica',
-    date: '16 de marzo, 2026',
-    readTime: '6 min',
-    category: 'Dermatología',
-    image: '/images/testi_maria.webp',
-  },
-  {
-    slug: 'historia-clinica-digital',
-    title: 'Historia Clínica Digital: Por Qué es Crucial para tu Salud',
-    excerpt: 'Acceso inmediato a tu historial médico, medicamentos previos y resultados de estudios. Sin papeles, sin pérdidas.',
-    author: 'Equipo AutaMedica',
-    date: '14 de marzo, 2026',
-    readTime: '5 min',
-    category: 'Tecnología Médica',
-    image: '/images/hero_doctor.webp',
+    image: '/images/blog/ia-clinica.png',
   },
 ];
 ---
 
 <Layout
   title="Blog de Salud - Artículos Médicos y Bienestar | AutaMedica"
-  description="Artículos de salud escritos por médicos. Telemedicina, cardiología, salud mental, dermatología y más. Contenido confiable basado en evidencia científica."
+  description="Artículos de salud escritos por médicos. Telemedicina, cardiología, salud mental, dermatología y más."
   canonical="https://www.autamedica.com/blog"
-  ogImage="/images/seo/og-main.webp"
-  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
 >
   <Navbar />
   <main>
-    <!-- Hero -->
     <section class="seo-hero">
       <h1>Blog de Salud</h1>
-      <p class="seo-subtitle">
-        Artículos confiables sobre telemedicina, bienestar y salud, escritos por profesionales médicos certificados.
-      </p>
+      <p class="seo-subtitle">Contenido médico confiable basado en evidencia.</p>
     </section>
 
-    <!-- Articles Grid -->
     <section class="seo-section">
       <div class="seo-container">
         <div class="seo-grid-3">
           {articles.map((article) => (
             <article class="seo-card blog-card">
               <div class="blog-card-image">
-                <img src={article.image} alt={article.title} loading="lazy" decoding="async" />
+                <img src={article.image} alt={article.title} loading="lazy" />
               </div>
               <div class="blog-card-content">
-                <div class="blog-card-header">
-                  <span class="seo-badge">{article.category}</span>
-                  <span class="blog-read-time">{article.readTime}</span>
-                </div>
+                <span class="seo-badge">{article.category}</span>
                 <h2 class="blog-card-title">{article.title}</h2>
                 <p class="blog-card-excerpt">{article.excerpt}</p>
                 <div class="blog-card-footer">
-                  <div class="blog-card-meta">
-                    <span class="blog-card-author">{article.author}</span>
-                    <span class="blog-card-date">{article.date}</span>
-                  </div>
+                  <span class="blog-card-author">{article.author}</span>
                   <a href={`/blog/${article.slug}`} class="blog-read-more">Leer artículo →</a>
                 </div>
               </div>
             </article>
           ))}
-        </div>
-      </div>
-    </section>
-
-    <!-- Newsletter CTA -->
-    <section class="seo-section blog-newsletter">
-      <div class="seo-container">
-        <div class="blog-newsletter-content">
-          <h2>Recibe Artículos de Salud Cada Semana</h2>
-          <p>Suscríbete a nuestro newsletter para recibir contenido médico confiable, directamente en tu email.</p>
-          <form class="blog-newsletter-form">
-            <label for="newsletter-email" class="sr-only">Email para suscripcion</label>
-            <input
-              id="newsletter-email"
-              type="email"
-              placeholder="Tu email"
-              required
-              autocomplete="email"
-            />
-            <button type="submit" class="seo-btn-primary">Suscribirse</button>
-          </form>
         </div>
       </div>
     </section>
@@ -630,131 +97,9 @@ const articles = [
 
 <style>
   @import '../../styles/seo-landing.css';
-  
-  /* Blog index card specifics */
-  .blog-card { padding: 0; overflow: hidden; }
-
-  .blog-card-image {
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-    background: var(--au-surface);
-  }
-
-  .blog-card-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform var(--au-transition-smooth);
-  }
-
-  .blog-card:hover .blog-card-image img {
-    transform: scale(1.05);
-  }
-
-  .blog-card-content { padding: var(--space-6); }
-
-  .blog-card-header {
-    display: flex;
-    gap: var(--space-4);
-    align-items: center;
-    margin-bottom: var(--space-3);
-  }
-
-  .blog-read-time {
-    font-size: var(--text-sm);
-    color: var(--au-text-tertiary);
-    margin-left: auto;
-  }
-
-  .blog-card-title {
-    font-family: var(--font-heading);
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
-    color: var(--au-text-primary);
-    margin-bottom: var(--space-2);
-    line-height: 1.4;
-  }
-
-  .blog-card-excerpt {
-    color: var(--au-text-secondary);
-    font-size: var(--text-sm);
-    line-height: 1.6;
-    margin-bottom: var(--space-4);
-  }
-
-  .blog-card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid var(--au-border);
-    padding-top: var(--space-4);
-  }
-
-  .blog-card-meta {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  .blog-card-author {
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
-    color: var(--au-text-primary);
-  }
-
-  .blog-card-date {
-    font-size: var(--text-xs);
-    color: var(--au-text-tertiary);
-  }
-
-  .blog-read-more {
-    color: var(--au-accent);
-    text-decoration: none;
-    font-weight: var(--font-medium);
-    font-size: var(--text-sm);
-    transition: color var(--transition-fast);
-  }
-
-  .blog-read-more:hover {
-    color: var(--au-text-primary);
-  }
-
-  /* Newsletter */
-  .blog-newsletter-content {
-    text-align: center;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  .blog-newsletter-form {
-    display: flex;
-    gap: var(--space-2);
-    margin-top: var(--space-6);
-  }
-
-  .blog-newsletter-form input {
-    flex: 1;
-    padding: var(--space-3) var(--space-4);
-    background: var(--au-bg);
-    border: 1px solid var(--au-border-hover);
-    border-radius: var(--radius-sm);
-    color: var(--au-text-primary);
-    font-size: var(--text-base);
-  }
-
-  .blog-newsletter-form input::placeholder {
-    color: var(--au-text-tertiary);
-  }
-
-  .blog-newsletter-form input:focus {
-    outline: none;
-    border-color: var(--au-accent);
-  }
-
-  @media (max-width: 480px) {
-    .blog-newsletter-form {
-      flex-direction: column;
-    }
-  }
+  .blog-card-image { height: 200px; overflow: hidden; background: #eee; }
+  .blog-card-image img { width: 100%; height: 100%; object-fit: cover; }
+  .blog-card-content { padding: 20px; }
+  .blog-card-title { font-size: 1.25rem; margin: 10px 0; font-weight: bold; }
+  .blog-card-excerpt { font-size: 0.9rem; color: #666; }
 </style>

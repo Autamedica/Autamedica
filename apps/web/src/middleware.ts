@@ -14,6 +14,7 @@ import { detectLocale, LOCALE_COOKIE } from './i18n/index';
 import { isProduction, validateRedirectUrl } from './lib/auth-utils';
 import { checkRateLimit } from './lib/rate-limit';
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
+import './lib/patients/services/clinical-orchestrator.service';
 
 // Rutas que requieren autenticación
 const PROTECTED_ROUTES = [

@@ -78,6 +78,8 @@ export interface MedicalRecord {
   doctor_id: UUID
   consultation_date: ISODateString
   consultation_type: ConsultationType
+  type: string
+  content: Record<string, unknown>
 
   // Datos de la consulta
   chief_complaint: string // Motivo principal de consulta

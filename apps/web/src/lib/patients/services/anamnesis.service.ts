@@ -4,7 +4,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database, AnamnesisEntity, AnamnesisSectionEntity } from '@autamedica/types'
-import { logger } from '@autamedica/shared'
+import { logger, domainEvents } from '@autamedica/shared'
 import { createAnamnesisAdapter } from '@/lib/patients/lib/repos/anamnesis.adapter'
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps'
 import { anamnesisVersionService } from './anamnesis-version.service'
@@ -183,6 +183,11 @@ export const anamnesisService = {
           supabase, patientId, anamnesis.id,
           isFirstCompletion ? 'initial' : 'update',
         )
+        // Emit domain event for cross-service orchestration (e.g., TDAH scoring)
+        await domainEvents.emit('anamnesis.completed', {
+          anamnesisId: anamnesis.id,
+          patientId,
+        })
       } catch (err) {
         logger.error('[anamnesisService] auto-version creation failed', {
           error: err instanceof Error ? err.message : err,
@@ -224,6 +229,14 @@ export const anamnesisService = {
     }
 
     const savedSection = await anamnesisRepo.upsertSection(anamnesis.id, section, finalData, completed)
+
+    if (completed) {
+      await domainEvents.emit('anamnesis.section_completed', {
+        anamnesisId: anamnesis.id,
+        patientId,
+        section,
+      })
+    }
 
     const sections = await anamnesisRepo.getSections(anamnesis.id)
     const progress = computeProgress(sections)

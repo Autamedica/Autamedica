@@ -16,10 +16,5 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.d.ts']
     }
-  },
-  resolve: {
-    alias: {
-      '@autamedica/telemedicine': path.resolve(__dirname, './src')
-    }
   }
 })
