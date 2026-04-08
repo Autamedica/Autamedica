@@ -55,8 +55,8 @@ export class TransitionAppointmentUseCase {
       if (nextStatus === 'completed') {
         await domainEvents.emit('appointment.completed', {
           appointmentId: appointment.id,
-          doctorId: appointment.doctor_id,
-          patientId: appointment.patient_id || '',
+          doctorId: appointment.doctorId,
+          patientId: appointment.patientId || '',
         });
       } else if (nextStatus === 'cancelled') {
         await domainEvents.emit('appointment.cancelled', {
