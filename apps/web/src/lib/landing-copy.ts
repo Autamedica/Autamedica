@@ -39,7 +39,7 @@ const landingCopyPt = {
       seo: {
         title: 'AutaMedica | Telemedicina, Receita Digital e Saúde Online',
         description:
-          'Conecte-se com um médico verificado em menos de 15 minutos. Receita digital, acompanhamento clínico e sem filas de espera. Disponível no Brasil, Argentina, Colômbia e mais.',
+          'Conecte-se com um médico verificado em menos de 15 minutos. Receita digital, acompanhamento clínico e sem filas de espera. Disponível no Brasil, Argentina, Equador, Colômbia e mais.',
       },
       hero: {
         badge: 'Telemedicina feita para o Brasil',
@@ -71,9 +71,9 @@ const landingCopyPt = {
     },
     b: {
       seo: {
-        title: 'AutaMedica | Fale com um médico hoje em minutos',
+        title: 'AutaMedica | Fale com um médico hoy em minutos',
         description:
-          'Consulta médica online em minutos, con receita digital e acompanhamento. Médicos verificados no Brasil, Argentina e Colômbia. Sem agendamento, sem deslocamento.',
+          'Consulta médica online em minutos, com receita digital e acompanhamento. Médicos verificados no Brasil, Argentina, Equador e Colômbia. Sem agendamento, sem deslocamento.',
       },
       hero: {
         badge: 'Disponível no Brasil, Argentina e Colômbia',
