@@ -35,7 +35,7 @@ const {
   robots = 'index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1',
 } = Astro.props;
 
-const fullTitle = title.includes('AutaMedica') ? title : \`\${title} | AutaMedica\`;
+const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
 const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
   Astro.locals.runtime?.env,
 );
@@ -114,6 +114,7 @@ const activeTabDoctor =
     <meta name="view-transition" content="same-origin" />
   </head>
   <body class="antialiased">
+    <ScrollProgress />
     <slot />
     <OfflineBanner />
     <CookieBanner />
