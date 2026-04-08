@@ -5,6 +5,7 @@ const locale = Astro.locals.locale ?? 'es';
 const { t } = getI18n(locale);
 const currentYear = new Date().getFullYear();
 const socialLinks = [
+  { text: 'WhatsApp', href: 'https://chat.whatsapp.com/DvgpQ3A4y3P5uoU52LoSzO?mode=gi_t' },
   { text: 'YouTube', href: 'https://www.youtube.com/@AUTAMEDICA' },
   { text: 'TikTok', href: 'https://www.tiktok.com/@auta_medica' },
   { text: 'LinkedIn', href: 'https://www.linkedin.com/in/eduardo-marques-b00739249/' },
@@ -23,6 +24,7 @@ const columns = [
   {
     title: t('landing.footer.resourcesTitle'),
     links: [
+      { text: 'Nosotros', href: '/nosotros' },
       { text: t('landing.footer.howItWorks'), href: '/consulta-medica-online' },
       { text: 'Telemedicina', href: '/telemedicina-argentina' },
       { text: 'Médico online', href: '/medico-online' },

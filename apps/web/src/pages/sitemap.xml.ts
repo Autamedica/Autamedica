@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 
 const ROUTES: Array<{ path: string; priority: string; changefreq: string }> = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
+  { path: '/nosotros', priority: '0.9', changefreq: 'monthly' },
   { path: '/patients', priority: '0.9', changefreq: 'weekly' },
   { path: '/doctors', priority: '0.9', changefreq: 'weekly' },
   { path: '/companies', priority: '0.8', changefreq: 'weekly' },

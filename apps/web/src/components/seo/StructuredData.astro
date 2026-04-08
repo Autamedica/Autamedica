@@ -8,6 +8,7 @@ const jsonLd = {
       '@type': 'Organization',
       '@id': `${baseUrl}/#organization`,
       name: 'AutaMedica',
+      alternateName: 'AutaMedica Telemedicina',
       url: `${baseUrl}/`,
       logo: {
         '@type': 'ImageObject',
@@ -15,11 +16,25 @@ const jsonLd = {
         width: 1024,
         height: 1024
       },
-      description: 'Plataforma de telemedicina sin fricciones con IA médica',
+      description: 'Plataforma líder de telemedicina y coordinación clínica en LATAM con Inteligencia Artificial médica integrada.',
+      foundingDate: '2024',
+      knowsAbout: ['Telemedicine', 'Digital Health', 'Medical AI', 'Electronic Prescriptions'],
+      contactPoint: [
+        {
+          '@type': 'ContactPoint',
+          'telephone': '',
+          'contactType': 'customer support',
+          'email': 'soporte@autamedica.com',
+          'availableLanguage': ['Spanish', 'Portuguese', 'English']
+        }
+      ],
       sameAs: [
         'https://twitter.com/autamedica',
         'https://www.youtube.com/@AUTAMEDICA',
-        'https://www.tiktok.com/@auta_medica'
+        'https://www.tiktok.com/@auta_medica',
+        'https://www.instagram.com/autamedica',
+        'https://www.linkedin.com/company/autamedica',
+        'https://chat.whatsapp.com/DvgpQ3A4y3P5uoU52LoSzO?mode=gi_t'
       ]
     },
     {
@@ -37,11 +52,11 @@ const jsonLd = {
       '@id': `${baseUrl}/#website`,
       url: `${baseUrl}/`,
       name: 'AutaMedica',
-      description: 'Telemedicina sin fricciones',
+      description: 'Telemedicina sin fricciones y salud digital accesible en toda Latinoamérica.',
       publisher: {
         '@id': `${baseUrl}/#organization`
       },
-      inLanguage: 'es-AR'
+      inLanguage: ['es-AR', 'pt-BR']
     },
     {
       '@type': 'MedicalOrganization',
@@ -49,16 +64,24 @@ const jsonLd = {
       name: 'AutaMedica',
       url: `${baseUrl}/`,
       image: `${baseUrl}/images/seo/og-main.webp`,
-      medicalSpecialty: ['Telemedicine', 'PrimaryCare', 'PreventiveMedicine'],
-      areaServed: {
-        '@type': 'Country',
-        name: 'Argentina',
-      },
+      medicalSpecialty: ['Telemedicine', 'PrimaryCare', 'PreventiveMedicine', 'MentalHealth', 'Cardiology', 'Dermatology'],
+      areaServed: [
+        { '@type': 'Country', 'name': 'Argentina' },
+        { '@type': 'Country', 'name': 'Brasil' },
+        { '@type': 'Country', 'name': 'Colombia' },
+        { '@type': 'Country', 'name': 'Peru' },
+        { '@type': 'Country', 'name': 'Mexico' },
+        { '@type': 'Country', 'name': 'Ecuador' },
+        { '@type': 'Country', 'name': 'Chile' }
+      ],
       availableService: {
         '@type': 'Service',
         name: 'Telemedicina sin fricciones',
-        serviceType: 'Atención médica virtual',
+        serviceType: 'Atención médica virtual 24/7',
         url: `${baseUrl}/platform`,
+        provider: {
+          '@id': `${baseUrl}/#organization`
+        }
       },
       isPartOf: {
         '@id': `${baseUrl}/#website`,
@@ -74,10 +97,17 @@ const jsonLd = {
       operatingSystem: 'Web, iOS, Android',
       applicationCategory: 'HealthApplication',
       url: `${baseUrl}/`,
+      author: {
+        '@id': `${baseUrl}/#organization`
+      },
+      brand: {
+        '@id': `${baseUrl}/#organization`
+      },
       offers: {
         '@type': 'Offer',
         price: '0',
-        priceCurrency: 'ARS'
+        priceCurrency: 'ARS',
+        availability: 'https://schema.org/InStock'
       },
       aggregateRating: {
         '@type': 'AggregateRating',

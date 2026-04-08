@@ -3,7 +3,7 @@
   "variants": {
     "a": {
       "seo": {
-        "title": "Consulta médica online hoy | AutaMedica",
+        "title": "AutaMedica | Telemedicina, Receta Digital y Portal de Salud",
         "description": "Conecta con un médico verificado en menos de 15 minutos. Receta digital, seguimiento clínico y sin salas de espera. Disponible en Argentina, Colombia, Perú y más."
       },
       "hero": {
@@ -50,7 +50,7 @@
     },
     "b": {
       "seo": {
-        "title": "Habla con un médico hoy | AutaMedica",
+        "title": "AutaMedica | Habla con un médico hoy en minutos",
         "description": "Consulta médica online en minutos, con receta digital y seguimiento. Médicos verificados en Argentina, Colombia y Perú. Sin turno, sin traslado."
       },
       "hero": {

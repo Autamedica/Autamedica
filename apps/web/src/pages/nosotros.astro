@@ -1,0 +1,295 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import { getI18n } from '../i18n';
+
+const locale = Astro.locals.locale ?? 'es';
+const { t } = getI18n(locale);
+
+const title = "Sobre AutaMedica | Telemedicina y Salud Digital";
+const description = "Conoce la misión de AutaMedica: transformar el acceso a la salud en Latinoamérica mediante tecnología humana e inteligencia artificial médica.";
+---
+
+<Layout title={title} description={description}>
+  <Navbar />
+  
+  <main class="nosotros-page">
+    <section class="hero-nosotros">
+      <div class="container">
+        <h1 class="animate-up">Nuestra misión es <span class="text-gradient">eliminar las fronteras</span> de la salud.</h1>
+        <p class="subtitle animate-up" style="animation-delay: 0.1s;">
+          AutaMedica nació para resolver el problema de la espera y la distancia en la atención médica, combinando la mejor tecnología con el trato humano que cada paciente merece.
+        </p>
+      </div>
+    </section>
+
+    <section class="historia">
+      <div class="container grid-2">
+        <div class="text-block animate-up">
+          <h2>Por qué existimos</h2>
+          <p>
+            En Latinoamérica, una guardia médica puede significar horas de espera. En las provincias, el acceso a especialistas es limitado. AutaMedica surge como la respuesta a un sistema que necesita ser más ágil, más humano y estar disponible 24/7.
+          </p>
+          <p>
+            No somos solo una plataforma de videollamadas. Somos un ecosistema de salud digital que integra receta electrónica, historia clínica universal y herramientas de IA para ayudar a los médicos a ser más precisos.
+          </p>
+        </div>
+        <div class="image-placeholder animate-up" style="animation-delay: 0.2s;">
+          <div class="glass-card">
+            <span class="badge">Ecosistema AutaMedica</span>
+            <div class="stats-grid">
+              <div class="stat">
+                <span class="number">6+</span>
+                <span class="label">Países</span>
+              </div>
+              <div class="stat">
+                <span class="number">150+</span>
+                <span class="label">Médicos</span>
+              </div>
+              <div class="stat">
+                <span class="number">24/7</span>
+                <span class="label">Disponibilidad</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="valores">
+      <div class="container">
+        <h2 class="text-center">Nuestros pilares</h2>
+        <div class="values-grid">
+          <div class="value-card animate-up">
+            <h3>Confianza Clínica</h3>
+            <p>Validamos cada matrícula y cada profesional. La seguridad del paciente es nuestra prioridad absoluta.</p>
+          </div>
+          <div class="value-card animate-up" style="animation-delay: 0.1s;">
+            <h3>Tecnología sin fricción</h3>
+            <p>Diseñamos interfaces que cualquier persona puede usar, eliminando las barreras tecnológicas para acceder a la salud.</p>
+          </div>
+          <div class="value-card animate-up" style="animation-delay: 0.2s;">
+            <h3>Privacidad Garantizada</h3>
+            <p>Cumplimos con estándares internacionales (HIPAA) y locales para proteger los datos médicos sensibles.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-nosotros">
+      <div class="container">
+        <div class="cta-box text-center">
+          <h2>Únete a la nueva era de la salud</h2>
+          <div class="cta-actions">
+            <a href="/auth/register" class="btn-primary">Registrarme como paciente</a>
+            <a href="/doctors" class="btn-secondary">Soy profesional</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .nosotros-page {
+    padding-top: 8rem;
+    background: var(--au-bg);
+    color: var(--au-text-primary);
+  }
+
+  .container {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 var(--section-px);
+  }
+
+  .text-center { text-align: center; }
+
+  .hero-nosotros {
+    padding: 6rem 0;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    margin-bottom: var(--space-6);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #38d4ff, #0ea5e9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    font-size: var(--text-xl);
+    color: var(--au-text-secondary);
+    max-width: 720px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
+    align-items: center;
+  }
+
+  @media (min-width: 768px) {
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .historia { padding: 8rem 0; }
+
+  h2 {
+    font-size: var(--text-4xl);
+    font-weight: 700;
+    margin-bottom: var(--space-6);
+    letter-spacing: -0.02em;
+  }
+
+  .text-block p {
+    font-size: var(--text-lg);
+    line-height: 1.7;
+    color: var(--au-text-secondary);
+    margin-bottom: var(--space-4);
+  }
+
+  .glass-card {
+    background: var(--au-surface);
+    border: 1px solid var(--au-border);
+    padding: var(--space-10);
+    border-radius: var(--radius-xl);
+    position: relative;
+    box-shadow: 0 32px 64px rgba(0,0,0,0.2);
+  }
+
+  .badge {
+    position: absolute;
+    top: var(--space-6);
+    left: var(--space-6);
+    background: rgba(56, 212, 255, 0.1);
+    color: #38d4ff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .number {
+    font-size: var(--text-3xl);
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  .label {
+    font-size: var(--text-xs);
+    color: var(--au-text-secondary);
+    text-transform: uppercase;
+  }
+
+  .valores {
+    padding: 8rem 0;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-12);
+  }
+
+  .value-card {
+    padding: var(--space-8);
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-lg);
+    background: var(--au-bg);
+  }
+
+  .value-card h3 {
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-3);
+    color: #ffffff;
+  }
+
+  .value-card p {
+    color: var(--au-text-secondary);
+    line-height: 1.6;
+  }
+
+  .cta-nosotros { padding: 10rem 0; }
+
+  .cta-box {
+    padding: var(--space-16);
+    background: linear-gradient(rgba(56, 212, 255, 0.05), rgba(14, 165, 233, 0.05));
+    border: 1px solid var(--au-border);
+    border-radius: var(--radius-2xl);
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    margin-top: var(--space-8);
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: #38d4ff;
+    color: #000;
+    padding: 0.8rem 2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+
+  .btn-secondary {
+    border: 1px solid var(--au-border);
+    color: #fff;
+    padding: 0.8rem 2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary:hover { background: rgba(255, 255, 255, 0.05); }
+
+  .animate-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.8s forwards ease-out;
+  }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
