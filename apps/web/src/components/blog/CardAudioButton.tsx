@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Volume2, Square, Loader2 } from 'lucide-react';
+import { extractReadableText, isSpeechSynthesisSupported, speakText } from '@/lib/blog/speech';
 
 interface CardAudioButtonProps {
   title: string;
@@ -9,24 +10,33 @@ interface CardAudioButtonProps {
 export default function CardAudioButton({ title, slug }: CardAudioButtonProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
   const [synth, setSynth] = useState<SpeechSynthesis | null>(null);
+  const sessionRef = useRef(0);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isSpeechSynthesisSupported()) {
       setSynth(window.speechSynthesis);
+      setIsSupported(true);
     }
-    return () => window.speechSynthesis?.cancel();
+
+    return () => {
+      sessionRef.current += 1;
+      window.speechSynthesis?.cancel();
+    };
   }, []);
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!synth) return;
+    if (!synth || !isSupported) return;
 
     if (isPlaying) {
+      sessionRef.current += 1;
       synth.cancel();
       setIsPlaying(false);
+      setIsLoading(false);
       return;
     }
 
@@ -34,75 +44,73 @@ export default function CardAudioButton({ title, slug }: CardAudioButtonProps) {
 
     try {
       const response = await fetch(`/blog/${slug}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch article: ${response.status}`);
+      }
+
       const html = await response.text();
-      
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       const content = doc.querySelector('.blog-prose');
-      
-      const fullText = content 
-        ? content.textContent?.replace(/\s+/g, ' ').trim() 
-        : title;
+      const fullText = extractReadableText(content) || title;
 
       if (!fullText) {
         setIsLoading(false);
         return;
       }
 
-      const utterance = new SpeechSynthesisUtterance(fullText);
-      
-      // SOLUCIÓN TÉCNICA: Humanización de voz
-      const voices = synth.getVoices();
-      // Preferir voces premium de Google o voces locales de alta calidad en español
-      const preferredVoice = voices.find(v => 
-        (v.name.includes('Google') || v.name.includes('Premium')) && 
-        (v.lang.includes('es-AR') || v.lang.includes('es-ES') || v.lang.includes('es-US'))
-      ) || voices.find(v => v.lang.includes('es'));
+      const sessionId = sessionRef.current + 1;
+      sessionRef.current = sessionId;
 
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-
-      utterance.lang = 'es-AR';
-      utterance.rate = 0.92; // Cadencia humana ligeramente más pausada
-      utterance.pitch = 1.05; // Tono ligeramente más cálido
-
-      utterance.onstart = () => {
-        setIsLoading(false);
-        setIsPlaying(true);
-      };
-
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = () => {
-        setIsPlaying(false);
-        setIsLoading(false);
-      };
-
-      synth.cancel();
-      synth.speak(utterance);
+      await speakText({
+        synth,
+        text: fullText,
+        lang: 'es-AR',
+        rate: 0.84,
+        pitch: 1.2,
+        maxSegmentLength: 220,
+        onStart: () => {
+          if (sessionRef.current !== sessionId) return;
+          setIsLoading(false);
+          setIsPlaying(true);
+        },
+        onComplete: () => {
+          if (sessionRef.current !== sessionId) return;
+          setIsPlaying(false);
+          setIsLoading(false);
+        },
+        onError: () => {
+          if (sessionRef.current !== sessionId) return;
+          setIsPlaying(false);
+          setIsLoading(false);
+        },
+      });
     } catch (error) {
       console.error('[CardAudioButton] Error:', error);
+      setIsPlaying(false);
       setIsLoading(false);
     }
   };
 
   return (
     <button
+      type="button"
       onClick={handleToggle}
-      disabled={isLoading}
-      className={`inline-flex items-center justify-center w-6 h-6 rounded-full transition-all active:scale-90 ${
+      disabled={isLoading || !isSupported}
+      className={`inline-flex h-12 w-12 items-center justify-center rounded-full border shadow-sm transition-all active:scale-90 ${
         isPlaying 
-          ? 'bg-stone-200 text-stone-600' 
-          : 'bg-stone-100 text-stone-400 hover:bg-stone-200 hover:text-stone-500'
-      } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-      title={isPlaying ? "Detener" : "Escuchar"}
+          ? 'border-stone-400 bg-stone-300 text-stone-800' 
+          : 'border-stone-300 bg-stone-200 text-stone-600 hover:border-stone-400 hover:bg-stone-300 hover:text-stone-800'
+      } ${isLoading || !isSupported ? 'cursor-not-allowed opacity-50' : ''}`}
+      title={isPlaying ? 'Detener audio' : 'Escuchar'}
+      aria-label={isPlaying ? 'Detener audio del artículo' : 'Escuchar audio del artículo'}
     >
       {isLoading ? (
-        <Loader2 size={10} className="animate-spin text-stone-400" />
+        <Loader2 size={22} className="animate-spin" />
       ) : isPlaying ? (
-        <Square size={8} fill="currentColor" />
+        <Square size={18} fill="currentColor" />
       ) : (
-        <Volume2 size={10} />
+        <Volume2 size={22} />
       )}
     </button>
   );
