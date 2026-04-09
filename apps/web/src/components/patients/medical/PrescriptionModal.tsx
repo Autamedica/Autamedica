@@ -1,6 +1,6 @@
 'use client'
 
-import { X, Pill, Calendar, User, Clock } from 'lucide-react'
+import { X, Pill, Calendar, User, Clock, AlertCircle, ExternalLink } from 'lucide-react'
 
 interface Medication {
   name: string
@@ -19,8 +19,16 @@ interface PrescriptionData {
   instructions: string
   diagnosis: string | null
   notes: string | null
-  doctorName: string
+  doctorName: string | null
   date: string
+  cuir?: string | null
+  vendorName?: string | null
+  vendorId?: string | null
+  signedPdfUrl?: string | null
+  hasDigitalArtifact?: boolean
+  artifactWarning?: string | null
+  requiresStrictValidation?: boolean
+  source?: 'legacy' | 'prescriptions_core'
   medications?: Medication[]
 }
 
@@ -37,6 +45,14 @@ export function PrescriptionModal({ prescription, onClose }: PrescriptionModalPr
     duration: prescription.duration,
     instructions: prescription.instructions,
   }]
+  const doctorName = prescription.doctorName ?? 'Profesional tratante'
+  const hasDigitalArtifact = Boolean(prescription.hasDigitalArtifact)
+  const artifactMessage = prescription.artifactWarning
+    ?? (
+      prescription.requiresStrictValidation
+        ? 'Esta medicacion requiere validacion reforzada y todavia no vemos un soporte electronico verificable desde esta pantalla.'
+        : 'Este registro no incluye todavia un PDF firmado ni un codigo verificable para presentacion en farmacia.'
+    )
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -78,7 +94,7 @@ export function PrescriptionModal({ prescription, onClose }: PrescriptionModalPr
         <div className="mb-5 flex flex-wrap gap-4 text-xs" style={{ color: 'var(--au-text-tertiary)' }}>
           <span className="flex items-center gap-1.5">
             <User className="h-3.5 w-3.5" />
-            {prescription.doctorName}
+            {doctorName}
           </span>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5" />
@@ -86,6 +102,56 @@ export function PrescriptionModal({ prescription, onClose }: PrescriptionModalPr
               day: 'numeric', month: 'short', year: 'numeric',
             }).format(new Date(prescription.date))}
           </span>
+        </div>
+
+        <div
+          className="mb-4 rounded-xl p-3"
+          style={{
+            background: hasDigitalArtifact ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+            border: hasDigitalArtifact
+              ? '1px solid rgba(16,185,129,0.2)'
+              : '1px solid rgba(245,158,11,0.2)',
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <AlertCircle
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              style={{ color: hasDigitalArtifact ? '#34d399' : '#f59e0b' }}
+            />
+            <div className="min-w-0">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--au-text-tertiary)' }}>
+                {hasDigitalArtifact ? 'Soporte electronico' : 'Disponibilidad'}
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--au-text-secondary)' }}>
+                {hasDigitalArtifact
+                  ? 'La prescripcion incluye datos verificables para seguimiento.'
+                  : artifactMessage}
+              </p>
+              {prescription.cuir && (
+                <p className="mt-2 text-xs font-medium" style={{ color: 'var(--au-text-primary)' }}>
+                  CUIR: {prescription.cuir}
+                </p>
+              )}
+              {(prescription.vendorName || prescription.vendorId) && (
+                <p className="mt-1 text-xs" style={{ color: 'var(--au-text-tertiary)' }}>
+                  {prescription.vendorName ?? 'Proveedor'}
+                  {prescription.vendorId ? ` · ${prescription.vendorId}` : ''}
+                </p>
+              )}
+              {prescription.signedPdfUrl && (
+                <a
+                  href={prescription.signedPdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold"
+                  style={{ color: 'var(--au-accent)' }}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir PDF firmado
+                </a>
+              )}
+            </div>
+          </div>
         </div>
 
         {prescription.diagnosis && (
