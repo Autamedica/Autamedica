@@ -46,8 +46,12 @@ export async function evaluateNeuroStability(
     }
 
     // 3. Prepare data for Scoring Engine
-    const extractionResult = extraction.extraction_result as Record<string, unknown>
-    const redFlags = extractionResult.safetyFlags || []
+    const extractionResult = (extraction.extraction_result || {}) as { 
+      safetyFlags?: string[]; 
+      normalizedOpenFields?: { vitals?: { bloodPressure?: string; heartRate?: number; weightKg?: number } };
+      qualityAlerts?: Array<{ severity: number }>;
+    }
+    const safetyFlags = extractionResult.safetyFlags || []
     
     // Extraction vitals (from AI)
     const extVitals = extractionResult.normalizedOpenFields?.vitals
@@ -62,8 +66,8 @@ export async function evaluateNeuroStability(
       },
       sideEffects: extractionResult.qualityAlerts || [],
       redFlags: {
-        suicidalIdeation: redFlags.some((f: string) => f.toLowerCase().includes('suicid')),
-        doseEscalation: redFlags.some((f: string) => f.toLowerCase().includes('dosis') || f.toLowerCase().includes('abuso')),
+        suicidalIdeation: safetyFlags.some((f: string) => f.toLowerCase().includes('suicid')),
+        doseEscalation: safetyFlags.some((f: string) => f.toLowerCase().includes('dosis') || f.toLowerCase().includes('abuso')),
       }
     }
 

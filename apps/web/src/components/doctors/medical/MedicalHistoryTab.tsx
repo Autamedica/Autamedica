@@ -21,6 +21,7 @@ import {
 import type { JSX } from 'react'
 import { useState } from 'react'
 import { NeuroStabilityCard } from './NeuroStabilityCard'
+import type { NeuroStabilityReportContent } from '@/lib/patients/verticals/neuro/scoring.engine'
 
 interface MedicalHistoryTabProps {
   patientId: UUID | null
@@ -169,12 +170,13 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
               const isExpanded = expandedRecord === record.id
 
               if (record.type === 'neuro_stability_report') {
+                const content = record.content as unknown as NeuroStabilityReportContent
                 return (
                   <div key={record.id} className="space-y-2">
                     <NeuroStabilityCard
-                      score={record.content.score}
-                      reasons={record.content.reasons}
-                      vitals={record.content.vitals_snapshot}
+                      score={content.score}
+                      reasons={content.reasons || []}
+                      vitals={content.vitals_snapshot as { bloodPressure?: string; heartRate?: number; weight?: number }}
                       dateRecorded={record.consultation_date || record.created_at}
                     />
                   </div>
@@ -188,95 +190,65 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
                 >
                   {/* Header del registro */}
                   <div className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className={`rounded-full px-3 py-1 text-xs font-medium border ${typeInfo.color}`}>
-                            {typeInfo.label}
-                          </span>
-                          <div className="flex items-center gap-1 text-xs text-am-surface-500">
-                            <Calendar className="h-3 w-3" />
-                            {formatDateTime(record.consultation_date, { month: 'long' })}
-                          </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${typeInfo.color}`}>
+                          <Stethoscope className="h-5 w-5" />
                         </div>
-
-                        <h3 className="text-lg font-semibold text-am-surface-900 mb-2">
-                          {record.chief_complaint}
-                        </h3>
-
-                        <div className="flex items-center gap-4 text-sm text-am-surface-500">
-                          <div className="flex items-center gap-1">
-                            <Stethoscope className="h-4 w-4" />
-                            <span>Diagnóstico: {record.diagnosis}</span>
+                        <div>
+                          <h3 className="text-sm font-bold text-am-surface-900 uppercase tracking-tight">
+                            {typeInfo.label}
+                          </h3>
+                          <div className="flex items-center gap-2 text-[10px] text-am-surface-500 font-medium">
+                            <Calendar className="h-3 w-3" />
+                            {formatDateTime(record.consultation_date || record.created_at)}
                           </div>
                         </div>
                       </div>
 
                       <button
                         onClick={() => setExpandedRecord(isExpanded ? null : record.id)}
-                        className="flex items-center gap-2 rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-sm text-am-surface-700 shadow-am-sm hover:bg-am-surface-100 transition"
+                        className="p-2 rounded-lg hover:bg-am-surface-50 text-am-surface-400 transition"
                       >
-                        <Eye className="h-4 w-4" />
-                        {isExpanded ? 'Ocultar' : 'Ver detalles'}
-                        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
+                    </div>
+
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold text-am-surface-700 line-clamp-1">
+                        {record.diagnosis || 'Sin diagnóstico registrado'}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Contenido expandido */}
+                  {/* Detalle expandido */}
                   {isExpanded && (
-                    <div className="border-t border-am-surface-200 bg-am-surface-50 p-4">
-                      <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="border-t border-am-surface-100 bg-am-surface-50/50 p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="space-y-4">
                         <div>
-                          <h4 className="text-sm font-semibold text-am-surface-700 mb-2">Síntomas</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {record.symptoms.map((symptom, index) => (
-                              <span
-                                key={index}
-                                className="rounded-lg bg-am-surface-100 px-2 py-1 text-xs text-am-surface-700"
-                              >
-                                {symptom}
-                              </span>
-                            ))}
-                          </div>
+                          <h4 className="text-[10px] font-bold text-am-surface-400 uppercase mb-1 tracking-wider">
+                            Motivo de Consulta
+                          </h4>
+                          <p className="text-xs text-am-surface-700 leading-relaxed">
+                            {record.reason || 'No especificado'}
+                          </p>
                         </div>
 
                         <div>
-                          <h4 className="text-sm font-semibold text-am-surface-700 mb-2">Plan de Tratamiento</h4>
-                          <p className="text-sm text-am-surface-500">{record.treatment_plan}</p>
+                          <h4 className="text-[10px] font-bold text-am-surface-400 uppercase mb-1 tracking-wider">
+                            Plan y Tratamiento
+                          </h4>
+                          <p className="text-xs text-am-surface-700 leading-relaxed">
+                            {record.treatment_plan || 'Sin plan registrado'}
+                          </p>
                         </div>
 
-                        {record.follow_up_instructions && (
-                          <div className="lg:col-span-2">
-                            <h4 className="text-sm font-semibold text-am-surface-700 mb-2">Instrucciones de Seguimiento</h4>
-                            <p className="text-sm text-am-surface-500">{record.follow_up_instructions}</p>
-                          </div>
-                        )}
-
-                        {record.attachments.length > 0 && (
-                          <div className="lg:col-span-2">
-                            <h4 className="text-sm font-semibold text-am-surface-700 mb-2">Archivos Adjuntos</h4>
-                            <div className="space-y-2">
-                              {record.attachments.map((attachment) => (
-                                <div
-                                  key={attachment.id}
-                                  className="flex items-center gap-3 rounded-lg border border-am-surface-200 bg-white p-3"
-                                >
-                                  <FileText className="h-4 w-4 text-am-surface-400" />
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium text-am-surface-700">{attachment.file_name}</p>
-                                    <p className="text-xs text-am-surface-500">
-                                      {(attachment.file_size / 1024).toFixed(1)} KB • {attachment.description}
-                                    </p>
-                                  </div>
-                                  <button className="rounded-lg border border-am-surface-200 bg-white px-3 py-1 text-xs text-am-surface-700 shadow-am-sm hover:bg-am-surface-100 transition">
-                                    Descargar
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        <div className="flex justify-end pt-2">
+                          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-am-doctor-600 hover:bg-am-doctor-50 transition uppercase tracking-wider border border-am-doctor-100">
+                            <Eye className="h-3 w-3" />
+                            Ver Detalles
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -284,20 +256,17 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
               )
             })}
 
-            {/* Botón cargar más */}
             {hasMore && (
-              <div className="text-center pt-4">
-                <button
-                  onClick={loadMore}
-                  disabled={loading}
-                  className="rounded-lg border border-am-surface-200 bg-white px-6 py-2 text-sm text-am-surface-700 shadow-am-sm hover:bg-am-surface-100 transition disabled:opacity-50"
-                >
-                  {loading ? 'Cargando...' : 'Cargar más registros'}
-                </button>
-              </div>
+              <button
+                onClick={() => loadMore()}
+                className="w-full py-3 text-sm font-medium text-am-doctor-600 hover:bg-am-doctor-50 rounded-xl transition border border-dashed border-am-doctor-200"
+              >
+                Cargar más registros
+              </button>
             )}
           </div>
-        )}
+        )
+        }
       </div>
     </div>
   )
