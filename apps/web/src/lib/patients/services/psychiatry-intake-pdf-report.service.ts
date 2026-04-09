@@ -263,19 +263,27 @@ De manera global, describe su respuesta previa a la pauta farmacológica como: "
 
   const alerts = []
   
-  if (prescriberStatus === 'unknown') {
-    alerts.push('• Reconciliación Farmacológica Pendiente: Prescriptor no identificable. NO autogenerar conclusión terapéutica cerrada. Solicitar evidencia complementaria (recetario previo, caja/blíster, HC previa) antes de emitir recetas.')
+  const isStimulant = diagText.toLowerCase().includes('tdah') || meds.toLowerCase().includes('metilfenidato') || meds.toLowerCase().includes('lisdexanfetamina') || meds.toLowerCase().includes('estimulante')
+
+  if (isStimulant && prescriberStatus === 'unknown') {
+    let msg = '• Evaluación Clínica URGENTE (Protocolo de Contingencia): Uso crónico referido de estimulantes con prescriptor desconocido. REGLA OPERATIVA: 1) Prohibido el abandono (alto riesgo de daño por interrupción/depresión). 2) Resolución obligatoria HOY. 3) Proveer continuidad transitoria supervisada (puente clínico), con dosis base segura a definir por el médico tratante.'
+    if (doseCategory === 'extraordinary') {
+      msg += ` PRECAUCIÓN DOSIS: La dosis reportada es inusualmente alta (${numericDose} mg). Prohíbida explícitamente la renovación automática del total reportado.`
+    }
+    alerts.push(msg)
+  } else {
+    if (prescriberStatus === 'unknown') {
+      alerts.push('• Reconciliación Farmacológica Pendiente: Prescriptor no identificable. Solicitar evidencia complementaria (recetario previo, caja, HC previa) antes de emitir recetas prolongadas.')
+    }
+    if (doseCategory === 'extraordinary') {
+      alerts.push(`• Dosis Extraordinaria Reportada (${numericDose} mg): Fuera de los límites aprobados de uso (máx ~60-100mg/día). NO renovar en piloto automático. Tratar como dato a reconciliar clínico urgente.`)
+    }
   }
-  if (doseCategory === 'extraordinary') {
-    alerts.push(`• Dosis Extraordinaria Reportada (${numericDose} mg): Fuera de los límites farmacológicos rutinarios aprobados de uso (máx ~60-100mg/día). NO renovar a ciegas. Tratar como dato a reconciliar urgente por riesgo de sobredosificación, mal uso o error de captura.`)
-  } else if (doseCategory === 'imprecise') {
-    alerts.push('• Evaluación de Dosis Incierta: Relato de dosis inexacta (e.g., "pastillas"). Riesgo de mala adherencia o abstinencia aguda. Indagar presentación (IR/LA) y gramaje exacto.')
+
+  if (doseCategory === 'imprecise') {
+    alerts.push('• Evaluación de Dosis Incierta: Relato de medicación inexacta (e.g., "pastillas"). Riesgo de mala adherencia o abstinencia aguda. Indagar presentación (IR/LA) y gramaje exacto.')
   }
-  
-  // PUENTE CLÍNICO DE CONTINGENCIA
-  if (prescriberStatus === 'unknown' && (diagText.toLowerCase().includes('tdah') || meds.toLowerCase().includes('metilfenidato') || meds.toLowerCase().includes('lisdexanfetamina') || meds.toLowerCase().includes('estimulante'))) {
-    alerts.push('• Protocolo de Reducción de Daños (Puente Clínico): Ante medicación controlada con prescripción incierta pero alto riesgo de síndrome de retirada (abstención/depresión), NO discontinuar abruptamente. Proveer RECETA PUENTE DE TRANSICIÓN corta (ej. 7 a 14 días), con dosis base segura, condicionada a presentación de evidencia (envase, receta) y monitoreo estricto.')
-  }
+
   if (insomnia || sleepInconsistency) {
     alerts.push('• Evaluación de Sueño Confusa / Severa: Reporte discordante o severo sobre la calidad de horas de sueño ("insomnio" sumado a reportes extensos de dormir). Evaluar hipótesis de efecto rebote o depresión comórbida.')
   }

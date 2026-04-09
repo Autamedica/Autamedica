@@ -63,16 +63,16 @@ Posee un parser REGEX que extrae los números de la sintaxis del paciente y eval
 
 > **Si MG >= 100:** "Dosis Extraordinaria Reportada. Fuera de los límites farmacológicos rutinarios aprobados. Tratar como dato a reconciliar urgente por riesgo de sobredosificación, mal uso o error de captura."
 
-### 🌉 Protocolo de Puente de Transición (Harm Reduction)
+### 🌉 Puente Clínico de Contingencia (Hard Rule)
 
-**La joya clínica del flujo.** El sistema comprende que la interrupción brusca en un paciente de psicofármacos es yatrogénica (depresión de rebote), pero renovaciones indefinidas sin respaldo legal o prescriptor previo verificado son mala praxis.
+**La directiva operativa innegociable.** El sistema entiende que "Mucho proceso y ninguna decisión" perjudica directamente al paciente y al riesgo legal del médico. Ante un requerimiento de psicotrópicos controlados con incertidumbre de origen o dosaje extremo, el sistema prohíbe tanto el "abandono ciego" (withdrawal) como la "renovación a ciegas" (toxicidad/mala praxis).
 
-**Fórmula de cruce:**
-`Si (fármaco incluye 'metilfenidato'|'tdah'|'estimulante') Y (prescriptor_status == "unknown") -> Disparar Alerta Puente Clínico`
+**Fórmula de Decisión (Gating):**
+`Si (fármaco incluye 'metilfenidato'|'tdah'|'estimulante') Y (prescriptor_status == "unknown") -> Disparar Puente Clínico Urgente`
 
-_Respuesta operativa del PDF al médico transeúnte:_
+_Mandato expuesto explícitamente en el PDF para el Psiquiatra:_
 
-> "Ante prescripción incierta pero alto riesgo de síndrome de retirada (abstención/depresión), NO discontinuar abruptamente. Proveer RECETA PUENTE DE TRANSICIÓN corta (ej. 7 a 14 días), con dosis base segura, condicionada a presentación de evidencia (envase, receta) y monitoreo estricto."
+> "Evaluación Clínica URGENTE (Protocolo de Contingencia): Uso crónico referido de estimulantes con prescriptor desconocido. REGLA OPERATIVA: 1) Prohibido el abandono (alto riesgo de daño por interrupción/depresión). 2) Resolución obligatoria HOY. 3) Proveer continuidad transitoria supervisada (puente clínico), con dosis base segura a definir por el médico tratante." (Anexando prohibición expresa de renovación automática si la dosis reportada se encuadra como 'Extraordinaria').
 
 ---
 
