@@ -79,10 +79,22 @@ export interface PatientPrescription {
     frequency: string;
     duration: string;
     instructions: string;
+    diagnosis: string | null;
+    doctor_name: string | null;
+    prescriber_specialty: string | null;
     notes: string | null;
     status: string;
     prescribed_date: string;
     start_date: string;
     end_date: string | null;
     side_effects_warning: string | null;
+    cuir: string | null;
+    vendor_name: string | null;
+    vendor_id: string | null;
+    qr_code_content: string | null;
+    signed_pdf_url: string | null;
+    artifact_warning: string | null;
+    is_digital_artifact_ready: boolean;
+    requires_strict_validation: boolean;
+    source: 'legacy' | 'prescriptions_core';
 }
