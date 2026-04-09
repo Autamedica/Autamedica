@@ -131,7 +131,23 @@ export function generatePsychiatryIntakePdf(input: PsychiatryIntakePdfInput): Ps
   const panic = extractBool(flatData, 'crisis_panico')
   const selfHarm = extractBool(flatData, 'ideas_autolesion')
   
-  const unknownPrescriber = prescriptor.toLowerCase().includes('no ') || prescriptor.toLowerCase().includes('recuerdo') || prescriptor.toLowerCase().includes('ningun')
+  // NUEVA LÓGICA DE INCERTIDUMBRE (Reconciliación de medicación)
+  const prescriptorLower = prescriptor.toLowerCase()
+  let prescriberStatus = 'verified'
+  if (prescriptorLower.includes('no ') || prescriptorLower.includes('recuerdo') || prescriptorLower.includes('ningun') || prescriptor === 'No especificado' || prescriptorLower.length < 4) {
+    prescriberStatus = 'unknown' // paciente no refiere un médico claro
+  } else {
+    prescriberStatus = 'patient_reported_unverified' // refiere un nombre pero no hay foto receta subida
+  }
+
+  const dosisLower = dosis.toLowerCase()
+  let doseConfidence = 'high'
+  if (dosisLower.includes('pastilla') || dosisLower.includes('comprimido') || dosisLower.includes('abuso') || dosisLower === 'dosis no especificada' || dosisLower === 'no se') {
+    doseConfidence = 'low'
+  }
+
+  // Bandera de revisión obligatoria para continuidad
+  const requiresClinicianReview = prescriberStatus === 'unknown' || doseConfidence === 'low'
 
   // ---------- I. IMPRESIÓN CLÍNICA INICIAL (Capa 3: Redacción) ----------
   doc.setTextColor(15, 23, 42)
@@ -144,7 +160,29 @@ export function generatePsychiatryIntakePdf(input: PsychiatryIntakePdfInput): Ps
   doc.setFontSize(10)
   doc.setTextColor(51, 65, 85)
   
-  const sintesisTexto = `Paciente se presenta refiriendo como motivo principal: "${motivo}". Menciona diagnóstico previo de ${diagText}. Actualmente indica estar en tratamiento con ${meds} (${dosis}). En relación a su profesional tratante previo o prescribiente, el paciente indica: "${prescriptor}".`
+  let sintesisTexto = `Paciente se presenta refiriendo como motivo principal: "${motivo}". Menciona diagnóstico previo de ${diagText}.`
+  
+  if (meds !== 'Sin medicación reportada') {
+    sintesisTexto += `\nPaciente refiere uso actual de ${meds} con beneficio subjetivo reportado.`
+    
+    if (prescriberStatus === 'unknown') {
+      sintesisTexto += ` No recuerda el profesional prescriptor o la información brindada es insuficiente.`
+    } else {
+      sintesisTexto += ` Refiere haber sido indicado por: ${prescriptor} (Información pendiente de verificación documental).`
+    }
+
+    if (doseConfidence === 'low') {
+      sintesisTexto += ` La dosis reportada (${dosis}) carece de precisión clínica y requiere confirmación.`
+    } else {
+      sintesisTexto += ` Dosis reportada: ${dosis}.`
+    }
+  } else {
+    sintesisTexto += `\nNo reporta tratamiento psicofarmacológico actual.`
+  }
+
+  if (requiresClinicianReview) {
+    sintesisTexto += `\n\nATENCIÓN: Se recomienda verificación activa de antecedente farmacológico antes de documentar continuidad terapéutica o prescribir.`
+  }
   
   const sintesisLines = doc.splitTextToSize(sintesisTexto, contentWidth)
   for (const line of sintesisLines) {
@@ -212,16 +250,23 @@ De manera global, describe su respuesta previa a la pauta farmacológica como: "
   y += 8
 
   // ---------- IV. ALERTA Y SEMAFORIZACIÓN (Capa 4: Decisión y Flags) ----------
-  const isHighDoseText = dosis.toLowerCase().includes('pastilla') || dosis.toLowerCase().includes('abuso') || dosis.toLowerCase().includes('comprimidos')
   // Incoherencia: Marca insomnio pero dice algo extraño sobre el tiempo durmiendo
   const sleepInconsistency = insomnia && (functionalImpact.toLowerCase().includes('duermo') || functionalImpact.toLowerCase().includes('sueño'))
 
   const alerts = []
   
-  if (unknownPrescriber) alerts.push('• Prescribiente Desconocido o Dudoso: El paciente no puede identificar claramente quién prescribió la medicación actual. Validar procedencia del fármaco previo y adherencia real.')
-  if (isHighDoseText) alerts.push('• Posible Dosis Atípica: Relato de dosis inexacta ("pastillas", "comprimidos" en vez de mg). Riesgo de sobredosificación o mal uso.')
-  if (insomnia || sleepInconsistency) alerts.push('• Evaluación de Sueño Confusa / Severa: Reporte discordante o severo sobre la calidad de horas de sueño ("insomnio" sumado a reportes extensos de dormir). Evaluar hipótesis de efecto rebote, depresión comórbida o inversión de ritmo crcircadiano.')
-  if (chestPain || panic || selfHarm) alerts.push('• Riesgo Cardio/Psiquiátrico: Presencia de marcadores de alarma que exigen posponer escalada de dosis o titulación hasta realizar electrocardiograma e interconsulta en piso.')
+  if (prescriberStatus === 'unknown') {
+    alerts.push('• Reconciliación Farmacológica Pendiente: Prescriptor no identificable. NO autogenerar conclusión terapéutica cerrada. Solicitar evidencia complementaria (recetario previo, caja/blíster, HC previa) antes de emitir recetas.')
+  }
+  if (doseConfidence === 'low') {
+    alerts.push('• Evaluación de Dosis Incierta: Relato de dosis inexacta (e.g., "pastillas"). Riesgo de sobredosificación, mal uso o abstinencia aguda. Indagar presentación (IR/LA) y gramaje exacto.')
+  }
+  if (insomnia || sleepInconsistency) {
+    alerts.push('• Evaluación de Sueño Confusa / Severa: Reporte discordante o severo sobre la calidad de horas de sueño ("insomnio" sumado a reportes extensos de dormir). Evaluar hipótesis de efecto rebote o depresión comórbida.')
+  }
+  if (chestPain || panic || selfHarm) {
+    alerts.push('• Riesgo Cardio/Psiquiátrico: Presencia de marcadores de alarma (Pánico, Dolor de pecho, Autolesión). Obligatorio posponer escalada de dosis empírica hasta interconsulta neurológica o cardiovascular.')
+  }
 
   if (alerts.length > 0) {
     checkPageBreak(25 + (alerts.length * 9))
