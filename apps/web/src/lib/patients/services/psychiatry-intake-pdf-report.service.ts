@@ -140,14 +140,20 @@ export function generatePsychiatryIntakePdf(input: PsychiatryIntakePdfInput): Ps
     prescriberStatus = 'patient_reported_unverified' // refiere un nombre pero no hay foto receta subida
   }
 
+  // Validación de Dosis (Límites farmacológicos rutinarios)
   const dosisLower = dosis.toLowerCase()
-  let doseConfidence = 'high'
-  if (dosisLower.includes('pastilla') || dosisLower.includes('comprimido') || dosisLower.includes('abuso') || dosisLower === 'dosis no especificada' || dosisLower === 'no se') {
-    doseConfidence = 'low'
+  const numericDoseMatch = dosisLower.match(/(\d+)/)
+  const numericDose = numericDoseMatch ? parseInt(numericDoseMatch[1], 10) : 0
+  let doseCategory = 'standard'
+
+  if (numericDose >= 100) {
+    doseCategory = 'extraordinary' // Dosis extraordinariamente alta (e.g. >100mg metilfenidato/lisdexanfetamina)
+  } else if (dosisLower.includes('pastilla') || dosisLower.includes('comprimido') || dosisLower.includes('abuso') || dosisLower === 'dosis no especificada' || dosisLower === 'no se') {
+    doseCategory = 'imprecise'
   }
 
   // Bandera de revisión obligatoria para continuidad
-  const requiresClinicianReview = prescriberStatus === 'unknown' || doseConfidence === 'low'
+  const requiresClinicianReview = prescriberStatus === 'unknown' || doseCategory === 'imprecise' || doseCategory === 'extraordinary'
 
   // ---------- I. IMPRESIÓN CLÍNICA INICIAL (Capa 3: Redacción) ----------
   doc.setTextColor(15, 23, 42)
@@ -171,8 +177,10 @@ export function generatePsychiatryIntakePdf(input: PsychiatryIntakePdfInput): Ps
       sintesisTexto += ` Refiere haber sido indicado por: ${prescriptor} (Información pendiente de verificación documental).`
     }
 
-    if (doseConfidence === 'low') {
+    if (doseCategory === 'imprecise') {
       sintesisTexto += ` La dosis reportada (${dosis}) carece de precisión clínica y requiere confirmación.`
+    } else if (doseCategory === 'extraordinary') {
+      sintesisTexto += ` La dosis reportada (${dosis}) resulta extraordinaria y excede márgenes de uso rutinario, exigiendo revisión.`
     } else {
       sintesisTexto += ` Dosis reportada: ${dosis}.`
     }
@@ -258,8 +266,15 @@ De manera global, describe su respuesta previa a la pauta farmacológica como: "
   if (prescriberStatus === 'unknown') {
     alerts.push('• Reconciliación Farmacológica Pendiente: Prescriptor no identificable. NO autogenerar conclusión terapéutica cerrada. Solicitar evidencia complementaria (recetario previo, caja/blíster, HC previa) antes de emitir recetas.')
   }
-  if (doseConfidence === 'low') {
-    alerts.push('• Evaluación de Dosis Incierta: Relato de dosis inexacta (e.g., "pastillas"). Riesgo de sobredosificación, mal uso o abstinencia aguda. Indagar presentación (IR/LA) y gramaje exacto.')
+  if (doseCategory === 'extraordinary') {
+    alerts.push(`• Dosis Extraordinaria Reportada (${numericDose} mg): Fuera de los límites farmacológicos rutinarios aprobados de uso (máx ~60-100mg/día). NO renovar a ciegas. Tratar como dato a reconciliar urgente por riesgo de sobredosificación, mal uso o error de captura.`)
+  } else if (doseCategory === 'imprecise') {
+    alerts.push('• Evaluación de Dosis Incierta: Relato de dosis inexacta (e.g., "pastillas"). Riesgo de mala adherencia o abstinencia aguda. Indagar presentación (IR/LA) y gramaje exacto.')
+  }
+  
+  // PUENTE CLÍNICO DE CONTINGENCIA
+  if (prescriberStatus === 'unknown' && (diagText.toLowerCase().includes('tdah') || meds.toLowerCase().includes('metilfenidato') || meds.toLowerCase().includes('lisdexanfetamina') || meds.toLowerCase().includes('estimulante'))) {
+    alerts.push('• Protocolo de Reducción de Daños (Puente Clínico): Ante medicación controlada con prescripción incierta pero alto riesgo de síndrome de retirada (abstención/depresión), NO discontinuar abruptamente. Proveer RECETA PUENTE DE TRANSICIÓN corta (ej. 7 a 14 días), con dosis base segura, condicionada a presentación de evidencia (envase, receta) y monitoreo estricto.')
   }
   if (insomnia || sleepInconsistency) {
     alerts.push('• Evaluación de Sueño Confusa / Severa: Reporte discordante o severo sobre la calidad de horas de sueño ("insomnio" sumado a reportes extensos de dormir). Evaluar hipótesis de efecto rebote o depresión comórbida.')
