@@ -26,6 +26,7 @@ vi.mock('./anamnesis-version.service', () => ({
 
 vi.mock('@autamedica/shared', () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
+  domainEvents: { emit: vi.fn().mockResolvedValue(undefined) },
 }))
 
 import { anamnesisService, KNOWN_SECTIONS } from './anamnesis.service'
