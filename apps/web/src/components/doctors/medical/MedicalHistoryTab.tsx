@@ -230,7 +230,7 @@ export function MedicalHistoryTab({ patientId }: MedicalHistoryTabProps): JSX.El
                             Motivo de Consulta
                           </h4>
                           <p className="text-xs text-am-surface-700 leading-relaxed">
-                            {record.reason || 'No especificado'}
+                            {record.chief_complaint || 'No especificado'}
                           </p>
                         </div>
 
