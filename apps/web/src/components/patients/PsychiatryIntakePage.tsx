@@ -108,7 +108,8 @@ const fadeSlide = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -12 },
-  transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as any },
 }
 
 const fadeIn = {
@@ -448,7 +449,7 @@ export default function PsychiatryIntakePage() {
               <div className="max-w-2xl">
                 <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-sky-50/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 backdrop-blur-sm">
                   <Stethoscope className="h-3.5 w-3.5" />
-                  Evaluación TDAH
+                  Evaluación Psiquiátrica
                 </div>
                 <h1 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                   Completá tu evaluación
