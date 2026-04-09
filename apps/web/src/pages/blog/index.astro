@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Navbar from '../../components/Navbar.astro';
 import Footer from '../../components/Footer.astro';
+import CardAudioButton from '../../components/blog/CardAudioButton';
 
 const articles = [
   {
@@ -596,7 +597,10 @@ const articles = [
               <div class="blog-card-content">
                 <div class="blog-card-header">
                   <span class="seo-badge">{article.category}</span>
-                  <span class="blog-read-time">{article.readTime}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="blog-read-time">{article.readTime}</span>
+                    <CardAudioButton client:load title={article.title} slug={article.slug} />
+                  </div>
                 </div>
                 <h2 class="blog-card-title">{article.title}</h2>
                 <p class="blog-card-excerpt">{article.excerpt}</p>
