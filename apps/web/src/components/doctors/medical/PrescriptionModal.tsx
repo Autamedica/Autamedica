@@ -1,129 +1,144 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import type { JSX } from 'react'
-import { X, Save, Clock, Pill, AlertCircle, Plus, Trash2 } from 'lucide-react'
-import { useMedicalHistoryStore } from '@/lib/doctors/stores/medicalHistoryStore'
-import { usePrescriptions } from '@/hooks/doctors/usePrescriptions'
+import { useState } from "react";
+import type { JSX } from "react";
+import { X, Save, Clock, Pill, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { useMedicalHistoryStore } from "@/lib/doctors/stores/medicalHistoryStore";
+import { usePrescriptions } from "@/hooks/doctors/usePrescriptions";
+import { requiresStrictPrescriptionValidation } from "@/lib/prescriptions/strict-validation";
 
 interface PrescriptionModalProps {
-  patientName: string
-  patientId: string
-  onClose: () => void
+  patientName: string;
+  patientId: string;
+  onClose: () => void;
 }
 
 interface Medication {
-  id: string
-  name: string
-  dosage: string
-  frequency: string
-  duration: string
-  instructions: string
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  instructions: string;
 }
 
 const FREQUENCY_OPTIONS = [
-  'Cada 4 horas',
-  'Cada 6 horas',
-  'Cada 8 horas',
-  'Cada 12 horas',
-  'Cada 24 horas',
-  'Antes de las comidas',
-  'Después de las comidas',
-  'Al acostarse'
-]
+  "Cada 4 horas",
+  "Cada 6 horas",
+  "Cada 8 horas",
+  "Cada 12 horas",
+  "Cada 24 horas",
+  "Antes de las comidas",
+  "Después de las comidas",
+  "Al acostarse",
+];
 
 const DURATION_OPTIONS = [
-  '3 días',
-  '5 días',
-  '7 días',
-  '10 días',
-  '14 días',
-  '21 días',
-  '30 días',
-  'Hasta nueva orden'
-]
+  "3 días",
+  "5 días",
+  "7 días",
+  "10 días",
+  "14 días",
+  "21 días",
+  "30 días",
+  "Hasta nueva orden",
+];
 
 const COMMON_MEDICATIONS = [
-  { name: 'Ibuprofeno', dosage: '400mg' },
-  { name: 'Paracetamol', dosage: '500mg' },
-  { name: 'Amoxicilina', dosage: '500mg' },
-  { name: 'Omeprazol', dosage: '20mg' },
-  { name: 'Loratadina', dosage: '10mg' },
-  { name: 'Metformina', dosage: '850mg' }
-]
+  { name: "Ibuprofeno", dosage: "400mg" },
+  { name: "Paracetamol", dosage: "500mg" },
+  { name: "Amoxicilina", dosage: "500mg" },
+  { name: "Omeprazol", dosage: "20mg" },
+  { name: "Loratadina", dosage: "10mg" },
+  { name: "Metformina", dosage: "850mg" },
+];
 
-export function PrescriptionModal({ patientName, patientId, onClose }: PrescriptionModalProps): JSX.Element {
-  const { suggestPrescriptions } = useMedicalHistoryStore()
-  const { addPrescription } = usePrescriptions(patientId as never)
+export function PrescriptionModal({
+  patientName,
+  patientId,
+  onClose,
+}: PrescriptionModalProps): JSX.Element {
+  const { suggestPrescriptions } = useMedicalHistoryStore();
+  const { addPrescription } = usePrescriptions(patientId as never);
   const [medications, setMedications] = useState<Medication[]>([
     {
       id: crypto.randomUUID(),
-      name: '',
-      dosage: '',
-      frequency: 'Cada 8 horas',
-      duration: '7 días',
-      instructions: ''
-    }
-  ])
-  const [diagnosis, setDiagnosis] = useState('')
-  const [generalInstructions, setGeneralInstructions] = useState('')
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [aiSuggestions, setAiSuggestions] = useState<string[]>([])
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+      name: "",
+      dosage: "",
+      frequency: "Cada 8 horas",
+      duration: "7 días",
+      instructions: "",
+    },
+  ]);
+  const [diagnosis, setDiagnosis] = useState("");
+  const [generalInstructions, setGeneralInstructions] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const requiresStrictValidation = medications.some((med) =>
+    requiresStrictPrescriptionValidation(med.name),
+  );
 
   const addMedication = () => {
-    setMedications(prev => [...prev, {
-      id: crypto.randomUUID(),
-      name: '',
-      dosage: '',
-      frequency: 'Cada 8 horas',
-      duration: '7 días',
-      instructions: ''
-    }])
-  }
+    setMedications((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name: "",
+        dosage: "",
+        frequency: "Cada 8 horas",
+        duration: "7 días",
+        instructions: "",
+      },
+    ]);
+  };
 
   const removeMedication = (id: string) => {
-    setMedications(prev => prev.filter(med => med.id !== id))
-  }
+    setMedications((prev) => prev.filter((med) => med.id !== id));
+  };
 
   const updateMedication = (id: string, field: keyof Medication, value: string) => {
-    setMedications(prev => prev.map(med =>
-      med.id === id ? { ...med, [field]: value } : med
-    ))
-  }
+    setMedications((prev) => prev.map((med) => (med.id === id ? { ...med, [field]: value } : med)));
+  };
 
-  const handleQuickMedication = (medication: typeof COMMON_MEDICATIONS[0], medId: string) => {
-    updateMedication(medId, 'name', medication.name)
-    updateMedication(medId, 'dosage', medication.dosage)
-  }
+  const handleQuickMedication = (medication: (typeof COMMON_MEDICATIONS)[0], medId: string) => {
+    updateMedication(medId, "name", medication.name);
+    updateMedication(medId, "dosage", medication.dosage);
+  };
 
   const handleGetSuggestions = async () => {
-    if (!diagnosis) return
+    if (!diagnosis) return;
 
-    setShowSuggestions(true)
-    const suggestions = await suggestPrescriptions(diagnosis)
-    setAiSuggestions(suggestions)
-  }
+    setShowSuggestions(true);
+    const suggestions = await suggestPrescriptions(diagnosis);
+    setAiSuggestions(suggestions);
+  };
 
   const savePrescription = async () => {
-    const normalizedMedications = medications.filter((med) => med.name.trim())
+    const normalizedMedications = medications.filter((med) => med.name.trim());
 
     if (normalizedMedications.length === 0) {
-      setSaveError('Agregá al menos un medicamento antes de guardar.')
-      return
+      setSaveError("Agregá al menos un medicamento antes de guardar.");
+      return;
     }
 
-    setSaving(true)
-    setSaveError(null)
+    setSaving(true);
+    setSaveError(null);
 
     try {
-      const primaryMedication = normalizedMedications[0] ?? { name: '', dosage: '', frequency: '', duration: '', instructions: '' }
-      const now = new Date().toISOString()
+      const primaryMedication = normalizedMedications[0] ?? {
+        name: "",
+        dosage: "",
+        frequency: "",
+        duration: "",
+        instructions: "",
+      };
+      const now = new Date().toISOString();
 
       await addPrescription({
         patient_id: patientId as never,
-        doctor_id: '' as never,
+        doctor_id: "" as never,
         medical_record_id: null,
         medication_name: primaryMedication.name,
         dosage: primaryMedication.dosage,
@@ -131,24 +146,28 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
         duration: primaryMedication.duration,
         instructions: [
           primaryMedication.instructions.trim(),
-          generalInstructions.trim() ? `Indicaciones generales: ${generalInstructions.trim()}` : ''
-        ].filter(Boolean).join('\n'),
-        status: 'activa',
+          generalInstructions.trim() ? `Indicaciones generales: ${generalInstructions.trim()}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        diagnosis: diagnosis.trim() || null,
+        status: "activa",
         prescribed_date: now,
         start_date: now,
         end_date: null,
-        notes: diagnosis.trim() ? `Diagnóstico: ${diagnosis.trim()}` : null,
+        notes: generalInstructions.trim() || null,
         side_effects_warning: null,
-      })
+      });
 
-      onClose()
+      onClose();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo guardar la prescripción.'
-      setSaveError(message)
+      const message =
+        error instanceof Error ? error.message : "No se pudo guardar la prescripción.";
+      setSaveError(message);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -207,7 +226,9 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
               <p className="text-xs font-medium text-am-doctor-700 mb-2">Sugerencias de IA:</p>
               <div className="space-y-1">
                 {aiSuggestions.map((suggestion, idx) => (
-                  <p key={idx} className="text-xs text-am-doctor-600">• {suggestion}</p>
+                  <p key={idx} className="text-xs text-am-doctor-600">
+                    • {suggestion}
+                  </p>
                 ))}
               </div>
             </div>
@@ -228,10 +249,15 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
             </div>
 
             {medications.map((med, index) => (
-              <div key={med.id} className="rounded-lg border border-am-surface-200 bg-white p-3 space-y-3">
+              <div
+                key={med.id}
+                className="rounded-lg border border-am-surface-200 bg-white p-3 space-y-3"
+              >
                 {/* Header del medicamento */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-am-surface-700">Medicamento {index + 1}</span>
+                  <span className="text-xs font-medium text-am-surface-700">
+                    Medicamento {index + 1}
+                  </span>
                   {medications.length > 1 && (
                     <button
                       type="button"
@@ -247,13 +273,13 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     value={med.name}
-                    onChange={(e) => updateMedication(med.id, 'name', e.target.value)}
+                    onChange={(e) => updateMedication(med.id, "name", e.target.value)}
                     placeholder="Nombre del medicamento"
                     className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   />
                   <input
                     value={med.dosage}
-                    onChange={(e) => updateMedication(med.id, 'dosage', e.target.value)}
+                    onChange={(e) => updateMedication(med.id, "dosage", e.target.value)}
                     placeholder="Dosis (ej: 500mg)"
                     className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   />
@@ -266,7 +292,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                       key={commonMed.name}
                       type="button"
                       onClick={() => handleQuickMedication(commonMed, med.id)}
-                      className="rounded-md border border-am-surface-200 bg-am-surface-50 px-2 py-1 text-xs text-am-surface-700 transition hover:border-blue-400 hover:bg-am-doctor-50 hover:text-am-doctor-700"
+                      className="rounded-md border border-am-surface-200 bg-am-surface-50 px-2 py-1 text-xs text-am-surface-700 transition hover:border-am-doctor-300 hover:bg-am-doctor-50 hover:text-am-doctor-700"
                     >
                       {commonMed.name}
                     </button>
@@ -277,20 +303,24 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                 <div className="grid grid-cols-2 gap-2">
                   <select
                     value={med.frequency}
-                    onChange={(e) => updateMedication(med.id, 'frequency', e.target.value)}
+                    onChange={(e) => updateMedication(med.id, "frequency", e.target.value)}
                     className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   >
-                    {FREQUENCY_OPTIONS.map(freq => (
-                      <option key={freq} value={freq}>{freq}</option>
+                    {FREQUENCY_OPTIONS.map((freq) => (
+                      <option key={freq} value={freq}>
+                        {freq}
+                      </option>
                     ))}
                   </select>
                   <select
                     value={med.duration}
-                    onChange={(e) => updateMedication(med.id, 'duration', e.target.value)}
+                    onChange={(e) => updateMedication(med.id, "duration", e.target.value)}
                     className="rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                   >
-                    {DURATION_OPTIONS.map(dur => (
-                      <option key={dur} value={dur}>{dur}</option>
+                    {DURATION_OPTIONS.map((dur) => (
+                      <option key={dur} value={dur}>
+                        {dur}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -298,7 +328,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
                 {/* Instrucciones específicas */}
                 <textarea
                   value={med.instructions}
-                  onChange={(e) => updateMedication(med.id, 'instructions', e.target.value)}
+                  onChange={(e) => updateMedication(med.id, "instructions", e.target.value)}
                   placeholder="Instrucciones específicas (opcional)"
                   className="min-h-[60px] w-full resize-none rounded-lg border border-am-surface-300 bg-white p-2 text-sm text-am-surface-900 placeholder:text-am-surface-400 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
                 />
@@ -306,9 +336,18 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
             ))}
           </div>
 
+          {requiresStrictValidation && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              Metilfenidato y lisdexanfetamina se guardan como borrador clinico hasta emitir soporte
+              electronico verificable. Diagnostico y dosis son obligatorios.
+            </div>
+          )}
+
           {/* Instrucciones generales */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-am-surface-500">Instrucciones generales</label>
+            <label className="text-xs font-medium text-am-surface-500">
+              Instrucciones generales
+            </label>
             <textarea
               value={generalInstructions}
               onChange={(e) => setGeneralInstructions(e.target.value)}
@@ -320,7 +359,7 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
           {/* Timestamp */}
           <div className="flex items-center gap-2 text-xs text-am-surface-400">
             <Clock className="h-3 w-3" />
-            <span>{new Date().toLocaleString('es-ES')}</span>
+            <span>{new Date().toLocaleString("es-ES")}</span>
           </div>
         </div>
 
@@ -345,11 +384,11 @@ export function PrescriptionModal({ patientName, patientId, onClose }: Prescript
               className="flex items-center gap-2 rounded-lg bg-am-doctor-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-am-doctor-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              {saving ? 'Guardando...' : 'Guardar prescripción'}
+              {saving ? "Guardando..." : "Guardar prescripción"}
             </button>
           </div>
         </footer>
       </div>
     </div>
-  )
+  );
 }

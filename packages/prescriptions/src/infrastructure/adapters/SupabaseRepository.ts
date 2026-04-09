@@ -80,6 +80,9 @@ export class SupabasePrescriptionRepository implements IPrescriptionRepository {
         user_agent: event.metadata.userAgent,
         signature_hash: event.metadata.signatureHash
       });
-    if (error) logger.error('[SupabaseRepository] Failed to log audit event', error);
+    if (error) {
+      logger.error('[SupabaseRepository] Failed to log audit event', error);
+      throw error;
+    }
   }
 }

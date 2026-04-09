@@ -2,6 +2,7 @@
 
 import {
     Bot,
+    Brain,
     Calendar,
     ChevronLeft,
     ChevronRight,
@@ -33,7 +34,8 @@ type BottomItem = NavigationItem & {
 
 const navigationItems: NavigationItem[] = [
   { icon: Home, label: 'Inicio', href: '/patients/dashboard', customIcon: '/images/premium/sidebar/home.webp' },
-  { icon: ClipboardList, label: 'Anamnesis', href: '/patients/anamnesis' },
+  { icon: ClipboardList, label: 'Historia general', href: '/patients/anamnesis' },
+  // { icon: Brain, label: 'Psiquiatría TDAH', href: '/patients/psychiatry-tdah' },
   { icon: FileText, label: 'Historia clínica', href: '/patients/medical-history', customIcon: '/images/premium/sidebar/medical_history.webp' },
   { icon: Calendar, label: 'Citas', href: '/patients/appointments', customIcon: '/images/premium/sidebar/appointments.webp' },
   { icon: Video, label: 'Videollamada', href: '/patients/appointments' },

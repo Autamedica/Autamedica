@@ -104,7 +104,7 @@ export default function AnamnesisPage() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50">
         <div className="text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-sky-600" />
-          <p className="mt-3 text-sm text-stone-500">Cargando tu anamnesis...</p>
+          <p className="mt-3 text-sm text-stone-500">Cargando tu historia general...</p>
         </div>
       </div>
     );
@@ -115,9 +115,9 @@ export default function AnamnesisPage() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-50 to-sky-50 p-6">
         <div className="max-w-md text-center">
           <Lock className="mx-auto h-12 w-12 text-stone-500" />
-          <h1 className="mt-4 text-xl font-bold text-stone-900">Anamnesis en revisión</h1>
+          <h1 className="mt-4 text-xl font-bold text-stone-900">Historia general en revisión</h1>
           <p className="mt-2 text-sm text-stone-600">
-            Tu anamnesis está siendo revisada por tu equipo médico. No se pueden hacer cambios en este momento.
+            Tu historia clínica general está siendo revisada por tu equipo médico. No se pueden hacer cambios en este momento.
           </p>
           <a
             href="/patients/dashboard"

@@ -15,13 +15,13 @@ const RELEVANCE_CONFIG: Record<string, { label: string; color: string; bg: strin
 
 export interface VersionEntry {
   id: string;
-  versionNumber: number;
+  version_number: number;
   trigger: string;
   relevance: string | null;
-  changesSummary: { added: string[]; modified: string[]; unchanged: string[] } | null;
-  pdfFilename: string | null;
+  changes_summary: { added: string[]; modified: string[]; unchanged: string[] } | null;
+  pdf_filename: string | null;
   notes: string | null;
-  createdAt: string;
+  created_at: string;
 }
 
 export function VersionTimeline({ onDownload }: { onDownload: (version?: number) => void }) {
@@ -76,18 +76,18 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
               <div className="flex-1 pb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-stone-800">
-                    V{v.versionNumber} — {date}
+                    V{v.version_number} — {date}
                   </span>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${rel.bg} ${rel.color}`}>
                     {isFirst ? 'Primera consulta' : rel.label}
                   </span>
                 </div>
 
-                {v.changesSummary && !isFirst && (
+                {v.changes_summary && !isFirst && (
                   <p className="mt-0.5 text-xs text-stone-500">
                     {[
-                      v.changesSummary.added.length > 0 && `${v.changesSummary.added.length} nuevas`,
-                      v.changesSummary.modified.length > 0 && `${v.changesSummary.modified.length} actualizadas`,
+                      v.changes_summary.added.length > 0 && `${v.changes_summary.added.length} nuevas`,
+                      v.changes_summary.modified.length > 0 && `${v.changes_summary.modified.length} actualizadas`,
                     ].filter(Boolean).join(', ') || 'Sin cambios'}
                   </p>
                 )}
@@ -97,7 +97,7 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
                 )}
 
                 <button
-                  onClick={() => onDownload(v.versionNumber)}
+                  onClick={() => onDownload(v.version_number)}
                   className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-700"
                 >
                   <Download className="h-3 w-3" /> Descargar PDF

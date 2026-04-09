@@ -67,4 +67,32 @@ describe('IssuePrescriptionUseCase', () => {
     await expect(useCase.execute(mockDraft, 'user-1', { ip: '1', ua: 't' }))
       .rejects.toThrow('Doctor not authorized');
   });
+
+  it('should fail when audit logging fails', async () => {
+    const repo = {
+      saveDraft: vi.fn().mockResolvedValue('pres-1'),
+      markAsIssued: vi.fn().mockResolvedValue({ id: 'pres-1', cuir: 'CUIR-123' }),
+      logAuditEvent: vi.fn().mockRejectedValue(new Error('audit insert failed'))
+    } as unknown as IPrescriptionRepository;
+
+    const vendor = {
+      submit: vi.fn().mockResolvedValue({
+        cuir: 'CUIR-123',
+        qrCodeContent: 'qr',
+        issuedAt: new Date().toISOString(),
+        expiresAt: new Date().toISOString()
+      })
+    } as unknown as IPrescriptionVendor;
+
+    const identity = {
+      validateDoctor: vi.fn().mockResolvedValue({ active: true }),
+      validatePatient: vi.fn().mockResolvedValue({ isValid: true })
+    } as unknown as IIdentityValidator;
+
+    const useCase = new IssuePrescriptionUseCase(repo, vendor, identity);
+
+    await expect(
+      useCase.execute(mockDraft, 'user-1', { ip: '127.0.0.1', ua: 'test' })
+    ).rejects.toThrow('audit insert failed');
+  });
 });

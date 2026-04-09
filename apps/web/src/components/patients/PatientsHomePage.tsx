@@ -7,6 +7,7 @@ import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedi
 import type { Locale } from '@/i18n/index'
 import {
   Bell,
+  Brain,
   Calendar,
   ChevronRight,
   Clock,
@@ -164,7 +165,7 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     { key: 'dob', label: 'Fecha de nacimiento', completed: !!patient?.birthDate, href: '/patients/profile' },
     { key: 'phone', label: 'Telefono de contacto', completed: !!profile?.phone, href: '/patients/profile' },
     { key: 'gender', label: 'Genero', completed: !!patient?.gender, href: '/patients/profile' },
-    { key: 'anamnesis', label: 'Completar anamnesis', completed: anamnesisProgress >= 80, href: '/patients/anamnesis' },
+    { key: 'anamnesis', label: 'Completar historia general', completed: anamnesisProgress >= 80, href: '/patients/anamnesis' },
   ], [profile, patient, anamnesisProgress])
 
   const checklistCompleted = checklistItems.filter(i => i.completed).length
@@ -174,7 +175,8 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     { key: 'video', label: 'Videoconsulta', sub: 'Conectá en vivo', href: '/patients/appointments?type=telemedicine', icon: Video, color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100 hover:border-sky-200' },
     { key: 'turnos', label: 'Mis turnos', sub: 'Agendá citas', href: '/patients/appointments', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100 hover:border-violet-200' },
     { key: 'recetas', label: 'Mis Recetas', sub: 'Billetera digital', href: '/patients/medical-history', icon: Pill, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100 hover:border-emerald-200' },
-    { key: 'anamnesis', label: 'Anamnesis', sub: 'Historia clínica', href: '/patients/anamnesis', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-200' },
+    { key: 'anamnesis', label: 'Historia general', sub: 'Ficha clínica no psiquiátrica', href: '/patients/anamnesis', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-200' },
+    // { key: 'psiquiatria_tdah', label: 'Psiquiatría TDAH', sub: 'Evaluación separada', href: '/patients/psychiatry-tdah', icon: Brain, color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
     { key: 'preventivo', label: 'Salud Preventiva', sub: 'Controles médicos', href: '/patients/preventive-health', icon: Shield, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100 hover:border-teal-200' },
     { key: 'reproductiva', label: 'Salud Reproductiva', sub: 'IVE/ILE e información', href: '/patients/reproductive-health', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
     { key: 'comunidad', label: 'Comunidad', sub: 'Otros pacientes', href: '/patients/community', icon: MessageCircle, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50', border: 'border-fuchsia-100 hover:border-fuchsia-200' },
