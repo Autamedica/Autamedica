@@ -6,200 +6,168 @@ import Footer from '../components/Footer.astro';
 
 const specialties = [
   {
+    id: 'general',
     name: 'Medicina General',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>',
-    description: 'Primera consulta, diagnóstico inicial, seguimiento de enfermedades crónicas, evaluación general de salud.',
-    includes: ['Evaluación de síntomas', 'Prescripción de medicamentos', 'Referencia a especialistas', 'Seguimiento de salud'],
-    href: '/patients?specialty=general',
-    btnText: 'Ver Médicos',
+    tagline: 'Atención primaria integral.',
+    description: 'Nuestra primera línea de atención para diagnósticos iniciales, triaje clínico y seguimiento de salud preventiva 24/7.',
+    href: '/medico-online',
+    icon: 'Stethoscope'
   },
   {
-    name: 'Cardiología',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-    description: 'Evaluación de problemas cardíacos, hipertensión, arritmias, seguimiento post-infarto.',
-    includes: ['Problemas del corazón', 'Control de presión arterial', 'Palpitaciones y arritmias', 'Riesgo cardiovascular'],
-    href: '/cardiologo-online',
-    btnText: 'Ver más',
-  },
-  {
-    name: 'Dermatología',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
-    description: 'Problemas de piel, acné, eccema, alergias dermatológicas, lunares y lesiones de piel.',
-    includes: ['Acné y puntos negros', 'Eccema y dermatitis', 'Hongos y infecciones', 'Evaluación de lunares'],
-    href: '/dermatologo-online',
-    btnText: 'Ver más',
-  },
-  {
-    name: 'Psicología & Salud Mental',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
-    description: 'Apoyo emocional, ansiedad, depresión, estrés, terapia psicológica y bienestar mental.',
-    includes: ['Ansiedad y pánico', 'Depresión', 'Estrés y burn-out', 'Terapia psicológica'],
+    id: 'psy',
+    name: 'Psicología',
+    tagline: 'Salud mental y bienestar.',
+    description: 'Sesiones privadas con especialistas en manejo de ansiedad, depresión, estrés y acompañamiento terapéutico continuo.',
     href: '/psicologo-online',
-    btnText: 'Ver más',
+    icon: 'Brain'
   },
   {
-    name: 'Ginecología',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-    description: 'Salud femenina, métodos anticonceptivos, ciclo menstrual, infecciones, control del embarazo.',
-    includes: ['Ciclo menstrual', 'Anticonceptivos', 'Infecciones vaginales', 'Control de embarazo'],
-    href: '/patients?specialty=gynecology',
-    btnText: 'Ver Ginecólogas',
+    id: 'derma',
+    name: 'Dermatología',
+    tagline: 'Excelencia en salud cutánea.',
+    description: 'Evaluación profesional de lesiones, acné, afecciones crónicas y consultas de prevención oncológica de la piel.',
+    href: '/dermatologo-online',
+    icon: 'Sparkles'
   },
   {
+    id: 'cardio',
+    name: 'Cardiología',
+    tagline: 'Cuidado cardiovascular avanzado.',
+    description: 'Control de hipertensión, evaluación de riesgo coronario y seguimiento de patologías cardíacas crónicas.',
+    href: '/cardiologo-online',
+    icon: 'Heart'
+  },
+  {
+    id: 'pedia',
     name: 'Pediatría',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-    description: 'Consultas para menores de edad, evaluación de síntomas, desarrollo infantil, vacunación.',
-    includes: ['Síntomas en niños', 'Desarrollo infantil', 'Nutrición pediátrica', 'Seguimiento de salud'],
+    tagline: 'Atención especializada infantil.',
+    description: 'Consultas de desarrollo, pediatría de urgencia y seguimiento integral para la salud de los más pequeños.',
     href: '/patients?specialty=pediatrics',
-    btnText: 'Ver Pediatras',
+    icon: 'Baby'
   },
   {
+    id: 'gastro',
     name: 'Gastroenterología',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
-    description: 'Problemas digestivos, gastritis, reflujo, colon irritable, evaluación intestinal.',
-    includes: ['Gastritis y úlceras', 'Reflujo gástrico', 'Síndrome del colon irritable', 'Trastornos digestivos'],
+    tagline: 'Especialistas en salud digestiva.',
+    description: 'Tratamiento de trastornos digestivos, reflujo, gastritis y patologías del tracto gastrointestinal.',
     href: '/patients?specialty=gastroenterology',
-    btnText: 'Ver Médicos',
+    icon: 'Activity'
   },
   {
-    name: 'Neumología',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>',
-    description: 'Problemas respiratorios, asma, alergias pulmonares, tos crónica, EPOC.',
-    includes: ['Asma', 'Alergias respiratorias', 'Tos crónica', 'Problemas pulmonares'],
-    href: '/patients?specialty=pneumology',
-    btnText: 'Ver Neumólogos',
-  },
-  {
+    id: 'neuro',
     name: 'Neurología',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-    description: 'Dolores de cabeza, migrañas, vértigo, neuropatías, trastornos neurológicos.',
-    includes: ['Migrañas y cefaleas', 'Vértigo y mareos', 'Nervios pinzados', 'Problemas neurológicos'],
+    tagline: 'Diagnóstico neurológico preciso.',
+    description: 'Atención especializada en migrañas, trastornos del sistema nervioso y afecciones neurológicas complejas.',
     href: '/patients?specialty=neurology',
-    btnText: 'Ver Neurólogos',
-  },
-  {
-    name: 'Nutrición & Dietética',
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',
-    description: 'Planes de nutrición, pérdida de peso, dietas especializadas, educación alimentaria.',
-    includes: ['Planes nutricionales', 'Pérdida de peso', 'Dietas especiales', 'Educación alimentaria'],
-    href: '/patients?specialty=nutrition',
-    btnText: 'Ver Nutricionistas',
-  },
+    icon: 'Zap'
+  }
 ];
 ---
 
-<Layout
-  title="Especialidades Médicas Online - Doctores por Especialidad | AutaMedica"
-  description="Encuentra especialistas médicos por área. Dermatólogo, psicólogo, cardiólogo online. Consultas virtuales con profesionales certificados en Argentina."
-  canonical="https://www.autamedica.com/especialidades"
-  ogImage="/images/seo/og-main.webp"
-  robots="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
->
+<Layout title="AutaMedica | Especialidades Médicas y Cuerpo Profesional" description="Directorio institucional de especialidades médicas. Médicos certificados en Medicina General, Psicología, Dermatología y más especialidades de alta complejidad.">
   <Navbar />
-  <main class="min-h-screen">
-    <!-- Hero -->
-    <section class="seo-hero">
-      <h1>Especialidades Médicas Online</h1>
-      <p class="seo-subtitle">
-        Accede a médicos especializados de diferentes áreas. Todos certificados, verificados y disponibles 24/7.
-      </p>
-    </section>
+  
+  <main class="bg-white text-neutral-900 pt-32 pb-20">
+    <!-- Institutional Header -->
+    <header class="container mx-auto px-6 py-20 text-left border-b border-neutral-100">
+      <div class="max-w-4xl">
+        <span class="text-[var(--au-accent)] font-bold text-xs uppercase tracking-widest mb-6 block">Directorio Médico Oficial</span>
+        <h1 class="text-5xl md:text-7xl font-serif font-medium leading-tight tracking-tight text-neutral-950 mb-8">
+          Excelencia clínica en <br/> 
+          <span class="text-neutral-500 italic">múltiples disciplinas.</span>
+        </h1>
+        <p class="text-xl text-neutral-600 max-w-2xl font-light leading-relaxed">
+          Cada departamento de AutaMedica está liderado por profesionales certificados, garantizando un estándar uniforme de calidad asistencial en toda nuestra red.
+        </p>
+      </div>
+    </header>
 
-    <!-- Specialties Grid -->
-    <section class="seo-section">
-      <div class="seo-container">
-        <div class="seo-grid-3">
-          {specialties.map((s) => (
-            <div class="seo-card specialty-card">
-              <div class="specialty-header">
-                <div class="seo-card-icon" set:html={s.icon} />
-                <h2>{s.name}</h2>
+    <!-- Professional Directory List -->
+    <section class="container mx-auto px-6 py-24">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-20">
+        {specialties.map((s) => (
+          <div class="specialty-entry group">
+            <div class="flex flex-col md:flex-row gap-8 items-start">
+              <div class="flex-shrink-0 w-16 h-16 rounded-full bg-neutral-50 border border-neutral-100 flex items-center justify-center text-[var(--au-accent)] transition-colors group-hover:bg-neutral-950 group-hover:text-white group-hover:border-neutral-950">
+                {s.id === 'general' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h1a.3.3 0 1 0 .2-.3M7 2h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 11v10m-4-2h8"/></svg>}
+                {s.id === 'psy' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>}
+                {s.id === 'derma' && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8m-4-4v8"/></svg>}
+                {(!['general', 'psy', 'derma'].includes(s.id)) && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>}
               </div>
-              <p>{s.description}</p>
-              <ul class="seo-checklist">
-                {s.includes.map((item) => (
-                  <li>{item}</li>
-                ))}
-              </ul>
-              <a href={s.href} class="seo-btn-primary">{s.btnText}</a>
+              
+              <div class="space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-[0.2em] text-neutral-400">{s.tagline}</h3>
+                <h2 class="text-3xl font-serif font-bold text-neutral-900 group-hover:text-[var(--au-accent)] transition-colors">
+                  {s.name}
+                </h2>
+                <p class="text-neutral-600 leading-relaxed max-w-md">
+                  {s.description}
+                </p>
+                <div class="pt-4">
+                  <a href={s.href} class="text-sm font-bold border-b-2 border-neutral-100 group-hover:border-[var(--au-accent)] pb-1 transition-all">
+                    Consultar Especialista
+                  </a>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </section>
 
-    <!-- Why Choose Specialists -->
-    <section class="seo-section">
-      <div class="seo-container">
-        <h2>¿Por Qué Consultar con Especialistas Online?</h2>
-        <div class="seo-grid-4">
-          <div class="seo-card">
-            <div class="seo-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <!-- Institutional Quality Section -->
+    <section class="py-32 bg-neutral-50 border-y border-neutral-100">
+      <div class="container mx-auto px-6">
+        <div class="max-w-3xl mx-auto text-center">
+          <h2 class="text-4xl font-serif font-bold mb-12">Calidad médica sin compromisos.</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div>
+              <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">100%</div>
+              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">Médicos Matriculados</p>
             </div>
-            <h3>Expertos Certificados</h3>
-            <p>Cada especialista tiene años de experiencia y certificaciones en su área.</p>
-          </div>
-          <div class="seo-card">
-            <div class="seo-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div>
+              <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">Auditado</div>
+              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">Protocolos Clínicos</p>
             </div>
-            <h3>Tiempo Eficiente</h3>
-            <p>Consulta con el experto correcto desde el inicio, sin derivaciones innecesarias.</p>
-          </div>
-          <div class="seo-card">
-            <div class="seo-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <div>
+              <div class="text-3xl font-serif font-bold text-neutral-900 mb-2">Encriptado</div>
+              <p class="text-xs uppercase tracking-widest text-neutral-400 font-bold">Historial Médico</p>
             </div>
-            <h3>Acceso Amplio</h3>
-            <p>Especialistas que quizás no encuentres en tu zona geográfica.</p>
-          </div>
-          <div class="seo-card">
-            <div class="seo-card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-            </div>
-            <h3>Disponibilidad 24/7</h3>
-            <p>Múltiples horarios matutinos, vespertinos y nocturnos.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
     <CTAFinal
-      title="Encuentra tu Especialista Ahora"
-      subtitle="Acceso a médicos certificados en múltiples especialidades. Disponibles 24/7 para tu consulta."
-      buttonLabel="Buscar Especialista"
+      title="Atención profesional a su alcance."
+      subtitle="Elija la especialidad que necesita y conecte con un profesional certificado ahora."
+      buttonLabel="Ver todos los Médicos"
       buttonHref="/patients"
     />
   </main>
+
   <Footer />
 </Layout>
 
 <style>
-  @import '../styles/seo-landing.css';
-  /* Page-specific: specialty card header layout */
-  .specialty-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    margin-bottom: var(--space-4);
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  main {
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 
-  .specialty-header .seo-card-icon {
-    margin-bottom: 0;
-    flex-shrink: 0;
+  h1, h2, h3, .font-serif {
+    font-family: 'Source Serif 4', serif;
   }
 
-  .specialty-card h2 {
-    font-size: var(--text-xl);
-    text-align: left;
-    margin: 0;
+  .specialty-entry {
+    animation: reveal linear forwards;
+    animation-timeline: view();
+    animation-range: entry 5% cover 25%;
   }
 
-  .specialty-card .seo-btn-primary {
-    margin-top: var(--space-4);
-    font-size: var(--text-sm);
-    padding: var(--space-2) var(--space-6);
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
