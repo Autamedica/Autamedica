@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Download } from 'lucide-react';
 import { logger } from '@autamedica/shared';
 import { fetchApi } from '@/lib/api-client';
+import { formatDate } from '@/lib/date-utils';
 
 const RELEVANCE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   routine: { label: 'Rutina', color: 'text-stone-600', bg: 'bg-stone-100' },
@@ -14,13 +15,13 @@ const RELEVANCE_CONFIG: Record<string, { label: string; color: string; bg: strin
 
 export interface VersionEntry {
   id: string;
-  version_number: number;
+  versionNumber: number;
   trigger: string;
   relevance: string | null;
-  changes_summary: { added: string[]; modified: string[]; unchanged: string[] } | null;
-  pdf_filename: string | null;
+  changesSummary: { added: string[]; modified: string[]; unchanged: string[] } | null;
+  pdfFilename: string | null;
   notes: string | null;
-  created_at: string;
+  createdAt: string;
 }
 
 export function VersionTimeline({ onDownload }: { onDownload: (version?: number) => void }) {
@@ -59,9 +60,7 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
       <div className="space-y-0 pt-2">
         {versions.map((v, i) => {
           const rel = RELEVANCE_CONFIG[v.relevance ?? 'routine'] ?? RELEVANCE_CONFIG.routine;
-          const date = new Date(v.created_at).toLocaleDateString('es-AR', {
-            day: 'numeric', month: 'short', year: 'numeric',
-          });
+          const date = formatDate(v.created_at);
           const isFirst = v.version_number === 1;
           const isLast = i === 0;
 
@@ -77,18 +76,18 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
               <div className="flex-1 pb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-stone-800">
-                    V{v.version_number} — {date}
+                    V{v.versionNumber} — {date}
                   </span>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${rel.bg} ${rel.color}`}>
                     {isFirst ? 'Primera consulta' : rel.label}
                   </span>
                 </div>
 
-                {v.changes_summary && !isFirst && (
+                {v.changesSummary && !isFirst && (
                   <p className="mt-0.5 text-xs text-stone-500">
                     {[
-                      v.changes_summary.added.length > 0 && `${v.changes_summary.added.length} nuevas`,
-                      v.changes_summary.modified.length > 0 && `${v.changes_summary.modified.length} actualizadas`,
+                      v.changesSummary.added.length > 0 && `${v.changesSummary.added.length} nuevas`,
+                      v.changesSummary.modified.length > 0 && `${v.changesSummary.modified.length} actualizadas`,
                     ].filter(Boolean).join(', ') || 'Sin cambios'}
                   </p>
                 )}
@@ -98,7 +97,7 @@ export function VersionTimeline({ onDownload }: { onDownload: (version?: number)
                 )}
 
                 <button
-                  onClick={() => onDownload(v.version_number)}
+                  onClick={() => onDownload(v.versionNumber)}
                   className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-700"
                 >
                   <Download className="h-3 w-3" /> Descargar PDF
