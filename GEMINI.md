@@ -212,22 +212,39 @@ Detalle: `docs/ARQUITECTURA.md` sección "Patrones Avanzados".
 
 ---
 
-## 4b. Estrategia de Ramas (Trunk-Based Development)
+## 4b. Estrategia de Ramas (Senior Trunk-Based Development)
 
 > **Contexto:** Solo Founder + Agentes. GitFlow (`develop`, `staging`) es burocracia innecesaria.
-> **Estrategia:** GitHub Flow Simplificado (1 Rama Eterna + Ramas Efímeras).
+> **Estrategia:** GitHub Flow Senior (1 Rama Eterna + Ramas Efímeras + Trazabilidad).
 
 ### Las Reglas del Árbol
 
 1. **`main` es Sagrada (Producción)**
-   - Única rama de larga duración.
-   - Representa siempre código desplegable.
+   - Única rama de larga duración. Representa código desplegable.
    - **PROHIBIDO** commit directo. Todo cambio entra vía Pull Request o Merge.
 
-2. **Ramas de Funcionalidad (`feat/...` o `fix/...`)**
-   - Vida corta: se crean para 1 tarea específica y se borran al terminar.
-   - **Aislamiento Total:** En `feat/telemedicina` NO tocar `auth`. Notarlo, terminar, mergear, luego `fix/auth`.
-   - **Naming:** `feat/desc-breve`, `fix/desc-bug`, `refactor/limpieza`.
+2. **Ramas Efímeras (`<type>/<desc-breve>`)**
+   - Vida corta (< 48h). Un solo objetivo.
+   - Tipos: `feat/`, `fix/`, `refactor/`, `docs/`, `perf/`.
+   - **Aislamiento Total:** Terminar una tarea, mergear, borrar rama.
+
+### Protocolo de Commits y Trazabilidad (Senior Standards)
+
+1. **Commits Atómicos:**
+   - Unidad mínima de cambio estable.
+   - **Conventional Commits:** `<type>(<scope>): <imperative description>`.
+   - Ejemplo: `feat(blog): add humanized audio reader to cards`.
+   - Si corriges un bug y refactorizas, son **dos commits diferentes**.
+
+2. **Pull Requests (Bitácora Legal):**
+   - Toda PR debe usar el `pull_request_template.md`.
+   - **Contenido Obligatorio:** Contexto (Why), Solución (How), Validación en Dos Planos (UI vs DB) y Evidencia Técnica (Screenshots/Logs).
+   - Sirve como registro histórico de decisiones técnicas.
+
+3. **Protocolo de Push (0% Regresión):**
+   - Sincronizar con `main` vía `rebase` antes de subir.
+   - **Pre-flight:** `pnpm lint`, `pnpm build` y `pnpm test:unit` deben pasar localmente.
+   - **CI Monitoring:** Si GitHub Actions falla, la rama es "radioactiva"; prohibido mergear.
 
 ### Protocolo de Contexto del Agente (Anti-Mezcla)
 
@@ -235,10 +252,10 @@ Detalle: `docs/ARQUITECTURA.md` sección "Patrones Avanzados".
 
 1. **Una Rama = Un Objetivo.** Al inicio, definir: _"Estoy en `feat/x` y mi único objetivo es X"_.
 2. **Definition of Done (DoD) por Rama:**
-   - Código completo y probado.
+   - Código completo, probado y validado en dos planos.
    - `pnpm lint` 0 errores, `pnpm --filter @autamedica/web check` 0 errors.
-   - Merge a `main`.
-   - **RAMA BORRADA LOCAL Y REMOTAMENTE.**
+   - PR abierta con documentación de trazabilidad.
+   - Merge a `main` y **RAMA BORRADA LOCAL Y REMOTAMENTE.**
 3. **No reciclar ramas.** Una vez mergeada, la rama muere.
 
 ---

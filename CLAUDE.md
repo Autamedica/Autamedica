@@ -117,6 +117,13 @@ Cuando se pide análisis de código, debugging o comprensión del sistema: siemp
 - Commits atómicos y temáticos con mensajes conventional commits.
 - Después de cambios, verificar que no quedan archivos uncommitted antes de push.
 
+### Senior Git Standards & Traceability
+
+- **Branches:** Efímeras (`<type>/<desc>`). **Prohibido** push directo a `main` (salvo hotfix documentado).
+- **Commits:** Atómicos + Conventional Commits. Imperativo: `feat(scope): add feature`.
+- **PRs:** Uso de `pull_request_template.md`. Documentar: Contexto, Solución, UI vs DB y Evidencia.
+- **Pre-flight:** `pnpm lint && pnpm build && pnpm test:unit` obligatorios antes de subir.
+
 ### Repo Público/Privado — Higiene de Seguridad
 
 **El repo alterna entre público (CI gratis) y privado.** Operar SIEMPRE como si fuera público:

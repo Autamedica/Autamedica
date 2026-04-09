@@ -39,6 +39,14 @@
 | `pnpm test:unit`                      | Unit tests                                   |
 | `pnpm db:sync`                        | Regenerate DB types and validate schema sync |
 
+## Senior Git Standards & Traceability
+
+- **Branching:** Use short-lived branches `<type>/<short-desc>`. Never push directly to `main`.
+- **Atomic Commits:** Follow Conventional Commits. One logical change per commit.
+- **Pull Requests:** Mandatory use of `pull_request_template.md`. Document Context, Solution, Two-Plane Validation, and Evidence.
+- **Traceability:** Every emergency fix on `main` must be back-documented in a `CHANGELOG_EMERGENCY.md` or a traceability PR.
+- **Pre-flight:** `pnpm lint`, `pnpm build`, and `pnpm test:unit` must pass before pushing.
+
 ## Repo Shape
 
 ```text
