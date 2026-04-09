@@ -7,13 +7,18 @@ interface Props {
   author?: string;
 }
 
+import AudioReader from './AudioReader';
+
 const { title, url, description = '', category = '', author = '' } = Astro.props;
 const encodedTitle = encodeURIComponent(title);
 const encodedUrl = encodeURIComponent(url);
 ---
 
-<div class="share-buttons">
-  <span class="share-label">Compartir</span>
+<div class="blog-actions-container">
+  <AudioReader client:load selector=".blog-prose" />
+
+  <div class="share-buttons">
+    <span class="share-label">Compartir</span>
   <div class="share-icons">
     <a
       href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}
