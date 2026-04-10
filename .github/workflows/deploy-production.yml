@@ -168,12 +168,16 @@ jobs:
           done
 
       - name: Create Sentry Release
-        if: ${{ success() && secrets.SENTRY_AUTH_TOKEN != '' }}
+        if: success()
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: autamedica
           SENTRY_PROJECT: javascript-astro
         run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "Sentry token not found, skipping release... (Not an error)"
+            exit 0
+          fi
           curl -sL https://sentry.io/get-cli/ | bash
           VERSION=$(sentry-cli releases propose-version)
           echo "Finalizing Sentry release: $VERSION"
