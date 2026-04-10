@@ -27,6 +27,14 @@ function readCached(keys: string[]): string | undefined {
 
 function readProcess(keys: string[]): string | undefined {
   for (const key of keys) {
+    // PUBLIC_ variables are managed by Astro/Vite and shouldn't be accessed via the strict getServerEnvOrDefault
+    // which is reserved for server-side secrets. During build/SSR, we check process.env directly if available.
+    if (key.startsWith('PUBLIC_') || key.startsWith('NEXT_PUBLIC_')) {
+      const value = typeof process !== 'undefined' ? process.env[key] : undefined;
+      if (typeof value === 'string' && value.length > 0) return value;
+      continue;
+    }
+
     const value = getServerEnvOrDefault(key);
     if (typeof value === 'string' && value.length > 0) return value;
   }
