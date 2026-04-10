@@ -17,6 +17,7 @@ import { resolveTriageFromExtraction, getSpecialtyDisplayName } from '@/lib/pati
 import type { AnamnesisExtractionResult } from '@/lib/patients/types/anamnesis-extraction'
 import { validateBody } from '@/lib/validation'
 import { jsonOk, unauthorized, badRequest, notFound, internalError } from '@/lib/api-helpers'
+import { captureSentryException } from '@/lib/observability/sentry'
 
 const SmartSuggestSchema = z.object({
   anamnesisId: z.string().uuid('anamnesisId must be a valid UUID').optional(),
@@ -86,6 +87,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .maybeSingle()
 
     if (extErr) {
+      captureSentryException(extErr, {
+        runtimeEnv: locals.runtime?.env,
+        layer: 'controller',
+        surface: 'api/patients/appointments/smart-suggest:extraction',
+        owner: 'Clinical Web',
+        context: {
+          patientId: context.patientId,
+          anamnesisId,
+        },
+        tags: {
+          route: '/api/patients/appointments/smart-suggest',
+        },
+      })
       logger.error('[smart-suggest] Error fetching extraction', extErr)
       return internalError()
     }
@@ -114,6 +128,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .in('specialty', triage.specialties)
 
     if (docErr) {
+      captureSentryException(docErr, {
+        runtimeEnv: locals.runtime?.env,
+        layer: 'controller',
+        surface: 'api/patients/appointments/smart-suggest:doctors',
+        owner: 'Clinical Web',
+        context: {
+          patientId: context.patientId,
+          specialties: triage.specialties,
+        },
+        tags: {
+          route: '/api/patients/appointments/smart-suggest',
+        },
+      })
       logger.error('[smart-suggest] Error fetching doctors', docErr)
       return internalError()
     }
@@ -194,6 +221,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return jsonOk(response)
   } catch (err) {
+    captureSentryException(err, {
+      runtimeEnv: locals.runtime?.env,
+      layer: 'controller',
+      surface: 'api/patients/appointments/smart-suggest:unexpected',
+      owner: 'Clinical Web',
+      context: {
+        patientId: context.patientId,
+      },
+      tags: {
+        route: '/api/patients/appointments/smart-suggest',
+      },
+    })
     logger.error('[smart-suggest] Unexpected error', err)
     return internalError()
   }

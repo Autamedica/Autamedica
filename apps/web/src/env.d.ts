@@ -2,6 +2,7 @@
 /// <reference types="astro/client" />
 
 interface ImportMetaEnv {
+  readonly PUBLIC_SENTRY_DSN?: string;
   readonly PUBLIC_SUPABASE_URL: string;
   readonly PUBLIC_SUPABASE_ANON_KEY: string;
   readonly SUPABASE_SERVICE_ROLE_KEY: string;
@@ -76,6 +77,11 @@ interface SpeechRecognitionConstructor {
 }
 
 interface Window {
+  __ENV?: {
+    PUBLIC_SUPABASE_URL?: string;
+    PUBLIC_SUPABASE_ANON_KEY?: string;
+    PUBLIC_SENTRY_DSN?: string;
+  };
   SpeechRecognition?: SpeechRecognitionConstructor;
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 }

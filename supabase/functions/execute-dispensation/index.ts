@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -15,6 +16,8 @@ interface ExecuteDispensationRequest {
   substitution_approved_by_prescriber?: boolean;
   pharmacy_notes?: string;
 }
+
+initEdgeSentry('execute-dispensation');
 
 Deno.serve(async (req) => {
   try {
@@ -143,6 +146,16 @@ Deno.serve(async (req) => {
       });
 
     if (eventError) {
+      captureEdgeException(eventError, {
+        layer: 'data-platform',
+        surface: 'execute-dispensation:event-insert',
+        owner: 'Pharmacy Platform',
+        context: {
+          orderId: body.order_id,
+          substitutionType: body.substitution_type || 'none',
+          dispensedQuantity: body.dispensed_quantity,
+        },
+      });
       console.error('[execute-dispensation] Event insert error:', eventError);
       // Check if it's a trigger enforcement error
       if (eventError.message.includes('Substitution')) {
@@ -214,6 +227,11 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    captureEdgeException(error, {
+      layer: 'data-platform',
+      surface: 'execute-dispensation:unexpected',
+      owner: 'Pharmacy Platform',
+    });
     console.error('[execute-dispensation] Unexpected error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,

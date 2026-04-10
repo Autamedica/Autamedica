@@ -1,6 +1,7 @@
 ---
 import '../styles/globals.css';
 import '../styles/auth.css';
+import { SentryInit } from '../components/SentryInit';
 import SeoMeta from '../components/seo/SeoMeta.astro';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { getI18n } from '../i18n/index';
@@ -33,7 +34,7 @@ const authFlowLinks = [
   { href: '/auth/login', label: 'Iniciar sesión' },
   { href: '/auth/register', label: 'Crear cuenta' },
 ];
-const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
+const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePublicClientEnv(
   Astro.locals.runtime?.env,
 );
 ---
@@ -63,8 +64,9 @@ const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
     <script is:inline define:vars={{
       PUBLIC_SUPABASE_URL: publicSupabaseUrl,
       PUBLIC_SUPABASE_ANON_KEY: publicSupabaseAnonKey,
+      PUBLIC_SENTRY_DSN: publicSentryDsn,
     }}>
-      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
+      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SENTRY_DSN };
     </script>
     {import.meta.env.DEV && (
       <script type="module" is:inline>
@@ -106,6 +108,7 @@ const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
     </style>
   </head>
   <body class="antialiased">
+    <SentryInit client:load />
     <div class:list={["auth-layout", themeClass]}>
       <!-- Left Panel: Branding + Experience -->
       <aside class="auth-panel-left">

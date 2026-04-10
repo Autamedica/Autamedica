@@ -86,18 +86,22 @@ describe('resolvePublicClientEnv', () => {
     const result = resolvePublicClientEnv({
       PUBLIC_SUPABASE_URL: 'https://provided.supabase.co',
       PUBLIC_SUPABASE_ANON_KEY: 'provided-key',
+      PUBLIC_SENTRY_DSN: 'https://public@example.ingest.sentry.io/1',
     })
     expect(result.publicSupabaseUrl).toBe('https://provided.supabase.co')
     expect(result.publicSupabaseAnonKey).toBe('provided-key')
+    expect(result.publicSentryDsn).toBe('https://public@example.ingest.sentry.io/1')
   })
 
   it('resolves from runtime env parameter', () => {
     const result = resolvePublicClientEnv({
       PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
       PUBLIC_SUPABASE_ANON_KEY: 'anon-key-123',
+      PUBLIC_SENTRY_DSN: 'https://dsn@example.ingest.sentry.io/1',
     })
     expect(result.publicSupabaseUrl).toBe('https://test.supabase.co')
     expect(result.publicSupabaseAnonKey).toBe('anon-key-123')
+    expect(result.publicSentryDsn).toBe('https://dsn@example.ingest.sentry.io/1')
   })
 
   it('resolves NEXT_PUBLIC_ prefix variants', () => {
@@ -113,5 +117,11 @@ describe('resolvePublicClientEnv', () => {
     primeRuntimeEnv({ PUBLIC_SUPABASE_URL: 'cached-url' })
     const result = resolvePublicClientEnv({ PUBLIC_SUPABASE_URL: 'direct-url' })
     expect(result.publicSupabaseUrl).toBe('direct-url')
+  })
+
+  it('resolves sentry dsn from cached runtime env', () => {
+    primeRuntimeEnv({ PUBLIC_SENTRY_DSN: 'cached-dsn' })
+    const result = resolvePublicClientEnv({ PUBLIC_SUPABASE_URL: 'direct-url', PUBLIC_SUPABASE_ANON_KEY: 'key' })
+    expect(result.publicSentryDsn).toBe('cached-dsn')
   })
 })

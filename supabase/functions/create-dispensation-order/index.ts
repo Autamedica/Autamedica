@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -6,6 +7,8 @@ const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 interface CreateOrderRequest {
   prescription_id: string;
 }
+
+initEdgeSentry('create-dispensation-order');
 
 Deno.serve(async (req) => {
   try {
@@ -137,6 +140,16 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
+      captureEdgeException(insertError, {
+        layer: 'data-platform',
+        surface: 'create-dispensation-order:insert',
+        owner: 'Supabase Platform',
+        context: {
+          prescriptionId: prescription.id,
+          patientId: prescription.patient_id,
+          doctorId: prescription.doctor_id,
+        },
+      });
       console.error('[create-dispensation-order] Insert error:', insertError);
       return new Response(JSON.stringify({ error: 'Failed to create dispensation order', details: insertError.message }), {
         status: 500,
@@ -190,6 +203,11 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    captureEdgeException(error, {
+      layer: 'data-platform',
+      surface: 'create-dispensation-order:unexpected',
+      owner: 'Supabase Platform',
+    });
     console.error('[create-dispensation-order] Unexpected error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,

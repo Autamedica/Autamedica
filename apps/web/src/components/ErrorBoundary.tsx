@@ -2,6 +2,7 @@
 
 import { Component, ReactNode } from 'react';
 import { logger } from '@autamedica/shared';
+import { captureSentryException } from '@/lib/observability/sentry';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -24,6 +25,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    captureSentryException(error, {
+      layer: 'ui',
+      surface: 'components/ErrorBoundary',
+      owner: 'Web Platform',
+      context: {
+        componentStack: errorInfo.componentStack,
+      },
+    });
     logger.error('Error capturado por ErrorBoundary:', error, errorInfo);
   }
 

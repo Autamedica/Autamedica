@@ -1,0 +1,364 @@
+import * as Sentry from '@sentry/astro'
+import { registerLogReporter, type LogEntry } from '@autamedica/shared'
+import { getRuntimeEnvValue, resolvePublicSentryDsn } from '@/lib/runtime-env'
+
+type RuntimeEnvRecord = Record<string, unknown> | null | undefined
+
+interface CaptureMeta {
+  runtimeEnv?: RuntimeEnvRecord
+  layer?: string
+  surface: string
+  owner?: string
+  tags?: Record<string, string | number | boolean | null | undefined>
+  context?: Record<string, unknown>
+  fingerprint?: string[]
+}
+
+const BLOCKED_FIELD_NAMES = new Set([
+  'authorization',
+  'set-cookie',
+  'cookie',
+  'cookies',
+  'body',
+  'payload',
+  'headers',
+  'state',
+  'clinical_data',
+  'message',
+  'notes',
+  'details',
+  'metadata',
+  'description',
+  'anamnesis',
+  'chat',
+  'patient_name',
+  'first_name',
+  'last_name',
+  'full_name',
+  'email',
+  'phone',
+  'document',
+  'dni',
+  'address',
+  'birth_date',
+  'date_of_birth',
+  'pdf',
+  'qr',
+  'signed_pdf_url',
+  'file_url',
+])
+
+const CLIENT_TRACE_TARGETS = [
+  /^\/api\//,
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://autamedica.com',
+  'https://www.autamedica.com',
+  'https://paciente.autamedica.com',
+  'https://patients.autamedica.com',
+  'https://doctor.autamedica.com',
+  'https://doctors.autamedica.com',
+  'https://empresa.autamedica.com',
+  'https://companies.autamedica.com',
+  'https://admin.autamedica.com',
+]
+
+const CLIENT_INIT_KEY = '__AUTAMEDICA_SENTRY_CLIENT_INIT__'
+const SERVER_INIT_KEY = '__AUTAMEDICA_SENTRY_SERVER_INIT__'
+const LOGGER_BRIDGE_KEY = '__AUTAMEDICA_SENTRY_LOGGER_BRIDGE__'
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readStringValue(source: RuntimeEnvRecord, key: string): string | undefined {
+  const value = source?.[key]
+  return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+function getSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  return (
+    readStringValue(runtimeEnv, 'PUBLIC_SENTRY_DSN') ??
+    (typeof window !== 'undefined' ? window.__ENV?.PUBLIC_SENTRY_DSN : undefined) ??
+    getRuntimeEnvValue('PUBLIC_SENTRY_DSN') ??
+    resolvePublicSentryDsn(runtimeEnv)
+  )
+}
+
+function getEnvironment(runtime = 'web'): string {
+  if (import.meta.env.DEV) {
+    return `${runtime}-development`
+  }
+
+  return `${runtime}-${import.meta.env.MODE || 'production'}`
+}
+
+function truncate(value: string, max = 240): string {
+  if (value.length <= max) {
+    return value
+  }
+
+  return `${value.slice(0, max)}...[truncated]`
+}
+
+function sanitizeValue(value: unknown, depth = 0): unknown {
+  if (depth > 3) {
+    return '[TruncatedDepth]'
+  }
+
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: truncate(value.message),
+      stack: value.stack ? truncate(value.stack, 1000) : undefined,
+    }
+  }
+
+  if (typeof value === 'string') {
+    return truncate(value)
+  }
+
+  if (
+    value === null ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'undefined'
+  ) {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.slice(0, 10).map((item) => sanitizeValue(item, depth + 1))
+  }
+
+  if (!isPlainObject(value)) {
+    return String(value)
+  }
+
+  const sanitized: Record<string, unknown> = {}
+
+  for (const [key, nestedValue] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase()
+    sanitized[key] = BLOCKED_FIELD_NAMES.has(normalizedKey)
+      ? '[Redacted]'
+      : sanitizeValue(nestedValue, depth + 1)
+  }
+
+  return sanitized
+}
+
+function sanitizeEvent(event: Record<string, any>) {
+  if (event.request) {
+    delete event.request.data
+
+    if (isPlainObject(event.request.headers)) {
+      delete event.request.headers.Authorization
+      delete event.request.headers.authorization
+      delete event.request.headers.Cookie
+      delete event.request.headers.cookie
+      delete event.request.headers['Set-Cookie']
+      delete event.request.headers['set-cookie']
+    }
+  }
+
+  if (event.user) {
+    delete event.user.email
+    delete event.user.username
+    delete event.user.ip_address
+  }
+
+  if (event.extra) {
+    event.extra = sanitizeValue(event.extra)
+  }
+
+  if (event.contexts) {
+    event.contexts = sanitizeValue(event.contexts)
+  }
+
+  if (Array.isArray(event.breadcrumbs)) {
+    event.breadcrumbs = event.breadcrumbs.map((breadcrumb: Record<string, unknown>) =>
+      sanitizeValue(breadcrumb),
+    )
+  }
+
+  return event
+}
+
+function ensureError(error: unknown, fallbackMessage: string): Error {
+  if (error instanceof Error) {
+    return error
+  }
+
+  if (isPlainObject(error)) {
+    const message = typeof error.message === 'string' ? error.message : fallbackMessage
+    const normalized = new Error(message)
+    if (typeof error.stack === 'string') {
+      normalized.stack = error.stack
+    }
+    return normalized
+  }
+
+  return new Error(typeof error === 'string' ? error : fallbackMessage)
+}
+
+function extractErrorFromLogEntry(entry: LogEntry): Error | null {
+  for (const arg of entry.extraArgs) {
+    if (arg instanceof Error) {
+      return arg
+    }
+
+    if (isPlainObject(arg) && arg.error instanceof Error) {
+      return arg.error
+    }
+  }
+
+  if (isPlainObject(entry.payload) && typeof entry.payload.error === 'string') {
+    return new Error(entry.payload.error)
+  }
+
+  return null
+}
+
+function setScopeMetadata(scope: Sentry.Scope, meta: CaptureMeta): void {
+  scope.setTag('surface', meta.surface)
+
+  if (meta.layer) {
+    scope.setTag('layer', meta.layer)
+  }
+
+  if (meta.owner) {
+    scope.setTag('owner', meta.owner)
+  }
+
+  if (meta.tags) {
+    for (const [key, value] of Object.entries(meta.tags)) {
+      if (value !== null && typeof value !== 'undefined') {
+        scope.setTag(key, String(value))
+      }
+    }
+  }
+
+  if (meta.context) {
+    scope.setContext('autamedica', sanitizeValue(meta.context) as Record<string, unknown>)
+  }
+
+  if (meta.fingerprint && meta.fingerprint.length > 0) {
+    scope.setFingerprint(meta.fingerprint)
+  }
+}
+
+function ensureLoggerBridge(): void {
+  const registry = globalThis as Record<string, unknown>
+  if (registry[LOGGER_BRIDGE_KEY]) {
+    return
+  }
+
+  registerLogReporter((entry) => {
+    if (entry.level !== 'error') {
+      return
+    }
+
+    const error = extractErrorFromLogEntry(entry)
+
+    Sentry.withScope((scope) => {
+      scope.setTag('logger_level', entry.level)
+      scope.setTag('runtime', typeof window === 'undefined' ? 'server' : 'client')
+      scope.setContext('logger', {
+        message: entry.message,
+        ...(entry.context ? { context: sanitizeValue(entry.context) } : {}),
+        ...(entry.payload ? { payload: sanitizeValue(entry.payload) } : {}),
+        ...(entry.extraArgs.length > 0 ? { extraArgs: sanitizeValue(entry.extraArgs) } : {}),
+      })
+
+      if (error) {
+        Sentry.captureException(error)
+      } else {
+        Sentry.captureMessage(entry.message, 'error')
+      }
+    })
+  })
+
+  registry[LOGGER_BRIDGE_KEY] = true
+}
+
+export function initClientSentry(runtimeEnv?: RuntimeEnvRecord): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const registry = globalThis as Record<string, unknown>
+  if (registry[CLIENT_INIT_KEY]) {
+    return
+  }
+
+  const dsn = getSentryDsn(runtimeEnv)
+  if (!dsn) {
+    return
+  }
+
+  Sentry.init({
+    dsn,
+    environment: getEnvironment('client'),
+    enabled: true,
+    sendDefaultPii: false,
+    tracesSampleRate: import.meta.env.DEV ? 1 : 0.1,
+    tracePropagationTargets: CLIENT_TRACE_TARGETS,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+    ],
+    beforeSend(event) {
+      return sanitizeEvent(event as Record<string, any>)
+    },
+  })
+
+  ensureLoggerBridge()
+  registry[CLIENT_INIT_KEY] = true
+}
+
+export function initServerSentry(runtimeEnv?: RuntimeEnvRecord): void {
+  if (typeof window !== 'undefined') {
+    return
+  }
+
+  const registry = globalThis as Record<string, unknown>
+  if (registry[SERVER_INIT_KEY]) {
+    return
+  }
+
+  const dsn = getSentryDsn(runtimeEnv)
+  if (!dsn) {
+    return
+  }
+
+  Sentry.init({
+    dsn,
+    environment: getEnvironment('server'),
+    enabled: true,
+    sendDefaultPii: false,
+    tracesSampleRate: import.meta.env.DEV ? 1 : 0.1,
+    beforeSend(event) {
+      return sanitizeEvent(event as Record<string, any>)
+    },
+  })
+
+  ensureLoggerBridge()
+  registry[SERVER_INIT_KEY] = true
+}
+
+export function captureSentryException(error: unknown, meta: CaptureMeta): string | undefined {
+  if (typeof window === 'undefined') {
+    initServerSentry(meta.runtimeEnv)
+  } else {
+    initClientSentry(meta.runtimeEnv)
+  }
+
+  const dsn = getSentryDsn(meta.runtimeEnv)
+  if (!dsn) {
+    return undefined
+  }
+
+  return Sentry.withScope((scope) => {
+    setScopeMetadata(scope, meta)
+    return Sentry.captureException(ensureError(error, meta.surface))
+  })
+}

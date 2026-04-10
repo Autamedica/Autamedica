@@ -16,12 +16,24 @@ export const LOG_LEVELS: LogLevel = {
 
 type LogLevelValue = LogLevel[keyof LogLevel];
 
+export interface LogEntry {
+  level: LogLevelValue;
+  message: string;
+  payload?: Record<string, unknown>;
+  extraArgs: unknown[];
+  context?: Record<string, unknown>;
+}
+
+export type LogReporter = (entry: LogEntry) => void;
+
 const LOG_LEVEL_ORDER: readonly LogLevelValue[] = [
   LOG_LEVELS.ERROR,
   LOG_LEVELS.WARN,
   LOG_LEVELS.INFO,
   LOG_LEVELS.DEBUG,
 ];
+
+const logReporters = new Set<LogReporter>();
 
 const processRef: typeof process | undefined =
   typeof process !== 'undefined' ? process : undefined;
@@ -45,6 +57,14 @@ const DEFAULT_LOG_LEVEL = resolveLogLevel();
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function registerLogReporter(reporter: LogReporter): () => void {
+  logReporters.add(reporter);
+
+  return () => {
+    logReporters.delete(reporter);
+  };
 }
 
 export interface Logger {
@@ -98,7 +118,8 @@ class LoggerService implements Logger {
       return;
     }
 
-    const parts = this.prepareParts(message, args);
+    const entry = this.buildEntry(message, args);
+    const parts = this.prepareParts(entry);
 
     switch (level) {
       case LOG_LEVELS.ERROR:
@@ -114,15 +135,15 @@ class LoggerService implements Logger {
         this.instance.info(...parts);
         break;
     }
+
+    this.notifyReporters(level, entry);
   }
 
   private shouldLog(level: LogLevelValue): boolean {
     return LOG_LEVEL_ORDER.indexOf(level) <= this.thresholdIndex;
   }
 
-  private prepareParts(message: string, args: unknown[]): [string, ...unknown[]] {
-    const parts: unknown[] = [message];
-
+  private buildEntry(message: string, args: unknown[]): Omit<LogEntry, 'level'> {
     const [firstArg, ...restArgs] = args;
     let payload: Record<string, unknown> | null = null;
     const extraArgs: unknown[] = [];
@@ -141,18 +162,45 @@ class LoggerService implements Logger {
       payload = { ...(payload ?? {}), context: { ...this.context } };
     }
 
-    if (payload) {
-      parts.push(payload);
+    return {
+      message,
+      ...(payload ? { payload } : {}),
+      extraArgs,
+      ...(Object.keys(this.context).length > 0 ? { context: { ...this.context } } : {}),
+    };
+  }
+
+  private prepareParts(entry: Omit<LogEntry, 'level'>): [string, ...unknown[]] {
+    const parts: unknown[] = [entry.message];
+
+    if (entry.payload) {
+      parts.push(entry.payload);
     }
 
-    if (extraArgs.length > 0) {
-      const normalized = extraArgs.map((arg) =>
+    if (entry.extraArgs.length > 0) {
+      const normalized = entry.extraArgs.map((arg) =>
         typeof arg === 'symbol' ? arg.toString() : arg
       );
       parts.push(...normalized);
     }
 
     return parts as [string, ...unknown[]];
+  }
+
+  private notifyReporters(level: LogLevelValue, entry: Omit<LogEntry, 'level'>): void {
+    if (logReporters.size === 0) {
+      return;
+    }
+
+    const reportedEntry: LogEntry = { level, ...entry };
+
+    for (const reporter of logReporters) {
+      try {
+        reporter(reportedEntry);
+      } catch {
+        // Never let observability/reporting break application logging.
+      }
+    }
   }
 }
 

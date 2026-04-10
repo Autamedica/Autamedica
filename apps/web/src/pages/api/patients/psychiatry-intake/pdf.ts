@@ -55,7 +55,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       ? Math.floor((Date.now() - new Date(patientRow.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
       : null
 
-    const triage = (clinicalState as { state?: { triage?: unknown } } | null)?.state?.triage
+    const triage = (clinicalState as { state?: { triage?: any } } | null)?.state?.triage || {}
 
     const pdf = generatePsychiatryIntakePdf({
       patient: {

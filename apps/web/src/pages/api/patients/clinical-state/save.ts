@@ -12,6 +12,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { createClinicalStateAdapter } from '@/lib/patients/lib/repos/clinical-state.adapter'
 import { logger } from '@autamedica/shared'
 import type { ClinicalCaseState } from '@/lib/patients/clinical-state/types'
+import { captureSentryException } from '@/lib/observability/sentry'
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -70,6 +71,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
+    captureSentryException(err, {
+      runtimeEnv: locals.runtime?.env,
+      layer: 'controller',
+      surface: 'api/patients/clinical-state/save:POST',
+      owner: 'Clinical Web',
+      context: {
+        patientId: context.patientId,
+        caseId: state.caseId,
+      },
+      tags: {
+        route: '/api/patients/clinical-state/save',
+        method: 'POST',
+      },
+    })
     logger.error('[clinical-state/save] Failed', { msg })
     return json({ success: false, error: 'save_failed' }, 500)
   }
@@ -92,6 +107,19 @@ export const GET: APIRoute = async ({ request, locals }) => {
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
+    captureSentryException(err, {
+      runtimeEnv: locals.runtime?.env,
+      layer: 'controller',
+      surface: 'api/patients/clinical-state/save:GET',
+      owner: 'Clinical Web',
+      context: {
+        patientId: context.patientId,
+      },
+      tags: {
+        route: '/api/patients/clinical-state/save',
+        method: 'GET',
+      },
+    })
     logger.error('[clinical-state/save] GET failed', { msg })
     return json({ success: false, error: 'load_failed' }, 500)
   }

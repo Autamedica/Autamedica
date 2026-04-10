@@ -237,7 +237,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
       const depValue = field.dependsOn.value
 
       if (Array.isArray(depValue)) {
-        return depValue.includes(actualValue as string)
+        return depValue.includes(actualValue as never)
       }
       return actualValue === depValue
     });

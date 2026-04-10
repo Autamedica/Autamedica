@@ -12,6 +12,7 @@ import type { AstroCookieSetOptions } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { detectLocale, LOCALE_COOKIE } from './i18n/index';
 import { isProduction, validateRedirectUrl } from './lib/auth-utils';
+import { initServerSentry } from './lib/observability/sentry';
 import { checkRateLimit } from './lib/rate-limit';
 import { primeRuntimeEnv, resolvePublicSupabaseEnv } from './lib/runtime-env';
 import './lib/patients/services/clinical-orchestrator.service';
@@ -65,7 +66,7 @@ const CSP_DIRECTIVES = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co wss://*.workers.dev https://*.workers.dev https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
   "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -215,6 +216,7 @@ function getAuthCookieDebug(request: Request): { hasAuthCookies: boolean; authCo
 
 export const onRequest = defineMiddleware(async (context, next) => {
   primeRuntimeEnv(context.locals.runtime?.env);
+  initServerSentry(context.locals.runtime?.env);
 
   const requestUrl = new URL(context.request.url);
   const { pathname } = requestUrl;

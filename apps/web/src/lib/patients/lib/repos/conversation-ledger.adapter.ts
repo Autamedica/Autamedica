@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
 import type { SegmentKey, WorkflowType } from '../../clinical-state/types';
 
 export interface ConversationSession {
@@ -59,6 +59,7 @@ type DbConversationEventRecord = {
 
 export class ConversationLedgerAdapter {
   async createSession(session: Omit<ConversationSession, 'id' | 'startedAt'>): Promise<ConversationSession> {
+    const supabase = getBrowserSupabaseClient();
     const { data, error } = await supabase
       .from('conversation_sessions')
       .insert({
@@ -77,6 +78,7 @@ export class ConversationLedgerAdapter {
   }
 
   async closeSession(sessionId: string, status: 'closed' | 'failed'): Promise<void> {
+    const supabase = getBrowserSupabaseClient();
     const { error } = await supabase
       .from('conversation_sessions')
       .update({
@@ -89,6 +91,7 @@ export class ConversationLedgerAdapter {
   }
 
   async logEvent(event: Omit<ConversationEvent, 'id' | 'createdAt'>): Promise<ConversationEvent> {
+    const supabase = getBrowserSupabaseClient();
     const { data, error } = await supabase
       .from('conversation_events')
       .insert({
@@ -114,6 +117,7 @@ export class ConversationLedgerAdapter {
   }
 
   async getEventsForSession(sessionId: string): Promise<ConversationEvent[]> {
+    const supabase = getBrowserSupabaseClient();
     const { data, error } = await supabase
       .from('conversation_events')
       .select('*')

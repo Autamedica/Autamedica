@@ -329,7 +329,7 @@ function filterVisible(
     const actualValue = answers[depKey]
 
     if (Array.isArray(depValue)) {
-      return depValue.includes(actualValue as string)
+      return depValue.includes(actualValue as never)
     }
     return actualValue === depValue
   })

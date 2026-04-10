@@ -4,7 +4,7 @@ import React, { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 import { logger } from '@autamedica/shared';
-import { ensureClientEnv } from '@autamedica/shared';
+import { captureSentryException } from '@/lib/observability/sentry';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -26,6 +26,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    captureSentryException(error, {
+      layer: 'ui',
+      surface: 'companies/layout/ErrorBoundary',
+      owner: 'Companies Web',
+      context: {
+        componentStack: errorInfo.componentStack,
+      },
+      tags: {
+        portal: 'company',
+      },
+    });
     logger.error('Error boundary caught an error:', error, errorInfo);
   }
 
@@ -62,7 +73,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 </button>
               </a>
             </div>
-            {ensureClientEnv('NODE_ENV') === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details className="mt-6 text-left">
                 <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
                   Detalles del error (solo en desarrollo)

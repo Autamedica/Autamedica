@@ -1,5 +1,6 @@
 ---
 import '../styles/globals.css';
+import { SentryInit } from '../components/SentryInit';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
 
 interface Props {
@@ -15,7 +16,7 @@ const {
   robots = 'noindex, nofollow, noarchive',
 } = Astro.props;
 
-const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
+const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePublicClientEnv(
   Astro.locals.runtime?.env,
 );
 ---
@@ -46,12 +47,14 @@ const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
       define:vars={{
         PUBLIC_SUPABASE_URL: publicSupabaseUrl,
         PUBLIC_SUPABASE_ANON_KEY: publicSupabaseAnonKey,
+        PUBLIC_SENTRY_DSN: publicSentryDsn,
       }}
     >
-      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
+      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SENTRY_DSN };
     </script>
   </head>
   <body class="call-layout antialiased">
+    <SentryInit client:load />
     <slot />
   </body>
 </html>

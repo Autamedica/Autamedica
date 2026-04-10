@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -10,6 +11,8 @@ interface ValidateRequest {
   details?: string;
   override_reason?: string;
 }
+
+initEdgeSentry('validate-dispensation');
 
 Deno.serve(async (req) => {
   try {
@@ -116,6 +119,16 @@ Deno.serve(async (req) => {
       });
 
     if (validationError) {
+      captureEdgeException(validationError, {
+        layer: 'data-platform',
+        surface: 'validate-dispensation:validation-insert',
+        owner: 'Pharmacy Platform',
+        context: {
+          orderId: body.order_id,
+          validationType: body.validation_type,
+          result: body.result,
+        },
+      });
       console.error('[validate-dispensation] Validation insert error:', validationError);
       return new Response(JSON.stringify({ error: 'Failed to record validation' }), {
         status: 500,
@@ -231,6 +244,11 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    captureEdgeException(error, {
+      layer: 'data-platform',
+      surface: 'validate-dispensation:unexpected',
+      owner: 'Pharmacy Platform',
+    });
     console.error('[validate-dispensation] Unexpected error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,

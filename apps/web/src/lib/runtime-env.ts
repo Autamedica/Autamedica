@@ -89,6 +89,17 @@ export function resolvePublicSupabaseEnv(runtimeEnv?: RuntimeEnvRecord): {
   return { publicSupabaseUrl, publicSupabaseAnonKey };
 }
 
+export function resolvePublicSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | undefined {
+  primeRuntimeEnv(runtimeEnv);
+
+  return (
+    readFirst(runtimeEnv, ['PUBLIC_SENTRY_DSN']) ??
+    readCached(['PUBLIC_SENTRY_DSN']) ??
+    import.meta.env.PUBLIC_SENTRY_DSN ??
+    readProcess(['PUBLIC_SENTRY_DSN'])
+  );
+}
+
 export function resolveServiceRoleKey(runtimeEnv?: RuntimeEnvRecord): string | undefined {
   primeRuntimeEnv(runtimeEnv);
 
@@ -103,11 +114,14 @@ export function resolveServiceRoleKey(runtimeEnv?: RuntimeEnvRecord): string | u
 export function resolvePublicClientEnv(runtimeEnv?: RuntimeEnvRecord): {
   publicSupabaseUrl: string;
   publicSupabaseAnonKey: string;
+  publicSentryDsn: string;
 } {
   const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicSupabaseEnv(runtimeEnv);
+  const publicSentryDsn = resolvePublicSentryDsn(runtimeEnv);
 
   return {
     publicSupabaseUrl: publicSupabaseUrl ?? '',
     publicSupabaseAnonKey: publicSupabaseAnonKey ?? '',
+    publicSentryDsn: publicSentryDsn ?? '',
   };
 }

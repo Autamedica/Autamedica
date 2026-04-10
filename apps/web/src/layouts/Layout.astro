@@ -8,6 +8,7 @@ import OfflineBanner from '../components/OfflineBanner.astro';
 import SeoScrollAnimations from '../components/SeoScrollAnimations.astro';
 import FadeInObserver from '../components/FadeInObserver.astro';
 import DoctorBottomNav from '../components/doctors/layout/DoctorBottomNav.astro';
+import { SentryInit } from '../components/SentryInit';
 import { getI18n } from '../i18n/index';
 import { resolvePublicClientEnv } from '../lib/runtime-env';
 import { SessionSync as PatientSessionSync } from '../components/patients/SessionSync';
@@ -36,7 +37,7 @@ const {
 } = Astro.props;
 
 const fullTitle = title.includes('AutaMedica') ? title : `${title} | AutaMedica`;
-const { publicSupabaseUrl, publicSupabaseAnonKey } = resolvePublicClientEnv(
+const { publicSupabaseUrl, publicSupabaseAnonKey, publicSentryDsn } = resolvePublicClientEnv(
   Astro.locals.runtime?.env,
 );
 
@@ -93,8 +94,9 @@ const activeTabDoctor =
     <script is:inline define:vars={{
       PUBLIC_SUPABASE_URL: publicSupabaseUrl,
       PUBLIC_SUPABASE_ANON_KEY: publicSupabaseAnonKey,
+      PUBLIC_SENTRY_DSN: publicSentryDsn,
     }}>
-      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY };
+      window.__ENV = { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SENTRY_DSN };
     </script>
 
     {import.meta.env.DEV && (
@@ -114,6 +116,7 @@ const activeTabDoctor =
     <meta name="view-transition" content="same-origin" />
   </head>
   <body class="antialiased">
+    <SentryInit client:load />
     <ScrollProgress />
     <slot />
     <OfflineBanner />

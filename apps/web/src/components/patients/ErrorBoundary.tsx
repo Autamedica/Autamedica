@@ -3,6 +3,7 @@
 import { Component, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { logger } from '@autamedica/shared';
+import { captureSentryException } from '@/lib/observability/sentry';
 
 interface Props {
   children: ReactNode;
@@ -29,10 +30,20 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    captureSentryException(error, {
+      layer: 'ui',
+      surface: 'patients/ErrorBoundary',
+      owner: 'Clinical Web',
+      context: {
+        componentStack: errorInfo.componentStack,
+      },
+      tags: {
+        portal: 'patient',
+      },
+    });
+
     // Log error to monitoring service
-    logger.error('ErrorBoundary caught an error:', {
-      error: error.message,
-      stack: error.stack,
+    logger.error('ErrorBoundary caught an error:', error, {
       componentStack: errorInfo.componentStack,
     });
   }

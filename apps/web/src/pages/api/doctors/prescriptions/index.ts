@@ -6,6 +6,7 @@ import { createAstroAdminClient } from "@/lib/supabase";
 import { validateBody } from "@/lib/validation";
 import { DoctorPrescriptionCreateSchema } from "@/lib/zod/prescriptions";
 import { logger } from "@autamedica/shared";
+import { captureSentryException } from '@/lib/observability/sentry';
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolveDoctorContext(request, locals);
@@ -33,6 +34,20 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if (error instanceof Error && error.message === "forbidden_patient_access") {
       return forbidden("forbidden_patient_access");
     }
+    captureSentryException(error, {
+      runtimeEnv: locals.runtime?.env,
+      layer: 'controller',
+      surface: 'api/doctors/prescriptions:GET',
+      owner: 'Clinical Core',
+      context: {
+        doctorId: context.doctorId,
+        patientId,
+      },
+      tags: {
+        route: '/api/doctors/prescriptions',
+        method: 'GET',
+      },
+    });
     logger.error("[api/doctors/prescriptions] GET error", error);
     return internalError();
   }
@@ -63,6 +78,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
         "Para metilfenidato o lisdexanfetamina debe informar diagnostico y dosis antes de guardar el borrador clinico.",
       );
     }
+    captureSentryException(error, {
+      runtimeEnv: locals.runtime?.env,
+      layer: 'controller',
+      surface: 'api/doctors/prescriptions:POST',
+      owner: 'Clinical Core',
+      context: {
+        doctorId: context.doctorId,
+      },
+      tags: {
+        route: '/api/doctors/prescriptions',
+        method: 'POST',
+      },
+    });
     logger.error("[api/doctors/prescriptions] POST error", error);
     return internalError();
   }

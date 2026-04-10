@@ -110,6 +110,8 @@ export function createEmptyState(
 
     workflow: {
       type: workflowType,
+      vertical: 'psychiatry_general',
+      intent: 'standard_consultation',
       currentSegment: 'identity',
       completedSegments: [],
       openedAt: now,
@@ -146,6 +148,13 @@ export function createEmptyState(
       chestPain: createEmptyField('symptoms.chestPain'),
       selfHarmIdeation: createEmptyField('symptoms.selfHarmIdeation'),
       residualSymptoms: createEmptyField('symptoms.residualSymptoms'),
+      
+      // New Sleep Quality metrics
+      sleepHours: createEmptyField('symptoms.sleepHours'),
+      nightsPerWeek: createEmptyField('symptoms.nightsPerWeek'),
+      daytimeImpact: createEmptyField('symptoms.daytimeImpact'),
+      conciliacionDifficulty: createEmptyField('symptoms.conciliacionDifficulty'),
+      mantenimientoDifficulty: createEmptyField('symptoms.mantenimientoDifficulty'),
     },
 
     functionalImpact: {
@@ -174,6 +183,9 @@ export function createEmptyState(
 
     triage: {
       priority: 'routine',
+      status: 'pending',
+      riskOfInterruption: 'low',
+      requiresSameDayAction: false,
       reasons: [],
       mandate: '',
       suggestedAction: '',

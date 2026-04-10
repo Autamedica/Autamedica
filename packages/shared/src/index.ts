@@ -23,7 +23,10 @@ export { validateEmail, validatePhone } from "./validators";
 
 // Logger Service
 export { logger } from "./services/logger.service";
-export type { Logger, LogLevel } from "./services/logger.service";
+export {
+  registerLogReporter,
+} from "./services/logger.service";
+export type { Logger, LogLevel, LogEntry, LogReporter } from "./services/logger.service";
 
 // Role-based routing (deprecated - use portal system)
 export {

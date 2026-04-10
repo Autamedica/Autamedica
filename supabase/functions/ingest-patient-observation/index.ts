@@ -3,6 +3,7 @@ import {
   jsonResponse,
   requireAuth,
 } from '../_shared/auth-helpers.ts';
+import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
 
 type ObservationType = 'vital_sign' | 'medication' | 'symptom' | 'lab_result';
 
@@ -177,6 +178,8 @@ async function resolvePatientId(
 
   return data?.id ?? null;
 }
+
+initEdgeSentry('ingest-patient-observation');
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
@@ -422,6 +425,16 @@ Deno.serve(async (req) => {
       });
 
       if (error) {
+        captureEdgeException(error, {
+          layer: 'data-platform',
+          surface: 'ingest-patient-observation:create-alert',
+          owner: 'Clinical Ops',
+          context: {
+            observationType,
+            sourceTable,
+            sourceRecordId: insertedRecordId,
+          },
+        });
         console.error('[ingest-patient-observation] Failed to create alert:', error.message);
       } else if (typeof data === 'string') {
         alertId = data;
@@ -445,6 +458,11 @@ Deno.serve(async (req) => {
       return error;
     }
 
+    captureEdgeException(error, {
+      layer: 'data-platform',
+      surface: 'ingest-patient-observation:unexpected',
+      owner: 'Clinical Ops',
+    });
     console.error('[ingest-patient-observation] Unexpected error:', error);
 
     return jsonResponse(
