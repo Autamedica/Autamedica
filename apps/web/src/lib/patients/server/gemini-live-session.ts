@@ -1,4 +1,6 @@
 import { createAstroAdminClient } from '@/lib/supabase';
+import { buildPromptText } from '@/lib/patients/clinical-state';
+import { createClinicalStateAdapter } from '@/lib/patients/lib/repos/clinical-state.adapter';
 
 export type GeminiLiveCheckpoint = 'partial' | 'final';
 export type GeminiLiveSessionMode = 'general' | 'guided_checkpoint';
@@ -9,6 +11,12 @@ export interface GeminiLivePatientContext {
   completedSections: string[];
   /** Key clinical data from completed sections — feeds the system instruction */
   sectionData: Record<string, Record<string, unknown>>;
+  /**
+   * Distilled clinical snapshot from the Canonical Clinical State.
+   * When present, this replaces raw sectionData for prompt building.
+   * Contains: known facts, missing facts, conflicts, locked fields, and session rules.
+   */
+  clinicalSnapshot?: string;
 }
 
 export interface GeminiLiveSessionConfig {
@@ -28,6 +36,7 @@ interface BuildGeminiLiveSessionConfigInput {
   guidanceQuestions?: string[];
   coverageGaps?: string[];
   coverageSummary?: string;
+  transientData?: Record<string, unknown>;
   runtimeEnv?: Record<string, unknown> | null;
 }
 
@@ -113,11 +122,24 @@ async function fetchPatientContext(
   const firstName = profileRes.data?.first_name?.trim() ?? '';
   const lastName = profileRes.data?.last_name?.trim() ?? '';
 
+  // Try to load the canonical clinical state for a distilled prompt snapshot
+  let clinicalSnapshot: string | undefined;
+  try {
+    const stateRepo = createClinicalStateAdapter(admin);
+    const canonicalState = await stateRepo.loadByPatientId(patientId);
+    if (canonicalState) {
+      clinicalSnapshot = buildPromptText(canonicalState);
+    }
+  } catch {
+    // Fallback: no canonical state available, will use raw sectionData
+  }
+
   return {
     name: [firstName, lastName].filter(Boolean).join(' ') || null,
     age: calculateAge(patientRes.data?.birth_date),
     completedSections,
     sectionData,
+    clinicalSnapshot,
   };
 }
 
@@ -128,6 +150,15 @@ export async function buildGeminiLiveSessionConfig(
   const coverageGaps = sanitizeList(input.coverageGaps);
   const coverageSummary = sanitizeSummary(input.coverageSummary);
   const patient = await fetchPatientContext(input.userId, input.patientId, input.runtimeEnv);
+  
+  // Merge transient unsaved UI state into the patient's section data context
+  // This ensures the voice planner knows what the user literally just typed.
+  // NOTE: When clinicalSnapshot is available, it already includes this data via the normalizer.
+  if (input.transientData && !patient.clinicalSnapshot) {
+    patient.sectionData['transient_ui_state'] = input.transientData;
+    patient.completedSections.push('transient_ui_state');
+  }
+
   const guidedCheckpoint = Boolean(
     input.checkpoint || guidanceQuestions.length > 0 || coverageGaps.length > 0,
   );

@@ -60,6 +60,7 @@ interface LiveTokenRequestBody {
   guidanceQuestions?: string[]
   coverageGaps?: string[]
   coverageSummary?: string
+  transientData?: Record<string, unknown>
 }
 
 async function issueLiveToken(request: Request, locals?: AstroLocals) {
@@ -138,6 +139,7 @@ async function issueLiveTokenInner(request: Request, locals?: AstroLocals) {
       guidanceQuestions: body.guidanceQuestions,
       coverageGaps: body.coverageGaps,
       coverageSummary: body.coverageSummary,
+      transientData: body.transientData,
       runtimeEnv: locals?.runtime?.env,
     })
   } catch (err) {

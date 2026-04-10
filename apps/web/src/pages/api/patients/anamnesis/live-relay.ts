@@ -77,12 +77,24 @@ function summarizeSectionData(sectionData?: Record<string, Record<string, unknow
 }
 
 function buildSystemInstruction(
-  patientInfo?: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>> },
+  patientInfo?: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>>; clinicalSnapshot?: string },
   guidance?: GuidanceContext,
 ): string {
-  const existingData = summarizeSectionData(patientInfo?.sectionData)
+  // Prefer canonical clinical snapshot over raw section data dump
+  let dataContext = ''
+  if (patientInfo?.clinicalSnapshot) {
+    dataContext = `\n${patientInfo.clinicalSnapshot}\n`
+  } else {
+    const existingData = summarizeSectionData(patientInfo?.sectionData)
+    if (existingData) {
+      dataContext = `\n\nDATOS YA REGISTRADOS EN EL FORMULARIO:\n${existingData}\n\nIMPORTANTE: NO repitas preguntas sobre datos que ya están registrados arriba. Tu rol es REFINAR semiológicamente: profundizar en síntomas reportados, explorar características (localización, irradiación, intensidad, duración, factores agravantes/atenuantes).`
+    } else {
+      dataContext = '\nSi ya tiene secciones completadas, enfocate en lo que falta o pudo haber cambiado.'
+    }
+  }
+
   const context = patientInfo
-    ? `\nCONTEXTO DEL PACIENTE:\n- Nombre: ${patientInfo.name}\n- Edad: ${patientInfo.age} años\n- Secciones ya completadas: ${patientInfo.completedSections.length > 0 ? patientInfo.completedSections.join(', ') : 'ninguna'}${existingData ? `\n\nDATOS YA REGISTRADOS EN EL FORMULARIO:\n${existingData}\n\nIMPORTANTE: NO repitas preguntas sobre datos que ya están registrados arriba. Tu rol es REFINAR semiológicamente: profundizar en síntomas reportados, explorar características (localización, irradiación, intensidad, duración, factores agravantes/atenuantes).` : '\nSi ya tiene secciones completadas, enfocate en lo que falta o pudo haber cambiado.'}\n`
+    ? `\nCONTEXTO DEL PACIENTE:\n- Nombre: ${patientInfo.name}\n- Edad: ${patientInfo.age} años\n- Secciones ya completadas: ${patientInfo.completedSections.length > 0 ? patientInfo.completedSections.join(', ') : 'ninguna'}${dataContext}\n`
     : ''
 
   if (guidance && (guidance.questions.length > 0 || guidance.gaps.length > 0)) {
@@ -236,7 +248,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!apiKey) return json({ success: false, error: 'ai_not_configured' }, 503)
 
   // Fetch patient context on first real message (history empty = first turn)
-  let patientInfo: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>> } | undefined
+  let patientInfo: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>>; clinicalSnapshot?: string } | undefined
   if (wantsContext && history.length === 0) {
     try {
       const admin = createAstroAdminClient()
@@ -271,7 +283,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
           }
         }
 
-        patientInfo = { name, age, completedSections, sectionData }
+        // Try to load canonical clinical snapshot
+        let clinicalSnapshot: string | undefined
+        try {
+          const { createClinicalStateAdapter } = await import('@/lib/patients/lib/repos/clinical-state.adapter')
+          const { buildPromptText } = await import('@/lib/patients/clinical-state')
+          const stateRepo = createClinicalStateAdapter(admin)
+          const canonicalState = await stateRepo.loadByPatientId(context.patientId)
+          if (canonicalState) {
+            clinicalSnapshot = buildPromptText(canonicalState)
+          }
+        } catch {
+          // Fallback: no canonical state, will use raw sectionData
+        }
+
+        patientInfo = { name, age, completedSections, sectionData, clinicalSnapshot }
       }
     } catch (err) {
       logger.warn('[live-relay] Failed to fetch patient context', err)

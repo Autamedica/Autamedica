@@ -140,6 +140,12 @@ export default function AnamnesisPage() {
             onSwitchToText={handleVoiceSwitchToText}
             guidance={guidance}
             checkpoint={pendingCheckpoint ?? undefined}
+            ledgerContext={{
+              patientId: user?.id ?? '',
+              caseId: anamnesis?.id ?? 'general',
+              workflowType: 'general_anamnesis',
+              segment: currentStep?.id
+            }}
           />
         </div>
       </div>

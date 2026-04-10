@@ -44,6 +44,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .eq('user_id', context.userId)
       .single()
 
+    const { data: clinicalState } = await admin
+      .from('clinical_case_states' as never)
+      .select('state')
+      .eq('case_id', (intake as { id: string }).id)
+      .maybeSingle()
+
     const patientName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Paciente'
     const patientAge = patientRow?.birth_date
       ? Math.floor((Date.now() - new Date(patientRow.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -62,6 +68,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
         updatedAt: (intake as { updated_at?: string | null }).updated_at ?? null,
       },
       sections: ((sections ?? []) as Array<{ section: string; phase: string; data: Record<string, unknown> }>),
+      triage: (clinicalState as { state: any })?.state?.triage,
     })
 
     try {
