@@ -29,6 +29,10 @@ export interface TriageResult {
     dose: string
     daysRemaining: number | null
   }
+  symptomsSnapshot?: {
+    insomniaSeverity?: number | null
+    insomniaImpact?: string | null
+  }
 }
 
 const ADHD_STIMULANTS = ['metilfenidato', 'lisdexanfetamina', 'estimulante', 'ritalin', 'concerta', 'venvanse']
@@ -100,28 +104,47 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     }
   }
 
-  // 3. RULES: INSOMNIA & ANXIETY (Stubs for future expansion)
+  // 3. RULES: INSOMNIA MANAGEMENT v1
   if (vertical === 'insomnia_management') {
+     const severity = state.symptoms.nightsPerWeek?.value || 0
+     const impact = state.symptoms.daytimeImpact?.value
+     const chronic = severity >= 3
+     
      if (state.symptoms.insomnia.value) {
+        if (impact === 'severe' || (chronic && impact === 'moderate')) {
+          priority = 'priority'
+          priorityRank = 2
+          reasons.push('Insomnio crónico con impacto funcional severo')
+          mandate = 'EVALUACIÓN DE HIGIENE Y PAUTA'
+          suggestedAction = 'Revisar cronodisrupción y valorar intervención farmacológica de inducción.'
+        } else {
+          reasons.push('Gestión de insomnio incidental/moderado')
+        }
+     }
+
+     // Red Flags specific to Insomnia (Safety first)
+     const hasHighRiskOccupational = impact === 'severe' // Placeholder for "drives heavy machinery"
+     if (hasHighRiskOccupational) {
         priority = 'priority'
         priorityRank = Math.min(priorityRank, 2)
-        reasons.push('Insomnio severo incapacitante')
-        suggestedAction = 'Valorar higiene de sueño inmediata y ajuste farmacológico.'
+        reasons.push('Riesgo ocupacional por privación de sueño')
+        mandate = 'RESOLUCIÓN PRIORITARIA (SEGURIDAD)'
      }
   }
 
-  // 4. CROSS-CUTTING RULES: Safety Critical Alerts (Always Urgent)
-  const hasSafetyAlert = state.symptoms.chestPain.value || 
-                         state.symptoms.panicEpisodes.value || 
-                         state.symptoms.selfHarmIdeation.value
+  // 4. CROSS-CUTTING RULES: Safety Critical Alerts (Always Urgent across all verticals)
+  const hasSafetyAlert = state.symptoms.selfHarmIdeation.value || 
+                         state.symptoms.chestPain.value || 
+                         state.symptoms.panicEpisodes.value
 
   if (hasSafetyAlert) {
     priority = 'urgent'
     priorityRank = 1
     requiresSameDayAction = true
     reasons.push('Presencia de marcadores de alarma de seguridad (Autolesión o Cardio-Psiquiátrica)')
-    mandate = 'EVALUACIÓN MÉDICA URGENTE'
-    suggestedAction = 'Contactar paciente de inmediato. Valorar derivación a urgencias.'
+    mandate = 'EVALUACIÓN MÉDICA URGENTE SYNC'
+    suggestedAction = 'CONTACTO INMEDIATO: El paciente reporta ideación o síntomas físicos de alarma.'
+    references.push('NICE Clinical Guideline: Self-harm (CG133)')
   }
 
   // Adjust suggested action and mandate based on NICE/NHS discontinuation risk
@@ -154,5 +177,9 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     requiresSameDayAction,
     resolutionDeadline: deadlineDate.toISOString(),
     medicationSnapshot,
+    symptomsSnapshot: {
+      insomniaSeverity: state.symptoms.nightsPerWeek?.value ?? null,
+      insomniaImpact: state.symptoms.daytimeImpact?.value ?? null
+    }
   }
 }

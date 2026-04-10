@@ -64,6 +64,9 @@ export const clinicalStateService = {
         medication_snapshot_dose: triage.medicationSnapshot?.dose,
         medication_snapshot_days_remaining: triage.medicationSnapshot?.daysRemaining,
         
+        symptoms_snapshot_insomnia_severity: triage.symptomsSnapshot?.insomniaSeverity,
+        symptoms_snapshot_insomnia_impact: triage.symptomsSnapshot?.insomniaImpact,
+        
         updated_at: new Date().toISOString()
       }, { onConflict: 'case_id' })
 

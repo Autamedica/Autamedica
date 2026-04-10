@@ -161,6 +161,13 @@ export interface SymptomSection {
   chestPain: CanonicalField<boolean>;
   selfHarmIdeation: CanonicalField<boolean>;
   residualSymptoms: CanonicalField<string>;
+
+  // Insomnia v1 Specifics
+  sleepHours: CanonicalField<number>;
+  nightsPerWeek: CanonicalField<number>;
+  daytimeImpact: CanonicalField<'none' | 'mild' | 'moderate' | 'severe'>;
+  conciliacionDifficulty: CanonicalField<boolean>;
+  mantenimientoDifficulty: CanonicalField<boolean>;
 }
 
 export interface FunctionalImpactSection {

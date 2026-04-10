@@ -25,6 +25,8 @@ ADD COLUMN IF NOT EXISTS triage_priority_rank INTEGER NOT NULL DEFAULT 3,
 ADD COLUMN IF NOT EXISTS medication_snapshot_name TEXT,
 ADD COLUMN IF NOT EXISTS medication_snapshot_dose TEXT,
 ADD COLUMN IF NOT EXISTS medication_snapshot_days_remaining INTEGER,
+ADD COLUMN IF NOT EXISTS symptoms_snapshot_insomnia_severity INTEGER,
+ADD COLUMN IF NOT EXISTS symptoms_snapshot_insomnia_impact TEXT,
 
 -- Ownership
 ADD COLUMN IF NOT EXISTS assigned_doctor_id UUID REFERENCES public.doctors(id),
