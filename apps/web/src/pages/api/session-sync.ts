@@ -81,19 +81,24 @@ export const GET: APIRoute = async ({ request, cookies, locals }) => {
       }
     );
 
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-    if (error || !session) {
+    if (error || !user) {
       return new Response(
         JSON.stringify({ error: error?.message ?? 'No active session' }),
         { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       );
     }
 
-    const { data: userData } = await supabase.auth.getUser();
-
     return new Response(
-      JSON.stringify({ session, user: userData?.user ?? null }),
+      JSON.stringify({
+        authenticated: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.user_metadata?.role ?? user.app_metadata?.role,
+        },
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
     );
   } catch (err) {

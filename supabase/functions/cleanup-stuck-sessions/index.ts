@@ -6,9 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? ''
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  const authHeader = req.headers.get('Authorization')
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 
   try {
@@ -17,27 +27,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('Starting cleanup of stuck conversation sessions...')
-
-    // Define the threshold (e.g., 1 hour)
     const THRESHOLD_MINUTES = 60
-    const thresholdDate = new Date(Date.now() - THRESHOLD_MINUTES * 60 * 1000).toISOString()
 
-    /**
-     * Case 1: Active sessions where started_at is very old AND no events exist.
-     * Case 2: Active sessions where the last event is older than the threshold.
-     */
-    
-    // We'll use a single RPC or a complex query. 
-    // To keep it simple and safe for Edge Functions, we'll do an update with a subquery.
-    
     const { data, error } = await supabaseClient.rpc('public.cleanup_stuck_conversation_sessions', {
       threshold_interval: `${THRESHOLD_MINUTES} minutes`
     })
 
     if (error) throw error
-
-    console.log(`Cleanup complete. Result: ${JSON.stringify(data)}`)
 
     return new Response(
       JSON.stringify({ success: true, result: data }),
@@ -45,9 +41,9 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in cleanup-stuck-sessions:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
