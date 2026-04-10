@@ -1,0 +1,10 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import ContinuityStatusPage from '@/components/patients/ContinuityStatusPage'
+
+const title = 'Estado de Continuidad | AutaMedica'
+---
+
+<Layout title={title} robots="noindex, nofollow, noarchive">
+  <ContinuityStatusPage client:load />
+</Layout>
