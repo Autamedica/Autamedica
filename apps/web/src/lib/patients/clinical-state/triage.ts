@@ -1,4 +1,4 @@
-import type { ClinicalCaseState, CurrentMedicationEntry } from './types'
+import type { ClinicalCaseState, CurrentMedicationEntry, ClinicalVertical, CaseIntent } from './types'
 
 /**
  * Clinical Triage Engine
@@ -10,6 +10,8 @@ import type { ClinicalCaseState, CurrentMedicationEntry } from './types'
 export interface TriageResult {
   priority: 'routine' | 'priority' | 'urgent'
   priorityRank: number
+  vertical: ClinicalVertical
+  intent: CaseIntent
   reasons: string[]
   mandate: string
   suggestedAction: string
@@ -34,6 +36,11 @@ const ADHD_STIMULANTS = ['metilfenidato', 'lisdexanfetamina', 'estimulante', 'ri
 export function computeTriage(state: ClinicalCaseState): TriageResult {
   const reasons: string[] = []
   const references: string[] = ['WHO Standard Operating Protocol for Medication Reconciliation']
+  
+  // Base taxonomy from state or inference
+  let vertical: ClinicalVertical = state.workflow.vertical || 'psychiatry_general'
+  let intent: CaseIntent = state.workflow.intent || 'evaluation'
+  
   let priority: 'routine' | 'priority' | 'urgent' = 'routine'
   let priorityRank = 3
   let riskOfInterruption: 'low' | 'medium' | 'high' = 'low'
@@ -51,36 +58,36 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     daysRemaining: firstMed.daysRemaining?.value ?? null
   } : undefined
 
+  // 1. INFERENCE: Determine Vertical if not set
   const hasStimulant = ads.some(med => 
     ADHD_STIMULANTS.some(s => med.medicationName.value?.toLowerCase().includes(s))
   )
-  
-  const minDaysRemaining = ads.reduce((min, med) => {
-    const days = med.daysRemaining?.value
-    return (days !== null && days !== undefined && days < min) ? days : min
-  }, Infinity)
+  if (hasStimulant && vertical === 'psychiatry_general') {
+    vertical = 'tdah_continuity'
+  }
 
-  const hasSafetyAlert = state.symptoms.chestPain.value || 
-                         state.symptoms.panicEpisodes.value || 
-                         state.symptoms.selfHarmIdeation.value
-
-  const hasUncertainty = ads.some(med => 
-    !med.prescriberKnown.value || 
-    med.doseMgPerDay.value === null || 
-    (med.doseMgPerDay.value && med.doseMgPerDay.value >= 100)
-  )
-
-  // 1. RULE: ADHD Stimulant + Interruption Risk
-  if (hasStimulant) {
+  // 2. RULES: TDAH & CONTINUITY
+  if (vertical === 'tdah_continuity' || hasStimulant) {
     references.push('NHS guideline: Methylphenidate withdrawal risks')
     references.push('NICE ADHD Guideline (NG87)')
     
+    const minDaysRemaining = ads.reduce((min, med) => {
+      const days = med.daysRemaining?.value
+      return (days !== null && days !== undefined && days < min) ? days : min
+    }, Infinity)
+
     if (minDaysRemaining <= 1) {
       riskOfInterruption = 'high'
       requiresSameDayAction = true
     } else if (minDaysRemaining <= 3) {
       riskOfInterruption = 'medium'
     }
+
+    const hasUncertainty = ads.some(med => 
+      !med.prescriberKnown.value || 
+      med.doseMgPerDay.value === null || 
+      (med.doseMgPerDay.value && med.doseMgPerDay.value >= 100)
+    )
 
     if (hasUncertainty || riskOfInterruption === 'high') {
       priority = 'priority'
@@ -93,22 +100,28 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     }
   }
 
-  // 2. RULE: Safety Critical Alerts
+  // 3. RULES: INSOMNIA & ANXIETY (Stubs for future expansion)
+  if (vertical === 'insomnia_management') {
+     if (state.symptoms.insomnia.value) {
+        priority = 'priority'
+        priorityRank = Math.min(priorityRank, 2)
+        reasons.push('Insomnio severo incapacitante')
+        suggestedAction = 'Valorar higiene de sueño inmediata y ajuste farmacológico.'
+     }
+  }
+
+  // 4. CROSS-CUTTING RULES: Safety Critical Alerts (Always Urgent)
+  const hasSafetyAlert = state.symptoms.chestPain.value || 
+                         state.symptoms.panicEpisodes.value || 
+                         state.symptoms.selfHarmIdeation.value
+
   if (hasSafetyAlert) {
     priority = 'urgent'
     priorityRank = 1
     requiresSameDayAction = true
-    reasons.push('Presencia de marcadores de alarma cardio-psiquiátrica')
+    reasons.push('Presencia de marcadores de alarma de seguridad (Autolesión o Cardio-Psiquiátrica)')
     mandate = 'EVALUACIÓN MÉDICA URGENTE'
-    suggestedAction = 'Pospone escalada de dosis. Valorar derivación a guardia o consulta prioritaria.'
-  }
-
-  // 3. RULE: Insomnia / High Impact
-  if (state.symptoms.insomnia.value && hasStimulant) {
-    priority = 'priority'
-    priorityRank = Math.min(priorityRank, 2)
-    reasons.push('Insomnio severo en paciente con estimulantes')
-    suggestedAction = 'Aclaración clínica dirigida hoy para descartar efecto rebote.'
+    suggestedAction = 'Contactar paciente de inmediato. Valorar derivación a urgencias.'
   }
 
   // Adjust suggested action and mandate based on NICE/NHS discontinuation risk
@@ -120,19 +133,18 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
   // Calculate resolution deadline (ISO)
   const deadlineDate = new Date()
   if (requiresSameDayAction) {
-    // End of current day (23:59)
     deadlineDate.setHours(23, 59, 59, 999)
   } else if (priority === 'priority') {
-    // 24 hours
     deadlineDate.setHours(deadlineDate.getHours() + 24)
   } else {
-    // 72 hours
     deadlineDate.setHours(deadlineDate.getHours() + 72)
   }
 
   return {
     priority,
     priorityRank,
+    vertical,
+    intent,
     reasons,
     mandate,
     suggestedAction,

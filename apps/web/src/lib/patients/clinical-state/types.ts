@@ -39,6 +39,20 @@ export type WorkflowType =
   | 'general_consultation'
   | 'psychiatric_urgency';
 
+export type ClinicalVertical =
+  | 'psychiatry_general'
+  | 'tdah_continuity'
+  | 'insomnia_management'
+  | 'anxiety_disorders'
+  | 'depressive_disorders';
+
+export type CaseIntent =
+  | 'evaluation'
+  | 'continuity'
+  | 'urgent_review'
+  | 'renewal'
+  | 'follow_up';
+
 export type SegmentKey =
   | 'identity'
   | 'intake_context'
@@ -187,6 +201,8 @@ export interface ClinicalCaseState {
 
   workflow: {
     type: WorkflowType;
+    vertical: ClinicalVertical; // Added taxonomy
+    intent: CaseIntent;        // Added taxonomy
     currentSegment: SegmentKey;
     completedSegments: SegmentKey[];
     openedAt: string; // ISO 8601

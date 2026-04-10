@@ -49,6 +49,8 @@ export const clinicalStateService = {
         locked_field_count: lockedFields,
         
         // Triage & SLA Materialization (Senior requirements)
+        clinical_vertical: triage.vertical,
+        case_intent: triage.intent,
         triage_priority: triage.priority,
         triage_priority_rank: triage.priorityRank,
         triage_mandate: triage.mandate,

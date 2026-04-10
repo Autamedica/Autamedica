@@ -8,6 +8,12 @@
 -- ══════════════════════════════════════════════════════════════════════════
 
 ALTER TABLE public.clinical_case_states
+-- Workflow & Taxonomies
+ADD COLUMN IF NOT EXISTS clinical_vertical TEXT NOT NULL DEFAULT 'psychiatry_general'
+  CHECK (clinical_vertical IN ('psychiatry_general', 'tdah_continuity', 'insomnia_management', 'anxiety_disorders', 'depressive_disorders')),
+ADD COLUMN IF NOT EXISTS case_intent TEXT NOT NULL DEFAULT 'evaluation'
+  CHECK (case_intent IN ('evaluation', 'continuity', 'urgent_review', 'renewal', 'follow_up')),
+
 -- Operational Status
 ADD COLUMN IF NOT EXISTS triage_status TEXT NOT NULL DEFAULT 'pending'
   CHECK (triage_status IN ('pending', 'acknowledged', 'in_progress', 'resolved', 'escalated')),
