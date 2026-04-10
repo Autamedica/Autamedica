@@ -1,0 +1,4 @@
+        sections: sections as unknown as Array<{ section: string; phase: string; data: Record<string, unknown> }>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        triage: triage as any,
+      })

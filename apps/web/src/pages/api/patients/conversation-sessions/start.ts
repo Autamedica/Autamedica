@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro';
-import { conversationLedgerAdapter } from '@/lib/patients/lib/repos/conversation-ledger.adapter';
+import { createAstroAdminClient } from '@/lib/supabase';
+import { createConversationLedgerAdapter } from '@/lib/patients/lib/repos/conversation-ledger.adapter';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'unknown_error';
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json();
     
@@ -17,7 +18,9 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const session = await conversationLedgerAdapter.createSession({
+    const adapter = createConversationLedgerAdapter(createAstroAdminClient(locals.runtime?.env));
+
+    const session = await adapter.createSession({
       patientId: body.patientId,
       caseId: body.caseId,
       channel: body.channel,

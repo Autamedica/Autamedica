@@ -5,7 +5,7 @@ import { jsonOk, internalError } from '@/lib/api-helpers';
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;

@@ -25,7 +25,7 @@ interface TranscriptionBody {
   lang?: string;
 }
 
-export const POST: APIRoute = async ({ request, params }) => {
+export const POST: APIRoute = async ({ request, params, locals }) => {
   const roomId = params.roomId;
   if (!roomId) {
     return badRequest('missing_room_id');

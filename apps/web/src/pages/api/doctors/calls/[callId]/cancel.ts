@@ -6,7 +6,7 @@ import { badRequest, conflict, forbidden, internalError, jsonOk, notFound } from
 import { createAstroAdminClient } from '@/lib/supabase'
 import { cancelCallService } from '@/lib/calls/services/cancel-call.service'
 
-export const POST: APIRoute = async ({ request, params }) => {
+export const POST: APIRoute = async ({ request, params, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES)
   if (!isAuthed(auth)) return auth
 

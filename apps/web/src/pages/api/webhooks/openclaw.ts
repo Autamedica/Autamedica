@@ -17,7 +17,7 @@ function jsonOk(data: Record<string, any>): Response {
   return new Response(JSON.stringify({ ok: true, ...data }), { status: 200, headers: JSON_HEADERS })
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const authHeader = request.headers.get('Authorization')
   if (!WEBHOOK_SECRET || authHeader !== `Bearer ${WEBHOOK_SECRET}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: JSON_HEADERS })

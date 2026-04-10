@@ -1,11 +1,12 @@
 import type { APIRoute } from 'astro';
-import { conversationLedgerAdapter } from '@/lib/patients/lib/repos/conversation-ledger.adapter';
+import { createAstroAdminClient } from '@/lib/supabase';
+import { createConversationLedgerAdapter } from '@/lib/patients/lib/repos/conversation-ledger.adapter';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'unknown_error';
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json();
 
@@ -16,7 +17,8 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const event = await conversationLedgerAdapter.logEvent(body);
+    const adapter = createConversationLedgerAdapter(createAstroAdminClient(locals.runtime?.env));
+    const event = await adapter.logEvent(body);
 
     return new Response(JSON.stringify({ event }), {
       status: 200,
@@ -31,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 };
 
-export const GET: APIRoute = async ({ request: _request, url }) => {
+export const GET: APIRoute = async ({ locals, url }) => {
   try {
     const sessionId = url.searchParams.get('sessionId');
     if (!sessionId) {
@@ -41,7 +43,8 @@ export const GET: APIRoute = async ({ request: _request, url }) => {
       });
     }
 
-    const events = await conversationLedgerAdapter.getEventsForSession(sessionId);
+    const adapter = createConversationLedgerAdapter(createAstroAdminClient(locals.runtime?.env));
+    const events = await adapter.getEventsForSession(sessionId);
 
     return new Response(JSON.stringify({ events }), {
       status: 200,

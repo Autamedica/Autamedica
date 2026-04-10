@@ -6,7 +6,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { callSessionRepo } from '@/lib/calls/repos/call-session.repo'
 import { respondCallService } from '@/lib/calls/services/respond-call.service'
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, PATIENT_ROLES)
   if (!isAuthed(auth)) return auth
 

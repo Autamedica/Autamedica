@@ -1,5 +1,13 @@
 import { jsPDF } from 'jspdf'
 
+interface PsychiatryIntakePdfTriage {
+  priority: 'routine' | 'priority' | 'urgent'
+  reasons: string[]
+  mandate: string
+  suggestedAction: string
+  references: string[]
+}
+
 interface PsychiatryIntakePdfInput {
   patient: {
     name: string
@@ -17,13 +25,7 @@ interface PsychiatryIntakePdfInput {
     phase: string
     data: Record<string, unknown>
   }>
-  triage?: {
-    priority: 'routine' | 'priority' | 'urgent';
-    reasons: string[];
-    mandate: string;
-    suggestedAction: string;
-    references: string[];
-  }
+  triage?: Partial<PsychiatryIntakePdfTriage> | null
 }
 
 export interface PsychiatryIntakePdfResult {
@@ -69,6 +71,31 @@ function sanitizeText(text: string | null | undefined, fallback = 'Información 
   return text.trim()
 }
 
+function normalizePdfTriage(triage: PsychiatryIntakePdfInput['triage']): PsychiatryIntakePdfTriage | null {
+  if (!triage || typeof triage !== 'object') return null
+
+  const priority = triage.priority
+  if (priority !== 'routine' && priority !== 'priority' && priority !== 'urgent') {
+    return null
+  }
+
+  const reasons = Array.isArray(triage.reasons)
+    ? triage.reasons.filter((reason): reason is string => typeof reason === 'string' && reason.trim().length > 0)
+    : []
+
+  const references = Array.isArray(triage.references)
+    ? triage.references.filter((reference): reference is string => typeof reference === 'string' && reference.trim().length > 0)
+    : []
+
+  return {
+    priority,
+    reasons,
+    mandate: typeof triage.mandate === 'string' ? triage.mandate.trim() : '',
+    suggestedAction: typeof triage.suggestedAction === 'string' ? triage.suggestedAction.trim() : '',
+    references,
+  }
+}
+
 /** Humanización de valores técnicos para el anexo */
 function humanizeValue(key: string, value: unknown): string {
   const v = String(value || '').toLowerCase().trim()
@@ -95,6 +122,7 @@ export function generatePsychiatryIntakePdf(input: PsychiatryIntakePdfInput): Ps
   const margin = 16
   const contentWidth = pageWidth - margin * 2
   let y = 18
+  const triage = normalizePdfTriage(input.triage)
 
   const addPage = () => {
     doc.addPage()
@@ -371,10 +399,10 @@ En términos globales, describe su respuesta previa a la estrategia farmacológi
   }
 
   // ---------- V. RESOLUCIÓN CLÍNICA Y MANTATOS SEGÚN GUÍAS ----------
-  if (input.triage) {
+  if (triage) {
     checkPageBreak(30)
     doc.setFillColor(254, 242, 242) // Light red background for urgent/priority
-    if (input.triage.priority === 'routine') doc.setFillColor(240, 253, 244) // Light green
+    if (triage.priority === 'routine') doc.setFillColor(240, 253, 244) // Light green
     
     doc.rect(margin - 2, y, contentWidth + 4, 35, 'F')
     doc.setTextColor(15, 23, 42)
@@ -385,19 +413,19 @@ En términos globales, describe su respuesta previa a la estrategia farmacológi
     y += 12
     doc.setFontSize(9)
     doc.setTextColor(153, 27, 27)
-    if (input.triage.priority === 'routine') doc.setTextColor(21, 128, 61)
+    if (triage.priority === 'routine') doc.setTextColor(21, 128, 61)
     
-    doc.text(`PRIORIDAD: ${input.triage.priority.toUpperCase()}`, margin, y)
+    doc.text(`PRIORIDAD: ${triage.priority.toUpperCase()}`, margin, y)
     y += 5
     
     doc.setTextColor(51, 65, 85)
     doc.setFont('helvetica', 'bold')
     doc.text('MANDATO:', margin, y)
     doc.setFont('helvetica', 'normal')
-    doc.text(input.triage.mandate || 'Sin mandato específico', margin + 20, y)
+    doc.text(triage.mandate || 'Sin mandato específico', margin + 20, y)
     y += 5
     
-    const actionLines = doc.splitTextToSize(`ACCIÓN SUGERIDA: ${input.triage.suggestedAction}`, contentWidth)
+    const actionLines = doc.splitTextToSize(`ACCIÓN SUGERIDA: ${triage.suggestedAction || 'Sin acción sugerida consignada'}`, contentWidth)
     for (const line of actionLines) {
       doc.text(line, margin, y)
       y += 4
@@ -409,9 +437,14 @@ En términos globales, describe su respuesta previa a la estrategia farmacológi
     doc.text('BASES DE LA INVESTIGACIÓN:', margin, y)
     doc.setFont('helvetica', 'normal')
     y += 4
-    for (const ref of input.triage.references) {
-      doc.text(`• ${ref}`, margin + 2, y)
+    if (triage.references.length === 0) {
+      doc.text('• Sin referencias registradas en el estado clínico', margin + 2, y)
       y += 4
+    } else {
+      for (const ref of triage.references) {
+        doc.text(`• ${ref}`, margin + 2, y)
+        y += 4
+      }
     }
     
     y += 6

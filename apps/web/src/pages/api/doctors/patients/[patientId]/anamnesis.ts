@@ -54,7 +54,7 @@ async function resolvePatientLabel(
   return fullName || `Paciente ${patientId}`;
 }
 
-export const GET: APIRoute = async ({ request, params }) => {
+export const GET: APIRoute = async ({ request, params, locals }) => {
   try {
     const patientId = params.patientId;
     if (!patientId) {

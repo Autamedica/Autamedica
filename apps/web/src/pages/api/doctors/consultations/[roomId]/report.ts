@@ -10,7 +10,7 @@ import { jsonOk, badRequest, forbidden, notFound, internalError } from '@/lib/ap
 import { withAuthRole, DOCTOR_ROLES, isAuthed } from '@/lib/api-auth';
 
 
-export const PATCH: APIRoute = async ({ request, params }) => {
+export const PATCH: APIRoute = async ({ request, params, locals }) => {
   const roomId = params.roomId;
   if (!roomId) {
     return badRequest('missing_room_id');
@@ -45,7 +45,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
   }
 };
 
-export const POST: APIRoute = async ({ request, params }) => {
+export const POST: APIRoute = async ({ request, params, locals }) => {
   const roomId = params.roomId;
   if (!roomId) {
     return badRequest('missing_room_id');

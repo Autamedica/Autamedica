@@ -5,7 +5,7 @@ import { withAuth, isAuthed } from '@/lib/api-auth'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { telemedicineStatsService } from '@/lib/admin/services/telemedicine-stats.service'
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
     const auth = await withAuth(request)
     if (!isAuthed(auth)) return auth

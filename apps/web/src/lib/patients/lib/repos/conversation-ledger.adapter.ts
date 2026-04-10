@@ -1,4 +1,4 @@
-import { getBrowserSupabaseClient } from '@/lib/supabase-browser';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SegmentKey, WorkflowType } from '../../clinical-state/types';
 
 export interface ConversationSession {
@@ -58,9 +58,10 @@ type DbConversationEventRecord = {
 }
 
 export class ConversationLedgerAdapter {
+  constructor(private supabase: SupabaseClient) {}
+
   async createSession(session: Omit<ConversationSession, 'id' | 'startedAt'>): Promise<ConversationSession> {
-    const supabase = getBrowserSupabaseClient() as any;
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('conversation_sessions')
       .insert({
         patient_id: session.patientId,
@@ -74,12 +75,11 @@ export class ConversationLedgerAdapter {
 
     if (error) throw error;
     
-    return this.mapSession(data as any);
+    return this.mapSession(data as unknown as DbConversationSessionRecord);
   }
 
   async closeSession(sessionId: string, status: 'closed' | 'failed'): Promise<void> {
-    const supabase = getBrowserSupabaseClient() as any;
-    const { error } = await supabase
+    const { error } = await this.supabase
       .from('conversation_sessions')
       .update({
         status,
@@ -91,8 +91,7 @@ export class ConversationLedgerAdapter {
   }
 
   async logEvent(event: Omit<ConversationEvent, 'id' | 'createdAt'>): Promise<ConversationEvent> {
-    const supabase = getBrowserSupabaseClient() as any;
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('conversation_events')
       .insert({
         session_id: event.sessionId,
@@ -113,12 +112,11 @@ export class ConversationLedgerAdapter {
 
     if (error) throw error;
 
-    return this.mapEvent(data as any);
+    return this.mapEvent(data as unknown as DbConversationEventRecord);
   }
 
   async getEventsForSession(sessionId: string): Promise<ConversationEvent[]> {
-    const supabase = getBrowserSupabaseClient() as any;
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from('conversation_events')
       .select('*')
       .eq('session_id', sessionId)
@@ -126,7 +124,7 @@ export class ConversationLedgerAdapter {
 
     if (error) throw error;
 
-    return (data as any[]).map((e: any) => this.mapEvent(e));
+    return (data as unknown as DbConversationEventRecord[]).map((e) => this.mapEvent(e));
   }
 
   // ----------- Mappers -----------
@@ -163,4 +161,4 @@ export class ConversationLedgerAdapter {
   }
 }
 
-export const conversationLedgerAdapter = new ConversationLedgerAdapter();
+export const createConversationLedgerAdapter = (supabase: SupabaseClient) => new ConversationLedgerAdapter(supabase);

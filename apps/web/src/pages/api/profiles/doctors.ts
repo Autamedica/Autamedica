@@ -6,7 +6,7 @@ import { jsonOk, badRequest, internalError } from '@/lib/api-helpers'
 import { withAuth, isAuthed } from '@/lib/api-auth'
 import { doctorProfileService } from '@/lib/doctors/services/doctor-profile.service'
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const auth = await withAuth(request)
     if (!isAuthed(auth)) return auth

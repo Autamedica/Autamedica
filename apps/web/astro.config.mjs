@@ -14,7 +14,7 @@ export default defineConfig({
   integrations: [
     sentry({
       org: process.env.SENTRY_ORG || 'autamedica',
-      project: process.env.SENTRY_PROJECT || 'autamedica-web',
+      project: process.env.SENTRY_PROJECT || 'javascript-astro',
       authToken: process.env.SENTRY_AUTH_TOKEN,
     }),
     react(),

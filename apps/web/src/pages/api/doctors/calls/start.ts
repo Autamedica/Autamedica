@@ -7,7 +7,7 @@ import { createAstroAdminClient } from '@/lib/supabase'
 import { startTeleconsultationUseCase } from '@/lib/calls/usecases/start-teleconsultation.usecase'
 import { createCallStartAdapter } from '@/lib/calls/repos/call-start.adapter'
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const auth = await withAuthRole(request, DOCTOR_ROLES)
   if (!isAuthed(auth)) return auth
 

@@ -5,7 +5,7 @@ import { logger } from '@autamedica/shared'
 import { profileService } from '@/lib/patients/services/profile.service'
 import { jsonOk, unauthorized, badRequest, internalError } from '@/lib/api-helpers'
 
-export const PATCH: APIRoute = async ({ request }) => {
+export const PATCH: APIRoute = async ({ request, locals }) => {
   const userId = await getUserIdFromRequest(request)
   if (!userId) return unauthorized()
 

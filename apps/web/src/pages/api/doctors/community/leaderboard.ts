@@ -5,7 +5,7 @@ import { withAuthRole, isAuthed, DOCTOR_ROLES } from '@/lib/api-auth';
 import { createAstroAdminClient } from '@/lib/supabase';
 import { rankingService } from '@/lib/doctors/services/ranking.service';
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
   try {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;

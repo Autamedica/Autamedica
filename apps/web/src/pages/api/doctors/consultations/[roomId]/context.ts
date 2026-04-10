@@ -6,7 +6,7 @@ import { createAstroAdminClient } from '@/lib/supabase';
 
 import { consultationContextService } from '@/lib/doctors/services/consultation-context.service';
 
-export const GET: APIRoute = async ({ request, params }) => {
+export const GET: APIRoute = async ({ request, params, locals }) => {
   const roomId = params.roomId;
   if (!roomId) return badRequest('missing_room_id');
 

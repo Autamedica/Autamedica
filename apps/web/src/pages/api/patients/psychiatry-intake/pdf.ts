@@ -122,8 +122,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
           completedAt: (intake as { completed_at?: string | null }).completed_at ?? null,
           updatedAt: (intake as { updated_at?: string | null }).updated_at ?? null,
         },
-        sections: ((sections ?? []) as Array<{ section: string; phase: string; data: Record<string, unknown> }>),
-        triage,
+        sections: sections as unknown as Array<{ section: string; phase: string; data: Record<string, unknown> }>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        triage: triage as any,
       })
     } catch (pdfError) {
       captureFailure(pdfError, 'pdf_generation', {
@@ -136,7 +137,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
             : undefined,
       })
       logger.error('[psychiatry-intake/pdf] generatePsychiatryIntakePdf THREW', pdfError)
-      throw pdfError; // rethrow to outer catch
+      return jsonError('pdf_generation_critical_failure', 500)
     }
 
     try {
