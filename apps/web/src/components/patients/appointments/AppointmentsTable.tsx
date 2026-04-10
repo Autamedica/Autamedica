@@ -33,7 +33,22 @@ const statusConfig: Record<string, { label: string; dot: string; bg: string }> =
   completed: { label: 'Completada', dot: 'bg-stone-400', bg: 'bg-stone-100 text-stone-600' },
   cancelled: { label: 'Cancelada', dot: 'bg-red-400', bg: 'bg-red-50 text-red-600' },
   no_show: { label: 'No asistió', dot: 'bg-stone-300', bg: 'bg-stone-100 text-stone-500' },
+  expired: { label: 'No realizada', dot: 'bg-stone-300', bg: 'bg-stone-100 text-stone-500' },
 };
+
+const PAST_DUE_GRACE_MS = 2 * 60 * 60 * 1000;
+
+function isAppointmentPastDue(appointment: AppointmentWithDoctor): boolean {
+  const { status, start_time, end_time, duration_minutes } = appointment;
+  if (status !== 'scheduled' && status !== 'confirmed') return false;
+  if (!start_time) return false;
+
+  const endMs = end_time
+    ? Date.parse(end_time)
+    : Date.parse(start_time) + (duration_minutes ?? 30) * 60 * 1000;
+
+  return Date.now() > endMs + PAST_DUE_GRACE_MS;
+}
 
 const typeConfig: Record<string, { label: string; icon: typeof Stethoscope; color: string }> = {
   consultation: { label: 'Consulta', icon: Stethoscope, color: 'text-sky-700 bg-sky-50' },
@@ -68,7 +83,9 @@ export function AppointmentsTable({
   return (
     <div className="space-y-3">
       {appointments.map((appointment) => {
-        const statusKey = appointment.status ?? 'scheduled';
+        const rawStatusKey = appointment.status ?? 'scheduled';
+        const isPastDue = isAppointmentPastDue(appointment);
+        const statusKey = isPastDue ? 'expired' : rawStatusKey;
         const status = statusConfig[statusKey] ?? statusConfig.scheduled;
         const typeKey = appointment.type ?? 'consultation';
         const type = typeConfig[typeKey] ?? typeConfig.consultation;
@@ -77,9 +94,10 @@ export function AppointmentsTable({
           ? `Dr. ${appointment.doctor.first_name ?? ''} ${appointment.doctor.last_name ?? ''}`.trim()
           : null;
         const isActive =
-          statusKey === 'scheduled' ||
-          statusKey === 'confirmed' ||
-          statusKey === 'in_progress';
+          !isPastDue &&
+          (rawStatusKey === 'scheduled' ||
+          rawStatusKey === 'confirmed' ||
+          rawStatusKey === 'in_progress');
         const isTelemedicine = isTelemedicineAppointment(appointment);
         const entryUrl = buildPatientTelemedicineEntryUrl(appointment.id);
         const isJoining = joiningAppointmentId === appointment.id;
@@ -171,7 +189,7 @@ export function AppointmentsTable({
                     Entrar a la videollamada
                   </a>
                 )}
-                {appointment.status === 'scheduled' && (
+                {appointment.status === 'scheduled' && !isPastDue && (
                   <button className="rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition-all hover:bg-stone-50 active:scale-[0.98]">
                     Reprogramar
                   </button>
