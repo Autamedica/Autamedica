@@ -106,18 +106,6 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
             <DashboardTriageAlerts />
           </section>
 
-          <div className="rounded-3xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-white p-5 shadow-am-sm">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-doctor-600">
-              Flujo Canónico
-            </p>
-            <h2 className="mt-3 text-lg font-semibold text-am-surface-900">
-              La teleconsulta se abre solo desde agenda o pacientes
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-am-surface-600">
-              El portal ya no simula una videollamada local. La sala clínica real se bootstrappea desde un turno o desde la ficha del paciente y redirige a la ruta dedicada de consulta.
-            </p>
-          </div>
-
           <WorkspaceCard
             icon={ClipboardList}
             title="Expedientes"
