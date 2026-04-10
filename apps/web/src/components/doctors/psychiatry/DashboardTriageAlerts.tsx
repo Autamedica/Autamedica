@@ -53,7 +53,7 @@ interface TriageAlert {
   }
 }
 
-const VERTICAL_CONFIG: Record<ClinicalVertical, { label: string, color: string, icon: any }> = {
+const VERTICAL_CONFIG: Record<ClinicalVertical, { label: string, color: string, icon: React.ComponentType<{ className?: string }> }> = {
   tdah_continuity: { label: 'TDAH', color: 'bg-am-doctor-600', icon: Brain },
   insomnia_management: { label: 'INSOMNIO', color: 'bg-indigo-600', icon: Moon },
   anxiety_disorders: { label: 'ANSIEDAD', color: 'bg-teal-600', icon: Wind },
@@ -71,8 +71,8 @@ export function DashboardTriageAlerts() {
   const fetchAlerts = useCallback(async () => {
     const supabase = getBrowserSupabaseClient()
     
-    const { data, error, count } = await supabase
-      .from('clinical_case_states' as any)
+    const { data, error, count } = await (supabase
+      .from('clinical_case_states' as never) as unknown as { select: Function })
       .select(`
         id,
         patient_id,
@@ -106,7 +106,7 @@ export function DashboardTriageAlerts() {
       .limit(10)
 
     if (!error && data) {
-      setAlerts(data as any)
+      setAlerts(data as unknown as TriageAlert[])
       setTotalCount(count || 0)
     }
     setLoading(false)
@@ -115,7 +115,7 @@ export function DashboardTriageAlerts() {
   useEffect(() => {
     fetchAlerts()
     const supabase = getBrowserSupabaseClient()
-    let debounceTimer: any = null
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
     const channel = supabase
       .channel('clinical_triage_queue_v4')
@@ -137,7 +137,7 @@ export function DashboardTriageAlerts() {
   const takeCase = async (alertId: string) => {
     setActingOnId(alertId)
     const supabase = getBrowserSupabaseClient()
-    const { error } = await (supabase.rpc as any)('take_triage_case', { p_case_state_id: alertId })
+    const { error } = await (supabase as unknown as { rpc: (n: string, a: { p_case_state_id: string }) => Promise<{ error: unknown }> }).rpc('take_triage_case', { p_case_state_id: alertId })
     if (!error) {
       setAlerts(prev => prev.map(a => 
         a.id === alertId ? { ...a, assigned_doctor_id: currentUser?.doctorProfileId, triage_status: 'acknowledged' } : a

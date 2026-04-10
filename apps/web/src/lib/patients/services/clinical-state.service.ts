@@ -27,9 +27,8 @@ export const clinicalStateService = {
     const conflictedFields = state.planner?.conflictedFieldKeys?.length || 0
     const lockedFields = state.planner?.lockedFieldKeys?.length || 0
 
-    const { data, error } = await supabase
-      .from('clinical_case_states' as any)
-      .upsert({
+    const { data, error } = await (supabase
+      .from('clinical_case_states' as never) as unknown as { upsert: Function }).upsert({
         case_id: state.caseId,
         patient_id: state.patientId,
         workflow_type: state.workflow.type,
@@ -82,9 +81,8 @@ export const clinicalStateService = {
    * Retrieves a case state by patient ID.
    */
   async getByPatient(supabase: Db, patientId: string): Promise<ClinicalCaseState | null> {
-    const { data, error } = await supabase
-      .from('clinical_case_states' as any)
-      .select('state')
+    const { data, error } = await (supabase
+      .from('clinical_case_states' as never) as unknown as { select: Function }).select('state')
       .eq('patient_id', patientId)
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -95,6 +93,6 @@ export const clinicalStateService = {
       return null
     }
 
-    return (data as any)?.state as ClinicalCaseState || null
+    return (data as unknown as { state: ClinicalCaseState })?.state || null
   }
 }
