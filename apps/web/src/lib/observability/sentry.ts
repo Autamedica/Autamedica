@@ -124,41 +124,43 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   return sanitized
 }
 
-function sanitizeEvent<T extends Record<string, any>>(event: T): T {
-  if (event.request) {
-    delete event.request.data
+function sanitizeEvent<T>(event: T): T {
+  const mutableEvent = event as Record<string, any>
 
-    if (isPlainObject(event.request.headers)) {
-      delete event.request.headers.Authorization
-      delete event.request.headers.authorization
-      delete event.request.headers.Cookie
-      delete event.request.headers.cookie
-      delete event.request.headers['Set-Cookie']
-      delete event.request.headers['set-cookie']
+  if (mutableEvent.request) {
+    delete mutableEvent.request.data
+
+    if (isPlainObject(mutableEvent.request.headers)) {
+      delete mutableEvent.request.headers.Authorization
+      delete mutableEvent.request.headers.authorization
+      delete mutableEvent.request.headers.Cookie
+      delete mutableEvent.request.headers.cookie
+      delete mutableEvent.request.headers['Set-Cookie']
+      delete mutableEvent.request.headers['set-cookie']
     }
   }
 
-  if (event.user) {
-    delete event.user.email
-    delete event.user.username
-    delete event.user.ip_address
+  if (mutableEvent.user) {
+    delete mutableEvent.user.email
+    delete mutableEvent.user.username
+    delete mutableEvent.user.ip_address
   }
 
-  if (event.extra) {
-    event.extra = sanitizeValue(event.extra)
+  if (mutableEvent.extra) {
+    mutableEvent.extra = sanitizeValue(mutableEvent.extra)
   }
 
-  if (event.contexts) {
-    event.contexts = sanitizeValue(event.contexts)
+  if (mutableEvent.contexts) {
+    mutableEvent.contexts = sanitizeValue(mutableEvent.contexts)
   }
 
-  if (Array.isArray(event.breadcrumbs)) {
-    event.breadcrumbs = event.breadcrumbs.map((breadcrumb: Record<string, unknown>) =>
+  if (Array.isArray(mutableEvent.breadcrumbs)) {
+    mutableEvent.breadcrumbs = mutableEvent.breadcrumbs.map((breadcrumb: Record<string, unknown>) =>
       sanitizeValue(breadcrumb),
     )
   }
 
-  return event
+  return mutableEvent as T
 }
 
 function ensureError(error: unknown, fallbackMessage: string): Error {

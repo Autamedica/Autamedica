@@ -74,7 +74,7 @@ export class ConversationLedgerAdapter {
 
     if (error) throw error;
     
-    return this.mapSession(data);
+    return this.mapSession(data as any);
   }
 
   async closeSession(sessionId: string, status: 'closed' | 'failed'): Promise<void> {
@@ -113,7 +113,7 @@ export class ConversationLedgerAdapter {
 
     if (error) throw error;
 
-    return this.mapEvent(data);
+    return this.mapEvent(data as any);
   }
 
   async getEventsForSession(sessionId: string): Promise<ConversationEvent[]> {
@@ -126,7 +126,7 @@ export class ConversationLedgerAdapter {
 
     if (error) throw error;
 
-    return data.map(this.mapEvent);
+    return (data as any[]).map((e: any) => this.mapEvent(e));
   }
 
   // ----------- Mappers -----------
