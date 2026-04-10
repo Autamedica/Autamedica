@@ -16,21 +16,35 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return jsonError('unauthorized', 401)
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
+    logger.info('[psychiatry-intake/pdf] Starting report generation', { patientId: context.patientId })
 
-    const { data: intake } = await admin
+    const { data: intake, error: intakeError } = await admin
       .from('psychiatry_intakes' as never)
       .select('id, completion_percentage, completed_at, updated_at')
       .eq('patient_id', context.patientId)
       .maybeSingle()
 
-    if (!intake) return jsonError('no_psychiatry_intake', 404)
+    if (intakeError) {
+      logger.error('[psychiatry-intake/pdf] intake fetch error', intakeError)
+      return jsonError('db_error', 500)
+    }
 
-    const { data: sections } = await admin
+    if (!intake) {
+      logger.warn('[psychiatry-intake/pdf] no intake found', { patientId: context.patientId })
+      return jsonError('no_psychiatry_intake', 404)
+    }
+
+    const { data: sections, error: sectionsError } = await admin
       .from('psychiatry_intake_sections' as never)
       .select('section, phase, data')
       .eq('intake_id', (intake as { id: string }).id)
       .order('updated_at', { ascending: true })
+
+    if (sectionsError) {
+      logger.error('[psychiatry-intake/pdf] sections fetch error', sectionsError)
+      return jsonError('db_error_sections', 500)
+    }
 
     const { data: profile } = await admin
       .from('profiles')
@@ -57,21 +71,28 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const triage = (clinicalState as { state?: { triage?: any } } | null)?.state?.triage || {}
 
-    const pdf = generatePsychiatryIntakePdf({
-      patient: {
-        name: patientName,
-        age: patientAge,
-        gender: patientRow?.gender ?? null,
-      },
-      intake: {
-        id: (intake as { id: string }).id,
-        completionPercentage: (intake as { completion_percentage?: number }).completion_percentage ?? 0,
-        completedAt: (intake as { completed_at?: string | null }).completed_at ?? null,
-        updatedAt: (intake as { updated_at?: string | null }).updated_at ?? null,
-      },
-      sections: ((sections ?? []) as Array<{ section: string; phase: string; data: Record<string, unknown> }>),
-      triage,
-    })
+    logger.info('[psychiatry-intake/pdf] running jsPDF generation')
+    let pdfResult;
+    try {
+      pdfResult = generatePsychiatryIntakePdf({
+        patient: {
+          name: patientName,
+          age: patientAge,
+          gender: patientRow?.gender ?? null,
+        },
+        intake: {
+          id: (intake as { id: string }).id,
+          completionPercentage: (intake as { completion_percentage?: number }).completion_percentage ?? 0,
+          completedAt: (intake as { completed_at?: string | null }).completed_at ?? null,
+          updatedAt: (intake as { updated_at?: string | null }).updated_at ?? null,
+        },
+        sections: ((sections ?? []) as Array<{ section: string; phase: string; data: Record<string, unknown> }>),
+        triage,
+      })
+    } catch (pdfError) {
+      logger.error('[psychiatry-intake/pdf] generatePsychiatryIntakePdf THREW', pdfError)
+      throw pdfError; // rethrow to outer catch
+    }
 
     try {
       await admin.from('audit_logs').insert({
@@ -79,23 +100,25 @@ export const GET: APIRoute = async ({ request, locals }) => {
         action: 'download_psychiatry_intake_pdf',
         resource_type: 'psychiatry_intake',
         resource_id: (intake as { id: string }).id,
-        details: { filename: pdf.filename },
+        details: { filename: pdfResult.filename },
       } as never)
     } catch {
       logger.warn('[psychiatry-intake/pdf] audit log insert failed')
     }
 
-    return new Response(pdf.buffer as unknown as BodyInit, {
+    logger.info('[psychiatry-intake/pdf] Returning generated PDF', { filename: pdfResult.filename, size: pdfResult.buffer.byteLength })
+
+    return new Response(pdfResult.buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${pdf.filename}"`,
-        'Content-Length': String(pdf.buffer.byteLength),
+        'Content-Disposition': `attachment; filename="${pdfResult.filename}"`,
+        'Content-Length': String(pdfResult.buffer.byteLength),
         'Cache-Control': 'private, no-cache',
       },
     })
   } catch (error) {
-    logger.error('[psychiatry-intake/pdf] generation failed', error)
-    return jsonError('pdf_generation_failed', 500)
+    logger.error('[psychiatry-intake/pdf] Unhandled exception during generation', error)
+    return jsonError('pdf_generation_critical_failure', 500)
   }
 }

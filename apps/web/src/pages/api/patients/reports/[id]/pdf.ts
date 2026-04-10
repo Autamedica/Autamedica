@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
   if (!context) return jsonError('unauthorized', 401)
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const medicalHistoryRepo = createMedicalHistoryAdapter(admin)
 
     const record = await medicalHistoryRepo.findById(context.patientId, recordId)

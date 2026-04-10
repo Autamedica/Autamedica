@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return jsonError('unauthorized', 401)
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const url = new URL(request.url)
     const versionParam = url.searchParams.get('version')
 
