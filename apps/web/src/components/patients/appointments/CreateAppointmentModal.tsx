@@ -89,7 +89,7 @@ function getDaysInRange(from: string, to: string): string[] {
 const APPOINTMENT_TYPES: { value: AppointmentType; label: string; icon: typeof Video; desc: string }[] = [
   { value: 'telemedicine', label: 'Telemedicina', icon: Video, desc: 'Consulta por videollamada' },
   { value: 'consultation', label: 'Presencial', icon: MapPin, desc: 'Consulta en consultorio' },
-  { value: 'follow_up', label: 'Seguimiento', icon: ArrowRight, desc: 'Control posterior' },
+  { value: 'follow_up', label: 'Control de continuidad', icon: ArrowRight, desc: 'Revisión y renovación' },
   { value: 'emergency', label: 'Urgencia', icon: Clock, desc: 'Atención prioritaria' },
 ];
 

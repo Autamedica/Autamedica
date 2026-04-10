@@ -233,7 +233,13 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
       if (!field.dependsOn) {
         return true;
       }
-      return stepData[field.dependsOn.fieldId] === field.dependsOn.value;
+      const actualValue = stepData[field.dependsOn.fieldId]
+      const depValue = field.dependsOn.value
+
+      if (Array.isArray(depValue)) {
+        return depValue.includes(actualValue as string)
+      }
+      return actualValue === depValue
     });
   }, [currentStep, formData]);
 

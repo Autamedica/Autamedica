@@ -1,0 +1,412 @@
+/**
+ * Normalizer
+ *
+ * Entry point that converts raw inputs from any source
+ * (UI form, voice extraction, DB load, doctor review)
+ * into canonical field updates and runs them through the merge engine.
+ *
+ * Architecture flow:
+ *   Raw input → Normalizer → Merge Engine → Updated ClinicalCaseState
+ *
+ * The normalizer is responsible for:
+ * 1. Mapping raw form field IDs to canonical field keys
+ * 2. Detecting meta-conversational content before merge
+ * 3. Running the batch merge
+ * 4. Recomputing integrity scores
+ * 5. Updating planner indices (missing, conflicted, locked)
+ */
+import type {
+  ClinicalCaseState,
+  ConversationEvent,
+  IncomingDatum,
+  NormalizeInput,
+  NormalizerResult,
+  SourceType,
+  SegmentKey,
+  WorkflowType,
+} from './types';
+import { createEmptyField, flattenAllFields } from './canonical-field';
+import { batchMerge } from './merge-engine';
+import { recomputeIntegrity, createFreshIntegrity } from './integrity';
+import { isMetaConversational } from './meta-filter';
+import { computeTriage } from './triage';
+
+// ─── Form Field → Canonical Key Mapping ────────────────────────────────
+
+/**
+ * Maps raw UI form field IDs (from PsychiatryIntakePage) to canonical keys.
+ * This is the translation layer between the UI's vocabulary and the
+ * clinical state's vocabulary.
+ */
+const FORM_FIELD_MAP: Record<string, string> = {
+  // Identity
+  first_name: 'identity.firstName',
+  last_name: 'identity.lastName',
+  full_name: 'identity.fullName',
+  age: 'identity.age',
+  gender: 'identity.gender',
+  document_id: 'identity.documentId',
+
+  // Intake context
+  consultation_type: 'intakeContext.workflowType',
+  chief_complaint: 'intakeContext.chiefComplaint',
+  consultation_reason: 'intakeContext.consultationReason',
+  motivo_consulta: 'intakeContext.chiefComplaint',
+  tipo_atencion: 'intakeContext.workflowType',
+  continuity_request: 'intakeContext.continuityRequest',
+  renewal_request: 'intakeContext.renewalRequest',
+
+  // Medication
+  has_medication: 'medications.hasCurrentMedication',
+  current_medications: 'medications.currentMedications',
+  medicacion_actual: 'medications.currentMedications',
+  medication_name: 'medications.currentMedications',
+  dose: 'medications.currentMedications',
+
+  // Symptoms
+  insomnia: 'symptoms.insomnia',
+  appetite_change: 'symptoms.appetiteChange',
+  palpitations: 'symptoms.palpitations',
+  panic_episodes: 'symptoms.panicEpisodes',
+  chest_pain: 'symptoms.chestPain',
+  self_harm: 'symptoms.selfHarmIdeation',
+  residual_symptoms: 'symptoms.residualSymptoms',
+
+  // Functional impact
+  work_impact: 'functionalImpact.workImpact',
+  study_impact: 'functionalImpact.studyImpact',
+  home_impact: 'functionalImpact.homeImpact',
+  concentration: 'functionalImpact.concentrationDifficulty',
+  treatment_goals: 'functionalImpact.treatmentGoals',
+};
+
+export function resolveCanonicalKey(rawKey: string): string {
+  return FORM_FIELD_MAP[rawKey] ?? rawKey;
+}
+
+/**
+ * Reverse resolve a canonical key to its raw form field key.
+ */
+export function reverseCanonicalKey(canonicalKey: string): string {
+  const entry = Object.entries(FORM_FIELD_MAP).find(([, value]) => value === canonicalKey);
+  return entry ? entry[0] : canonicalKey;
+}
+
+// ─── State Factory ─────────────────────────────────────────────────────
+
+/**
+ * Create a fresh, empty ClinicalCaseState.
+ */
+export function createEmptyState(
+  caseId: string,
+  patientId: string,
+  workflowType: WorkflowType,
+): ClinicalCaseState {
+  const now = new Date().toISOString();
+
+  return {
+    caseId,
+    patientId,
+
+    workflow: {
+      type: workflowType,
+      currentSegment: 'identity',
+      completedSegments: [],
+      openedAt: now,
+      updatedAt: now,
+    },
+
+    identity: {
+      firstName: createEmptyField('identity.firstName'),
+      lastName: createEmptyField('identity.lastName'),
+      fullName: createEmptyField('identity.fullName'),
+      age: createEmptyField('identity.age'),
+      gender: createEmptyField('identity.gender'),
+      documentId: createEmptyField('identity.documentId'),
+    },
+
+    intakeContext: {
+      workflowType: createEmptyField('intakeContext.workflowType'),
+      chiefComplaint: createEmptyField('intakeContext.chiefComplaint'),
+      consultationReason: createEmptyField('intakeContext.consultationReason'),
+      continuityRequest: createEmptyField('intakeContext.continuityRequest'),
+      renewalRequest: createEmptyField('intakeContext.renewalRequest'),
+    },
+
+    medications: {
+      currentMedications: createEmptyField('medications.currentMedications'),
+      hasCurrentMedication: createEmptyField('medications.hasCurrentMedication'),
+    },
+
+    symptoms: {
+      insomnia: createEmptyField('symptoms.insomnia'),
+      appetiteChange: createEmptyField('symptoms.appetiteChange'),
+      palpitations: createEmptyField('symptoms.palpitations'),
+      panicEpisodes: createEmptyField('symptoms.panicEpisodes'),
+      chestPain: createEmptyField('symptoms.chestPain'),
+      selfHarmIdeation: createEmptyField('symptoms.selfHarmIdeation'),
+      residualSymptoms: createEmptyField('symptoms.residualSymptoms'),
+    },
+
+    functionalImpact: {
+      workImpact: createEmptyField('functionalImpact.workImpact'),
+      studyImpact: createEmptyField('functionalImpact.studyImpact'),
+      homeImpact: createEmptyField('functionalImpact.homeImpact'),
+      concentrationDifficulty: createEmptyField('functionalImpact.concentrationDifficulty'),
+      treatmentGoals: createEmptyField('functionalImpact.treatmentGoals'),
+    },
+
+    integrity: createFreshIntegrity(),
+
+    planner: {
+      lockedFieldKeys: [],
+      missingFieldKeys: [],
+      conflictedFieldKeys: [],
+      pendingConfirmationKeys: [],
+      nextRecommendedQuestions: [],
+      doNotAskKeys: [],
+    },
+
+    conversation: {
+      askedQuestionIds: [],
+      answeredQuestionIds: [],
+    },
+
+    triage: {
+      priority: 'routine',
+      reasons: [],
+      mandate: '',
+      suggestedAction: '',
+      references: [],
+    },
+
+    audit: {
+      events: [],
+    },
+  };
+}
+
+// ─── Normalize ─────────────────────────────────────────────────────────
+
+/**
+ * Normalize raw input from any source into the canonical state.
+ *
+ * This is the main entry point. Call this when:
+ * - The patient fills a form field
+ * - Voice extraction returns structured data
+ * - Loading from DB on page load
+ * - Doctor reviews and corrects a field
+ */
+export function normalize(
+  currentState: ClinicalCaseState,
+  input: NormalizeInput,
+): NormalizerResult {
+  // Deep clone to avoid mutation
+  const state: ClinicalCaseState = JSON.parse(JSON.stringify(currentState));
+  const events: ConversationEvent[] = [];
+  let metaDetected = false;
+
+  // 1. Map raw field keys and values to canonical keys
+  const normalizedData: IncomingDatum[] = input.data.map((datum) => {
+    let finalValue = datum.value;
+    const finalKey = resolveCanonicalKey(datum.fieldKey);
+
+    // Map the UI form values to the WorkflowType enum
+    if (finalKey === 'intakeContext.workflowType' && typeof finalValue === 'string') {
+      if (finalValue === 'primera_consulta') finalValue = 'psychiatry_first_visit';
+      else if (finalValue === 'continuidad') finalValue = 'psychiatry_continuity';
+      else if (finalValue === 'revision_urgente') finalValue = 'psychiatric_urgency';
+    }
+
+    return {
+      ...datum,
+      fieldKey: finalKey,
+      value: finalValue,
+    };
+  });
+
+  // 2. Pre-filter: detect meta-conversational content
+  const clinicalData: IncomingDatum[] = [];
+  for (const datum of normalizedData) {
+    if (datum.rawText && isMetaConversational(datum.rawText)) {
+      metaDetected = true;
+      state.integrity.metaUtteranceCount++;
+      events.push({
+        id: `meta_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+        type: 'meta_conversation_detected',
+        timestamp: new Date().toISOString(),
+        segment: input.segment,
+        fieldKey: datum.fieldKey,
+        payload: { blockedText: datum.rawText },
+      });
+      // Don't add to clinical data — blocked
+    } else {
+      clinicalData.push(datum);
+    }
+  }
+
+  // 3. Build field map from current state
+  const fieldMap = buildFieldMap(state);
+
+  // 4. Run batch merge
+  const mergeResult = batchMerge(fieldMap, clinicalData);
+  events.push(...mergeResult.allEvents);
+
+  // 5. Write merged fields back to state
+  applyFieldMap(state, fieldMap);
+
+  // 6. Update workflow segment
+  state.workflow.currentSegment = input.segment;
+  state.workflow.updatedAt = new Date().toISOString();
+
+  // 7. Recompute planner indices
+  const allFields = flattenAllFields(state);
+
+  state.planner.lockedFieldKeys = allFields
+    .filter((f) => f.locked)
+    .map((f) => f.key);
+
+  state.planner.missingFieldKeys = allFields
+    .filter((f) => f.status === 'missing' || f.value == null)
+    .map((f) => f.key);
+
+  state.planner.conflictedFieldKeys = allFields
+    .filter((f) => f.status === 'conflicted')
+    .map((f) => f.key);
+
+  state.planner.pendingConfirmationKeys = allFields
+    .filter((f) => f.needsConfirmation)
+    .map((f) => f.key);
+
+  // 8. Recompute integrity
+  state.integrity = recomputeIntegrity(state);
+
+  // 9. Recompute triage and clinical priority
+  state.triage = computeTriage(state);
+
+  // 10. Append events to audit log
+  state.audit.events.push(...events);
+
+  return {
+    state,
+    updatedFieldKeys: mergeResult.updatedFieldKeys,
+    conflictedFieldKeys: mergeResult.conflictedFieldKeys,
+    metaConversationDetected: metaDetected,
+    events,
+  };
+}
+
+// ─── Convenience: Normalize from UI form ───────────────────────────────
+
+/**
+ * Convenience wrapper for normalizing raw form data (e.g. from
+ * PsychiatryIntakePage's currentStepData).
+ */
+export function normalizeFormData(
+  currentState: ClinicalCaseState,
+  formData: Record<string, unknown>,
+  segment: SegmentKey,
+): NormalizerResult {
+  const now = new Date().toISOString();
+
+  const data: IncomingDatum[] = Object.entries(formData)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => ({
+      fieldKey: key,
+      value,
+      source: 'ui_form' as SourceType,
+      sourceSegment: segment,
+      confidence: 'high' as const, // explicit UI input = high confidence
+      timestamp: now,
+      explicitConfirmation: true, // patient typed it = confirmed
+    }));
+
+  return normalize(currentState, {
+    caseId: currentState.caseId,
+    patientId: currentState.patientId,
+    workflowType: currentState.workflow.type,
+    segment,
+    data,
+  });
+}
+
+/**
+ * Convenience wrapper for normalizing voice extraction results.
+ */
+export function normalizeVoiceExtraction(
+  currentState: ClinicalCaseState,
+  extractedFields: Record<string, unknown>,
+  rawTranscript: string,
+  segment: SegmentKey,
+): NormalizerResult {
+  const now = new Date().toISOString();
+
+  const data: IncomingDatum[] = Object.entries(extractedFields)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '')
+    .map(([key, value]) => ({
+      fieldKey: key,
+      value,
+      source: 'voice_extraction' as SourceType,
+      sourceSegment: segment,
+      confidence: 'medium' as const, // voice extraction = medium confidence
+      rawText: rawTranscript,
+      timestamp: now,
+      explicitConfirmation: false,
+    }));
+
+  return normalize(currentState, {
+    caseId: currentState.caseId,
+    patientId: currentState.patientId,
+    workflowType: currentState.workflow.type,
+    segment,
+    data,
+  });
+}
+
+// ─── Internal: Field Map ↔ State ───────────────────────────────────────
+
+import type { CanonicalField } from './types';
+
+type SectionWithFields = Record<string, CanonicalField<unknown>>;
+
+function buildFieldMap(state: ClinicalCaseState): Map<string, CanonicalField<unknown>> {
+  const map = new Map<string, CanonicalField<unknown>>();
+
+  const sections: Record<string, SectionWithFields> = {
+    identity: state.identity as unknown as SectionWithFields,
+    intakeContext: state.intakeContext as unknown as SectionWithFields,
+    medications: state.medications as unknown as SectionWithFields,
+    symptoms: state.symptoms as unknown as SectionWithFields,
+    functionalImpact: state.functionalImpact as unknown as SectionWithFields,
+  };
+
+  for (const [sectionName, section] of Object.entries(sections)) {
+    for (const [fieldName, field] of Object.entries(section)) {
+      if (field && typeof field === 'object' && 'key' in field) {
+        const canonicalField = field as CanonicalField<unknown>;
+        // Ensure key is set correctly
+        if (!canonicalField.key) {
+          canonicalField.key = `${sectionName}.${fieldName}`;
+        }
+        map.set(canonicalField.key, canonicalField);
+      }
+    }
+  }
+
+  return map;
+}
+
+function applyFieldMap(
+  state: ClinicalCaseState,
+  fieldMap: Map<string, CanonicalField<unknown>>,
+): void {
+  for (const [key, field] of fieldMap) {
+    const [sectionName, fieldName] = key.split('.');
+    if (!sectionName || !fieldName) continue;
+
+    const section = (state as unknown as Record<string, Record<string, unknown>>)[sectionName];
+    if (section && typeof section === 'object') {
+      section[fieldName] = field;
+    }
+  }
+}

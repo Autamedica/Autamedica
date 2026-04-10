@@ -6,6 +6,14 @@ import { fetchApi } from '@/lib/api-client'
 import { sanitizeForTTS, segmentForTTS } from '@/lib/patients/utils/tts-sanitizer'
 import { logger } from '@autamedica/shared'
 import type { ExtractionGuidance } from '@/lib/patients/services/anamnesis-guidance.service'
+import type { VoiceContextSnapshot } from '@/hooks/patients/useClinicalState'
+
+export interface VoiceLedgerContext {
+  patientId: string
+  caseId: string
+  workflowType: string
+  segment?: string
+}
 
 interface VoiceAnamnesisProps {
   onDataExtracted: (data: {
@@ -19,6 +27,9 @@ interface VoiceAnamnesisProps {
   guidance?: ExtractionGuidance | null
   checkpoint?: 'partial' | 'final'
   forceRelay?: boolean
+  transientData?: Record<string, unknown>
+  contextSnapshot?: VoiceContextSnapshot | null
+  ledgerContext?: VoiceLedgerContext
 }
 
 interface TranscriptEntry {
@@ -170,6 +181,9 @@ export function VoiceAnamnesis({
   guidance,
   checkpoint,
   forceRelay = false,
+  transientData,
+  contextSnapshot,
+  ledgerContext,
 }: VoiceAnamnesisProps) {
   const [state, setState] = useState<VoiceState>('idle')
   const [mode, setMode] = useState<ConnectionMode | null>(null)
@@ -182,6 +196,8 @@ export function VoiceAnamnesis({
   const [relayOpeningTurnCount, setRelayOpeningTurnCount] = useState(0)
   const [extractedFields, setExtractedFields] = useState<Record<string, string> | null>(null)
   const [summaryText, setSummaryText] = useState('')
+  const summaryTextRef = useRef('')
+  useEffect(() => { summaryTextRef.current = summaryText }, [summaryText])
   const [vadThreshold, setVadThreshold] = useState(0.015)
   const triggerHaptic = (pattern: number | number[]) => {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -222,6 +238,7 @@ export function VoiceAnamnesis({
   const startRelayModeRef = useRef<() => Promise<void>>(async () => {})
   const finishRef = useRef<() => void>(() => {})
   const stateRef = useRef<VoiceState>('idle')
+  const ledgerSessionIdRef = useRef<string | null>(null)
 
   useEffect(() => { transcriptRef.current = transcript }, [transcript])
   useEffect(() => { currentInputRef.current = currentInput }, [currentInput])
@@ -256,7 +273,20 @@ export function VoiceAnamnesis({
     wsRef.current?.close()
     stopTTS()
     wsRef.current = null; audioCtxRef.current = null; mediaStreamRef.current = null
-  }, [stopTTS, stopAllAudio])
+
+    // Close ledger session
+    if (ledgerContext && ledgerSessionIdRef.current) {
+      const finalStatus = stateRef.current === 'completed' ? 'closed' : 'failed'
+      fetchApi('/api/patients/conversation-sessions/close', {
+        method: 'POST',
+        body: {
+          sessionId: ledgerSessionIdRef.current,
+          status: finalStatus
+        }
+      }).catch(err => logger.warn('[VoiceLedger] Failed to close session', err))
+      ledgerSessionIdRef.current = null
+    }
+  }, [stopTTS, stopAllAudio, ledgerContext])
 
   useEffect(() => { return () => cleanup() }, [cleanup])
 
@@ -270,7 +300,34 @@ export function VoiceAnamnesis({
       resolvedText = String(text);
     }
     setTranscript(prev => [...prev, { role, text: resolvedText, timestamp: Date.now() }])
-  }, [])
+
+    // Log to conversation ledger
+    if (ledgerContext && ledgerSessionIdRef.current) {
+      fetchApi('/api/patients/conversation-events', {
+        method: 'POST',
+        body: {
+          sessionId: ledgerSessionIdRef.current,
+          caseId: ledgerContext.caseId,
+          patientId: ledgerContext.patientId,
+          role,
+          channel: 'voice',
+          event_type: 'transcript_turn',
+          rawText: resolvedText,
+          segment: ledgerContext.segment || null,
+          prompt_snapshot_text: guidance?.coverageSummary || contextSnapshot?.summaryText || null,
+          planner_output: guidance ? {
+            questions: guidance.questions,
+            gaps: guidance.gaps,
+            alerts: guidance.alerts
+          } : null,
+          metadata: {
+            checkpoint,
+            transientData: !!transientData
+          }
+        }
+      }).catch(err => logger.warn('[VoiceLedger] Failed to log event', err))
+    }
+  }, [ledgerContext, guidance, contextSnapshot, checkpoint, transientData])
 
   const playAudio = useCallback((data: Float32Array) => {
     const ctx = audioCtxRef.current
@@ -304,6 +361,25 @@ export function VoiceAnamnesis({
   const start = useCallback(async () => {
     setState('connecting')
     setError(null)
+
+    // Optional: Start Conversation Ledger session
+    if (ledgerContext) {
+      try {
+        const res = await fetchApi<{ session: { id: string } }>('/api/patients/conversation-sessions/start', {
+          method: 'POST',
+          body: {
+            patientId: ledgerContext.patientId,
+            caseId: ledgerContext.caseId,
+            workflowType: ledgerContext.workflowType,
+            channel: 'voice'
+          }
+        })
+        ledgerSessionIdRef.current = res.session.id
+        logger.info('[VoiceLedger] Started ledger session', { id: res.session.id })
+      } catch (err) {
+        logger.warn('[VoiceLedger] Failed to start session', err)
+      }
+    }
 
     // Bypass Autoplay Policy: Initialize AudioContext synchronously attached to the user gesture
     let ctx = audioCtxRef.current
@@ -345,7 +421,7 @@ export function VoiceAnamnesis({
       // Read guidance directly from prop (not refs) to avoid stale data race
       const questionsForToken = guidance?.questions?.map((q) => q.text) ?? guidanceQuestions.current
       const gapsForToken = guidance?.gaps ?? coverageGaps.current
-      const summaryForToken = guidance?.coverageSummary ?? coverageSummary
+      const summaryForToken = contextSnapshot?.summaryText ?? guidance?.coverageSummary ?? coverageSummary
 
       const tokenData = await fetchApi<LiveTokenResponse>(
         '/api/patients/anamnesis/live-token',
@@ -356,6 +432,7 @@ export function VoiceAnamnesis({
             guidanceQuestions: questionsForToken,
             coverageGaps: gapsForToken,
             coverageSummary: summaryForToken,
+            transientData,
           },
         },
       )
@@ -377,7 +454,7 @@ export function VoiceAnamnesis({
         const config = tokenData.sessionConfig
         const systemText = config.mode === 'guided_checkpoint'
           ? buildGuidedCheckpointInstruction(config)
-          : `Sos un médico residente de AutaMedica haciendo una anamnesis por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. Seguí 8 bloques: motivo, enfermedad actual, antecedentes, medicación, alergias, hábitos, revisión por sistemas, cierre. UNA pregunta por turno. Español argentino informal.`
+          : `Sos un médico residente de AutaMedica haciendo una anamnesis por voz. Paciente: ${config.patient.name ?? 'sin nombre'}. ${contextSnapshot?.summaryText ?? ''} Seguí 8 bloques: motivo, enfermedad actual, antecedentes, medicación, alergias, hábitos, revisión por sistemas, cierre. UNA pregunta por turno. Español argentino informal.`
 
         const session = await ai.live.connect({
           model: tokenData.model,
@@ -405,6 +482,25 @@ export function VoiceAnamnesis({
                 for (const part of parts) {
                   if (part.functionCall?.name === 'complete_checkpoint') {
                     const summary = part.functionCall.args?.summary ?? 'Aclaración registrada.'
+                    
+                    // Log function call to ledger
+                    if (ledgerContext && ledgerSessionIdRef.current) {
+                      fetchApi('/api/patients/conversation-events', {
+                        method: 'POST',
+                        body: {
+                          sessionId: ledgerSessionIdRef.current,
+                          caseId: ledgerContext.caseId,
+                          patientId: ledgerContext.patientId,
+                          role: 'assistant',
+                          channel: 'voice',
+                          event_type: 'function_call',
+                          rawText: `complete_checkpoint: ${summary}`,
+                          segment: ledgerContext.segment || null,
+                          metadata: { functionName: 'complete_checkpoint', args: part.functionCall.args }
+                        }
+                      }).catch(() => {})
+                    }
+
                     setSummaryText(summary)
                     stateRef.current = 'completed'
                     cleanup()
@@ -435,6 +531,24 @@ export function VoiceAnamnesis({
                 ? { message: err.message, name: err.name, stack: err.stack?.split('\n').slice(0, 3).join(' | ') }
                 : err
               logger.error('[Voice] SDK Live session error', errDetail)
+              
+              // Log error to ledger
+              if (ledgerContext && ledgerSessionIdRef.current) {
+                fetchApi('/api/patients/conversation-events', {
+                  method: 'POST',
+                  body: {
+                    sessionId: ledgerSessionIdRef.current,
+                    caseId: ledgerContext.caseId,
+                    patientId: ledgerContext.patientId,
+                    role: 'system',
+                    channel: 'voice',
+                    event_type: 'error',
+                    rawText: String(err),
+                    metadata: { error: errDetail }
+                  }
+                }).catch(() => {})
+              }
+
               setError('La sesión de voz se interrumpió.')
               cleanup()
               setState('idle')
@@ -777,7 +891,6 @@ export function VoiceAnamnesis({
       await startRelayModeRef.current()
     }
   }, [
-    addEntry,
     checkpoint,
     cleanup,
     coverageSummary,
@@ -785,6 +898,7 @@ export function VoiceAnamnesis({
     playAudio,
     stopAllAudio,
     vadThreshold,
+    ledgerContext,
   ])
 
   useEffect(() => {
@@ -867,7 +981,7 @@ export function VoiceAnamnesis({
       // Read guidance directly from prop to avoid stale ref race
       const questionsForRelay = guidance?.questions?.map((q) => q.text) ?? guidanceQuestions.current
       const gapsForRelay = guidance?.gaps ?? coverageGaps.current
-      const summaryForRelay = guidance?.coverageSummary ?? coverageSummary
+      const summaryForRelay = contextSnapshot?.summaryText ?? guidance?.coverageSummary ?? coverageSummary
       logger.info('[Voice] startRelayMode — guidance context', {
         hasGuidanceProp: !!guidance,
         questionsFromProp: guidance?.questions?.length ?? 0,
@@ -888,6 +1002,7 @@ export function VoiceAnamnesis({
             guidanceQuestions: questionsForRelay,
             coverageGaps: gapsForRelay,
             coverageSummary: summaryForRelay,
+            transientData,
           },
         },
       )
@@ -1000,8 +1115,18 @@ export function VoiceAnamnesis({
     stateRef.current = 'completed'
     cleanup()
     const entries = transcriptRef.current
+    
+    // Try to use the model's explicit summary function call output.
+    // If empty, fallback to the transcript but filter out obvious meta-conversational / UI friction text.
+    const metaFrictionPattern = /^(hola|buenas|te escucho|qué me falta|qué preguntas|ya te contesté|ya fue contestada|sí|claro|no sé|repite|repitelo)/i
+    const validClinicalTranscript = entries
+      .filter(e => e.role === 'user' && !metaFrictionPattern.test(e.text))
+      .map(e => e.text)
+      .join(' ')
+      .trim()
+
     onDataExtracted({
-      chiefComplaint: entries.find(e => e.role === 'user')?.text ?? '',
+      chiefComplaint: summaryTextRef.current || validClinicalTranscript || (entries.find(e => e.role === 'user')?.text ?? ''),
       transcript: entries,
       detectedSections: [],
       extractedFields: extractedFields ?? undefined,

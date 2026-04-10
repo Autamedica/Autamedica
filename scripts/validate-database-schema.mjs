@@ -163,28 +163,58 @@ function parseConstraints(definition) {
 function parseDatabaseTypes(typesContent) {
   const tables = new Map();
 
-  // Buscar sección Tables dentro de Database interface
-  const tablesMatch = typesContent.match(/Tables:\s*{([\s\S]*?)}\s*Views:/);
-  if (!tablesMatch) {
+  const tablesStart = typesContent.indexOf('Tables: {');
+  const viewsStart = typesContent.indexOf('Views: {', tablesStart);
+
+  if (tablesStart === -1 || viewsStart === -1) {
     log('⚠️  No se encontró sección Tables en database.types.ts', 'yellow');
     return tables;
   }
 
-  const tablesSection = tablesMatch[1];
+  const tablesSection = typesContent.slice(tablesStart, viewsStart);
+  const lines = tablesSection.split('\n');
+  let currentTable = null;
+  let collectingRow = false;
+  let rowBraceDepth = 0;
+  let rowLines = [];
 
-  // Regex mejorado para capturar cada tabla con comentarios
-  const tableRegex = /\/\/\s*(\w+)\s+table[\s\S]*?(\w+):\s*{[\s\S]*?Row:\s*{([\s\S]*?)}\s*Insert:/g;
-  let match;
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const tableMatch = line.match(/^\s{6}(\w+):\s*{$/);
 
-  while ((match = tableRegex.exec(tablesSection)) !== null) {
-    const tableName = match[2]; // El nombre de la tabla está en el segundo grupo
-    const rowDefinition = match[3]; // La definición Row está en el tercer grupo
+    if (!collectingRow && tableMatch) {
+      currentTable = tableMatch[1];
+      continue;
+    }
 
-    const columns = parseTypeScriptColumns(rowDefinition);
-    tables.set(tableName, {
-      name: tableName,
-      columns: columns
-    });
+    if (currentTable && !collectingRow && /^\s{8}Row:\s*{$/.test(line)) {
+      collectingRow = true;
+      rowBraceDepth = 1;
+      rowLines = [];
+      continue;
+    }
+
+    if (collectingRow) {
+      const openCount = (line.match(/{/g) || []).length;
+      const closeCount = (line.match(/}/g) || []).length;
+      rowBraceDepth += openCount - closeCount;
+
+      if (rowBraceDepth <= 0) {
+        const rowDefinition = rowLines.join('\n');
+        const columns = parseTypeScriptColumns(rowDefinition);
+        tables.set(currentTable, {
+          name: currentTable,
+          columns
+        });
+
+        currentTable = null;
+        collectingRow = false;
+        rowLines = [];
+        rowBraceDepth = 0;
+      } else {
+        rowLines.push(line);
+      }
+    }
   }
 
   return tables;

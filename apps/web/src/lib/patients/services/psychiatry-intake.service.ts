@@ -67,7 +67,7 @@ export const psychiatryIntakeService = {
     updates: Partial<{
       status: string
       completionPercentage: number
-      completedAt: string
+      completedAt: string | null
       privacyAccepted: boolean
       termsAccepted: boolean
       lastPhase: PsychiatryIntakePhase
@@ -97,7 +97,7 @@ export const psychiatryIntakeService = {
       cleanUpdates.termsAccepted = updates.termsAccepted
     }
 
-    if (updates.completedAt) {
+    if (updates.completedAt !== undefined) {
       cleanUpdates.completedAt = updates.completedAt
     }
 

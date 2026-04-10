@@ -325,7 +325,13 @@ function filterVisible(
   return all.filter(q => {
     if (!q.field.dependsOn) return true
     const depKey = `${q.stepId}.${q.field.dependsOn.fieldId}`
-    return answers[depKey] === q.field.dependsOn.value
+    const depValue = q.field.dependsOn.value
+    const actualValue = answers[depKey]
+
+    if (Array.isArray(depValue)) {
+      return depValue.includes(actualValue as string)
+    }
+    return actualValue === depValue
   })
 }
 

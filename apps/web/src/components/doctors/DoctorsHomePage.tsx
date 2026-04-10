@@ -9,6 +9,7 @@ import { useCheckDoctorExists } from '@/hooks/doctors/useCheckDoctorExists'
 import type { Locale } from '@/i18n/index'
 import { getOnboardingStatus } from '@/lib/onboarding-grace'
 import { Activity, Calendar, ClipboardList, Video } from 'lucide-react'
+import { DashboardTriageAlerts } from '@/components/doctors/psychiatry/DashboardTriageAlerts'
 import type { JSX } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -101,6 +102,10 @@ export default function DoctorsHomePage({ locale: _locale }: DoctorsHomePageProp
         </section>
 
         <aside className="space-y-4">
+          <section className="overflow-hidden rounded-3xl border border-am-surface-200 bg-white shadow-am-sm">
+            <DashboardTriageAlerts />
+          </section>
+
           <div className="rounded-3xl border border-am-doctor-100 bg-gradient-to-br from-am-doctor-50 to-white p-5 shadow-am-sm">
             <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-am-doctor-600">
               Flujo Canónico

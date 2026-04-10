@@ -7,7 +7,6 @@ import { logger } from '@autamedica/shared'
 import type {
   Prescription,
   PrescriptionFilters,
-  UUID,
 } from '@/types/medical'
 
 function buildPrescriptionQuery(patientId: string, filters: PrescriptionFilters): string {

@@ -5,21 +5,20 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft,
   ArrowRight,
-  Brain,
   CheckCircle2,
   Download,
-  FileText,
   Loader2,
   Lock,
-  MessageSquareQuote,
   ShieldCheck,
   Sparkles,
   Stethoscope,
   RefreshCcw,
+  Timer,
 } from 'lucide-react'
 import { getClientEnvOrDefault } from '@autamedica/shared'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { usePsychiatryIntake } from '@/hooks/patients/usePsychiatryIntake'
+import { useClinicalState } from '@/hooks/patients/useClinicalState'
 import { AnamnesisField as FieldRenderer } from '@/components/patients/anamnesis/AnamnesisField'
 import {
   psychiatryPhaseMeta,
@@ -28,24 +27,14 @@ import {
 import { psychiatryIntakePdfService } from '@/lib/patients/services/psychiatry-intake-pdf.service'
 import { validateRequiredFields } from '@/lib/patients/usecases/anamnesis-flow.usecase'
 import { VoiceAnamnesis } from '@/components/patients/anamnesis/VoiceAnamnesis'
+import { ClinicalFieldWrapper } from '@/components/patients/intake/ClinicalFieldWrapper'
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
 import type {
   PsychiatryFormData,
   PsychiatryIntakePhase,
   PsychiatryIntakeSection,
 } from '@/lib/patients/types/psychiatry-intake'
-
-/* ═══════════════════════════════════════════════════════════════
-   Design Tokens — Branding sky-blue system
-   ═══════════════════════════════════════════════════════════════ */
-
-const PHASE_ICONS = {
-  wizard_intake: FileText,
-  conversational_symptoms: MessageSquareQuote,
-  wizard_safety: ShieldCheck,
-  conversational_closure: Brain,
-  completed: CheckCircle2,
-} as const
+import type { SegmentKey } from '@/lib/patients/clinical-state/types'
 
 /* ═══════════════════════════════════════════════════════════════
    Helpers (logic unchanged)
@@ -122,8 +111,25 @@ const fadeIn = {
    Component
    ═══════════════════════════════════════════════════════════════ */
 
+/** Map step IDs to canonical segment keys */
+const STEP_TO_SEGMENT: Record<string, SegmentKey> = {
+  contexto_personal: 'identity',
+  datos_demograficos: 'identity',
+  consulta_actual: 'intake_context',
+  motivo_consulta: 'intake_context',
+  medicacion_actual: 'current_medication',
+  medicacion: 'current_medication',
+  sintomas_actuales: 'symptoms',
+  sintomas: 'symptoms',
+  seguridad: 'safety',
+  impacto_funcional: 'functional_impact',
+  historial: 'history',
+  cierre_clinico: 'review',
+  relato_clinico: 'review',
+}
+
 export default function PsychiatryIntakePage() {
-  const { loading: sessionLoading } = usePatientSession()
+  const { loading: sessionLoading, patient } = usePatientSession()
   const {
     intake,
     sections,
@@ -145,6 +151,32 @@ export default function PsychiatryIntakePage() {
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const initializedRef = useRef(false)
   const authRedirectStartedRef = useRef(false)
+
+  // ── Canonical Clinical State ──
+  const {
+    clinicalState,
+    mergeFormData: mergeIntoClinicalState,
+    mergeVoiceData,
+    getCanonicalField,
+    getFieldUiState,
+    hydrateStepData,
+    confirmField,
+    getPlannedQuestions,
+    getPromptSnapshot,
+    getVoiceContext,
+    persistNow: persistClinicalState,
+  } = useClinicalState({
+    patientId: patient?.id ?? null,
+    workflowType: formData?.consulta_actual?.tipo_atencion === 'continuidad'
+      ? 'psychiatry_continuity'
+      : formData?.consulta_actual?.tipo_atencion === 'revision_urgente'
+        ? 'psychiatric_urgency'
+        : formData?.consulta_actual?.tipo_atencion === 'primera_consulta'
+          ? 'psychiatry_first_visit'
+          : 'general_consultation',
+    sections,
+    loading,
+  })
 
   /* ── Auth redirect ── */
   const redirectToPatientLogin = useCallback(() => {
@@ -198,7 +230,18 @@ export default function PsychiatryIntakePage() {
     ? (currentPhase.steps[stepIndex] ?? currentPhase.steps[0] ?? null)
     : null
 
-  const currentStepData = currentStep ? (formData[currentStep.id] ?? {}) : {}
+  const currentStepDraft = currentStep ? (formData[currentStep.id] ?? {}) : {}
+  const currentStepData = useMemo(() => {
+    if (!currentStep) return {} as Record<string, AnamnesisFieldValue>
+    return hydrateStepData(currentStep.id, currentStepDraft) as Record<string, AnamnesisFieldValue>
+  }, [currentStep, currentStepDraft, hydrateStepData])
+
+  const currentVoiceContext = useMemo(() => {
+    if (!currentStep) return null
+    const segment = STEP_TO_SEGMENT[currentStep.id]
+    return segment ? getVoiceContext(segment) : null
+  }, [currentStep, getVoiceContext])
+
   const visibleFields = useMemo(() => {
     if (!currentStep || 'field' in currentStep) {
       return []
@@ -207,22 +250,55 @@ export default function PsychiatryIntakePage() {
       if (!field.dependsOn) {
         return true
       }
-      return currentStepData[field.dependsOn.fieldId] === field.dependsOn.value
+      const depValue = field.dependsOn.value
+      const actualValue = currentStepData[field.dependsOn.fieldId]
+      if (Array.isArray(depValue)) {
+        return depValue.some((value) => value === actualValue)
+      }
+      return actualValue === depValue
     })
   }, [currentStep, currentStepData])
 
-  const totalCompletedPhases = useMemo(() => {
-    const completed = new Set(progress?.completedSections ?? [])
-    return psychiatryPhaseOrder.filter((phaseId) => {
-      if (phaseId === 'completed') {
-        return intake?.status === 'completed'
-      }
-      const phase = psychiatryPhaseMeta[phaseId]
-      return phase.steps.every((step) => completed.has(step.id))
-    }).length
-  }, [progress?.completedSections, intake?.status])
+  /**
+   * Step statuses from canonical state.
+   * For each step in the current phase, compute whether it's
+   * fully confirmed (locked), needs confirmation, has conflicts, or is pending.
+   */
+  type StepStatus = 'locked' | 'conflict' | 'confirm' | 'pending'
+  const stepStatuses: StepStatus[] = useMemo(() => {
+    if (!currentPhase?.steps) return []
 
-  const completionPct = progress?.completionPercentage ?? 0
+    return currentPhase.steps.map((step: { id: string; fields?: Array<{ id: string }>; field?: { id: string } }) => {
+      const fieldIds = 'field' in step && step.field
+        ? [step.field.id]
+        : (step.fields ?? []).map((f: { id: string }) => f.id)
+
+      if (fieldIds.length === 0) return 'pending'
+
+      let allLocked = true
+      let hasConflict = false
+      let hasConfirm = false
+
+      for (const fid of fieldIds) {
+        const uxState = getFieldUiState(fid, step.id)
+
+        if (uxState.mode === 'conflict') {
+          hasConflict = true
+          allLocked = false
+        } else if (uxState.mode === 'confirm') {
+          hasConfirm = true
+          allLocked = false
+        } else if (uxState.mode !== 'locked') {
+          allLocked = false
+        }
+      }
+
+      if (hasConflict) return 'conflict'
+      if (allLocked) return 'locked'
+      if (hasConfirm) return 'confirm'
+      return 'pending'
+    })
+  }, [currentPhase?.steps, getFieldUiState])
 
   /* ── Callbacks (logic unchanged) ── */
   const updateField = useCallback((fieldId: string, value: AnamnesisFieldValue) => {
@@ -237,7 +313,13 @@ export default function PsychiatryIntakePage() {
       },
     }))
     setSaveError(null)
-  }, [currentStep])
+
+    // Sync canonical clinical state
+    const segment = STEP_TO_SEGMENT[currentStep.id]
+    if (segment) {
+      mergeIntoClinicalState({ [fieldId]: value }, segment)
+    }
+  }, [currentStep, mergeIntoClinicalState])
 
   const persistCurrentStep = useCallback(async (): Promise<boolean> => {
     if (!currentStep) {
@@ -270,11 +352,17 @@ export default function PsychiatryIntakePage() {
         currentStepData,
         currentPhaseId === 'completed' ? undefined : currentPhaseId,
       )
+
+      // Persist canonical clinical state alongside section save
+      if (saved) {
+        await persistClinicalState()
+      }
+
       return saved
     } finally {
       setSaving(false)
     }
-  }, [currentStep, currentStepData, currentPhaseId, updateSection, visibleFields])
+  }, [currentStep, currentStepData, currentPhaseId, updateSection, visibleFields, persistClinicalState])
 
   const moveToPhase = useCallback(async (nextPhaseId: PsychiatryIntakePhase) => {
     const nextPhaseIndex = psychiatryPhaseOrder.indexOf(nextPhaseId)
@@ -300,7 +388,12 @@ export default function PsychiatryIntakePage() {
 
     const phaseSteps = currentPhase.steps
     if (stepIndex < phaseSteps.length - 1) {
-      setStepIndex((prev) => prev + 1)
+      // Smart skip: find the next step that isn't fully locked
+      let nextIdx = stepIndex + 1
+      while (nextIdx < phaseSteps.length - 1 && stepStatuses[nextIdx] === 'locked') {
+        nextIdx++
+      }
+      setStepIndex(nextIdx)
       setVoiceMode(false)
       return
     }
@@ -319,7 +412,7 @@ export default function PsychiatryIntakePage() {
     }
 
     await moveToPhase(nextPhaseId)
-  }, [currentPhase.steps, moveToPhase, persistCurrentStep, phaseIndex, stepIndex, updateIntake])
+  }, [currentPhase.steps, moveToPhase, persistCurrentStep, phaseIndex, stepIndex, stepStatuses, updateIntake])
 
   const handlePrev = useCallback(() => {
     if (stepIndex > 0) {
@@ -445,172 +538,130 @@ export default function PsychiatryIntakePage() {
             <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-sky-100/40 to-transparent blur-3xl" />
             <div className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-gradient-to-tr from-sky-50/60 to-transparent blur-2xl" />
 
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-sky-50/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 backdrop-blur-sm">
-                  <Stethoscope className="h-3.5 w-3.5" />
-                  Evaluación Psiquiátrica
-                </div>
-                <h1 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                  Completá tu evaluación
-                </h1>
-                <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-slate-500">
-                  Tus respuestas son confidenciales y nos ayudan a personalizar tu tratamiento.
-                  Completá cada sección a tu ritmo.
-                </p>
-              </div>
-
-              {/* Progress card */}
-              <div className="min-w-[200px] rounded-2xl border border-sky-100 bg-gradient-to-b from-white to-sky-50/40 p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                  Tu avance
-                </p>
-                <div className="mt-2 flex items-end gap-1.5">
-                  <span className="text-4xl font-bold tabular-nums text-sky-600">
-                    {completionPct}
-                  </span>
-                  <span className="mb-1 text-sm font-medium text-slate-400">%</span>
-                </div>
-                {/* Progress bar */}
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-sky-100/60">
-                  <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-sky-400 to-sky-500"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${completionPct}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  {totalCompletedPhases} de {psychiatryPhaseOrder.length} secciones
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Phase Stepper ── */}
-          <div className="px-4 py-5 sm:px-6">
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-5 sm:gap-2.5 sm:overflow-visible">
-              {psychiatryPhaseOrder.map((phaseId, index) => {
-                const phase = psychiatryPhaseMeta[phaseId]
-                const Icon = PHASE_ICONS[phaseId]
-                const isCurrent = currentPhaseId === phaseId || (isCompletedView && phaseId === 'completed')
-                const isPast = index < phaseIndex || (isCompletedView && phaseId !== 'completed')
-
-                return (
-                  <div
-                    key={phaseId}
-                    className={`group relative flex min-w-[140px] flex-col rounded-2xl border px-4 py-3.5 transition-all duration-300 sm:min-w-0 ${
-                      isCurrent
-                        ? 'border-sky-200 bg-sky-50/80 shadow-sm shadow-sky-100/50'
-                        : isPast
-                          ? 'border-emerald-100 bg-emerald-50/50'
-                          : 'border-slate-100 bg-white/60'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors ${
-                        isCurrent
-                          ? 'bg-sky-500 text-white shadow-sm shadow-sky-200'
-                          : isPast
-                            ? 'bg-emerald-100 text-emerald-600'
-                            : 'bg-slate-100 text-slate-400'
-                      }`}>
-                        {isPast ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                      </div>
-                      {isCurrent && (
-                        <span className="h-2 w-2 rounded-full bg-sky-400 animate-pulse" />
-                      )}
-                    </div>
-                    <p className={`mt-3 text-[11px] font-semibold uppercase tracking-[0.12em] ${
-                      isCurrent ? 'text-sky-600' : isPast ? 'text-emerald-600' : 'text-slate-400'
-                    }`}>
-                      {phase.label}
-                    </p>
-                    <p className={`mt-0.5 text-sm font-medium leading-snug ${
-                      isCurrent ? 'text-sky-900' : isPast ? 'text-emerald-800' : 'text-slate-500'
-                    }`}>
-                      {phase.title}
-                    </p>
+              <div className="flex w-full flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-sky-50/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 backdrop-blur-sm">
+                    <Stethoscope className="h-3.5 w-3.5" />
+                    {formData?.consulta_actual?.tipo_atencion === 'continuidad'
+                      ? 'Renovación de Tratamiento'
+                      : 'Evaluación Psiquiátrica'}
                   </div>
-                )
-              })}
+                  <h1 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                    {formData?.consulta_actual?.tipo_atencion === 'continuidad'
+                      ? 'Continuidad de tratamiento'
+                      : 'Completá tu evaluación'}
+                  </h1>
+                </div>
+
+                {/* Minimal Time Estimator */}
+                <div className="mt-4 sm:mt-0">
+                  <div className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2 shadow-sm">
+                    <Timer className="h-4 w-4 text-slate-400" />
+                    <span className="text-sm font-medium text-slate-600">
+                      {Math.max(1, currentPhase.steps.length - stepIndex)} min restantes
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+
+          {/* ── Clinical Triage Alert ── */}
+          {clinicalState?.triage && (clinicalState.triage.priority === 'urgent' || clinicalState.triage.priority === 'priority') && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className={`border-b px-6 py-4 sm:px-8 ${
+                clinicalState.triage.priority === 'urgent'
+                  ? 'bg-red-50 border-red-100'
+                  : 'bg-amber-50 border-amber-100'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 rounded-full p-1.5 ${
+                  clinicalState.triage.priority === 'urgent' ? 'bg-red-100' : 'bg-amber-100'
+                }`}>
+                  <Sparkles className={`h-4 w-4 ${
+                    clinicalState.triage.priority === 'urgent' ? 'text-red-600' : 'text-amber-600'
+                  }`} />
+                </div>
+                <div>
+                  <h4 className={`text-sm font-bold uppercase tracking-wider ${
+                    clinicalState.triage.priority === 'urgent' ? 'text-red-700' : 'text-amber-700'
+                  }`}>
+                    {clinicalState.triage.mandate || 'Alerta de Prioridad Clínica'}
+                  </h4>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {clinicalState.triage.suggestedAction}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {clinicalState.triage.reasons.map((reason, idx) => (
+                      <span key={idx} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        clinicalState.triage.priority === 'urgent'
+                          ? 'bg-red-100/50 text-red-700'
+                          : 'bg-amber-100/50 text-amber-700'
+                      }`}>
+                        • {reason}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* ── Form Content ── */}
           {!isCompletedView && currentStep && (
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${currentPhaseId}-${stepIndex}`}
-                className="grid gap-6 border-t border-sky-100/40 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,1.1fr)] lg:gap-8"
+                className="mx-auto max-w-2xl px-4 py-8 sm:px-6"
                 {...fadeSlide}
               >
-                {/* ── Left Sidebar ── */}
-                <aside className="space-y-4 rounded-[24px] border border-sky-100/60 bg-gradient-to-b from-sky-50/40 to-white p-5 lg:p-6">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-sky-600">
-                    <Sparkles className="h-3 w-3" />
-                    {currentPhase.label}
-                  </div>
-                  <div>
-                    <h2 className="font-heading text-2xl font-semibold tracking-tight text-slate-950">
-                      {currentPhase.title}
-                    </h2>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                      {currentPhase.description}
+                {/* Clean Form Container */}
+                <section className="space-y-6">
+                  {/* Step header indicator */}
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                      Paso {stepIndex + 1} de {currentPhase.steps.length}
                     </p>
-                  </div>
+                    <div className="flex gap-1.5">
+                      {currentPhase.steps.map((_: unknown, i: number) => {
+                        const status = stepStatuses[i]
+                        const dotColor =
+                          i === stepIndex
+                            ? 'bg-sky-500 w-5'
+                            : status === 'locked'
+                              ? 'bg-emerald-400 w-1.5'
+                              : status === 'conflict'
+                                ? 'bg-red-400 w-2.5'
+                                : status === 'confirm'
+                                  ? 'bg-amber-400 w-2'
+                                  : i < stepIndex
+                                    ? 'bg-sky-300 w-1.5'
+                                    : 'bg-slate-200 w-1.5'
 
-                  {/* Step indicator */}
-                  <div className="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                        Paso {stepIndex + 1} de {currentPhase.steps.length}
-                      </p>
-                      {/* Step dots */}
-                      <div className="flex gap-1.5">
-                        {currentPhase.steps.map((_, i) => (
+                        return (
                           <div
                             key={i}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                              i === stepIndex
-                                ? 'w-5 bg-sky-500'
-                                : i < stepIndex
-                                  ? 'w-1.5 bg-sky-300'
-                                  : 'w-1.5 bg-slate-200'
-                            }`}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${dotColor}`}
                           />
-                        ))}
-                      </div>
+                        )
+                      })}
                     </div>
-                    <h3 className="mt-3 text-lg font-semibold leading-snug text-slate-900">
-                      {currentStep.title}
-                    </h3>
-                    <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">
-                      {currentStep.subtitle}
-                    </p>
                   </div>
 
-                  {/* Confidentiality note */}
-                  <div className="flex items-start gap-3 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
-                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />
-                    <p className="text-[13px] leading-relaxed text-sky-800/80">
-                      Toda la información es estrictamente confidencial y será revisada únicamente por profesionales especializados.
-                    </p>
-                  </div>
-                </aside>
-
-                {/* ── Right Form ── */}
-                <section className="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm sm:p-6">
                   {'field' in currentStep ? (
                     <div className="space-y-5">
                       {/* Conversational header */}
                       <div className="flex flex-col gap-4 rounded-2xl bg-sky-50/60 p-5 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-600">
-                            Contanos
+                            {formData?.consulta_actual?.tipo_atencion === 'continuidad' ? 'Actualización clínica' : 'Contanos'}
                           </p>
                           <p className="mt-2 text-[15px] font-medium leading-relaxed text-slate-800">
-                            {currentStep.field.label}
+                            {formData?.consulta_actual?.tipo_atencion === 'continuidad' 
+                              ? 'Vamos a actualizar tu estado actual antes de la consulta. Esto ayuda a que el médico revise más rápido tu continuidad de tratamiento.' 
+                              : currentStep.field.label}
                           </p>
                         </div>
 
@@ -623,28 +674,66 @@ export default function PsychiatryIntakePage() {
                               : 'bg-sky-500 text-white shadow-md shadow-sky-200/50 hover:bg-sky-600'
                           }`}
                         >
-                          {voiceMode ? 'Escribir manual' : 'Responder con voz'}
+                          {voiceMode ? 'Escribir manual' : currentVoiceContext?.knownFacts.length ? 'Continuar con voz' : 'Responder con voz'}
                         </button>
                       </div>
 
+                      {currentVoiceContext && (
+                        <div className="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-sky-600">
+                            Contexto para voz
+                          </p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            La sesión arranca con {currentVoiceContext.knownFacts.length} datos ya conocidos, {currentVoiceContext.missing.length} pendientes y {currentVoiceContext.conflicts.length} puntos a revisar.
+                          </p>
+                          {currentVoiceContext.doNotAsk.length > 0 && (
+                            <p className="mt-2 text-xs text-slate-500">
+                              No volver a preguntar: {currentVoiceContext.doNotAsk.slice(0, 4).join(', ')}.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <div className="rounded-2xl border border-slate-100 p-5">
-                        {voiceMode ? (
-                          <VoiceAnamnesis
-                            guidance={{
-                              questions: [{
+                        {voiceMode ? (() => {
+                          // Use clinical state planner for voice guidance
+                          const segment = STEP_TO_SEGMENT[currentStep.id]
+                          const planned = segment ? getPlannedQuestions(segment) : null
+                          const clinicalQuestions = planned?.questions
+                            ?.filter(q => q.intent !== 'do_not_ask')
+                            ?.map(q => ({
+                              id: q.id,
+                              text: q.prompt,
+                              rationale: q.reason,
+                              inputType: 'text' as const,
+                              targetSection: currentStep.id,
+                              priority: q.intent === 'resolve_conflict' ? 'critical' as const : 'high' as const,
+                            })) ?? []
+
+                          // Fallback: if planner has no questions, use the step's field label
+                          const questions = clinicalQuestions.length > 0
+                            ? clinicalQuestions
+                            : [{
                                 id: currentStep.id,
                                 text: `${currentStep.field.label} (${currentStep.subtitle})`,
                                 rationale: 'Psychiatry conversational extraction',
-                                inputType: 'text',
+                                inputType: 'text' as const,
                                 targetSection: currentStep.id,
-                                priority: 'high',
-                              }],
-                              gaps: [],
-                              coverageSummary: currentPhase.title,
+                                priority: 'high' as const,
+                              }]
+
+                          return (
+                          <VoiceAnamnesis
+                            guidance={{
+                              questions,
+                              gaps: planned?.blockedBecauseConflict ?? [],
+                              coverageSummary: getPromptSnapshot() || currentPhase.title,
                               alerts: [],
-                              coverage: [],
-                              hasCritical: false,
+                              coverage: planned?.skippedBecauseKnown ?? [],
+                              hasCritical: (planned?.blockedBecauseConflict?.length ?? 0) > 0,
                             }}
+                            contextSnapshot={currentVoiceContext}
+                            transientData={currentStepData}
                             checkpoint="partial"
                             onDataExtracted={(data) => {
                               const patientLines = data.transcript
@@ -653,22 +742,71 @@ export default function PsychiatryIntakePage() {
                                 .join(' ')
                                 .trim()
 
-                              const summaryToSave = data.chiefComplaint || patientLines || 'Registro de voz completado.'
+                              // Rule 1 & 2: Identify computational/conversational friction instead of clinical logic
+                              const metaFrictionPattern = /(te( estoy)? escuchando|qué( más)? (preguntas|tengo que contestar|falta)|ya (fue|lo|te) contest(é|ada)|repite|no entiendo|hola|buenas)/i;
+                              const isMetaOnly = metaFrictionPattern.test(patientLines) && patientLines.length < 80 && !data.extractedFields && !data.chiefComplaint;
+                              const isChiefComplaintMeta = data.chiefComplaint && metaFrictionPattern.test(data.chiefComplaint) && data.chiefComplaint.length < 50;
+
+                              let summaryToSave = '';
+                              if (isMetaOnly || isChiefComplaintMeta) {
+                                summaryToSave = '⚠️ Información no consolidada de forma confiable en el intake asincrónico por voz (posible fricción de interfaz). Requiere reconfirmación en consulta.'
+                              } else {
+                                summaryToSave = data.chiefComplaint || patientLines || 'Registro de voz completado sin datos estructurados.'
+                              }
+
                               const existing = currentStepData[currentStep.field.id]
 
-                              const finalValue = existing ? `${existing}\n\n[Respuesta por voz]: ${summaryToSave}` : summaryToSave
+                              // Replace existing if it's a fallback warning to avoid stringing them together
+                              let finalValue = summaryToSave;
+                              if (existing && typeof existing === 'string' && !existing.includes('Información no consolidada')) {
+                                finalValue = `${existing}\n\n[Respuesta por voz]: ${summaryToSave}`
+                              } else if (existing && typeof existing !== 'string') {
+                                finalValue = summaryToSave
+                              }
 
                               updateField(currentStep.field.id, finalValue)
+
+                              // Merge voice extraction into canonical state
+                              if (data.extractedFields && segment) {
+                                mergeVoiceData(
+                                  data.extractedFields as Record<string, unknown>,
+                                  patientLines,
+                                  segment,
+                                )
+                              }
+
                               setVoiceMode(false)
                             }}
+                            ledgerContext={{
+                              patientId: patient?.id ?? '',
+                              caseId: intake?.id ?? '',
+                              workflowType: formData?.consulta_actual?.tipo_atencion === 'continuidad' 
+                                ? 'psychiatry_continuity' 
+                                : 'psychiatry_initial',
+                              segment: segment
+                            }}
                             onSwitchToText={() => setVoiceMode(false)}
-                          />
-                        ) : (
-                          <FieldRenderer
-                            field={currentStep.field}
-                            value={currentStepData[currentStep.field.id] as AnamnesisFieldValue}
-                            onChange={(value) => updateField(currentStep.field.id, value)}
-                          />
+                          />)
+                        })() : (
+                          <ClinicalFieldWrapper
+                            canonicalField={getCanonicalField(currentStep.field.id, currentStep.id)}
+                            formValue={currentStepData[currentStep.field.id] as AnamnesisFieldValue}
+                            label={currentStep.field.label}
+                            onConfirm={(value) => {
+                              updateField(currentStep.field.id, value)
+                              confirmField(currentStep.field.id, currentStep.id)
+                            }}
+                            onResolve={(value) => {
+                              updateField(currentStep.field.id, value)
+                              confirmField(currentStep.field.id, currentStep.id)
+                            }}
+                          >
+                            <FieldRenderer
+                              field={currentStep.field}
+                              value={currentStepData[currentStep.field.id] as AnamnesisFieldValue}
+                              onChange={(value) => updateField(currentStep.field.id, value)}
+                            />
+                          </ClinicalFieldWrapper>
                         )}
                       </div>
                     </div>
@@ -682,14 +820,72 @@ export default function PsychiatryIntakePage() {
                               <p className="mt-1 text-xs text-slate-400">{field.tooltip}</p>
                             )}
                           </div>
-                          <FieldRenderer
-                            field={field}
-                            value={currentStepData[field.id] as AnamnesisFieldValue}
-                            onChange={(value) => updateField(field.id, value)}
-                          />
+                          <ClinicalFieldWrapper
+                            canonicalField={currentStep ? getCanonicalField(field.id, currentStep.id) : null}
+                            formValue={currentStepData[field.id] as AnamnesisFieldValue}
+                            label={field.label}
+                            onConfirm={(value) => {
+                              updateField(field.id, value)
+                              if (currentStep) confirmField(field.id, currentStep.id)
+                            }}
+                            onResolve={(value) => {
+                              updateField(field.id, value)
+                              if (currentStep) confirmField(field.id, currentStep.id)
+                            }}
+                          >
+                            <FieldRenderer
+                              field={field}
+                              value={currentStepData[field.id] as AnamnesisFieldValue}
+                              onChange={(value) => updateField(field.id, value)}
+                            />
+                          </ClinicalFieldWrapper>
                         </div>
                       ))}
                     </div>
+                  )}
+
+                  {/* Urgency triage banner */}
+                  {currentStepData['dias_medicacion_restante'] === '0' && (
+                    <motion.div
+                      className="mt-5 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 px-5 py-4"
+                      initial={{ opacity: 0, scale: 0.97 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100">
+                        <ShieldCheck className="h-4 w-4 text-red-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-red-800">
+                          Urgencia farmacológica registrada
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-red-700/80">
+                          Tu caso será priorizado para prescripción de puente. El equipo médico 
+                          revisará tu solicitud con la máxima urgencia para evitar interrupciones 
+                          en el tratamiento.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                  {currentStepData['dias_medicacion_restante'] === '1-3' && (
+                    <motion.div
+                      className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100">
+                        <ShieldCheck className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">
+                          Atención prioritaria
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-amber-700/80">
+                          Con pocos días de medicación, tu consulta será priorizada 
+                          para garantizar continuidad del tratamiento.
+                        </p>
+                      </div>
+                    </motion.div>
                   )}
 
                   {/* Error */}
@@ -724,7 +920,7 @@ export default function PsychiatryIntakePage() {
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                       {phaseIndex === psychiatryPhaseOrder.length - 2 && stepIndex === currentPhase.steps.length - 1
                         ? 'Finalizar evaluación'
-                        : 'Guardar y continuar'}
+                        : 'Continuar'}
                     </button>
                   </div>
                 </section>
@@ -738,50 +934,98 @@ export default function PsychiatryIntakePage() {
               className="border-t border-sky-100/40 px-6 py-10 sm:px-8"
               {...fadeSlide}
             >
-              <div className="mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-emerald-100 bg-gradient-to-b from-emerald-50/50 via-white to-white shadow-lg shadow-emerald-900/[0.03]">
-                <div className="px-8 pt-10 pb-2 text-center">
-                  <div className="relative mx-auto h-16 w-16">
-                    <div className="absolute inset-0 animate-ping rounded-full bg-emerald-100/60 [animation-duration:2s]" />
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                      <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+              {formData?.consulta_actual?.tipo_atencion === 'continuidad' ? (
+                <div className="mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-amber-200 bg-gradient-to-b from-amber-50/50 via-white to-white shadow-lg shadow-amber-900/[0.03]">
+                  <div className="px-8 pt-10 pb-2 text-center">
+                    <div className="relative mx-auto h-16 w-16">
+                      <div className="absolute inset-0 animate-ping rounded-full bg-amber-100/60 [animation-duration:2s]" />
+                      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                        <span className="text-2xl">🟡</span>
+                      </div>
+                    </div>
+                    <h2 className="mt-6 font-heading text-2xl font-semibold tracking-tight text-slate-950">
+                      REVISIÓN ADICIONAL REQUERIDA
+                    </h2>
+                    <div className="mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-slate-700 bg-amber-50/50 p-6 rounded-2xl border border-amber-100/50 text-left">
+                      <p className="mb-4 font-medium">
+                        Notamos que solicitás recetas preexistentes que requieren seguimiento.
+                      </p>
+                      <p className="text-slate-600">
+                        Para proteger tu salud y cumplir con las normativas médicas, un profesional debe evaluar tu caso antes de emitir la prescripción. No te preocupes, el proceso es simple y rápido.
+                      </p>
                     </div>
                   </div>
-                  <h2 className="mt-6 font-heading text-3xl font-semibold tracking-tight text-slate-950">
-                    ¡Evaluación completada!
-                  </h2>
-                  <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-slate-500">
-                    Tu evaluación fue enviada y será revisada por nuestro equipo de psiquiatría.
-                    Podés descargar una copia en PDF para tus registros.
-                  </p>
+                  <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
+                    <a
+                      href="/patients/appointments/new"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200/40 transition-all hover:bg-amber-600 hover:shadow-lg active:scale-[0.97]"
+                    >
+                      Programar control (Recomendado)
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => { void handleDownloadPdf() }}
+                      disabled={downloadingPdf}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      Descargar PDF
+                    </button>
+                    <a
+                      href="/patients/dashboard"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98]"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Volver
+                    </a>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() => { void handleDownloadPdf() }}
-                    disabled={downloadingPdf}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-200/40 transition-all hover:bg-emerald-600 hover:shadow-lg active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    Descargar PDF
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { void handleRedo() }}
-                    disabled={saving}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                    Corregir respuestas
-                  </button>
-                  <a
-                    href="/patients/dashboard"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98]"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Volver al inicio
-                  </a>
+              ) : (
+                <div className="mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-emerald-100 bg-gradient-to-b from-emerald-50/50 via-white to-white shadow-lg shadow-emerald-900/[0.03]">
+                  <div className="px-8 pt-10 pb-2 text-center">
+                    <div className="relative mx-auto h-16 w-16">
+                      <div className="absolute inset-0 animate-ping rounded-full bg-emerald-100/60 [animation-duration:2s]" />
+                      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                        <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                      </div>
+                    </div>
+                    <h2 className="mt-6 font-heading text-3xl font-semibold tracking-tight text-slate-950">
+                      ¡Evaluación completada!
+                    </h2>
+                    <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-slate-500">
+                      Tu evaluación fue enviada y será revisada por nuestro equipo de psiquiatría.
+                      Podés descargar una copia en PDF para tus registros.
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => { void handleDownloadPdf() }}
+                      disabled={downloadingPdf}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-200/40 transition-all hover:bg-emerald-600 hover:shadow-lg active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      Descargar PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { void handleRedo() }}
+                      disabled={saving}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                      Corregir respuestas
+                    </button>
+                    <a
+                      href="/patients/dashboard"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98]"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Volver al inicio
+                    </a>
+                  </div>
                 </div>
-              </div>
+              )}
             </motion.div>
           )}
 

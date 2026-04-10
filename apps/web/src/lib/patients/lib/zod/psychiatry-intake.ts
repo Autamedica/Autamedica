@@ -29,8 +29,8 @@ export const UpdatePsychiatryMetaSchema = z.object({
   status: z.enum(['in_progress', 'completed']).optional(),
   completion_percentage: z.number().int().min(0).max(100).optional(),
   completionPercentage: z.number().int().min(0).max(100).optional(),
-  completed_at: z.string().datetime().optional(),
-  completedAt: z.string().datetime().optional(),
+  completed_at: z.string().datetime().nullable().optional(),
+  completedAt: z.string().datetime().nullable().optional(),
   privacy_accepted: z.boolean().optional(),
   privacyAccepted: z.boolean().optional(),
   terms_accepted: z.boolean().optional(),
@@ -43,8 +43,8 @@ export const UpdatePsychiatryMetaSchema = z.object({
   ...((obj.completionPercentage ?? obj.completion_percentage) != null && {
     completionPercentage: obj.completionPercentage ?? obj.completion_percentage,
   }),
-  ...((obj.completedAt ?? obj.completed_at) != null && {
-    completedAt: obj.completedAt ?? obj.completed_at,
+  ...((obj.completedAt !== undefined || obj.completed_at !== undefined) && {
+    completedAt: obj.completedAt ?? obj.completed_at ?? null,
   }),
   ...((obj.privacyAccepted ?? obj.privacy_accepted) != null && {
     privacyAccepted: obj.privacyAccepted ?? obj.privacy_accepted,
