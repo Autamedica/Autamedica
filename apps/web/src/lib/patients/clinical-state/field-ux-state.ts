@@ -4,7 +4,7 @@
  * Translates the internal field status into UX-friendly states
  * that drive rendering modes in the intake form.
  */
-import type { CanonicalField, FieldStatus } from '@/lib/patients/clinical-state/types'
+import type { CanonicalField } from '@/lib/patients/clinical-state/types'
 
 // ─── UX Field Mode ─────────────────────────────────────────────────────
 

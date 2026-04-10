@@ -56,7 +56,7 @@ export function buildPromptSnapshot(state: ClinicalCaseState): PromptCaseSnapsho
   const isMissing = (f: CanonicalField<unknown>) => f.status === 'missing' || f.value == null;
   
   // For now, relevant if not explicitly excluded
-  const isRelevantToCurrentWorkflow = (f: CanonicalField<unknown>, wt: string) => true;
+  const isRelevantToCurrentWorkflow = (_f: CanonicalField<unknown>, _wt: string) => true;
 
   const viableMissingFields = allFields.filter(
     (f) =>

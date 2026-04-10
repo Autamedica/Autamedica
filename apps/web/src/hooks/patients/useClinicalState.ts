@@ -446,7 +446,7 @@ export function useClinicalState({
     const [sectionName, fieldName] = field.key.split('.')
     if (sectionName && fieldName) {
       const sectionObj = (lockedState as unknown as Record<string, Record<string, unknown>>)[sectionName]
-      if (sectionObj && sectionObj[fieldName]) {
+      if (sectionObj?.[fieldName]) {
          sectionObj[fieldName] = lockField(sectionObj[fieldName] as CanonicalField<unknown>)
       }
     }

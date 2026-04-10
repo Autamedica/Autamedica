@@ -9,15 +9,14 @@
  * - conflict: shows both values for user to pick
  * - locked: read-only display with ✓ badge
  */
-import { useCallback, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle2, AlertTriangle, PenLine, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { CheckCircle2, AlertTriangle, PenLine } from 'lucide-react'
 import type { CanonicalField } from '@/lib/patients/clinical-state/types'
 import {
   resolveFieldUXState,
   sourceLabel,
   getStatusBadgeClasses,
-  type FieldUXMode,
   type FieldUXState,
 } from '@/lib/patients/clinical-state/field-ux-state'
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
@@ -129,7 +128,7 @@ function StatusBadge({ state }: { state: FieldUXState }) {
 }
 
 function LockedFieldDisplay({
-  label,
+  label: _label,
   value,
   source,
   onEdit,
@@ -176,9 +175,9 @@ function LockedFieldDisplay({
 }
 
 function ConfirmFieldDisplay({
-  label,
+  label: _label,
   value,
-  formValue,
+  formValue: _formValue,
   source,
   onConfirm,
   onEdit,
@@ -235,7 +234,7 @@ function ConfirmFieldDisplay({
 }
 
 function ConflictFieldDisplay({
-  label,
+  label: _label,
   currentValue,
   previousValue,
   reason,

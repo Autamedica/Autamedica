@@ -1,7 +1,11 @@
 import type { APIRoute } from 'astro';
 import { conversationLedgerAdapter } from '@/lib/patients/lib/repos/conversation-ledger.adapter';
 
-export const POST: APIRoute = async ({ request, locals }) => {
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'unknown_error';
+}
+
+export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
 
@@ -18,16 +22,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error recording conversation event', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: getErrorMessage(error) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 };
 
-export const GET: APIRoute = async ({ request, url }) => {
+export const GET: APIRoute = async ({ request: _request, url }) => {
   try {
     const sessionId = url.searchParams.get('sessionId');
     if (!sessionId) {
@@ -43,9 +47,9 @@ export const GET: APIRoute = async ({ request, url }) => {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching conversation events', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: getErrorMessage(error) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

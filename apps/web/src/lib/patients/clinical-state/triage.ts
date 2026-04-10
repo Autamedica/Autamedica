@@ -1,4 +1,4 @@
-import type { ClinicalCaseState, CanonicalField, CurrentMedicationEntry } from './types'
+import type { ClinicalCaseState, CurrentMedicationEntry } from './types'
 
 /**
  * Clinical Triage Engine

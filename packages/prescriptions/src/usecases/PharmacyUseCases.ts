@@ -2,7 +2,6 @@ import { logger } from '@autamedica/shared';
 import type {
   DispensationOrderInsert,
   DispensationOrderId,
-  DispensationOrder,
 } from '../domain/pharmacy.models';
 import {
   isValidTransition,

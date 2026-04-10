@@ -23,7 +23,7 @@ import type {
   SegmentKey,
   UUID,
 } from './types';
-import { flattenAllFields, isFieldAskable } from './canonical-field';
+import { flattenAllFields } from './canonical-field';
 
 // ─── Field → Question Template Mapping ─────────────────────────────────
 
@@ -193,7 +193,7 @@ export function planQuestions(
 
     if (intent === 'do_not_ask') {
       doNotAskKeys.push(template.fieldKey);
-      if (field && field.status === 'confirmed') {
+      if (field?.status === 'confirmed') {
         skippedBecauseKnown.push(template.fieldKey);
       }
       continue;

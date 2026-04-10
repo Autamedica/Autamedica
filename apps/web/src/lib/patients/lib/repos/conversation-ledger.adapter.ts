@@ -29,6 +29,34 @@ export interface ConversationEvent {
   createdAt: string;
 }
 
+type DbConversationSessionRecord = {
+  id: string;
+  patient_id: string;
+  case_id: string;
+  channel: 'voice' | 'chat';
+  workflow_type: WorkflowType;
+  status: 'active' | 'closed' | 'failed';
+  started_at: string;
+  ended_at?: string;
+}
+
+type DbConversationEventRecord = {
+  id: string;
+  session_id: string;
+  case_id: string;
+  patient_id: string;
+  role: 'patient' | 'assistant' | 'system';
+  channel: 'voice' | 'text';
+  segment?: SegmentKey;
+  raw_text: string;
+  normalized_text?: string;
+  extracted_fields?: Record<string, unknown>;
+  planner_output?: unknown;
+  prompt_snapshot_text?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
 export class ConversationLedgerAdapter {
   async createSession(session: Omit<ConversationSession, 'id' | 'startedAt'>): Promise<ConversationSession> {
     const { data, error } = await supabase
@@ -98,7 +126,7 @@ export class ConversationLedgerAdapter {
   }
 
   // ----------- Mappers -----------
-  private mapSession(dbRecord: any): ConversationSession {
+  private mapSession(dbRecord: DbConversationSessionRecord): ConversationSession {
     return {
       id: dbRecord.id,
       patientId: dbRecord.patient_id,
@@ -111,7 +139,7 @@ export class ConversationLedgerAdapter {
     };
   }
 
-  private mapEvent(dbRecord: any): ConversationEvent {
+  private mapEvent(dbRecord: DbConversationEventRecord): ConversationEvent {
     return {
       id: dbRecord.id,
       sessionId: dbRecord.session_id,

@@ -5,13 +5,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft,
   ArrowRight,
-  Brain,
   CheckCircle2,
   Download,
-  FileText,
   Loader2,
   Lock,
-  MessageSquareQuote,
   ShieldCheck,
   Sparkles,
   Stethoscope,
@@ -38,18 +35,6 @@ import type {
   PsychiatryIntakeSection,
 } from '@/lib/patients/types/psychiatry-intake'
 import type { SegmentKey } from '@/lib/patients/clinical-state/types'
-
-/* ═══════════════════════════════════════════════════════════════
-   Design Tokens — Branding sky-blue system
-   ═══════════════════════════════════════════════════════════════ */
-
-const PHASE_ICONS = {
-  wizard_intake: FileText,
-  conversational_symptoms: MessageSquareQuote,
-  wizard_safety: ShieldCheck,
-  conversational_closure: Brain,
-  completed: CheckCircle2,
-} as const
 
 /* ═══════════════════════════════════════════════════════════════
    Helpers (logic unchanged)
@@ -175,8 +160,6 @@ export default function PsychiatryIntakePage() {
     getCanonicalField,
     getFieldUiState,
     hydrateStepData,
-    getStepSummary,
-    getStepMode,
     confirmField,
     getPlannedQuestions,
     getPromptSnapshot,
@@ -253,35 +236,6 @@ export default function PsychiatryIntakePage() {
     return hydrateStepData(currentStep.id, currentStepDraft) as Record<string, AnamnesisFieldValue>
   }, [currentStep, currentStepDraft, hydrateStepData])
 
-  const currentStepFieldIds = useMemo(() => {
-    if (!currentStep) return []
-    return 'field' in currentStep
-      ? [currentStep.field.id]
-      : currentStep.fields.map((field) => field.id)
-  }, [currentStep])
-
-  const currentStepSummary = useMemo(() => {
-    if (!currentStep) {
-      return {
-        total: 0,
-        completed: 0,
-        pending: 0,
-        conflicts: 0,
-        needsConfirmation: 0,
-        mode: 'capture' as const,
-        knownValues: [],
-        missingFieldIds: [],
-        conflictFieldIds: [],
-      }
-    }
-    return getStepSummary(currentStep.id, currentStepFieldIds)
-  }, [currentStep, currentStepFieldIds, getStepSummary])
-
-  const currentStepMode = useMemo(() => {
-    if (!currentStep) return 'capture' as const
-    return getStepMode(currentStep.id, currentStepFieldIds)
-  }, [currentStep, currentStepFieldIds, getStepMode])
-
   const currentVoiceContext = useMemo(() => {
     if (!currentStep) return null
     const segment = STEP_TO_SEGMENT[currentStep.id]
@@ -304,25 +258,6 @@ export default function PsychiatryIntakePage() {
       return actualValue === depValue
     })
   }, [currentStep, currentStepData])
-
-  const { completedSteps, totalActiveSteps } = useMemo(() => {
-    const completed = new Set(progress?.completedSections ?? [])
-    const activePhases = psychiatryPhaseOrder.filter(p => p !== 'completed')
-    let total = 0
-    let done = 0
-    for (const phaseId of activePhases) {
-      const phase = psychiatryPhaseMeta[phaseId]
-      for (const step of phase.steps) {
-        total++
-        if (completed.has(step.id)) done++
-      }
-    }
-    return { completedSteps: done, totalActiveSteps: total }
-  }, [progress?.completedSections])
-
-  const completionPct = totalActiveSteps > 0
-    ? Math.round((completedSteps / totalActiveSteps) * 100)
-    : 0
 
   /**
    * Step statuses from canonical state.

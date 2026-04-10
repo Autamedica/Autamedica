@@ -6,7 +6,6 @@
 import type {
   CanonicalField,
   ConfidenceLevel,
-  FieldStatus,
   SegmentKey,
   SourceType,
 } from './types';
