@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@autamedica/types'
 import type { ClinicalCaseState } from '../clinical-state/types'
 import { computeTriage } from '../clinical-state/triage'
+import { safeMerge } from '@/utils/safe-merge'
 
 type Db = SupabaseClient<Database>
 
@@ -75,6 +76,20 @@ export const clinicalStateService = {
     }
 
     return data
+  },
+
+  /**
+   * Safely merges partial updates into the current state and persists.
+   * Prevents 'method not found' errors if specialized logic exists in the state object.
+   */
+  async patch(supabase: Db, patientId: string, partial: Partial<ClinicalCaseState>) {
+    const current = await this.getByPatient(supabase, patientId)
+    if (!current) {
+      throw new Error(`[clinicalStateService] Cannot patch non-existent state for patient: ${patientId}`)
+    }
+
+    const merged = safeMerge(current, partial)
+    return this.persist(supabase, merged)
   },
 
   /**

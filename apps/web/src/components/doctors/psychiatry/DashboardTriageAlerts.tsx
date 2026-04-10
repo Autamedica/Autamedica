@@ -22,6 +22,7 @@ import {
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 import type { ClinicalVertical, CaseIntent } from '@/lib/patients/clinical-state/types'
+import { safeApplyToCollection } from '@/utils/safe-merge'
 
 interface TriageAlert {
   id: string
@@ -139,9 +140,11 @@ export function DashboardTriageAlerts() {
     const supabase = getBrowserSupabaseClient()
     const { error } = await (supabase as unknown as { rpc: (n: string, a: { p_case_state_id: string }) => Promise<{ error: unknown }> }).rpc('take_triage_case', { p_case_state_id: alertId })
     if (!error) {
-      setAlerts(prev => prev.map(a => 
-        a.id === alertId ? { ...a, assigned_doctor_id: currentUser?.doctorProfileId, triage_status: 'acknowledged' } : a
-      ))
+      setAlerts(prev => safeApplyToCollection(prev, { 
+        id: alertId, 
+        assigned_doctor_id: currentUser?.doctorProfileId, 
+        triage_status: 'acknowledged' 
+      }))
       await fetchAlerts()
     }
     setActingOnId(null)
