@@ -111,22 +111,8 @@ export interface VoiceContextSnapshot {
   summaryText: string
 }
 
-/** Map section IDs to canonical segment keys */
-const SECTION_TO_SEGMENT: Record<string, SegmentKey> = {
-  contexto_personal: 'identity',
-  datos_demograficos: 'identity',
-  consulta_actual: 'intake_context',
-  motivo_consulta: 'intake_context',
-  medicacion_actual: 'current_medication',
-  medicacion: 'current_medication',
-  sintomas_actuales: 'symptoms',
-  sintomas: 'symptoms',
-  seguridad: 'safety',
-  impacto_funcional: 'functional_impact',
-  historial: 'history',
-  cierre_clinico: 'review',
-  relato_clinico: 'review',
-}
+/** Single source of truth for section→segment mapping */
+import { STEP_TO_SEGMENT as SECTION_TO_SEGMENT } from '@/lib/patients/usecases/psychiatry-intake-flow.usecase'
 
 const PERSIST_DEBOUNCE_MS = 5000
 
