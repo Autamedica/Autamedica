@@ -167,6 +167,7 @@ export default function PsychiatryIntakePage() {
     persistNow: persistClinicalState,
   } = useClinicalState({
     patientId: patient?.id ?? null,
+    caseId: intake?.id ?? null,
     workflowType: formData?.consulta_actual?.tipo_atencion === 'continuidad'
       ? 'psychiatry_continuity'
       : formData?.consulta_actual?.tipo_atencion === 'revision_urgente'
@@ -194,7 +195,7 @@ export default function PsychiatryIntakePage() {
     )
     const loginUrl = new URL('/auth/login', authOrigin)
     loginUrl.searchParams.set('portal', 'patients')
-    loginUrl.searchParams.set('returnTo', `${window.location.origin}/patients/psychiatry-tdah`)
+    loginUrl.searchParams.set('returnTo', `${window.location.origin}/patients/psychiatry`)
     window.location.replace(loginUrl.toString())
   }, [])
 
@@ -782,7 +783,7 @@ export default function PsychiatryIntakePage() {
                               caseId: intake?.id ?? '',
                               workflowType: formData?.consulta_actual?.tipo_atencion === 'continuidad' 
                                 ? 'psychiatry_continuity' 
-                                : 'psychiatry_initial',
+                                : 'psychiatry_first_visit',
                               segment: segment
                             }}
                             onSwitchToText={() => setVoiceMode(false)}

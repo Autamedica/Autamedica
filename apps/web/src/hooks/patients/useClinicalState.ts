@@ -43,6 +43,7 @@ import type { PsychiatryIntakeSectionRecord } from '@/lib/patients/types/psychia
 
 interface UseClinicalStateOptions {
   patientId: string | null
+  caseId?: string | null
   workflowType?: WorkflowType
   sections: PsychiatryIntakeSectionRecord[]
   loading: boolean
@@ -138,6 +139,7 @@ function inferStepMode(summary: Pick<StepUiSummary, 'conflicts' | 'needsConfirma
 
 export function useClinicalState({
   patientId,
+  caseId = null,
   workflowType = 'psychiatry_first_visit',
   sections,
   loading,
@@ -199,13 +201,13 @@ export function useClinicalState({
   // ── Initialize: try loading from DB, then hydrate from sections ──
   useEffect(() => {
     // If patient changed, reset state
-    if (initialized && stateRef.current?.patientId !== patientId) {
+    if (initialized && (stateRef.current?.patientId !== patientId || stateRef.current?.caseId !== caseId)) {
       setInitialized(false)
       setClinicalState(null)
       return
     }
 
-    if (loading || !patientId || initialized) return
+    if (loading || !patientId || !caseId || initialized) return
 
     let mounted = true
 
@@ -233,7 +235,6 @@ export function useClinicalState({
 
       // 2. If no persisted state, create fresh and hydrate from sections
       if (!state) {
-        const caseId = `case_${patientId}_${Date.now().toString(36)}`
         state = createEmptyState(caseId, patientId, workflowType)
 
         // Hydrate from already-completed sections
@@ -264,7 +265,7 @@ export function useClinicalState({
     return () => {
       mounted = false
     }
-  }, [loading, patientId, workflowType, sections, initialized])
+  }, [loading, patientId, caseId, workflowType, sections, initialized])
 
   // ── Merge form data ──
   const mergeFormData = useCallback((

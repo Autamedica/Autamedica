@@ -68,7 +68,22 @@ function isGarbageValue(text: string | null | undefined): boolean {
 
 function sanitizeText(text: string | null | undefined, fallback = 'Información no consignada'): string {
   if (!text || isGarbageValue(text)) return fallback
-  return text.trim()
+  
+  // Sanitización de Prompt Leakage (Bot greetings/noise)
+  const botPatterns = [
+    /hola, soy el asistente de autamedica/gi,
+    /contame, ¿en qué puedo ayudarte\?/gi,
+    /¿hay algo más en lo que pueda ayudarte\?/gi,
+    /muchas gracias\. saldos/gi,
+    /hola, soy el asistente de autamedica\. contame, ¿en qué puedo ayudarte\?/gi
+  ]
+
+  let cleaned = text.trim()
+  for (const pattern of botPatterns) {
+    cleaned = cleaned.replace(pattern, '').trim()
+  }
+
+  return cleaned || fallback
 }
 
 function normalizePdfTriage(triage: PsychiatryIntakePdfInput['triage']): PsychiatryIntakePdfTriage | null {
@@ -138,6 +153,7 @@ export function generatePsychiatryIntakePdf(input: PsychiatryIntakePdfInput): Ps
   // 1. Aplanar las secciones para extraer por nombre de variable, no por sección de DB
   const flatData: Record<string, unknown> = {}
   for (const section of input.sections) {
+    if (!section || typeof section.data !== 'object' || section.data === null) continue
     Object.assign(flatData, section.data)
   }
 

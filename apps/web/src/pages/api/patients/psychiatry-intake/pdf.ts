@@ -3,7 +3,6 @@ import { logger } from '@autamedica/shared'
 import { captureSentryException } from '@/lib/observability/sentry'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
-import { generatePsychiatryIntakePdf } from '@/lib/patients/services/psychiatry-intake-pdf-report.service'
 
 function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ success: false, error: message }), {
@@ -94,11 +93,38 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .eq('user_id', context.userId)
       .single()
 
-    const { data: clinicalState } = await admin
+    const { data: clinicalStateByCase, error: clinicalStateByCaseError } = await admin
       .from('clinical_case_states' as never)
       .select('state')
       .eq('case_id', (intake as { id: string }).id)
       .maybeSingle()
+
+    if (clinicalStateByCaseError) {
+      logger.warn('[psychiatry-intake/pdf] case-bound clinical state lookup failed', {
+        intakeId: (intake as { id: string }).id,
+        message: clinicalStateByCaseError.message,
+      })
+    }
+
+    let clinicalState = clinicalStateByCase
+    if (!clinicalState) {
+      const { data: fallbackState, error: fallbackStateError } = await admin
+        .from('clinical_case_states' as never)
+        .select('state')
+        .eq('patient_id', context.patientId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (fallbackStateError) {
+        logger.warn('[psychiatry-intake/pdf] patient-bound clinical state fallback failed', {
+          patientId: context.patientId,
+          message: fallbackStateError.message,
+        })
+      } else if (fallbackState) {
+        clinicalState = fallbackState
+      }
+    }
 
     const patientName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Paciente'
     const patientAge = patientRow?.birth_date
@@ -107,8 +133,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const triage = (clinicalState as { state?: { triage?: unknown } } | null)?.state?.triage
 
+    logger.info('[psychiatry-intake/pdf] loading PDF service dynamically')
+    
+    // DYNAMIC IMPORT to reduce worker entry size
+    const { generatePsychiatryIntakePdf } = await import('@/lib/patients/services/psychiatry-intake-pdf-report.service')
+
     logger.info('[psychiatry-intake/pdf] running jsPDF generation')
-    let pdfResult: ReturnType<typeof generatePsychiatryIntakePdf>
+    let pdfResult: { buffer: Uint8Array; filename: string };
     try {
       pdfResult = generatePsychiatryIntakePdf({
         patient: {

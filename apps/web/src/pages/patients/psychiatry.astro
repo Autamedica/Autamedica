@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import PsychiatryIntakePage from '@/components/patients/PsychiatryIntakePage'
+
+const title = 'Psiquiatria | AutaMedica'
+const description = 'Evaluacion psiquiatrica para seguimiento y continuidad clinica'
+---
+
+<Layout title={title} description={description} robots="noindex, nofollow, noarchive">
+  <PsychiatryIntakePage client:load />
+</Layout>

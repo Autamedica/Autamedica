@@ -1,11 +1,3 @@
 ---
-import Layout from '@/layouts/Layout.astro'
-import PsychiatryIntakePage from '@/components/patients/PsychiatryIntakePage'
-
-const title = 'Psiquiatria TDAH | AutaMedica'
-const description = 'Evaluacion psiquiatrica separada para TDAH y tratamiento con estimulantes'
+return Astro.redirect('/patients/psychiatry', 301)
 ---
-
-<Layout title={title} description={description} robots="noindex, nofollow, noarchive">
-  <PsychiatryIntakePage client:load />
-</Layout>

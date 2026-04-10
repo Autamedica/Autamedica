@@ -19,12 +19,19 @@ export interface ConversationEvent {
   patientId: string;
   role: 'patient' | 'assistant' | 'system';
   channel: 'voice' | 'text';
+  eventType: string;
   segment?: SegmentKey;
   rawText: string;
   normalizedText?: string;
   extractedFields?: Record<string, unknown>;
   plannerOutput?: unknown;
   promptSnapshotText?: string;
+  modelName?: string;
+  modelVersion?: string;
+  extractionConfidence?: string;
+  latencyMs?: number;
+  errorCode?: string;
+  errorMessage?: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
 }
@@ -46,6 +53,7 @@ type DbConversationEventRecord = {
   case_id: string;
   patient_id: string;
   role: 'patient' | 'assistant' | 'system';
+  event_type: string;
   channel: 'voice' | 'text';
   segment?: SegmentKey;
   raw_text: string;
@@ -53,6 +61,12 @@ type DbConversationEventRecord = {
   extracted_fields?: Record<string, unknown>;
   planner_output?: unknown;
   prompt_snapshot_text?: string;
+  model_name?: string;
+  model_version?: string;
+  extraction_confidence?: string;
+  latency_ms?: number;
+  error_code?: string;
+  error_message?: string;
   metadata?: Record<string, unknown>;
   created_at: string;
 }
@@ -61,20 +75,36 @@ export class ConversationLedgerAdapter {
   constructor(private supabase: SupabaseClient) {}
 
   async createSession(session: Omit<ConversationSession, 'id' | 'startedAt'>): Promise<ConversationSession> {
+    const payload = {
+      patient_id: session.patientId,
+      case_id: session.caseId,
+      channel: session.channel,
+      workflow_type: session.workflowType,
+      status: session.status,
+    }
+
     const { data, error } = await this.supabase
       .from('conversation_sessions')
-      .insert({
-        patient_id: session.patientId,
-        case_id: session.caseId,
-        channel: session.channel,
-        workflow_type: session.workflowType,
-        status: session.status,
-      })
+      .insert(payload)
       .select()
       .single();
 
+    if (error?.code === '23505') {
+      const { data: existing, error: existingError } = await this.supabase
+        .from('conversation_sessions')
+        .select('*')
+        .match(payload)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+      if (existing) {
+        return this.mapSession(existing as unknown as DbConversationSessionRecord);
+      }
+    }
+
     if (error) throw error;
-    
+
     return this.mapSession(data as unknown as DbConversationSessionRecord);
   }
 
@@ -91,13 +121,27 @@ export class ConversationLedgerAdapter {
   }
 
   async logEvent(event: Omit<ConversationEvent, 'id' | 'createdAt'>): Promise<ConversationEvent> {
+    // 1. Obtener el siguiente sequence_number si no se provee
+    let sequenceNumber = (event as Record<string, unknown>).sequenceNumber as number | undefined;
+    
+    if (sequenceNumber === undefined) {
+      const { count } = await this.supabase
+        .from('conversation_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('session_id', event.sessionId);
+      
+      sequenceNumber = (count ?? 0) + 1;
+    }
+
     const { data, error } = await this.supabase
       .from('conversation_events')
       .insert({
         session_id: event.sessionId,
         case_id: event.caseId,
         patient_id: event.patientId,
+        sequence_number: sequenceNumber,
         role: event.role,
+        event_type: event.eventType,
         channel: event.channel,
         segment: event.segment,
         raw_text: event.rawText,
@@ -105,12 +149,21 @@ export class ConversationLedgerAdapter {
         extracted_fields: event.extractedFields,
         planner_output: event.plannerOutput,
         prompt_snapshot_text: event.promptSnapshotText,
+        model_name: event.modelName,
+        model_version: event.modelVersion,
+        extraction_confidence: event.extractionConfidence,
+        latency_ms: event.latencyMs,
+        error_code: event.errorCode,
+        error_message: event.errorMessage,
         metadata: event.metadata,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[ConversationLedgerAdapter] logEvent failed', error);
+      throw error;
+    }
 
     return this.mapEvent(data as unknown as DbConversationEventRecord);
   }
@@ -149,12 +202,19 @@ export class ConversationLedgerAdapter {
       patientId: dbRecord.patient_id,
       role: dbRecord.role,
       channel: dbRecord.channel,
+      eventType: dbRecord.event_type,
       segment: dbRecord.segment as SegmentKey | undefined,
       rawText: dbRecord.raw_text,
       normalizedText: dbRecord.normalized_text,
       extractedFields: dbRecord.extracted_fields,
       plannerOutput: dbRecord.planner_output,
       promptSnapshotText: dbRecord.prompt_snapshot_text,
+      modelName: dbRecord.model_name,
+      modelVersion: dbRecord.model_version,
+      extractionConfidence: dbRecord.extraction_confidence,
+      latencyMs: dbRecord.latency_ms,
+      errorCode: dbRecord.error_code,
+      errorMessage: dbRecord.error_message,
       metadata: dbRecord.metadata,
       createdAt: dbRecord.created_at,
     };

@@ -10,7 +10,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const body = await request.json();
 
-    if (!body.sessionId || !body.patientId || !body.rawText) {
+    const eventPayload = {
+      sessionId: body.sessionId,
+      caseId: body.caseId,
+      patientId: body.patientId,
+      role: body.role,
+      channel: body.channel,
+      eventType: body.eventType ?? body.event_type,
+      segment: body.segment,
+      rawText: body.rawText,
+      normalizedText: body.normalizedText ?? body.normalized_text,
+      extractedFields: body.extractedFields ?? body.extracted_fields,
+      plannerOutput: body.plannerOutput ?? body.planner_output,
+      promptSnapshotText: body.promptSnapshotText ?? body.prompt_snapshot_text,
+      modelName: body.modelName ?? body.model_name,
+      modelVersion: body.modelVersion ?? body.model_version,
+      extractionConfidence: body.extractionConfidence ?? body.extraction_confidence,
+      latencyMs: body.latencyMs ?? body.latency_ms,
+      errorCode: body.errorCode ?? body.error_code,
+      errorMessage: body.errorMessage ?? body.error_message,
+      metadata: body.metadata,
+    };
+
+    if (!eventPayload.sessionId || !eventPayload.patientId || !eventPayload.rawText || !eventPayload.eventType) {
       return new Response(JSON.stringify({ error: 'Missing required event parameters' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -18,7 +40,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const adapter = createConversationLedgerAdapter(createAstroAdminClient(locals.runtime?.env));
-    const event = await adapter.logEvent(body);
+    const event = await adapter.logEvent(eventPayload);
 
     return new Response(JSON.stringify({ event }), {
       status: 200,

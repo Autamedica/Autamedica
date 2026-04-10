@@ -104,16 +104,65 @@ export function createPsychiatryIntakeAdapter(supabase: Db) {
       intakeId: string,
       section: PsychiatryIntakeSection,
       phase: Exclude<PsychiatryIntakePhase, 'completed'>,
-      data: Record<string, unknown>,
+      incomingData: Record<string, unknown>,
       completed: boolean,
     ): Promise<PsychiatryIntakeSectionRecord> {
+      // 1. Unificación forzada a snake_case para evitar duplicidad Camel/Snake en JSONB
+      const canonicalData = toSnake(incomingData) as Record<string, unknown>
+
+      // 2. Sanitización de Prompt Leakage (Bot greetings/noise)
+      const botPatterns = [
+        /hola, soy el asistente de autamedica/gi,
+        /contame, ¿en qué puedo ayudarte\?/gi,
+        /¿hay algo más en lo que pueda ayudarte\?/gi,
+        /muchas gracias\. saldos/gi,
+        /hola, soy el asistente de autamedica\. contame, ¿en qué puedo ayudarte\?/gi
+      ]
+
+      for (const key in canonicalData) {
+        if (typeof canonicalData[key] === 'string') {
+          let cleaned = canonicalData[key] as string
+          for (const pattern of botPatterns) {
+            cleaned = cleaned.replace(pattern, '').trim()
+          }
+          canonicalData[key] = cleaned
+        }
+      }
+
+      // 3. Regla de Integridad: No-Degradación de datos (Preservación de Voz)
+      // Buscamos si ya existe la sección para comparar
+      const { data: existingSection } = await supabase
+        .from('psychiatry_intake_sections' as never)
+        .select('data')
+        .eq('intake_id', intakeId)
+        .eq('section', section)
+        .maybeSingle()
+
+      if (existingSection) {
+        const oldData = (existingSection as { data: Record<string, unknown> }).data
+        for (const key in canonicalData) {
+          const newVal = canonicalData[key]
+          const oldVal = oldData[key]
+
+          // Si el valor viejo era un texto largo y el nuevo es "no", "nada" o vacío, preservamos el viejo.
+          if (
+            typeof oldVal === 'string' && 
+            oldVal.length > 20 && 
+            (newVal === 'no' || newVal === 'nada' || newVal === '' || newVal === null)
+          ) {
+            logger.info(`[IntakeIntegrity] Preservando dato rico en ${section}.${key} frente a sobreescritura pobre.`)
+            canonicalData[key] = oldVal
+          }
+        }
+      }
+
       const { data: result, error } = await supabase
         .from('psychiatry_intake_sections' as never)
         .upsert({
           intake_id: intakeId,
           section,
           phase,
-          data,
+          data: canonicalData,
           completed,
           completed_at: completed ? new Date().toISOString() : null,
           updated_at: new Date().toISOString(),
