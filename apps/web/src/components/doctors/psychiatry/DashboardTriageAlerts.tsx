@@ -137,7 +137,7 @@ export function DashboardTriageAlerts() {
   const takeCase = async (alertId: string) => {
     setActingOnId(alertId)
     const supabase = getBrowserSupabaseClient()
-    const { error } = await supabase.rpc('take_triage_case', { p_case_state_id: alertId })
+    const { error } = await (supabase.rpc as any)('take_triage_case', { p_case_state_id: alertId })
     if (!error) {
       setAlerts(prev => prev.map(a => 
         a.id === alertId ? { ...a, assigned_doctor_id: currentUser?.doctorProfileId, triage_status: 'acknowledged' } : a
@@ -411,22 +411,6 @@ export function DashboardTriageAlerts() {
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </button>
       </div>
-
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #cbd5e1;
-        }
-      `}</style>
     </div>
   )
 }
