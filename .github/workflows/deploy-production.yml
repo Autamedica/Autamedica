@@ -167,6 +167,20 @@ jobs:
             pnpm dlx wrangler pages deploy dist --project-name="$project" --branch=main
           done
 
+      - name: Create Sentry Release
+        if: success() && secrets.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: autamedica
+          SENTRY_PROJECT: javascript-astro
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+          VERSION=$(sentry-cli releases propose-version)
+          echo "Finalizing Sentry release: $VERSION"
+          sentry-cli releases new "$VERSION"
+          sentry-cli releases set-commits "$VERSION" --auto
+          sentry-cli releases finalize "$VERSION"
+
   smoke-tests:
     name: Smoke Tests
     runs-on: ubuntu-latest
