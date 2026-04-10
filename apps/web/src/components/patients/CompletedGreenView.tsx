@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -32,6 +32,18 @@ export default function CompletedGreenView({
 }: CompletedGreenViewProps) {
   const [requesting, setRequesting] = useState(false)
   const [requestError, setRequestError] = useState<string | null>(null)
+  const [hasClinicalCase, setHasClinicalCase] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/patients/psychiatry/continuity-request', { credentials: 'include' })
+      .then(res => res.json())
+      .then((body: { status?: string }) => {
+        setHasClinicalCase(body.status !== 'none')
+      })
+      .catch(() => {
+        setHasClinicalCase(false)
+      })
+  }, [])
 
   const handleContinuityRequest = useCallback(async () => {
     setRequesting(true)
@@ -93,7 +105,7 @@ export default function CompletedGreenView({
           <button
             type="button"
             onClick={() => { void handleContinuityRequest() }}
-            disabled={requesting}
+            disabled={requesting || hasClinicalCase === false}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-200/40 transition-all hover:bg-emerald-600 hover:shadow-lg active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {requesting
