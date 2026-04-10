@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { logger } from '@autamedica/shared';
 import { processAnamnesisChat } from '@/lib/patients/services/anamnesis-chat.service';
+import { resolvePatientContext } from '@/lib/patients/api/patient-context';
+import { unauthorized } from '@/lib/api-helpers';
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -9,7 +11,9 @@ function json(data: unknown, status = 200) {
   });
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  const context = await resolvePatientContext(request, locals);
+  if (!context) return unauthorized();
   const raw = await request.json().catch(() => null);
   if (!raw || typeof raw !== 'object') {
     return json({ success: false, error: 'invalid_json' }, 400);

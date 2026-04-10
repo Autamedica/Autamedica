@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Send, User, Bot, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import { usePatientScreenings } from '@/hooks/patients/usePatientScreenings';
 import { getONNXService, initializeONNX } from '@/lib/patients/lib/ai/onnx-service';
@@ -217,9 +218,11 @@ export function AutaChatbot() {
                 <div
                   className="whitespace-pre-wrap text-sm"
                   dangerouslySetInnerHTML={{
-                    __html: message.content
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\n/g, '<br />')
+                    __html: DOMPurify.sanitize(
+                      message.content
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br />')
+                    )
                   }}
                 />
                 <p className={`mt-1 text-[10px] ${message.role === 'user' ? 'text-white/60' : 'text-stone-500'}`}>
