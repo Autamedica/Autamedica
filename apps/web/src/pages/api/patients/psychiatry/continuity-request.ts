@@ -6,7 +6,6 @@
  * GET:  Returns the current continuity request status.
  */
 import type { APIRoute } from 'astro'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
@@ -30,16 +29,19 @@ interface ClinicalCaseRow {
   updated_at: string
 }
 
-// clinical_case_states columns were added via ALTER TABLE and aren't yet in the generated types.
-// Use an untyped client to avoid SelectQueryError from the typed Supabase client.
+// clinical_case_states was added via ALTER TABLE and isn't in the generated types yet.
+// Use the admin client cast to `unknown` so Supabase doesn't try to resolve the table against Database.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedClient = SupabaseClient<any, 'public', any>
+function untypedAdmin(locals: App.Locals): { from: (table: string) => any } {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createAstroAdminClient(locals.runtime?.env) as unknown as { from: (table: string) => any }
+}
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
-  const admin = createAstroAdminClient(locals.runtime?.env) as unknown as UntypedClient
+  const admin = untypedAdmin(locals)
 
   try {
     const { data: caseState, error: findError } = await admin
@@ -79,7 +81,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return unauthorized()
 
-  const admin = createAstroAdminClient(locals.runtime?.env) as unknown as UntypedClient
+  const admin = untypedAdmin(locals)
 
   try {
     const { data, error } = await admin
