@@ -45,7 +45,7 @@ const AIHistoryTab = lazy(() => import('@/components/doctors/medical/AIHistoryTa
 const MedicalHistoryTab = lazy(() => import('@/components/doctors/medical/MedicalHistoryTab').then(m => ({ default: m.MedicalHistoryTab })))
 const PrescriptionsTab = lazy(() => import('@/components/doctors/medical/PrescriptionsTab').then(m => ({ default: m.PrescriptionsTab })))
 const VitalSignsTab = lazy(() => import('@/components/doctors/medical/VitalSignsTab').then(m => ({ default: m.VitalSignsTab })))
-const PatientInfoTab = lazy(() => import('@/components/doctors/patient/PatientInfoTab').then(m => ({ default: m.PatientInfoTab })))
+const PatientClinicalFile = lazy(() => import('@/components/doctors/patient/PatientClinicalFile').then(m => ({ default: m.PatientClinicalFile })))
 const MedicalRankingPanel = lazy(() => import('@/components/doctors/ranking/MedicalRankingPanel').then(m => ({ default: m.MedicalRankingPanel })))
 const RecordsPanel = lazy(() => import('@/components/doctors/records/RecordsPanel').then(m => ({ default: m.RecordsPanel })))
 const SettingsPanel = lazy(() => import('@/components/doctors/settings/SettingsPanel').then(m => ({ default: m.SettingsPanel })))
@@ -598,7 +598,7 @@ export function DoctorsPortalShell({
                     {hasPatientWorkspace ? (
                       <Suspense fallback={<PanelLoader />}>
                         <div className="flex min-h-0 w-full flex-1 overflow-y-auto rounded-2xl border border-am-surface-200 bg-white p-6 shadow-am-sm">
-                          {activeTab === 'patient-info' && <PatientInfoTab patientId={selectedPatientId} />}
+                          {activeTab === 'patient-info' && <PatientClinicalFile patientId={selectedPatientId} onSchedule={() => setActiveSection('appointments')} />}
                           {activeTab === 'medical-history' && <MedicalHistoryTab patientId={selectedPatientId} />}
                           {activeTab === 'prescriptions' && <PrescriptionsTab patientId={selectedPatientId} />}
                           {activeTab === 'vital-signs' && <VitalSignsTab patientId={selectedPatientId} />}
