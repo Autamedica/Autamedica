@@ -131,6 +131,7 @@ export interface CurrentMedicationEntry {
   subjectiveBenefit: CanonicalField<string>;
   prescriberName: CanonicalField<string>;
   prescriberKnown: CanonicalField<boolean>;
+  daysRemaining: CanonicalField<number>;
 }
 
 export interface MedicationSection {
@@ -215,6 +216,13 @@ export interface ClinicalCaseState {
     mandate: string;
     suggestedAction: string;
     references: string[];
+    
+    // Operational Monitoring
+    status: 'pending' | 'acknowledged' | 'in_progress' | 'resolved' | 'escalated';
+    riskOfInterruption: 'low' | 'medium' | 'high';
+    requiresSameDayAction: boolean;
+    resolutionDeadline?: string; // ISO
+    assignedDoctorId?: UUID;
   };
 
   conversation: {
