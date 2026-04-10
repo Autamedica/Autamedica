@@ -30,7 +30,7 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    const post = await communityService.updatePost(createAstroAdminClient(), context, postId, body);
+    const post = await communityService.updatePost(createAstroAdminClient(locals.runtime?.env), context, postId, body);
     return jsonOk(post);
   } catch (error) {
     const code = (error as { code?: string }).code;
@@ -64,7 +64,7 @@ export const DELETE: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    await communityService.deletePost(createAstroAdminClient(), context, postId);
+    await communityService.deletePost(createAstroAdminClient(locals.runtime?.env), context, postId);
     return jsonOk({ success: true });
   } catch (error) {
     const code = (error as { code?: string }).code;

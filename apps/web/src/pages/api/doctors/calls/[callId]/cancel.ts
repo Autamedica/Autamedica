@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const result = await cancelCallService.cancel(admin, auth.supabase, {
       doctorUserId: auth.user.id,
       callId,

@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ request }) => {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     const result = await rankingService.getLeaderboard(admin, auth.user.id);
     return jsonOk(result);
   } catch (err) {

@@ -11,7 +11,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const snapshot = await anamnesisService.get(createAstroAdminClient(), context.patientId)
+    const snapshot = await anamnesisService.get(createAstroAdminClient(locals.runtime?.env), context.patientId)
     return jsonOk(snapshot)
   } catch (e) {
     logger.error('[anamnesis/GET]', e)
@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const result = await anamnesisService.saveSection(
-      createAstroAdminClient(),
+      createAstroAdminClient(locals.runtime?.env),
       context.patientId,
       stepId,
       data,
@@ -59,7 +59,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
   try {
     const updated = await anamnesisService.updateMeta(
-      createAstroAdminClient(),
+      createAstroAdminClient(locals.runtime?.env),
       context.patientId,
       parsed.data,
     )

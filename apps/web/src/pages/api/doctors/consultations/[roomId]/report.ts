@@ -21,7 +21,7 @@ export const PATCH: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     const doctorId = await resolveDoctorId(admin, user.id);
     if (!doctorId) {
       return forbidden('doctor_not_found');
@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     const doctorId = await resolveDoctorId(admin, user.id);
     if (!doctorId) {
       return forbidden('doctor_not_found');

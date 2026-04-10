@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    const comment = await communityService.createComment(createAstroAdminClient(), context, {
+    const comment = await communityService.createComment(createAstroAdminClient(locals.runtime?.env), context, {
       postId,
       content: body.content ?? '',
       anonymous: body.anonymous,

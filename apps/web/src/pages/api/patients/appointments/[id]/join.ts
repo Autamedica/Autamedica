@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   if (!params.id?.trim()) return badRequest('appointment_id_required')
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const actorSupabase = createAstroServerClientFromRequest(request)
     const appointment = await appointmentsUseCase.getById({ appointmentsRepo: createAppointmentAdapter(admin), dbClient: admin }, params.id, context.patientId)
 

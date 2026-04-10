@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const [doctorProfileId, patientProfileId] = await Promise.all([
       callSessionRepo.resolveDoctorProfileIdByUserId(admin, auth.user.id),
       callSessionRepo.resolvePatientProfileIdByUserId(admin, auth.user.id),

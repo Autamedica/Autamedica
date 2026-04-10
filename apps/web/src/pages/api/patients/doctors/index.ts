@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const data = await doctorsService.listActiveDoctors(createAstroAdminClient())
+    const data = await doctorsService.listActiveDoctors(createAstroAdminClient(locals.runtime?.env))
     return jsonOk(data)
   } catch (err) {
     logger.error('[patients/doctors/GET]', err)

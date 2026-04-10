@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { logger } from '@autamedica/shared'
+import { captureSentryException } from '@/lib/observability/sentry'
 import { resolvePatientContext } from '@/lib/patients/api/patient-context'
 import { createAstroAdminClient } from '@/lib/supabase'
 import { generatePsychiatryIntakePdf } from '@/lib/patients/services/psychiatry-intake-pdf-report.service'
@@ -15,6 +16,33 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const context = await resolvePatientContext(request, locals)
   if (!context) return jsonError('unauthorized', 401)
 
+  let sentryCaptured = false
+  const captureFailure = (
+    error: unknown,
+    stage: 'intake_fetch' | 'sections_fetch' | 'pdf_generation' | 'unhandled',
+    extraContext: Record<string, unknown> = {},
+  ) => {
+    sentryCaptured = true
+    captureSentryException(error, {
+      runtimeEnv: locals.runtime?.env,
+      layer: 'controller',
+      surface: `api/patients/psychiatry-intake/pdf:${stage}`,
+      owner: 'Clinical Web',
+      tags: {
+        route: '/api/patients/psychiatry-intake/pdf',
+        method: 'GET',
+        pdf_kind: 'psychiatry_intake',
+        failure_stage: stage,
+      },
+      context: {
+        patientId: context.patientId,
+        userId: context.userId,
+        ...extraContext,
+      },
+      fingerprint: ['psychiatry-intake-pdf', stage],
+    })
+  }
+
   try {
     const admin = createAstroAdminClient(locals.runtime?.env)
     logger.info('[psychiatry-intake/pdf] Starting report generation', { patientId: context.patientId })
@@ -26,12 +54,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .maybeSingle()
 
     if (intakeError) {
+      captureFailure(intakeError, 'intake_fetch')
       logger.error('[psychiatry-intake/pdf] intake fetch error', intakeError)
       return jsonError('db_error', 500)
     }
 
     if (!intake) {
-      logger.warn('[psychiatry-intake/pdf] no intake found', { patientId: context.patientId })
+      logger.warn('[psychiatry-intake/pdf] no intake found', {
+        patientId: context.patientId,
+        outcome: 'not_found',
+        route: '/api/patients/psychiatry-intake/pdf',
+      })
       return jsonError('no_psychiatry_intake', 404)
     }
 
@@ -42,6 +75,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .order('updated_at', { ascending: true })
 
     if (sectionsError) {
+      captureFailure(sectionsError, 'sections_fetch', {
+        intakeId: (intake as { id: string }).id,
+      })
       logger.error('[psychiatry-intake/pdf] sections fetch error', sectionsError)
       return jsonError('db_error_sections', 500)
     }
@@ -69,10 +105,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
       ? Math.floor((Date.now() - new Date(patientRow.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
       : null
 
-    const triage = (clinicalState as { state?: { triage?: any } } | null)?.state?.triage || {}
+    const triage = (clinicalState as { state?: { triage?: unknown } } | null)?.state?.triage
 
     logger.info('[psychiatry-intake/pdf] running jsPDF generation')
-    let pdfResult;
+    let pdfResult: ReturnType<typeof generatePsychiatryIntakePdf>
     try {
       pdfResult = generatePsychiatryIntakePdf({
         patient: {
@@ -90,6 +126,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
         triage,
       })
     } catch (pdfError) {
+      captureFailure(pdfError, 'pdf_generation', {
+        intakeId: (intake as { id: string }).id,
+        sectionsCount: Array.isArray(sections) ? sections.length : 0,
+        hasTriage: Boolean(triage),
+        triagePriority:
+          typeof triage === 'object' && triage !== null && 'priority' in triage
+            ? (triage as { priority?: unknown }).priority
+            : undefined,
+      })
       logger.error('[psychiatry-intake/pdf] generatePsychiatryIntakePdf THREW', pdfError)
       throw pdfError; // rethrow to outer catch
     }
@@ -118,6 +163,9 @@ export const GET: APIRoute = async ({ request, locals }) => {
       },
     })
   } catch (error) {
+    if (!sentryCaptured) {
+      captureFailure(error, 'unhandled')
+    }
     logger.error('[psychiatry-intake/pdf] Unhandled exception during generation', error)
     return jsonError('pdf_generation_critical_failure', 500)
   }

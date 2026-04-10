@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
     const auth = await withAuth(request, locals)
     if (!isAuthed(auth)) return auth
 
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const result = await callSessionBackendService.getBootstrap(admin, roomId, auth.user.id)
 
     if (result.kind === 'not_found') return notFound('call_not_found')

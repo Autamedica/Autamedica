@@ -11,7 +11,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const context = await resolvePatientContext(request, locals)
     if (!context) return unauthorized()
 
-    const ids = await reviewsRepo.listReviewedAppointmentIds(createAstroAdminClient(), context.patientId)
+    const ids = await reviewsRepo.listReviewedAppointmentIds(createAstroAdminClient(locals.runtime?.env), context.patientId)
     return jsonOk(ids)
   } catch (err) {
     logger.error('[reviews/GET] Unexpected error', err)
@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return badRequest(msg)
     }
 
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const userClient = createAstroServerClientFromRequest(request)
     const result = await reviewsService.submitReview(admin, userClient, context.patientId, body)
 

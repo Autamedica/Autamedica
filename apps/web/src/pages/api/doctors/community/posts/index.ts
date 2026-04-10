@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const posts = await communityService.getDoctorFeed(createAstroAdminClient(), context, {
+    const posts = await communityService.getDoctorFeed(createAstroAdminClient(locals.runtime?.env), context, {
       limit,
       sortBy: sortBy === 'popular' ? 'popular' : 'recent',
     });

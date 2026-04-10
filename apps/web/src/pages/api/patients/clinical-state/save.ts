@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const repo = createClinicalStateAdapter(admin)
     await repo.save(state)
 
@@ -97,7 +97,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const repo = createClinicalStateAdapter(admin)
     const state = await repo.loadByPatientId(context.patientId)
 

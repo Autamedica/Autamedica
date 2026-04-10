@@ -65,7 +65,7 @@ export const GET: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user } = auth;
 
-    const admin = createAstroAdminClient() as unknown as AdminClient;
+    const admin = createAstroAdminClient(locals.runtime?.env) as unknown as AdminClient;
     const doctorId = await resolveDoctorId(admin, user.id);
 
     if (!doctorId) {

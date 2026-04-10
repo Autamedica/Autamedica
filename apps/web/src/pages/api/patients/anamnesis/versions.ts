@@ -16,7 +16,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const anamnesisRepo = createAnamnesisAdapter(admin)
     const anamnesis = await anamnesisRepo.findByPatient(context.patientId)
     if (!anamnesis) return jsonOk({ versions: [] })
@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const notes = typeof body.notes === 'string' ? body.notes : undefined
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const anamnesisRepo = createAnamnesisAdapter(admin)
     const anamnesis = await anamnesisRepo.findByPatient(context.patientId)
     if (!anamnesis) return badRequest('no_anamnesis')

@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
       return badRequest('too_many_patient_ids')
     }
 
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const { data, error } = await admin
       .from('patients')
       .select(`

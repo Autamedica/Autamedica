@@ -13,7 +13,7 @@ export const POST: APIRoute = async ({ request }) => {
   const email = typeof body.email === 'string' ? body.email : null
 
   try {
-    await profileService.ensure(createAstroAdminClient(), userId, email)
+    await profileService.ensure(createAstroAdminClient(locals.runtime?.env), userId, email)
     return jsonOk(null)
   } catch (e) {
     logger.error('[profile/ensure/POST]', e)

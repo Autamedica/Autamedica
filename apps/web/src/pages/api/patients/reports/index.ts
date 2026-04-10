@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const medicalHistoryRepo = createMedicalHistoryAdapter(admin)
     const records = await medicalHistoryRepo.listConsultations(context.patientId)
 

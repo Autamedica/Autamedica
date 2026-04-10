@@ -10,7 +10,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!userId) return unauthorized()
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     await profileService.completeOnboarding(admin, admin, userId)
     return jsonOk(null)
   } catch (err) {

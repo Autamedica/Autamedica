@@ -18,7 +18,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const post = await communityService.createPost(createAstroAdminClient(), context, body);
+    const post = await communityService.createPost(createAstroAdminClient(locals.runtime?.env), context, body);
     return jsonOk(post, 201);
   } catch (error) {
     const code = (error as { code?: string }).code;

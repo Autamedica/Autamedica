@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     await notificationsService.markAllRead(admin, context);
     return jsonOk({ ok: true });
   } catch (error) {

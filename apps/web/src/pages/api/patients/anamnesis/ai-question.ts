@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: 'chief_complaint_too_long' }, 400)
   }
 
-  const admin = createAstroAdminClient()
+  const admin = createAstroAdminClient(locals.runtime?.env)
   const anamnesisExtractionRepo = createAnamnesisExtractionAdapter(admin)
   const todayCount = await anamnesisExtractionRepo.countToday(context.patientId)
   if (todayCount >= DAILY_AI_QUESTION_LIMIT) {

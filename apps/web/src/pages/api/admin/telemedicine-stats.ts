@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ request }) => {
     const auth = await withAuth(request)
     if (!isAuthed(auth)) return auth
 
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
 
     const isAdmin = await telemedicineStatsService.verifyAdmin(admin, auth.user.id)
     if (!isAdmin) return forbidden()

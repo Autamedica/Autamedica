@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const adminCallRepo = createCallStartAdapter(admin)
     const actorCallRepo = createCallStartAdapter(auth.supabase)
 

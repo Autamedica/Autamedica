@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
       ? body.fullName
       : (typeof body.full_name === 'string' ? body.full_name : null)
 
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const result = await doctorProfileService.createOrUpdate(admin, {
       userId: user.id,
       licenseNumber: license_number.trim(),

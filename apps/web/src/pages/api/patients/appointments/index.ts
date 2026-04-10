@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const adminDb = createAstroAdminClient()
+    const adminDb = createAstroAdminClient(locals.runtime?.env)
     const data = await appointmentsUseCase.listByPatient({ appointmentsRepo: createAppointmentAdapter(adminDb), dbClient: adminDb }, context.patientId)
     return jsonOk(data)
   } catch (err) {
@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const body = parsed.data
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const created = await appointmentsUseCase.create(
       { appointmentsRepo: createAppointmentAdapter(admin), dbClient: admin },
       context.patientId,

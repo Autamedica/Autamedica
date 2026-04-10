@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const anamnesisExtractionRepo = createAnamnesisExtractionAdapter(admin)
 
     const todayCount = await anamnesisExtractionRepo.countToday(context.patientId)

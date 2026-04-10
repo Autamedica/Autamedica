@@ -25,7 +25,7 @@ export const GET: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     const communityRepo = createCommunityAdapter(admin);
     const comments = await communityRepo.listCommentsByPostId(postId);
     return jsonOk(comments);
@@ -52,7 +52,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   }
 
   try {
-    const comment = await communityService.createDoctorComment(createAstroAdminClient(), context, {
+    const comment = await communityService.createDoctorComment(createAstroAdminClient(locals.runtime?.env), context, {
       postId,
       content: body.content ?? '',
     });

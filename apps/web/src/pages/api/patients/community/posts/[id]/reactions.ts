@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
   const body = (await request.json().catch(() => null)) as { reactionType?: string } | null;
 
   try {
-    await communityService.addReaction(createAstroAdminClient(), context, {
+    await communityService.addReaction(createAstroAdminClient(locals.runtime?.env), context, {
       postId,
       reactionType: body?.reactionType ?? 'like',
     });

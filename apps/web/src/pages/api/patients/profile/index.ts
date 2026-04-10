@@ -15,7 +15,7 @@ export const PATCH: APIRoute = async ({ request }) => {
   }
 
   try {
-    const result = await profileService.update(createAstroAdminClient(), userId, {
+    const result = await profileService.update(createAstroAdminClient(locals.runtime?.env), userId, {
       profile: body.profile,
       patient: body.patient,
     })

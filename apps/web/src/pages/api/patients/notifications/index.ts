@@ -12,7 +12,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
     const feed = await notificationsService.getPatientFeed(admin, context);
     return jsonOk(feed);
   } catch (error) {

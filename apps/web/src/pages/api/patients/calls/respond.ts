@@ -27,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const patientId = await callSessionRepo.resolvePatientProfileIdByUserId(admin, auth.user.id)
     if (!patientId) {
       return forbidden('patient_not_found')

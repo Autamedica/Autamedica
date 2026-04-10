@@ -58,7 +58,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { anamnesisId: providedAnamnesisId } = parsed.data
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
 
     // 1a. Resolve anamnesis ID — use provided or look up from patient
     let anamnesisId = providedAnamnesisId

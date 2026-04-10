@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const snapshot = await psychiatryIntakeService.get(createAstroAdminClient(), context.patientId)
+    const snapshot = await psychiatryIntakeService.get(createAstroAdminClient(locals.runtime?.env), context.patientId)
     return jsonOk(snapshot)
   } catch (error) {
     logger.error('[psychiatry-intake/GET]', error)
@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     const result = await psychiatryIntakeService.saveSection(
-      createAstroAdminClient(),
+      createAstroAdminClient(locals.runtime?.env),
       context.patientId,
       parsed.data.stepId,
       parsed.data.data,
@@ -61,7 +61,7 @@ export const PATCH: APIRoute = async ({ request, locals }) => {
 
   try {
     const result = await psychiatryIntakeService.updateMeta(
-      createAstroAdminClient(),
+      createAstroAdminClient(locals.runtime?.env),
       context.patientId,
       parsed.data,
     )

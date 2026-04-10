@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
   const context = await resolveDoctorContext(request, locals);
   if (!context) return unauthorized();
 
-  const admin = createAstroAdminClient();
+  const admin = createAstroAdminClient(locals.runtime?.env);
   const appointmentRepo = createAppointmentReadAdapter(admin);
   const appointment = await appointmentRepo.findById(id);
   if (!appointment) return notFound('appointment_not_found');

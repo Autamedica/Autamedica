@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    const admin = createAstroAdminClient()
+    const admin = createAstroAdminClient(locals.runtime?.env)
     const result = response === 'accepted'
       ? await openclawService.handleWaitlistAcceptance(admin, from)
       : await openclawService.handleConfirmOrCancel(admin, from, response)

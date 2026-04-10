@@ -15,7 +15,7 @@ export const POST: APIRoute = async ({ request }) => {
     const firstName = typeof body?.first_name === 'string' ? body.first_name.trim() : null;
     const lastName = typeof body?.last_name === 'string' ? body.last_name.trim() : null;
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
 
     const { error: profileError } = await admin
       .from('profiles')

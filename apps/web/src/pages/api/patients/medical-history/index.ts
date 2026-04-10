@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   if (!context) return unauthorized()
 
   try {
-    const data = await medicalHistoryService.getFullHistory(createAstroAdminClient(), context.patientId)
+    const data = await medicalHistoryService.getFullHistory(createAstroAdminClient(locals.runtime?.env), context.patientId)
     return jsonOk(data)
   } catch (err) {
     logger.error('[medical-history/GET]', err)

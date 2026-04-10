@@ -213,7 +213,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (wantsContext) {
       try {
-        const admin = createAstroAdminClient()
+        const admin = createAstroAdminClient(locals.runtime?.env)
         const { data: profile } = await admin
           .from('profiles')
           .select('first_name')
@@ -251,7 +251,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let patientInfo: { name: string; age: number; completedSections: string[]; sectionData?: Record<string, Record<string, unknown>>; clinicalSnapshot?: string } | undefined
   if (wantsContext && history.length === 0) {
     try {
-      const admin = createAstroAdminClient()
+      const admin = createAstroAdminClient(locals.runtime?.env)
       const [profileRes, patientRes, anamnesisRes] = await Promise.all([
         admin.from('profiles').select('first_name, last_name').eq('user_id', context.userId).single(),
         admin.from('patients').select('birth_date').eq('id', context.patientId).single(),

@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ request, params }) => {
     const auth = await withAuthRole(request, DOCTOR_ROLES);
     if (!isAuthed(auth)) return auth;
 
-    const admin = createAstroAdminClient();
+    const admin = createAstroAdminClient(locals.runtime?.env);
 
     const doctorId = await consultationContextService.verifyDoctorAccess(admin, auth.user.id);
     if (!doctorId) return forbidden('doctor_not_found');
