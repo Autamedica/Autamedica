@@ -7,7 +7,7 @@ import type { TranscriptSegment } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
-import { getClientEnvOrDefault, logger } from '@autamedica/shared'
+import { logger } from '@autamedica/shared'
 import { fetchApi } from '@/lib/api-client'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
@@ -85,12 +85,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
     if (loading) return
 
     if (!session) {
-      const authOrigin = getClientEnvOrDefault(
-        'PUBLIC_APP_URL',
-        import.meta.env.MODE === 'production'
-          ? 'https://www.autamedica.com'
-          : 'http://localhost:3000'
-      )
+      const authOrigin = window.location.origin
       const loginUrl = new URL('/auth/login', authOrigin)
       loginUrl.searchParams.set('portal', 'doctors')
       loginUrl.searchParams.set('returnTo', `${window.location.origin}/doctors/call/${roomId}`)

@@ -6,7 +6,7 @@ import { UnifiedVideoCall, createCallService, useTurnCredentials } from '@autame
 import type { CallStatus } from '@autamedica/telemedicine'
 import { AuthProvider, useAuth } from '@autamedica/auth/react'
 import type { UserProfile } from '@autamedica/types'
-import { getClientEnvOrDefault, logger } from '@autamedica/shared'
+import { logger } from '@autamedica/shared'
 import { useCallSession } from '@/hooks/calls/useCallSession'
 import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
@@ -68,12 +68,7 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     if (loading) return
 
     if (!session) {
-      const authOrigin = getClientEnvOrDefault(
-        'PUBLIC_APP_URL',
-        import.meta.env.MODE === 'production'
-          ? 'https://www.autamedica.com'
-          : 'http://localhost:3000'
-      )
+      const authOrigin = window.location.origin
       const loginUrl = new URL('/auth/login', authOrigin)
       loginUrl.searchParams.set('portal', 'patients')
       loginUrl.searchParams.set('returnTo', `${window.location.origin}/patients/call/${roomId}`)

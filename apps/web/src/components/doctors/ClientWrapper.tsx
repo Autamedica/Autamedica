@@ -5,7 +5,7 @@ import type { AuthState } from '@autamedica/auth/react';
 import type { ReactNode } from 'react';
 import { SessionSync } from './SessionSync';
 
-import { getClientEnvOrDefault, isProduction } from '@autamedica/shared';
+import { isProduction } from '@autamedica/shared';
 
 interface ClientWrapperProps {
   children: ReactNode
@@ -18,7 +18,7 @@ export function ClientWrapper({ children }: ClientWrapperProps) {
         return
       }
 
-      const authOrigin = getClientEnvOrDefault('PUBLIC_APP_URL', isProduction() ? 'https://www.autamedica.com' : 'http://localhost:3000');
+      const authOrigin = window.location.origin
       const loginUrl = new URL('/auth/login', authOrigin)
       loginUrl.searchParams.set('portal', 'doctors')
       window.location.href = loginUrl.toString()

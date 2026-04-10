@@ -1,6 +1,6 @@
 'use client';
 
-import { getClientEnvOrDefault, logger } from '@autamedica/shared';
+import { logger } from '@autamedica/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AnamnesisSection } from '@autamedica/types';
 import { usePatientSession } from '@/hooks/patients/usePatientSession';
@@ -152,12 +152,7 @@ export function useAnamnesisFlow(): UseAnamnesisFlowReturn {
 
     authRedirectStartedRef.current = true;
 
-    const authOrigin = getClientEnvOrDefault(
-      'PUBLIC_APP_URL',
-      import.meta.env.MODE === 'production'
-        ? 'https://www.autamedica.com'
-        : 'http://localhost:3000',
-    );
+    const authOrigin = window.location.origin;
     const loginUrl = new URL('/auth/login', authOrigin);
     loginUrl.searchParams.set('portal', 'patients');
     loginUrl.searchParams.set('returnTo', `${window.location.origin}/patients/anamnesis`);
