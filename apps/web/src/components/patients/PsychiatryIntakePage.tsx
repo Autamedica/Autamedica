@@ -5,14 +5,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   Download,
   Loader2,
   Lock,
   ShieldCheck,
+  ShieldAlert,
+  AlertTriangle,
   Sparkles,
   Stethoscope,
-  RefreshCcw,
   Timer,
 } from 'lucide-react'
 import { getClientEnvOrDefault } from '@autamedica/shared'
@@ -28,6 +28,7 @@ import { psychiatryIntakePdfService } from '@/lib/patients/services/psychiatry-i
 import { validateRequiredFields } from '@/lib/patients/usecases/anamnesis-flow.usecase'
 import { VoiceAnamnesis } from '@/components/patients/anamnesis/VoiceAnamnesis'
 import { ClinicalFieldWrapper } from '@/components/patients/intake/ClinicalFieldWrapper'
+import CompletedGreenView from '@/components/patients/CompletedGreenView'
 import type { AnamnesisFieldValue } from '@/lib/patients/types/anamnesis'
 import type {
   PsychiatryFormData,
@@ -559,7 +560,7 @@ export default function PsychiatryIntakePage() {
                   <div className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2 shadow-sm">
                     <Timer className="h-4 w-4 text-slate-400" />
                     <span className="text-sm font-medium text-slate-600">
-                      {Math.max(1, currentPhase.steps.length - stepIndex)} min restantes
+                      {Math.max(1, currentPhase.steps.length - stepIndex)} pasos restantes
                     </span>
                   </div>
                 </div>
@@ -743,36 +744,35 @@ export default function PsychiatryIntakePage() {
                                 .join(' ')
                                 .trim()
 
-                              // Rule 1 & 2: Identify computational/conversational friction instead of clinical logic
-                              const metaFrictionPattern = /(te( estoy)? escuchando|qué( más)? (preguntas|tengo que contestar|falta)|ya (fue|lo|te) contest(é|ada)|repite|no entiendo|hola|buenas)/i;
-                              const isMetaOnly = metaFrictionPattern.test(patientLines) && patientLines.length < 80 && !data.extractedFields && !data.chiefComplaint;
-                              const isChiefComplaintMeta = data.chiefComplaint && metaFrictionPattern.test(data.chiefComplaint) && data.chiefComplaint.length < 50;
-
-                              let summaryToSave = '';
-                              if (isMetaOnly || isChiefComplaintMeta) {
-                                summaryToSave = '⚠️ Información no consolidada de forma confiable en el intake asincrónico por voz (posible fricción de interfaz). Requiere reconfirmación en consulta.'
-                              } else {
-                                summaryToSave = data.chiefComplaint || patientLines || 'Registro de voz completado sin datos estructurados.'
-                              }
-
-                              const existing = currentStepData[currentStep.field.id]
-
-                              // Replace existing if it's a fallback warning to avoid stringing them together
-                              let finalValue = summaryToSave;
-                              if (existing && typeof existing === 'string' && !existing.includes('Información no consolidada')) {
-                                finalValue = `${existing}\n\n[Respuesta por voz]: ${summaryToSave}`
-                              } else if (existing && typeof existing !== 'string') {
-                                finalValue = summaryToSave
-                              }
-
-                              updateField(currentStep.field.id, finalValue)
-
-                              // Merge voice extraction into canonical state
-                              if (data.extractedFields && segment) {
+                              // Transcript crudo va al ledger via mergeVoiceData — nunca al campo clínico
+                              if (segment) {
                                 mergeVoiceData(
-                                  data.extractedFields as Record<string, unknown>,
+                                  (data.extractedFields ?? {}) as Record<string, unknown>,
                                   patientLines,
                                   segment,
+                                )
+                              }
+
+                              // Campo clínico recibe SOLO extracción estructurada o síntesis clínica saneada
+                              const hasStructuredExtraction = data.extractedFields
+                                && Object.keys(data.extractedFields).length > 0
+                              const hasClinicalSummary = data.chiefComplaint
+                                && data.chiefComplaint.length >= 10
+                                && !/(te( estoy)? escuchando|qué( más)? (preguntas|tengo que contestar|falta)|ya (fue|lo|te) contest(é|ada)|repite|no entiendo|hola|buenas)/i.test(data.chiefComplaint)
+
+                              let clinicalValue: string | null = null
+                              if (hasStructuredExtraction && data.chiefComplaint) {
+                                clinicalValue = data.chiefComplaint
+                              } else if (hasClinicalSummary && data.chiefComplaint) {
+                                clinicalValue = data.chiefComplaint
+                              }
+
+                              if (clinicalValue) {
+                                updateField(currentStep.field.id, clinicalValue)
+                              } else {
+                                updateField(
+                                  currentStep.field.id,
+                                  'Sesión de voz completada. La información fue registrada en el historial clínico para revisión del profesional.',
                                 )
                               }
 
@@ -845,8 +845,8 @@ export default function PsychiatryIntakePage() {
                     </div>
                   )}
 
-                  {/* Urgency triage banner */}
-                  {currentStepData['dias_medicacion_restante'] === '0' && (
+                  {/* Urgency triage banner — driven by clinical state, not form strings */}
+                  {clinicalState?.triage?.riskOfInterruption === 'high' && (
                     <motion.div
                       className="mt-5 flex items-start gap-3 rounded-xl border-2 border-red-200 bg-red-50 px-5 py-4"
                       initial={{ opacity: 0, scale: 0.97 }}
@@ -861,14 +861,14 @@ export default function PsychiatryIntakePage() {
                           Urgencia farmacológica registrada
                         </p>
                         <p className="mt-1 text-xs leading-relaxed text-red-700/80">
-                          Tu caso será priorizado para prescripción de puente. El equipo médico 
-                          revisará tu solicitud con la máxima urgencia para evitar interrupciones 
+                          Tu caso será priorizado para prescripción de puente. El equipo médico
+                          revisará tu solicitud con la máxima urgencia para evitar interrupciones
                           en el tratamiento.
                         </p>
                       </div>
                     </motion.div>
                   )}
-                  {currentStepData['dias_medicacion_restante'] === '1-3' && (
+                  {clinicalState?.triage?.riskOfInterruption === 'medium' && (
                     <motion.div
                       className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4"
                       initial={{ opacity: 0, y: 4 }}
@@ -882,7 +882,7 @@ export default function PsychiatryIntakePage() {
                           Atención prioritaria
                         </p>
                         <p className="mt-1 text-xs leading-relaxed text-amber-700/80">
-                          Con pocos días de medicación, tu consulta será priorizada 
+                          Con pocos días de medicación, tu consulta será priorizada
                           para garantizar continuidad del tratamiento.
                         </p>
                       </div>
@@ -930,105 +930,122 @@ export default function PsychiatryIntakePage() {
           )}
 
           {/* ── Completed View ── */}
-          {isCompletedView && (
-            <motion.div
-              className="border-t border-sky-100/40 px-6 py-10 sm:px-8"
-              {...fadeSlide}
-            >
-              {formData?.consulta_actual?.tipo_atencion === 'continuidad' ? (
-                <div className="mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-amber-200 bg-gradient-to-b from-amber-50/50 via-white to-white shadow-lg shadow-amber-900/[0.03]">
-                  <div className="px-8 pt-10 pb-2 text-center">
-                    <div className="relative mx-auto h-16 w-16">
-                      <div className="absolute inset-0 animate-ping rounded-full bg-amber-100/60 [animation-duration:2s]" />
-                      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-                        <span className="text-2xl">🟡</span>
+          {isCompletedView && (() => {
+            const triagePriority = clinicalState?.triage?.priority ?? 'routine'
+            const triageReasons = clinicalState?.triage?.reasons ?? []
+
+            if (triagePriority === 'urgent') {
+              return (
+                <motion.div className="border-t border-red-100/40 px-6 py-10 sm:px-8" {...fadeSlide}>
+                  <div className="mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-red-200 bg-gradient-to-b from-red-50/50 via-white to-white shadow-lg shadow-red-900/[0.03]">
+                    <div className="px-8 pt-10 pb-2 text-center">
+                      <div className="relative mx-auto h-16 w-16">
+                        <div className="absolute inset-0 animate-ping rounded-full bg-red-100/60 [animation-duration:2s]" />
+                        <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                          <AlertTriangle className="h-8 w-8 text-red-600" />
+                        </div>
+                      </div>
+                      <h2 className="mt-6 font-heading text-2xl font-semibold tracking-tight text-slate-950 uppercase">
+                        Evaluación Sincrónica Prioritaria
+                      </h2>
+                      <div className="mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-slate-700 bg-red-50/50 p-6 rounded-2xl border border-red-100/50 text-left">
+                        <p className="mb-4 font-medium text-red-800">
+                          Se han detectado factores de seguridad que requieren evaluación médica sincrónica.
+                          Un profesional debe hablar con vos directamente.
+                        </p>
+                        <ul className="space-y-2 text-slate-600">
+                          {triageReasons.map((r, i) => <li key={i} className="flex items-start gap-2">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+                            {r}
+                          </li>)}
+                        </ul>
                       </div>
                     </div>
-                    <h2 className="mt-6 font-heading text-2xl font-semibold tracking-tight text-slate-950">
-                      REVISIÓN ADICIONAL REQUERIDA
-                    </h2>
-                    <div className="mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-slate-700 bg-amber-50/50 p-6 rounded-2xl border border-amber-100/50 text-left">
-                      <p className="mb-4 font-medium">
-                        Notamos que solicitás recetas preexistentes que requieren seguimiento.
-                      </p>
-                      <p className="text-slate-600">
-                        Para proteger tu salud y cumplir con las normativas médicas, un profesional debe evaluar tu caso antes de emitir la prescripción. No te preocupes, el proceso es simple y rápido.
-                      </p>
+                    <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
+                      <a
+                        href="/patients/appointments/new?priority=urgent&source=psychiatry-triage"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-red-200/40 transition-all hover:bg-red-700 hover:shadow-lg active:scale-[0.97]"
+                      >
+                        Agendar Evaluación Prioritaria
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => { void handleDownloadPdf() }}
+                        disabled={downloadingPdf}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        Descargar Evaluación
+                      </button>
                     </div>
                   </div>
-                  <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
-                    <a
-                      href="/patients/appointments/new"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200/40 transition-all hover:bg-amber-600 hover:shadow-lg active:scale-[0.97]"
-                    >
-                      Programar control (Recomendado)
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => { void handleDownloadPdf() }}
-                      disabled={downloadingPdf}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                      Descargar PDF
-                    </button>
-                    <a
-                      href="/patients/dashboard"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98]"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Volver
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <div className="mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-emerald-100 bg-gradient-to-b from-emerald-50/50 via-white to-white shadow-lg shadow-emerald-900/[0.03]">
-                  <div className="px-8 pt-10 pb-2 text-center">
-                    <div className="relative mx-auto h-16 w-16">
-                      <div className="absolute inset-0 animate-ping rounded-full bg-emerald-100/60 [animation-duration:2s]" />
-                      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                        <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                </motion.div>
+              );
+            }
+
+            if (triagePriority === 'priority') {
+              return (
+                <motion.div className="border-t border-amber-100/40 px-6 py-10 sm:px-8" {...fadeSlide}>
+                  <div className="mx-auto max-w-3xl overflow-hidden rounded-[28px] border border-amber-200 bg-gradient-to-b from-amber-50/50 via-white to-white shadow-lg shadow-amber-900/[0.03]">
+                    <div className="px-8 pt-10 pb-2 text-center">
+                      <div className="relative mx-auto h-16 w-16">
+                        <div className="absolute inset-0 animate-ping rounded-full bg-amber-100/60 [animation-duration:2s]" />
+                        <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                          <ShieldAlert className="h-8 w-8 text-amber-600" />
+                        </div>
                       </div>
+                      <h2 className="mt-6 font-heading text-2xl font-semibold tracking-tight text-slate-950 uppercase">
+                        Revisión Clínica Dirigida
+                      </h2>
+                      <div className="mx-auto mt-4 max-w-lg text-[15px] leading-relaxed text-slate-700 bg-amber-50/50 p-6 rounded-2xl border border-amber-100/50 text-left">
+                        <p className="mb-4 font-medium text-amber-800">
+                          Tu caso requiere revisión clínica por parte del equipo médico.
+                          Esto no implica necesariamente una consulta sincrónica — el profesional evaluará
+                          la mejor vía de resolución y te contactará.
+                        </p>
+                        <ul className="space-y-2 text-slate-600">
+                          {triageReasons.map((r, i) => <li key={i} className="flex items-start gap-2">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+                            {r}
+                          </li>)}
+                        </ul>
+                      </div>
+                      <p className="mx-auto mt-4 max-w-md text-sm text-slate-500">
+                        Tu evaluación ya fue enviada al equipo. Te notificaremos cuando haya una resolución
+                        o si se necesita una consulta adicional.
+                      </p>
                     </div>
-                    <h2 className="mt-6 font-heading text-3xl font-semibold tracking-tight text-slate-950">
-                      ¡Evaluación completada!
-                    </h2>
-                    <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-slate-500">
-                      Tu evaluación fue enviada y será revisada por nuestro equipo de psiquiatría.
-                      Podés descargar una copia en PDF para tus registros.
-                    </p>
+                    <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
+                      <a
+                        href="/patients/continuity/status"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-amber-200/40 transition-all hover:bg-amber-600 hover:shadow-lg active:scale-[0.97]"
+                      >
+                        Ver Estado de mi Caso
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => { void handleDownloadPdf() }}
+                        disabled={downloadingPdf}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        Descargar PDF
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
-                    <button
-                      type="button"
-                      onClick={() => { void handleDownloadPdf() }}
-                      disabled={downloadingPdf}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-emerald-200/40 transition-all hover:bg-emerald-600 hover:shadow-lg active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                      Descargar PDF
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { void handleRedo() }}
-                      disabled={saving}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                      Corregir respuestas
-                    </button>
-                    <a
-                      href="/patients/dashboard"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98]"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Volver al inicio
-                    </a>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
+                </motion.div>
+              );
+            }
+
+            return (
+              <CompletedGreenView
+                downloadingPdf={downloadingPdf}
+                saving={saving}
+                onDownloadPdf={handleDownloadPdf}
+                onRedo={handleRedo}
+              />
+            );
+          })()}
 
           {/* ── Error banner ── */}
           {error && error !== 'unauthorized' && (
