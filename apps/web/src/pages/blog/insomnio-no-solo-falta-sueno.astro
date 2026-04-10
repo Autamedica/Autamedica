@@ -1,0 +1,158 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/Footer.astro';
+import ShareButtons from '../../components/blog/ShareButtons.astro';
+
+const article = {
+  title: 'Mucho más que falta de sueño: Comprendiendo las 3 dimensiones del Insomnio',
+  author: 'Equipo AutaMedica',
+  role: 'Salud Mental y Sueño',
+  date: '10 de abril, 2026',
+  readTime: '8 min',
+  image: '/images/blog/insomnia-depth.webp',
+  category: 'Salud Mental',
+};
+---
+
+<Layout
+  title={article.title + " | AutaMedica"}
+  description="El insomnio no es solo no dormir. Entendé las diferencias entre dificultad de inicio, mantenimiento y despertar precoz, y por qué los somníferos no siempre son la solución."
+  canonical="https://www.autamedica.com/blog/insomnio-no-solo-falta-sueno"
+  ogImage="/images/seo/og-insomnia.webp"
+  ogType="article"
+  publishedTime="2026-04-10T00:00:00Z"
+  robots="index, follow"
+>
+  <Navbar />
+  <main>
+    <section class="seo-hero" style="text-align:left;">
+      <div class="seo-container">
+        <a href="/blog" class="blog-back">← Volver al blog</a>
+        <h1>{article.title}</h1>
+        <div class="blog-meta">
+          <span class="seo-badge">{article.category}</span>
+          <span class="blog-read-time">{article.readTime} de lectura</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="blog-image">
+      <img src={article.image} alt="Ilustración sobre el insomnio y la profundidad del sueño" loading="eager" />
+    </div>
+
+    <article class="seo-section">
+      <div class="seo-container">
+        <div class="blog-prose">
+          <section>
+            <h2>La Noche Eterna: Cuando el Descanso se Convierte en Trabajo</h2>
+            <p>
+              Todos hemos tenido una "mala noche". Ese episodio aislado donde las preocupaciones del día 
+              o una cena pesada nos mantienen dando vueltas. Pero para millones de personas en Argentina, 
+              la noche no es un refugio, sino un campo de batalla. El insomnio crónico no es solo 
+              "estar cansado"; es una erosión lenta de la capacidad cognitiva, el estado de ánimo 
+              y la salud metabólica.
+            </p>
+            <p>
+              En AutaMedica, al lanzar nuestro nuevo **Módulo de Triage de Insomnio**, hemos detectado 
+              que la mayoría de los pacientes llegan con una idea errónea: creen que el insomnio es 
+              un interruptor roto que se arregla con una pastilla. La realidad es mucho más profunda.
+            </p>
+          </section>
+
+          <section>
+            <h2>Las 3 Dimensiones del Insomnio</h2>
+            <p>
+              Para tratar el insomnio con éxito, primero debemos identificar en qué fase del sueño 
+              ocurre la falla. No todos los insomnios son iguales, y cada uno cuenta una historia diferente 
+              sobre nuestro sistema nervioso:
+            </p>
+            <ul>
+              <li><strong>1. Insomnio de Conciliación (Inicio):</strong> Es la dificultad para quedarse dormido. 
+                Suele estar asociado a la **ansiedad anticipatoria** y la rumiación excesiva. El cuerpo está 
+                en estado de alerta ("fight or flight"), impidiendo que el cerebro baje las revoluciones 
+                necesarias para el sueño.</li>
+              <li><strong>2. Insomnio de Mantenimiento:</strong> Te dormís rápido, pero te despertás a las 
+                2 o 3 de la mañana y no podés volver a conciliar el sueño. A menudo está vinculado a 
+                desajustes químicos, apnea del sueño o factores ambientales.</li>
+              <li><strong>3. Despertar Precoz:</strong> Despertarse mucho antes de lo deseado (ej. 4 AM) con 
+                sensación de alerta pero sin descanso. Es un marcador clínico clásico que los psiquiatras 
+                observamos para detectar cuadros de **depresión endógena**.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>El Riesgo de la Autocura: El Laberinto de las Benzodiacepinas</h2>
+            <p>
+              Es muy común en Argentina el uso de fármacos como el Clonazepam para "ayudar a dormir". 
+              Si bien son efectivos para la ansiedad a corto plazo, su uso como hipnóticos crónicos 
+              tiene riesgos severos:
+            </p>
+            <ul>
+              <li><strong>Arquitectura del sueño:</strong> Estos fármacos a menudo suprimen el sueño profundo 
+                y el sueño REM. Podés estar "desconectado" 8 horas, pero tu cerebro no se reparó adecuadamente.</li>
+              <li><strong>Tolerancia y Dependencia:</strong> Con el tiempo, necesitás más dosis para el mismo efecto.</li>
+              <li><strong>Riesgo de Abstinencia:</strong> La interrupción brusca puede causar un efecto rebote 
+                donde el insomnio vuelve con el doble de intensidad.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Hacia un Sueño de Calidad: El Enfoque AutaMedica</h2>
+            <p>
+              Nuestra nueva tecnología de triage permite a los especialistas identificar estas dimensiones 
+              antes de la consulta. Esto nos permite:
+            </p>
+            <ol>
+              <li>Identificar **Red Flags** (como apnea o movimientos periódicos de piernas).</li>
+              <li>Diferenciar el insomnio primario del síntoma de un cuadro de ansiedad o depresión.</li>
+              <li>Sugerir Higiene del Sueño personalizada basada en tu impacto diurno.</li>
+            </ol>
+            <p>
+              Si sentís que tu noche es eterna, no busques la solución rápida en el botiquín. 
+              Realizá una evaluación profesional que entienda la complejidad de tu descanso.
+            </p>
+          </section>
+        </div>
+
+        <ShareButtons title={article.title} url={`https://www.autamedica.com/blog/insomnio-no-solo-falta-sueno`} category={article.category} author={article.author} />
+
+        <div class="blog-related">
+          <h3>Artículos Relacionados</h3>
+          <div class="seo-grid-3">
+            <a href="/blog/ansiedad-vs-ataque-panico" class="seo-card blog-related-card">
+              <span class="seo-badge">Salud Mental</span>
+              <h4>Ansiedad vs. Ataque de Pánico: Diferencias Clave</h4>
+            </a>
+            <a href="/blog/anamnesis-digital-que-es" class="seo-card blog-related-card">
+              <span class="seo-badge">Tecnología</span>
+              <h4>¿Qué es la Anamnesis Digital?</h4>
+            </a>
+            <a href="/blog/terapia-online-salud-mental" class="seo-card blog-related-card">
+              <span class="seo-badge">Servicios</span>
+              <h4>Beneficios de la Terapia Online</h4>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  @import '../../styles/seo-landing.css';
+  .blog-prose { max-width: 720px; margin: 0 auto; }
+  .blog-prose h2 { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--au-text-primary); margin: var(--space-12) 0 var(--space-4); }
+  .blog-prose p { color: var(--au-text-secondary); line-height: 1.8; margin-bottom: var(--space-4); }
+  .blog-prose ul, .blog-prose ol { padding-left: 1.5rem; margin-bottom: var(--space-4); }
+  .blog-prose li { color: var(--au-text-secondary); line-height: 1.7; margin-bottom: var(--space-2); }
+  .blog-prose strong { color: var(--au-text-primary); }
+  .blog-back { display: inline-block; color: var(--au-accent); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: var(--space-6); }
+  .blog-meta { display: flex; gap: var(--space-4); align-items: center; margin-top: var(--space-4); }
+  .blog-read-time { font-size: var(--text-sm); color: var(--au-text-tertiary); }
+  .blog-image { width: 100%; max-width: 720px; margin: 0 auto var(--space-12); border-radius: var(--radius-md); overflow: hidden; }
+  .blog-image img { width: 100%; height: auto; display: block; }
+  .blog-related { max-width: 720px; margin: var(--space-12) auto 0; }
+  .blog-related-card h4 { font-size: var(--text-base); font-weight: var(--font-medium); color: var(--au-text-primary); margin: var(--space-3) 0 0; }
+</style>

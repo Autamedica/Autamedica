@@ -147,7 +147,7 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
   return sanitized
 }
 
-function sanitizeEvent(event: Record<string, any>) {
+function sanitizeEvent<T extends Record<string, any>>(event: T): T {
   if (event.request) {
     delete event.request.data
 
@@ -219,7 +219,14 @@ function extractErrorFromLogEntry(entry: LogEntry): Error | null {
   return null
 }
 
-function setScopeMetadata(scope: Sentry.Scope, meta: CaptureMeta): void {
+function setScopeMetadata(
+  scope: {
+    setTag: (key: string, value: string) => void
+    setContext: (name: string, context: Record<string, unknown>) => void
+    setFingerprint: (fingerprint: string[]) => void
+  },
+  meta: CaptureMeta,
+): void {
   scope.setTag('surface', meta.surface)
 
   if (meta.layer) {
@@ -307,7 +314,7 @@ export function initClientSentry(runtimeEnv?: RuntimeEnvRecord): void {
       Sentry.browserTracingIntegration(),
     ],
     beforeSend(event) {
-      return sanitizeEvent(event as Record<string, any>)
+      return sanitizeEvent(event as any)
     },
   })
 
@@ -337,7 +344,7 @@ export function initServerSentry(runtimeEnv?: RuntimeEnvRecord): void {
     sendDefaultPii: false,
     tracesSampleRate: import.meta.env.DEV ? 1 : 0.1,
     beforeSend(event) {
-      return sanitizeEvent(event as Record<string, any>)
+      return sanitizeEvent(event as any)
     },
   })
 
