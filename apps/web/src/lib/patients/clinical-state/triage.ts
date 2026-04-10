@@ -97,8 +97,8 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
       priority = 'priority'
       priorityRank = 2
       reasons.push('Continuidad de estimulantes con riesgo de interrupción o incertidumbre técnica')
-      mandate = 'RESOLUCIÓN CLÍNICA EL MISMO DÍA'
-      suggestedAction = 'Evaluación para puente terapéutico supervisado. No permitir espera pasiva.'
+      mandate = 'RESOLVER CONTINUIDAD TERAPÉUTICA'
+      suggestedAction = 'Resolver continuidad y reconciliación farmacológica hoy. No permitir espera pasiva.'
     } else {
       reasons.push('Seguimiento de tratamiento crónico con estimulantes')
     }
@@ -115,20 +115,20 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
           priority = 'priority'
           priorityRank = 2
           reasons.push('Insomnio crónico con impacto funcional severo')
-          mandate = 'EVALUACIÓN DE HIGIENE Y PAUTA'
-          suggestedAction = 'Revisar cronodisrupción y valorar intervención farmacológica de inducción.'
+          mandate = 'EVALUACIÓN DE PAUTA Y RED FLAGS'
+          suggestedAction = 'Evaluar pauta actual, higiene del sueño y necesidad de ajuste terapéutico.'
         } else {
           reasons.push('Gestión de insomnio incidental/moderado')
         }
      }
 
-     // Red Flags specific to Insomnia (Safety first)
-     const hasHighRiskOccupational = impact === 'severe' // Placeholder for "drives heavy machinery"
+     // Functional Impact specific to Insomnia
+     const hasHighRiskOccupational = impact === 'severe'
      if (hasHighRiskOccupational) {
         priority = 'priority'
         priorityRank = Math.min(priorityRank, 2)
-        reasons.push('Riesgo ocupacional por privación de sueño')
-        mandate = 'RESOLUCIÓN PRIORITARIA (SEGURIDAD)'
+        reasons.push('Deterioro funcional significativo por privación de sueño')
+        mandate = 'REVISIÓN PRIORITARIA DE SEGURIDAD'
      }
   }
 
@@ -142,8 +142,8 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     priorityRank = 1
     requiresSameDayAction = true
     reasons.push('Presencia de marcadores de alarma de seguridad (Autolesión o Cardio-Psiquiátrica)')
-    mandate = 'EVALUACIÓN MÉDICA URGENTE SYNC'
-    suggestedAction = 'CONTACTO INMEDIATO: El paciente reporta ideación o síntomas físicos de alarma.'
+    mandate = 'EVALUACIÓN MÉDICA URGENTE'
+    suggestedAction = 'CONTACTO INMEDIATO: El paciente reporta síntomas de seguridad o físicos de alarma.'
     references.push('NICE Clinical Guideline: Self-harm (CG133)')
   }
 

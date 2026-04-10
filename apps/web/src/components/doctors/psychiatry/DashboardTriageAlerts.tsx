@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { 
   ArrowRight, 
   ShieldAlert, 
-  CheckCircle2, 
   Pill, 
   UserPlus, 
   Timer,
@@ -156,7 +155,7 @@ export function DashboardTriageAlerts() {
     return (
       <div className="flex h-64 flex-col items-center justify-center p-8 text-center bg-am-surface-50">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-am-doctor-100 border-t-am-doctor-600 mb-4" />
-        <p className="text-[10px] font-black uppercase tracking-widest text-am-surface-400">Escaneando Verticales</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-am-surface-400">Escaneando Cola Clínica</p>
       </div>
     )
   }
@@ -167,8 +166,8 @@ export function DashboardTriageAlerts() {
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[2.5rem] bg-emerald-50 text-emerald-600 shadow-inner ring-1 ring-emerald-100">
           <ShieldCheck className="h-8 w-8" />
         </div>
-        <h3 className="text-sm font-black text-am-surface-900 uppercase">Cola Despejada</h3>
-        <p className="mt-1 text-xs text-am-surface-500 max-w-[220px]">No hay mandatos clínicos pendientes en la cola.</p>
+        <h3 className="text-sm font-black text-am-surface-900 uppercase">Sin Mandatos Activos</h3>
+        <p className="mt-1 text-xs text-am-surface-500 max-w-[220px]">La cola de atención prioritaria está despejada.</p>
       </div>
     )
   }
@@ -183,12 +182,12 @@ export function DashboardTriageAlerts() {
           </div>
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-am-doctor-600 leading-none mb-1">
-              Cola de Resolución
+              Cola de Atención
             </h3>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-am-surface-900 leading-none tracking-tight">Multi-Vertical v1</p>
+              <p className="text-sm font-bold text-am-surface-900 leading-none tracking-tight">Resolución Prioritaria</p>
               <span className="h-3 w-[1px] bg-am-surface-100" />
-              <p className="text-[10px] font-bold text-am-surface-400 leading-none">{totalCount} CASOS</p>
+              <p className="text-[10px] font-bold text-am-surface-400 leading-none">{totalCount} PENDIENTES</p>
             </div>
           </div>
         </div>
@@ -214,7 +213,7 @@ export function DashboardTriageAlerts() {
               }`}
             >
               {isAssignedToOther && (
-                <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5 px-2 py-1 bg-am-surface-50 rounded-lg border border-am-surface-200">
+                <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5 px-2 py-1 bg-am-surface-50 rounded-lg border border-am-surface-200 shadow-sm">
                   <Lock className="h-3 w-3 text-am-surface-400" />
                   <span className="text-[9px] font-bold text-am-surface-500 uppercase">Trámite Externo</span>
                 </div>
@@ -231,7 +230,7 @@ export function DashboardTriageAlerts() {
                   <span className={`text-[10px] font-black uppercase tracking-tight ${
                     isAssignedToMe ? 'text-am-doctor-600' : 'text-am-surface-400'
                   }`}>
-                    {alert.case_intent}
+                    Motivo: {alert.case_intent}
                   </span>
                 </div>
 
@@ -282,7 +281,7 @@ export function DashboardTriageAlerts() {
                          {alert.medication_snapshot_name || 'Sin registro'}
                        </span>
                        <span className="text-[10px] font-bold text-am-surface-500 leading-none">
-                         {alert.medication_snapshot_dose || 'Pauta no detectada'}
+                         {alert.medication_snapshot_dose ? `${alert.medication_snapshot_dose} (Reportada)` : 'Pauta no detectada'}
                        </span>
                     </div>
                   </div>
@@ -292,12 +291,12 @@ export function DashboardTriageAlerts() {
                     {alert.clinical_vertical === 'insomnia_management' ? (
                       <>
                         <div className="flex items-center gap-1.5 mb-1.5">
-                           <span className="text-[9px] font-black text-am-surface-400 uppercase tracking-widest leading-none">Severidad / Impacto</span>
+                           <span className="text-[9px] font-black text-am-surface-400 uppercase tracking-widest leading-none">Frecuencia / Impacto</span>
                            <Moon className="h-3.5 w-3.5 text-am-surface-400" />
                         </div>
                         <div className="flex flex-col items-end">
                            <span className="text-[11px] font-black text-am-surface-900 leading-none mb-1">
-                             {alert.symptoms_snapshot_insomnia_severity ? `${alert.symptoms_snapshot_insomnia_severity} noches/sem` : 'Semanas ?'}
+                             {alert.symptoms_snapshot_insomnia_severity ? `${alert.symptoms_snapshot_insomnia_severity} noches/sem` : 'Datos ?'}
                            </span>
                            <span className={`text-[10px] font-black uppercase leading-none ${
                              alert.symptoms_snapshot_insomnia_impact === 'severe' ? 'text-am-error-600' : 'text-am-surface-500'
@@ -333,7 +332,9 @@ export function DashboardTriageAlerts() {
                       alert.risk_of_interruption === 'high' ? 'bg-am-error-500 animate-pulse' : 
                       alert.risk_of_interruption === 'medium' ? 'bg-am-warning-500' : 'bg-emerald-500'
                     }`} />
-                    <span className="text-[10px] font-black text-am-surface-500 uppercase tracking-tighter">Riesgo de abandono {alert.risk_of_interruption}</span>
+                    <span className="text-[10px] font-black text-am-surface-500 uppercase tracking-tighter">
+                      {alert.clinical_vertical === 'insomnia_management' ? 'Deterioro funcional' : 'Riesgo de interrupción'} {alert.risk_of_interruption}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className={`h-4.5 px-2 rounded-lg flex items-center text-[9px] font-black uppercase tracking-widest ring-1 ring-inset ${
@@ -359,7 +360,7 @@ export function DashboardTriageAlerts() {
                       ) : (
                         <>
                           <UserPlus className="h-4 w-4" />
-                          TOMAR CASO PARA RESOLUCIÓN
+                          TOMAR PARA RESOLUCIÓN
                         </>
                       )}
                     </button>
@@ -369,7 +370,7 @@ export function DashboardTriageAlerts() {
                       className="flex-1 flex items-center justify-center gap-3 rounded-2xl bg-am-doctor-50 py-3.5 text-xs font-black text-am-doctor-700 ring-2 ring-am-doctor-100 transition-all hover:bg-am-doctor-100 active:scale-95"
                     >
                       <UserCheck className="h-4 w-4" />
-                      GESTIONAR MI PACIENTE
+                      GESTIONAR PACIENTE
                     </button>
                   ) : (
                     <button 
@@ -396,7 +397,7 @@ export function DashboardTriageAlerts() {
       </div>
 
       {/* Footer System Nav */}
-      <div className="p-5 bg-am-surface-50/50 border-t border-am-surface-100 grid grid-cols-1 gap-2">
+      <div className="p-5 bg-am-surface-50/50 border-t border-am-surface-100">
         <button 
           onClick={() => window.location.href = '/doctors/patients'}
           className="group flex items-center justify-between px-5 py-3.5 rounded-2xl bg-white border border-am-surface-200 text-[10px] font-black text-am-surface-700 transition-all hover:border-am-doctor-600 hover:text-am-doctor-600 shadow-am-sm uppercase tracking-widest"
@@ -405,7 +406,7 @@ export function DashboardTriageAlerts() {
              <div className="h-7 w-7 rounded-xl bg-am-surface-100 flex items-center justify-center text-am-surface-500 group-hover:bg-am-doctor-100 group-hover:text-am-doctor-600 transition-all">
                 <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
              </div>
-             <span>Pantalla de Derivaciones Central</span>
+             <span>Gestión Central de Pacientes</span>
           </div>
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </button>
