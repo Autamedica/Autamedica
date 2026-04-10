@@ -1,5 +1,6 @@
 import cloudflare from '@astrojs/cloudflare';
 import react from '@astrojs/react';
+import sentry from '@sentry/astro';
 import sitemap from '@astrojs/sitemap';
 import tailwind from '@astrojs/tailwind';
 import { defineConfig } from 'astro/config';
@@ -11,6 +12,11 @@ export default defineConfig({
     imageService: 'compile',
   }),
   integrations: [
+    sentry({
+      org: process.env.SENTRY_ORG || 'autamedica',
+      project: process.env.SENTRY_PROJECT || 'autamedica-web',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
     react(),
     tailwind({ applyBaseStyles: false }),
     sitemap({

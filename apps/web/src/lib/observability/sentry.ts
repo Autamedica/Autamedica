@@ -48,21 +48,6 @@ const BLOCKED_FIELD_NAMES = new Set([
   'file_url',
 ])
 
-const CLIENT_TRACE_TARGETS = [
-  /^\/api\//,
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://autamedica.com',
-  'https://www.autamedica.com',
-  'https://paciente.autamedica.com',
-  'https://patients.autamedica.com',
-  'https://doctor.autamedica.com',
-  'https://doctors.autamedica.com',
-  'https://empresa.autamedica.com',
-  'https://companies.autamedica.com',
-  'https://admin.autamedica.com',
-]
-
 const CLIENT_INIT_KEY = '__AUTAMEDICA_SENTRY_CLIENT_INIT__'
 const SERVER_INIT_KEY = '__AUTAMEDICA_SENTRY_SERVER_INIT__'
 const LOGGER_BRIDGE_KEY = '__AUTAMEDICA_SENTRY_LOGGER_BRIDGE__'
@@ -83,14 +68,6 @@ function getSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | undefined {
     getRuntimeEnvValue('PUBLIC_SENTRY_DSN') ??
     resolvePublicSentryDsn(runtimeEnv)
   )
-}
-
-function getEnvironment(runtime = 'web'): string {
-  if (import.meta.env.DEV) {
-    return `${runtime}-development`
-  }
-
-  return `${runtime}-${import.meta.env.MODE || 'production'}`
 }
 
 function truncate(value: string, max = 240): string {
@@ -303,21 +280,6 @@ export function initClientSentry(runtimeEnv?: RuntimeEnvRecord): void {
     return
   }
 
-  Sentry.init({
-    dsn,
-    environment: getEnvironment('client'),
-    enabled: true,
-    sendDefaultPii: false,
-    tracesSampleRate: import.meta.env.DEV ? 1 : 0.1,
-    tracePropagationTargets: CLIENT_TRACE_TARGETS,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-    ],
-    beforeSend(event) {
-      return sanitizeEvent(event as any)
-    },
-  })
-
   ensureLoggerBridge()
   registry[CLIENT_INIT_KEY] = true
 }
@@ -336,17 +298,6 @@ export function initServerSentry(runtimeEnv?: RuntimeEnvRecord): void {
   if (!dsn) {
     return
   }
-
-  Sentry.init({
-    dsn,
-    environment: getEnvironment('server'),
-    enabled: true,
-    sendDefaultPii: false,
-    tracesSampleRate: import.meta.env.DEV ? 1 : 0.1,
-    beforeSend(event) {
-      return sanitizeEvent(event as any)
-    },
-  })
 
   ensureLoggerBridge()
   registry[SERVER_INIT_KEY] = true
@@ -369,3 +320,5 @@ export function captureSentryException(error: unknown, meta: CaptureMeta): strin
     return Sentry.captureException(ensureError(error, meta.surface))
   })
 }
+
+export { sanitizeEvent }
