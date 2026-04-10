@@ -37,6 +37,7 @@ function ProgressBar({ value, color }: { value: number; color: 'sky' | 'amber' |
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import OnboardingChecklist from '@/components/patients/OnboardingChecklist'
 import PreConsultationReminder from '@/components/patients/PreConsultationReminder'
+import NextStepCard, { QuickLinks } from '@/components/patients/NextStepCard'
 import {
   buildPatientTelemedicineEntryUrl,
   isJoinableTelemedicineAppointment,
@@ -260,6 +261,12 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
           </header>
 
           <main className="mx-auto max-w-2xl px-5 pb-28 pt-5">
+            <NextStepCard
+              anamnesisProgress={anamnesisProgress}
+              upcomingAppointment={upcomingAppointment}
+              dateLocale={dateLocale}
+            />
+            <QuickLinks />
             {upcomingAppointment ? (
               <section className="mb-6">
                 {canJoinUpcomingTelemedicine ? (
