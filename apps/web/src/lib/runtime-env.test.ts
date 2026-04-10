@@ -124,4 +124,13 @@ describe('resolvePublicClientEnv', () => {
     const result = resolvePublicClientEnv({ PUBLIC_SUPABASE_URL: 'direct-url', PUBLIC_SUPABASE_ANON_KEY: 'key' })
     expect(result.publicSentryDsn).toBe('cached-dsn')
   })
+
+  it('resolves NEXT_PUBLIC sentry dsn variants', () => {
+    const result = resolvePublicClientEnv({
+      PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
+      PUBLIC_SUPABASE_ANON_KEY: 'anon-key-123',
+      NEXT_PUBLIC_SENTRY_DSN: 'https://next-public-dsn@example.ingest.sentry.io/1',
+    })
+    expect(result.publicSentryDsn).toBe('https://next-public-dsn@example.ingest.sentry.io/1')
+  })
 })

@@ -125,7 +125,7 @@ export function getBaseSentryConfig(runtime) {
   const nodeEnv = process.env.NODE_ENV || 'development';
 
   return {
-    dsn: process.env.PUBLIC_SENTRY_DSN,
+    dsn: process.env.PUBLIC_SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN,
     environment: `${runtime}-${nodeEnv}`,
     sendDefaultPii: false,
     enableLogs: true,

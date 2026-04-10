@@ -111,7 +111,7 @@ export function createEmptyState(
     workflow: {
       type: workflowType,
       vertical: 'psychiatry_general',
-      intent: 'standard_consultation',
+      intent: 'evaluation',
       currentSegment: 'identity',
       completedSegments: [],
       openedAt: now,

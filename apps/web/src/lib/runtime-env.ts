@@ -93,10 +93,11 @@ export function resolvePublicSentryDsn(runtimeEnv?: RuntimeEnvRecord): string | 
   primeRuntimeEnv(runtimeEnv);
 
   return (
-    readFirst(runtimeEnv, ['PUBLIC_SENTRY_DSN']) ??
-    readCached(['PUBLIC_SENTRY_DSN']) ??
+    readFirst(runtimeEnv, ['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN']) ??
+    readCached(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN']) ??
     import.meta.env.PUBLIC_SENTRY_DSN ??
-    readProcess(['PUBLIC_SENTRY_DSN'])
+    import.meta.env.NEXT_PUBLIC_SENTRY_DSN ??
+    readProcess(['PUBLIC_SENTRY_DSN', 'NEXT_PUBLIC_SENTRY_DSN'])
   );
 }
 
