@@ -67,7 +67,6 @@ describe('IssuePrescriptionUseCase', () => {
     await expect(useCase.execute(mockDraft, 'user-1', { ip: '1', ua: 't' }))
       .rejects.toThrow('Doctor not authorized');
   });
-
   it('should fail when audit logging fails', async () => {
     const repo = {
       saveDraft: vi.fn().mockResolvedValue('pres-1'),
