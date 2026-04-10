@@ -1,0 +1,193 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+interface ClarificationRequest {
+  order_id: string;
+  question: string;
+  question_category: string;
+}
+
+Deno.serve(async (req) => {
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUser = createClient(supabaseUrl, serviceRoleKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+    // Verify pharmacist
+    const { data: pharmacist } = await supabaseAdmin
+      .from('pharmacists')
+      .select('id, pharmacy_id')
+      .eq('user_id', user.id)
+      .eq('active', true)
+      .single();
+
+    if (!pharmacist) {
+      return new Response(JSON.stringify({ error: 'User is not an active pharmacist' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body: ClarificationRequest = await req.json();
+    if (!body.order_id || !body.question || !body.question_category) {
+      return new Response(JSON.stringify({
+        error: 'order_id, question, and question_category are required',
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const validCategories = [
+      'dose_verification', 'formulation_mismatch', 'duration_concern',
+      'interaction_alert', 'bridge_protocol', 'identity_concern', 'other',
+    ];
+    if (!validCategories.includes(body.question_category)) {
+      return new Response(JSON.stringify({
+        error: `Invalid question_category. Valid values: ${validCategories.join(', ')}`,
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Fetch order
+    const { data: order } = await supabaseAdmin
+      .from('dispensation_orders')
+      .select('*')
+      .eq('id', body.order_id)
+      .single();
+
+    if (!order) {
+      return new Response(JSON.stringify({ error: 'Order not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (order.pharmacy_id && order.pharmacy_id !== pharmacist.pharmacy_id) {
+      return new Response(JSON.stringify({ error: 'Order is assigned to a different pharmacy' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const validStatuses = ['under_review', 'blocked'];
+    if (!validStatuses.includes(order.status)) {
+      return new Response(JSON.stringify({
+        error: `Cannot request clarification for order in status "${order.status}". Expected "under_review" or "blocked".`,
+      }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create clarification request
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+
+    const { data: clarification, error: insertError } = await supabaseAdmin
+      .from('dispensation_clarifications')
+      .insert({
+        order_id: body.order_id,
+        requested_by: user.id,
+        question: body.question,
+        question_category: body.question_category,
+        status: 'pending',
+        expires_at: expiresAt.toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (insertError) {
+      console.error('[request-dispensation-clarification] Insert error:', insertError);
+      return new Response(JSON.stringify({ error: 'Failed to create clarification request' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Transition order status
+    await supabaseAdmin
+      .from('dispensation_orders')
+      .update({ status: 'clarification_requested' })
+      .eq('id', body.order_id);
+
+    // Audit
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+    await supabaseAdmin.from('pharmacy_audit_events').insert({
+      order_id: body.order_id,
+      event_type: 'clarification_requested',
+      actor_id: user.id,
+      actor_role: 'pharmacist',
+      details: {
+        question: body.question,
+        category: body.question_category,
+        clarification_id: clarification.id,
+        expires_at: expiresAt.toISOString(),
+      },
+      ip_address: ipAddress,
+    });
+
+    // Send push notification to the prescribing doctor
+    const { data: doctor } = await supabaseAdmin
+      .from('doctors')
+      .select('user_id')
+      .eq('id', order.doctor_id)
+      .single();
+
+    if (doctor) {
+      try {
+        await supabaseAdmin.functions.invoke('send-push-notification', {
+          body: {
+            user_id: doctor.user_id,
+            title: '📋 Aclaración requerida',
+            body: `La farmacia solicita aclaración sobre una receta: ${body.question_category}`,
+            data: {
+              type: 'dispensation_clarification',
+              order_id: body.order_id,
+              clarification_id: clarification.id,
+            },
+          },
+        });
+      } catch (notifError) {
+        // Non-fatal: log but don't fail the request
+        console.error('[request-dispensation-clarification] Push notification failed:', notifError);
+      }
+    }
+
+    return new Response(JSON.stringify({
+      clarification_id: clarification.id,
+      order_status: 'clarification_requested',
+      expires_at: expiresAt.toISOString(),
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('[request-dispensation-clarification] Unexpected error:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+});
