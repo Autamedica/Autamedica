@@ -9,6 +9,7 @@ import type { ClinicalCaseState, CurrentMedicationEntry } from './types'
 
 export interface TriageResult {
   priority: 'routine' | 'priority' | 'urgent'
+  priorityRank: number
   reasons: string[]
   mandate: string
   suggestedAction: string
@@ -19,6 +20,13 @@ export interface TriageResult {
   riskOfInterruption: 'low' | 'medium' | 'high'
   requiresSameDayAction: boolean
   resolutionDeadline: string | null
+
+  // Materialized Snapshots
+  medicationSnapshot?: {
+    name: string
+    dose: string
+    daysRemaining: number | null
+  }
 }
 
 const ADHD_STIMULANTS = ['metilfenidato', 'lisdexanfetamina', 'estimulante', 'ritalin', 'concerta', 'venvanse']
@@ -27,12 +35,22 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
   const reasons: string[] = []
   const references: string[] = ['WHO Standard Operating Protocol for Medication Reconciliation']
   let priority: 'routine' | 'priority' | 'urgent' = 'routine'
+  let priorityRank = 3
   let riskOfInterruption: 'low' | 'medium' | 'high' = 'low'
   let requiresSameDayAction = false
   let mandate = ''
   let suggestedAction = ''
 
   const ads = state.medications.currentMedications.value as CurrentMedicationEntry[] || []
+  
+  // Capture snapshot from first med if available
+  const firstMed = ads[0]
+  const medicationSnapshot = firstMed ? {
+    name: firstMed.medicationName.value || 'Desconocido',
+    dose: firstMed.doseMgPerDay.value ? `${firstMed.doseMgPerDay.value} mg/día` : 'Dosis no especificada',
+    daysRemaining: firstMed.daysRemaining?.value ?? null
+  } : undefined
+
   const hasStimulant = ads.some(med => 
     ADHD_STIMULANTS.some(s => med.medicationName.value?.toLowerCase().includes(s))
   )
@@ -66,6 +84,7 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
 
     if (hasUncertainty || riskOfInterruption === 'high') {
       priority = 'priority'
+      priorityRank = 2
       reasons.push('Continuidad de estimulantes con riesgo de interrupción o incertidumbre técnica')
       mandate = 'RESOLUCIÓN CLÍNICA EL MISMO DÍA'
       suggestedAction = 'Evaluación para puente terapéutico supervisado. No permitir espera pasiva.'
@@ -77,6 +96,7 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
   // 2. RULE: Safety Critical Alerts
   if (hasSafetyAlert) {
     priority = 'urgent'
+    priorityRank = 1
     requiresSameDayAction = true
     reasons.push('Presencia de marcadores de alarma cardio-psiquiátrica')
     mandate = 'EVALUACIÓN MÉDICA URGENTE'
@@ -86,6 +106,7 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
   // 3. RULE: Insomnia / High Impact
   if (state.symptoms.insomnia.value && hasStimulant) {
     priority = 'priority'
+    priorityRank = Math.min(priorityRank, 2)
     reasons.push('Insomnio severo en paciente con estimulantes')
     suggestedAction = 'Aclaración clínica dirigida hoy para descartar efecto rebote.'
   }
@@ -111,6 +132,7 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
 
   return {
     priority,
+    priorityRank,
     reasons,
     mandate,
     suggestedAction,
@@ -119,5 +141,6 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     riskOfInterruption,
     requiresSameDayAction,
     resolutionDeadline: deadlineDate.toISOString(),
+    medicationSnapshot,
   }
 }

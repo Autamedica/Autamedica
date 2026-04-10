@@ -12,6 +12,14 @@ ALTER TABLE public.clinical_case_states
 ADD COLUMN IF NOT EXISTS triage_status TEXT NOT NULL DEFAULT 'pending'
   CHECK (triage_status IN ('pending', 'acknowledged', 'in_progress', 'resolved', 'escalated')),
 
+-- Clinical Priority Ranking (1: Urgent, 2: Priority, 3: Routine)
+ADD COLUMN IF NOT EXISTS triage_priority_rank INTEGER NOT NULL DEFAULT 3,
+
+-- Materialized Snapshots (for performance and de-coupling)
+ADD COLUMN IF NOT EXISTS medication_snapshot_name TEXT,
+ADD COLUMN IF NOT EXISTS medication_snapshot_dose TEXT,
+ADD COLUMN IF NOT EXISTS medication_snapshot_days_remaining INTEGER,
+
 -- Ownership
 ADD COLUMN IF NOT EXISTS assigned_doctor_id UUID REFERENCES public.doctors(id),
 ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ,
@@ -25,7 +33,7 @@ ADD COLUMN IF NOT EXISTS requires_same_day_action BOOLEAN DEFAULT false;
 
 -- Indexes for the new clinical queue
 CREATE INDEX IF NOT EXISTS idx_clinical_case_states_ops_queue
-  ON public.clinical_case_states(triage_priority, triage_status, resolution_deadline_at)
+  ON public.clinical_case_states(triage_priority_rank, triage_status, resolution_deadline_at)
   WHERE triage_status != 'resolved';
 
 CREATE INDEX IF NOT EXISTS idx_clinical_case_states_assigned_doctor

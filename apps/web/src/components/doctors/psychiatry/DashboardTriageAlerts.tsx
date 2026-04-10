@@ -1,34 +1,42 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { 
-  AlertCircle, 
   ArrowRight, 
   Clock, 
   ShieldAlert, 
   CheckCircle2, 
-  MedicationIcon, 
+  Pill, 
   UserPlus, 
   Timer,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck,
+  UserCheck,
+  Lock,
+  Stethoscope,
+  ChevronRight
 } from 'lucide-react'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
-import type { ClinicalCaseState, CurrentMedicationEntry } from '@/lib/patients/clinical-state/types'
+import { useAuthenticatedUser } from '@/hooks/doctors/useAuthenticatedUser'
 
-// Use the domain types for internal logic
 interface TriageAlert {
   id: string
   patient_id: string
-  triage_priority: 'urgent' | 'priority' | 'routine'
   triage_status: 'pending' | 'acknowledged' | 'in_progress' | 'resolved' | 'escalated'
+  triage_priority_rank: number
   triage_mandate: string
   updated_at: string
-  resolution_deadline_at: string
+  resolution_deadline_at: string | null
   risk_of_interruption: 'low' | 'medium' | 'high'
   requires_same_day_action: boolean
   assigned_doctor_id?: string | null
-  state: ClinicalCaseState
+  
+  // Materialized snapshots
+  medication_snapshot_name?: string | null
+  medication_snapshot_dose?: string | null
+  medication_snapshot_days_remaining?: number | null
+
   patient: {
     user_id: string
     profile?: {
@@ -39,231 +47,296 @@ interface TriageAlert {
 }
 
 export function DashboardTriageAlerts() {
+  const { user: currentUser } = useAuthenticatedUser()
   const [alerts, setAlerts] = useState<TriageAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
+  const [actingOnId, setActingOnId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchAlerts = useCallback(async () => {
     const supabase = getBrowserSupabaseClient()
     
-    async function fetchAlerts() {
-      // Fetch clinic case states with triage priority and operational status
-      const { data, error, count } = await supabase
-        .from('clinical_case_states' as any)
-        .select(`
-          id,
-          patient_id,
-          triage_priority,
-          triage_status,
-          triage_mandate,
-          updated_at,
-          resolution_deadline_at,
-          risk_of_interruption,
-          requires_same_day_action,
-          assigned_doctor_id,
-          state,
-          patient:patients (
-            user_id,
-            profile:profiles!profiles_user_id_fkey (
-              first_name,
-              last_name
-            )
+    // Optimized fetch: Only fields needed for listing + materialized snapshots
+    const { data, error, count } = await supabase
+      .from('clinical_case_states' as any)
+      .select(`
+        id,
+        patient_id,
+        triage_status,
+        triage_priority_rank,
+        triage_mandate,
+        updated_at,
+        resolution_deadline_at,
+        risk_of_interruption,
+        requires_same_day_action,
+        assigned_doctor_id,
+        medication_snapshot_name,
+        medication_snapshot_dose,
+        medication_snapshot_days_remaining,
+        patient:patients (
+          user_id,
+          profile:profiles!profiles_user_id_fkey (
+            first_name,
+            last_name
           )
-        `, { count: 'exact' })
-        .neq('triage_priority', 'routine')
-        .not('triage_status', 'eq', 'resolved')
-        // Sort by priority (urgent first), then by deadline (asc), then by updatedAt
-        .order('triage_priority', { ascending: false })
-        .order('resolution_deadline_at', { ascending: true })
-        .limit(10)
+        )
+      `, { count: 'exact' })
+      .not('triage_status', 'eq', 'resolved')
+      .neq('triage_priority_rank', 3) // Only Urgent (1) and Priority (2)
+      .order('triage_priority_rank', { ascending: true })
+      .order('resolution_deadline_at', { ascending: true, nullsFirst: false })
+      .limit(10)
 
-      if (!error && data) {
-        setAlerts(data as any)
-        setTotalCount(count || 0)
-      } else if (error) {
-        console.error('Error fetching triage alerts:', error)
-      }
-      setLoading(false)
+    if (!error && data) {
+      setAlerts(data as any)
+      setTotalCount(count || 0)
     }
+    setLoading(false)
+  }, [])
 
+  useEffect(() => {
     fetchAlerts()
     
-    // Subscribe to changes in clinical state or triage status
+    const supabase = getBrowserSupabaseClient()
+    let debounceTimer: any = null
+
     const channel = supabase
-      .channel('clinical_triage_queue')
+      .channel('clinical_triage_queue_v2')
       .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'clinical_case_states' }, 
-          () => fetchAlerts()
+          () => {
+            if (debounceTimer) clearTimeout(debounceTimer)
+            debounceTimer = setTimeout(fetchAlerts, 1000)
+          }
       )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
+      if (debounceTimer) clearTimeout(debounceTimer)
     }
-  }, [])
+  }, [fetchAlerts])
 
   const takeCase = async (alertId: string) => {
+    setActingOnId(alertId)
     const supabase = getBrowserSupabaseClient()
     const { error } = await supabase.rpc('take_triage_case', { p_case_state_id: alertId })
+    
     if (error) {
       console.error('Failed to take case:', error)
       alert('Error al asignar el caso')
+    } else {
+      // Optimistic locally
+      setAlerts(prev => prev.map(a => 
+        a.id === alertId ? { ...a, assigned_doctor_id: currentUser?.doctorProfileId, triage_status: 'acknowledged' } : a
+      ))
+      await fetchAlerts()
     }
+    setActingOnId(null)
   }
 
   const navigateToPatient = (patientId: string) => {
-    // In a real SPA we would use a router
     window.location.href = `/doctors/patients/${patientId}`
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="flex flex-col items-center gap-3">
-           <div className="h-8 w-8 animate-spin rounded-full border-2 border-am-doctor-100 border-t-am-doctor-600" />
-           <p className="text-[10px] font-bold uppercase tracking-widest text-am-surface-400">Sincronizando Cola Clínica</p>
+      <div className="flex h-64 flex-col items-center justify-center p-8 text-center bg-am-surface-50">
+        <div className="relative h-12 w-12 mb-4">
+          <div className="absolute inset-0 rounded-full border-2 border-am-doctor-100" />
+          <div className="absolute inset-0 rounded-full border-2 border-am-doctor-600 border-t-white animate-spin" />
         </div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-am-surface-400">Escaneando Prioridades Clínicas</p>
       </div>
     )
   }
 
   if (alerts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-10 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-50 text-emerald-600 shadow-inner">
-          <CheckCircle2 className="h-7 w-7" />
+      <div className="flex flex-col items-center justify-center p-12 text-center bg-white">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-[2rem] bg-emerald-50 text-emerald-600 shadow-inner ring-1 ring-emerald-100">
+          <ShieldCheck className="h-8 w-8" />
         </div>
-        <h3 className="text-sm font-bold text-am-surface-900">Cola Despejada</h3>
-        <p className="mt-1 text-xs text-am-surface-500 max-w-[200px]">No hay triages críticos pendientes de resolución operativa hoy.</p>
+        <h3 className="text-sm font-black text-am-surface-900 uppercase">Cola Despejada</h3>
+        <p className="mt-1 text-xs text-am-surface-500 max-w-[220px] leading-relaxed">No hay mandatos psiquiátricos con riesgo de abandono pendientes.</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header with real count */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-am-surface-100 bg-white">
+    <div className="flex flex-col h-full bg-white">
+      {/* Header Context */}
+      <div className="px-6 py-4 flex items-center justify-between border-b border-am-surface-100">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-am-doctor-600 text-white shadow-am-sm">
-            <ShieldAlert className="h-5 w-5" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-am-doctor-600 text-white shadow-am-md ring-4 ring-am-doctor-50">
+            <Stethoscope className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-[11px] font-black uppercase tracking-[0.15em] text-am-surface-500 leading-none mb-1">
-              Cola de Triaje
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-am-doctor-600 leading-none mb-1">
+              Triage Resolutivo
             </h3>
-            <p className="text-sm font-bold text-am-surface-900 leading-none">
-              Gestión de Resolución
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-am-surface-900 leading-none">Cola Crítica</p>
+              <span className="h-4 w-[1px] bg-am-surface-100" />
+              <p className="text-[10px] font-bold text-am-surface-400 leading-none">{totalCount} CASOS</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-           <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-black ring-1 ring-inset ${
-             totalCount > 5 ? 'bg-am-error-50 text-am-error-700 ring-am-error-200' : 'bg-am-doctor-50 text-am-doctor-700 ring-am-doctor-200'
-           }`}>
-            {totalCount} CASOS
-          </span>
         </div>
       </div>
 
-      {/* Main Queue */}
-      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-am-surface-100 custom-scrollbar">
+      {/* Virtual Queue */}
+      <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-am-surface-100">
         {alerts.map((alert) => {
-          const deadline = new Date(alert.resolution_deadline_at)
-          const isOverdue = deadline < new Date()
-          const ads = alert.state?.medications?.currentMedications?.value as CurrentMedicationEntry[] || []
-          const firstMed = ads[0]
-
+          const deadlineStr = alert.resolution_deadline_at
+          const deadline = deadlineStr ? new Date(deadlineStr) : null
+          const isOverdue = deadline ? deadline < new Date() : false
+          const isAssignedToMe = alert.assigned_doctor_id === currentUser?.doctorProfileId
+          const isAssignedToOther = alert.assigned_doctor_id && !isAssignedToMe
+          
           return (
             <div 
               key={alert.id} 
-              className={`group relative p-5 transition-all hover:bg-am-doctor-50/20 ${
-                alert.triage_priority === 'urgent' ? 'border-l-4 border-am-error-500' : 'border-l-4 border-am-warning-500'
+              className={`group relative p-5 transition-all hover:bg-am-doctor-50/10 ${
+                alert.triage_priority_rank === 1 ? 'border-l-[6px] border-am-error-500' : 'border-l-[6px] border-am-warning-500'
               }`}
             >
+              {/* Ownership Overlay for Others */}
+              {isAssignedToOther && (
+                <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5 px-2 py-1 bg-am-surface-50 rounded-lg border border-am-surface-200">
+                  <Lock className="h-3 w-3 text-am-surface-400" />
+                  <span className="text-[9px] font-bold text-am-surface-500 uppercase">En revisión externa</span>
+                </div>
+              )}
+
               <div className="flex flex-col gap-3">
-                {/* Row 1: Badges & Patient */}
-                <div className="flex items-start justify-between gap-2">
+                {/* Header: Name & Priority */}
+                <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-bold text-am-surface-900 truncate tracking-tight">
-                        {alert.patient.profile?.first_name ? `${alert.patient.profile.first_name} ${alert.patient.profile.last_name || ''}` : 'Identidad Protegida'}
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h4 className="text-[15px] font-black text-am-surface-900 truncate tracking-tight">
+                        {alert.patient.profile?.first_name ? `${alert.patient.profile.first_name} ${alert.patient.profile.last_name || ''}` : 'Paciente Sin Ficha'}
                       </h4>
                       {alert.requires_same_day_action && (
-                        <span className="flex items-center gap-0.5 whitespace-nowrap rounded-md bg-am-error-600 px-1.5 py-0.5 text-[9px] font-black text-white uppercase shadow-sm">
-                          <Timer className="h-2.5 w-2.5" />
-                          Resolver HOY
-                        </span>
+                        <div className="flex items-center gap-1 bg-am-error-600 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase shadow-am-sm">
+                          <Timer className="h-3 w-3" />
+                          <span>HOY</span>
+                        </div>
                       )}
                     </div>
                     
-                    {/* Operational Mandate */}
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-am-error-700 leading-none">
-                       <AlertTriangle className="h-3 w-3" />
-                       <span className="uppercase tracking-tight">{alert.triage_mandate}</span>
+                    <div className="flex items-center gap-1.5 text-[11px] font-black text-am-error-700 leading-none uppercase tracking-tighter">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      {alert.triage_mandate}
                     </div>
                   </div>
 
-                  <div className="text-right flex flex-col items-end gap-1">
-                    <span className={`text-[10px] font-bold ${isOverdue ? 'text-am-error-600' : 'text-am-surface-500'}`}>
-                      {isOverdue ? 'VENCIDO' : `Vence: ${deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                    </span>
-                    <div className="flex items-center gap-1">
-                       {alert.assigned_doctor_id ? (
-                         <span className="text-[10px] font-medium text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> Asignado
-                         </span>
-                       ) : (
-                         <span className="text-[10px] font-medium text-am-surface-400">Sin asignar</span>
-                       )}
+                  <div className="text-right flex flex-col items-end gap-1 shrink-0">
+                    {deadline ? (
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-black uppercase ring-1 ring-inset ${
+                        isOverdue ? 'bg-am-error-50 text-am-error-700 ring-am-error-200' : 'bg-am-doctor-50 text-am-doctor-700 ring-am-doctor-200'
+                      }`}>
+                        <Timer className="h-3 w-3" />
+                        {isOverdue ? 'Vencido' : `Vence ${deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                      </div>
+                    ) : (
+                      <span className="text-[9px] font-bold text-am-surface-400">Sin SLA</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Patient Snapshot: Medication & Risk */}
+                <div className="grid grid-cols-2 gap-px rounded-xl overflow-hidden bg-am-surface-200 border border-am-surface-200 shadow-am-sm">
+                  <div className="bg-white p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                       <Pill className="h-3 w-3 text-am-surface-400" />
+                       <span className="text-[9px] font-bold text-am-surface-400 uppercase tracking-tight">Reportado</span>
+                    </div>
+                    <p className="text-xs font-bold text-am-surface-900 truncate">
+                      {alert.medication_snapshot_name || 'Sin registro'}
+                    </p>
+                    <p className="text-[10px] text-am-surface-500">{alert.medication_snapshot_dose || '-'}</p>
+                  </div>
+                  
+                  <div className={`p-3 border-l border-am-surface-200 ${
+                    alert.medication_snapshot_days_remaining !== null && alert.medication_snapshot_days_remaining <= 1 
+                    ? 'bg-am-error-50/50' : 'bg-white'
+                  }`}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                       <Timer className="h-3 w-3 text-am-surface-400" />
+                       <span className="text-[9px] font-bold text-am-surface-400 uppercase tracking-tight">Días Restantes</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className={`text-base font-black leading-none ${
+                        alert.medication_snapshot_days_remaining !== null && alert.medication_snapshot_days_remaining <= 1 
+                        ? 'text-am-error-600' : 'text-am-surface-900'
+                      }`}>
+                        {alert.medication_snapshot_days_remaining ?? '?'}
+                      </span>
+                      <span className="text-[10px] font-bold text-am-surface-500 uppercase">Días</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Row 2: Clinical Data Snapshot */}
-                <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-am-surface-50 border border-am-surface-100">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-bold text-am-surface-400 uppercase tracking-tighter">Medicación Reportada</span>
-                    <span className="text-[11px] font-bold text-am-surface-800 truncate">
-                      {firstMed?.medicationName?.value || 'No reportada'}
-                    </span>
+                {/* Indicators Row */}
+                <div className="flex items-center gap-4 px-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${
+                      alert.risk_of_interruption === 'high' ? 'bg-am-error-500 animate-pulse' : 
+                      alert.risk_of_interruption === 'medium' ? 'bg-am-warning-500' : 'bg-emerald-500'
+                    }`} />
+                    <span className="text-[10px] font-bold text-am-surface-500 uppercase">Riesgo {alert.risk_of_interruption}</span>
                   </div>
-                  <div className="flex flex-col text-right">
-                    <span className="text-[9px] font-bold text-am-surface-400 uppercase tracking-tighter">Días Restantes</span>
-                    <span className={`text-[11px] font-black ${
-                      (firstMed?.daysRemaining?.value ?? 7) <= 1 ? 'text-am-error-600' : 'text-am-surface-800'
+                  <div className="flex items-center gap-1.5">
+                    <div className={`h-4 px-1.5 rounded-md flex items-center text-[8px] font-black uppercase tracking-widest ring-1 ring-inset ${
+                      alert.triage_status === 'pending' ? 'bg-am-surface-50 text-am-surface-500 ring-am-surface-200' :
+                      alert.triage_status === 'acknowledged' ? 'bg-sky-50 text-sky-700 ring-sky-200' :
+                      'bg-emerald-50 text-emerald-700 ring-emerald-200'
                     }`}>
-                      {firstMed?.daysRemaining?.value !== null && firstMed?.daysRemaining?.value !== undefined 
-                        ? `${firstMed.daysRemaining.value} días` 
-                        : 'Desconocido'}
-                    </span>
+                      {alert.triage_status}
+                    </div>
                   </div>
                 </div>
 
-                {/* Row 3: Action Bar */}
-                <div className="flex items-center gap-2 mt-1">
+                {/* Actions: Context Sensitive */}
+                <div className="flex items-center gap-2 pt-1">
                   {!alert.assigned_doctor_id ? (
                     <button 
                       onClick={() => takeCase(alert.id)}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white border border-am-doctor-200 py-2 text-[11px] font-bold text-am-doctor-700 shadow-sm transition-all hover:bg-am-doctor-600 hover:text-white hover:border-am-doctor-600 active:scale-95"
+                      disabled={!!actingOnId}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-am-doctor-600 py-2.5 text-xs font-black text-white shadow-am-md transition-all hover:bg-am-doctor-700 active:scale-95 disabled:opacity-50"
                     >
-                      <UserPlus className="h-3.5 w-3.5" />
-                      Tomar Caso
+                      {actingOnId === alert.id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                      ) : (
+                        <>
+                          <UserPlus className="h-4 w-4" />
+                          TOMAR CASO
+                        </>
+                      )}
+                    </button>
+                  ) : isAssignedToMe ? (
+                    <button 
+                      onClick={() => navigateToPatient(alert.patient_id)}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-am-doctor-50 py-2.5 text-xs font-black text-am-doctor-700 ring-2 ring-am-doctor-100 transition-all hover:bg-am-doctor-100 active:scale-95"
+                    >
+                      <UserCheck className="h-4 w-4" />
+                      TRAMITAR MI CASO
                     </button>
                   ) : (
                     <button 
-                      onClick={() => navigateToPatient(alert.patient_id)}
-                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-am-doctor-600 py-2 text-[11px] font-bold text-white shadow-sh-sm transition-all hover:bg-am-doctor-700 active:scale-95"
+                      disabled
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-am-surface-50 py-2.5 text-xs font-black text-am-surface-400 cursor-not-allowed"
                     >
-                      <ShieldAlert className="h-3.5 w-3.5" />
-                      Tramitar Alerta
+                      <Lock className="h-4 w-4" />
+                      CASO BLOQUEADO
                     </button>
                   )}
+                  
                   <button 
                     onClick={() => navigateToPatient(alert.patient_id)}
-                    className="h-9 w-9 flex items-center justify-center rounded-xl bg-am-surface-100 text-am-surface-500 hover:bg-am-surface-200 transition-colors"
-                    title="Ver Ficha Completa"
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-white border border-am-surface-200 text-am-surface-500 transition-all hover:border-am-doctor-300 hover:text-am-doctor-600 hover:bg-am-doctor-50 active:scale-90"
                   >
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink className="h-4.5 w-4.5" />
                   </button>
                 </div>
               </div>
@@ -271,33 +344,22 @@ export function DashboardTriageAlerts() {
           )
         })}
       </div>
-      
-      {/* Footer Actions */}
-      <div className="p-4 bg-white border-t border-am-surface-100">
+
+      {/* Footer Navigation */}
+      <div className="p-4 bg-am-surface-50/50 border-t border-am-surface-100">
         <button 
-          onClick={() => window.location.href = '/doctors/patients?filter=triage_alert'}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-am-surface-300 text-[11px] font-black uppercase tracking-widest text-am-surface-400 transition-all hover:border-am-doctor-400 hover:text-am-doctor-600"
+          onClick={() => window.location.href = '/doctors/patients'}
+          className="group w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white border border-am-surface-200 text-xs font-black text-am-surface-700 transition-all hover:border-am-doctor-600 hover:text-am-doctor-600 shadow-am-sm"
         >
-          Ver Cola de Derivación Completa
-          <ArrowRight className="h-3 w-3" />
+          <div className="flex items-center gap-3">
+             <div className="h-6 w-6 rounded-lg bg-am-surface-100 flex items-center justify-center text-am-surface-400 group-hover:bg-am-doctor-100 group-hover:text-am-doctor-600 transition-colors">
+                <ChevronRight className="h-4 w-4" />
+             </div>
+             <span>VER TODAS LAS DERIVACIONES</span>
+          </div>
+          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </button>
       </div>
-
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #cbd5e1;
-        }
-      `}</style>
     </div>
   )
 }
