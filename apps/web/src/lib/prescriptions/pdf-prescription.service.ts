@@ -234,27 +234,32 @@ export async function generatePrescriptionPdf(
     y += 4;
   }
 
-  // Firma electrónica placeholder
+  // Firma electrónica
   y += 3;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(marginLeft, y, 70, 18, 'F');
   doc.setDrawColor(100, 116, 139);
-  doc.setLineDashPattern([1, 1], 0);
-  doc.rect(marginLeft, y, 60, 15);
-  doc.setLineDashPattern([], 0);
+  doc.rect(marginLeft, y, 70, 18);
   doc.setFontSize(7);
-  doc.text('Firma electrónica', marginLeft + 15, y + 9);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Firmado electrónicamente', marginLeft + 4, y + 6);
+  doc.setFontSize(6);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`${input.prescriber.name}`, marginLeft + 4, y + 11);
+  doc.text(`CUIR: ${cuir}`, marginLeft + 4, y + 15);
 
   // Footer
   const footerY = 280;
   doc.setDrawColor(203, 213, 225);
   doc.line(marginLeft, footerY - 5, marginLeft + contentWidth, footerY - 5);
   doc.setFontSize(7);
-  doc.setTextColor(148, 163, 184); // slate-400
+  doc.setTextColor(148, 163, 184);
   doc.text(
-    `Este documento fue generado electrónicamente por AutaMedica. CUIR: ${cuir}. Verificar en: ${qrContent}`,
+    `Prescripción electrónica emitida por AutaMedica. CUIR: ${cuir}. Verificar en: ${qrContent}`,
     marginLeft, footerY,
   );
   doc.text(
-    'Ley 27.553 — Prescripciones electrónicas. Este documento no reemplaza la firma digital cuando sea requerida por la normativa vigente.',
+    'Ley 27.553 — Recetas electrónicas/digitales. Res. 2214/2025 — Estructura mínima de prescripción electrónica.',
     marginLeft, footerY + 4,
   );
 

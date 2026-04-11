@@ -18,6 +18,7 @@ interface VerifyResult {
     patientName: string;
     issuedAt: string;
     pdfUrl: string | null;
+    qrContent: string | null;
   } | null;
 }
 
@@ -94,6 +95,22 @@ export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
           </div>
           <p className="text-sm text-slate-300">CUIR: <span className="font-mono text-emerald-300">{rx.cuir}</span></p>
         </div>
+
+        {/* QR Code (Res. 2214/2025: CUIR + código de barras o QR) */}
+        {rx.qrContent && (
+          <div className="flex justify-center py-5 border-b border-slate-100">
+            <div className="text-center">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(rx.qrContent)}&margin=4`}
+                alt={`QR de verificación: ${rx.cuir}`}
+                width={160}
+                height={160}
+                className="mx-auto rounded-lg"
+              />
+              <p className="text-[9px] text-slate-400 mt-2 font-mono">{rx.cuir}</p>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <div className="px-8 py-6 space-y-5">

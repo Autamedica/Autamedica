@@ -83,6 +83,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
         patientName,
         issuedAt: rx.created_at,
         pdfUrl: rx.signed_pdf_url,
+        qrContent: rx.qr_code_content,
       },
     });
   } catch (err) {
