@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
 
     const { data: rx, error } = await admin
       .from('prescriptions')
-      .select('id, cuir, status, clinical_data, doctor_id, patient_id, signed_pdf_url, created_at')
+      .select('id, cuir, status, clinical_data, doctor_id, patient_id, signed_pdf_url, qr_code_content, created_at')
       .eq('cuir', cuir)
       .maybeSingle();
 
