@@ -169,6 +169,7 @@ export function isValidUserRole(role: string): role is UserRole {
 export const AVAILABLE_ROLES: readonly UserRole[] = [
   'doctor',
   'patient',
+  'pharmacist',
   'company_admin',
 ] as const;
 

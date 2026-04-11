@@ -166,6 +166,27 @@ export const POST: APIRoute = async ({ request, params }) => {
       },
     });
 
+    // Create dispensation order so pharmacists can see and process it
+    const todayDate = now.split('T')[0]; // YYYY-MM-DD
+    const expiryDate = expiresAt.split('T')[0];
+    const { error: orderError } = await supabase.from('dispensation_orders').insert({
+      prescription_id: prescriptionId,
+      patient_id: rx.patient_id,
+      doctor_id: rx.doctor_id,
+      prescription_type: 'standard',
+      medication: item.generic_name,
+      formulation: item.presentation ?? item.dosage ?? '',
+      quantity_units: item.quantity ?? 1,
+      duration_days: 30,
+      dispense_window_start: todayDate,
+      dispense_window_end: expiryDate,
+      clinical_semaphore: 'green',
+    });
+
+    if (orderError) {
+      logger.warn('[issue] Dispensation order creation failed', orderError);
+    }
+
     logger.info('[issue] Prescription issued', { prescriptionId, cuir: artifacts.cuir });
 
     return jsonOk({
