@@ -17,7 +17,7 @@ export interface DispensationOrderRow {
   prescription_id: string;
   patient_id: string;
   doctor_id: string;
-  pharmacy_id: string;
+  pharmacy_id: string | null;
   medication: string | null;
   formulation: string | null;
   dose_mg_per_day: number | null;
@@ -76,6 +76,49 @@ export const dispensationRepo = {
       throw error;
     }
     return data ?? [];
+  },
+
+  async listUnassignedOrders(
+    supabase: Client,
+    limit: number,
+  ): Promise<DispensationOrderRow[]> {
+    const { data, error } = await supabase
+      .from('dispensation_orders')
+      .select(`
+        id, prescription_id, patient_id, doctor_id, pharmacy_id,
+        medication, formulation, dose_mg_per_day, quantity_units, duration_days,
+        prescription_type, status, clinical_semaphore, semaphore_reasons,
+        extraordinary_dose_flag, requires_clarification,
+        dispense_window_start, dispense_window_end,
+        created_at, updated_at
+      `)
+      .is('pharmacy_id', null)
+      .eq('status', 'pending')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: true })
+      .limit(limit);
+    if (error) {
+      logger.error('[dispensationRepo] listUnassignedOrders error', error);
+      throw error;
+    }
+    return data ?? [];
+  },
+
+  async claimOrder(
+    supabase: Client,
+    orderId: string,
+    pharmacyId: string,
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('dispensation_orders')
+      .update({ pharmacy_id: pharmacyId, status: 'assigned' })
+      .eq('id', orderId)
+      .is('pharmacy_id', null)
+      .eq('status', 'pending');
+    if (error) {
+      logger.error('[dispensationRepo] claimOrder error', { orderId, pharmacyId, error });
+      throw error;
+    }
   },
 
   async findOrderById(

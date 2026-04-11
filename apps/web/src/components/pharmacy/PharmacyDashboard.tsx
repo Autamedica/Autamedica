@@ -17,7 +17,7 @@ interface DispensationOrder {
   prescription_id: string;
   patient_id: string;
   doctor_id: string;
-  pharmacy_id: string;
+  pharmacy_id: string | null;
   medication: string | null;
   formulation: string | null;
   dose_mg_per_day: number | null;
@@ -61,10 +61,10 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
   assigned: 'Asignada',
-  under_review: 'En revisión',
-  clarification_requested: 'Aclaración solicitada',
-  clarification_provided: 'Aclaración recibida',
-  approved_for_dispensation: 'Aprobada',
+  under_review: 'En Revisión',
+  clarification_requested: 'Aclaración Requerida',
+  clarification_provided: 'Aclaración Recibida',
+  approved_for_dispensation: 'Aprobada para Dispensación',
   dispensed: 'Dispensada',
   partially_dispensed: 'Parcialmente dispensada',
   blocked: 'Bloqueada',
@@ -115,11 +115,25 @@ function DashboardContent() {
     }
   }, [authLoading, activeTab, currentTab.statuses]); // fetchOrders is stable (empty deps)
 
+  const handleClaimOrder = useCallback(async (orderId: string) => {
+    try {
+      await fetchApi(`/api/pharmacy/orders/${orderId}/claim`, { body: {} });
+      fetchOrders(currentTab.statuses);
+    } catch (err) {
+      logger.error('[PharmacyDashboard] Claim error', err);
+      setError('Error al tomar la orden. Puede que otro farmacéutico ya la haya tomado.');
+    }
+  }, [currentTab.statuses, fetchOrders]);
+
   const handleSelectOrder = (order: DispensationOrder) => {
+    if (order.pharmacy_id === null && order.status === 'pending') {
+      handleClaimOrder(order.id);
+      return;
+    }
     setSelectedOrder(order);
     if (order.status === 'approved_for_dispensation' || order.status === 'partially_dispensed') {
       setView('dispense');
-    } else if (['pending', 'assigned', 'under_review', 'clarification_provided'].includes(order.status)) {
+    } else if (['assigned', 'under_review', 'clarification_provided'].includes(order.status)) {
       setView('validate');
     }
   };
