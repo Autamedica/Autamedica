@@ -41,8 +41,10 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
   const [error, setError] = useState<string | null>(null);
 
   const set = (key: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setForm(prev => ({ ...prev, [key]: e.target.value }));
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      const value = e.target.type === 'number' ? (parseFloat(e.target.value) || 0) : e.target.value;
+      setForm(prev => ({ ...prev, [key]: value }));
+    };
 
   const handleDispense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,12 +103,22 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             style={{ width: `${Math.min(100, (result.total_dispensed / result.target_quantity) * 100)}%` }}
           />
         </div>
-        <button
-          onClick={onComplete}
-          className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition"
-        >
-          Volver al listado
-        </button>
+        <div className="flex gap-3 justify-center">
+          {!isComplete && (
+            <button
+              onClick={() => setResult(null)}
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition"
+            >
+              Dispensar cantidad restante
+            </button>
+          )}
+          <button
+            onClick={onComplete}
+            className="px-6 py-2.5 rounded-xl bg-am-surface-100 text-am-surface-700 text-sm font-medium hover:bg-am-surface-200 transition"
+          >
+            Volver al listado
+          </button>
+        </div>
       </div>
     );
   }
@@ -125,9 +137,11 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-am-surface-700 mb-1">Medicamento</label>
+            <label htmlFor="dispensed_medication" className="block text-xs font-medium text-am-surface-700 mb-1">Medicamento <span className="text-red-500">*</span></label>
             <input
+              id="dispensed_medication"
               type="text"
+              required
               value={form.dispensed_medication}
               onChange={set('dispensed_medication')}
               disabled={isBridge}
@@ -135,9 +149,11 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-am-surface-700 mb-1">Formulación</label>
+            <label htmlFor="dispensed_formulation" className="block text-xs font-medium text-am-surface-700 mb-1">Formulación <span className="text-red-500">*</span></label>
             <input
+              id="dispensed_formulation"
               type="text"
+              required
               value={form.dispensed_formulation}
               onChange={set('dispensed_formulation')}
               disabled={isBridge}
@@ -148,9 +164,11 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-am-surface-700 mb-1">Cantidad (unidades)</label>
+            <label htmlFor="dispensed_quantity" className="block text-xs font-medium text-am-surface-700 mb-1">Cantidad (unidades) <span className="text-red-500">*</span></label>
             <input
+              id="dispensed_quantity"
               type="number"
+              required
               value={form.dispensed_quantity}
               onChange={set('dispensed_quantity')}
               disabled={isBridge}
@@ -159,8 +177,9 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-am-surface-700 mb-1">Lote</label>
+            <label htmlFor="batch_number" className="block text-xs font-medium text-am-surface-700 mb-1">Lote</label>
             <input
+              id="batch_number"
               type="text"
               value={form.batch_number}
               onChange={set('batch_number')}
@@ -169,8 +188,9 @@ export function DispensePanel({ order, onComplete }: DispensePanelProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-am-surface-700 mb-1">Vencimiento</label>
+            <label htmlFor="expiry_date" className="block text-xs font-medium text-am-surface-700 mb-1">Vencimiento</label>
             <input
+              id="expiry_date"
               type="date"
               value={form.expiry_date}
               onChange={set('expiry_date')}

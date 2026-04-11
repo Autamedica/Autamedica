@@ -88,9 +88,9 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
 
   if (orderStatus === 'approved_for_dispensation') {
     return (
-      <div className="bg-white rounded-2xl shadow-am-md border border-green-200 p-8 text-center">
+      <div className="bg-white rounded-2xl shadow-am-md border border-green-200 p-8 text-center" role="status" aria-live="polite">
         <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
@@ -108,9 +108,9 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
 
   if (orderStatus === 'blocked') {
     return (
-      <div className="bg-white rounded-2xl shadow-am-md border border-red-200 p-8 text-center">
+      <div className="bg-white rounded-2xl shadow-am-md border border-red-200 p-8 text-center" role="alert" aria-live="assertive">
         <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
@@ -172,12 +172,12 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
       </div>
 
       {/* Validations checklist */}
-      <div className="bg-white rounded-xl shadow-am-sm border border-am-surface-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-am-surface-200">
-          <h3 className="text-sm font-semibold text-am-surface-900">
+      <fieldset className="bg-white rounded-xl shadow-am-sm border border-am-surface-200 overflow-hidden">
+        <legend className="px-4 py-3 border-b border-am-surface-200 w-full text-left">
+          <span className="text-sm font-semibold text-am-surface-900">
             Validaciones requeridas ({completedValidations.size}/{allValidations.length})
-          </h3>
-        </div>
+          </span>
+        </legend>
         <div className="divide-y divide-am-surface-100">
           {allValidations.map(validation => {
             const isCompleted = completedValidations.has(validation.type);
@@ -231,7 +231,7 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
             );
           })}
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 }

@@ -81,12 +81,14 @@ function DashboardContent() {
   const [orders, setOrders] = useState<DispensationOrder[]>([]);
   const [pharmacistId, setPharmacistId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('active');
   const [view, setView] = useState<View>('list');
   const [selectedOrder, setSelectedOrder] = useState<DispensationOrder | null>(null);
 
   const fetchOrders = useCallback(async (statuses: string) => {
     setLoading(true);
+    setError(null);
     try {
       const data = await fetchApi<{ orders: DispensationOrder[]; pharmacistId: string | null }>(
         `/api/pharmacy/orders?status=${statuses}`
@@ -95,6 +97,7 @@ function DashboardContent() {
       setPharmacistId(data.pharmacistId);
     } catch (err) {
       logger.error('[PharmacyDashboard] Fetch error', err);
+      setError('Error al cargar órdenes. Intentá de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -106,7 +109,7 @@ function DashboardContent() {
     if (!authLoading) {
       fetchOrders(currentTab.statuses);
     }
-  }, [authLoading, activeTab, currentTab.statuses, fetchOrders]);
+  }, [authLoading, activeTab, currentTab.statuses]); // fetchOrders is stable (empty deps)
 
   const handleSelectOrder = (order: DispensationOrder) => {
     setSelectedOrder(order);
@@ -156,7 +159,7 @@ function DashboardContent() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {view !== 'list' && (
-              <button onClick={handleBack} className="p-1.5 rounded-lg hover:bg-am-surface-100 transition">
+              <button onClick={handleBack} aria-label="Volver al listado" className="p-1.5 rounded-lg hover:bg-am-surface-100 transition">
                 <svg className="w-5 h-5 text-am-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                 </svg>
@@ -189,10 +192,12 @@ function DashboardContent() {
         {view === 'list' && (
           <>
             {/* Tabs */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-1" role="tablist" aria-label="Filtrar por estado">
               {STATUS_TABS.map(tab => (
                 <button
                   key={tab.key}
+                  role="tab"
+                  aria-selected={activeTab === tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
                     activeTab === tab.key
@@ -212,10 +217,36 @@ function DashboardContent() {
               ))}
             </div>
 
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl bg-red-50 border border-red-200 p-4 mb-4 flex items-center justify-between" role="alert">
+                <p className="text-sm text-red-700">{error}</p>
+                <button
+                  onClick={() => fetchOrders(currentTab.statuses)}
+                  className="text-sm font-medium text-red-700 hover:text-red-900 underline"
+                >
+                  Reintentar
+                </button>
+              </div>
+            )}
+
             {/* Orders list */}
             {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="h-6 w-6 border-2 border-am-surface-300 border-t-emerald-600 rounded-full animate-spin" />
+              <div className="space-y-3" aria-busy="true" aria-label="Cargando órdenes">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="bg-white rounded-xl shadow-am-sm border border-am-surface-200 p-4 animate-pulse">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-48 bg-am-surface-200 rounded" />
+                        <div className="h-3 w-32 bg-am-surface-100 rounded" />
+                        <div className="flex gap-2">
+                          <div className="h-5 w-20 bg-am-surface-100 rounded-full" />
+                          <div className="h-5 w-16 bg-am-surface-100 rounded-full" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : orders.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-am-sm border border-am-surface-200 p-12 text-center">
