@@ -2,7 +2,7 @@
 
 import { Badge } from '@autamedica/ui';
 import { Card } from '@autamedica/ui';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, HandMetal } from 'lucide-react';
 
 interface OrderCardProps {
   order: {
@@ -14,6 +14,7 @@ interface OrderCardProps {
     duration_days: number | null;
     prescription_type: string;
     status: string;
+    pharmacy_id: string | null;
     clinical_semaphore: string | null;
     extraordinary_dose_flag: boolean;
     requires_clarification: boolean;
@@ -103,7 +104,13 @@ export function OrderCard({ order, statusLabels, onSelect }: OrderCardProps) {
           </div>
         </div>
 
-        <ChevronRight className="w-5 h-5 text-am-surface-300 shrink-0 mt-1" />
+        {order.pharmacy_id === null && order.status === 'pending' ? (
+          <span className="shrink-0 mt-1 flex items-center gap-1 text-xs font-medium text-emerald-600">
+            Tomar <HandMetal className="w-4 h-4" />
+          </span>
+        ) : (
+          <ChevronRight className="w-5 h-5 text-am-surface-300 shrink-0 mt-1" />
+        )}
       </div>
     </Card>
   );

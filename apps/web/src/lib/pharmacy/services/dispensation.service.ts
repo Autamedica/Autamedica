@@ -78,10 +78,45 @@ export const dispensationService = {
     const pharmacist = await dispensationRepo.findPharmacist(supabase, userId);
     if (!pharmacist) return ok({ orders: [], pharmacistId: null });
 
-    const orders = await dispensationRepo.listOrdersByPharmacy(
-      supabase, pharmacist.pharmacy_id, statusFilter, limit,
-    );
-    return ok({ orders, pharmacistId: pharmacist.id });
+    const pharmacyId = pharmacist.pharmacy_id;
+    const orders = pharmacyId
+      ? await dispensationRepo.listOrdersByPharmacy(supabase, pharmacyId, statusFilter, limit)
+      : [];
+
+    let allOrders = orders;
+    if (statusFilter.length === 0 || statusFilter.includes('pending')) {
+      const unassigned = await dispensationRepo.listUnassignedOrders(supabase, limit);
+      allOrders = [...unassigned, ...orders];
+    }
+
+    return ok({ orders: allOrders, pharmacistId: pharmacist.id });
+  },
+
+  async claimOrder(
+    supabase: Client,
+    userId: string,
+    orderId: string,
+  ): Promise<Result<{ status: string }>> {
+    const pharmacist = await dispensationRepo.findPharmacist(supabase, userId);
+    if (!pharmacist) return fail({ code: 'not_pharmacist' });
+    if (!pharmacist.pharmacy_id) return fail({ code: 'not_pharmacist' });
+
+    const order = await dispensationRepo.findOrderById(supabase, orderId);
+    if (!order) return fail({ code: 'order_not_found' });
+    if (order.pharmacy_id !== null) return fail({ code: 'order_not_in_pharmacy' });
+    if (order.status !== 'pending') return fail({ code: 'invalid_status', status: order.status });
+
+    await dispensationRepo.claimOrder(supabase, orderId, pharmacist.pharmacy_id);
+
+    await dispensationRepo.logAudit(supabase, {
+      order_id: orderId,
+      event_type: 'order_claimed',
+      actor_id: userId,
+      actor_role: 'pharmacist',
+      details: { pharmacy_id: pharmacist.pharmacy_id },
+    });
+
+    return ok({ status: 'assigned' });
   },
 
   async validate(
