@@ -89,7 +89,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .from('clinical_case_states')
       .select('id, case_intent, triage_status, triage_priority_rank, clinical_vertical, risk_of_interruption, medication_snapshot_name, medication_snapshot_dose, medication_snapshot_days_remaining, assigned_doctor_id, acknowledged_at, resolved_at, resolution_deadline_at, created_at, updated_at')
       .eq('patient_id', context.patientId)
-      .in('case_intent', ['continuity', 'renewal'])
+      .in('case_intent', ['continuity', 'renewal', 'evaluation'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle() as { data: ClinicalCaseRow | null; error: { message: string } | null }

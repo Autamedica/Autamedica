@@ -57,7 +57,7 @@ export function PsychiatryCompletedView({
           </div>
           <div className="flex flex-col items-center justify-center gap-3 px-8 pb-10 pt-6 sm:flex-row">
             <a
-              href="/patients/appointments/new?priority=urgent&source=psychiatry-triage"
+              href="/patients/appointments?action=new&priority=urgent&source=psychiatry-triage"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-red-200/40 transition-all hover:bg-red-700 hover:shadow-lg active:scale-[0.97]"
             >
               Agendar Evaluación Prioritaria

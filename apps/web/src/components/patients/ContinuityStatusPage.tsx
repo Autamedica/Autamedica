@@ -75,15 +75,23 @@ export default function ContinuityStatusPage() {
           <Clock className="mx-auto h-10 w-10 text-slate-300" />
           <h2 className="mt-4 text-xl font-semibold text-slate-800">Sin solicitudes activas</h2>
           <p className="mt-2 text-sm text-slate-500">
-            No tenés solicitudes de continuidad en curso.
+            No tenés solicitudes de continuidad en curso. Si completaste tu evaluación psiquiátrica, podés solicitar continuidad desde tu historial.
           </p>
-          <a
-            href="/patients/dashboard"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:shadow-md"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver al inicio
-          </a>
+          <div className="mt-6 flex flex-col items-center gap-3">
+            <a
+              href="/patients/psychiatry"
+              className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-sky-600"
+            >
+              Ir a evaluación psiquiátrica
+            </a>
+            <a
+              href="/patients/dashboard"
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver al inicio
+            </a>
+          </div>
         </div>
       </div>
     )

@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <RefreshCw className="w-4 h-4" />
                 Recargar página
               </button>
-              <a href="/dashboard">
+              <a href="/companies">
                 <button className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 rounded">
                   <Home className="w-4 h-4" />
                   Ir al inicio
@@ -119,7 +119,7 @@ export function ErrorFallback({ error: _error, resetErrorBoundary }: ErrorFallba
             <RefreshCw className="w-4 h-4" />
             Intentar de nuevo
           </button>
-          <a href="/dashboard">
+          <a href="/companies">
             <button className="w-full flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 py-2 rounded">
               <Home className="w-4 h-4" />
               Ir al inicio

@@ -108,8 +108,11 @@ export default function NextStepCard({ anamnesisProgress, upcomingAppointment, d
     if (continuityRes.status === 'fulfilled') {
       const { status, request } = continuityRes.value
       const triageStatus = request?.triageStatus
+      // Only show continuity card if there is a real continuity/renewal request (not evaluation)
+      const intent = request?.intent
       setContinuityPending(
-        status !== 'none' && !!triageStatus && triageStatus !== 'resolved',
+        status !== 'none' && !!request?.id && !!triageStatus && triageStatus !== 'resolved'
+          && (intent === 'continuity' || intent === 'renewal'),
       )
     }
 

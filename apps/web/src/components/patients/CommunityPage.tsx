@@ -435,7 +435,7 @@ export default function CommunityPage() {
             <h1 className="text-lg font-bold">Comunidad</h1>
           </div>
           <div className="flex items-center gap-3">
-            <a href="/patients/notifications" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
+            <a href="/patients/settings" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
               <Bell className="h-5 w-5" />
             </a>
             <button

@@ -52,6 +52,7 @@
     "check:policy": "node scripts/check-policy.mjs",
     "check:prod": "node scripts/ensure-env.mjs && pnpm lint && pnpm -w type-check && pnpm build:packages && pnpm check:policy",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "routes:validate": "node scripts/validate-internal-routes.mjs",
     "seo:validate:parity": "node scripts/seo/validate-parity.mjs",
     "seo:validate:assets": "node scripts/seo/validate-social-assets.mjs",
     "types:analyze": "node scripts/analyze-type-duplication.mjs",

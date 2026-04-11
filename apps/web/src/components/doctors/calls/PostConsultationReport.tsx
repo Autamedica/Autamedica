@@ -129,7 +129,7 @@ function ReportContent({ roomId }: { roomId: string }) {
               </span>
             ) : (
               <a
-                href="/doctors/schedule"
+                href="/doctors/dashboard"
                 className="text-sm text-am-surface-500 hover:text-am-surface-700 transition-colors"
               >
                 Omitir
@@ -283,7 +283,7 @@ function ReportContent({ roomId }: { roomId: string }) {
 
                 <div className="flex gap-3">
                   <a
-                    href="/doctors/schedule"
+                    href="/doctors/dashboard"
                     className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-center text-am-surface-500 bg-white border border-am-surface-200 hover:bg-am-surface-100 transition-colors"
                   >
                     Ir a agenda
@@ -302,7 +302,7 @@ function ReportContent({ roomId }: { roomId: string }) {
             ) : (
               <div className="flex gap-3 pt-4">
                 <a
-                  href="/doctors/schedule"
+                  href="/doctors/dashboard"
                   className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-center text-am-surface-500 bg-white border border-am-surface-200 hover:bg-am-surface-100 transition-colors"
                 >
                   Descartar
@@ -330,7 +330,7 @@ function ReportContent({ roomId }: { roomId: string }) {
             onClose={() => setShowPrescriptionModal(false)}
             onSaved={() => {
               setShowPrescriptionModal(false);
-              window.location.href = '/doctors/schedule';
+              window.location.href = '/doctors/dashboard';
             }}
             addPrescription={async (p) => {
               await prescriptionService.create(reportData.patientId, p);
