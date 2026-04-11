@@ -159,6 +159,10 @@ export interface DoctorProfile {
   accepted_insurance: string[] | null; // JSON array of insurance names
   bio: string | null;
   languages: string[] | null; // Default: ["Spanish"]
+  refeps_id: string | null;
+  enrollment_entity: string | null;
+  enrollment_jurisdiction: string | null;
+  professional_address: string | null;
   active: boolean;
   created_at: ISODateString;
   updated_at: ISODateString;

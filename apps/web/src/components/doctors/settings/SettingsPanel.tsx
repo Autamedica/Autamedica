@@ -35,14 +35,22 @@ interface SettingsPanelProps {
   doctorName?: string
   specialty?: string
   licenseNumber?: string
+  refepsId?: string
+  enrollmentEntity?: string
+  enrollmentJurisdiction?: string
+  professionalAddress?: string
 }
 
 const SETTINGS_STORAGE_KEY = 'autamedica-doctors-settings'
 
-export function SettingsPanel({ doctorName, specialty, licenseNumber }: SettingsPanelProps): JSX.Element {
+export function SettingsPanel({ doctorName, specialty, licenseNumber, refepsId, enrollmentEntity, enrollmentJurisdiction, professionalAddress }: SettingsPanelProps): JSX.Element {
   const resolvedDoctorName = doctorName?.trim() || 'Sin nombre'
   const resolvedSpecialty = specialty?.trim() || 'Sin especialidad'
   const resolvedLicense = licenseNumber?.trim() || 'Sin registro'
+  const resolvedRefepsId = refepsId?.trim() || ''
+  const resolvedEnrollmentEntity = enrollmentEntity?.trim() || ''
+  const resolvedEnrollmentJurisdiction = enrollmentJurisdiction?.trim() || ''
+  const resolvedProfessionalAddress = professionalAddress?.trim() || ''
 
   const [activeCategory, setActiveCategory] = useState('profile')
   const [isDetailView, setIsDetailView] = useState(false)
@@ -52,6 +60,10 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
     fullName: resolvedDoctorName,
     specialty: resolvedSpecialty,
     license: resolvedLicense,
+    refepsId: resolvedRefepsId,
+    enrollmentEntity: resolvedEnrollmentEntity,
+    enrollmentJurisdiction: resolvedEnrollmentJurisdiction,
+    professionalAddress: resolvedProfessionalAddress,
     notifications: true,
     emailNotifications: true,
     appointmentReminders: true,
@@ -88,11 +100,15 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
         fullName: resolvedDoctorName,
         specialty: resolvedSpecialty,
         license: resolvedLicense,
+        refepsId: resolvedRefepsId,
+        enrollmentEntity: resolvedEnrollmentEntity,
+        enrollmentJurisdiction: resolvedEnrollmentJurisdiction,
+        professionalAddress: resolvedProfessionalAddress,
       }))
     } catch {
       setSaveMessage('Se detectó una configuración previa inválida y se restauraron valores seguros.')
     }
-  }, [resolvedDoctorName, resolvedSpecialty, resolvedLicense])
+  }, [resolvedDoctorName, resolvedSpecialty, resolvedLicense, resolvedRefepsId, resolvedEnrollmentEntity, resolvedEnrollmentJurisdiction, resolvedProfessionalAddress])
 
   useEffect(() => {
     setSettings(prev => ({
@@ -100,8 +116,12 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
       fullName: resolvedDoctorName,
       specialty: resolvedSpecialty,
       license: resolvedLicense,
+      refepsId: resolvedRefepsId,
+      enrollmentEntity: resolvedEnrollmentEntity,
+      enrollmentJurisdiction: resolvedEnrollmentJurisdiction,
+      professionalAddress: resolvedProfessionalAddress,
     }))
-  }, [resolvedDoctorName, resolvedSpecialty, resolvedLicense])
+  }, [resolvedDoctorName, resolvedSpecialty, resolvedLicense, resolvedRefepsId, resolvedEnrollmentEntity, resolvedEnrollmentJurisdiction, resolvedProfessionalAddress])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -180,10 +200,38 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
       },
       {
         id: 'license',
-        label: 'Número de licencia médica',
-        description: 'Tu número de colegiatura profesional',
+        label: 'Matrícula Profesional',
+        description: 'Número de registro habilitante',
         type: 'input',
         value: settings.license ?? '',
+      },
+      {
+        id: 'refepsId',
+        label: 'ID REFEPS',
+        description: 'Registro Federal de Profesionales de la Salud',
+        type: 'input',
+        value: settings.refepsId ?? '',
+      },
+      {
+        id: 'enrollmentEntity',
+        label: 'Entidad de Matriculación',
+        description: 'Colegio o Ministerio que emite la matrícula',
+        type: 'input',
+        value: settings.enrollmentEntity ?? '',
+      },
+      {
+        id: 'enrollmentJurisdiction',
+        label: 'Jurisdicción',
+        description: 'Provincia o Jurisdicción Nacional',
+        type: 'input',
+        value: settings.enrollmentJurisdiction ?? '',
+      },
+      {
+        id: 'professionalAddress',
+        label: 'Domicilio Profesional',
+        description: 'Consultorio o domicilio legal para registro RCTA',
+        type: 'input',
+        value: settings.professionalAddress ?? '',
       }
     ],
     video: [
@@ -341,8 +389,13 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
 
       // Persist profile fields to backend
       const profileChanged =
-        String(settings.fullName) !== resolvedDoctorName || String(settings.specialty) !== resolvedSpecialty ||
-        String(settings.license) !== resolvedLicense
+        String(settings.fullName) !== resolvedDoctorName ||
+        String(settings.specialty) !== resolvedSpecialty ||
+        String(settings.license) !== resolvedLicense ||
+        String(settings.refepsId) !== resolvedRefepsId ||
+        String(settings.enrollmentEntity) !== resolvedEnrollmentEntity ||
+        String(settings.enrollmentJurisdiction) !== resolvedEnrollmentJurisdiction ||
+        String(settings.professionalAddress) !== resolvedProfessionalAddress
 
       if (profileChanged) {
         try {
@@ -351,6 +404,10 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
               fullName: String(settings.fullName).trim(),
               specialty: String(settings.specialty).trim(),
               license_number: String(settings.license).trim(),
+              refeps_id: String(settings.refepsId).trim(),
+              enrollment_entity: String(settings.enrollmentEntity).trim(),
+              enrollment_jurisdiction: String(settings.enrollmentJurisdiction).trim(),
+              professional_address: String(settings.professionalAddress).trim(),
             },
           })
           setSaveMessage('Perfil y preferencias guardados.')
@@ -366,7 +423,7 @@ export function SettingsPanel({ doctorName, specialty, licenseNumber }: Settings
     } finally {
       setIsSaving(false)
     }
-  }, [settings, resolvedSpecialty, resolvedLicense])
+  }, [settings, resolvedSpecialty, resolvedLicense, resolvedRefepsId, resolvedEnrollmentEntity, resolvedEnrollmentJurisdiction, resolvedProfessionalAddress])
 
   const renderSettingControl = (setting: SettingItem) => {
     switch (setting.type) {

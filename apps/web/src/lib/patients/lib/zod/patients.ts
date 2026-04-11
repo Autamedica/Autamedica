@@ -74,6 +74,8 @@ export const PatientProfileUpdateSchema = z.object({
     .positive('El peso debe ser positivo')
     .nullable()
     .optional(),
+  cuil: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
   emergencyContact: EmergencyContactSchema.optional(),
 });
 
