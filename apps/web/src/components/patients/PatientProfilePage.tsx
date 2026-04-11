@@ -11,9 +11,11 @@ import {
   ChevronLeft,
   ClipboardList,
   Droplets,
+  Hash,
   HeartPulse,
   Loader2,
   Mail,
+  MapPin,
   Phone,
   RefreshCcw,
   Save,
@@ -278,6 +280,22 @@ function AuthenticatedPatientProfilePage({
                       onChange={(event) => setField('phone', event.target.value)}
                       placeholder="+54 11 5555 5555"
                       icon={<Phone className="h-4 w-4" />}
+                    />
+                    <Field
+                      label="CUIL"
+                      value={form.cuil}
+                      onChange={(event) => setField('cuil', event.target.value)}
+                      placeholder="20-XXXXXXXX-9"
+                      hint="Obligatorio para la validez legal de la receta (RCTA)."
+                      icon={<Hash className="h-4 w-4" />}
+                    />
+                    <Field
+                      label="Domicilio Real"
+                      value={form.address}
+                      onChange={(event) => setField('address', event.target.value)}
+                      placeholder="Calle 123, Depto 4B, CABA"
+                      hint="Requerido por Res. 2214/2025."
+                      icon={<MapPin className="h-4 w-4" />}
                     />
                   </div>
                 </div>

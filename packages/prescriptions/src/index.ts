@@ -11,6 +11,10 @@ export type {
 export { IssuePrescriptionUseCase } from './usecases/IssuePrescription';
 export { SupabasePrescriptionRepository } from './infrastructure/adapters/SupabaseRepository';
 export { RctaVendorAdapter } from './infrastructure/adapters/RctaVendor';
+export { SupabaseIdentityValidator } from './infrastructure/adapters/SupabaseIdentityValidator';
+export { SupabaseDispensationRepository } from './infrastructure/adapters/SupabaseDispensationRepository';
+export { SupabasePharmacyRegistry } from './infrastructure/adapters/SupabasePharmacyRegistry';
+export { SupabasePharmacyNotifier } from './infrastructure/adapters/SupabasePharmacyNotifier';
 
 // ── Pharmacy Dispensation Domain ──
 export type {
@@ -68,3 +72,16 @@ export {
   ExecuteDispensationUseCase,
   RequestClarificationUseCase,
 } from './usecases/PharmacyUseCases';
+
+// ── Regulatory Ports ──
+export type { IDigitalSignatureService, SignerIdentity, SignedPdfResult, VerificationResult } from './domain/signature.ports';
+export type { IRefepsValidator, RefepsValidationResult } from './domain/refeps.ports';
+export type { IPharmacyConventionService, ConventionStatus } from './domain/pharmacy-convention.ports';
+export type { IInsuranceCoverageService, CoverageResult } from './domain/insurance.ports';
+
+// ── Regulatory Adapters ──
+export { X509SignatureService } from './infrastructure/adapters/X509SignatureService';
+export { LocalRefepsValidator } from './infrastructure/adapters/LocalRefepsValidator';
+export { RefepsApiValidator } from './infrastructure/adapters/RefepsApiValidator';
+export { LocalPharmacyConvention } from './infrastructure/adapters/LocalPharmacyConvention';
+export { LocalInsuranceCoverage } from './infrastructure/adapters/LocalInsuranceCoverage';

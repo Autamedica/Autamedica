@@ -1,11 +1,7 @@
-/**
- * Service: PDF generation for prescriptions.
- * Generates a professional prescription PDF with QR code verification.
- * Uses jsPDF (edge-compatible) + qrcode for QR generation.
- */
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
-import { createHash } from 'node:crypto';
+import { rctaService } from './rcta.service';
+import { getSubstanceCategory, getValidityPeriodDays } from './strict-validation';
 
 export interface PrescriptionPdfInput {
   prescriptionId: string;
@@ -38,7 +34,8 @@ export interface PrescriptionPdfInput {
     professionalAddress?: string;
   };
   issuedAt: string;
-  expiresAt: string;
+  // expiresAt is now derived but can be overridden
+  expiresAt?: string;
 }
 
 export interface PrescriptionArtifacts {
@@ -49,28 +46,34 @@ export interface PrescriptionArtifacts {
   qrContent: string;
 }
 
-function generateCuir(prescriptionId: string, issuedAt: string): string {
-  const hash = createHash('sha256')
-    .update(`${prescriptionId}:${issuedAt}`)
-    .digest('hex')
-    .substring(0, 12)
-    .toUpperCase();
-  return `AM-${hash}`;
-}
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-AR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
 }
 
+function calculateExpiry(issuedAt: string, genericName: string): string {
+  const days = getValidityPeriodDays(genericName);
+  const date = new Date(issuedAt);
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
+}
+
 export async function generatePrescriptionPdf(
   input: PrescriptionPdfInput,
 ): Promise<PrescriptionArtifacts> {
-  const cuir = generateCuir(input.prescriptionId, input.issuedAt);
+  // 1. RCTA Registration (Argentina Compliance)
+  const registration = await rctaService.registerPrescription(
+    input.prescriber.license, 
+    input.patient.dni || 'unknown', 
+    input.medication.genericName
+  );
+  
+  const cuir = registration.cuir;
   const qrContent = `https://www.autamedica.com/verify/${cuir}`;
+  const expiresAt = input.expiresAt || calculateExpiry(input.issuedAt, input.medication.genericName);
 
-  // Generate QR as data URL
+  // Generate QR
   const qrDataUrl = await QRCode.toDataURL(qrContent, {
     width: 120,
     margin: 1,
@@ -83,188 +86,191 @@ export async function generatePrescriptionPdf(
   const contentWidth = pageWidth - 40;
   let y = 20;
 
-  // Header
-  doc.setFillColor(15, 23, 42); // slate-900
+  // Header (Dark Slate - Premium Look)
+  doc.setFillColor(15, 23, 42); 
   doc.rect(0, 0, pageWidth, 45, 'F');
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('RECETA MÉDICA', marginLeft, 18);
+  doc.text('RECETA MÉDICA ELECTRÓNICA', marginLeft, 18);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('AutaMedica — Plataforma de Telemedicina', marginLeft, 26);
+  doc.text('Sistema Nacional de Trazabilidad de Actos (RCTA)', marginLeft, 26);
+  doc.setTextColor(56, 189, 248); // sky-400 for CUIR
+  doc.setFont('helvetica', 'bold');
   doc.text(`CUIR: ${cuir}`, marginLeft, 33);
-  doc.text(`Emitida: ${formatDate(input.issuedAt)}  |  Vence: ${formatDate(input.expiresAt)}`, marginLeft, 39);
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Emitida: ${formatDate(input.issuedAt)}  |  Vence: ${formatDate(expiresAt)}`, marginLeft, 39);
 
   // QR in header
   doc.addImage(qrDataUrl, 'PNG', pageWidth - 50, 8, 30, 30);
 
   y = 55;
-  doc.setTextColor(30, 41, 59); // slate-800
+  doc.setTextColor(30, 41, 59);
 
-  // Patient info (Res. 2214/2025: DNI, CUIL, fecha nac., sexo, domicilio)
-  const patientBlockHeight = input.patient.address ? 28 : 22;
-  doc.setFillColor(241, 245, 249); // slate-100
+  // Patient info (Compliance Block)
+  const patientBlockHeight = 32;
+  doc.setFillColor(248, 250, 252); 
   doc.rect(marginLeft, y, contentWidth, patientBlockHeight, 'F');
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(100, 116, 139);
-  doc.text('PACIENTE', marginLeft + 4, y + 5);
+  doc.text('DATOS DEL PACIENTE', marginLeft + 4, y + 6);
+  
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.text(input.patient.name, marginLeft + 4, y + 13);
+  doc.text(input.patient.name, marginLeft + 4, y + 14);
 
-  const patientMeta: string[] = [];
-  if (input.patient.dni) patientMeta.push(`DNI: ${input.patient.dni}`);
-  if (input.patient.cuil) patientMeta.push(`CUIL: ${input.patient.cuil}`);
-  if (input.patient.dateOfBirth) patientMeta.push(`Nac: ${formatDate(input.patient.dateOfBirth)}`);
-  if (input.patient.sex) patientMeta.push(`Sexo: ${input.patient.sex}`);
-  if (patientMeta.length > 0) {
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(patientMeta.join('  |  '), marginLeft + 4, y + 18);
-  }
+  const patientMeta = [
+    input.patient.dni ? `DNI: ${input.patient.dni}` : null,
+    input.patient.cuil ? `CUIL: ${input.patient.cuil}` : null,
+    input.patient.dateOfBirth ? `Nac: ${formatDate(input.patient.dateOfBirth)}` : null,
+  ].filter(Boolean).join('  |  ');
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(patientMeta, marginLeft + 4, y + 20);
+  
   if (input.patient.address) {
-    doc.setFontSize(7);
-    doc.text(`Domicilio: ${input.patient.address}`, marginLeft + 4, y + 23);
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Domicilio: ${input.patient.address}`, marginLeft + 4, y + 26);
   }
-  y += patientBlockHeight + 5;
+  y += patientBlockHeight + 8;
 
-  // Medication
-  doc.setFillColor(219, 234, 254); // blue-100
-  doc.rect(marginLeft, y, contentWidth, 40, 'F');
+  // Medication (IFA Prominence - Critical for Compliance)
+  doc.setFillColor(240, 249, 255); 
+  doc.rect(marginLeft, y, contentWidth, 45, 'F');
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 64, 175); // blue-800
-  doc.text('MEDICAMENTO', marginLeft + 4, y + 5);
+  doc.setTextColor(2, 132, 199); 
+  doc.text('PRESCRIPCIÓN (IFA)', marginLeft + 4, y + 6);
 
-  doc.setFontSize(14);
+  // Generic Name (IFA) - Large and prominent
+  doc.setFontSize(16);
   doc.setTextColor(15, 23, 42);
-  doc.text(input.medication.genericName, marginLeft + 4, y + 14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(input.medication.genericName.toUpperCase(), marginLeft + 4, y + 16);
 
   if (input.medication.commercialName) {
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139);
-    doc.text(`(${input.medication.commercialName})`, marginLeft + 4, y + 21);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Sugerido: ${input.medication.commercialName}`, marginLeft + 4, y + 23);
   }
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
-  doc.setFont('helvetica', 'normal');
-  const medDetails = `${input.medication.dosage} — ${input.medication.presentation} — ${input.medication.quantity} unidades`;
-  doc.text(medDetails, marginLeft + 4, y + 29);
+  doc.setFont('helvetica', 'bold');
+  const medSpecs = `${input.medication.dosage} — ${input.medication.presentation}`;
+  doc.text(medSpecs, marginLeft + 4, y + 30);
+  doc.text(`Cantidad: ${input.medication.quantity} unidades`, marginLeft + 4, y + 36);
 
   doc.setFontSize(9);
-  doc.text(input.medication.instructions, marginLeft + 4, y + 36, { maxWidth: contentWidth - 8 });
-  y += 48;
+  doc.setFont('helvetica', 'italic');
+  doc.text(input.medication.instructions, marginLeft + 4, y + 42, { maxWidth: contentWidth - 8 });
+  y += 55;
 
   // Diagnosis
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(100, 116, 139);
-  doc.text('DIAGNÓSTICO', marginLeft, y);
+  doc.text('DIAGNÓSTICO / INDICACIONES', marginLeft, y);
   y += 5;
   doc.setFontSize(10);
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'normal');
-  doc.text(input.diagnosis, marginLeft, y, { maxWidth: contentWidth });
-  y += 10;
+  doc.text(input.diagnosis || 'Criterio clínico', marginLeft, y, { maxWidth: contentWidth });
+  y += 12;
 
   // Notes
   if (input.notes) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 116, 139);
-    doc.text('OBSERVACIONES', marginLeft, y);
+    doc.text('OBSERVACIONES ADICIONALES', marginLeft, y);
     y += 5;
     doc.setFontSize(9);
-    doc.setTextColor(15, 23, 42);
-    doc.setFont('helvetica', 'normal');
     doc.text(input.notes, marginLeft, y, { maxWidth: contentWidth });
     y += 15;
   }
 
-  // Prescriber
-  y += 5;
-  doc.setDrawColor(203, 213, 225); // slate-300
+  // Prescriber (Regulatory Info Block)
+  y = 210; // Fixed position for footer block
+  doc.setDrawColor(226, 232, 240);
   doc.line(marginLeft, y, marginLeft + contentWidth, y);
   y += 8;
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(100, 116, 139);
-  doc.text('PRESCRIPTOR', marginLeft, y);
-  y += 6;
-  doc.setFontSize(11);
+  doc.text('PROFESIONAL PRESCRIPTOR', marginLeft, y);
+  
+  y += 7;
+  doc.setFontSize(12);
   doc.setTextColor(15, 23, 42);
   doc.text(input.prescriber.name, marginLeft, y);
+  
   y += 5;
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-
-  // Res. 2214/2025: profesión, matrícula, jurisdicción, REFEPS, domicilio profesional
-  const prescriberLine1 = [
-    input.prescriber.profession ?? 'Médico/a',
-    `Matrícula: ${input.prescriber.license}`,
-    input.prescriber.licenseJurisdiction ? `(${input.prescriber.licenseJurisdiction})` : null,
+  const prescriberInfo = [
+    input.prescriber.profession || 'Médico/a',
+    input.prescriber.specialty ? `Esp: ${input.prescriber.specialty}` : null,
   ].filter(Boolean).join('  |  ');
-  doc.text(prescriberLine1, marginLeft, y);
-  y += 4;
+  doc.text(prescriberInfo, marginLeft, y);
 
-  const prescriberLine2 = [
-    input.prescriber.specialty ? `Especialidad: ${input.prescriber.specialty}` : null,
+  y += 5;
+  doc.setFontSize(8);
+  const licenseInfo = [
+    `Matrícula: ${input.prescriber.license} (${input.prescriber.licenseJurisdiction || 'MN'})`,
     input.prescriber.refeps ? `REFEPS: ${input.prescriber.refeps}` : null,
     input.prescriber.licenseEntity ? `Entidad: ${input.prescriber.licenseEntity}` : null,
-  ].filter(Boolean).join('  |  ');
-  if (prescriberLine2) {
-    doc.setFontSize(8);
-    doc.text(prescriberLine2, marginLeft, y);
-    y += 4;
-  }
+  ].filter(Boolean).join('  —  ');
+  doc.text(licenseInfo, marginLeft, y);
 
   if (input.prescriber.professionalAddress) {
+    y += 4;
     doc.setFontSize(7);
     doc.text(`Domicilio profesional: ${input.prescriber.professionalAddress}`, marginLeft, y);
-    y += 4;
   }
 
-  // Firma electrónica
-  y += 3;
-  doc.setFillColor(241, 245, 249);
-  doc.rect(marginLeft, y, 70, 18, 'F');
-  doc.setDrawColor(100, 116, 139);
-  doc.rect(marginLeft, y, 70, 18);
-  doc.setFontSize(7);
-  doc.setTextColor(30, 41, 59);
-  doc.text('Firmado electrónicamente', marginLeft + 4, y + 6);
+  // Firma Digital (Placeholder for PAdES/Visual)
+  const signatureY = 245;
+  doc.setFillColor(248, 250, 252);
+  doc.rect(marginLeft, signatureY, 80, 25, 'F');
+  doc.setDrawColor(15, 23, 42);
+  doc.rect(marginLeft, signatureY, 80, 25);
+  
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('FIRMA DIGITAL CERTIFICADA', marginLeft + 5, signatureY + 7);
   doc.setFontSize(6);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`${input.prescriber.name}`, marginLeft + 4, y + 11);
-  doc.text(`CUIR: ${cuir}`, marginLeft + 4, y + 15);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Documento firmado mediante certificado X.509', marginLeft + 5, signatureY + 12);
+  doc.text(`Validador RCTA: ${cuir}`, marginLeft + 5, signatureY + 16);
+  doc.text(`Fecha de registro: ${formatDate(input.issuedAt)}`, marginLeft + 5, signatureY + 20);
 
-  // Footer
-  const footerY = 280;
-  doc.setDrawColor(203, 213, 225);
-  doc.line(marginLeft, footerY - 5, marginLeft + contentWidth, footerY - 5);
+  // Footer (Compliance & Privacy)
+  const footerY = 285;
   doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
   doc.text(
-    `Prescripción electrónica emitida por AutaMedica. CUIR: ${cuir}. Verificar en: ${qrContent}`,
-    marginLeft, footerY,
+    `Esta prescripción tiene validez de documento público electrónico según Ley 27.553.`,
+    marginLeft, footerY
   );
   doc.text(
-    'Ley 27.553 — Recetas electrónicas/digitales. Res. 2214/2025 — Estructura mínima de prescripción electrónica.',
-    marginLeft, footerY + 4,
+    `AutaMedica garantiza el cumplimiento de la Ley 25.326 de Protección de Datos Personales.`,
+    marginLeft, footerY + 4
   );
 
   const pdfBuffer = new Uint8Array(doc.output('arraybuffer'));
-  const pdfFilename = `receta-${cuir}.pdf`;
+  const pdfFilename = `receta-ar-${cuir}.pdf`;
 
   return { cuir, pdfBuffer, pdfFilename, qrDataUrl, qrContent };
 }

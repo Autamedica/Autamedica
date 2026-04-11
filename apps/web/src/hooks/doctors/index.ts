@@ -6,6 +6,7 @@
 export { usePatientData } from './usePatientData'
 export { useMedicalHistory } from './useMedicalHistory'
 export { usePrescriptions } from './usePrescriptions'
+export { usePrescriptionsCore } from './usePrescriptionsCore'
 export { useVitalSigns } from './useVitalSigns'
 export { useRealPatients } from './useRealPatients'
 

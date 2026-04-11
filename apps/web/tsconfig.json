@@ -24,6 +24,7 @@
     { "path": "../../packages/shared" },
     { "path": "../../packages/auth" },
     { "path": "../../packages/telemedicine" },
-    { "path": "../../packages/hooks" }
+    { "path": "../../packages/hooks" },
+    { "path": "../../packages/prescriptions" }
   ]
 }

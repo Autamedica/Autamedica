@@ -76,25 +76,23 @@
 
 ---
 
-## ⚠️ FASE ACTUAL: Integración y Testing E2E (NO más features)
+## ⚠️ FASE ACTUAL: Completar Circuito Prescripciones + Testing E2E
 
-**La plataforma está COMPLETA en features.** No se agregan funcionalidades nuevas.
+**Doble propósito:**
 
-**ÚNICO PROPÓSITO:** Verificar con MCP Patchright Streaming que las features existentes FUNCIONAN en un entorno real. Testing de integración end-to-end automatizado.
+1. **Cerrar circuitos rotos del módulo de prescripciones** — implementar adapters de puertos hexagonales faltantes, integraciones regulatorias (firma digital X.509, RCTA, REFEPS, convenios), y migrar de `medical_records` legacy a `public.prescriptions` core.
+2. **Verificar con MCP Patchright Streaming** que los flujos completos FUNCIONAN de punta a punta.
 
-**Flujos a probar (no exhaustivo):**
+**Flujos a completar y probar:**
 
-- Llenar una anamnesis completa (formulario real, datos reales)
-- Descargar el PDF generado de la consulta
-- Verificar el JSON enviado al doctor
-- Generar JSON para que la IA produzca el informe médico
+- Circuito completo de prescripción: doctor crea → emite → CUIR + PDF firmado → farmacia valida → dispensa → paciente ve estado
+- Integraciones regulatorias: firma digital, REFEPS, RCTA, convenio farmacias, obras sociales
 - Flujo completo de teleconsulta: agendar → conectar → consulta → informe
-- Autenticación y roles (patient, doctor, company, admin)
-- Pagos y facturación
+- Autenticación y roles (patient, doctor, company, admin, pharmacist)
 
 **Reglas de esta fase:**
 
-1. **CERO features nuevas.** Si algo no funciona, se ARREGLA — no se reescribe ni se agrega.
+1. **Solo cerrar circuitos existentes.** Los puertos/interfaces ya están definidos — se implementan los adapters. No se agregan features fuera del diagrama aprobado.
 2. **Todo se prueba con Patchright Streaming** (MCP browser automation).
 3. **Si un test falla:** investigar, corregir el bug, volver a probar. El ciclo es test → fix → retest.
 4. **Evidencia obligatoria:** Cada flujo probado debe tener resultado documentado (pass/fail + detalle).

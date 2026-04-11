@@ -18,10 +18,15 @@ const { lastUpdated } = Astro.props;
   <div class="space-y-10 text-gray-300 leading-relaxed">
     <section>
       <h2 class="text-2xl font-light text-white mb-4">1. Responsable del Tratamiento</h2>
-      <p>
+      <p class="mb-4">
         AutaMedica (en adelante, "nosotros") es el responsable del tratamiento de los datos
         personales recolectados a través de nuestra plataforma de telemedicina, en cumplimiento
         de la Ley N° 25.326 de Protección de Datos Personales de la República Argentina.
+      </p>
+      <p>
+        Responsable: Eduardo Marques Da Rosa, CUIL 20-95466020-7. Domicilio: Viamonte 2371,
+        Piso 2, Dpto 6, Ciudad Autónoma de Buenos Aires. Base de datos inscripta ante la
+        Dirección Nacional de Protección de Datos Personales (AAIP), Expediente EX-2026-36544262-APN-DNPDP#AAIP.
       </p>
     </section>
 
@@ -31,7 +36,11 @@ const { lastUpdated } = Astro.props;
       <div class="space-y-4">
         <div>
           <h3 class="text-lg font-medium text-white mb-2">Datos de identificación</h3>
-          <p>Nombre completo, DNI/CUIT, fecha de nacimiento, dirección de correo electrónico, número de teléfono.</p>
+          <p>
+            Nombre completo, DNI/CUIT, CUIL (obligatorio para trazabilidad de recetas), 
+            fecha de nacimiento, dirección de correo electrónico, número de teléfono. 
+            Para profesionales: REFEPS, datos de matriculación y domicilio profesional.
+          </p>
         </div>
         <div>
           <h3 class="text-lg font-medium text-white mb-2">Datos de salud</h3>
@@ -56,9 +65,10 @@ const { lastUpdated } = Astro.props;
       <ul class="list-disc list-inside space-y-2 ml-4">
         <li>Prestar los servicios de telemedicina y coordinar consultas médicas</li>
         <li>Gestionar tu historia clínica digital</li>
-        <li>Emitir y gestionar recetas y documentos médicos</li>
+        <li>Emitir y gestionar recetas electrónicas conformes a la Ley 27.553 y Res. 2214/2025</li>
+        <li>Integrar la plataforma con el Registro Central de Trazabilidad de Actos (RCTA) para validez legal</li>
         <li>Mejorar la calidad y seguridad de nuestros servicios</li>
-        <li>Cumplir con obligaciones legales y regulatorias</li>
+        <li>Cumplir con obligaciones legales y regulatorias de las autoridades sanitarias</li>
         <li>Comunicarnos con vos sobre tu cuenta y los servicios</li>
       </ul>
     </section>
@@ -68,7 +78,8 @@ const { lastUpdated } = Astro.props;
       <p>
         El tratamiento de tus datos se basa en: (a) tu consentimiento expreso para datos sensibles
         de salud; (b) la ejecución del contrato de servicios; (c) el cumplimiento de obligaciones
-        legales aplicables al sector salud en Argentina.
+        legales aplicables al sector salud en Argentina, incluyendo el régimen obligatorio de
+        recetas electrónicas (Ley 27.553).
       </p>
     </section>
 
@@ -93,6 +104,8 @@ const { lastUpdated } = Astro.props;
       </p>
       <ul class="list-disc list-inside space-y-2 ml-4">
         <li>Los profesionales de la salud que te atienden, exclusivamente para la prestación del servicio</li>
+        <li>Farmacias habilitadas, exclusivamente para la dispensación de recetas electrónicas emitidas a tu nombre</li>
+        <li>Obras sociales y prepagas, para la facturación y cobertura de prestaciones médicas</li>
         <li>Proveedores de infraestructura técnica (Supabase, Cloudflare) bajo acuerdos de confidencialidad</li>
         <li>Autoridades sanitarias y judiciales cuando lo exija la ley</li>
       </ul>
@@ -100,7 +113,17 @@ const { lastUpdated } = Astro.props;
     </section>
 
     <section>
-      <h2 class="text-2xl font-light text-white mb-4">7. Tus Derechos</h2>
+      <h2 class="text-2xl font-light text-white mb-4">7. Transferencia Internacional de Datos</h2>
+      <p>
+        Tus datos se almacenan en servidores de Supabase (Amazon Web Services) ubicados en Estados Unidos.
+        Esta transferencia se realiza bajo acuerdos de protección de datos que garantizan un nivel de
+        seguridad equivalente al exigido por la legislación argentina. Los proveedores de infraestructura
+        cuentan con certificaciones SOC 2 Type II e ISO 27001.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-light text-white mb-4">8. Tus Derechos</h2>
       <p class="mb-4">Tenés derecho a:</p>
       <ul class="list-disc list-inside space-y-2 ml-4">
         <li><strong class="text-white">Acceso:</strong> conocer qué datos tenemos sobre vos</li>
@@ -111,14 +134,14 @@ const { lastUpdated } = Astro.props;
       </ul>
       <p class="mt-4">
         Para ejercer estos derechos, contactanos en{' '}
-        <a href="mailto:privacidad@autamedica.com" class="text-white underline hover:text-gray-300 transition-colors">
-          privacidad@autamedica.com
+        <a href="mailto:contacto@autamedica.com" class="text-white underline hover:text-gray-300 transition-colors">
+          contacto@autamedica.com
         </a>
       </p>
     </section>
 
     <section>
-      <h2 class="text-2xl font-light text-white mb-4">8. Retención de Datos</h2>
+      <h2 class="text-2xl font-light text-white mb-4">9. Retención de Datos</h2>
       <p>
         Los datos de historia clínica se conservan durante el tiempo mínimo exigido por la legislación
         sanitaria argentina (mínimo 15 años según normativa vigente). Otros datos se eliminan cuando
@@ -127,7 +150,7 @@ const { lastUpdated } = Astro.props;
     </section>
 
     <section>
-      <h2 class="text-2xl font-light text-white mb-4">9. Cookies y Tecnologías de Rastreo</h2>
+      <h2 class="text-2xl font-light text-white mb-4">10. Cookies y Tecnologías de Rastreo</h2>
       <p>
         Utilizamos cookies estrictamente necesarias para el funcionamiento de la plataforma y cookies
         analíticas (Web Vitals) para mejorar el rendimiento. Podés gestionar tus preferencias de cookies
@@ -136,11 +159,11 @@ const { lastUpdated } = Astro.props;
     </section>
 
     <section>
-      <h2 class="text-2xl font-light text-white mb-4">10. Contacto y Reclamaciones</h2>
+      <h2 class="text-2xl font-light text-white mb-4">11. Contacto y Reclamaciones</h2>
       <p class="mb-4">
         Para consultas sobre privacidad:
-        <a href="mailto:privacidad@autamedica.com" class="text-white underline hover:text-gray-300 transition-colors ml-1">
-          privacidad@autamedica.com
+        <a href="mailto:contacto@autamedica.com" class="text-white underline hover:text-gray-300 transition-colors ml-1">
+          contacto@autamedica.com
         </a>
       </p>
       <p>

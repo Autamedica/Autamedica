@@ -14,6 +14,8 @@ export interface PatientProfileFormState {
   bloodType: FormBloodType;
   heightCm: string;
   weightKg: string;
+  cuil: string;
+  address: string;
   emergencyContactName: string;
   emergencyContactRelationship: string;
   emergencyContactPhone: string;
@@ -36,6 +38,8 @@ export const EMPTY_FORM: PatientProfileFormState = {
   bloodType: '',
   heightCm: '',
   weightKg: '',
+  cuil: '',
+  address: '',
   emergencyContactName: '',
   emergencyContactRelationship: '',
   emergencyContactPhone: '',
@@ -90,6 +94,8 @@ export function buildFormState(input: {
     bloodType?: string | null;
     heightCm?: number | null;
     weightKg?: number | null;
+    cuil?: string | null;
+    address?: string | null;
     emergencyContact?: {
       name?: string | null;
       relationship?: string | null;
@@ -130,6 +136,8 @@ export function buildFormState(input: {
         : '',
     heightCm: asMetric(input.patient?.heightCm),
     weightKg: asMetric(input.patient?.weightKg),
+    cuil: asText(input.patient?.cuil),
+    address: asText(input.patient?.address),
     emergencyContactName: asText(emergency?.name),
     emergencyContactRelationship: asText(emergency?.relationship),
     emergencyContactPhone: asText(emergency?.phone),
@@ -199,6 +207,22 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     });
   }
 
+  if (!form.cuil.trim()) {
+    checks.push({
+      id: 'cuil',
+      label: 'CUIL',
+      reason: 'obligatorio para registro nacional RCTA y trazabilidad legal de recetas (Argentina)',
+    });
+  }
+
+  if (!form.address.trim()) {
+    checks.push({
+      id: 'address',
+      label: 'Domicilio',
+      reason: 'requerido por Res. 2214/2025 para la validez de la receta electrónica',
+    });
+  }
+
   if (!form.phone.trim()) {
     checks.push({
       id: 'phone',
@@ -223,14 +247,6 @@ export function buildMissingFields(form: PatientProfileFormState): MissingProfil
     });
   }
 
-  if (!form.bloodType.trim()) {
-    checks.push({
-      id: 'bloodType',
-      label: 'Grupo sanguíneo',
-      reason: 'aporta contexto clínico rápido en urgencias y consultas',
-    });
-  }
-
   if (!form.emergencyContactPhone.trim()) {
     checks.push({
       id: 'emergencyContactPhone',
@@ -246,11 +262,12 @@ export function buildProfileCompletion(form: PatientProfileFormState): number {
   const checks = [
     form.firstName.trim().length > 0,
     form.lastName.trim().length > 0,
+    form.cuil.trim().length > 0,
+    form.address.trim().length > 0,
     form.email.trim().length > 0,
     form.phone.trim().length > 0,
     form.birthDate.trim().length > 0,
     form.gender.trim().length > 0,
-    form.bloodType.trim().length > 0,
     form.emergencyContactPhone.trim().length > 0,
   ];
 
@@ -274,6 +291,8 @@ export function buildPayload(form: PatientProfileFormState): {
       bloodType: form.bloodType || null,
       heightCm: toNullableNumber(form.heightCm),
       weightKg: toNullableNumber(form.weightKg),
+      cuil: toNullableString(form.cuil),
+      address: toNullableString(form.address),
       emergencyContact: {
         name: toNullableString(form.emergencyContactName) ?? null,
         relationship: toNullableString(form.emergencyContactRelationship) ?? null,

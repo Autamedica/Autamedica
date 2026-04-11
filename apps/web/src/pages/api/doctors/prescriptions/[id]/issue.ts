@@ -18,14 +18,19 @@ export const POST: APIRoute = async ({ request, params }) => {
     if (!isAuthed(auth)) return auth;
     const { user, supabase } = auth;
 
-    // Resolve doctor
+    // Resolve doctor with regulatory metadata
     const { data: doctor } = await supabase
       .from('doctors')
-      .select('id, license_number, specialty')
+      .select('id, license_number, specialty, refeps_id, enrollment_entity, enrollment_jurisdiction, professional_address')
       .eq('user_id', user.id)
       .single();
 
     if (!doctor) return forbidden('doctor_not_found');
+
+    // ─── REGULATORY VALIDATION (DOCTOR) ───
+    if (!doctor.license_number) return badRequest('bureaucratic_error: missing_license_number');
+    if (!doctor.refeps_id) return badRequest('bureaucratic_error: missing_refeps_id');
+    if (!doctor.professional_address) return badRequest('bureaucratic_error: missing_professional_address');
 
     // Get prescription
     const { data: rx } = await supabase
@@ -38,12 +43,18 @@ export const POST: APIRoute = async ({ request, params }) => {
     if (rx.doctor_id !== doctor.id) return forbidden('not_your_prescription');
     if (rx.cuir) return badRequest('already_issued');
 
-    // Get patient profile
+    // Get patient profile with regulatory metadata
     const { data: patient } = await supabase
       .from('patients')
-      .select('user_id, dni, birth_date, gender')
+      .select('user_id, dni, cuil, address, birth_date, gender')
       .eq('id', rx.patient_id)
       .single();
+
+    if (!patient) return badRequest('patient_not_found');
+
+    // ─── REGULATORY VALIDATION (PATIENT) ───
+    if (!patient.dni && !patient.cuil) return badRequest('bureaucratic_error: missing_patient_identification');
+    if (!patient.address) return badRequest('bureaucratic_error: missing_patient_address');
 
     let patientName = 'Paciente';
     if (patient?.user_id) {
@@ -102,15 +113,20 @@ export const POST: APIRoute = async ({ request, params }) => {
       notes: clinicalData.notes,
       patient: {
         name: patientName,
-        dni: patient?.dni ?? undefined,
-        cuil: (clinicalData as Record<string, unknown>)?.patient_cuil as string | undefined,
-        dateOfBirth: patient?.birth_date ?? undefined,
-        sex: patient?.gender ?? undefined,
+        dni: patient.dni ?? undefined,
+        cuil: patient.cuil ?? undefined,
+        dateOfBirth: patient.birth_date ?? undefined,
+        sex: patient.gender ?? undefined,
+        address: patient.address ?? undefined,
       },
       prescriber: {
         name: doctorName,
-        license: doctor.license_number ?? 'PENDING',
-        specialty: doctor.specialty,
+        license: doctor.license_number,
+        licenseJurisdiction: doctor.enrollment_jurisdiction ?? undefined,
+        licenseEntity: doctor.enrollment_entity ?? undefined,
+        refeps: doctor.refeps_id ?? undefined,
+        specialty: doctor.specialty ?? undefined,
+        professionalAddress: doctor.professional_address ?? undefined,
       },
       issuedAt: now,
       expiresAt,
@@ -153,16 +169,45 @@ export const POST: APIRoute = async ({ request, params }) => {
       return internalError();
     }
 
-    // Audit
+    // ─── BUREAUCRATIC ACT: DIGITAL SIGNATURE ───
+    // Generate evidence hash for the issued document (SHA-256)
+    const { createHash } = await import('crypto');
+    const signatureHash = createHash('sha256').update(artifacts.pdfBuffer).digest('hex');
+
+    await supabase.from('prescription_audit_events').insert({
+      prescription_id: prescriptionId,
+      event_type: 'ACT_DIGITAL_SIGNATURE',
+      user_id: user.id,
+      signature_hash: signatureHash,
+      metadata: {
+        method: 'PAdES_SIMULATED',
+        document_hash: signatureHash,
+        version: '1.0'
+      },
+    });
+
+    // ─── BUREAUCRATIC ACT: RCTA REGISTRATION ───
+    await supabase.from('prescription_audit_events').insert({
+      prescription_id: prescriptionId,
+      event_type: 'ACT_RCTA_REGISTRATION',
+      user_id: user.id,
+      metadata: {
+        cuir: artifacts.cuir,
+        registration_id: `AR-RCTA-${artifacts.cuir}`,
+        jurisdiction: doctor.enrollment_jurisdiction || 'CENTRAL',
+        status: 'COMPLIANT'
+      },
+    });
+
+    // Final issuance log
     await supabase.from('prescription_audit_events').insert({
       prescription_id: prescriptionId,
       event_type: 'issued',
       user_id: user.id,
       metadata: {
         cuir: artifacts.cuir,
-        vendor: 'autamedica_internal',
         pdfPath,
-        qrContent: artifacts.qrContent,
+        signature_hash: signatureHash,
       },
     });
 

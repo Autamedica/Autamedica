@@ -15,6 +15,7 @@ import {
   Clock,
   Edit3,
   Eye,
+  FileSignature,
   Pause,
   Pill,
   Plus,
@@ -22,7 +23,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { JSX } from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 interface PrescriptionsTabProps {
   patientId: UUID | null;
@@ -64,6 +65,36 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
   const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingPrescription, setEditingPrescription] = useState<Prescription | null>(null);
+  const [issuingId, setIssuingId] = useState<string | null>(null);
+  const [issueError, setIssueError] = useState<string | null>(null);
+  const [issueSuccess, setIssueSuccess] = useState<string | null>(null);
+
+  const handleIssuePrescription = useCallback(async (prescriptionId: string) => {
+    setIssuingId(prescriptionId);
+    setIssueError(null);
+    setIssueSuccess(null);
+    try {
+      const res = await fetch(`/api/doctors/prescriptions/${prescriptionId}/issue`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Error al emitir receta' }));
+        setIssueError(body.error ?? body.message ?? 'Error al emitir receta');
+        return;
+      }
+      const result = await res.json();
+      setIssueSuccess(`Receta emitida: CUIR ${result.cuir}`);
+      window.dispatchEvent(new CustomEvent('medical-prescriptions:changed'));
+    } catch {
+      setIssueError('Error de red al emitir receta');
+    } finally {
+      setIssuingId(null);
+    }
+  }, []);
+
+  const canIssue = (p: Prescription) =>
+    !p.cuir && p.source === 'prescriptions_core' && p.status === 'activa';
 
   const { prescriptions, loading, error, addPrescription, updatePrescription } = usePrescriptions(
     patientId,
@@ -194,6 +225,30 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
         </div>
       </div>
 
+      {/* Feedback de emisión */}
+      {issueSuccess && (
+        <div className="mx-6 mt-4 rounded-lg border border-green-200 bg-green-50 p-3 flex items-center justify-between">
+          <p className="text-sm text-green-800 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            {issueSuccess}
+          </p>
+          <button onClick={() => setIssueSuccess(null)} className="text-green-600 hover:text-green-800">
+            <XCircle className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      {issueError && (
+        <div className="mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 p-3 flex items-center justify-between">
+          <p className="text-sm text-red-800 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            {issueError}
+          </p>
+          <button onClick={() => setIssueError(null)} className="text-red-600 hover:text-red-800">
+            <XCircle className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Lista de prescripciones */}
       <div className="flex-1 overflow-y-auto p-6">
         {prescriptions.length === 0 ? (
@@ -246,6 +301,20 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                     </div>
 
                     <div className="flex items-center gap-1">
+                      {canIssue(prescription) && (
+                        <button
+                          onClick={() => handleIssuePrescription(prescription.id)}
+                          disabled={issuingId === prescription.id}
+                          title="Emitir receta digital"
+                          className="rounded-lg border border-am-doctor-300 bg-am-doctor-50 p-1.5 text-am-doctor-700 hover:bg-am-doctor-100 transition disabled:opacity-50"
+                        >
+                          {issuingId === prescription.id ? (
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-am-doctor-600 border-t-transparent" />
+                          ) : (
+                            <FileSignature className="h-3 w-3" />
+                          )}
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setEditingPrescription(prescription);

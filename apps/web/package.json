@@ -24,6 +24,7 @@
     "@astrojs/tailwind": "^5.0.0",
     "@autamedica/auth": "workspace:^",
     "@autamedica/hooks": "workspace:^",
+    "@autamedica/prescriptions": "workspace:^",
     "@autamedica/scheduling": "workspace:^",
     "@autamedica/session": "workspace:^",
     "@autamedica/shared": "workspace:^",
