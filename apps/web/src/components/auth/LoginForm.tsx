@@ -232,6 +232,19 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
         </svg>
       ),
     },
+    pharmacist: {
+      title: t('roles.pharmacist.title'),
+      subtitle: t('roles.pharmacist.subtitle'),
+      accent: 'text-emerald-800',
+      buttonLabel: t('roles.pharmacist.buttonLabel'),
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M9 2h6l1 7H8L9 2z" />
+          <rect x="5" y="9" width="14" height="13" rx="2" />
+          <path d="M12 13v5M9.5 15.5h5" />
+        </svg>
+      ),
+    },
     company_admin: {
       title: t('roles.company_admin.title'),
       subtitle: t('roles.company_admin.subtitle'),
@@ -283,7 +296,7 @@ export function LoginForm({ locale = 'es' }: { locale?: Locale }) {
         <AuthLogo size="md" />
 
         {/* Role Segmented Picker - High Contrast */}
-        <div role="tablist" aria-label="Portal de acceso" className="mt-10 grid grid-cols-3 gap-1 p-1 bg-[var(--au-surface)] border border-[var(--au-border)] rounded-2xl">
+        <div role="tablist" aria-label="Portal de acceso" className="mt-10 grid grid-cols-4 gap-1 p-1 bg-[var(--au-surface)] border border-[var(--au-border)] rounded-2xl">
           {ROLE_ENTRIES.map((entry) => {
             const isCurrent = role === entry.role;
             const info = roleInfo[entry.role as string];

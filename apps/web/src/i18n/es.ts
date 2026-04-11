@@ -107,6 +107,14 @@ export const es = {
       subtitle: 'Infraestructura clínica de alto rendimiento.',
       buttonLabel: 'Entrar como Médico',
     },
+    pharmacist: {
+      label: 'Farmacéutico',
+      shortLabel: 'Farmacia',
+      description: 'Valida y dispensa recetas médicas',
+      title: 'Portal de Farmacia',
+      subtitle: 'Dispensación segura con trazabilidad completa.',
+      buttonLabel: 'Entrar como Farmacéutico',
+    },
     company_admin: {
       label: 'Empresa',
       shortLabel: 'Empresa',

@@ -127,6 +127,14 @@ export const pt: DeepPartial<Widen<TranslationDict>> = {
       subtitle: 'Infraestrutura clínica de alto desempenho.',
       buttonLabel: 'Entrar como Médico',
     },
+    pharmacist: {
+      label: 'Farmacêutico',
+      shortLabel: 'Farmácia',
+      description: 'Valide e dispense receitas médicas',
+      title: 'Portal da Farmácia',
+      subtitle: 'Dispensação segura com rastreabilidade completa.',
+      buttonLabel: 'Entrar como Farmacêutico',
+    },
     company_admin: {
       label: 'Empresa',
       shortLabel: 'Empresa',
