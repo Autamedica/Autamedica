@@ -1,18 +1,19 @@
 /**
  * Utilidades de entorno para apps/web (Astro).
- * Usa import.meta.env en lugar de process-env.
+ * Usa import.meta.env con fallback a getDomainConfig() para Cloudflare runtime.
  */
+
+import { getDomainConfig } from '@autamedica/auth'
 
 export type AppTarget = 'patients' | 'doctors' | 'pharmacy' | 'companies' | 'admin';
 
-function readRequiredPublicEnv(key: keyof ImportMetaEnv): string {
-  const value = import.meta.env[key];
-  if (typeof value === 'string' && value.trim().length > 0) {
-    return value.trim();
-  }
-
-  throw new Error(`[env] Missing required environment variable: ${key}`);
-}
+const APP_TO_DOMAIN_KEY: Record<AppTarget, keyof ReturnType<typeof getDomainConfig>['apps']> = {
+  patients: 'patients',
+  doctors: 'doctors',
+  pharmacy: 'pharmacy',
+  companies: 'companies',
+  admin: 'admin',
+} as const;
 
 const BASE_URL_ENV_KEYS: Record<AppTarget, keyof ImportMetaEnv> = {
   doctors: 'PUBLIC_DOCTORS_URL',
@@ -35,7 +36,16 @@ function joinUrl(base: string, path: string): string {
 }
 
 export function getAppBaseUrl(app: AppTarget): string {
-  return readRequiredPublicEnv(BASE_URL_ENV_KEYS[app]);
+  const envKey = BASE_URL_ENV_KEYS[app];
+  const value = import.meta.env[envKey];
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim();
+  }
+
+  // Fallback: derive from domain config (works in Cloudflare runtime)
+  const domainConfig = getDomainConfig();
+  const domainKey = APP_TO_DOMAIN_KEY[app];
+  return domainConfig.apps[domainKey];
 }
 
 export function getAppUrl(path: string = '', app?: AppTarget): string {
