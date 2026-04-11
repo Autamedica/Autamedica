@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   UserCheck,
 } from 'lucide-react'
+import { fetchApi } from '@/lib/api-client'
+import { logger } from '@autamedica/shared'
 
 interface ContinuityRequest {
   id: string
@@ -43,13 +45,13 @@ export default function ContinuityStatusPage() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/patients/psychiatry/continuity-request', {
-        credentials: 'include',
-      })
-      if (!res.ok) return
-      const json = await res.json()
+      const json = await fetchApi<{ status: string; request: ContinuityRequest | null }>(
+        '/api/patients/psychiatry/continuity-request'
+      )
       setStatus(json.status)
       setRequest(json.request)
+    } catch (err) {
+      logger.error('[ContinuityStatusPage] Failed to fetch status', err)
     } finally {
       setLoading(false)
     }
