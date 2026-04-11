@@ -220,7 +220,7 @@ a {
 .desktop-only { display: none; }
 .mobile-only  { display: block; }
 
-@media (min-width: 1025px) {
+@media (min-width: 1024px) {
   .desktop-only { display: block; }
   .mobile-only  { display: none; }
 }

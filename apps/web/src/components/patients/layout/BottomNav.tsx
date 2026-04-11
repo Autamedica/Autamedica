@@ -18,7 +18,7 @@ const TABS: Array<{ key: PatientTab; label: string; href: string; icon: typeof H
 
 export default function BottomNav({ activeTab = 'inicio' }: BottomNavProps) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/90 backdrop-blur-xl sm:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/90 backdrop-blur-xl md:hidden">
       <div className="mx-auto flex max-w-lg items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
         {TABS.map(({ key, label, href, icon: Icon, center }) => {
           const isActive = activeTab === key

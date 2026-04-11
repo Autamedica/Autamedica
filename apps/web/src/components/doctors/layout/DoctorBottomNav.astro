@@ -16,7 +16,7 @@ const TABS = [
 ];
 ---
 
-<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur-xl sm:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+<nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 backdrop-blur-xl md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
   <div class="mx-auto flex max-w-lg items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
     {TABS.map(({ key, label, href, icon: Icon, center }) => {
       const isActive = activeTab === key;
