@@ -17,10 +17,9 @@ export const POST: APIRoute = async ({ request, params }) => {
     const body = await request.json() as ValidateInput;
     const result = await dispensationService.validate(supabase, user.id, orderId, body);
 
-    if (!result.ok) {
-      const { code } = result.error;
+    if (result.ok === false) {
+      const code = result.error.code;
       if (code === 'not_pharmacist' || code === 'order_not_in_pharmacy') return forbidden(code);
-      if (code === 'order_not_found') return badRequest(code);
       return badRequest(code);
     }
 

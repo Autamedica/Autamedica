@@ -74,7 +74,7 @@ export const dispensationService = {
     userId: string,
     statusFilter: string[],
     limit: number,
-  ): Result<{ orders: unknown[]; pharmacistId: string | null }> {
+  ): Promise<Result<{ orders: unknown[]; pharmacistId: string | null }>> {
     const pharmacist = await dispensationRepo.findPharmacist(supabase, userId);
     if (!pharmacist) return ok({ orders: [], pharmacistId: null });
 
