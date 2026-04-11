@@ -4,9 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
 import { fetchApi } from '@/lib/api-client';
+import { Button } from '@autamedica/ui';
+import { Card } from '@autamedica/ui';
+import { Badge } from '@autamedica/ui';
 import { OrderCard } from './OrderCard';
 import { ValidationPanel } from './ValidationPanel';
 import { DispensePanel } from './DispensePanel';
+import { AlertTriangle, ChevronLeft, RefreshCw } from 'lucide-react';
 
 interface DispensationOrder {
   id: string;
@@ -137,33 +141,28 @@ function DashboardContent() {
   if (!pharmacistId && !loading) {
     return (
       <div className="min-h-screen bg-am-surface-50 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-am-md p-8 max-w-md text-center">
+        <Card variant="elevated" padding="lg" className="max-w-md text-center">
           <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+            <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
           <h2 className="text-lg font-semibold text-am-surface-900 mb-2">Sin farmacia asociada</h2>
           <p className="text-sm text-am-surface-500">
             Tu cuenta no está vinculada a ninguna farmacia. Contactá al administrador para configurar tu acceso.
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-am-surface-50">
-      {/* Header */}
       <header className="border-b border-am-surface-200 bg-white shadow-am-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {view !== 'list' && (
-              <button onClick={handleBack} aria-label="Volver al listado" className="p-1.5 rounded-lg hover:bg-am-surface-100 transition">
-                <svg className="w-5 h-5 text-am-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+              <Button variant="ghost" size="sm" onClick={handleBack} aria-label="Volver al listado">
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
             )}
             <div>
               <h1 className="text-lg font-semibold text-am-surface-900">
@@ -175,15 +174,9 @@ function DashboardContent() {
             </div>
           </div>
           {view === 'list' && (
-            <button
-              onClick={() => fetchOrders(currentTab.statuses)}
-              className="text-sm text-am-surface-500 hover:text-am-surface-700 transition flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+            <Button variant="ghost" size="sm" onClick={() => fetchOrders(currentTab.statuses)} icon={<RefreshCw className="w-4 h-4" />}>
               Actualizar
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -191,7 +184,6 @@ function DashboardContent() {
       <main className="max-w-6xl mx-auto px-6 py-6">
         {view === 'list' && (
           <>
-            {/* Tabs */}
             <div className="flex gap-2 mb-6 overflow-x-auto pb-1" role="tablist" aria-label="Filtrar por estado">
               {STATUS_TABS.map(tab => (
                 <button
@@ -207,35 +199,28 @@ function DashboardContent() {
                 >
                   {tab.label}
                   {!loading && (
-                    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
-                      activeTab === tab.key ? 'bg-white/20' : 'bg-am-surface-100'
-                    }`}>
+                    <Badge variant={activeTab === tab.key ? 'default' : 'default'} size="xs" className={`ml-2 ${activeTab === tab.key ? 'bg-white/20 text-white ring-0' : ''}`}>
                       {orders.length}
-                    </span>
+                    </Badge>
                   )}
                 </button>
               ))}
             </div>
 
-            {/* Error */}
             {error && (
               <div className="rounded-xl bg-red-50 border border-red-200 p-4 mb-4 flex items-center justify-between" role="alert">
                 <p className="text-sm text-red-700">{error}</p>
-                <button
-                  onClick={() => fetchOrders(currentTab.statuses)}
-                  className="text-sm font-medium text-red-700 hover:text-red-900 underline"
-                >
+                <Button variant="ghost" size="sm" onClick={() => fetchOrders(currentTab.statuses)} className="text-red-700 hover:text-red-900 underline">
                   Reintentar
-                </button>
+                </Button>
               </div>
             )}
 
-            {/* Orders list */}
             {loading ? (
               <div className="space-y-3" aria-busy="true" aria-label="Cargando órdenes">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="bg-white rounded-xl shadow-am-sm border border-am-surface-200 p-4 animate-pulse">
-                    <div className="flex items-start gap-3">
+                  <Card key={i} variant="elevated" padding="sm">
+                    <div className="flex items-start gap-3 animate-pulse">
                       <div className="flex-1 space-y-2">
                         <div className="h-4 w-48 bg-am-surface-200 rounded" />
                         <div className="h-3 w-32 bg-am-surface-100 rounded" />
@@ -245,13 +230,13 @@ function DashboardContent() {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             ) : orders.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-am-sm border border-am-surface-200 p-12 text-center">
+              <Card variant="elevated" padding="lg" className="text-center">
                 <p className="text-sm text-am-surface-500">No hay órdenes en esta categoría</p>
-              </div>
+              </Card>
             ) : (
               <div className="space-y-3">
                 {orders.map(order => (

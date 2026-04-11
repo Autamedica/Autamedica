@@ -40,7 +40,7 @@ import { SidebarNavigation } from './SidebarNavigation'
 
 const DoctorCommunityPage = lazy(() => import('@/components/doctors/DoctorCommunityPage').then(m => ({ default: m.DoctorCommunityPage })))
 const AppointmentsPanel = lazy(() => import('@/components/doctors/appointments/AppointmentsPanel').then(m => ({ default: m.AppointmentsPanel })))
-const DiagnosisPanel = lazy(() => import('@/components/doctors/diagnosis/DiagnosisPanel').then(m => ({ default: m.DiagnosisPanel })))
+
 const AIHistoryTab = lazy(() => import('@/components/doctors/medical/AIHistoryTab').then(m => ({ default: m.AIHistoryTab })))
 const MedicalHistoryTab = lazy(() => import('@/components/doctors/medical/MedicalHistoryTab').then(m => ({ default: m.MedicalHistoryTab })))
 const PrescriptionsTab = lazy(() => import('@/components/doctors/medical/PrescriptionsTab').then(m => ({ default: m.PrescriptionsTab })))
@@ -170,6 +170,10 @@ export function DoctorsPortalShell({
   const userName = resolveDoctorDisplayName(doctor?.profile, user?.profile)
   const doctorSpecialty = doctor?.specialty || 'Especialidad pendiente'
   const doctorLicense = doctor?.license_number || 'Registro pendiente'
+  const doctorRefepsId = doctor?.refeps_id || ''
+  const doctorEnrollmentEntity = doctor?.enrollment_entity || ''
+  const doctorEnrollmentJurisdiction = doctor?.enrollment_jurisdiction || ''
+  const doctorProfessionalAddress = doctor?.professional_address || ''
 
   const patientsCount = stats?.patientsCount ?? undefined
   const appointmentsCount = stats?.todayCount || 0
@@ -538,6 +542,10 @@ export function DoctorsPortalShell({
                         doctorName={userName}
                         specialty={doctorSpecialty}
                         licenseNumber={String(doctorLicense)}
+                        refepsId={doctorRefepsId}
+                        enrollmentEntity={doctorEnrollmentEntity}
+                        enrollmentJurisdiction={doctorEnrollmentJurisdiction}
+                        professionalAddress={doctorProfessionalAddress}
                       />
                     </Suspense>
                   </ErrorBoundary>
@@ -568,13 +576,6 @@ export function DoctorsPortalShell({
                   <ErrorBoundary fallback={<PanelErrorFallback />}>
                     <Suspense fallback={<PanelLoader />}>
                       <VitalSignsPanel onNavigateToPatients={() => setActiveSection('patients')} />
-                    </Suspense>
-                  </ErrorBoundary>
-                )}
-                {activeSection === 'diagnosis' && (
-                  <ErrorBoundary fallback={<PanelErrorFallback />}>
-                    <Suspense fallback={<PanelLoader />}>
-                      <DiagnosisPanel />
                     </Suspense>
                   </ErrorBoundary>
                 )}

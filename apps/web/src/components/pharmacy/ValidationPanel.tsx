@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { logger } from '@autamedica/shared';
 import { fetchApi } from '@/lib/api-client';
+import { Button } from '@autamedica/ui';
+import { Card } from '@autamedica/ui';
+import { Check, X } from 'lucide-react';
 
 interface ValidationPanelProps {
   order: {
@@ -88,48 +91,37 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
 
   if (orderStatus === 'approved_for_dispensation') {
     return (
-      <div className="bg-white rounded-2xl shadow-am-md border border-green-200 p-8 text-center" role="status" aria-live="polite">
+      <Card variant="outlined" padding="lg" className="border-green-200 text-center">
         <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+          <Check className="w-7 h-7 text-green-600" />
         </div>
         <h2 className="text-lg font-semibold text-am-surface-900 mb-2">Orden aprobada para dispensación</h2>
         <p className="text-sm text-am-surface-500 mb-6">Todas las validaciones pasaron exitosamente.</p>
-        <button
-          onClick={onComplete}
-          className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition"
-        >
+        <Button variant="primary" onClick={onComplete} className="bg-emerald-600 hover:bg-emerald-700">
           Volver al listado
-        </button>
-      </div>
+        </Button>
+      </Card>
     );
   }
 
   if (orderStatus === 'blocked') {
     return (
-      <div className="bg-white rounded-2xl shadow-am-md border border-red-200 p-8 text-center" role="alert" aria-live="assertive">
+      <Card variant="outlined" padding="lg" className="border-red-200 text-center">
         <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X className="w-7 h-7 text-red-600" />
         </div>
         <h2 className="text-lg font-semibold text-am-surface-900 mb-2">Orden bloqueada</h2>
         <p className="text-sm text-am-surface-500 mb-6">Una validación falló. Se requiere aclaración del prescriptor.</p>
-        <button
-          onClick={onComplete}
-          className="px-6 py-2.5 rounded-xl bg-am-surface-600 text-white text-sm font-medium hover:bg-am-surface-700 transition"
-        >
+        <Button variant="secondary" onClick={onComplete}>
           Volver al listado
-        </button>
-      </div>
+        </Button>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Order summary */}
-      <div className="bg-white rounded-xl shadow-am-sm border border-am-surface-200 p-4">
+      <Card variant="elevated" padding="sm">
         <h3 className="text-sm font-semibold text-am-surface-900 mb-2">Detalle de la orden</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div>
@@ -169,15 +161,14 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
             )}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Validations checklist */}
-      <fieldset className="bg-white rounded-xl shadow-am-sm border border-am-surface-200 overflow-hidden">
-        <legend className="px-4 py-3 border-b border-am-surface-200 w-full text-left">
+      <Card variant="elevated" padding="none">
+        <div className="px-4 py-3 border-b border-am-surface-200">
           <span className="text-sm font-semibold text-am-surface-900">
             Validaciones requeridas ({completedValidations.size}/{allValidations.length})
           </span>
-        </legend>
+        </div>
         <div className="divide-y divide-am-surface-100">
           {allValidations.map(validation => {
             const isCompleted = completedValidations.has(validation.type);
@@ -188,9 +179,7 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
                 <div className="flex items-center gap-3 min-w-0">
                   {isCompleted ? (
                     <span className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <svg className="w-3.5 h-3.5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
+                      <Check className="w-3.5 h-3.5 text-green-600" />
                     </span>
                   ) : (
                     <span className="w-6 h-6 rounded-full border-2 border-am-surface-200 shrink-0" />
@@ -209,20 +198,24 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
                       <div className="h-5 w-5 border-2 border-am-surface-200 border-t-emerald-600 rounded-full animate-spin" />
                     ) : (
                       <>
-                        <button
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => handleValidate(validation.type, 'pass')}
                           disabled={processing}
-                          className="px-3 py-1 rounded-lg text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 transition"
+                          className="bg-green-50 text-green-700 hover:bg-green-100"
                         >
                           Aprobado
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           onClick={() => handleValidate(validation.type, 'fail')}
                           disabled={processing}
-                          className="px-3 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50 transition"
+                          className="bg-red-50 text-red-700 hover:bg-red-100"
                         >
                           Rechazar
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>
@@ -231,7 +224,7 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
             );
           })}
         </div>
-      </fieldset>
+      </Card>
     </div>
   );
 }
