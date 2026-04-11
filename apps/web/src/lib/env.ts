@@ -3,7 +3,7 @@
  * Usa import.meta.env en lugar de process-env.
  */
 
-export type AppTarget = 'patients' | 'doctors' | 'companies' | 'admin';
+export type AppTarget = 'patients' | 'doctors' | 'pharmacy' | 'companies' | 'admin';
 
 function readRequiredPublicEnv(key: keyof ImportMetaEnv): string {
   const value = import.meta.env[key];
@@ -17,6 +17,7 @@ function readRequiredPublicEnv(key: keyof ImportMetaEnv): string {
 const BASE_URL_ENV_KEYS: Record<AppTarget, keyof ImportMetaEnv> = {
   doctors: 'PUBLIC_DOCTORS_URL',
   patients: 'PUBLIC_PATIENTS_URL',
+  pharmacy: 'PUBLIC_PHARMACY_URL',
   companies: 'PUBLIC_COMPANIES_URL',
   admin: 'PUBLIC_ADMIN_URL',
 } as const;
@@ -24,6 +25,7 @@ const BASE_URL_ENV_KEYS: Record<AppTarget, keyof ImportMetaEnv> = {
 const ROUTE_TO_APP: Array<[string, AppTarget]> = [
   ['/doctors', 'doctors'],
   ['/patients', 'patients'],
+  ['/pharmacy', 'pharmacy'],
   ['/companies', 'companies']
 ];
 

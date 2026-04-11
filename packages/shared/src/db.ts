@@ -209,8 +209,8 @@ export async function selectById<Table extends TableName, TResult = TableRow<Tab
 ): Promise<TResult | null> {
   const { includeDeleted = false, transform = true } = options;
 
-  let queryBuilder = supabase
-    .from(table as TableName)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let queryBuilder = (supabase.from(table as TableName) as any)
     .select('*')
     .eq('id', id);
 
@@ -404,8 +404,8 @@ export async function countActive<Table extends TableName>(
 ): Promise<number> {
   const { includeDeleted = false } = options;
 
-  let queryBuilder = supabase
-    .from(table as TableName)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let queryBuilder = (supabase.from(table as TableName) as any)
     .select('*', { count: 'exact', head: true });
 
   if (!includeDeleted) {
