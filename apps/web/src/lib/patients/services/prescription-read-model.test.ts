@@ -52,6 +52,6 @@ describe("prescription-read-model", () => {
 
     expect(result.requires_strict_validation).toBe(true);
     expect(result.is_digital_artifact_ready).toBe(false);
-    expect(result.artifact_warning).toContain("validacion reforzada");
+    expect(result.artifact_warning).toContain("controlada");
   });
 });
