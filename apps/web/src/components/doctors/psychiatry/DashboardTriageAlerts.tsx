@@ -101,7 +101,6 @@ export function DashboardTriageAlerts() {
         )
       `, { count: 'exact' })
       .not('triage_status', 'eq', 'resolved')
-      .neq('triage_priority_rank', 3) 
       .order('triage_priority_rank', { ascending: true })
       .order('resolution_deadline_at', { ascending: true, nullsFirst: false })
       .limit(10)
