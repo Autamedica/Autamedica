@@ -51,6 +51,7 @@ export async function generateAndSaveReport(
   doctorNotes: string | null,
 ): Promise<{
   recordId: string;
+  patientId: string;
   report: Record<string, unknown>;
   chiefComplaint: string | null;
   differentialDiagnosis: string | null;
@@ -122,6 +123,7 @@ export async function generateAndSaveReport(
 
   return {
     recordId: saved.id,
+    patientId,
     report: result.report as unknown as Record<string, unknown>,
     chiefComplaint: result.chiefComplaint,
     differentialDiagnosis: result.differentialDiagnosis.join(', ') || null,

@@ -2,8 +2,8 @@ import { isValidUserRole, resolveRoleFromPortal } from '@autamedica/shared';
 import type { UserRole } from '@autamedica/shared';
 import { getAppBaseUrl } from './env';
 
-export type EntryRole = 'patient' | 'doctor' | 'company_admin';
-export type EntryPortal = 'patients' | 'doctors' | 'companies';
+export type EntryRole = 'patient' | 'doctor' | 'pharmacist' | 'company_admin';
+export type EntryPortal = 'patients' | 'doctors' | 'pharmacy' | 'companies';
 export type AuthPage = 'login' | 'register' | 'select-role';
 
 export interface RoleEntry {
@@ -33,6 +33,14 @@ export const ROLE_ENTRIES: readonly RoleEntry[] = [
     accent: 'var(--portal-doctors)',
   },
   {
+    role: 'pharmacist',
+    portal: 'pharmacy',
+    label: 'Farmacéutico',
+    shortLabel: 'Farmacia',
+    description: 'Valida y dispensa recetas médicas',
+    accent: 'var(--portal-pharmacy, #059669)',
+  },
+  {
     role: 'company_admin',
     portal: 'companies',
     label: 'Empresa',
@@ -43,7 +51,7 @@ export const ROLE_ENTRIES: readonly RoleEntry[] = [
 ] as const;
 
 function isEntryRole(role: string): role is EntryRole {
-  return role === 'patient' || role === 'doctor' || role === 'company_admin';
+  return role === 'patient' || role === 'doctor' || role === 'pharmacist' || role === 'company_admin';
 }
 
 function normalizeRole(role: string | null | undefined): EntryRole | undefined {

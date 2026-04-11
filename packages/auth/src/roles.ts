@@ -36,6 +36,9 @@ export const ROLES = {
   /** Administrador interno - soporte / operaciones */
   ADMIN: 'admin',
 
+  /** Farmacéutico - acceso a portal de farmacia y dispensación */
+  PHARMACIST: 'pharmacist',
+
   /** Administrador de plataforma - acceso completo al sistema */
   PLATFORM_ADMIN: 'platform_admin',
 } as const;
@@ -66,6 +69,9 @@ export const PORTALS = {
 
   /** Portal de administración */
   ADMIN: 'admin',
+
+  /** Portal de farmacia */
+  PHARMACY: 'pharmacy',
 } as const;
 
 /**
@@ -82,6 +88,7 @@ export const ROLE_TO_PORTAL: Record<UserRole, Portal> = {
   [ROLES.COMPANY]: PORTALS.COMPANIES,
   [ROLES.COMPANY_ADMIN]: PORTALS.COMPANIES,
   [ROLES.ORGANIZATION_ADMIN]: PORTALS.ADMIN,
+  [ROLES.PHARMACIST]: PORTALS.PHARMACY,
   [ROLES.ADMIN]: PORTALS.ADMIN,
   [ROLES.PLATFORM_ADMIN]: PORTALS.ADMIN,
 } as const;
@@ -93,6 +100,7 @@ export const PORTAL_TO_ROLE: Record<Portal, UserRole> = {
   [PORTALS.PATIENTS]: ROLES.PATIENT,
   [PORTALS.DOCTORS]: ROLES.DOCTOR,
   [PORTALS.COMPANIES]: ROLES.ORGANIZATION_ADMIN,
+  [PORTALS.PHARMACY]: ROLES.PHARMACIST,
   [PORTALS.ADMIN]: ROLES.PLATFORM_ADMIN,
 } as const;
 
@@ -221,6 +229,15 @@ export const getBasePermissions = (role: UserRole): string[] => {
       'read:medical_history',
       'create:medical_records',
     ],
+    [ROLES.PHARMACIST]: [
+      'read:own_profile',
+      'update:own_profile',
+      'read:dispensation_orders',
+      'update:dispensation_orders',
+      'create:dispensation_validations',
+      'create:dispensation_events',
+      'create:dispensation_clarifications',
+    ],
     [ROLES.COMPANY]: [
       'read:own_profile',
       'update:own_profile',
@@ -344,6 +361,9 @@ export const canAccessPortal = (role: UserRole, portal: Portal): boolean => {
 
     case ROLES.ADMIN:
       return portal === PORTALS.ADMIN;
+
+    case ROLES.PHARMACIST:
+      return portal === PORTALS.PHARMACY;
 
     case ROLES.PATIENT:
       // Los pacientes solo pueden acceder a su portal

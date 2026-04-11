@@ -10,6 +10,7 @@ import type { ISODateString } from "../primitives/date";
 export type UserRole =
   | "patient"
   | "doctor"
+  | "pharmacist"
   | "company"
   | "company_admin"
   | "organization_admin"
@@ -19,7 +20,7 @@ export type UserRole =
 /**
  * Portales de la plataforma según el plan
  */
-export type Portal = "pacientes" | "medico" | "empresa" | "admin";
+export type Portal = "pacientes" | "medico" | "farmacia" | "empresa" | "admin";
 
 /**
  * Usuario base de la plataforma
@@ -64,11 +65,12 @@ export interface UserSession {
 export const ROLE_TO_PORTALS: Record<UserRole, Portal[]> = {
   patient: ["pacientes"],
   doctor: ["medico"],
+  pharmacist: ["farmacia"],
   company: ["empresa"],
   company_admin: ["empresa", "admin"],
   organization_admin: ["empresa", "admin"],
   admin: ["admin"],
-  platform_admin: ["pacientes", "medico", "empresa", "admin"],
+  platform_admin: ["pacientes", "medico", "farmacia", "empresa", "admin"],
 } as const;
 
 /**

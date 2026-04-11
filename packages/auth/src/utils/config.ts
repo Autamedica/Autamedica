@@ -44,6 +44,7 @@ export function getDomainConfig(): DomainConfig {
         auth: 'https://www.autamedica.com',
         patients: 'https://paciente.autamedica.com',
         doctors: 'https://doctor.autamedica.com',
+        pharmacy: 'https://farmacia.autamedica.com',
         companies: 'https://empresa.autamedica.com',
         admin: 'https://admin.autamedica.com'
       }
@@ -56,6 +57,7 @@ export function getDomainConfig(): DomainConfig {
         auth: 'https://autamedica-web-app-staging.pages.dev',
         patients: 'https://autamedica-patients-staging.pages.dev',
         doctors: 'https://autamedica-doctors-staging.pages.dev',
+        pharmacy: 'https://autamedica-pharmacy-staging.pages.dev',
         companies: 'https://autamedica-companies-staging.pages.dev',
         admin: 'https://autamedica-admin-staging.pages.dev'
       }
@@ -68,6 +70,7 @@ export function getDomainConfig(): DomainConfig {
         auth: 'http://localhost:3000',
         patients: 'http://localhost:3003',
         doctors: 'http://localhost:3002',
+        pharmacy: 'http://localhost:3007',
         companies: 'http://localhost:3004',
         admin: 'http://localhost:3006'
       }

@@ -2,7 +2,7 @@
  * Portal routing utilities for role-based redirection
  */
 
-export type UserRole = 'patient' | 'doctor' | 'company' | 'company_admin' | 'organization_admin' | 'platform_admin';
+export type UserRole = 'patient' | 'doctor' | 'pharmacist' | 'company' | 'company_admin' | 'organization_admin' | 'platform_admin';
 
 /**
  * Get the portal URL for a given role
@@ -20,6 +20,8 @@ export function getPortalForRole(role: UserRole | undefined): string {
         return process.env.PUBLIC_PORTAL_DOCTORS || 'http://localhost:3001';
       case 'patient':
         return process.env.PUBLIC_PORTAL_PATIENTS || 'http://localhost:3002';
+      case 'pharmacist':
+        return process.env.PUBLIC_PORTAL_PHARMACY || 'http://localhost:3007';
       case 'company':
       case 'company_admin':
         return process.env.PUBLIC_PORTAL_COMPANIES || 'http://localhost:3003';
@@ -37,6 +39,8 @@ export function getPortalForRole(role: UserRole | undefined): string {
       return process.env.PUBLIC_BASE_URL_DOCTORS || 'https://doctor.autamedica.com';
     case 'patient':
       return process.env.PUBLIC_BASE_URL_PATIENTS || 'https://paciente.autamedica.com';
+    case 'pharmacist':
+      return process.env.PUBLIC_BASE_URL_PHARMACY || 'https://farmacia.autamedica.com';
     case 'company':
     case 'company_admin':
       return process.env.PUBLIC_BASE_URL_COMPANIES || 'https://empresa.autamedica.com';

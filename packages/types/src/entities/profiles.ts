@@ -14,6 +14,7 @@ import type { UUID, ISODateString } from '../core/brand.types';
 export type UserRole =
   | 'doctor'
   | 'patient'
+  | 'pharmacist'
   | 'company_admin'
   | 'organization_admin'
   | 'platform_admin';
@@ -21,6 +22,7 @@ export type UserRole =
 export const USER_ROLES: readonly UserRole[] = [
   'doctor',
   'patient',
+  'pharmacist',
   'company_admin',
   'organization_admin',
   'platform_admin'
