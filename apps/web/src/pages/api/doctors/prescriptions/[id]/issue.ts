@@ -160,7 +160,7 @@ export const POST: APIRoute = async ({ request, params }) => {
         vendor_name: 'autamedica_internal',
         vendor_id: `am-${Date.now()}`,
         qr_code_content: artifacts.qrContent,
-        signed_pdf_url: signedPdfUrl ?? artifacts.qrContent,
+        signed_pdf_url: signedPdfUrl,
       })
       .eq('id', prescriptionId);
 
