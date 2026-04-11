@@ -30,8 +30,8 @@
   --text-secondary: #475569;
   --text-light: #94A3B8;
 
-  /* Role accents */
-  --doctor-accent: #7C3AED;
+  /* Role accents — aligned with am-doctor-500 and am-primary-500 tokens */
+  --doctor-accent: #0891B2;
   --patient-accent: #0EA5E9;
 
   /* Surfaces */

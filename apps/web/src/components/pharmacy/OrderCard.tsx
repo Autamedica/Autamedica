@@ -1,5 +1,9 @@
 'use client';
 
+import { Badge } from '@autamedica/ui';
+import { Card } from '@autamedica/ui';
+import { ChevronRight } from 'lucide-react';
+
 interface OrderCardProps {
   order: {
     id: string;
@@ -28,28 +32,44 @@ const SEMAPHORE_COLORS: Record<string, string> = {
   red: 'bg-red-500',
 };
 
-const TYPE_BADGES: Record<string, { label: string; color: string }> = {
-  standard: { label: 'Estándar', color: 'bg-gray-100 text-gray-600' },
-  transition_bridge: { label: 'Bridge', color: 'bg-purple-100 text-purple-700' },
-  continuation: { label: 'Continuación', color: 'bg-blue-100 text-blue-700' },
-  emergency: { label: 'Emergencia', color: 'bg-red-100 text-red-700' },
+const STATUS_BADGE_VARIANT: Record<string, 'default' | 'primary' | 'success' | 'warning' | 'danger'> = {
+  pending: 'default',
+  assigned: 'primary',
+  under_review: 'warning',
+  clarification_requested: 'warning',
+  clarification_provided: 'primary',
+  approved_for_dispensation: 'success',
+  dispensed: 'success',
+  partially_dispensed: 'success',
+  blocked: 'danger',
+  cancelled: 'default',
+  expired: 'default',
 };
 
-export function OrderCard({ order, statusColors, statusLabels, onSelect }: OrderCardProps) {
-  const typeBadge = TYPE_BADGES[order.prescription_type] ?? TYPE_BADGES.standard;
+const TYPE_BADGE_VARIANT: Record<string, 'default' | 'primary' | 'danger'> = {
+  standard: 'default',
+  transition_bridge: 'primary',
+  continuation: 'primary',
+  emergency: 'danger',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  standard: 'Estándar',
+  transition_bridge: 'Bridge',
+  continuation: 'Continuación',
+  emergency: 'Emergencia',
+};
+
+export function OrderCard({ order, statusLabels, onSelect }: OrderCardProps) {
   const windowEnd = order.dispense_window_end
     ? new Date(order.dispense_window_end).toLocaleDateString('es-AR')
     : null;
 
   return (
-    <button
-      onClick={onSelect}
-      className="w-full bg-white rounded-xl shadow-am-sm border border-am-surface-200 p-4 hover:border-emerald-300 hover:shadow-am-md transition text-left"
-    >
+    <Card variant="elevated" padding="sm" hover="lift" onClick={onSelect}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            {/* Semaphore */}
             {order.clinical_semaphore && (
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${SEMAPHORE_COLORS[order.clinical_semaphore] ?? 'bg-gray-400'}`} />
             )}
@@ -57,9 +77,7 @@ export function OrderCard({ order, statusColors, statusLabels, onSelect }: Order
               {order.medication ?? 'Medicamento sin especificar'}
             </h3>
             {order.extraordinary_dose_flag && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-600 shrink-0">
-                DOSIS EXTRA
-              </span>
+              <Badge variant="danger" size="xs">DOSIS EXTRA</Badge>
             )}
           </div>
 
@@ -71,12 +89,12 @@ export function OrderCard({ order, statusColors, statusLabels, onSelect }: Order
           </div>
 
           <div className="flex items-center gap-2 mt-2">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
+            <Badge variant={STATUS_BADGE_VARIANT[order.status] ?? 'default'} size="xs">
               {statusLabels[order.status] ?? order.status}
-            </span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${typeBadge.color}`}>
-              {typeBadge.label}
-            </span>
+            </Badge>
+            <Badge variant={TYPE_BADGE_VARIANT[order.prescription_type] ?? 'default'} size="xs">
+              {TYPE_LABELS[order.prescription_type] ?? order.prescription_type}
+            </Badge>
             {windowEnd && (
               <span className="text-[10px] text-am-surface-400">
                 Vence: {windowEnd}
@@ -85,10 +103,8 @@ export function OrderCard({ order, statusColors, statusLabels, onSelect }: Order
           </div>
         </div>
 
-        <svg className="w-5 h-5 text-am-surface-300 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
+        <ChevronRight className="w-5 h-5 text-am-surface-300 shrink-0 mt-1" />
       </div>
-    </button>
+    </Card>
   );
 }
