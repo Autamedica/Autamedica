@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import ContinuityStatusPage from '@/components/patients/ContinuityStatusPage'
+
+const title = 'Continuidad Psiquiatrica | AutaMedica'
+const description = 'Estado de tu solicitud de continuidad de tratamiento psiquiatrico'
+---
+
+<Layout title={title} description={description} robots="noindex, nofollow, noarchive">
+  <ContinuityStatusPage client:load />
+</Layout>
