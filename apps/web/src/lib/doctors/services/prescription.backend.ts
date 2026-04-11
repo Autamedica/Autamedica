@@ -284,7 +284,7 @@ export function mapCoreRowToPrescription(row: CorePrescriptionRow): Prescription
     notes: content.notes ?? null,
     side_effects_warning: content.side_effects_warning ?? null,
     source: "prescriptions_core",
-    issuance_status: row.status,
+    issuance_status: row.status as Prescription['issuance_status'],
     vendor_name: normalizeVendorName(row.vendor_name),
     vendor_id: row.vendor_id,
     cuir: row.cuir,
