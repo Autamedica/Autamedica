@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     // Get patient profile
     const { data: patient } = await supabase
       .from('patients')
-      .select('user_id')
+      .select('user_id, dni, birth_date, gender')
       .eq('id', rx.patient_id)
       .single();
 
@@ -100,7 +100,13 @@ export const POST: APIRoute = async ({ request, params }) => {
       },
       diagnosis: clinicalData.diagnosis ?? '',
       notes: clinicalData.notes,
-      patient: { name: patientName },
+      patient: {
+        name: patientName,
+        dni: patient?.dni ?? undefined,
+        cuil: (clinicalData as Record<string, unknown>)?.patient_cuil as string | undefined,
+        dateOfBirth: patient?.birth_date ?? undefined,
+        sex: patient?.gender ?? undefined,
+      },
       prescriber: {
         name: doctorName,
         license: doctor.license_number ?? 'PENDING',
