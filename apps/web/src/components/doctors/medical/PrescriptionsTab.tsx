@@ -4,6 +4,7 @@
 
 "use client";
 
+import { fetchApi } from "@/lib/api-client";
 import { formatDate } from "@/lib/date-utils";
 import { usePrescriptions } from "@/hooks/doctors/usePrescriptions";
 import { PrescriptionCreateModal } from "@/components/doctors/medical/PrescriptionCreateModal";
@@ -14,7 +15,6 @@ import {
   CheckCircle,
   Clock,
   Edit3,
-  Eye,
   FileSignature,
   Pause,
   Pill,
@@ -23,10 +23,47 @@ import {
   XCircle,
 } from "lucide-react";
 import type { JSX } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface PrescriptionsTabProps {
   patientId: UUID | null;
+}
+
+interface PrescriptionClarification {
+  id: string;
+  order_id: string;
+  prescription_id: string;
+  medication: string | null;
+  pharmacy_name: string | null;
+  question: string;
+  question_category: string;
+  requested_at: string;
+  expires_at: string | null;
+  order_status: string;
+}
+
+const CLARIFICATION_CATEGORY_LABELS: Record<string, string> = {
+  dose_verification: "Verificación de dosis",
+  formulation_mismatch: "Formulación o presentación",
+  duration_concern: "Duración o cantidad",
+  interaction_alert: "Interacción o seguridad",
+  bridge_protocol: "Protocolo bridge",
+  identity_concern: "Identidad o prescriptor",
+  other: "Otro motivo",
+};
+
+function formatClarificationDate(value: string | null): string {
+  if (!value) return "Fecha no disponible";
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Fecha no disponible";
+
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
 }
 
 const STATUS_CONFIG: Record<
@@ -68,6 +105,14 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
   const [issuingId, setIssuingId] = useState<string | null>(null);
   const [issueError, setIssueError] = useState<string | null>(null);
   const [issueSuccess, setIssueSuccess] = useState<string | null>(null);
+  const [clarifications, setClarifications] = useState<PrescriptionClarification[]>([]);
+  const [clarificationsLoading, setClarificationsLoading] = useState(false);
+  const [clarificationLoadError, setClarificationLoadError] = useState<string | null>(null);
+  const [activeClarificationId, setActiveClarificationId] = useState<string | null>(null);
+  const [clarificationResponse, setClarificationResponse] = useState("");
+  const [respondingClarificationId, setRespondingClarificationId] = useState<string | null>(null);
+  const [clarificationActionError, setClarificationActionError] = useState<string | null>(null);
+  const [clarificationActionSuccess, setClarificationActionSuccess] = useState<string | null>(null);
 
   const handleIssuePrescription = useCallback(async (prescriptionId: string) => {
     setIssuingId(prescriptionId);
@@ -93,6 +138,62 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
     }
   }, []);
 
+  const fetchClarifications = useCallback(async () => {
+    if (!patientId) {
+      setClarifications([]);
+      setClarificationLoadError(null);
+      return;
+    }
+
+    setClarificationsLoading(true);
+    setClarificationLoadError(null);
+
+    try {
+      const data = await fetchApi<PrescriptionClarification[]>(
+        `/api/doctors/prescriptions/clarifications?patientId=${patientId}`
+      );
+      setClarifications(data);
+    } catch (error) {
+      setClarificationLoadError("No pudimos cargar las aclaraciones pendientes de farmacia.");
+    } finally {
+      setClarificationsLoading(false);
+    }
+  }, [patientId]);
+
+  const handleRespondClarification = useCallback(async (
+    prescriptionId: string,
+    clarificationId: string,
+  ) => {
+    if (!clarificationResponse.trim()) {
+      setClarificationActionError("Escribí una respuesta para la farmacia antes de enviarla.");
+      return;
+    }
+
+    setRespondingClarificationId(clarificationId);
+    setClarificationActionError(null);
+    setClarificationActionSuccess(null);
+
+    try {
+      await fetchApi(`/api/doctors/prescriptions/${prescriptionId}/clarify`, {
+        body: {
+          clarification_id: clarificationId,
+          response: clarificationResponse.trim(),
+        },
+      });
+
+      setClarificationActionSuccess("Aclaración enviada a farmacia.");
+      setActiveClarificationId(null);
+      setClarificationResponse("");
+      await fetchClarifications();
+    } catch (error) {
+      setClarificationActionError(
+        error instanceof Error ? error.message : "No se pudo enviar la aclaración.",
+      );
+    } finally {
+      setRespondingClarificationId(null);
+    }
+  }, [clarificationResponse, fetchClarifications]);
+
   const canIssue = (p: Prescription) =>
     !p.cuir && p.source === 'prescriptions_core' && p.status === 'activa';
 
@@ -106,6 +207,13 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
       },
     },
   );
+
+  const clarificationByPrescription = new Map<string, PrescriptionClarification>();
+  clarifications.forEach((clarification) => {
+    if (!clarificationByPrescription.has(clarification.prescription_id)) {
+      clarificationByPrescription.set(clarification.prescription_id, clarification);
+    }
+  });
 
   const getDaysRemaining = (endDate: string | null): number | null => {
     if (!endDate) return null;
@@ -122,6 +230,10 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
     const daysRemaining = getDaysRemaining(endDate);
     return daysRemaining !== null && daysRemaining <= 7 && daysRemaining >= 0;
   };
+
+  useEffect(() => {
+    void fetchClarifications();
+  }, [fetchClarifications]);
 
   if (loading && prescriptions.length === 0) {
     return (
@@ -172,6 +284,10 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
             <p className="text-sm text-am-surface-500">
               {prescriptions.length} prescripción{prescriptions.length !== 1 ? "es" : ""} encontrada
               {prescriptions.length !== 1 ? "s" : ""}
+              {clarifications.length > 0
+                ? ` · ${clarifications.length} aclaración${clarifications.length !== 1 ? "es" : ""} pendiente${clarifications.length !== 1 ? "s" : ""}`
+                : ""}
+              {clarificationsLoading ? " · cargando aclaraciones..." : ""}
             </p>
           </div>
 
@@ -248,6 +364,34 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
           </button>
         </div>
       )}
+      {clarificationActionSuccess && (
+        <div className="mx-6 mt-4 rounded-lg border border-cyan-200 bg-cyan-50 p-3 flex items-center justify-between">
+          <p className="text-sm text-cyan-800 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            {clarificationActionSuccess}
+          </p>
+          <button
+            onClick={() => setClarificationActionSuccess(null)}
+            className="text-cyan-600 hover:text-cyan-800"
+          >
+            <XCircle className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      {clarificationLoadError && (
+        <div className="mx-6 mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center justify-between">
+          <p className="text-sm text-amber-800 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            {clarificationLoadError}
+          </p>
+          <button
+            onClick={() => void fetchClarifications()}
+            className="text-amber-700 underline hover:text-amber-900"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Lista de prescripciones */}
       <div className="flex-1 overflow-y-auto p-6">
@@ -280,6 +424,7 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
               const StatusIcon = statusConfig.icon;
               const daysRemaining = getDaysRemaining(prescription.end_date);
               const expiringSoon = isExpiringSoon(prescription.end_date);
+              const pendingClarification = clarificationByPrescription.get(prescription.id);
 
               return (
                 <div
@@ -324,16 +469,6 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                         className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition"
                       >
                         <Edit3 className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingPrescription(prescription);
-                          setShowModal(true);
-                        }}
-                        title="Ver detalle"
-                        className="rounded-lg border border-am-surface-200 bg-white p-1.5 text-am-surface-500 hover:bg-am-surface-100 transition"
-                      >
-                        <Eye className="h-3 w-3" />
                       </button>
                     </div>
                   </div>
@@ -431,6 +566,85 @@ export function PrescriptionsTab({ patientId }: PrescriptionsTabProps): JSX.Elem
                         <AlertTriangle className="mt-0.5 h-3 w-3 flex-shrink-0" />
                         {prescription.artifact_warning}
                       </p>
+                    </div>
+                  )}
+
+                  {pendingClarification && (
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                            Aclaración pendiente de farmacia
+                          </p>
+                          <p className="mt-1 text-sm font-medium text-amber-950">
+                            {pendingClarification.question}
+                          </p>
+                          <p className="mt-1 text-[11px] text-amber-700">
+                            {CLARIFICATION_CATEGORY_LABELS[pendingClarification.question_category] ?? pendingClarification.question_category}
+                            {pendingClarification.pharmacy_name ? ` · ${pendingClarification.pharmacy_name}` : ""}
+                            {` · ${formatClarificationDate(pendingClarification.requested_at)}`}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setClarificationActionError(null);
+                            setClarificationActionSuccess(null);
+                            if (activeClarificationId === pendingClarification.id) {
+                              setActiveClarificationId(null);
+                              setClarificationResponse("");
+                              return;
+                            }
+                            setActiveClarificationId(pendingClarification.id);
+                            setClarificationResponse("");
+                          }}
+                          className="shrink-0 rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
+                        >
+                          {activeClarificationId === pendingClarification.id ? "Cerrar" : "Responder"}
+                        </button>
+                      </div>
+
+                      {activeClarificationId === pendingClarification.id && (
+                        <div className="mt-3 space-y-2">
+                          <textarea
+                            value={clarificationResponse}
+                            onChange={(event) => setClarificationResponse(event.target.value)}
+                            rows={4}
+                            className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-am-surface-900 focus:border-am-doctor-500 focus:outline-none focus:ring-1 focus:ring-am-doctor-500"
+                            placeholder="Escribí la aclaración para la farmacia. Esta respuesta deja la orden lista para volver a revisión."
+                          />
+
+                          {clarificationActionError && (
+                            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                              {clarificationActionError}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveClarificationId(null);
+                                setClarificationResponse("");
+                                setClarificationActionError(null);
+                              }}
+                              className="rounded-lg border border-am-surface-200 bg-white px-3 py-2 text-xs font-medium text-am-surface-600 transition hover:bg-am-surface-100"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleRespondClarification(prescription.id, pendingClarification.id)}
+                              disabled={respondingClarificationId === pendingClarification.id}
+                              className="rounded-lg bg-am-doctor-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-am-doctor-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {respondingClarificationId === pendingClarification.id
+                                ? "Enviando..."
+                                : "Enviar aclaración"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

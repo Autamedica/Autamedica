@@ -30,6 +30,24 @@ interface ValidationResponse {
   remaining?: string[];
 }
 
+interface ClarificationResponse {
+  clarificationId: string;
+  orderStatus: string;
+  expiresAt: string;
+}
+
+const CLARIFICATION_CATEGORY_OPTIONS = [
+  { value: 'dose_verification', label: 'Verificación de dosis' },
+  { value: 'formulation_mismatch', label: 'Formulación / presentación' },
+  { value: 'duration_concern', label: 'Duración / cantidad' },
+  { value: 'interaction_alert', label: 'Interacción o seguridad' },
+  { value: 'bridge_protocol', label: 'Protocolo bridge' },
+  { value: 'identity_concern', label: 'Identidad / prescriptor' },
+  { value: 'other', label: 'Otro motivo' },
+] as const;
+
+type ClarificationCategory = typeof CLARIFICATION_CATEGORY_OPTIONS[number]['value'];
+
 const BASE_VALIDATIONS = [
   { type: 'patient_identity', label: 'Identidad del paciente', description: 'Verificar DNI/CUIL del paciente' },
   { type: 'prescriber_identity', label: 'Identidad del prescriptor', description: 'Verificar matrícula del médico' },
@@ -45,11 +63,61 @@ const EXTRA_VALIDATIONS = [
   { type: 'controlled_substance', label: 'Sustancia controlada', description: 'Verificación ANMAT para sustancias controladas', condition: 'controlled' },
 ];
 
+function getClarificationCategory(validationType: string): ClarificationCategory {
+  switch (validationType) {
+    case 'dose_check':
+      return 'dose_verification';
+    case 'formulation_match':
+    case 'medication_match':
+      return 'formulation_mismatch';
+    case 'quantity_check':
+    case 'validity_check':
+      return 'duration_concern';
+    case 'bridge_protocol':
+      return 'bridge_protocol';
+    case 'patient_identity':
+    case 'prescriber_identity':
+      return 'identity_concern';
+    default:
+      return 'other';
+  }
+}
+
+function buildClarificationQuestion(validationType: string, order: ValidationPanelProps['order']): string {
+  const medication = order.medication ?? 'la medicación indicada';
+
+  switch (validationType) {
+    case 'dose_check':
+      return `Necesitamos confirmar la dosis indicada para ${medication} antes de continuar con la dispensación.`;
+    case 'formulation_match':
+      return `Necesitamos confirmar la formulación o presentación correcta de ${medication}.`;
+    case 'medication_match':
+      return `Hay una discrepancia con el medicamento informado. ¿Podés confirmar si ${medication} es el medicamento correcto?`;
+    case 'quantity_check':
+      return `Necesitamos confirmar la cantidad total a dispensar para ${medication}.`;
+    case 'validity_check':
+      return `Necesitamos confirmar la vigencia operativa de la receta para ${medication}.`;
+    case 'patient_identity':
+      return 'Necesitamos confirmar la identidad del paciente antes de continuar con la dispensación.';
+    case 'prescriber_identity':
+      return 'Necesitamos confirmar la identidad o matrícula del prescriptor antes de continuar con la dispensación.';
+    case 'bridge_protocol':
+      return `Necesitamos una aclaración sobre el protocolo bridge aplicado a ${medication}.`;
+    default:
+      return `Necesitamos una aclaración clínica o operativa para continuar con la dispensación de ${medication}.`;
+  }
+}
+
 export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
   const [completedValidations, setCompletedValidations] = useState<Set<string>>(new Set());
   const [currentValidation, setCurrentValidation] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [failedValidationType, setFailedValidationType] = useState<string | null>(null);
+  const [clarificationCategory, setClarificationCategory] = useState<ClarificationCategory>('other');
+  const [clarificationQuestion, setClarificationQuestion] = useState('');
+  const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
+  const [clarificationError, setClarificationError] = useState<string | null>(null);
 
   const allValidations = [
     ...BASE_VALIDATIONS,
@@ -80,12 +148,44 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
         setOrderStatus('approved_for_dispensation');
       } else if (response.status === 'blocked') {
         setOrderStatus('blocked');
+        setFailedValidationType(validationType);
+        setClarificationCategory(getClarificationCategory(validationType));
+        setClarificationQuestion(buildClarificationQuestion(validationType, order));
+        setClarificationError(null);
       }
     } catch (err) {
       logger.error('[ValidationPanel] Error', err);
     } finally {
       setProcessing(false);
       setCurrentValidation(null);
+    }
+  };
+
+  const handleRequestClarification = async () => {
+    if (!clarificationQuestion.trim()) {
+      setClarificationError('Escribí la aclaración que necesitás enviar al prescriptor.');
+      return;
+    }
+
+    setClarificationSubmitting(true);
+    setClarificationError(null);
+
+    try {
+      await fetchApi<ClarificationResponse>(
+        `/api/pharmacy/orders/${order.id}/clarify`,
+        {
+          body: {
+            question: clarificationQuestion.trim(),
+            question_category: clarificationCategory,
+          },
+        }
+      );
+      setOrderStatus('clarification_requested');
+    } catch (err) {
+      logger.error('[ValidationPanel] Clarification request error', err);
+      setClarificationError(err instanceof Error ? err.message : 'No se pudo enviar la aclaración.');
+    } finally {
+      setClarificationSubmitting(false);
     }
   };
 
@@ -105,13 +205,89 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
   }
 
   if (orderStatus === 'blocked') {
+    const failedValidation = allValidations.find(validation => validation.type === failedValidationType);
+
     return (
-      <Card variant="outlined" padding="lg" className="border-red-200 text-center">
+      <Card variant="outlined" padding="lg" className="border-red-200">
         <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <X className="w-7 h-7 text-red-600" />
         </div>
-        <h2 className="text-lg font-semibold text-am-surface-900 mb-2">Orden bloqueada</h2>
-        <p className="text-sm text-am-surface-500 mb-6">Una validación falló. Se requiere aclaración del prescriptor.</p>
+        <h2 className="text-lg font-semibold text-am-surface-900 mb-2 text-center">Orden bloqueada</h2>
+        <p className="text-sm text-am-surface-500 mb-6 text-center">
+          La validación se frenó y ahora podés pedir una aclaración real al prescriptor desde esta misma pantalla.
+        </p>
+
+        {failedValidation && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <strong>Validación observada:</strong> {failedValidation.label}
+          </div>
+        )}
+
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-am-surface-500">
+              Motivo
+            </label>
+            <select
+              value={clarificationCategory}
+              onChange={(event) => setClarificationCategory(event.target.value as ClarificationCategory)}
+              className="w-full rounded-xl border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              {CLARIFICATION_CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-am-surface-500">
+              Consulta para el prescriptor
+            </label>
+            <textarea
+              value={clarificationQuestion}
+              onChange={(event) => setClarificationQuestion(event.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-am-surface-200 bg-white px-3 py-2.5 text-sm text-am-surface-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              placeholder="Describí qué necesitás confirmar antes de dispensar."
+            />
+          </div>
+
+          {clarificationError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {clarificationError}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={onComplete} disabled={clarificationSubmitting}>
+              Volver al listado
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleRequestClarification}
+              disabled={clarificationSubmitting}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {clarificationSubmitting ? 'Enviando aclaración...' : 'Solicitar aclaración'}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (orderStatus === 'clarification_requested') {
+    return (
+      <Card variant="outlined" padding="lg" className="border-orange-200 text-center">
+        <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Check className="w-7 h-7 text-orange-600" />
+        </div>
+        <h2 className="text-lg font-semibold text-am-surface-900 mb-2">Aclaración enviada</h2>
+        <p className="text-sm text-am-surface-500 mb-6">
+          La consulta ya quedó enviada al prescriptor. La orden volverá a revisión cuando llegue la respuesta.
+        </p>
         <Button variant="secondary" onClick={onComplete}>
           Volver al listado
         </Button>

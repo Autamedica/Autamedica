@@ -50,6 +50,21 @@ function formatPrescriptionDate(value: string) {
   }).format(parsed)
 }
 
+function getVerifyUrl(cuir: string | null): string | null {
+  if (!cuir) return null
+  return `/verify/${encodeURIComponent(cuir)}`
+}
+
+function getDownloadablePdfUrl(
+  signedPdfUrl: string | null,
+  verifyUrl: string | null,
+): string | null {
+  if (!signedPdfUrl) return null
+  if (verifyUrl && signedPdfUrl === verifyUrl) return null
+  if (signedPdfUrl.includes('/verify/')) return null
+  return signedPdfUrl
+}
+
 function toPrescriptionModalData(p: PatientPrescription) {
   return {
     id: p.id,
@@ -83,6 +98,8 @@ function PrescriptionCard({
   const statusLabel = STATUS_LABEL[prescription.status] ?? prescription.status
   const statusColor = STATUS_COLOR[prescription.status] ?? 'bg-stone-500/15 text-stone-400'
   const subtitle = [prescription.doctor_name ? `Dr. ${prescription.doctor_name}` : 'Profesional tratante', formatPrescriptionDate(prescription.prescribed_date || prescription.start_date)].join(' · ')
+  const verifyUrl = getVerifyUrl(prescription.cuir)
+  const downloadablePdfUrl = getDownloadablePdfUrl(prescription.signed_pdf_url, verifyUrl)
 
   return (
     <div
@@ -147,9 +164,9 @@ function PrescriptionCard({
       )}
 
       <div className="flex gap-2">
-        {prescription.signed_pdf_url && (
+        {downloadablePdfUrl && (
           <a
-            href={prescription.signed_pdf_url}
+            href={downloadablePdfUrl}
             target="_blank"
             rel="noreferrer"
             onClick={(event) => event.stopPropagation()}
