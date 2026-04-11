@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { PrescriptionVerifyPage } from '@/components/prescriptions/PrescriptionVerifyPage';
+
+const { cuir } = Astro.params;
+const title = `Verificar Receta ${cuir} | AutaMedica`;
+---
+
+<Layout title={title} description="Verificación de receta electrónica" robots="noindex, nofollow, noarchive">
+  <PrescriptionVerifyPage cuir={cuir!} client:load />
+</Layout>

@@ -1,0 +1,161 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { fetchApi } from '@/lib/api-client';
+import { logger } from '@autamedica/shared';
+
+interface VerifyResult {
+  valid: boolean;
+  prescription: {
+    cuir: string;
+    status: string;
+    medication: string;
+    dosage: string;
+    quantity: number;
+    diagnosis: string;
+    prescriberName: string;
+    prescriberLicense: string;
+    patientName: string;
+    issuedAt: string;
+    pdfUrl: string | null;
+  } | null;
+}
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  draft: { label: 'Borrador', color: 'bg-gray-100 text-gray-700' },
+  signed: { label: 'Firmada', color: 'bg-blue-100 text-blue-700' },
+  sent: { label: 'Emitida', color: 'bg-sky-100 text-sky-700' },
+  dispensed_partial: { label: 'Parcialmente dispensada', color: 'bg-amber-100 text-amber-700' },
+  dispensed_total: { label: 'Dispensada', color: 'bg-emerald-100 text-emerald-700' },
+  cancelled: { label: 'Cancelada', color: 'bg-red-100 text-red-700' },
+  expired: { label: 'Expirada', color: 'bg-gray-200 text-gray-500' },
+};
+
+export function PrescriptionVerifyPage({ cuir }: { cuir: string }) {
+  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<VerifyResult | null>(null);
+
+  const verify = useCallback(async () => {
+    try {
+      const data = await fetchApi<VerifyResult>(`/api/verify/${cuir}`);
+      setResult(data);
+    } catch (err) {
+      logger.error('[PrescriptionVerify] Error', err);
+      setResult({ valid: false, prescription: null });
+    } finally {
+      setLoading(false);
+    }
+  }, [cuir]);
+
+  useEffect(() => { void verify(); }, [verify]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-10 w-10 border-2 border-slate-200 border-t-sky-500 rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-slate-500">Verificando receta...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result?.valid || !result.prescription) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-red-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-red-100 p-8 text-center">
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Receta no encontrada</h1>
+          <p className="text-sm text-slate-500 mb-1">CUIR: <code className="bg-slate-100 px-2 py-0.5 rounded text-xs">{cuir}</code></p>
+          <p className="text-sm text-slate-500">Este identificador no corresponde a ninguna receta registrada en AutaMedica.</p>
+          <a href="/" className="mt-6 inline-block text-sm text-sky-600 hover:text-sky-700 font-medium">Ir al inicio</a>
+        </div>
+      </div>
+    );
+  }
+
+  const rx = result.prescription;
+  const statusDisplay = STATUS_LABELS[rx.status] ?? STATUS_LABELS.draft;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex items-center justify-center p-6">
+      <div className="max-w-lg w-full bg-white rounded-3xl shadow-xl border border-emerald-100 overflow-hidden">
+        {/* Header */}
+        <div className="bg-slate-900 px-8 py-6 text-white">
+          <div className="flex items-center gap-3 mb-3">
+            <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <h1 className="text-lg font-bold">Receta verificada</h1>
+          </div>
+          <p className="text-sm text-slate-300">CUIR: <span className="font-mono text-emerald-300">{rx.cuir}</span></p>
+        </div>
+
+        {/* Content */}
+        <div className="px-8 py-6 space-y-5">
+          {/* Status */}
+          <div className="flex items-center gap-3">
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusDisplay.color}`}>
+              {statusDisplay.label}
+            </span>
+            <span className="text-xs text-slate-400">
+              Emitida {new Date(rx.issuedAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </span>
+          </div>
+
+          {/* Patient */}
+          <div className="bg-slate-50 rounded-xl p-4">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Paciente</p>
+            <p className="text-sm font-semibold text-slate-900">{rx.patientName}</p>
+          </div>
+
+          {/* Medication */}
+          <div className="bg-blue-50 rounded-xl p-4">
+            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Medicamento</p>
+            <p className="text-base font-bold text-slate-900">{rx.medication}</p>
+            <p className="text-sm text-slate-600 mt-1">{rx.dosage} — {rx.quantity} unidades</p>
+          </div>
+
+          {/* Diagnosis */}
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Diagnostico</p>
+            <p className="text-sm text-slate-700">{rx.diagnosis}</p>
+          </div>
+
+          {/* Prescriber */}
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Prescriptor</p>
+            <p className="text-sm font-semibold text-slate-900">{rx.prescriberName}</p>
+            <p className="text-xs text-slate-500">{rx.prescriberLicense}</p>
+          </div>
+
+          {/* PDF Download */}
+          {rx.pdfUrl && (
+            <a
+              href={rx.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Descargar PDF de la receta
+            </a>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-4 bg-slate-50 border-t border-slate-100">
+          <p className="text-[10px] text-slate-400 text-center">
+            Verificado por AutaMedica. Ley 27.553 — Prescripciones electronicas.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
