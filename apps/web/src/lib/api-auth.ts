@@ -37,13 +37,16 @@ export async function withAuth(
   return { user, supabase }
 }
 
-type UserRole = 'patient' | 'doctor' | 'admin' | 'company' | 'company_admin' | 'organization_admin' | 'platform_admin'
+type UserRole = 'patient' | 'doctor' | 'pharmacist' | 'admin' | 'company' | 'company_admin' | 'organization_admin' | 'platform_admin'
 
 /** Roles allowed to access doctor endpoints */
 export const DOCTOR_ROLES: UserRole[] = ['doctor', 'organization_admin', 'platform_admin', 'admin']
 
 /** Roles allowed to access patient endpoints */
 export const PATIENT_ROLES: UserRole[] = ['patient', 'organization_admin', 'platform_admin', 'admin']
+
+/** Roles allowed to access pharmacy endpoints */
+export const PHARMACIST_ROLES: UserRole[] = ['pharmacist', 'platform_admin', 'admin']
 
 /** Roles allowed to access admin endpoints */
 export const ADMIN_ROLES: UserRole[] = ['organization_admin', 'platform_admin', 'admin']

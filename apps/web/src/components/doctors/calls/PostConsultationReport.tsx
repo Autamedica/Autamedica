@@ -5,6 +5,9 @@ import { AuthProvider, useAuth } from '@autamedica/auth/react';
 import { logger } from '@autamedica/shared';
 import { fetchApi, ApiError } from '@/lib/api-client';
 import type { SOAPReport } from '@autamedica/types';
+import type { UUID } from '@/types/medical';
+import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal';
+import { prescriptionService } from '@/lib/doctors/services/prescription.service';
 
 interface PostConsultationReportProps {
   roomId: string;
@@ -12,6 +15,7 @@ interface PostConsultationReportProps {
 
 interface ReportData {
   recordId: string;
+  patientId: string;
   report: SOAPReport;
   chiefComplaint: string | null;
   differentialDiagnosis: string[];
@@ -36,6 +40,7 @@ function ReportContent({ roomId }: { roomId: string }) {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const generateReport = useCallback(async () => {
@@ -75,9 +80,6 @@ function ReportContent({ roomId }: { roomId: string }) {
       });
 
       setSaved(true);
-      setTimeout(() => {
-        window.location.href = '/doctors/schedule';
-      }, 1500);
     } catch (err) {
       logger.error('[PostConsultationReport] Save error', err);
       setError('Error al guardar el reporte');
@@ -269,34 +271,72 @@ function ReportContent({ roomId }: { roomId: string }) {
               <span>Revisado por el doctor antes de guardar</span>
             </div>
 
-            {/* Save */}
-            <div className="flex gap-3 pt-4">
-              <a
-                href="/doctors/schedule"
-                className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-center text-am-surface-500 bg-white border border-am-surface-200 hover:bg-am-surface-100 transition-colors"
-              >
-                Descartar
-              </a>
-              <button
-                onClick={saveReportAndRedirect}
-                disabled={saving || saved}
-                className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-white bg-am-primary-600 hover:bg-am-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {saving ? (
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : saved ? (
-                  <>
+            {/* Save / Post-save actions */}
+            {saved ? (
+              <div className="space-y-4 pt-4">
+                <div className="rounded-xl bg-am-doctor-50 border border-am-doctor-200 p-4 flex items-center gap-3">
+                  <svg className="w-5 h-5 text-am-doctor-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="text-sm text-am-doctor-800 font-medium">Reporte guardado exitosamente</p>
+                </div>
+
+                <div className="flex gap-3">
+                  <a
+                    href="/doctors/schedule"
+                    className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-center text-am-surface-500 bg-white border border-am-surface-200 hover:bg-am-surface-100 transition-colors"
+                  >
+                    Ir a agenda
+                  </a>
+                  <button
+                    onClick={() => setShowPrescriptionModal(true)}
+                    className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-white bg-am-doctor-600 hover:bg-am-doctor-700 transition-colors flex items-center justify-center gap-2"
+                  >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Guardado
-                  </>
-                ) : (
-                  'Guardar reporte'
-                )}
-              </button>
-            </div>
+                    Emitir receta
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3 pt-4">
+                <a
+                  href="/doctors/schedule"
+                  className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-center text-am-surface-500 bg-white border border-am-surface-200 hover:bg-am-surface-100 transition-colors"
+                >
+                  Descartar
+                </a>
+                <button
+                  onClick={saveReportAndRedirect}
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl shadow-am-sm text-sm font-medium text-white bg-am-primary-600 hover:bg-am-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {saving ? (
+                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    'Guardar reporte'
+                  )}
+                </button>
+              </div>
+            )}
           </>
+        )}
+
+        {/* Prescription Modal */}
+        {showPrescriptionModal && reportData?.patientId && (
+          <PrescriptionCreateModal
+            patientId={reportData.patientId as UUID}
+            onClose={() => setShowPrescriptionModal(false)}
+            onSaved={() => {
+              setShowPrescriptionModal(false);
+              window.location.href = '/doctors/schedule';
+            }}
+            addPrescription={async (p) => {
+              await prescriptionService.create(reportData.patientId, p);
+            }}
+            updatePrescription={async () => {}}
+          />
         )}
       </main>
     </div>

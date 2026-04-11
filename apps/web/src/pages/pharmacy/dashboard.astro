@@ -1,0 +1,11 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { PharmacyDashboard } from '@/components/pharmacy/PharmacyDashboard';
+
+const title = 'Portal Farmacia | AutaMedica';
+const description = 'Portal de dispensación farmacéutica';
+---
+
+<Layout title={title} description={description}>
+  <PharmacyDashboard client:load />
+</Layout>

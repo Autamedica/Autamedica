@@ -15,6 +15,7 @@ export type { UserMetadata } from './types/user-metadata'
 export type UserRole =
   | 'patient'
   | 'doctor'
+  | 'pharmacist'
   | 'company'
   | 'company_admin'
   | 'organization_admin'
@@ -24,7 +25,7 @@ export type UserRole =
 /**
  * Application identifiers
  */
-export type AppName = 'web-app' | 'auth' | 'patients' | 'doctors' | 'companies' | 'admin'
+export type AppName = 'web-app' | 'auth' | 'patients' | 'doctors' | 'pharmacy' | 'companies' | 'admin'
 
 /**
  * Extended user profile with role information
@@ -68,6 +69,7 @@ export interface DomainConfig {
     auth: string
     patients: string
     doctors: string
+    pharmacy: string
     companies: string
     admin: string
   }
@@ -79,6 +81,7 @@ export interface DomainConfig {
 export const ROLE_APP_MAPPING: Record<UserRole, AppName> = {
   patient: 'patients',
   doctor: 'doctors',
+  pharmacist: 'pharmacy',
   company: 'companies',
   company_admin: 'companies',
   organization_admin: 'admin',
@@ -93,6 +96,7 @@ export const APP_ALLOWED_ROLES: Record<AppName, UserRole[]> = {
   'web-app': [
     'patient',
     'doctor',
+    'pharmacist',
     'company',
     'company_admin',
     'organization_admin',
@@ -102,6 +106,7 @@ export const APP_ALLOWED_ROLES: Record<AppName, UserRole[]> = {
   'auth': [
     'patient',
     'doctor',
+    'pharmacist',
     'company',
     'company_admin',
     'organization_admin',
@@ -110,6 +115,7 @@ export const APP_ALLOWED_ROLES: Record<AppName, UserRole[]> = {
   ],
   'patients': ['patient'],
   'doctors': ['doctor'],
+  'pharmacy': ['pharmacist'],
   'companies': ['company', 'company_admin', 'organization_admin'],
   'admin': ['organization_admin', 'admin', 'platform_admin']
 } as const

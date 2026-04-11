@@ -18,6 +18,7 @@ import { logger } from '@autamedica/shared';
 const DEFAULT_PORTAL_REDIRECT: Record<UserRole, string> = {
   patient: "/patients",
   doctor: "/doctors",
+  pharmacist: "/pharmacy",
   company: "/companies",
   company_admin: "/companies",
   organization_admin: "/admin",

@@ -94,6 +94,7 @@ function getAppUrl(app: AppName, path: string = '/'): string {
     'auth': 'https://www.autamedica.com',
     'patients': 'https://paciente.autamedica.com',
     'doctors': 'https://doctor.autamedica.com',
+    'pharmacy': 'https://farmacia.autamedica.com',
     'companies': 'https://empresa.autamedica.com',
     'admin': 'https://admin.autamedica.com'
   }

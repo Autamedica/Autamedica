@@ -25,6 +25,7 @@ const PROTECTED_ROUTES = [
   '/appointments',
   '/patients',
   '/doctors',
+  '/pharmacy',
   '/companies',
 ];
 
@@ -95,12 +96,14 @@ function getRoleRedirect(role: string): string {
       company_admin: 'https://empresa.autamedica.com',
       organization_admin: 'https://admin.autamedica.com',
       platform_admin: 'https://admin.autamedica.com',
+      pharmacist: 'https://farmacia.autamedica.com',
       admin: 'https://admin.autamedica.com',
     };
     return PROD[role] ?? '/auth/select-role';
   }
   const DEV_PORTALS: Record<string, string> = {
     patient: 'patient', doctor: 'doctor', company: 'company',
+    pharmacist: 'pharmacy',
     company_admin: 'company', admin: 'admin',
     organization_admin: 'admin', platform_admin: 'admin',
   };
@@ -487,6 +490,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
 
       if ((isPatientHostRoot || pathname.startsWith('/patients')) && !['patient', 'organization_admin', 'platform_admin', 'admin'].includes(userRole)) {
+        return context.redirect(getRoleRedirect(userRole));
+      }
+
+      if (pathname.startsWith('/pharmacy') && !['pharmacist', 'platform_admin', 'admin'].includes(userRole)) {
         return context.redirect(getRoleRedirect(userRole));
       }
 
