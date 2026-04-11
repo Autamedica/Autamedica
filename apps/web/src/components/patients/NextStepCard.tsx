@@ -11,7 +11,7 @@ interface PsychiatryStatusResponse {
 
 interface ContinuityStatusResponse {
   status: string
-  request: { triageStatus: string } | null
+  request: { id: string; intent: string; triageStatus: string } | null
 }
 
 interface NextStepCardProps {
