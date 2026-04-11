@@ -52,7 +52,7 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
   let mandate = ''
   let suggestedAction = ''
 
-  const ads = state.medications.currentMedications.value as CurrentMedicationEntry[] || []
+  const ads = (state.medications?.currentMedications?.value as CurrentMedicationEntry[] | null) ?? []
   
   // Capture snapshot from first med if available
   const firstMed = ads[0]
@@ -77,7 +77,8 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     
     const minDaysRemaining = ads.reduce((min, med) => {
       const days = med.daysRemaining?.value
-      return (days !== null && days !== undefined && days < min) ? days : min
+      if (days === null || days === undefined) return Math.min(min, 0)
+      return days < min ? days : min
     }, Infinity)
 
     if (minDaysRemaining <= 1) {
@@ -153,14 +154,14 @@ export function computeTriage(state: ClinicalCaseState): TriageResult {
     suggestedAction = `IMPORTANTE: Prohibido el abandono terapéutico pasivo por riesgo de depresión reactiva (NHS). ${suggestedAction}`
   }
 
-  // Calculate resolution deadline (ISO)
+  // Calculate resolution deadline (ISO, UTC)
   const deadlineDate = new Date()
   if (requiresSameDayAction) {
-    deadlineDate.setHours(23, 59, 59, 999)
+    deadlineDate.setUTCHours(23, 59, 59, 999)
   } else if (priority === 'priority') {
-    deadlineDate.setHours(deadlineDate.getHours() + 24)
+    deadlineDate.setUTCHours(deadlineDate.getUTCHours() + 24)
   } else {
-    deadlineDate.setHours(deadlineDate.getHours() + 72)
+    deadlineDate.setUTCHours(deadlineDate.getUTCHours() + 72)
   }
 
   return {

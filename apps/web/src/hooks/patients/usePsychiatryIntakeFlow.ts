@@ -122,11 +122,11 @@ export function usePsychiatryIntakeFlow() {
     )
   }, [nav.currentPhase?.steps, getFieldUiState])
 
-  // Wire refs for persistence and nav
-  navStepStatusesRef.current = stepStatuses
+  // Wire refs for persistence and nav (update before any callbacks can fire)
   persistenceCurrentStepRef.current = nav.currentStep
   persistenceStepDataRef.current = currentStepData
   persistenceVisibleFieldsRef.current = visibleFields as AnamnesisField[]
+  navStepStatusesRef.current = stepStatuses
 
   // Voice context
   const currentVoiceContext = useMemo(() => {

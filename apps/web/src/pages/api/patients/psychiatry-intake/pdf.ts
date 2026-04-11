@@ -133,6 +133,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
     const triage = (clinicalState as { state?: { triage?: unknown } } | null)?.state?.triage
 
+    if (!triage) {
+      logger.warn('[psychiatry-intake/pdf] triage data missing from clinical state', { patientId: context.patientId })
+    }
+
     logger.info('[psychiatry-intake/pdf] loading PDF service dynamically')
     
     // DYNAMIC IMPORT to reduce worker entry size
@@ -154,8 +158,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           updatedAt: (intake as { updated_at?: string | null }).updated_at ?? null,
         },
         sections: sections as unknown as Array<{ section: string; phase: string; data: Record<string, unknown> }>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        triage: triage as any,
+        triage: triage ?? null,
       })
     } catch (pdfError) {
       captureFailure(pdfError, 'pdf_generation', {

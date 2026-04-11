@@ -64,6 +64,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .from('clinical_case_states')
       .update({ case_intent: 'continuity', triage_status: 'pending', updated_at: new Date().toISOString() })
       .eq('id', caseState.id)
+      .eq('patient_id', context.patientId)
 
     if (updateError) {
       logger.error('[continuity-request/POST] Update failed', { error: updateError.message })

@@ -123,6 +123,15 @@ export function PrescriptionModal({
       return;
     }
 
+    if (requiresStrictValidation) {
+      const missingDiagnosis = !diagnosis.trim();
+      const missingDosage = normalizedMedications.some((med) => !med.dosage.trim());
+      if (missingDiagnosis || missingDosage) {
+        setSaveError("Medicación con validación reforzada: diagnóstico y dosis son obligatorios.");
+        return;
+      }
+    }
+
     setSaving(true);
     setSaveError(null);
 
