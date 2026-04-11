@@ -21,12 +21,21 @@ export interface PrescriptionPdfInput {
   notes?: string;
   patient: {
     name: string;
-    documentNumber?: string;
+    dni?: string;
+    cuil?: string;
+    dateOfBirth?: string;
+    sex?: string;
+    address?: string;
   };
   prescriber: {
     name: string;
+    profession?: string;
     license: string;
+    licenseJurisdiction?: string;
+    licenseEntity?: string;
+    refeps?: string;
     specialty?: string;
+    professionalAddress?: string;
   };
   issuedAt: string;
   expiresAt: string;
@@ -95,23 +104,35 @@ export async function generatePrescriptionPdf(
   y = 55;
   doc.setTextColor(30, 41, 59); // slate-800
 
-  // Patient info
+  // Patient info (Res. 2214/2025: DNI, CUIL, fecha nac., sexo, domicilio)
+  const patientBlockHeight = input.patient.address ? 28 : 22;
   doc.setFillColor(241, 245, 249); // slate-100
-  doc.rect(marginLeft, y, contentWidth, 18, 'F');
+  doc.rect(marginLeft, y, contentWidth, patientBlockHeight, 'F');
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 116, 139); // slate-500
+  doc.setTextColor(100, 116, 139);
   doc.text('PACIENTE', marginLeft + 4, y + 5);
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
   doc.text(input.patient.name, marginLeft + 4, y + 13);
-  if (input.patient.documentNumber) {
-    doc.setFontSize(9);
+
+  const patientMeta: string[] = [];
+  if (input.patient.dni) patientMeta.push(`DNI: ${input.patient.dni}`);
+  if (input.patient.cuil) patientMeta.push(`CUIL: ${input.patient.cuil}`);
+  if (input.patient.dateOfBirth) patientMeta.push(`Nac: ${formatDate(input.patient.dateOfBirth)}`);
+  if (input.patient.sex) patientMeta.push(`Sexo: ${input.patient.sex}`);
+  if (patientMeta.length > 0) {
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(`DNI/CUIL: ${input.patient.documentNumber}`, marginLeft + 100, y + 13);
+    doc.setTextColor(100, 116, 139);
+    doc.text(patientMeta.join('  |  '), marginLeft + 4, y + 18);
   }
-  y += 25;
+  if (input.patient.address) {
+    doc.setFontSize(7);
+    doc.text(`Domicilio: ${input.patient.address}`, marginLeft + 4, y + 23);
+  }
+  y += patientBlockHeight + 5;
 
   // Medication
   doc.setFillColor(219, 234, 254); // blue-100
@@ -186,11 +207,41 @@ export async function generatePrescriptionPdf(
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  const prescriberDetail = [
+
+  // Res. 2214/2025: profesión, matrícula, jurisdicción, REFEPS, domicilio profesional
+  const prescriberLine1 = [
+    input.prescriber.profession ?? 'Médico/a',
     `Matrícula: ${input.prescriber.license}`,
-    input.prescriber.specialty ? `Especialidad: ${input.prescriber.specialty}` : null,
+    input.prescriber.licenseJurisdiction ? `(${input.prescriber.licenseJurisdiction})` : null,
   ].filter(Boolean).join('  |  ');
-  doc.text(prescriberDetail, marginLeft, y);
+  doc.text(prescriberLine1, marginLeft, y);
+  y += 4;
+
+  const prescriberLine2 = [
+    input.prescriber.specialty ? `Especialidad: ${input.prescriber.specialty}` : null,
+    input.prescriber.refeps ? `REFEPS: ${input.prescriber.refeps}` : null,
+    input.prescriber.licenseEntity ? `Entidad: ${input.prescriber.licenseEntity}` : null,
+  ].filter(Boolean).join('  |  ');
+  if (prescriberLine2) {
+    doc.setFontSize(8);
+    doc.text(prescriberLine2, marginLeft, y);
+    y += 4;
+  }
+
+  if (input.prescriber.professionalAddress) {
+    doc.setFontSize(7);
+    doc.text(`Domicilio profesional: ${input.prescriber.professionalAddress}`, marginLeft, y);
+    y += 4;
+  }
+
+  // Firma electrónica placeholder
+  y += 3;
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineDashPattern([1, 1], 0);
+  doc.rect(marginLeft, y, 60, 15);
+  doc.setLineDashPattern([], 0);
+  doc.setFontSize(7);
+  doc.text('Firma electrónica', marginLeft + 15, y + 9);
 
   // Footer
   const footerY = 280;
