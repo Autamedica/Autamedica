@@ -323,7 +323,7 @@ export function DoctorsPortalShell({
             <button
               type="button"
               className={`inline-flex items-center justify-center rounded-xl p-2 text-am-surface-500 transition-all duration-am-fast hover:bg-am-surface-100 hover:text-am-surface-900 active:scale-95 ${
-                isFocusMode ? '' : 'hidden md:hidden'
+                isFocusMode ? '' : 'md:hidden'
               }`}
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Abrir menú"
