@@ -120,7 +120,8 @@ export const patientsRepo = {
   },
 
   /**
-   * Resolves patients assigned to a specific doctor via care team.
+   * Resolves patients assigned to a specific doctor via care team AND appointments.
+   * Merges both sources so doctors see all patients they've interacted with.
    */
   async findByDoctorUserId(
     doctorUserId: string,
@@ -138,22 +139,35 @@ export const patientsRepo = {
       return []
     }
 
-    // 2. Get assigned patient IDs
-    const { data: assignments, error: careError } = await client
+    // 2. Get patient IDs from care team
+    const { data: assignments } = await client
       .from('patient_care_team')
       .select('patient_id')
       .eq('doctor_id', doctor.id)
       .eq('active', true)
 
-    if (careError || !assignments || assignments.length === 0) {
+    const careTeamIds = (assignments ?? []).map(a => a.patient_id)
+
+    // 3. Get patient IDs from appointments (doctors also see patients they have appointments with)
+    const { data: appointmentPatients } = await client
+      .from('appointments')
+      .select('patient_id')
+      .eq('doctor_id', doctor.id)
+
+    const appointmentIds = (appointmentPatients ?? [])
+      .map(a => a.patient_id)
+      .filter((id): id is string => typeof id === 'string')
+
+    // 4. Merge and deduplicate patient IDs
+    const allPatientIds = [...new Set([...careTeamIds, ...appointmentIds])]
+
+    if (allPatientIds.length === 0) {
       return []
     }
 
-    const patientIds = assignments.map(a => a.patient_id)
-
-    // 3. Fetch patient profiles for those IDs
+    // 5. Fetch patient profiles for those IDs
     const { data: patients, error: patError } = await queryWithProfile(client)
-      .in('id', patientIds)
+      .in('id', allPatientIds)
       .eq('active', true)
 
     if (patError) {
