@@ -33,8 +33,19 @@ export const POST: APIRoute = async ({ request, params }) => {
       override_reason?: string;
     };
 
-    if (!body.validation_type || !body.result) {
-      return badRequest('missing_validation_type_or_result');
+    const VALID_TYPES = [
+      'patient_identity', 'prescriber_identity', 'medication_match',
+      'formulation_match', 'dose_check', 'quantity_check', 'validity_check',
+      'bridge_protocol', 'interaction_check', 'duplicate_check', 'controlled_substance',
+    ] as const;
+    const VALID_RESULTS = ['pass', 'fail', 'warning', 'overridden'] as const;
+
+    if (!body.validation_type || !VALID_TYPES.includes(body.validation_type as typeof VALID_TYPES[number])) {
+      return badRequest('invalid_validation_type');
+    }
+
+    if (!body.result || !VALID_RESULTS.includes(body.result as typeof VALID_RESULTS[number])) {
+      return badRequest('invalid_result');
     }
 
     if (body.result === 'overridden' && !body.override_reason) {

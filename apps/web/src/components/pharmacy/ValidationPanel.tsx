@@ -14,6 +14,7 @@ interface ValidationPanelProps {
     prescription_type: string;
     extraordinary_dose_flag: boolean;
     clinical_semaphore: string | null;
+    semaphore_reasons: string[] | null;
   };
   onComplete: () => void;
   statusLabels: Record<string, string>;
@@ -55,6 +56,7 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
     ...(order.prescription_type === 'transition_bridge'
       ? EXTRA_VALIDATIONS.filter(v => v.condition === 'bridge')
       : []),
+    ...EXTRA_VALIDATIONS.filter(v => v.condition === 'controlled'),
   ];
 
   const handleValidate = async (validationType: string, result: 'pass' | 'fail') => {
@@ -149,12 +151,22 @@ export function ValidationPanel({ order, onComplete }: ValidationPanelProps) {
         </div>
         {order.clinical_semaphore === 'red' && (
           <div className="mt-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
-            Semáforo rojo: esta orden requiere revisión adicional antes de la dispensación.
+            <strong>Semáforo rojo:</strong> esta orden requiere revisión adicional antes de la dispensación.
+            {order.semaphore_reasons && order.semaphore_reasons.length > 0 && (
+              <ul className="list-disc list-inside mt-1">
+                {order.semaphore_reasons.map((reason, i) => <li key={i}>{reason}</li>)}
+              </ul>
+            )}
           </div>
         )}
         {order.clinical_semaphore === 'yellow' && (
           <div className="mt-3 px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-xs text-yellow-700">
-            Semáforo amarillo: precaución — revisar con atención antes de dispensar.
+            <strong>Semáforo amarillo:</strong> precaución — revisar con atención antes de dispensar.
+            {order.semaphore_reasons && order.semaphore_reasons.length > 0 && (
+              <ul className="list-disc list-inside mt-1">
+                {order.semaphore_reasons.map((reason, i) => <li key={i}>{reason}</li>)}
+              </ul>
+            )}
           </div>
         )}
       </div>

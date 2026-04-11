@@ -198,6 +198,9 @@ function detectPortal(url: URL): string | null {
   if (url.hostname === 'paciente.autamedica.com' || url.hostname === 'patients.autamedica.com') {
     return 'patient';
   }
+  if (url.hostname === 'farmacia.autamedica.com' || url.hostname === 'pharmacy.autamedica.com') {
+    return 'pharmacist';
+  }
   if (url.hostname === 'empresa.autamedica.com' || url.hostname === 'companies.autamedica.com') {
     return 'company';
   }
@@ -256,11 +259,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const authCookieDebug = getAuthCookieDebug(context.request);
   const isDoctorHost = portal === 'doctor';
   const isPatientHost = portal === 'patient';
+  const isPharmacyHost = portal === 'pharmacist';
   const isCompanyHost = portal === 'company';
   const isDoctorHostRoot = isDoctorHost && pathname === '/';
   const isPatientHostRoot = isPatientHost && pathname === '/';
+  const isPharmacyHostRoot = isPharmacyHost && pathname === '/';
   const isCompanyHostRoot = isCompanyHost && pathname === '/';
-  const isPortalHostRoot = isDoctorHostRoot || isPatientHostRoot || isCompanyHostRoot;
+  const isPortalHostRoot = isDoctorHostRoot || isPatientHostRoot || isPharmacyHostRoot || isCompanyHostRoot;
 
   // Doctor portal: normalize dashboard paths to /
   if (isDoctorHost && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
@@ -277,6 +282,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const patientRootUrl = new URL('/', requestUrl);
       patientRootUrl.search = requestUrl.search;
       return context.redirect(patientRootUrl.toString(), 302);
+    }
+  }
+
+  // Pharmacy portal: normalize dashboard paths
+  if (isPharmacyHost && !pathname.startsWith('/_astro/') && !pathname.includes('.')) {
+    if (pathname === '/dashboard' || pathname === '/pharmacy/dashboard') {
+      const pharmacyRootUrl = new URL('/pharmacy/dashboard', requestUrl);
+      pharmacyRootUrl.search = requestUrl.search;
+      if (pathname !== '/pharmacy/dashboard') {
+        return context.redirect(pharmacyRootUrl.toString(), 302);
+      }
     }
   }
 
@@ -463,6 +479,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
       let loginPortal = 'patients';
       if (isDoctorHostRoot || pathname.startsWith('/doctors')) loginPortal = 'doctors';
+      else if (isPharmacyHost || pathname.startsWith('/pharmacy')) loginPortal = 'pharmacy';
       else if (isCompanyHost || pathname.startsWith('/companies')) loginPortal = 'companies';
       else if (pathname.startsWith('/admin')) loginPortal = 'admin';
 

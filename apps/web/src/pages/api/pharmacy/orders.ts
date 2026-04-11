@@ -14,8 +14,15 @@ export const GET: APIRoute = async ({ request }) => {
     if (!isAuthed(auth)) return auth;
     const { user, supabase } = auth;
 
+    const VALID_STATUSES = [
+      'pending', 'assigned', 'under_review', 'clarification_requested',
+      'clarification_provided', 'approved_for_dispensation', 'dispensed',
+      'partially_dispensed', 'blocked', 'cancelled', 'expired',
+    ] as const;
+
     const url = new URL(request.url);
-    const statusFilter = url.searchParams.get('status')?.split(',') ?? [];
+    const statusFilter = (url.searchParams.get('status')?.split(',') ?? [])
+      .filter((s): s is string => VALID_STATUSES.includes(s as typeof VALID_STATUSES[number]));
     const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10), 100);
 
     // Resolve pharmacist's pharmacy

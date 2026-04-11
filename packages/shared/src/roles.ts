@@ -16,6 +16,7 @@ import type { UserRole } from './auth/portals';
 export const roleToPortal: Record<UserRole, string> = {
   doctor: 'https://doctor.autamedica.com',
   patient: 'https://paciente.autamedica.com',
+  pharmacist: 'https://farmacia.autamedica.com',
   company: 'https://empresa.autamedica.com',
   company_admin: 'https://empresa.autamedica.com',
   organization_admin: 'https://admin.autamedica.com',
@@ -28,6 +29,7 @@ export const roleToPortal: Record<UserRole, string> = {
 export const roleToPortalDev: Record<UserRole, string> = {
   doctor: 'http://localhost:3001',
   patient: 'http://localhost:3002',
+  pharmacist: 'http://localhost:3007',
   company: 'http://localhost:3003',
   company_admin: 'http://localhost:3003',
   organization_admin: 'http://localhost:3004',
@@ -107,6 +109,7 @@ export function getRoleDisplayName(role: UserRole): string {
   const roleNames: Record<UserRole, string> = {
     doctor: 'Médico',
     patient: 'Paciente',
+    pharmacist: 'Farmacéutico',
     company: 'Empresa',
     company_admin: 'Administrador de Empresa',
     organization_admin: 'Administrador de Organización',
@@ -125,6 +128,7 @@ export function getRoleDescription(role: UserRole): string {
   const descriptions: Record<UserRole, string> = {
     doctor: 'Consulta pacientes, gestiona historias clínicas y realiza teleconsultas',
     patient: 'Accede a tu historial médico, agenda citas y consulta con médicos',
+    pharmacist: 'Valida y dispensa recetas médicas desde tu farmacia',
     company: 'Portal empresarial para gestión de salud ocupacional',
     company_admin: 'Administra empleados de tu empresa y gestiona planes de salud corporativos',
     organization_admin: 'Gestiona múltiples organizaciones y supervisa operaciones',
@@ -147,6 +151,7 @@ export function isValidUserRole(role: string): role is UserRole {
   return [
     'doctor',
     'patient',
+    'pharmacist',
     'company',
     'company_admin',
     'organization_admin',

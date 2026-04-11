@@ -36,6 +36,8 @@ function getBaseUrlByRole(): Record<UserRole, string> {
         || 'https://paciente.autamedica.com',
       'doctor': readEnv('PUBLIC_BASE_URL_DOCTORS', 'PUBLIC_DOCTORS_URL')
         || 'https://doctor.autamedica.com',
+      'pharmacist': readEnv('PUBLIC_BASE_URL_PHARMACY', 'PUBLIC_PHARMACY_URL')
+        || 'https://farmacia.autamedica.com',
       'company': readEnv('PUBLIC_BASE_URL_COMPANIES', 'PUBLIC_COMPANIES_URL')
         || 'https://empresa.autamedica.com',
       'company_admin': readEnv('PUBLIC_BASE_URL_COMPANIES', 'PUBLIC_COMPANIES_URL')
@@ -51,6 +53,7 @@ function getBaseUrlByRole(): Record<UserRole, string> {
   return {
     'patient': 'http://localhost:3002',
     'doctor': 'http://localhost:3001',
+    'pharmacist': 'http://localhost:3007',
     'company': 'http://localhost:3003',
     'company_admin': 'http://localhost:3003',
     'organization_admin': 'http://localhost:3004',
@@ -66,6 +69,7 @@ export const BASE_URL_BY_ROLE: Record<UserRole, string> = getBaseUrlByRole();
 export const HOME_BY_ROLE: Record<UserRole, string> = {
   'patient': '/',
   'doctor': '/',
+  'pharmacist': '/',
   'company': '/',
   'company_admin': '/',
   'organization_admin': '/',
@@ -128,6 +132,7 @@ export function getPortalForRole(role: UserRole): string {
   const portalMap: Record<UserRole, string> = {
     'patient': 'patients',
     'doctor': 'doctors',
+    'pharmacist': 'pharmacy',
     'company': 'companies',
     'company_admin': 'companies',
     'organization_admin': 'admin',
@@ -148,6 +153,7 @@ export function getPortalForRole(role: UserRole): string {
 export const PORTAL_TO_ROLE: Record<string, UserRole> = {
   patients: 'patient',
   doctors: 'doctor',
+  pharmacy: 'pharmacist',
   companies: 'company_admin',
   admin: 'organization_admin',
 };
@@ -155,6 +161,8 @@ export const PORTAL_TO_ROLE: Record<string, UserRole> = {
 const PORTAL_ALIASES: Record<string, keyof typeof PORTAL_TO_ROLE> = {
   medico: 'doctors',
   medicos: 'doctors',
+  farmacia: 'pharmacy',
+  farmacias: 'pharmacy',
   paciente: 'patients',
   pacientes: 'patients',
   company: 'companies',

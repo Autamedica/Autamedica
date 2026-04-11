@@ -102,19 +102,28 @@ export const POST: APIRoute = async ({ request, params }) => {
     const newStatus = totalDispensed >= targetQuantity ? 'dispensed' : 'partially_dispensed';
 
     // Update order status
-    await supabase
+    const { error: orderUpdateError } = await supabase
       .from('dispensation_orders')
       .update({ status: newStatus })
       .eq('id', orderId);
 
+    if (orderUpdateError) {
+      logger.error('[pharmacy/dispense] Order status update error', { orderId, newStatus, error: orderUpdateError });
+      return internalError();
+    }
+
     // Update prescription status
     const prescriptionStatus = newStatus === 'dispensed' ? 'dispensed_total' : 'dispensed_partial';
-    await supabase
+    const { error: rxUpdateError } = await supabase
       .from('prescriptions')
       .update({ status: prescriptionStatus })
       .eq('id', order.prescription_id);
 
-    // Audit
+    if (rxUpdateError) {
+      logger.error('[pharmacy/dispense] Prescription status update error', { prescriptionId: order.prescription_id, error: rxUpdateError });
+    }
+
+    // Audit (non-blocking — log but don't fail)
     await supabase.from('pharmacy_audit_events').insert({
       order_id: orderId,
       event_type: 'dispensation_executed',
