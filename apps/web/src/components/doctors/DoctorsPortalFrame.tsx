@@ -7,6 +7,7 @@ import { useDoctorStats } from "@/hooks/doctors/useDoctorStats";
 import { useCurrentDoctor } from "@/hooks/doctors/useRealDoctors";
 import { signOutLocal } from "@/lib/auth/service";
 import { getOnboardingStatus } from "@/lib/onboarding-grace";
+import DoctorNotificationsBell from "@/components/doctors/DoctorNotificationsBell";
 import {
   Activity,
   ArrowRight,
@@ -112,19 +113,23 @@ function SidebarLink({
     <a
       href={item.href}
       title={isCollapsed ? item.label : undefined}
-      className={`group relative mx-1 flex items-center rounded-xl px-3 py-2.5 text-sm transition-all duration-150 ${
+      className={`group relative mx-2 flex items-center rounded-lg px-3 py-2.5 text-[13px] transition-all duration-150 ${
         isCollapsed ? "justify-center" : "gap-3"
       } ${
         isActive
-          ? "bg-am-doctor-50 text-am-doctor-600 ring-1 ring-am-doctor-200"
-          : "text-am-surface-700 hover:bg-am-surface-50 hover:text-am-doctor-600"
+          ? "bg-neutral-900 text-white"
+          : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
       }`}
     >
-      <Icon className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-105" />
+      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.5} />
       {!isCollapsed ? <span className="flex-1 font-medium">{item.label}</span> : null}
       {!isCollapsed && item.badge ? (
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isActive ? "bg-white text-am-doctor-600" : "bg-am-doctor-500 text-white"}`}
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+            isActive
+              ? "bg-white/20 text-white"
+              : "bg-neutral-900 text-white"
+          }`}
         >
           {item.badge}
         </span>
@@ -148,14 +153,14 @@ function MobileNav({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-am-surface-200/80 bg-white/95 backdrop-blur-xl md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white/95 backdrop-blur-xl md:hidden">
       <div className="grid h-16 grid-cols-5">
         <button
           type="button"
           onClick={onMenuClick}
-          className="flex flex-col items-center justify-center gap-1 text-am-surface-700 transition-colors active:bg-am-surface-50"
+          className="flex flex-col items-center justify-center gap-1 text-neutral-400 transition-colors active:bg-neutral-50"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" strokeWidth={1.5} />
           <span className="text-[10px] font-medium">Menú</span>
         </button>
 
@@ -167,13 +172,13 @@ function MobileNav({
               key={item.key}
               href={item.href}
               className={`relative flex flex-col items-center justify-center gap-1 ${
-                isActive ? "text-am-doctor-500" : "text-am-surface-700"
+                isActive ? "text-neutral-900" : "text-neutral-400"
               }`}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-5 w-5" strokeWidth={1.5} />
               <span className="text-[10px] font-medium">{item.label}</span>
               {isActive ? (
-                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-am-doctor-500" />
+                <span className="absolute top-0 h-0.5 w-8 rounded-full bg-neutral-900" />
               ) : null}
             </a>
           );
@@ -270,15 +275,15 @@ export function DoctorsPortalFrame({
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-am-surface-50 p-6">
-        <div className="flex flex-col items-center gap-4 rounded-[28px] border border-am-surface-200 bg-white px-10 py-12 shadow-sm">
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-blue-600 text-white">
-            <Activity className="h-6 w-6" />
-            <span className="absolute -bottom-1 -right-1 h-4 w-4 animate-spin rounded-full border-2 border-am-doctor-100 border-t-white" />
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-neutral-200 bg-white px-10 py-12">
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-xl bg-neutral-900 text-white">
+            <Activity className="h-5 w-5" strokeWidth={1.5} />
+            <span className="absolute -bottom-1 -right-1 h-4 w-4 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-900" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-am-surface-900">Cargando portal médico</p>
-            <p className="mt-1 text-sm text-am-surface-500">
+            <p className="text-sm font-medium text-neutral-900">Cargando portal médico</p>
+            <p className="mt-1 text-[13px] text-neutral-400">
               Verificando sesión y perfil profesional.
             </p>
           </div>
@@ -289,17 +294,17 @@ export function DoctorsPortalFrame({
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-am-surface-50 p-6">
-        <div className="w-full max-w-md rounded-[28px] border border-am-surface-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-bold tracking-tight text-am-surface-900">
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
+        <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 text-center">
+          <h1 className="text-2xl font-light tracking-tight text-neutral-900">
             Inicia sesión para continuar
           </h1>
-          <p className="mt-3 text-sm leading-6 text-am-surface-600">
+          <p className="mt-3 text-[13px] leading-relaxed text-neutral-500">
             Esta sección usa el portal real de doctores y requiere autenticación.
           </p>
           <a
             href="/auth/login?portal=doctors"
-            className="mt-6 inline-flex items-center justify-center rounded-xl bg-am-doctor-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-am-doctor-600"
+            className="mt-6 inline-flex items-center justify-center rounded-full bg-neutral-900 px-5 py-3 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800"
           >
             Ir a login
           </a>
@@ -309,60 +314,52 @@ export function DoctorsPortalFrame({
   }
 
   return (
-    <div className="min-h-screen bg-am-surface-50 text-am-surface-900">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900">
       {mobileMenuOpen ? (
         <button
           type="button"
           aria-label="Cerrar navegación"
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
         />
       ) : null}
 
-      <header className="sticky top-0 z-30 border-b border-am-surface-200/60 bg-white/95 px-4 py-3 backdrop-blur-xl md:px-8 md:py-3.5">
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-30 border-b border-neutral-200/60 bg-white/95 px-4 py-3 backdrop-blur-xl md:px-8">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-3">
-              <img
-                src="/logo.png"
-                alt="AutaMedica"
-                className="h-8 w-8 object-contain md:h-9 md:w-9"
-              />
-              <div>
-                <div className="text-base font-bold text-am-surface-900 md:text-lg">AutaMedica</div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-am-doctor-500">
-                  Portal médico
-                </div>
+          <a href="/" className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="AutaMedica"
+              className="h-8 w-8 object-contain md:h-9 md:w-9"
+            />
+            <div>
+              <div className="text-base font-semibold text-neutral-900 md:text-lg">AutaMedica</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-400">
+                Portal médico
               </div>
-            </a>
-          </div>
+            </div>
+          </a>
 
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
             <button
               type="button"
-              className="group flex items-center gap-2 rounded-[10px] border border-am-surface-200/70 bg-am-surface-50 px-3 py-2 transition-all hover:border-am-doctor-300 hover:bg-white hover:shadow-sm"
+              className="group flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3.5 py-2 transition-all hover:border-neutral-300 hover:bg-white"
               aria-label="Buscar"
             >
-              <Search className="h-[18px] w-[18px] text-am-surface-400 transition-colors group-hover:text-am-doctor-500" />
-              <span className="hidden text-[13px] font-medium text-am-surface-500 sm:inline">
-                Buscar paciente o consulta...
+              <Search className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
+              <span className="hidden text-[13px] text-neutral-400 sm:inline">
+                Buscar...
               </span>
             </button>
 
-            <button
-              type="button"
-              className="relative rounded-[10px] p-2.5 transition-colors hover:bg-am-surface-50"
-              aria-label="Notificaciones"
-            >
-              <Bell className="h-[18px] w-[18px] text-am-surface-400" />
-              <span className="absolute right-1.5 top-1.5 flex h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
+            <DoctorNotificationsBell />
 
             <div className="hidden text-right md:block">
-              <time className="block font-mono text-sm font-bold text-am-surface-900">
+              <time className="block font-mono text-sm font-medium text-neutral-900">
                 {currentTime || "--:--"}
               </time>
-              <time className="text-xs capitalize text-am-surface-500">
+              <time className="text-[11px] capitalize text-neutral-400">
                 {formatDateLabel(currentDate)}
               </time>
             </div>
@@ -370,46 +367,49 @@ export function DoctorsPortalFrame({
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100vh-73px)]">
+      <div className="flex min-h-[calc(100vh-57px)]">
+        {/* ── Sidebar ── */}
         <aside
-          className={`fixed left-0 top-[73px] z-50 h-[calc(100vh-73px)] border-r border-am-surface-200/70 bg-white transition-transform duration-300 md:sticky md:translate-x-0 ${
+          className={`fixed left-0 top-[57px] z-50 h-[calc(100vh-57px)] border-r border-neutral-200/60 bg-white transition-transform duration-300 md:sticky md:translate-x-0 ${
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-          } ${isSidebarCollapsed ? "w-20" : "w-[240px]"}`}
+          } ${isSidebarCollapsed ? "w-[72px]" : "w-[232px]"}`}
         >
           <div className="flex h-full flex-col">
-            <div className="border-b border-am-surface-200/60 p-4">
+            {/* Doctor profile */}
+            <div className="border-b border-neutral-100 p-4">
               <div
                 className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"}`}
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-am-doctor-500 to-blue-600 text-sm font-bold text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-[13px] font-semibold text-white">
                   {doctorInitials}
                 </div>
                 {!isSidebarCollapsed ? (
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-am-surface-900">
+                    <p className="truncate text-[13px] font-semibold text-neutral-900">
                       {doctorName}
                     </p>
-                    <p className="truncate text-xs text-am-surface-500">{doctorSpecialty}</p>
+                    <p className="truncate text-[11px] text-neutral-400">{doctorSpecialty}</p>
                   </div>
                 ) : null}
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg p-2 text-am-surface-500 hover:bg-am-surface-50 md:hidden"
+                  className="rounded-lg p-2 text-neutral-400 hover:bg-neutral-100 md:hidden"
                   aria-label="Cerrar menú"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto py-6">
+            {/* Navigation */}
+            <div className="flex-1 overflow-y-auto py-5">
               {!isSidebarCollapsed ? (
-                <p className="px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-am-surface-400">
+                <p className="px-4 pb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-300">
                   Clínica
                 </p>
               ) : null}
-              <nav className="space-y-1">
+              <nav className="space-y-0.5">
                 {primaryLinks.map((item) => (
                   <SidebarLink
                     key={item.href}
@@ -422,16 +422,16 @@ export function DoctorsPortalFrame({
 
               {!isSidebarCollapsed ? (
                 <>
-                  <div className="mx-4 my-4 h-px bg-am-surface-200" />
-                  <p className="px-4 pb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-am-surface-400">
+                  <div className="mx-4 my-4 h-px bg-neutral-100" />
+                  <p className="px-4 pb-2.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-300">
                     Plataforma
                   </p>
                 </>
               ) : (
-                <div className="mx-auto my-4 h-px w-8 bg-am-surface-200" />
+                <div className="mx-auto my-4 h-px w-6 bg-neutral-100" />
               )}
 
-              <nav className="space-y-1">
+              <nav className="space-y-0.5">
                 {platformLinks.map((item) => (
                   <SidebarLink
                     key={item.href}
@@ -443,221 +443,218 @@ export function DoctorsPortalFrame({
               </nav>
             </div>
 
-            <div className="border-t border-am-surface-200/60 p-4">
+            {/* Sign out */}
+            <div className="border-t border-neutral-100 p-4">
               <button
                 type="button"
                 onClick={() => void handleSignOut()}
                 disabled={signingOut}
-                className={`flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium text-am-surface-700 transition-colors hover:bg-am-surface-50 hover:text-am-doctor-600 ${
+                className={`flex w-full items-center rounded-lg px-3 py-2.5 text-[13px] font-medium text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-900 ${
                   isSidebarCollapsed ? "justify-center" : "gap-3"
                 }`}
               >
-                <LogOut className="h-4 w-4 shrink-0" />
+                <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                 {!isSidebarCollapsed ? (
                   <span>{signingOut ? "Saliendo..." : "Cerrar sesión"}</span>
                 ) : null}
               </button>
             </div>
 
+            {/* Collapse toggle */}
             <button
               type="button"
               onClick={() => setIsSidebarCollapsed((value) => !value)}
-              className="absolute -right-3 top-6 hidden h-7 w-7 items-center justify-center rounded-full border border-am-surface-200 bg-white shadow-sm transition-colors hover:border-am-doctor-300 hover:text-am-doctor-600 md:flex"
+              className="absolute -right-3 top-6 hidden h-6 w-6 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-sm transition-colors hover:bg-neutral-100 md:flex"
               aria-label={isSidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-3.5 w-3.5 text-neutral-400" strokeWidth={1.5} />
             </button>
           </div>
         </aside>
 
+        {/* ── Main content ── */}
         <main className="min-w-0 flex-1 overflow-x-hidden">
-          <div className="grid min-h-full grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid min-h-full grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
             <section className="flex min-h-full flex-col">
               <div className="flex-1 p-4 pb-24 md:p-8 md:pb-8">
                 {onboardingStatus.state === "expired" ? (
-                  <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  <div className="mb-6 rounded-xl border border-amber-200/60 bg-amber-50 p-4 text-[13px] text-amber-800">
                     Tu período de gracia expiró. Completa el onboarding para recuperar acceso total.
                   </div>
                 ) : null}
 
                 {doctorExists === false ? (
-                  <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
+                  <div className="mb-6 rounded-xl border border-cyan-200/60 bg-cyan-50 p-4 text-[13px] text-cyan-800">
                     Tu perfil profesional todavía no está completo. Puedes terminarlo desde
                     configuración.
                   </div>
                 ) : null}
 
-                <div className="mb-8">
-                  <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-am-doctor-500/20 bg-gradient-to-r from-am-doctor-50 to-cyan-50 px-3 py-1.5 shadow-sm">
-                    <Activity className="h-3.5 w-3.5 text-am-doctor-500" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-am-doctor-600">
-                      Workspace médico
-                    </span>
-                  </div>
-
-                  <h1 className="text-4xl font-bold tracking-tight text-am-surface-900">{title}</h1>
-                  <p className="mt-3 max-w-3xl text-base text-am-surface-600">{description}</p>
+                <div className="mb-6">
+                  <h1 className="text-2xl font-light tracking-tight text-neutral-900 md:text-3xl">
+                    {title}
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-neutral-400">
+                    {description}
+                  </p>
                 </div>
 
-                <div className="rounded-[24px] border border-am-surface-200/80 bg-white p-6 shadow-sm">
+                <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-sm">
                   {children}
                 </div>
               </div>
             </section>
 
-            <aside className="border-l border-am-surface-200/60 bg-gradient-to-b from-am-surface-50 via-white to-am-surface-50/40 p-4 pb-24 lg:p-5 lg:pb-5">
+            {/* ── Right sidebar ── */}
+            <aside className="hidden border-l border-neutral-200/60 bg-neutral-50/50 p-5 lg:block">
               <div className="space-y-4">
-                <section className={`rounded-[18px] border p-5 shadow-sm ${
+                {/* Clarifications / status */}
+                <section className={`rounded-xl border p-5 ${
                   (stats?.pendingClarifications ?? 0) > 0
-                    ? "border-amber-200/50 bg-gradient-to-br from-amber-50 via-orange-50/80 to-yellow-50/40"
-                    : "border-green-200/50 bg-gradient-to-br from-green-50 via-emerald-50/80 to-teal-50/40"
+                    ? "border-amber-200/50 bg-amber-50/50"
+                    : "border-neutral-200/60 bg-white"
                 }`}>
                   <div className="flex flex-col items-center text-center">
-                    <div className="relative mb-3.5 h-14 w-14">
+                    <div className="mb-3">
                       {(stats?.pendingClarifications ?? 0) > 0 ? (
-                        <>
-                          <div className="absolute inset-0 rounded-full bg-amber-500/10 animate-ping" />
-                          <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25">
-                            <Bell className="h-7 w-7" />
-                          </div>
-                        </>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                          <Bell className="h-5 w-5" strokeWidth={1.5} />
+                        </div>
                       ) : (
-                        <>
-                          <div className="absolute inset-0 rounded-full bg-green-500/10 animate-ping" />
-                          <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg shadow-green-500/25">
-                            <CheckCircle2 className="h-7 w-7" />
-                          </div>
-                        </>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100 text-neutral-400">
+                          <CheckCircle2 className="h-5 w-5" strokeWidth={1.5} />
+                        </div>
                       )}
                     </div>
                     {(stats?.pendingClarifications ?? 0) > 0 ? (
                       <>
-                        <h3 className="text-sm font-bold uppercase tracking-wide text-amber-900">
-                          {stats!.pendingClarifications} {stats!.pendingClarifications === 1 ? "aclaración pendiente" : "aclaraciones pendientes"}
+                        <h3 className="text-[13px] font-semibold text-amber-900">
+                          {stats?.pendingClarifications ?? 0} {(stats?.pendingClarifications ?? 0) === 1 ? "aclaración pendiente" : "aclaraciones pendientes"}
                         </h3>
-                        <p className="mt-1.5 text-xs leading-relaxed text-amber-700/80">
+                        <p className="mt-1 text-[11px] leading-relaxed text-amber-700/70">
                           Farmacias requieren tu respuesta para dispensar recetas.
                         </p>
                       </>
                     ) : (
                       <>
-                        <h3 className="text-sm font-bold uppercase tracking-wide text-green-900">
+                        <h3 className="text-[13px] font-semibold text-neutral-600">
                           Sin mandatos activos
                         </h3>
-                        <p className="mt-1.5 text-xs leading-relaxed text-green-700/80">
-                          La cola prioritaria está despejada en este momento.
+                        <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
+                          La cola prioritaria está despejada.
                         </p>
                       </>
                     )}
                   </div>
                 </section>
 
-                <section className="rounded-[18px] border border-am-surface-200/70 bg-white p-5 shadow-sm">
-                  <div className="mb-4 flex items-start gap-3.5">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-am-doctor-50 to-am-doctor-100 text-am-doctor-500">
-                      <FileText className="h-5 w-5" />
+                {/* Expedientes */}
+                <section className="rounded-xl border border-neutral-200/60 bg-white p-5">
+                  <div className="mb-4 flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500">
+                      <FileText className="h-[18px] w-[18px]" strokeWidth={1.5} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-am-surface-900">Expedientes</h3>
-                      <p className="mt-1 text-xs leading-relaxed text-am-surface-500">
-                        Accede al historial médico y al contexto clínico de tus pacientes.
+                      <h3 className="text-[13px] font-semibold text-neutral-900">Expedientes</h3>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-400">
+                        Historial médico y contexto clínico.
                       </p>
                     </div>
                   </div>
                   <a
                     href="/doctors/patients"
-                    className="group inline-flex w-full items-center justify-center gap-2 rounded-[12px] bg-am-doctor-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-am-doctor-600 hover:shadow-md"
+                    className="group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800"
                   >
                     Ir a pacientes
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                   </a>
                 </section>
 
-                <section className="rounded-[18px] border border-am-surface-200/70 bg-white p-5 shadow-sm">
-                  <div className="mb-3.5 flex items-start gap-3.5">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-purple-50 to-purple-100 text-purple-500">
-                      <Calendar className="h-5 w-5" />
+                {/* Calendar */}
+                <section className="rounded-xl border border-neutral-200/60 bg-white p-5">
+                  <div className="mb-3 flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500">
+                      <Calendar className="h-[18px] w-[18px]" strokeWidth={1.5} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-am-surface-900">Calendario</h3>
-                      <p className="mt-1 text-xs leading-relaxed text-am-surface-500">
-                        Gestiona tus citas y revisa la siguiente ventana disponible.
+                      <h3 className="text-[13px] font-semibold text-neutral-900">Calendario</h3>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-400">
+                        Gestiona tus citas y disponibilidad.
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between border-t border-am-surface-100 pt-3 text-xs">
-                    <span className="font-medium text-am-surface-500">Próxima disponibilidad</span>
-                    <span className="font-bold text-purple-600">
+                  <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-[11px]">
+                    <span className="text-neutral-400">Próxima disponibilidad</span>
+                    <span className="font-semibold text-neutral-900">
                       {stats?.nextAppointment ? stats.nextAppointment.time : "Mañana 09:00"}
                     </span>
                   </div>
                 </section>
 
-                <section className="rounded-[18px] border border-am-surface-200/70 bg-white p-5 shadow-sm">
+                {/* Weekly performance */}
+                <section className="rounded-xl border border-neutral-200/60 bg-white p-5">
                   <div className="mb-4 flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-gradient-to-br from-amber-50 to-orange-50 text-amber-500">
-                      <Sparkles className="h-[18px] w-[18px]" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500">
+                      <Sparkles className="h-4 w-4" strokeWidth={1.5} />
                     </div>
-                    <h3 className="text-sm font-bold text-am-surface-900">Rendimiento semanal</h3>
+                    <h3 className="text-[13px] font-semibold text-neutral-900">Rendimiento semanal</h3>
                   </div>
                   <div className="space-y-0">
-                    <div className="flex items-center justify-between border-b border-am-surface-100 py-2.5">
-                      <span className="text-xs font-medium text-am-surface-600">
-                        Consultas activas
-                      </span>
-                      <span className="text-sm font-bold text-am-surface-900">
+                    <div className="flex items-center justify-between border-b border-neutral-100 py-2.5">
+                      <span className="text-[11px] text-neutral-500">Consultas activas</span>
+                      <span className="text-[13px] font-semibold text-neutral-900">
                         {stats?.activeCount ?? 0}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between border-b border-am-surface-100 py-2.5">
-                      <span className="text-xs font-medium text-am-surface-600">
-                        Tiempo promedio
-                      </span>
+                    <div className="flex items-center justify-between border-b border-neutral-100 py-2.5">
+                      <span className="text-[11px] text-neutral-500">Tiempo promedio</span>
                       <div className="flex items-center gap-1.5">
-                        <Clock3 className="h-3.5 w-3.5 text-am-doctor-500" />
-                        <span className="text-sm font-bold text-am-surface-900">28 min</span>
+                        <Clock3 className="h-3 w-3 text-neutral-400" strokeWidth={1.5} />
+                        <span className="text-[13px] font-semibold text-neutral-900">28 min</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between border-b border-am-surface-100 py-2.5">
-                      <span className="text-xs font-medium text-am-surface-600">Satisfacción</span>
+                    <div className="flex items-center justify-between border-b border-neutral-100 py-2.5">
+                      <span className="text-[11px] text-neutral-500">Satisfacción</span>
                       <div className="flex items-center gap-1.5 text-amber-400">
                         {Array.from({ length: 5 }).map((_, index) => (
                           <Star key={index} className="h-3 w-3 fill-current" />
                         ))}
-                        <span className="ml-1 text-sm font-bold text-green-600">98%</span>
+                        <span className="ml-1 text-[13px] font-semibold text-green-600">98%</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between py-2.5">
-                      <span className="text-xs font-medium text-am-surface-600">Comunidad</span>
-                      <span className="text-sm font-bold text-am-surface-900">
+                      <span className="text-[11px] text-neutral-500">Comunidad</span>
+                      <span className="text-[13px] font-semibold text-neutral-900">
                         {stats?.unreadCommunityCount ?? 0} pendientes
                       </span>
                     </div>
                   </div>
                 </section>
 
-                <section className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-am-doctor-500 via-am-doctor-600 to-blue-700 p-6 text-white shadow-xl shadow-am-doctor-500/20">
-                  <div className="absolute right-0 top-0 h-32 w-32 -translate-y-1/3 translate-x-1/3 rounded-full bg-white/10 blur-3xl" />
-                  <div className="absolute bottom-0 left-0 h-24 w-24 -translate-x-1/3 translate-y-1/3 rounded-full bg-blue-300/10 blur-2xl" />
+                {/* Quality score */}
+                <section className="relative overflow-hidden rounded-xl bg-neutral-900 p-6 text-white">
+                  <div className="absolute right-0 top-0 h-32 w-32 -translate-y-1/3 translate-x-1/3 rounded-full bg-white/5 blur-3xl" />
                   <div className="relative">
                     <div className="mb-4 flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white/15 backdrop-blur-sm">
-                        <Heart className="h-[18px] w-[18px]" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+                        <Heart className="h-4 w-4" strokeWidth={1.5} />
                       </div>
-                      <h3 className="text-sm font-bold tracking-wide">PUNTUACIÓN DE CALIDAD</h3>
+                      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
+                        Puntuación de calidad
+                      </h3>
                     </div>
                     <div className="mb-3 flex items-end gap-2">
-                      <div className="text-6xl font-bold tracking-tight">9.4</div>
-                      <div className="mb-2 text-base font-semibold text-white/70">/10</div>
+                      <div className="text-5xl font-light tracking-tight">9.4</div>
+                      <div className="mb-1.5 text-base text-white/30">/10</div>
                     </div>
-                    <p className="text-xs leading-relaxed text-white/85">
+                    <p className="text-[11px] leading-relaxed text-white/40">
                       Excelente desempeño. Mantén la calidad de atención y el tiempo de respuesta.
                     </p>
-                    <div className="mt-4 border-t border-white/15 pt-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-white/70">Ranking nacional</span>
-                        <div className="flex items-center gap-1.5 font-bold">
-                          <Trophy className="h-3.5 w-3.5" />
+                    <div className="mt-4 border-t border-white/10 pt-3">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-white/40">Ranking nacional</span>
+                        <div className="flex items-center gap-1.5 font-semibold text-white/80">
+                          <Trophy className="h-3 w-3" strokeWidth={1.5} />
                           <span>
                             {stats?.rankingPosition ? `#${stats.rankingPosition}` : "Sin ranking"}
                           </span>
