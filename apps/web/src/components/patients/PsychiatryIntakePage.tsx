@@ -35,15 +35,16 @@ export default function PsychiatryIntakePage() {
 
   if (flow.sessionLoading || flow.loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#f8fbff] via-white to-[#f0f9ff]">
-        <motion.div className="text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-          <div className="relative mx-auto h-12 w-12">
-            <div className="absolute inset-0 animate-ping rounded-full bg-sky-200/60" />
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg shadow-sky-100">
-              <Loader2 className="h-5 w-5 animate-spin text-sky-500" />
-            </div>
-          </div>
-          <p className="mt-5 text-sm font-medium text-slate-500">Preparando tu evaluación...</p>
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <motion.div className="text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div
+            className="mx-auto size-16 rounded-full bg-neutral-900 flex items-center justify-center mb-6"
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <Stethoscope className="size-8 text-white" />
+          </motion.div>
+          <p className="text-neutral-500">Preparando tu evaluación...</p>
         </motion.div>
       </div>
     )
@@ -51,24 +52,43 @@ export default function PsychiatryIntakePage() {
 
   if (flow.intake?.locked) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#f8fbff] via-white to-[#f0f9ff] p-6">
-        <motion.div className="max-w-md overflow-hidden rounded-3xl border border-sky-100 bg-white/80 p-0 shadow-xl shadow-sky-900/5 backdrop-blur-xl" {...fadeSlide}>
-          <div className="bg-gradient-to-r from-sky-50 to-sky-100/50 px-8 pt-8 pb-6">
-            <div className="inline-flex items-center justify-center rounded-2xl bg-white p-3 shadow-sm">
-              <Lock className="h-6 w-6 text-sky-500" />
-            </div>
-            <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">Evaluación en revisión</h1>
+      <div className="min-h-screen bg-white">
+        <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+          <div className="max-w-7xl mx-auto">
+            <motion.div
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Lock className="size-3.5" />
+              En revisión
+            </motion.div>
+            <motion.h1
+              className="text-4xl lg:text-5xl text-white mb-4 leading-tight"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              Evaluación en revisión
+            </motion.h1>
+            <motion.p
+              className="text-lg text-white/60 max-w-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              Tu evaluación fue enviada al equipo de psiquiatría y está siendo revisada.
+            </motion.p>
           </div>
-          <div className="px-8 pb-8 pt-5">
-            <p className="text-sm leading-relaxed text-slate-600">
-              Tu evaluación fue enviada al equipo de psiquiatría y está siendo revisada. Mientras tanto, no se permiten modificaciones.
-            </p>
-            <a href="/patients/dashboard" className="mt-6 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98]">
-              <ArrowLeft className="h-4 w-4" />
-              Volver al inicio
+        </section>
+        <div className="max-w-3xl mx-auto px-6 lg:px-12 -mt-8 pb-24">
+          <motion.div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-lg" {...fadeSlide}>
+            <p className="text-neutral-600 mb-6">Mientras tanto, no se permiten modificaciones.</p>
+            <a href="/patients/dashboard" className="inline-flex items-center gap-2 px-6 py-3 border border-neutral-200 text-neutral-700 rounded-full font-medium hover:border-neutral-900 transition-all">
+              <ArrowLeft className="size-4" /> Volver al inicio
             </a>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
     )
   }
@@ -76,38 +96,49 @@ export default function PsychiatryIntakePage() {
   const isContinuity = flow.formData?.consulta_actual?.tipo_atencion === 'continuidad'
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#f8fbff_0%,#ffffff_50%,#f0f9ff_100%)]">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white">
+      {/* Hero Header */}
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+          <div>
+            <motion.div
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Stethoscope className="size-3.5" />
+              {isContinuity ? 'Renovación de Tratamiento' : 'Evaluación Psiquiátrica'}
+            </motion.div>
+            <motion.h1
+              className="text-4xl lg:text-5xl text-white mb-4 leading-tight"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              {isContinuity ? 'Continuidad de tratamiento' : 'Completá tu evaluación'}
+            </motion.h1>
+          </div>
+          <motion.div
+            className="shrink-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur px-4 py-2 text-sm text-white/80">
+              <Timer className="size-4" />
+              {Math.max(1, flow.currentPhase.steps.length - flow.stepIndex)} pasos restantes
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <div className="max-w-5xl mx-auto px-6 lg:px-12 -mt-8 pb-24">
         <motion.div
-          className="overflow-hidden rounded-[28px] border border-sky-100/60 bg-white/80 shadow-xl shadow-sky-900/[0.04] backdrop-blur-xl"
+          className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
-          {/* Header */}
-          <div className="relative overflow-hidden border-b border-sky-100/40 px-6 py-8 sm:px-8">
-            <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-sky-100/40 to-transparent blur-3xl" />
-            <div className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-gradient-to-tr from-sky-50/60 to-transparent blur-2xl" />
-            <div className="flex w-full flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-sky-200/80 bg-sky-50/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-sky-700 backdrop-blur-sm">
-                  <Stethoscope className="h-3.5 w-3.5" />
-                  {isContinuity ? 'Renovación de Tratamiento' : 'Evaluación Psiquiátrica'}
-                </div>
-                <h1 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                  {isContinuity ? 'Continuidad de tratamiento' : 'Completá tu evaluación'}
-                </h1>
-              </div>
-              <div className="mt-4 sm:mt-0">
-                <div className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-2 shadow-sm">
-                  <Timer className="h-4 w-4 text-slate-400" />
-                  <span className="text-sm font-medium text-slate-600">
-                    {Math.max(1, flow.currentPhase.steps.length - flow.stepIndex)} pasos restantes
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Clinical Triage Alert */}
           {flow.clinicalState?.triage && (flow.clinicalState.triage.priority === 'urgent' || flow.clinicalState.triage.priority === 'priority') && (
@@ -137,12 +168,12 @@ export default function PsychiatryIntakePage() {
 
                   <div className="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
                     <button type="button" onClick={flow.handlePrev} disabled={flow.phaseIndex === 0 && flow.stepIndex === 0}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40">
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-neutral-200 text-neutral-700 rounded-full font-medium hover:border-neutral-900 transition-all disabled:cursor-not-allowed disabled:opacity-40">
                       <ArrowLeft className="h-4 w-4" />
                       Anterior
                     </button>
                     <button type="button" onClick={() => { void flow.handleNext() }} disabled={flow.saving}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-sky-200/40 transition-all hover:bg-sky-600 hover:shadow-lg hover:shadow-sky-200/50 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60">
+                      className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all disabled:cursor-not-allowed disabled:opacity-60">
                       {flow.saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
                       {flow.phaseIndex === psychiatryPhaseOrder.length - 2 && flow.stepIndex === flow.currentPhase.steps.length - 1
                         ? 'Finalizar evaluación'
