@@ -12,6 +12,7 @@ export interface DoctorStats {
   todayCount: number;
   patientsCount: number;
   historyCount: number;
+  pendingClarifications: number;
   rankingPosition?: number | null;
   unreadCommunityCount?: number;
   nextAppointment: {
@@ -76,7 +77,8 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     patientsResult,
     recordsResult,
     rankingResult,
-    notificationsResult
+    notificationsResult,
+    clarificationsResult,
   ] = await Promise.all([
     supabase
       .from('appointments')
@@ -84,11 +86,25 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
       .eq('doctor_id', doctorId)
       .gte('start_time', startOfDay)
       .order('start_time', { ascending: true }),
-    supabase
-      .from('patient_care_team')
-      .select('patient_id', { count: 'exact', head: true })
-      .eq('doctor_id', doctorId)
-      .eq('active', true),
+    // Count unique patients from both care team and appointments
+    Promise.all([
+      supabase
+        .from('patient_care_team')
+        .select('patient_id')
+        .eq('doctor_id', doctorId)
+        .eq('active', true),
+      supabase
+        .from('appointments')
+        .select('patient_id')
+        .eq('doctor_id', doctorId),
+    ]).then(([careResult, apptResult]) => {
+      const careIds = (careResult.data ?? []).map((r: { patient_id: string }) => r.patient_id);
+      const apptIds = (apptResult.data ?? [])
+        .map((r: { patient_id: string }) => r.patient_id)
+        .filter(Boolean);
+      const uniqueCount = new Set([...careIds, ...apptIds]).size;
+      return { count: uniqueCount, error: careResult.error || apptResult.error };
+    }),
     supabase
       .from('medical_records')
       .select('id', { count: 'exact', head: true })
@@ -107,7 +123,13 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
           .eq('audience', 'doctor')
           .eq('category', 'community')
           .is('read_at', null)
-      : Promise.resolve({ data: null, error: null, count: 0 })
+      : Promise.resolve({ data: null, error: null, count: 0 }),
+    // Pending clarifications: dispensation orders waiting for doctor response
+    supabase
+      .from('dispensation_orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('doctor_id', doctorId)
+      .eq('status', 'clarification_requested'),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ]) as any[];
 
@@ -131,6 +153,7 @@ export async function getDoctorStats(doctorId: string, userId?: string): Promise
     todayCount: todayAppointments.length,
     patientsCount: patientsResult.count ?? 0,
     historyCount: recordsResult.count ?? 0,
+    pendingClarifications: clarificationsResult?.count ?? 0,
     rankingPosition: rankingResult?.data?.rank_position ?? null,
     unreadCommunityCount: notificationsResult?.count ?? 0,
     nextAppointment: nextAppt

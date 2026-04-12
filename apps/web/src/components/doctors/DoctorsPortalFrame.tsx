@@ -507,20 +507,48 @@ export function DoctorsPortalFrame({
 
             <aside className="border-l border-am-surface-200/60 bg-gradient-to-b from-am-surface-50 via-white to-am-surface-50/40 p-4 pb-24 lg:p-5 lg:pb-5">
               <div className="space-y-4">
-                <section className="rounded-[18px] border border-green-200/50 bg-gradient-to-br from-green-50 via-emerald-50/80 to-teal-50/40 p-5 shadow-sm">
+                <section className={`rounded-[18px] border p-5 shadow-sm ${
+                  (stats?.pendingClarifications ?? 0) > 0
+                    ? "border-amber-200/50 bg-gradient-to-br from-amber-50 via-orange-50/80 to-yellow-50/40"
+                    : "border-green-200/50 bg-gradient-to-br from-green-50 via-emerald-50/80 to-teal-50/40"
+                }`}>
                   <div className="flex flex-col items-center text-center">
                     <div className="relative mb-3.5 h-14 w-14">
-                      <div className="absolute inset-0 rounded-full bg-green-500/10 animate-ping" />
-                      <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg shadow-green-500/25">
-                        <CheckCircle2 className="h-7 w-7" />
-                      </div>
+                      {(stats?.pendingClarifications ?? 0) > 0 ? (
+                        <>
+                          <div className="absolute inset-0 rounded-full bg-amber-500/10 animate-ping" />
+                          <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25">
+                            <Bell className="h-7 w-7" />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 rounded-full bg-green-500/10 animate-ping" />
+                          <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg shadow-green-500/25">
+                            <CheckCircle2 className="h-7 w-7" />
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <h3 className="text-sm font-bold uppercase tracking-wide text-green-900">
-                      Sin mandatos activos
-                    </h3>
-                    <p className="mt-1.5 text-xs leading-relaxed text-green-700/80">
-                      La cola prioritaria está despejada en este momento.
-                    </p>
+                    {(stats?.pendingClarifications ?? 0) > 0 ? (
+                      <>
+                        <h3 className="text-sm font-bold uppercase tracking-wide text-amber-900">
+                          {stats!.pendingClarifications} {stats!.pendingClarifications === 1 ? "aclaración pendiente" : "aclaraciones pendientes"}
+                        </h3>
+                        <p className="mt-1.5 text-xs leading-relaxed text-amber-700/80">
+                          Farmacias requieren tu respuesta para dispensar recetas.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-sm font-bold uppercase tracking-wide text-green-900">
+                          Sin mandatos activos
+                        </h3>
+                        <p className="mt-1.5 text-xs leading-relaxed text-green-700/80">
+                          La cola prioritaria está despejada en este momento.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </section>
 
