@@ -1,8 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { captureEdgeException, initEdgeSentry } from '../_shared/sentry.ts';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+function requireEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const supabaseUrl = requireEnv('SUPABASE_URL');
+const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
 
 interface ValidateRequest {
   order_id: string;

@@ -1,7 +1,15 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+function requireEnv(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const supabaseUrl = requireEnv('SUPABASE_URL');
+const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
 
 interface ClarificationRequest {
   order_id: string;
