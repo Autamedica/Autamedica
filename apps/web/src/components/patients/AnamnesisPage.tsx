@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, ArrowLeft, MessageCircle, Mic, Check,
-  ChevronRight, X, FileText, Calendar, Heart, Brain,
+  ChevronRight, X, FileText, Heart, Brain,
+  Sparkles, Video,
 } from 'lucide-react'
 import { useAnamnesisFlow } from '@/hooks/patients/useAnamnesisFlow'
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps'
@@ -180,7 +181,7 @@ export default function AnamnesisPage() {
   const {
     user, guidance, currentStepIndex, currentStep, formData,
     visibleFields, pageView, completionPct, isFirstStep, isLastStep,
-    isExtracting, isStepCarriedForward, editingCarriedStep, saving,
+    isStepCarriedForward, editingCarriedStep, saving,
     saveError, showClarification, pendingCheckpoint, anamnesisMode,
     showAnalyzing, analysisResult, showUpdatePicker, showVoiceChat,
     editMode, anamnesisError, anamnesis, progress,
@@ -193,6 +194,37 @@ export default function AnamnesisPage() {
   } = useAnamnesisFlow()
 
   const [showPdfPreview, setShowPdfPreview] = useState(false)
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [showVoiceCheckpoint, setShowVoiceCheckpoint] = useState(false)
+
+  // ── Smart section ordering based on chief complaint ──
+  const smartStepOrder = useMemo(() => {
+    const motivo = formData.motivo_consulta?.sintoma_principal
+    if (typeof motivo !== 'string' || !motivo.trim()) return null
+
+    const lower = motivo.toLowerCase()
+    const SYMPTOM_PRIORITY: Record<string, string[]> = {
+      cardiovascular: ['pecho', 'corazon', 'palpitacion', 'presion', 'hipertens'],
+      respiratorio: ['tos', 'respirar', 'pulmon', 'asma', 'falta de aire'],
+      digestivo: ['estomago', 'abdomen', 'nausea', 'diarrea', 'acidez', 'vomit'],
+      genitourinario: ['orina', 'riñon', 'cistitis', 'dolor al orinar'],
+    }
+
+    for (const [sectionId, keywords] of Object.entries(SYMPTOM_PRIORITY)) {
+      if (keywords.some(k => lower.includes(k))) return sectionId
+    }
+    return null
+  }, [formData.motivo_consulta?.sintoma_principal])
+
+  // ── Celebration trigger on completion ──
+  useEffect(() => {
+    if (pageView === 'completed' && !showCelebration) {
+      setShowCelebration(true)
+      const timer = setTimeout(() => setShowCelebration(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [pageView])
 
   // ── LOADING ──
 
@@ -294,6 +326,49 @@ export default function AnamnesisPage() {
 
     return (
       <div className="min-h-screen bg-white">
+        {/* ── Celebration moment ── */}
+        <AnimatePresence>
+          {showCelebration && (
+            <motion.div
+              className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <motion.div
+                className="flex flex-col items-center"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 1.2, opacity: 0 }}
+                transition={{ type: 'spring', damping: 12, stiffness: 100 }}
+              >
+                <motion.div
+                  className="size-32 rounded-full bg-sky-500/20 flex items-center justify-center mb-6"
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 1.5, repeat: 1 }}
+                >
+                  <motion.div
+                    className="size-20 rounded-full bg-sky-500 flex items-center justify-center"
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1, repeat: 2, delay: 0.3 }}
+                  >
+                    <Sparkles className="size-10 text-white" strokeWidth={1.5} />
+                  </motion.div>
+                </motion.div>
+                <motion.p
+                  className="text-2xl font-light text-neutral-900"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  100% completada
+                </motion.p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <section className="relative h-[50vh] overflow-hidden bg-neutral-900 flex items-center justify-center">
           <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-900" />
           <motion.div
@@ -308,10 +383,10 @@ export default function AnamnesisPage() {
               animate={{ scale: 1 }}
               transition={{ type: "spring", delay: 0.2 }}
             >
-              <Check className="size-12 text-white" />
+              <Check className="size-12 text-white" strokeWidth={1.5} />
             </motion.div>
             <motion.h1
-              className="text-5xl lg:text-6xl text-white mb-4"
+              className="text-4xl font-light lg:text-6xl text-white mb-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -319,28 +394,29 @@ export default function AnamnesisPage() {
               Historia completada
             </motion.h1>
             <motion.p
-              className="text-lg text-white/70"
+              className="text-lg text-white/50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              Ya podés acceder a todos nuestros servicios
+              {completedSections.length} secciones completadas — ya podes acceder a todos los servicios
             </motion.p>
           </motion.div>
         </section>
 
         <section className="max-w-7xl mx-auto px-6 lg:px-12 -mt-12 pb-24">
+          {/* PDF CTA */}
           <motion.button
             type="button"
             onClick={() => setShowPdfPreview(true)}
-            className="group w-full max-w-2xl mx-auto mb-16 py-6 bg-sky-500 text-white rounded-2xl text-lg font-medium hover:bg-sky-600 transition-all flex items-center justify-center gap-3 shadow-xl shadow-sky-500/20"
+            className="group w-full max-w-2xl mx-auto mb-16 py-6 bg-neutral-900 text-white rounded-2xl text-lg font-medium hover:bg-neutral-800 transition-all flex items-center justify-center gap-3 shadow-xl"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <FileText className="size-6" />
+            <FileText className="size-6" strokeWidth={1.5} />
             Ver y descargar PDF
             <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
           </motion.button>
@@ -357,35 +433,39 @@ export default function AnamnesisPage() {
             completedSections={completedSections}
           />
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
-            {[
-              { icon: Brain, label: 'Actualizar', color: 'neutral' as const, onClick: () => setShowUpdatePicker(true) },
-              { icon: Mic, label: 'Hablar', color: 'sky' as const, onClick: () => setShowVoiceChat(true) },
-              { icon: Heart, label: 'Mi panel', color: 'neutral' as const, href: '/patients/dashboard' },
-              { icon: Calendar, label: 'Consultar', color: 'sky' as const, href: '/patients/appointments?type=telemedicine' },
-            ].map((action, i) => {
+          {/* ── Action grid — editorial 4-column ── */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-24">
+            {([
+              { icon: Brain, label: 'Actualizar', sub: 'Modificar secciones', color: 'neutral' as const, onClick: () => setShowUpdatePicker(true) },
+              { icon: Mic, label: 'Hablar', sub: 'Modo voz con IA', color: 'sky' as const, onClick: () => setShowVoiceChat(true) },
+              { icon: Heart, label: 'Mi panel', sub: 'Volver al dashboard', color: 'neutral' as const, href: '/patients/dashboard' },
+              { icon: Video, label: 'Consultar', sub: 'Agendar teleconsulta', color: 'sky' as const, href: '/patients/appointments?type=telemedicine' },
+            ] as const).map((action, i) => {
               const Component = action.href ? 'a' : 'button'
               return (
                 <motion.div
                   key={action.label}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + i * 0.1 }}
+                  transition={{ delay: 0.6 + i * 0.08 }}
                   whileHover={{ y: -4 }}
                 >
                   <Component
                     {...(action.href ? { href: action.href } : { type: 'button' as const, onClick: action.onClick })}
-                    className={`group block w-full p-8 rounded-2xl text-left transition-all border ${
+                    className={`group block w-full p-7 rounded-2xl text-left transition-all border ${
                       action.color === 'sky'
-                        ? 'bg-sky-500 border-sky-600 text-white hover:bg-sky-600'
-                        : 'bg-white border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50'
+                        ? 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800'
+                        : 'bg-white border-neutral-200/60 hover:border-neutral-300 hover:shadow-md'
                     }`}
                   >
-                    <action.icon className={`size-10 mb-6 ${
-                      action.color === 'sky' ? 'text-white' : 'text-neutral-400 group-hover:text-neutral-900'
-                    }`} />
-                    <p className={`text-lg ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
+                    <action.icon className={`size-8 mb-5 ${
+                      action.color === 'sky' ? 'text-sky-400' : 'text-neutral-300 group-hover:text-neutral-900'
+                    }`} strokeWidth={1.5} />
+                    <p className={`text-base font-medium ${action.color === 'sky' ? 'text-white' : 'text-neutral-900'}`}>
                       {action.label}
+                    </p>
+                    <p className={`mt-1 text-[13px] ${action.color === 'sky' ? 'text-white/50' : 'text-neutral-400'}`}>
+                      {action.sub}
                     </p>
                   </Component>
                 </motion.div>
@@ -393,19 +473,20 @@ export default function AnamnesisPage() {
             })}
           </div>
 
+          {/* ── Sections overview ── */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-            <h2 className="text-2xl text-neutral-900 mb-6">Secciones completadas</h2>
-            <div className="flex flex-wrap gap-3">
+            <h2 className="text-xl font-light text-neutral-900 mb-6">Secciones completadas</h2>
+            <div className="flex flex-wrap gap-2.5">
               {anamnesisSteps.map((step) => {
                 const isComplete = completedSections.includes(step.id)
                 return (
                   <span
                     key={step.id}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium ${
-                      isComplete ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-500'
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium transition-colors ${
+                      isComplete ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-400'
                     }`}
                   >
-                    {isComplete && <Check className="size-3.5" />}
+                    {isComplete && <Check className="size-3" strokeWidth={2} />}
                     {SECTION_SHORT_LABELS[step.id] ?? step.id}
                   </span>
                 )
@@ -609,15 +690,30 @@ export default function AnamnesisPage() {
         </div>
       </header>
 
+      {/* Smart ordering hint */}
+      {smartStepOrder && currentStepIndex < 3 && (
+        <div className="mx-auto max-w-3xl px-6 pt-4">
+          <motion.div
+            className="flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2 text-[13px] text-sky-700"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Sparkles className="size-3.5" strokeWidth={1.5} />
+            Basado en tu motivo de consulta, priorizaremos {SECTION_SHORT_LABELS[smartStepOrder] ?? smartStepOrder}
+          </motion.div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-6 py-16 lg:py-24">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={slideDirection}>
           <motion.div
             key={currentStepIndex}
-            initial={{ opacity: 0, x: 20 }}
+            custom={slideDirection}
+            initial={{ opacity: 0, x: slideDirection * 60 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, x: slideDirection * -60 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
           >
             <motion.div
               className="inline-flex items-center px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-full text-xs font-medium mb-8"
@@ -726,7 +822,7 @@ export default function AnamnesisPage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between gap-4">
           <motion.button
             type="button"
-            onClick={handlePrev}
+            onClick={() => { setSlideDirection(-1); void handlePrev() }}
             disabled={isFirstStep || saving}
             className="px-6 py-3 border border-neutral-200 text-neutral-900 rounded-full font-medium hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
             whileHover={{ scale: isFirstStep ? 1 : 1.02 }}
@@ -737,17 +833,87 @@ export default function AnamnesisPage() {
 
           <motion.button
             type="button"
-            onClick={handleNext}
+            onClick={() => {
+              setSlideDirection(1)
+              // Voice checkpoint after section 6 (index 5) — halfway through
+              if (currentStepIndex === 5) {
+                setShowVoiceCheckpoint(true)
+                return
+              }
+              void handleNext()
+            }}
             disabled={saving}
             className="group px-8 py-3 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all flex items-center gap-2 disabled:opacity-50"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             {isLastStep ? 'Finalizar' : 'Siguiente'}
-            {isLastStep ? <Check className="size-4" /> : <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />}
+            {isLastStep ? <Check className="size-4" strokeWidth={1.5} /> : <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />}
           </motion.button>
         </div>
       </footer>
+
+      {/* ── Voice Checkpoint Modal ── */}
+      <AnimatePresence>
+        {showVoiceCheckpoint && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-neutral-900/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowVoiceCheckpoint(false); setSlideDirection(1); void handleNext() }}
+            />
+            <motion.div
+              className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-lg overflow-hidden rounded-3xl bg-white p-8 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2"
+              initial={{ opacity: 0, y: 40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            >
+              <div className="flex flex-col items-center text-center">
+                <motion.div
+                  className="mb-6 flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 shadow-lg shadow-sky-500/20"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Mic className="size-10 text-white" strokeWidth={1.5} />
+                </motion.div>
+
+                <h3 className="mb-2 text-xl font-light text-neutral-900">Punto de control</h3>
+                <p className="mb-8 max-w-sm text-[13px] leading-relaxed text-neutral-500">
+                  Completaste la primera mitad. Queres hablar con nuestro asistente para aclarar o profundizar lo que llenaste?
+                </p>
+
+                <div className="flex w-full gap-3">
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      setShowVoiceCheckpoint(false)
+                      setShowVoiceChat(true)
+                    }}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-[13px] font-medium text-white transition-colors hover:bg-neutral-800"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Mic className="size-4" strokeWidth={1.5} />
+                    Si, hablar
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={() => { setShowVoiceCheckpoint(false); setSlideDirection(1); void handleNext() }}
+                    className="flex flex-1 items-center justify-center rounded-full border border-neutral-200 py-3.5 text-[13px] font-medium text-neutral-700 transition-colors hover:border-neutral-300"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Continuar sin hablar
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Overlays */}
       {showAnalyzing && (
