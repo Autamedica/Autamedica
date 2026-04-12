@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { UnifiedVideoCall, createCallService, useTurnCredentials } from '@autamedica/telemedicine'
 import type { CallStatus } from '@autamedica/telemedicine'
@@ -140,37 +141,51 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     const errorInfo = translateCallError(callSessionError)
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur">
+        <motion.div
+          className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
             Telemedicina paciente
           </p>
-          <div className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20">
+          <motion.div
+            className="mx-auto mb-4 mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/20"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', delay: 0.2 }}
+          >
             <svg className="h-7 w-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-1.333-2.694-1.333-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
-          </div>
+          </motion.div>
           <h1 className="text-xl font-semibold text-white">{errorInfo.title}</h1>
           <p className="mt-3 text-sm text-slate-300">{errorInfo.description}</p>
           {errorInfo.retryHint && (
             <p className="mt-2 text-sm text-amber-400">{errorInfo.retryHint}</p>
           )}
           <div className="mt-6 flex flex-col gap-3">
-            <button
+            <motion.button
               type="button"
               onClick={() => void refreshCallSession()}
-              className="rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-400"
+              className="rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-400"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
             >
               Reintentar
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => { window.location.href = '/patients' }}
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/5"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/5"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.95 }}
             >
               Volver al panel
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
       </div>
     )
   }
@@ -178,16 +193,25 @@ function PatientCallContent({ roomId }: { roomId: string }) {
   if (loading || !isReady || callSessionLoading || !callSession) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur">
+        <motion.div
+          className="w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-2xl backdrop-blur"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 120, damping: 14 }}
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
             Telemedicina paciente
           </p>
-          <div className="mx-auto mb-4 mt-5 h-12 w-12 animate-spin rounded-full border-b-2 border-emerald-400"></div>
+          <motion.div
+            className="mx-auto mb-4 mt-5 h-12 w-12 rounded-full border-b-2 border-emerald-400"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+          />
           <h1 className="text-xl font-semibold text-white">Preparando videollamada...</h1>
           <p className="mt-3 text-sm text-slate-300">
             Estamos validando tu acceso y la conexión segura para entrar a la consulta.
           </p>
-        </div>
+        </motion.div>
       </div>
     )
   }

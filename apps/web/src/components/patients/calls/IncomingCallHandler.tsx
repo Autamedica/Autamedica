@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { BellRing, CheckCircle2, PhoneIncoming, Volume2, VolumeX, X } from 'lucide-react'
 import { getBrowserSupabaseClient } from '@/lib/supabase-browser'
 import { createCallService } from '@autamedica/telemedicine'
@@ -460,11 +461,30 @@ export function IncomingCallHandler({
   if (!incomingCall) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-[28px] border border-white/10 bg-slate-900/95 p-6 text-white shadow-am-overlay backdrop-blur">
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        className="w-full max-w-sm rounded-[28px] border border-white/10 bg-slate-900/95 p-6 text-white shadow-am-overlay backdrop-blur"
+        initial={{ scale: 0.85, opacity: 0, y: 30 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 12, mass: 0.8 }}
+      >
         <div className="mb-6 text-center">
           <div className="relative mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-300 ring-8 ring-emerald-400/10">
-            <div className="absolute inset-0 animate-ping rounded-full border-4 border-emerald-400/20"></div>
+            <motion.div
+              className="absolute inset-0 rounded-full border-4 border-emerald-400/20"
+              animate={{ scale: [1, 2], opacity: [0.3, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
+            />
+            <motion.div
+              className="absolute inset-0 rounded-full border-2 border-emerald-400/15"
+              animate={{ scale: [1, 1.8], opacity: [0.2, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut', delay: 0.4 }}
+            />
             <PhoneIncoming className="relative z-10 h-9 w-9" />
           </div>
 
@@ -510,29 +530,42 @@ export function IncomingCallHandler({
         </div>
 
         <div className="mb-4 flex items-center justify-center gap-2 text-emerald-600">
-          <div className="h-2 w-2 animate-bounce rounded-full bg-current"></div>
-          <div className="h-2 w-2 animate-bounce rounded-full bg-current" style={{ animationDelay: '0.1s' }}></div>
-          <div className="h-2 w-2 animate-bounce rounded-full bg-current" style={{ animationDelay: '0.2s' }}></div>
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="h-2 w-2 rounded-full bg-current"
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
+            />
+          ))}
         </div>
 
         <div className="flex space-x-3">
-          <button
+          <motion.button
             onClick={handleDecline}
             disabled={isConnecting}
-            className="flex flex-1 items-center justify-center space-x-2 rounded-2xl bg-rose-600 px-4 py-3 text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center space-x-2 rounded-2xl bg-rose-600 px-4 py-3 text-white hover:bg-rose-700 disabled:opacity-50"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.95 }}
           >
             <X className="h-5 w-5" />
             <span>Rechazar</span>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
             onClick={handleAccept}
             disabled={isConnecting}
-            className="flex flex-1 items-center justify-center space-x-2 rounded-2xl bg-emerald-600 px-4 py-3 text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center space-x-2 rounded-2xl bg-emerald-600 px-4 py-3 text-white hover:bg-emerald-700 disabled:opacity-50"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.95 }}
           >
             {isConnecting ? (
               <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                <motion.div
+                  className="h-4 w-4 rounded-full border-2 border-white border-t-transparent"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                />
                 <span>Conectando...</span>
               </>
             ) : (
@@ -541,7 +574,7 @@ export function IncomingCallHandler({
                 <span>Atender videollamada</span>
               </>
             )}
-          </button>
+          </motion.button>
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-3">
@@ -565,7 +598,7 @@ export function IncomingCallHandler({
           </button>
           <span className="text-xs text-slate-500">Llamada {incomingCall.callId.slice(-8)}</span>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
