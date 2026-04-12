@@ -192,6 +192,8 @@ export default function AnamnesisPage() {
     handleVoiceSwitchToText, selectUpdateSection, handleExitWizard,
   } = useAnamnesisFlow()
 
+  const [showPdfPreview, setShowPdfPreview] = useState(false)
+
   // ── LOADING ──
 
   if (pageView === 'loading') {
@@ -282,8 +284,6 @@ export default function AnamnesisPage() {
   }
 
   // ── COMPLETED ──
-
-  const [showPdfPreview, setShowPdfPreview] = useState(false)
 
   if (pageView === 'completed') {
     const completedSections = progress?.completedSections ?? []
