@@ -67,6 +67,10 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
   </video>
 
   <div class="hero-overlay"></div>
+  <div class="hero-light-axis" aria-hidden="true">
+    <div class="hero-light-axis__band"></div>
+    <div class="hero-light-axis__core"></div>
+  </div>
 
   <div class="hero-content">
     <p class="hero-badge">{safeBadge}</p>
@@ -102,8 +106,12 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     </div>
     {shortcutItems.length > 0 && (
       <div class="hero-role-shortcuts" aria-label="Acceso rápido por perfil">
-        {shortcutItems.map((item) => (
-          <a href={item.href} class="role-shortcut" style={`--shortcut-accent: ${item.accent};`}>
+        {shortcutItems.map((item, index) => (
+          <a
+            href={item.href}
+            class:list={['role-shortcut', index === 0 && 'role-shortcut--active']}
+            style={`--shortcut-accent: ${item.accent};`}
+          >
             {item.label}
           </a>
         ))}
@@ -170,11 +178,108 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     z-index: 1;
   }
 
+  .hero-light-axis {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .hero-light-axis__band {
+    position: absolute;
+    left: -24%;
+    width: 62%;
+    top: 49%;
+    height: clamp(6.5rem, 10vw, 9.5rem);
+    transform: translateY(-50%);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(191, 236, 255, 0.1) 16%,
+        rgba(191, 236, 255, 0.2) 34%,
+        rgba(233, 248, 255, 0.28) 50%,
+        rgba(191, 236, 255, 0.2) 66%,
+        rgba(191, 236, 255, 0.1) 84%,
+        rgba(255, 255, 255, 0) 100%
+      );
+    opacity: 0;
+    filter: blur(20px);
+    will-change: transform, opacity;
+    animation: hero-light-axis-band 7.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  .hero-light-axis__core {
+    position: absolute;
+    left: -10%;
+    width: 48%;
+    top: 49%;
+    height: clamp(3rem, 4.5vw, 4.25rem);
+    transform: translateY(-50%);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(224, 247, 255, 0.04) 10%,
+        rgba(205, 240, 255, 0.18) 32%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(205, 240, 255, 0.18) 68%,
+        rgba(224, 247, 255, 0.04) 90%,
+        rgba(255, 255, 255, 0) 100%
+      );
+    opacity: 0;
+    filter: blur(18px);
+    will-change: transform, opacity;
+    animation: hero-light-axis-core 7.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+
+  @keyframes hero-light-axis-band {
+    0%, 58% {
+      transform: translate3d(-42vw, -50%, 0);
+      opacity: 0;
+    }
+    62% {
+      opacity: 0.18;
+    }
+    68% {
+      opacity: 0.88;
+    }
+    76% {
+      opacity: 0.36;
+    }
+    84%, 100% {
+      transform: translate3d(86vw, -50%, 0);
+      opacity: 0;
+    }
+  }
+
+  @keyframes hero-light-axis-core {
+    0%, 60% {
+      transform: translate3d(-36vw, -50%, 0);
+      opacity: 0;
+    }
+    64% {
+      opacity: 0.3;
+    }
+    69% {
+      opacity: 1;
+    }
+    75% {
+      opacity: 0.42;
+    }
+    82%, 100% {
+      transform: translate3d(92vw, -50%, 0);
+      opacity: 0;
+    }
+  }
+
   .hero-content {
     position: relative;
     z-index: 2;
-    max-width: 720px;
-    padding: clamp(6rem, 15vh, 10rem) var(--section-px) var(--space-16);
+    width: min(100%, 760px);
+    max-width: 760px;
+    padding: clamp(6rem, 15vh, 10rem) var(--section-px) clamp(4.5rem, 10vh, 8rem);
   }
 
   .hero-badge {
@@ -189,18 +294,20 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     border-radius: var(--radius-full);
     padding: var(--space-2) var(--space-4);
     margin-bottom: var(--space-8);
+    user-select: none;
   }
 
   .hero-title {
-    font-size: clamp(3.5rem, 8vw, 6rem);
+    font-size: clamp(3.2rem, 7vw, 5.8rem);
     font-weight: var(--font-extrabold);
-    line-height: 1.03;
+    line-height: 0.98;
     letter-spacing: -0.05em;
     color: var(--au-text-primary);
     margin: 0;
     display: flex;
     flex-wrap: wrap;
     gap: 0 0.3em;
+    user-select: none;
   }
 
   .hero-word {
@@ -236,9 +343,9 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
 
   .hero-title-accent {
     display: block;
-    font-size: clamp(3.5rem, 8vw, 6rem);
+    font-size: clamp(3.2rem, 7vw, 5.8rem);
     font-weight: var(--font-extrabold);
-    line-height: 1.03;
+    line-height: 0.98;
     letter-spacing: -0.05em;
     background: linear-gradient(135deg, var(--au-accent), #67e8f9);
     -webkit-background-clip: text;
@@ -247,6 +354,7 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     margin: 0 0 var(--space-6);
     opacity: 0;
     animation: accent-reveal 0.8s ease-out 1.2s forwards;
+    user-select: none;
   }
 
   @keyframes accent-reveal {
@@ -255,27 +363,29 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
   }
 
   .hero-subtitle {
-    font-size: var(--text-xl);
-    line-height: 1.6;
+    font-size: clamp(1rem, 1.2rem + 0.2vw, 1.35rem);
+    line-height: 1.55;
     font-weight: var(--font-medium);
     color: color-mix(in srgb, var(--au-text-primary) 88%, black);
     margin: 0 0 var(--space-8);
-    max-width: 34ch;
+    max-width: 46ch;
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+    user-select: none;
   }
 
   .hero-actions {
     display: flex;
     gap: var(--space-4);
     flex-wrap: wrap;
+    align-items: center;
   }
 
   .hero-role-shortcuts {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-2);
-    margin-top: var(--space-4);
+    gap: 0.85rem;
+    margin-top: var(--space-5);
   }
 
   .btn-primary {
@@ -297,38 +407,71 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
   }
 
   .hero-secondary-link {
-    display: none;
+    display: inline-flex;
     align-items: center;
     gap: var(--space-1);
     font-size: var(--text-sm);
-    font-weight: var(--font-medium);
-    color: var(--au-text-secondary);
-    transition: color var(--transition-base);
+    font-weight: var(--font-semibold);
+    color: var(--au-text-primary);
+    user-select: none;
+    transition: color var(--transition-base), transform var(--transition-base);
   }
 
   .hero-secondary-link:hover {
     color: var(--au-text-primary);
+    transform: translateX(1px);
   }
 
   .role-shortcut {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 36px;
+    min-height: 44px;
     border-radius: var(--radius-full);
-    padding: 0.4rem 0.85rem;
-    border: 1px solid color-mix(in srgb, var(--shortcut-accent) 58%, var(--au-border-hover));
-    background: color-mix(in srgb, var(--shortcut-accent) 12%, transparent);
-    font-size: var(--text-xs);
+    padding: 0 1.35rem;
+    border: 1.5px solid color-mix(in srgb, var(--shortcut-accent) 54%, white);
+    background: rgba(255, 255, 255, 0.46);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font-size: 0.98rem;
     font-weight: var(--font-semibold);
-    color: color-mix(in srgb, var(--shortcut-accent) 82%, #fff);
-    transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+    color: #050505;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    user-select: none;
+    transition:
+      transform var(--transition-fast),
+      background var(--transition-fast),
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      color var(--transition-fast);
   }
 
   .role-shortcut:hover {
     transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--shortcut-accent) 78%, white);
-    background: color-mix(in srgb, var(--shortcut-accent) 19%, transparent);
+    border-color: color-mix(in srgb, var(--shortcut-accent) 84%, white);
+    background: color-mix(in srgb, var(--shortcut-accent) 16%, rgba(255, 255, 255, 0.9));
+    color: #050505;
+    box-shadow: 0 14px 30px rgba(14, 116, 144, 0.12);
+  }
+
+  .role-shortcut--active {
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--shortcut-accent) 92%, white) 0%,
+      color-mix(in srgb, var(--shortcut-accent) 82%, #38bdf8) 100%
+    );
+    border-color: color-mix(in srgb, var(--shortcut-accent) 92%, white);
+    color: #050505;
+    box-shadow: 0 14px 34px color-mix(in srgb, var(--shortcut-accent) 26%, transparent);
+  }
+
+  .role-shortcut--active:hover {
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--shortcut-accent) 96%, white) 0%,
+      color-mix(in srgb, var(--shortcut-accent) 88%, #0ea5e9) 100%
+    );
+    color: #050505;
   }
 
   .hero-metrics {
@@ -344,6 +487,7 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     font-size: var(--text-xs);
     color: var(--au-text-secondary);
     line-height: 1.4;
+    user-select: none;
   }
 
   .hero-metric strong {
@@ -370,38 +514,89 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
     50% { transform: translateX(-50%) translateY(-6px); }
   }
 
-  @media (min-width: 769px) {
-    .hero-secondary-link {
-      display: inline-flex;
-    }
-  }
-
   /* Center on mobile */
   @media (max-width: 768px) {
     .hero {
       justify-content: center;
     }
 
+    .hero-light-axis__band {
+      top: 54%;
+      left: -28%;
+      width: 78%;
+      height: clamp(4.75rem, 13vw, 6.5rem);
+      filter: blur(16px);
+    }
+
+    .hero-light-axis__core {
+      left: -18%;
+      width: 66%;
+      top: 54%;
+      height: clamp(2.2rem, 6vw, 3rem);
+      filter: blur(18px);
+    }
+
     .hero-content {
       text-align: center;
-      padding: clamp(5rem, 12vh, 8rem) var(--section-px) var(--space-12);
+      width: min(100%, 42rem);
+      padding: clamp(5.25rem, 12vh, 7rem) var(--section-px) var(--space-10);
     }
 
     .hero-title {
       justify-content: center;
+      font-size: clamp(2.85rem, 11vw, 4.4rem);
     }
 
     .hero-actions {
       justify-content: center;
+      gap: var(--space-3);
+    }
+
+    .hero-role-shortcuts {
+      justify-content: center;
+      gap: 0.7rem;
     }
 
     .hero-metrics {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       justify-items: center;
       text-align: center;
+      gap: var(--space-4);
+      margin-top: var(--space-10);
+      padding-top: var(--space-6);
     }
   }
 
   @media (max-width: 480px) {
+    .hero-video {
+      object-position: 68% center;
+    }
+
+    .hero-light-axis__band {
+      top: 57%;
+      left: -34%;
+      width: 92%;
+      height: 4.75rem;
+    }
+
+    .hero-light-axis__core {
+      left: -24%;
+      width: 82%;
+      top: 57%;
+      height: 2.3rem;
+    }
+
+    .hero-content {
+      padding-top: clamp(5.5rem, 13vh, 6.5rem);
+      padding-bottom: var(--space-8);
+    }
+
+    .role-shortcut {
+      min-height: 42px;
+      padding: 0 1.15rem;
+      font-size: 0.94rem;
+    }
+
     .hero-actions {
       flex-direction: column;
       align-items: stretch;
@@ -423,6 +618,13 @@ const titleWords = safeTitle.split('\n').map(line => line.split(' ').filter(w =>
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .hero-light-axis__band,
+    .hero-light-axis__core {
+      animation: none;
+      opacity: 0.18;
+      transform: translateY(-50%);
+    }
+
     .hero-word-inner {
       animation: none;
       opacity: 1;
