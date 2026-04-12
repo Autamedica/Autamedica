@@ -660,6 +660,53 @@ pnpm lint && pnpm typecheck && pnpm build:packages:core
 
 ---
 
+## 8c) Estandar Visual — Nivel Editorial Obligatorio
+
+> **Cada componente debe parecer diseñado por un director de arte, no por un developer que sabe CSS.**
+> Si un componente "funciona" pero visualmente es genérico, no está terminado.
+
+### Design System Reference
+
+- **Paleta neutral**: neutral-900 (primario), neutral-500 (secundario), neutral-400 (muted), neutral-50 (bg cards)
+- **Acentos por portal**: sky-500 (paciente), cyan-500 (doctor), emerald-500 (farmacia)
+- **Dark heroes**: bg-neutral-950, content bottom-aligned, tipografía font-light 3xl-5xl
+- **CTAs**: pill buttons (`rounded-full`) bg-neutral-900 o bg-white, nunca rectangulares
+- **Animaciones**: Framer Motion con `ease: [0.25, 0.46, 0.45, 0.94]`, no `animate-pulse` genérico
+- **Tipografía**: font-light para titulos grandes, font-medium para labels, font-semibold solo para emphasis. Nunca font-bold en titulos.
+- **Iconos**: lucide-react con `strokeWidth={1.5}`, no default stroke-2
+
+### Checklist Visual Pre-merge (obligatorio)
+
+Antes de declarar un componente UI como "terminado":
+
+- [ ] **Tiene jerarquía visual clara?** Un titulo dominante, texto secundario en neutral-400/500, CTAs con contraste.
+- [ ] **Usa motion con intención?** Framer Motion con springs/ease, no CSS `animate-pulse` o `animate-spin` como decoración.
+- [ ] **Los estados vacíos son editoriales?** No "No hay datos" en texto plano. Un icono con strokeWidth={1}, texto muted, y sugerencia de acción.
+- [ ] **Tiene espacio respiratorio?** Padding generoso (py-10+, gap-6+), no todo apretado.
+- [ ] **Los cards/panels tienen bordes sutiles?** `border-neutral-200/60`, no `border-gray-300` pesado.
+- [ ] **Las interacciones tienen feedback?** `whileHover`, `whileTap`, `transition-colors` — nunca un botón sin hover state.
+- [ ] **El componente se ve bien en dark mode implícito?** Heroes dark, cards white, contraste verificado.
+- [ ] **No usa colores genéricos?** Nada de `bg-blue-500`, `bg-green-400` — solo paleta del design system.
+
+### Anti-patrones Visuales (PROHIBIDO)
+
+- `animate-pulse` como indicador de "algo está pasando" → usar motion con waveform, rings, o states derivados
+- `bg-sky-500` como circulo con `<Mic>` adentro y nada más → eso es un placeholder, no un diseño
+- Headers verdes emerald en PDFs → paleta neutral-900/sky-500 coherente con la app
+- Textos "Cargando..." sin contexto visual → skeleton, orb animado, o spinner con label
+- Botones rectangulares con `rounded-xl` → siempre `rounded-full` para CTAs primarios
+- Secciones de formulario sin category badge ni progress → siempre contexto de dónde está el usuario
+
+### Figma Make como Fuente de Verdad Visual
+
+Cuando existe un diseño en Figma Make para un componente:
+1. **Leer el diseño ANTES de codificar** — usar `get_design_context` de MCP Figma
+2. **Adaptar, no copiar** — el código de Figma es React+Tailwind reference, no final. Adaptar a hooks reales, datos de Supabase, y patterns del proyecto.
+3. **Fidelidad visual > fidelidad de código** — si Figma muestra un orb con waveform, el resultado debe verse igual aunque la implementación sea diferente.
+4. **Si no hay Figma, el estándar es el ultimo componente editorial aprobado** — mirar el componente más reciente que el usuario aprobó y usar el mismo nivel.
+
+---
+
 ## 9) Referencias
 
 ### Documentos del proyecto
