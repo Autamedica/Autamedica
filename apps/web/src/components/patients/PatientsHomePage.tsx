@@ -1,48 +1,29 @@
 'use client'
 
-import { Skeleton, SkeletonDashboard } from '@/components/ui/Skeleton'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import {
+  Bell, Menu, Video, Calendar, FileText, Brain,
+  Heart, Shield, Users, Clock, ChevronRight,
+  Check, AlertCircle, ArrowRight, ArrowLeft,
+  LogOut, Settings, User, Mic, MessageCircle,
+} from 'lucide-react'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
-import type { Locale } from '@/i18n/index'
-import {
-  Bell,
-  Calendar,
-  ChevronRight,
-  Clock,
-  ClipboardList,
-  Heart,
-  LogOut,
-  MessageCircle,
-  Pill,
-  Settings,
-  Shield,
-  User,
-  Video,
-  Brain,
-} from 'lucide-react'
-
-function ProgressBar({ value, color }: { value: number; color: 'sky' | 'amber' | 'emerald' }) {
-  const trackColors = { sky: 'bg-sky-100', amber: 'bg-amber-100', emerald: 'bg-emerald-100' } as const
-  const fillColors = { sky: 'bg-sky-500', amber: 'bg-amber-500', emerald: 'bg-emerald-500' } as const
-  return (
-    <div className={`mt-2 h-1 overflow-hidden rounded-full ${trackColors[color]}`}>
-      <div
-        className={`h-full rounded-full ${fillColors[color]} transition-all duration-700`}
-        style={{ width: `${Math.max(0, Math.min(value, 100))}%` }}
-      />
-    </div>
-  )
-}
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import OnboardingChecklist from '@/components/patients/OnboardingChecklist'
-import PreConsultationReminder from '@/components/patients/PreConsultationReminder'
-import NextStepCard, { QuickLinks } from '@/components/patients/NextStepCard'
 import {
   buildPatientTelemedicineEntryUrl,
   isJoinableTelemedicineAppointment,
   isTelemedicineAppointment,
 } from '@/lib/patients/lib/telemedicine-entry'
+import type { Locale } from '@/i18n/index'
+
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Buenos días'
+  if (hour < 19) return 'Buenas tardes'
+  return 'Buenas noches'
+}
 
 function getFirstName(
   profile: ReturnType<typeof usePatientSession>['profile'],
@@ -55,21 +36,28 @@ function getFirstName(
   return user?.email?.split('@')[0] ?? 'Paciente'
 }
 
-function isWithin2Hours(scheduledAt: string): boolean {
-  const diff = new Date(scheduledAt).getTime() - Date.now()
-  return diff > 0 && diff <= 2 * 60 * 60 * 1000
-}
-
-function getTimeGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Buenos días'
-  if (hour < 19) return 'Buenas tardes'
-  return 'Buenas noches'
-}
-
 interface PatientsHomePageProps {
   locale?: Locale
 }
+
+const SERVICES = [
+  { icon: Video, label: 'Videoconsulta', href: '/patients/appointments?type=telemedicine' },
+  { icon: Calendar, label: 'Mis turnos', href: '/patients/appointments' },
+  { icon: FileText, label: 'Mis recetas', href: '/patients/medical-history' },
+  { icon: Heart, label: 'Historia general', href: '/patients/anamnesis' },
+  { icon: Brain, label: 'Psiquiatría', href: '/patients/psychiatry' },
+  { icon: Shield, label: 'Salud preventiva', href: '/patients/preventive-health' },
+  { icon: Heart, label: 'Salud reproductiva', href: '/patients/reproductive-health' },
+  { icon: Users, label: 'Comunidad', href: '/patients/community' },
+] as const
+
+const BOTTOM_TABS = [
+  { icon: Heart, label: 'Inicio', href: '/?portal=patient' },
+  { icon: Calendar, label: 'Agenda', href: '/patients/appointments' },
+  { icon: Video, label: 'Consultar', href: '/patients/appointments?type=telemedicine' },
+  { icon: FileText, label: 'Recetas', href: '/patients/medical-history' },
+  { icon: Users, label: 'Comunidad', href: '/patients/community' },
+] as const
 
 export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
   const { user, profile, patient, signOut } = usePatientSession()
@@ -80,10 +68,21 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     error: joinError,
     clearError: clearJoinError,
   } = useJoinTelemedicineAppointment()
-  const [hasHydrated, setHasHydrated] = useState(false)
+
   const [showMenu, setShowMenu] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [hasHydrated, setHasHydrated] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { scrollY } = useScroll()
+
+  const heroImageY = useTransform(scrollY, [0, 600], [0, 200])
+  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0])
+  const heroScale = useTransform(scrollY, [0, 300], [1, 1.1])
+  const headerOpacity = useTransform(scrollY, [0, 100], [0, 1])
+  const contentY = useTransform(scrollY, [0, 300], [0, -50])
+
+  useEffect(() => { setHasHydrated(true) }, [])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -105,40 +104,11 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
 
   const firstName = getFirstName(profile, user)
   const freeConsults = patient?.freeConsultationsRemaining ?? 0
+  const dateLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
 
   const completedCount = useMemo(() => {
     return appointments.filter(a => a.status === 'completed').length
   }, [appointments])
-
-  useEffect(() => {
-    setHasHydrated(true)
-  }, [])
-
-  const upcomingAppointment = useMemo(() => {
-    if (!hasHydrated) return null
-    const live = appointments
-      .filter(a => a.status === 'in_progress')
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] ?? null
-    if (live) return live
-    const now = new Date()
-    return appointments
-      .filter(a => a.status === 'scheduled' || a.status === 'confirmed')
-      .filter(a => new Date(a.start_time) > now)
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] ?? null
-  }, [appointments, hasHydrated])
-
-  const upcomingCount = useMemo(() => {
-    if (!hasHydrated) return 0
-    const now = new Date()
-    return appointments.filter(a =>
-      (a.status === 'scheduled' || a.status === 'confirmed') && new Date(a.start_time) > now
-    ).length
-  }, [appointments, hasHydrated])
-
-  const dateLocale = locale === 'pt' ? 'pt-BR' : 'es-AR'
-  const greeting = hasHydrated ? getTimeGreeting() : 'Hola'
-  const upcomingTelemedicine = upcomingAppointment && isTelemedicineAppointment(upcomingAppointment) ? upcomingAppointment : null
-  const canJoinUpcomingTelemedicine = upcomingTelemedicine ? isJoinableTelemedicineAppointment(upcomingTelemedicine) : false
 
   const anamnesisProgress = patient ? Math.min(
     ((profile?.firstName ? 15 : 0) +
@@ -160,259 +130,516 @@ export default function PatientsHomePage({ locale }: PatientsHomePageProps) {
     100
   ) : 0
 
+  const anamnesisCompleted = anamnesisProgress >= 80
+
+  const upcomingAppointment = useMemo(() => {
+    if (!hasHydrated) return null
+    const live = appointments
+      .filter(a => a.status === 'in_progress')
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] ?? null
+    if (live) return live
+    const now = new Date()
+    return appointments
+      .filter(a => a.status === 'scheduled' || a.status === 'confirmed')
+      .filter(a => new Date(a.start_time) > now)
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())[0] ?? null
+  }, [appointments, hasHydrated])
+
+  const upcomingTelemedicine = upcomingAppointment && isTelemedicineAppointment(upcomingAppointment) ? upcomingAppointment : null
+  const canJoinUpcomingTelemedicine = upcomingTelemedicine ? isJoinableTelemedicineAppointment(upcomingTelemedicine) : false
+  const hasUpcomingAppointment = !!upcomingAppointment
+
   const checklistItems = useMemo(() => [
-    { key: 'name', label: 'Nombre y apellido', completed: !!(profile?.firstName && profile?.lastName), href: '/patients/profile' },
-    { key: 'email', label: 'Email verificado', completed: !!profile?.email, href: '/patients/settings' },
-    { key: 'dob', label: 'Fecha de nacimiento', completed: !!patient?.birthDate, href: '/patients/profile' },
-    { key: 'phone', label: 'Telefono de contacto', completed: !!profile?.phone, href: '/patients/profile' },
-    { key: 'gender', label: 'Genero', completed: !!patient?.gender, href: '/patients/profile' },
-    { key: 'anamnesis', label: 'Completar historia general', completed: anamnesisProgress >= 80, href: '/patients/anamnesis' },
-  ], [profile, patient, anamnesisProgress])
+    { id: 1, label: 'Nombre y apellido', completed: !!(profile?.firstName && profile?.lastName), link: '/patients/profile' },
+    { id: 2, label: 'Email verificado', completed: !!profile?.email, link: '/patients/settings' },
+    { id: 3, label: 'Fecha de nacimiento', completed: !!patient?.birthDate, link: '/patients/profile' },
+    { id: 4, label: 'Teléfono de contacto', completed: !!profile?.phone, link: '/patients/profile' },
+    { id: 5, label: 'Género', completed: !!patient?.gender, link: '/patients/profile' },
+    { id: 6, label: 'Historia general completa', completed: anamnesisCompleted, link: '/patients/anamnesis' },
+  ], [profile, patient, anamnesisCompleted])
 
-  const checklistCompleted = checklistItems.filter(i => i.completed).length
-  const hasIncompleteChecklist = checklistItems.some(i => !i.completed)
-
-  const ACTIONS = [
-    { key: 'video', label: 'Videoconsulta', sub: 'Conectá en vivo', href: '/patients/appointments?type=telemedicine', icon: Video, color: 'text-sky-600', bg: 'bg-sky-50', border: 'border-sky-100 hover:border-sky-200' },
-    { key: 'turnos', label: 'Mis turnos', sub: 'Agendá citas', href: '/patients/appointments', icon: Calendar, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100 hover:border-violet-200' },
-    { key: 'recetas', label: 'Mis Recetas', sub: 'Billetera digital', href: '/patients/medical-history', icon: Pill, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100 hover:border-emerald-200' },
-    { key: 'anamnesis', label: 'Historia general', sub: 'Ficha clínica no psiquiátrica', href: '/patients/anamnesis', icon: ClipboardList, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100 hover:border-amber-200' },
-    { key: 'psiquiatria', label: 'Psiquiatría', sub: 'Evaluación psiquiátrica', href: '/patients/psychiatry', icon: Brain, color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
-    { key: 'preventivo', label: 'Salud Preventiva', sub: 'Controles médicos', href: '/patients/preventive-health', icon: Shield, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-100 hover:border-teal-200' },
-    { key: 'reproductiva', label: 'Salud Reproductiva', sub: 'IVE/ILE e información', href: '/patients/reproductive-health', icon: Heart, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-100 hover:border-rose-200' },
-    { key: 'comunidad', label: 'Comunidad', sub: 'Otros pacientes', href: '/patients/community', icon: MessageCircle, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50', border: 'border-fuchsia-100 hover:border-fuchsia-200' },
-  ] as const
+  const incompleteItems = checklistItems.filter(i => !i.completed)
+  const greeting = hasHydrated ? getGreeting() : 'Hola'
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {!hasHydrated ? (
-        <div className="min-h-screen bg-white">
-          <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
-            <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
-              <div className="flex items-center gap-3">
-                <Skeleton circle className="h-9 w-9" />
-                <div className="space-y-1.5">
-                  <Skeleton className="h-3.5 w-32" />
-                  <Skeleton className="h-2.5 w-20" />
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <Skeleton circle className="h-9 w-9" />
-                <Skeleton circle className="h-9 w-9" />
-              </div>
+    <div ref={containerRef} className="min-h-screen bg-white">
+      {/* Fixed Minimal Header - Appears on scroll */}
+      <motion.header
+        className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-neutral-100"
+        style={{ opacity: headerOpacity }}
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-full bg-sky-500 flex items-center justify-center text-white text-sm font-medium">
+              {firstName.charAt(0).toUpperCase()}
             </div>
-          </header>
-          <div className="mx-auto max-w-2xl">
-            <SkeletonDashboard />
+            <span className="text-sm text-neutral-900">{firstName}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button type="button" className="relative p-2 hover:bg-neutral-50 rounded-lg transition-colors">
+              <Bell className="size-5 text-neutral-600" />
+              {hasUpcomingAppointment && (
+                <span className="absolute top-1.5 right-1.5 size-1.5 bg-sky-500 rounded-full" />
+              )}
+            </button>
+
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2 hover:bg-neutral-50 rounded-lg transition-colors"
+              >
+                <Menu className="size-5 text-neutral-600" />
+              </button>
+
+              {showMenu && (
+                <motion.div
+                  className="absolute right-0 mt-2 w-48 bg-white border border-neutral-100 rounded-2xl shadow-2xl overflow-hidden"
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: "spring", duration: 0.4 }}
+                >
+                  <a href="/patients/profile" className="flex items-center gap-2.5 w-full px-4 py-3 text-left text-sm hover:bg-neutral-50 transition-colors">
+                    <User className="h-4 w-4 text-neutral-400" /> Perfil
+                  </a>
+                  <a href="/patients/settings" className="flex items-center gap-2.5 w-full px-4 py-3 text-left text-sm hover:bg-neutral-50 transition-colors">
+                    <Settings className="h-4 w-4 text-neutral-400" /> Configuración
+                  </a>
+                  <div className="border-t border-neutral-100" />
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    disabled={signingOut}
+                    className="flex items-center gap-2.5 w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" /> {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
+                  </button>
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
-      ) : (
-        <>
-          <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
-            <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white shadow-sm shadow-sky-500/20">
-                  {firstName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{greeting}, {firstName}</p>
-                  <p className="text-[11px] text-gray-400">Tu salud, tu control</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
-                  aria-label="Notificaciones"
-                >
-                  <Bell className="h-[18px] w-[18px]" />
-                  {upcomingCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                      {upcomingCount}
-                    </span>
-                  )}
-                </button>
-                <div className="relative" ref={menuRef}>
-                  <button
-                    type="button"
-                    onClick={() => setShowMenu(prev => !prev)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
-                    aria-label="Menú de usuario"
-                  >
-                    <User className="h-[18px] w-[18px]" />
-                  </button>
-                  {showMenu && (
-                    <div className="absolute right-0 top-11 z-50 w-48 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-                      <a href="/patients/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                        <User className="h-4 w-4 text-gray-400" /> Perfil
-                      </a>
-                      <a href="/patients/settings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                        <Settings className="h-4 w-4 text-gray-400" /> Configuración
-                      </a>
-                      <div className="mx-3 my-1 border-t border-gray-100" />
-                      <button type="button" onClick={handleSignOut} disabled={signingOut} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                        <LogOut className="h-4 w-4" /> {signingOut ? 'Cerrando...' : 'Cerrar sesión'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </header>
+      </motion.header>
 
-          <main className="mx-auto max-w-2xl px-5 pb-28 pt-5">
-            <NextStepCard
-              anamnesisProgress={anamnesisProgress}
-              upcomingAppointment={upcomingAppointment}
-              dateLocale={dateLocale}
+      {/* Hero - Full Canvas Visual Anchor */}
+      <motion.section
+        className="relative h-[85vh] overflow-hidden"
+        style={{ opacity: heroOpacity }}
+      >
+        <motion.div
+          className="absolute inset-0"
+          style={{ y: heroImageY, scale: heroScale }}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1758274526671-ad18176acb01?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1920"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900/60 via-neutral-900/40 to-transparent" />
+        </motion.div>
+
+        <div className="relative h-full max-w-7xl mx-auto px-6 lg:px-12 flex flex-col justify-end pb-20">
+          <motion.div
+            className="max-w-2xl"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+          >
+            <motion.p
+              className="text-white/70 text-sm mb-3 tracking-wide uppercase"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              {greeting}
+            </motion.p>
+
+            <motion.h1
+              className="text-white text-5xl lg:text-7xl mb-6 leading-[1.1]"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+            >
+              {firstName},<br />tu salud en control
+            </motion.h1>
+
+            <motion.p
+              className="text-white/80 text-lg lg:text-xl mb-10 max-w-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+            >
+              {anamnesisCompleted
+                ? 'Todo listo para tu atención médica'
+                : 'Completa tu historia clínica para comenzar'}
+            </motion.p>
+
+            <motion.a
+              href={anamnesisCompleted ? '/patients/appointments?type=telemedicine' : '/patients/anamnesis'}
+              className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-neutral-900 rounded-full text-base font-medium hover:bg-neutral-50 transition-all"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {anamnesisCompleted ? 'Agendar consulta' : 'Completar perfil'}
+              <ArrowRight className="size-5 group-hover:translate-x-1 transition-transform" />
+            </motion.a>
+          </motion.div>
+        </div>
+
+        <motion.div
+          className="absolute bottom-8 left-1/2 -translate-x-1/2"
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
+            <motion.div
+              className="w-1 h-2 bg-white/70 rounded-full"
+              animate={{ y: [0, 12, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
             />
-            <QuickLinks />
-            {upcomingAppointment ? (
-              <section className="mb-6">
-                {canJoinUpcomingTelemedicine ? (
-                  <button
-                    type="button"
-                    onClick={() => { if (!upcomingTelemedicine) return; clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
-                    disabled={joiningAppointmentId === upcomingTelemedicine?.id}
-                    className="group block w-full overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 text-left shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80"
-                  >
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        HOY
-                      </span>
-                      <span className="text-sm text-sky-100">
-                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.start_time))}
-                      </span>
-                    </div>
-                    <h2 className="text-xl font-bold text-white">
-                      {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
-                    </h2>
-                    <p className="mt-0.5 text-sm text-sky-100">
-                      {upcomingAppointment.doctor?.specialty ?? 'General'} · Videoconsulta
-                    </p>
-                    <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white py-3 font-semibold text-sky-600 transition-colors group-hover:bg-sky-50">
-                      <Video className="h-4 w-4" />
-                      {joiningAppointmentId === upcomingTelemedicine?.id ? 'Abriendo sala...' : 'Entrar a la consulta'}
-                    </div>
-                  </button>
+          </div>
+        </motion.div>
+      </motion.section>
+
+      {/* Main Content */}
+      <motion.main
+        className="relative bg-white"
+        style={{ y: contentY }}
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-24 lg:py-32 space-y-32">
+
+          {/* Status Section */}
+          <motion.section
+            className="grid lg:grid-cols-2 gap-16 lg:gap-24"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+          >
+            <div>
+              <motion.div
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6 ${
+                  !anamnesisCompleted ? 'bg-sky-50 text-sky-700' : 'bg-emerald-50 text-emerald-700'
+                }`}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+              >
+                {!anamnesisCompleted ? (
+                  <><AlertCircle className="size-3.5" /> Acción requerida</>
                 ) : (
-                  <a
-                    href={upcomingTelemedicine ? buildPatientTelemedicineEntryUrl(upcomingTelemedicine.id) : '/patients/appointments'}
-                    className="group block overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 p-5 shadow-lg shadow-sky-500/20 transition-all hover:shadow-xl hover:shadow-sky-500/30 active:scale-[0.98]"
+                  <><Check className="size-3.5" /> Activo</>
+                )}
+              </motion.div>
+
+              <motion.h2
+                className="text-4xl lg:text-5xl text-neutral-900 mb-6 leading-tight"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+              >
+                {!anamnesisCompleted
+                  ? 'Completa tu historia clínica'
+                  : 'Todo listo para tu atención'}
+              </motion.h2>
+
+              <motion.p
+                className="text-lg text-neutral-500 mb-10 max-w-md"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+              >
+                {!anamnesisCompleted
+                  ? 'Para ofrecerte la mejor atención médica'
+                  : 'Accede a consultas, recetas y más'}
+              </motion.p>
+
+              <motion.a
+                href={!anamnesisCompleted ? '/patients/anamnesis' : '/patients/appointments?type=telemedicine'}
+                className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {!anamnesisCompleted ? 'Completar ahora' : 'Agendar consulta'}
+                <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+              </motion.a>
+            </div>
+
+            {/* Metrics */}
+            <div className="space-y-10">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="flex items-end justify-between mb-3">
+                  <span className="text-neutral-500">Historia clínica</span>
+                  <span className="text-5xl text-neutral-900 tabular-nums">{anamnesisProgress}</span>
+                </div>
+                <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-sky-500 rounded-full"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${anamnesisProgress}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.5 }}
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.4 }}
+              >
+                <div className="flex items-end justify-between mb-3">
+                  <span className="text-neutral-500">Perfil completo</span>
+                  <span className="text-5xl text-neutral-900 tabular-nums">{profileProgress}</span>
+                </div>
+                <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-neutral-400 rounded-full"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${profileProgress}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.6 }}
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-end justify-between mb-3">
+                  <span className="text-neutral-500">Consultas gratuitas</span>
+                  <span className="text-5xl text-sky-600 tabular-nums">{freeConsults}</span>
+                </div>
+                <div className="h-1 bg-neutral-100 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-sky-500 rounded-full"
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${Math.min((freeConsults / 5) * 100, 100)}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1.2, ease: "easeOut", delay: 0.7 }}
+                  />
+                </div>
+              </motion.div>
+            </div>
+          </motion.section>
+
+          {/* Upcoming Appointment */}
+          {hasUpcomingAppointment && upcomingAppointment && (
+            <motion.section
+              className="border-t border-neutral-100 pt-24 lg:pt-32"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-100px" }}
+            >
+              <motion.div
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-900 text-white rounded-full text-xs font-medium mb-8"
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+              >
+                {upcomingAppointment.status === 'in_progress' ? 'EN VIVO' : 'Próxima'}
+              </motion.div>
+
+              <div className="grid lg:grid-cols-3 gap-12 lg:gap-16">
+                <div className="lg:col-span-2">
+                  <motion.h3
+                    className="text-4xl lg:text-5xl text-neutral-900 mb-4 leading-tight"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.1 }}
                   >
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                        Próxima consulta
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-sky-200 transition-transform group-hover:translate-x-1" />
+                    {upcomingAppointment.doctor
+                      ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim()
+                      : 'Consulta programada'}
+                  </motion.h3>
+                  <motion.p
+                    className="text-lg text-neutral-500 mb-8"
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {upcomingAppointment.doctor?.specialty ?? 'General'}
+                    {upcomingTelemedicine ? ' · Videoconsulta' : ''}
+                  </motion.p>
+
+                  <motion.div
+                    className="flex flex-col sm:flex-row sm:items-center gap-6"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <div>
+                      <p className="text-sm text-neutral-500 mb-1">Fecha y hora</p>
+                      <p className="text-lg text-neutral-900">
+                        {new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.start_time))}
+                      </p>
                     </div>
-                    <h2 className="text-xl font-bold text-white">
-                      {upcomingAppointment.doctor ? `Dr. ${upcomingAppointment.doctor.first_name ?? ''} ${upcomingAppointment.doctor.last_name ?? ''}`.trim() : 'Consulta programada'}
-                    </h2>
-                    <p className="mt-0.5 text-sm text-sky-100">
-                      {upcomingAppointment.doctor?.specialty ?? 'General'}
-                      {upcomingTelemedicine ? ' · Videoconsulta' : ''}
-                    </p>
-                    <div className="mt-3 flex items-center gap-4 text-sm text-sky-100">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {new Intl.DateTimeFormat(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(upcomingAppointment.start_time))}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5" />
-                        {new Intl.DateTimeFormat(dateLocale, { hour: '2-digit', minute: '2-digit' }).format(new Date(upcomingAppointment.start_time))}
-                      </span>
-                    </div>
-                  </a>
-                )}
-                {joinError && canJoinUpcomingTelemedicine && (
-                  <p className="mt-3 text-sm text-red-600">{joinError}</p>
-                )}
-              </section>
-            ) : (
-              <section className="mb-6">
-                <a href="/patients/anamnesis" className="block rounded-2xl border border-gray-100 bg-gray-50/50 p-5 transition-all hover:border-gray-200 active:scale-[0.98]">
-                  <p className="text-base leading-relaxed text-gray-500">
-                    <span className="font-semibold text-gray-900">{firstName}</span>, completá tu historia clínica para que tu próximo médico te atienda{' '}
-                    <span className="font-semibold text-gray-900">conociendo tu historia desde el primer minuto</span>.
-                  </p>
-                  {freeConsults > 0 && (
-                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      🎁 {freeConsults} {freeConsults === 1 ? 'consulta gratuita' : 'consultas gratuitas'}
-                    </div>
+
+                    {canJoinUpcomingTelemedicine && upcomingTelemedicine && (
+                      <motion.button
+                        type="button"
+                        onClick={() => { clearJoinError(); void joinAppointment(upcomingTelemedicine.id) }}
+                        disabled={joiningAppointmentId === upcomingTelemedicine.id}
+                        className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-70"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Video className="size-5" />
+                        {joiningAppointmentId === upcomingTelemedicine.id ? 'Abriendo sala...' : 'Entrar a la consulta'}
+                        <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                      </motion.button>
+                    )}
+                  </motion.div>
+                  {joinError && canJoinUpcomingTelemedicine && (
+                    <p className="mt-3 text-sm text-red-600">{joinError}</p>
                   )}
-                </a>
-              </section>
-            )}
+                </div>
 
-            {upcomingTelemedicine && isWithin2Hours(upcomingTelemedicine.start_time) && (
-              <PreConsultationReminder
-                doctorName={
-                  upcomingTelemedicine.doctor
-                    ? `Dr. ${upcomingTelemedicine.doctor.first_name ?? ''} ${upcomingTelemedicine.doctor.last_name ?? ''}`.trim()
-                    : 'Tu médico'
-                }
-                specialty={upcomingTelemedicine.doctor?.specialty ?? 'General'}
-                scheduledAt={upcomingTelemedicine.start_time}
-                appointmentId={upcomingTelemedicine.id}
-                locale={dateLocale}
-              />
-            )}
-
-            <section className="mb-6">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Tu progreso</h2>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
-                  <p className="text-[11px] font-medium text-gray-400">Anamnesis</p>
-                  <p className="mt-1 text-xl font-bold text-gray-900">{anamnesisProgress}%</p>
-                  <ProgressBar value={anamnesisProgress} color="sky" />
-                </div>
-                <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
-                  <p className="text-[11px] font-medium text-gray-400">Perfil</p>
-                  <p className="mt-1 text-xl font-bold text-gray-900">{profileProgress}%</p>
-                  <ProgressBar value={profileProgress} color="amber" />
-                </div>
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
-                  <p className="text-[11px] font-medium text-gray-400">Consultas</p>
-                  <p className="mt-1 text-xl font-bold text-gray-900">{freeConsults > 0 ? `${freeConsults} gratis` : `${completedCount}`}</p>
-                  <ProgressBar value={freeConsults > 0 ? 100 : Math.min(completedCount * 20, 100)} color="emerald" />
-                </div>
+                <motion.div
+                  className="flex items-center justify-center lg:justify-end"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <div className="size-32 rounded-full bg-sky-100 flex items-center justify-center">
+                    <Calendar className="size-16 text-sky-600" />
+                  </div>
+                </motion.div>
               </div>
-            </section>
+            </motion.section>
+          )}
 
-            {hasIncompleteChecklist && (
-              <OnboardingChecklist
-                items={checklistItems}
-                completedCount={checklistCompleted}
-                totalCount={checklistItems.length}
-              />
-            )}
+          {/* Onboarding Checklist */}
+          {incompleteItems.length > 0 && (
+            <motion.section
+              className="border-t border-neutral-100 pt-24 lg:pt-32"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, margin: "-100px" }}
+            >
+              <motion.h3
+                className="text-3xl lg:text-4xl text-neutral-900 mb-12"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                Completa tu perfil
+              </motion.h3>
 
-            <section>
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Acciones rápidas</h2>
-              <div className="grid grid-cols-2 gap-3">
-                {ACTIONS.map(({ key, label, sub, href, icon: Icon, color, bg, border }) => (
-                  <a
-                    key={key}
-                    href={href}
-                    className={`group flex items-start gap-3 rounded-xl border p-4 transition-all hover:shadow-sm active:scale-[0.97] ${border}`}
+              <div className="grid lg:grid-cols-2 gap-4">
+                {checklistItems.map((item, i) => (
+                  <motion.a
+                    key={item.id}
+                    href={item.link}
+                    className="group flex items-center gap-4 p-6 border border-neutral-200 rounded-2xl hover:border-neutral-900 transition-all"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    whileHover={{ y: -4 }}
                   >
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bg}`}>
-                      <Icon className={`h-[18px] w-[18px] ${color}`} />
+                    <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                      item.completed
+                        ? 'bg-neutral-900 border-neutral-900'
+                        : 'border-neutral-300 group-hover:border-neutral-900'
+                    }`}>
+                      {item.completed && <Check className="size-4 text-white" />}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{label}</p>
-                      <p className="mt-0.5 text-[11px] text-gray-400">{sub}</p>
-                    </div>
-                  </a>
+                    <span className={`flex-1 transition-colors ${
+                      item.completed ? 'text-neutral-400 line-through' : 'text-neutral-900'
+                    }`}>
+                      {item.label}
+                    </span>
+                    {!item.completed && (
+                      <ArrowRight className="size-5 text-neutral-400 group-hover:text-neutral-900 group-hover:translate-x-1 transition-all" />
+                    )}
+                  </motion.a>
                 ))}
               </div>
-            </section>
-          </main>
+            </motion.section>
+          )}
 
-        </>
-      )}
+          {/* Services Grid */}
+          <motion.section
+            className="border-t border-neutral-100 pt-24 lg:pt-32"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, margin: "-100px" }}
+          >
+            <motion.h3
+              className="text-3xl lg:text-4xl text-neutral-900 mb-12"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              Servicios
+            </motion.h3>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {SERVICES.map((action, i) => (
+                <motion.a
+                  key={action.label}
+                  href={action.href}
+                  className="group p-8 text-left border border-neutral-200 rounded-2xl hover:border-neutral-900 hover:bg-neutral-50 transition-all"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05 }}
+                  whileHover={{ y: -4 }}
+                >
+                  <action.icon className="size-8 text-neutral-400 group-hover:text-neutral-900 mb-6 transition-colors" />
+                  <p className="text-neutral-900 group-hover:text-neutral-900">
+                    {action.label}
+                  </p>
+                </motion.a>
+              ))}
+            </div>
+          </motion.section>
+
+          <div className="h-32" />
+        </div>
+      </motion.main>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-neutral-100 z-50">
+        <div className="flex items-center justify-around px-4 py-3">
+          {BOTTOM_TABS.map((tab) => (
+            <motion.a
+              key={tab.label}
+              href={tab.href}
+              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-neutral-100 transition-colors min-w-[60px]"
+              whileTap={{ scale: 0.95 }}
+            >
+              <tab.icon className="size-5 text-neutral-600" />
+              <span className="text-xs text-neutral-600">{tab.label}</span>
+            </motion.a>
+          ))}
+        </div>
+      </nav>
     </div>
   )
 }
