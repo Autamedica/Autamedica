@@ -7,7 +7,6 @@ import { fetchApi } from "@/lib/api-client";
 import { DoctorsPortalFrame } from "./DoctorsPortalFrame";
 import { Card, Button, Badge } from "@autamedica/ui";
 import {
-  Calculator,
   TrendingUp,
   TrendingDown,
   DollarSign,
