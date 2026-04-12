@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Mic, Loader2, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { fetchApi } from '@/lib/api-client'
 import { sanitizeForTTS, segmentForTTS } from '@/lib/patients/utils/tts-sanitizer'
@@ -572,7 +573,6 @@ export function VoiceAnamnesis({
         })
 
         // Store session for sending audio
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(wsRef as unknown as { current: unknown }).current = session
 
         // Step 4: Audio pipeline with SDK
@@ -1144,6 +1144,20 @@ export function VoiceAnamnesis({
   const expectedModelTurns = isGuidedCheckpoint ? 4 : TOTAL_BLOCKS
   const progress = Math.min(Math.round((modelTurns / expectedModelTurns) * 100), 100)
 
+  // Derived orb states for voice UI
+  const [orbBotSpeaking, setOrbBotSpeaking] = useState(false)
+  const [orbUserSpeaking, setOrbUserSpeaking] = useState(false)
+
+  useEffect(() => {
+    if (!isLive) return
+    const interval = window.setInterval(() => {
+      setOrbBotSpeaking(activeSourcesRef.current.size > 0)
+      setOrbUserSpeaking(vadActiveRef.current)
+    }, 100)
+    return () => window.clearInterval(interval)
+  }, [isLive])
+
+
   // ══════════ COMPLETED ══════════
   if (state === 'completed') {
     return (
@@ -1216,46 +1230,130 @@ export function VoiceAnamnesis({
     )
   }
 
-  // ══════════ LIVE MODE (Gemini 3.1 Flash Live) ══════════
+  // ══════════ LIVE MODE — Figma Make editorial design ══════════
   if (isLive) {
+    const orbIsSpeaking = orbBotSpeaking || orbUserSpeaking
+    const lastEntry = transcript.length > 0 ? transcript[transcript.length - 1] : null
+
     return (
-      <div className="mx-auto w-full max-w-lg space-y-3 sm:space-y-4 px-4 sm:px-0">
-        <div className="flex items-center justify-center gap-2 text-xs text-sky-600">
-          <span className="h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
-          {isGuidedCheckpoint ? 'Aclaración guiada en tiempo real' : 'Audio en tiempo real'}
-        </div>
-
-        {isGuidedCheckpoint && (
-          <div className="rounded-xl border border-sky-100 bg-sky-50/70 p-3 text-sm text-sky-900">
-            Te voy a pedir solo las aclaraciones pendientes. Cuando termines, podés guardar lo hablado.
-          </div>
-        )}
-
-        {/* Transcript */}
-        <div className="space-y-3 max-h-[40vh] sm:max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-3 sm:p-4">
-          {transcript.map((entry, i) => (
-            <div key={i} className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                entry.role === 'user' ? 'bg-sky-500 text-white' : 'bg-stone-100 text-stone-800'
-              }`}>{entry.text}</div>
+      <div className="flex min-h-[calc(100vh-64px)] flex-col bg-gradient-to-br from-neutral-50 via-white to-sky-50">
+        {/* Header - Minimal */}
+        <header className="px-6 py-5">
+          <div className="mx-auto flex max-w-4xl items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className={`h-2 w-2 rounded-full ${orbBotSpeaking ? 'bg-sky-500' : orbUserSpeaking ? 'bg-neutral-900' : 'bg-neutral-300'}`} />
+              <span className="text-sm text-neutral-500">
+                {orbBotSpeaking ? 'Asistente hablando...' :
+                 orbUserSpeaking ? 'Escuchando...' :
+                 'Esperando respuesta...'}
+              </span>
             </div>
-          ))}
-          <div ref={chatEndRef} />
-        </div>
-
-        {/* Live indicator and VAD Slider */}
-        <div className="flex flex-col items-center gap-3 sm:gap-4 py-3 sm:py-4">
-          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-sky-500 flex items-center justify-center animate-pulse shadow-lg shadow-sky-200">
-            <Mic className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+            <div className="text-xs text-neutral-400">
+              {Math.min(modelTurns, expectedModelTurns)} / {expectedModelTurns}
+            </div>
           </div>
-          <p className="text-sm text-stone-500">
-            {isGuidedCheckpoint
-              ? 'Respondé en voz alta. Te guiamos con preguntas puntuales.'
-              : 'Hablá libremente. Te escuchamos en tiempo real.'}
-          </p>
-          <div className="w-full max-w-xs space-y-1">
-            <div className="flex justify-between text-xs text-stone-400">
-              <span>Sensibilidad del micrófono</span>
+        </header>
+
+        {/* Main Voice Interface */}
+        <div className="flex flex-1 flex-col items-center justify-center px-6 pb-40">
+          {/* Voice Orb */}
+          <div className="relative mb-14">
+            {/* Outer pulse rings — only when speaking */}
+            <AnimatePresence>
+              {orbIsSpeaking && (
+                <>
+                  <motion.div
+                    className={`absolute rounded-full ${orbBotSpeaking ? 'bg-sky-500/15' : 'bg-neutral-900/15'}`}
+                    style={{ width: 280, height: 280, left: -60, top: -60 }}
+                    initial={{ scale: 1, opacity: 0.5 }}
+                    animate={{ scale: 1.6, opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <motion.div
+                    className={`absolute rounded-full ${orbBotSpeaking ? 'bg-sky-500/10' : 'bg-neutral-900/10'}`}
+                    style={{ width: 280, height: 280, left: -60, top: -60 }}
+                    initial={{ scale: 1, opacity: 0.3 }}
+                    animate={{ scale: 1.4, opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                  />
+                </>
+              )}
+            </AnimatePresence>
+
+            {/* Main Orb */}
+            <motion.div
+              className={`flex h-40 w-40 items-center justify-center rounded-full ${
+                orbBotSpeaking
+                  ? 'bg-gradient-to-br from-sky-400 to-sky-600 shadow-2xl shadow-sky-500/30'
+                  : orbUserSpeaking
+                  ? 'bg-gradient-to-br from-neutral-800 to-neutral-900 shadow-2xl shadow-neutral-900/30'
+                  : 'bg-gradient-to-br from-neutral-100 to-neutral-200 shadow-lg'
+              }`}
+              animate={{
+                scale: orbIsSpeaking ? [1, 1.04, 1] : 1,
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: orbIsSpeaking ? Infinity : 0,
+              }}
+            >
+              {/* Waveform bars when speaking */}
+              {orbIsSpeaking ? (
+                <div className="flex items-center justify-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1 rounded-full bg-white"
+                      animate={{ height: [20, 40, 20] }}
+                      transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.1 }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring' }}
+                >
+                  <Mic className="h-16 w-16 text-neutral-400" strokeWidth={1} />
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Pulsing ring when idle/listening */}
+            {!orbIsSpeaking && (
+              <motion.div
+                className="absolute rounded-full border-2 border-neutral-200"
+                style={{ width: 176, height: 176, left: -18, top: -18 }}
+                animate={{ scale: [1, 1.08, 1], opacity: [0.4, 0, 0.4] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+              />
+            )}
+          </div>
+
+          {/* Current Transcript — large editorial text */}
+          <motion.div
+            className="mx-auto mb-10 max-w-2xl text-center"
+            key={lastEntry?.text ?? 'init'}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <p className={`text-xl leading-relaxed sm:text-2xl lg:text-3xl ${
+              orbBotSpeaking ? 'text-sky-900' :
+              orbUserSpeaking ? 'text-neutral-900' :
+              'text-neutral-400'
+            }`}>
+              {lastEntry?.text ?? 'Iniciando conversación...'}
+            </p>
+          </motion.div>
+
+          {/* VAD sensitivity — compact */}
+          <div className="mx-auto w-full max-w-xs space-y-1">
+            <div className="flex justify-between text-[11px] text-neutral-400">
+              <span>Sensibilidad</span>
               <span>{Math.round(vadThreshold * 1000)}</span>
             </div>
             <input
@@ -1267,29 +1365,48 @@ export function VoiceAnamnesis({
               onChange={(e) => setVadThreshold(parseFloat(e.target.value))}
               className="w-full accent-sky-500"
             />
-            <p className="text-xs text-stone-400 text-center">Ajustá para filtrar ruido ambiente si se interrumpe solo</p>
           </div>
         </div>
 
-        <div className="flex justify-center gap-3">
-          {isGuidedCheckpoint && transcript.length > 0 && (
-            <button
-              onClick={() => {
-                stateRef.current = 'completed'
-                cleanup()
-                setSummaryText(
-                  transcript
-                    .filter((entry) => entry.role === 'assistant')
-                    .slice(-1)[0]?.text ?? 'Aclaración registrada.',
-                )
-                setState('completed')
-              }}
-              className="rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700"
+        {/* Bottom: transcript history + actions */}
+        <div className="fixed bottom-0 left-0 right-0 border-t border-neutral-100 bg-white/80 backdrop-blur-xl">
+          <div className="mx-auto max-w-4xl px-6 py-4">
+            <div
+              ref={chatEndRef}
+              className="mb-3 max-h-28 space-y-1.5 overflow-y-auto"
             >
-              Guardar y volver
-            </button>
-          )}
-          <button onClick={earlyExit} className="text-xs text-stone-400 hover:text-stone-600">Salir</button>
+              {transcript.slice(-4).map((entry, i) => (
+                <div key={i} className="text-sm">
+                  <span className={`font-medium ${
+                    entry.role === 'assistant' ? 'text-sky-600' : 'text-neutral-900'
+                  }`}>
+                    {entry.role === 'assistant' ? 'Asistente' : 'Vos'}:
+                  </span>
+                  <span className="ml-2 text-neutral-500">{entry.text}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              {isGuidedCheckpoint && transcript.length > 0 && (
+                <button
+                  onClick={() => {
+                    stateRef.current = 'completed'
+                    cleanup()
+                    setSummaryText(
+                      transcript
+                        .filter((entry) => entry.role === 'assistant')
+                        .slice(-1)[0]?.text ?? 'Aclaración registrada.',
+                    )
+                    setState('completed')
+                  }}
+                  className="rounded-full bg-neutral-900 px-5 py-2.5 text-xs font-medium text-white hover:bg-neutral-800"
+                >
+                  Guardar y volver
+                </button>
+              )}
+              <button onClick={earlyExit} className="text-xs text-neutral-400 hover:text-neutral-600">Salir</button>
+            </div>
+          </div>
         </div>
       </div>
     )
