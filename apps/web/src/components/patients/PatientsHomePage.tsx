@@ -1,18 +1,17 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import {
   Bell, Menu, Video, Calendar, FileText, Brain,
-  Heart, Shield, Users, Clock, ChevronRight,
-  Check, AlertCircle, ArrowRight, ArrowLeft,
-  LogOut, Settings, User, Mic, MessageCircle,
+  Heart, Shield, Users,
+  Check, AlertCircle, ArrowRight,
+  LogOut, Settings, User,
 } from 'lucide-react'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { useAppointments } from '@/hooks/patients/useAppointments'
 import { useJoinTelemedicineAppointment } from '@/hooks/patients/useJoinTelemedicineAppointment'
 import {
-  buildPatientTelemedicineEntryUrl,
   isJoinableTelemedicineAppointment,
   isTelemedicineAppointment,
 } from '@/lib/patients/lib/telemedicine-entry'

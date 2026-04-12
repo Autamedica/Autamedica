@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight, ArrowLeft, MessageCircle, Mic, Check,
   ChevronRight, X, FileText, Calendar, Heart, Brain,
-  Pause, Play, Square, Volume2, MicOff, Bot,
 } from 'lucide-react'
 import { useAnamnesisFlow } from '@/hooks/patients/useAnamnesisFlow'
 import { anamnesisSteps } from '@/lib/patients/data/anamnesis-steps'

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Pause, Play, SkipForward, RotateCcw, Check, Bot } from 'lucide-react'
+import { Mic, Pause, Play, SkipForward, RotateCcw, Check, Bot } from 'lucide-react'
 
 type OrbState = 'idle' | 'bot-speaking' | 'listening' | 'user-speaking' | 'paused' | 'confirmed'
 type QuestionTone = 'medical' | 'casual' | 'sensitive'
