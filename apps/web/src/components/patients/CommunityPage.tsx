@@ -413,44 +413,54 @@ export default function CommunityPage() {
   /* ─── Loading ─── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-am-surface-50">
-        <div className="flex min-h-[50vh] sm:min-h-[70vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+      <div className="min-h-screen bg-white">
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
         </div>
-        
       </div>
     );
   }
 
   /* ─── Feed View ─── */
   return (
-    <div className="min-h-screen bg-am-surface-50 text-stone-900">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-3">
-            <a href="/" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
-              <ChevronLeft className="h-4 w-4" />
-            </a>
-            <h1 className="text-lg font-bold">Comunidad</h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <a href="/patients/settings" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
-              <Bell className="h-5 w-5" />
-            </a>
+    <div className="min-h-screen bg-white text-neutral-900">
+      {/* Hero Header */}
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6">
+                <Users className="size-3.5" />
+                Comunidad de pacientes
+              </div>
+              <h1 className="text-4xl lg:text-5xl text-white mb-4 leading-tight">Comunidad</h1>
+              <p className="text-lg text-white/60 max-w-lg">Conectá con otros pacientes, compartí experiencias</p>
+            </div>
             <button
               type="button"
               onClick={() => openComposer()}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.97]"
+              className="hidden sm:inline-flex items-center gap-2 px-7 py-4 bg-white text-neutral-900 rounded-full font-medium hover:bg-neutral-50 transition-all"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="size-4" />
               Publicar
             </button>
           </div>
         </div>
-      </header>
+      </section>
 
-      <main className="mx-auto max-w-2xl space-y-6 px-5 pb-28 pt-5">
+      {/* Mobile publish button */}
+      <div className="sm:hidden px-6 -mt-6 mb-4">
+        <button
+          type="button"
+          onClick={() => openComposer()}
+          className="w-full flex items-center justify-center gap-2 py-3.5 bg-neutral-900 text-white rounded-full font-medium shadow-xl"
+        >
+          <Plus className="size-4" />
+          Publicar
+        </button>
+      </div>
+
+      <main className="max-w-4xl mx-auto space-y-6 px-6 lg:px-12 pb-28 pt-8">
         {primaryError && (
           <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{primaryError}</div>
         )}

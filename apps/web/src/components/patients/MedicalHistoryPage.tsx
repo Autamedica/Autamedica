@@ -1,53 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { Pill, Stethoscope, AlertCircle, CalendarPlus, FileText, ExternalLink } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Pill, AlertCircle, CalendarPlus, FileText, ExternalLink, ArrowRight } from 'lucide-react'
 import { useMedicalHistory } from '@/hooks/patients/useMedicalHistory'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
 import { PrescriptionModal } from '@/components/patients/medical/PrescriptionModal'
 import type { PatientPrescription } from '@/lib/patients/types/medical-history'
 
 const STATUS_LABEL: Record<string, string> = {
-  activa: 'Activa',
-  active: 'Activa',
-  completada: 'Completada',
-  completed: 'Completada',
-  cancelada: 'Cancelada',
-  cancelled: 'Cancelada',
-  pausada: 'Pausada',
-  draft: 'Borrador',
-  signed: 'Firmada',
-  sent: 'Emitida',
-  dispensed_partial: 'Dispensacion parcial',
-  dispensed_total: 'Dispensada',
-  expired: 'Vencida',
+  activa: 'Activa', active: 'Activa', completada: 'Completada', completed: 'Completada',
+  cancelada: 'Cancelada', cancelled: 'Cancelada', pausada: 'Pausada', draft: 'Borrador',
+  signed: 'Firmada', sent: 'Emitida', dispensed_partial: 'Parcial', dispensed_total: 'Dispensada', expired: 'Vencida',
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  activa: 'bg-emerald-500/15 text-emerald-400',
-  active: 'bg-emerald-500/15 text-emerald-400',
-  completada: 'bg-sky-500/15 text-sky-400',
-  completed: 'bg-sky-500/15 text-sky-400',
-  cancelada: 'bg-red-500/15 text-red-400',
-  cancelled: 'bg-red-500/15 text-red-400',
-  pausada: 'bg-yellow-500/15 text-yellow-400',
-  draft: 'bg-stone-500/15 text-stone-300',
-  signed: 'bg-stone-500/15 text-stone-300',
-  sent: 'bg-emerald-500/15 text-emerald-400',
-  dispensed_partial: 'bg-sky-500/15 text-sky-400',
-  dispensed_total: 'bg-sky-500/15 text-sky-400',
-  expired: 'bg-amber-500/15 text-amber-300',
+const STATUS_STYLE: Record<string, string> = {
+  activa: 'bg-neutral-900 text-white', active: 'bg-neutral-900 text-white',
+  sent: 'bg-neutral-900 text-white', dispensed_total: 'bg-sky-500 text-white',
+  dispensed_partial: 'bg-neutral-600 text-white', completed: 'bg-neutral-400 text-white',
+  completada: 'bg-neutral-400 text-white', expired: 'bg-neutral-200 text-neutral-500',
+  cancelled: 'bg-neutral-200 text-neutral-500', cancelada: 'bg-neutral-200 text-neutral-500',
+  draft: 'bg-neutral-100 text-neutral-500', signed: 'bg-neutral-100 text-neutral-500',
+  pausada: 'bg-neutral-200 text-neutral-600',
 }
 
-function formatPrescriptionDate(value: string) {
+function formatDate(value: string) {
   const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return 'Fecha no disponible'
-
-  return new Intl.DateTimeFormat('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(parsed)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }).format(parsed)
 }
 
 function getVerifyUrl(cuir: string | null): string | null {
@@ -55,10 +35,7 @@ function getVerifyUrl(cuir: string | null): string | null {
   return `/verify/${encodeURIComponent(cuir)}`
 }
 
-function getDownloadablePdfUrl(
-  signedPdfUrl: string | null,
-  verifyUrl: string | null,
-): string | null {
+function getDownloadablePdfUrl(signedPdfUrl: string | null, verifyUrl: string | null): string | null {
   if (!signedPdfUrl) return null
   if (verifyUrl && signedPdfUrl === verifyUrl) return null
   if (signedPdfUrl.includes('/verify/')) return null
@@ -67,125 +44,81 @@ function getDownloadablePdfUrl(
 
 function toPrescriptionModalData(p: PatientPrescription) {
   return {
-    id: p.id,
-    medication: p.medication_name,
-    dosage: p.dosage,
-    frequency: p.frequency,
-    duration: p.duration,
-    instructions: p.instructions,
-    diagnosis: p.diagnosis,
-    notes: p.notes,
-    doctorName: p.doctor_name,
-    date: p.prescribed_date || p.start_date,
-    cuir: p.cuir,
-    vendorName: p.vendor_name,
-    vendorId: p.vendor_id,
-    signedPdfUrl: p.signed_pdf_url,
-    hasDigitalArtifact: p.is_digital_artifact_ready,
-    artifactWarning: p.artifact_warning,
-    requiresStrictValidation: p.requires_strict_validation,
-    source: p.source,
+    id: p.id, medication: p.medication_name, dosage: p.dosage, frequency: p.frequency,
+    duration: p.duration, instructions: p.instructions, diagnosis: p.diagnosis, notes: p.notes,
+    doctorName: p.doctor_name, date: p.prescribed_date || p.start_date, cuir: p.cuir,
+    vendorName: p.vendor_name, vendorId: p.vendor_id, signedPdfUrl: p.signed_pdf_url,
+    hasDigitalArtifact: p.is_digital_artifact_ready, artifactWarning: p.artifact_warning,
+    requiresStrictValidation: p.requires_strict_validation, source: p.source,
   }
 }
 
-function PrescriptionCard({
-  prescription,
-  onClick,
-}: {
-  prescription: PatientPrescription
-  onClick: () => void
+function PrescriptionCard({ prescription, onClick, index }: {
+  prescription: PatientPrescription; onClick: () => void; index: number
 }) {
   const statusLabel = STATUS_LABEL[prescription.status] ?? prescription.status
-  const statusColor = STATUS_COLOR[prescription.status] ?? 'bg-stone-500/15 text-stone-400'
-  const subtitle = [prescription.doctor_name ? `Dr. ${prescription.doctor_name}` : 'Profesional tratante', formatPrescriptionDate(prescription.prescribed_date || prescription.start_date)].join(' · ')
+  const statusStyle = STATUS_STYLE[prescription.status] ?? 'bg-neutral-100 text-neutral-500'
+  const doctorName = prescription.doctor_name ? `Dr. ${prescription.doctor_name}` : 'Profesional'
+  const dateStr = formatDate(prescription.prescribed_date || prescription.start_date)
   const verifyUrl = getVerifyUrl(prescription.cuir)
   const downloadablePdfUrl = getDownloadablePdfUrl(prescription.signed_pdf_url, verifyUrl)
 
   return (
-    <div
-      className="w-full text-left rounded-2xl border p-5 shadow-sm transition-all"
-      style={{
-        background: 'var(--au-surface)',
-        borderColor: 'var(--au-border)',
-      }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.08 }}
+      whileHover={{ y: -4 }}
+      className="group border border-neutral-200 rounded-2xl p-6 hover:border-neutral-900 transition-all bg-white"
     >
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex-1 min-w-0">
-           <h3 className="text-lg font-bold truncate" style={{ color: 'var(--au-text-primary)' }}>
-            {prescription.medication_name}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-semibold text-neutral-900 truncate">
+            {prescription.medication_name || 'Prescripción médica'}
           </h3>
-          <p className="text-xs truncate mt-0.5" style={{ color: 'var(--au-text-tertiary)' }}>
-            {subtitle}
-          </p>
+          <p className="text-sm text-neutral-500 mt-0.5">{doctorName} · {dateStr}</p>
         </div>
-         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0 ${statusColor}`}>
-            {statusLabel}
-          </span>
+        <span className={`rounded-full px-3 py-1 text-xs font-bold shrink-0 ${statusStyle}`}>
+          {statusLabel}
+        </span>
       </div>
 
-      <div className="space-y-1 mb-4">
-        {prescription.dosage && (
-          <p className="text-sm font-medium" style={{ color: 'var(--au-text-secondary)' }}>
-            {prescription.dosage}
-          </p>
-        )}
-        {prescription.frequency && (
-          <p className="text-xs" style={{ color: 'var(--au-text-tertiary)' }}>
-            {prescription.frequency}
-            {prescription.duration ? ` · ${prescription.duration}` : ''}
-          </p>
-        )}
-      </div>
+      {prescription.dosage && (
+        <p className="text-neutral-700 mb-1">{prescription.dosage}</p>
+      )}
+      {prescription.frequency && (
+        <p className="text-sm text-neutral-500 mb-4">
+          {prescription.frequency}{prescription.duration ? ` · ${prescription.duration}` : ''}
+        </p>
+      )}
 
-      {prescription.artifact_warning && (
-        <div
-          className="mb-4 rounded-lg px-3 py-2 text-xs flex items-start gap-1.5"
-          style={{ background: 'rgba(234,179,8,0.1)', color: '#ca8a04' }}
-        >
-          <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-          {prescription.artifact_warning}
+      {prescription.cuir && (
+        <div className="mb-4 rounded-xl bg-neutral-50 border border-neutral-100 px-4 py-3 text-sm text-neutral-600">
+          CUIR: <span className="font-mono font-medium text-neutral-900">{prescription.cuir}</span>
         </div>
       )}
 
-      {!prescription.artifact_warning && (
-        <div
-          className="mb-4 rounded-lg px-3 py-2 text-xs"
-          style={{
-            background: prescription.is_digital_artifact_ready ? 'rgba(16,185,129,0.08)' : 'var(--au-hover)',
-            color: prescription.is_digital_artifact_ready ? '#34d399' : 'var(--au-text-tertiary)',
-          }}
-        >
-          {prescription.is_digital_artifact_ready
-            ? prescription.cuir
-              ? `Receta electronica emitida. CUIR ${prescription.cuir}.`
-              : 'Receta electronica con soporte verificable disponible.'
-            : 'Detalle clinico disponible. La receta valida para farmacia solo se muestra cuando exista soporte verificable.'}
-        </div>
-      )}
-
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         {downloadablePdfUrl && (
           <a
             href={downloadablePdfUrl}
             target="_blank"
             rel="noreferrer"
-            onClick={(event) => event.stopPropagation()}
-            className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-stone-200 bg-white py-2.5 text-sm font-bold text-stone-700 shadow-sm transition-all hover:bg-stone-50 active:scale-[0.98]"
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center gap-2 py-3 border border-neutral-200 text-neutral-700 rounded-full font-medium hover:border-neutral-900 transition-all"
           >
-            <ExternalLink className="h-4 w-4" />
-            PDF firmado
+            <ExternalLink className="size-4" /> PDF
           </a>
         )}
         <button
           type="button"
           onClick={onClick}
-          className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-stone-900 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.98]"
+          className="flex-1 flex items-center justify-center gap-2 py-3 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all"
         >
-          <FileText className="h-4 w-4" />
-          Ver detalle
+          <FileText className="size-4" /> Ver detalle
         </button>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -195,89 +128,103 @@ export default function MedicalHistoryPage() {
   const [selectedPrescription, setSelectedPrescription] = useState<PatientPrescription | null>(null)
 
   return (
-    <div
-      className="min-h-screen pb-4"
-      style={{ background: 'var(--au-bg)', color: 'var(--au-text-primary)' }}
-    >
-      {/* Header */}
-      <div className="px-5 pt-8 pb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-2xl"
-            style={{ background: 'rgba(249,115,22,0.12)' }}
+    <div className="min-h-screen bg-white">
+      {/* Hero */}
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white/80 rounded-full text-xs font-medium mb-6"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
           >
-            <Stethoscope className="h-5 w-5" style={{ color: 'var(--au-accent)' }} />
-          </div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--au-text-primary)' }}>
+            <Pill className="size-3.5" />
+            {prescriptions.length} {prescriptions.length === 1 ? 'receta' : 'recetas'}
+          </motion.div>
+
+          <motion.h1
+            className="text-4xl lg:text-5xl text-white mb-4 leading-tight"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
             Mis Recetas
-          </h1>
+          </motion.h1>
+          <motion.p
+            className="text-lg text-white/60 max-w-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            Prescripciones registradas y recetas electrónicas
+          </motion.p>
         </div>
-        <p className="text-sm pl-1" style={{ color: 'var(--au-text-tertiary)' }}>
-          Tus prescripciones registradas
-        </p>
-      </div>
+      </section>
 
       {/* Content */}
-      <div className="px-5">
+      <section className="max-w-7xl mx-auto px-6 lg:px-12 -mt-8 pb-32">
         {loading && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div
-              className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin"
-              style={{ borderColor: 'var(--au-accent)', borderTopColor: 'transparent' }}
+          <div className="flex flex-col items-center justify-center py-24">
+            <motion.div
+              className="size-12 rounded-full border-2 border-neutral-300 border-t-neutral-900 animate-spin"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
             />
-            <p className="text-sm" style={{ color: 'var(--au-text-tertiary)' }}>
-              Cargando recetas...
-            </p>
+            <p className="mt-4 text-neutral-500">Cargando recetas...</p>
           </div>
         )}
 
         {error && !loading && (
-          <div
-            className="rounded-2xl p-4 text-sm flex items-center gap-2 mb-4"
-            style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
+          <motion.div
+            className="rounded-2xl border border-red-200 bg-red-50 p-6 flex items-center gap-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
           >
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            {error}
-          </div>
+            <AlertCircle className="size-5 text-red-500 shrink-0" />
+            <p className="text-red-700">{error}</p>
+          </motion.div>
         )}
 
         {!loading && !error && (
           <>
             {prescriptions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 px-4">
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-full mb-4 bg-stone-100"
-                >
-                  <Pill className="h-8 w-8 text-stone-400" />
+              <motion.div
+                className="text-center py-24"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="size-20 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-8">
+                  <Pill className="size-10 text-neutral-400" />
                 </div>
-                <p className="font-bold text-lg text-stone-900 mb-2">
-                  Sin recetas activas
+                <h2 className="text-3xl text-neutral-900 mb-4">Sin recetas activas</h2>
+                <p className="text-neutral-500 mb-10 max-w-md mx-auto">
+                  Cuando tu médico te prescriba un medicamento, aparecerá aquí con verificación digital.
                 </p>
-                <p className="text-sm text-center text-stone-500 mb-6 max-w-xs">
-                  Cuando exista una prescripcion registrada aparecera aqui. Solo mostraremos soporte valido para farmacia cuando haya un artefacto electronico verificable.
-                </p>
-                 <a 
+                <motion.a
                   href="/patients/appointments?type=telemedicine"
-                  className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-stone-800 active:scale-[0.97]"
+                  className="group inline-flex items-center gap-2 px-7 py-4 bg-neutral-900 text-white rounded-full font-medium hover:bg-neutral-800 transition-all"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <CalendarPlus className="h-4 w-4" />
+                  <CalendarPlus className="size-5" />
                   Solicitar consulta médica
-                </a>
-              </div>
+                  <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+                </motion.a>
+              </motion.div>
             ) : (
-              <div className="flex flex-col gap-4">
-                {prescriptions.map((p) => (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {prescriptions.map((p, i) => (
                   <PrescriptionCard
                     key={p.id}
                     prescription={p}
                     onClick={() => setSelectedPrescription(p)}
+                    index={i}
                   />
                 ))}
               </div>
             )}
           </>
         )}
-      </div>
+      </section>
 
       {selectedPrescription && (
         <PrescriptionModal

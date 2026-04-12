@@ -103,23 +103,44 @@ export default function ContinuityStatusPage() {
   const StatusIcon = display.icon
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#f8fbff_0%,#ffffff_50%,#f0f9ff_100%)]">
-      <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+    <div className="min-h-screen bg-white">
+      {/* Hero */}
+      <section className="bg-neutral-900 px-6 lg:px-12 pt-16 pb-20">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-6 ${display.color}`}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <StatusIcon className="size-3.5" />
+            {display.label}
+          </motion.div>
+          <motion.h1
+            className="text-4xl lg:text-5xl text-white mb-4 leading-tight"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            Estado de tu solicitud
+          </motion.h1>
+          <motion.p
+            className="text-lg text-white/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            Continuidad de tratamiento psiquiátrico
+          </motion.p>
+        </div>
+      </section>
+
+      <div className="max-w-3xl mx-auto px-6 lg:px-12 -mt-8 pb-24">
         <motion.div
-          className="overflow-hidden rounded-[28px] border border-sky-100/60 bg-white/80 shadow-xl backdrop-blur-xl"
+          className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Header */}
-          <div className="border-b border-sky-100/40 px-8 py-8">
-            <h1 className="font-heading text-2xl font-semibold tracking-tight text-slate-950">
-              Estado de tu solicitud
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Continuidad de tratamiento psiquiátrico
-            </p>
-          </div>
 
           {/* Status Badge */}
           <div className="px-8 pt-6">
