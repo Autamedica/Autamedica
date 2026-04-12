@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { AppointmentsPanel } from '../../components/doctors/appointments/AppointmentsPanel';
+import { DoctorsAppointmentsPage } from '../../components/doctors/DoctorsAppointmentsPage';
 ---
 
 <Layout
@@ -9,19 +9,5 @@ import { AppointmentsPanel } from '../../components/doctors/appointments/Appoint
   canonical="https://www.autamedica.com/doctors/agenda"
   robots="noindex, nofollow, noarchive"
 >
-  <main class="page-shell">
-    <AppointmentsPanel client:load />
-  </main>
+  <DoctorsAppointmentsPage client:load />
 </Layout>
-
-<style>
-  .page-shell {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-
-    min-height: 100vh;
-    padding: clamp(1.5rem, 3vh, 2.5rem) var(--section-px) var(--space-24);
-    background: var(--au-bg);
-  }
-</style>

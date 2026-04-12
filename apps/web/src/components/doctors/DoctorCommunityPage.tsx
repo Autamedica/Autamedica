@@ -1,15 +1,23 @@
-'use client';
+"use client";
 
-import { ClientWrapper } from '@/components/doctors/ClientWrapper';
-import { doctorCommunityBrowserService } from '@/lib/doctors/services/community.browser';
-import type { CommunityComment, CommunityPost } from '@/lib/patients/types/community';
-import { ArrowLeft, CheckCircle, ChevronLeft, Eye, Loader2, MessageCircle, Send } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ClientWrapper } from "@/components/doctors/ClientWrapper";
+import { doctorCommunityBrowserService } from "@/lib/doctors/services/community.browser";
+import type { CommunityComment, CommunityPost } from "@/lib/patients/types/community";
+import {
+  ArrowLeft,
+  CheckCircle,
+  ChevronLeft,
+  Eye,
+  Loader2,
+  MessageCircle,
+  Send,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Ahora';
+  if (mins < 1) return "Ahora";
   if (mins < 60) return `${mins}m`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h`;
@@ -33,12 +41,12 @@ function DoctorPostCard({
       <div className="p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-700">
-            {post.is_anonymous ? '?' : (post.author_display_name ?? 'P').charAt(0).toUpperCase()}
+            {post.is_anonymous ? "?" : (post.author_display_name ?? "P").charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="truncate text-sm font-semibold text-stone-900">
-                {post.is_anonymous ? 'Anonimo' : post.author_display_name ?? 'Paciente'}
+                {post.is_anonymous ? "Anonimo" : (post.author_display_name ?? "Paciente")}
               </span>
               <span className="text-xs text-stone-300">{timeAgo(post.created_at)}</span>
             </div>
@@ -54,7 +62,10 @@ function DoctorPostCard({
             {post.tags.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {post.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700">
+                  <span
+                    key={tag}
+                    className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700"
+                  >
                     #{tag}
                   </span>
                 ))}
@@ -87,14 +98,16 @@ function DoctorPostDetailView({
   post,
   onBack,
   onCommentCreated,
+  embedded = false,
 }: {
   post: CommunityPost;
   onBack: () => void;
   onCommentCreated: (comment: CommunityComment) => void;
+  embedded?: boolean;
 }) {
   const [comments, setComments] = useState<CommunityComment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState("");
   const [commentError, setCommentError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -105,7 +118,9 @@ function DoctorPostDetailView({
       setComments(data);
       setCommentError(null);
     } catch (error) {
-      setCommentError(error instanceof Error ? error.message : 'No se pudieron cargar los comentarios');
+      setCommentError(
+        error instanceof Error ? error.message : "No se pudieron cargar los comentarios",
+      );
     } finally {
       setLoadingComments(false);
     }
@@ -126,54 +141,70 @@ function DoctorPostDetailView({
         content: commentText.trim(),
       });
       setComments((prev) => [...prev, newComment]);
-      setCommentText('');
+      setCommentText("");
       onCommentCreated(newComment);
     } catch (error) {
-      setCommentError(error instanceof Error ? error.message : 'No se pudo enviar la respuesta');
+      setCommentError(error instanceof Error ? error.message : "No se pudo enviar la respuesta");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-am-surface-50 text-stone-900">
-      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-4">
-          <button type="button" onClick={onBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-sm font-bold text-stone-900">Responder en comunidad</h1>
-            <p className="text-xs text-stone-400">Tu respuesta suma actividad al ranking medico.</p>
+    <div
+      className={`${embedded ? "text-stone-900" : "min-h-screen bg-am-surface-50 text-stone-900"}`}
+    >
+      {!embedded && (
+        <header className="sticky top-0 z-30 bg-white shadow-am-xs">
+          <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-4">
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Volver"
+              className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-sm font-bold text-stone-900">Responder en comunidad</h1>
+              <p className="text-xs text-stone-400">
+                Tu respuesta suma actividad al ranking medico.
+              </p>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main className="mx-auto max-w-3xl px-5 pb-48 pt-6">
+      <main className={`mx-auto max-w-3xl px-5 ${embedded ? "pb-28 pt-0" : "pb-48 pt-6"}`}>
         <div className="overflow-hidden rounded-2xl bg-white shadow-am-sm ring-1 ring-stone-950/[0.03]">
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sm font-bold text-sky-700">
-                {post.is_anonymous ? '?' : (post.author_display_name ?? 'P').charAt(0).toUpperCase()}
+                {post.is_anonymous
+                  ? "?"
+                  : (post.author_display_name ?? "P").charAt(0).toUpperCase()}
               </div>
               <div>
                 <p className="text-sm font-semibold text-stone-900">
-                  {post.is_anonymous ? 'Anonimo' : post.author_display_name ?? 'Paciente'}
+                  {post.is_anonymous ? "Anonimo" : (post.author_display_name ?? "Paciente")}
                 </p>
                 <p className="text-xs text-stone-400">{timeAgo(post.created_at)}</p>
               </div>
             </div>
 
-            {post.title && (
-              <h2 className="mt-4 text-lg font-bold text-stone-900">{post.title}</h2>
-            )}
+            {post.title && <h2 className="mt-4 text-lg font-bold text-stone-900">{post.title}</h2>}
 
-            <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-stone-600">{post.content}</p>
+            <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-stone-600">
+              {post.content}
+            </p>
 
             {post.tags.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {post.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700">
+                  <span
+                    key={tag}
+                    className="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-semibold text-sky-700"
+                  >
                     #{tag}
                   </span>
                 ))}
@@ -207,7 +238,9 @@ function DoctorPostDetailView({
           ) : comments.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-dashed border-stone-200 bg-white p-8 text-center">
               <MessageCircle className="mx-auto h-6 w-6 text-stone-300" />
-              <p className="mt-2 text-sm text-stone-400">Sin comentarios todavia. Responde primero.</p>
+              <p className="mt-2 text-sm text-stone-400">
+                Sin comentarios todavia. Responde primero.
+              </p>
             </div>
           ) : (
             <div className="mt-4 space-y-3">
@@ -218,24 +251,33 @@ function DoctorPostDetailView({
                 >
                   <div className="px-4 py-3.5">
                     <div className="flex items-center gap-2.5">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        comment.author_role === 'doctor'
-                          ? 'bg-sky-100 text-sky-700'
-                          : 'bg-stone-100 text-stone-500'
-                      }`}>
-                        {comment.is_anonymous ? '?' : (comment.author_display_name ?? '?').charAt(0).toUpperCase()}
+                      <div
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                          comment.author_role === "doctor"
+                            ? "bg-sky-100 text-sky-700"
+                            : "bg-stone-100 text-stone-500"
+                        }`}
+                      >
+                        {comment.is_anonymous
+                          ? "?"
+                          : (comment.author_display_name ?? "?").charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="truncate text-sm font-semibold text-stone-900">
-                            {comment.is_anonymous ? 'Anonimo' : comment.author_display_name ?? 'Paciente'}
+                            {comment.is_anonymous
+                              ? "Anonimo"
+                              : (comment.author_display_name ?? "Paciente")}
                           </span>
-                          {comment.author_role === 'doctor' && (
+                          {comment.author_role === "doctor" && (
                             <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-700">
-                              Medico{comment.doctor_specialty ? ` · ${comment.doctor_specialty}` : ''}
+                              Medico
+                              {comment.doctor_specialty ? ` · ${comment.doctor_specialty}` : ""}
                             </span>
                           )}
-                          <span className="text-xs text-stone-300">{timeAgo(comment.created_at)}</span>
+                          <span className="text-xs text-stone-300">
+                            {timeAgo(comment.created_at)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -248,11 +290,11 @@ function DoctorPostDetailView({
         </div>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-am-sticky-top">
-        <div className="mx-auto max-w-3xl px-5 py-3">
-          {commentError && (
-            <p className="mb-2 text-xs text-red-600">{commentError}</p>
-          )}
+      <div
+        className={`${embedded ? "sticky bottom-0 mt-6 rounded-2xl border border-stone-200 bg-white shadow-am-sm" : "fixed bottom-0 left-0 right-0 z-40 bg-white shadow-am-sticky-top"}`}
+      >
+        <div className={`mx-auto max-w-3xl px-5 py-3 ${embedded ? "" : ""}`}>
+          {commentError && <p className="mb-2 text-xs text-red-600">{commentError}</p>}
           <div className="flex items-end gap-3">
             <div className="min-w-0 flex-1">
               <textarea
@@ -262,7 +304,7 @@ function DoctorPostDetailView({
                 rows={1}
                 className="w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition-all placeholder:text-stone-300 focus:border-stone-400 focus:bg-white focus:ring-2 focus:ring-stone-900/5"
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSubmitComment();
                   }
@@ -275,7 +317,11 @@ function DoctorPostDetailView({
               disabled={!commentText.trim() || submitting}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-stone-900 text-white shadow-sm transition-all hover:bg-stone-800 active:scale-95 disabled:opacity-40"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </button>
           </div>
         </div>
@@ -284,43 +330,51 @@ function DoctorPostDetailView({
   );
 }
 
-function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | null }) {
+function DoctorCommunityScreen({
+  initialPostId,
+  embedded = false,
+}: {
+  initialPostId?: string | null;
+  embedded?: boolean;
+}) {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(initialPostId ?? null);
 
   const syncUrl = useCallback((postId: string | null) => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
     const url = new URL(window.location.href);
     if (postId) {
-      url.searchParams.set('post', postId);
+      url.searchParams.set("post", postId);
     } else {
-      url.searchParams.delete('post');
+      url.searchParams.delete("post");
     }
 
-    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }, []);
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await doctorCommunityBrowserService.getPosts({ limit: 24, sortBy: 'recent' });
+      const data = await doctorCommunityBrowserService.getPosts({ limit: 24, sortBy: "recent" });
       setPosts(data);
       setError(null);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : 'No se pudieron cargar las preguntas');
+      setError(
+        fetchError instanceof Error ? fetchError.message : "No se pudieron cargar las preguntas",
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!initialPostId && typeof window !== 'undefined') {
-      const initialPostId = new URL(window.location.href).searchParams.get('post');
+    if (!initialPostId && typeof window !== "undefined") {
+      const initialPostId = new URL(window.location.href).searchParams.get("post");
       if (initialPostId) {
         setSelectedPostId(initialPostId);
       }
@@ -334,10 +388,13 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
     [posts, selectedPostId],
   );
 
-  const openPost = useCallback((post: CommunityPost) => {
-    setSelectedPostId(post.id);
-    syncUrl(post.id);
-  }, [syncUrl]);
+  const openPost = useCallback(
+    (post: CommunityPost) => {
+      setSelectedPostId(post.id);
+      syncUrl(post.id);
+    },
+    [syncUrl],
+  );
 
   const closePost = useCallback(() => {
     setSelectedPostId(null);
@@ -345,15 +402,15 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
   }, [syncUrl]);
 
   const handleCommentCreated = useCallback((comment: CommunityComment) => {
-    setPosts((prev) => prev.map((post) => (
-      post.id === comment.post_id
-        ? { ...post, comment_count: post.comment_count + 1 }
-        : post
-    )));
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === comment.post_id ? { ...post, comment_count: post.comment_count + 1 } : post,
+      ),
+    );
   }, []);
 
   const handlePortalBack = useCallback(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
 
@@ -362,7 +419,7 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
       return;
     }
 
-    window.location.href = '/doctors/dashboard';
+    window.location.href = "/doctors/dashboard";
   }, []);
 
   if (selectedPost) {
@@ -371,14 +428,17 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
         post={selectedPost}
         onBack={closePost}
         onCommentCreated={handleCommentCreated}
+        embedded={embedded}
       />
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-am-surface-50">
-        <div className="flex min-h-[70vh] items-center justify-center">
+      <div className={`${embedded ? "" : "min-h-screen bg-am-surface-50"}`}>
+        <div
+          className={`flex items-center justify-center ${embedded ? "min-h-[20rem]" : "min-h-[70vh]"}`}
+        >
           <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
         </div>
       </div>
@@ -386,43 +446,55 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
   }
 
   return (
-    <div className="min-h-screen bg-am-surface-50 text-stone-900">
-      <header className="sticky top-0 z-30 bg-white shadow-am-xs">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={handlePortalBack} aria-label="Volver" className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <div>
-              <h1 className="text-lg font-bold">Preguntas de la comunidad</h1>
-              <p className="text-sm text-stone-500">Responde desde el portal medico sin salir del flujo correcto.</p>
+    <div
+      className={`${embedded ? "text-stone-900" : "min-h-screen bg-am-surface-50 text-stone-900"}`}
+    >
+      {!embedded && (
+        <header className="sticky top-0 z-30 bg-white shadow-am-xs">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handlePortalBack}
+                aria-label="Volver"
+                className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-50 hover:text-stone-600"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div>
+                <h1 className="text-lg font-bold">Preguntas de la comunidad</h1>
+                <p className="text-sm text-stone-500">
+                  Responde desde el portal medico sin salir del flujo correcto.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main className="mx-auto max-w-3xl space-y-4 px-5 pb-16 pt-5">
+      <main className={`mx-auto max-w-3xl space-y-4 px-5 ${embedded ? "pb-0 pt-0" : "pb-16 pt-5"}`}>
         <section className="rounded-2xl bg-white p-5 shadow-am-sm ring-1 ring-stone-950/[0.03]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Ranking y comunidad</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+            Ranking y comunidad
+          </p>
           <h2 className="mt-2 text-xl font-bold text-stone-900">Casos abiertos para responder</h2>
           <p className="mt-2 text-sm leading-relaxed text-stone-500">
-            Las respuestas medicas se cargan por la ruta de doctores y quedan disponibles para el ranking comunitario.
+            Las respuestas medicas se cargan por la ruta de doctores y quedan disponibles para el
+            ranking comunitario.
           </p>
         </section>
 
-        {error && (
-          <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>
-        )}
+        {error && <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
         <div className="space-y-3">
           {posts.length > 0 ? (
-            posts.map((post) => (
-              <DoctorPostCard key={post.id} post={post} onOpen={openPost} />
-            ))
+            posts.map((post) => <DoctorPostCard key={post.id} post={post} onOpen={openPost} />)
           ) : (
             <div className="rounded-2xl border border-dashed border-stone-200 bg-white p-10 text-center">
               <MessageCircle className="mx-auto h-8 w-8 text-stone-300" />
-              <p className="mt-3 text-sm font-medium text-stone-400">No hay preguntas disponibles ahora.</p>
+              <p className="mt-3 text-sm font-medium text-stone-400">
+                No hay preguntas disponibles ahora.
+              </p>
             </div>
           )}
         </div>
@@ -431,10 +503,16 @@ function DoctorCommunityScreen({ initialPostId }: { initialPostId?: string | nul
   );
 }
 
-export function DoctorCommunityPage({ initialPostId }: { initialPostId?: string | null }) {
+export function DoctorCommunityPage({
+  initialPostId,
+  embedded = false,
+}: {
+  initialPostId?: string | null;
+  embedded?: boolean;
+}) {
   return (
     <ClientWrapper>
-      <DoctorCommunityScreen initialPostId={initialPostId} />
+      <DoctorCommunityScreen initialPostId={initialPostId} embedded={embedded} />
     </ClientWrapper>
   );
 }
