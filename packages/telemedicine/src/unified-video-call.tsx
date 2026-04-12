@@ -67,6 +67,7 @@ export interface UnifiedVideoCallProps {
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
   onError?: (error: unknown) => void
+  onLocalAudioLevelChange?: (level: number) => void
   persistCallStatus?: (status: CallStatus, reason?: string) => Promise<void>
   callService?: UnifiedVideoCallService
   /** Supabase URL for best-effort call status persistence on page close */
@@ -100,6 +101,7 @@ export function UnifiedVideoCall({
   onCallStart,
   onStatusChange,
   onError,
+  onLocalAudioLevelChange,
   persistCallStatus: persistCallStatusOverride,
   callService: callServiceOverride,
   supabaseUrl,
@@ -615,6 +617,60 @@ export function UnifiedVideoCall({
     supabaseUrl,
     supabaseAnonKey,
   })
+
+  useEffect(() => {
+    onLocalAudioLevelChange?.(0)
+
+    if (!onLocalAudioLevelChange || !client || !isInRoom) {
+      return
+    }
+
+    const localStream = client.getLocalStream()
+    const audioTrack = localStream?.getAudioTracks()[0]
+    if (!audioTrack) {
+      return
+    }
+
+    let audioContext: AudioContext | null = null
+    let analyser: AnalyserNode | null = null
+    let frameId: number | null = null
+
+    try {
+      audioContext = new AudioContext()
+      const source = audioContext.createMediaStreamSource(new MediaStream([audioTrack]))
+      analyser = audioContext.createAnalyser()
+      analyser.fftSize = 256
+      analyser.smoothingTimeConstant = 0.3
+      source.connect(analyser)
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+      const tick = () => {
+        if (!analyser) return
+        analyser.getByteFrequencyData(dataArray)
+        let sum = 0
+        for (let index = 0; index < dataArray.length; index += 1) {
+          sum += dataArray[index]
+        }
+
+        const avg = sum / dataArray.length
+        const nextLevel = audioTrack.enabled ? Math.min(avg / 128, 1) : 0
+        onLocalAudioLevelChange(nextLevel)
+        frameId = requestAnimationFrame(tick)
+      }
+
+      tick()
+    } catch {
+      onLocalAudioLevelChange(0)
+    }
+
+    return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId)
+      if (audioContext?.state !== 'closed') {
+        void audioContext?.close()
+      }
+      onLocalAudioLevelChange(0)
+    }
+  }, [client, isAudioEnabled, isInRoom, onLocalAudioLevelChange, retryKey])
 
   /* ── Actions ── */
   const startCall = useCallback(async () => {

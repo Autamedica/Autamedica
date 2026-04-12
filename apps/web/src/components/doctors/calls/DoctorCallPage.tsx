@@ -14,10 +14,41 @@ import { useConsultationContext } from '@/hooks/doctors/useConsultationContext'
 import { useDoctorWaitingRoom, formatWaitingCountdown, getWaitingCopy } from '@/hooks/doctors/useDoctorWaitingRoom'
 import { translateCallError } from '@/lib/calls/lib/call-error-messages'
 import { persistCallStatusBrowserService } from '@/lib/calls/services/persist-call-status.browser'
+import {
+  clearConsultationNotesDraft,
+  readConsultationNotesDraft,
+  writeConsultationNotesDraft,
+} from '@/lib/doctors/calls/consultation-notes-draft'
 import { ConsultationContextPanel } from './ConsultationContextPanel'
 
 interface DoctorCallPageProps {
   roomId: string
+}
+
+type NotesSaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+const NOTES_AUTOSAVE_DELAY_MS = 900
+const CAPTION_HIDE_DELAY_MS = 3200
+const MAX_SUBTITLE_CHARS = 180
+
+function formatTranscriptForUi(value: string): string {
+  return value
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLocaleLowerCase('es-AR')
+}
+
+function appendTranscriptChunk(current: string, chunk: string): string {
+  const nextChunk = chunk.trim()
+  if (!nextChunk) return current
+  if (!current.trim()) return nextChunk
+  return `${current}${/[\s\n]$/.test(current) ? '' : ' '}${nextChunk}`
+}
+
+function toSubtitleText(value: string): string {
+  const normalized = formatTranscriptForUi(value)
+  if (normalized.length <= MAX_SUBTITLE_CHARS) return normalized
+  return `…${normalized.slice(-MAX_SUBTITLE_CHARS)}`
 }
 
 export default function DoctorCallPage({ roomId }: DoctorCallPageProps) {
@@ -32,6 +63,12 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const { session, profile, loading } = useAuth()
   const [isReady, setIsReady] = useState(false)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
+  const [doctorNotes, setDoctorNotes] = useState('')
+  const [notesSaveState, setNotesSaveState] = useState<NotesSaveState>('idle')
+  const [notesLastSavedAt, setNotesLastSavedAt] = useState<number | null>(null)
+  const [voiceNotesEnabled, setVoiceNotesEnabled] = useState(false)
+  const [liveMicLevel, setLiveMicLevel] = useState(0)
+  const [captionText, setCaptionText] = useState('')
   const { context, loading: contextLoading, error: contextError } = useConsultationContext(roomId)
   const {
     session: callSession,
@@ -49,6 +86,10 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   const transcriptionSavedRef = useRef(false)
   const transcriptionStartedRef = useRef(false)
   const callServiceRef = useRef<ReturnType<typeof createCallService> | null>(null)
+  const notesHydratedRef = useRef(false)
+  const voiceNotesCursorRef = useRef(0)
+  const latestCaptionTimestampRef = useRef(0)
+  const captionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const getCallService = useCallback(() => {
     if (!callServiceRef.current) {
@@ -71,6 +112,113 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
       Notification.requestPermission().catch(() => {})
     }
   }, [])
+
+  useEffect(() => {
+    notesHydratedRef.current = false
+    const draft = readConsultationNotesDraft(roomId)
+    setDoctorNotes(draft?.notes ?? '')
+    setNotesSaveState(draft?.notes ? 'saved' : 'idle')
+    setNotesLastSavedAt(draft ? Date.parse(draft.updatedAt) : null)
+    setVoiceNotesEnabled(false)
+    voiceNotesCursorRef.current = 0
+    notesHydratedRef.current = true
+  }, [roomId])
+
+  useEffect(() => {
+    if (!notesHydratedRef.current) return
+
+    if (!doctorNotes.trim()) {
+      clearConsultationNotesDraft(roomId)
+      setNotesSaveState('idle')
+      setNotesLastSavedAt(null)
+      return
+    }
+
+    setNotesSaveState('saving')
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const updatedAt = new Date().toISOString()
+        writeConsultationNotesDraft(roomId, {
+          notes: doctorNotes,
+          updatedAt,
+        })
+        setNotesSaveState('saved')
+        setNotesLastSavedAt(Date.parse(updatedAt))
+      } catch {
+        setNotesSaveState('error')
+      }
+    }, NOTES_AUTOSAVE_DELAY_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [doctorNotes, roomId])
+
+  useEffect(() => {
+    if (!voiceNotesEnabled) return
+
+    const freshSegments = transcriptionState.segments.filter(
+      (segment) => segment.isFinal && segment.timestamp > voiceNotesCursorRef.current,
+    )
+
+    if (freshSegments.length === 0) return
+
+    const nextChunk = freshSegments
+      .map((segment) => formatTranscriptForUi(segment.text))
+      .filter(Boolean)
+      .join(' ')
+
+    voiceNotesCursorRef.current = freshSegments[freshSegments.length - 1]?.timestamp ?? voiceNotesCursorRef.current
+
+    if (!nextChunk) return
+
+    setDoctorNotes((current) => appendTranscriptChunk(current, nextChunk))
+  }, [transcriptionState.segments, voiceNotesEnabled])
+
+  useEffect(() => {
+    if (showDoctorWaitingRoom) {
+      if (captionTimeoutRef.current) {
+        clearTimeout(captionTimeoutRef.current)
+        captionTimeoutRef.current = null
+      }
+      setCaptionText('')
+      return
+    }
+
+    if (transcriptionState.interimText.trim()) {
+      if (captionTimeoutRef.current) {
+        clearTimeout(captionTimeoutRef.current)
+        captionTimeoutRef.current = null
+      }
+      setCaptionText(toSubtitleText(transcriptionState.interimText))
+      return
+    }
+
+    const latestFinalSegment = transcriptionState.segments[transcriptionState.segments.length - 1]
+    if (!latestFinalSegment || latestFinalSegment.timestamp <= latestCaptionTimestampRef.current) {
+      return
+    }
+
+    latestCaptionTimestampRef.current = latestFinalSegment.timestamp
+    setCaptionText(toSubtitleText(latestFinalSegment.text))
+    if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current)
+    captionTimeoutRef.current = setTimeout(() => {
+      setCaptionText('')
+      captionTimeoutRef.current = null
+    }, CAPTION_HIDE_DELAY_MS)
+  }, [showDoctorWaitingRoom, transcriptionState.interimText, transcriptionState.segments])
+
+  useEffect(() => {
+    return () => {
+      if (captionTimeoutRef.current) {
+        clearTimeout(captionTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (showDoctorWaitingRoom) {
+      setVoiceNotesEnabled(false)
+    }
+  }, [showDoctorWaitingRoom])
 
   const typedProfile = profile as (UserProfile & { role?: string; email?: string }) | null
   const callSessionId = callSession?.callId?.trim() ?? ''
@@ -149,12 +297,23 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
   }, [roomId])
 
   const handleCallEnd = useCallback(async () => {
+    setVoiceNotesEnabled(false)
     if (transcriptionState.isTranscribing) {
       transcriptionActions.stop()
     }
     await saveTranscription(transcriptionState.segments)
     window.location.href = `/doctors/call/${roomId}/report`
   }, [roomId, transcriptionState.segments, transcriptionState.isTranscribing, transcriptionActions, saveTranscription])
+
+  const handleAcceptCall = useCallback(async () => {
+    if (!callSession?.callId) return
+    try {
+      await fetchApi(`/api/doctors/calls/${callSession.callId}/accept`, { method: 'POST' })
+      logger.info("[DoctorCallPage] Call accepted and session clinical activated")
+    } catch (err) {
+      logger.error("[DoctorCallPage] Failed to accept call", err)
+    }
+  }, [callSession?.callId])
 
   const handleCallStart = useCallback(() => {
     void handleAcceptCall()
@@ -174,17 +333,47 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
         })
       } catch { /* ignore */ }
     }
-  }, [transcriptionState.isSupported, transcriptionActions])
+  }, [handleAcceptCall, transcriptionState.isSupported, transcriptionActions])
 
-  const handleAcceptCall = useCallback(async () => {
-    if (!callSession?.callId) return
-    try {
-      await fetchApi(`/api/doctors/calls/${callSession.callId}/accept`, { method: 'POST' })
-      logger.info("[DoctorCallPage] Call accepted and session clinical activated")
-    } catch (err) {
-      logger.error("[DoctorCallPage] Failed to accept call", err)
+  const handleNotesChange = useCallback((nextValue: string) => {
+    setDoctorNotes(nextValue.slice(0, 10_000))
+  }, [])
+
+  const handleToggleVoiceNotes = useCallback(() => {
+    if (showDoctorWaitingRoom || !transcriptionState.isSupported) {
+      return
     }
-  }, [callSession?.callId])
+
+    if (!transcriptionState.isTranscribing) {
+      transcriptionStartedRef.current = true
+      transcriptionActions.start()
+    }
+
+    setVoiceNotesEnabled((current) => {
+      if (!current) {
+        voiceNotesCursorRef.current = transcriptionState.segments[transcriptionState.segments.length - 1]?.timestamp ?? 0
+      }
+      return !current
+    })
+  }, [
+    showDoctorWaitingRoom,
+    transcriptionActions,
+    transcriptionState.isSupported,
+    transcriptionState.isTranscribing,
+    transcriptionState.segments,
+  ])
+
+  const handleAudioLevelChange = useCallback((level: number) => {
+    setLiveMicLevel(level)
+  }, [])
+
+  const liveTranscriptPreview = useMemo(() => {
+    if (!voiceNotesEnabled || !transcriptionState.interimText.trim()) {
+      return null
+    }
+
+    return toSubtitleText(transcriptionState.interimText)
+  }, [transcriptionState.interimText, voiceNotesEnabled])
 
   const handlePersistCallStatus = useCallback(
     async (status: CallStatus, reason?: string) => {
@@ -430,6 +619,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             supabaseAnonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
             autoStart
             className="h-screen"
+            onLocalAudioLevelChange={handleAudioLevelChange}
           />
         )}
 
@@ -438,6 +628,19 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-white border border-red-100 rounded-full px-3 py-1.5 shadow-sm" title="Transcripción activa">
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[10px] font-bold text-red-600 select-none">REC</span>
+          </div>
+        )}
+
+        {!showDoctorWaitingRoom && captionText && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex justify-center px-4 sm:bottom-32">
+            <div className="max-w-2xl rounded-2xl border border-white/10 bg-slate-950/66 px-4 py-2.5 text-center shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+                subtítulo local
+              </p>
+              <p className="mt-1 text-sm font-medium leading-6 text-white/88 lowercase sm:text-[15px]">
+                {captionText}
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -450,6 +653,15 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           error={contextError}
           collapsed={panelCollapsed}
           onToggle={() => setPanelCollapsed(prev => !prev)}
+          liveNotes={doctorNotes}
+          onLiveNotesChange={handleNotesChange}
+          notesSaveState={notesSaveState}
+          notesLastSavedAt={notesLastSavedAt}
+          micLevel={liveMicLevel}
+          voiceNotesEnabled={voiceNotesEnabled}
+          voiceNotesAvailable={!showDoctorWaitingRoom && transcriptionState.isSupported}
+          liveTranscriptPreview={liveTranscriptPreview}
+          onToggleVoiceNotes={handleToggleVoiceNotes}
         />
       </div>
     </div>
