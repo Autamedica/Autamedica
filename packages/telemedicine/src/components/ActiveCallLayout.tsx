@@ -20,6 +20,36 @@ interface RemoteUser {
   stream?: MediaStream
 }
 
+function AmbientVideoSurface({
+  stream,
+  mirrored = false,
+}: {
+  stream: MediaStream
+  mirrored?: boolean
+}) {
+  const ambientRef = useRef<HTMLVideoElement | null>(null)
+
+  useEffect(() => {
+    const element = ambientRef.current
+    if (!element || element.srcObject === stream) return
+    element.srcObject = stream
+    patchVideoPlayback(element)
+  }, [stream])
+
+  return (
+    <video
+      ref={ambientRef}
+      autoPlay
+      muted
+      playsInline
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30 blur-[42px] [filter:saturate(1.24)_brightness(0.95)] ${
+        mirrored ? '-scale-x-100 scale-[1.12]' : 'scale-[1.12]'
+      }`}
+    />
+  )
+}
+
 /* ── Local Video PiP ── */
 function LocalVideoPiP({
   localVideoRef,
@@ -258,6 +288,13 @@ export function ActiveCallLayout({
 
             return (
               <div key={remoteUserId} className="relative h-full w-full">
+                {hasVideo && remoteUser.stream && (
+                  <>
+                    <AmbientVideoSurface stream={remoteUser.stream} />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_34%,rgba(2,6,23,0.1)_68%,rgba(2,6,23,0.42)_100%)]" />
+                  </>
+                )}
+
                 {/* Remote video */}
                 <video
                   ref={(el) => {
@@ -272,7 +309,7 @@ export function ActiveCallLayout({
                   onLoadedData={() => setRenderableIds(p => ({ ...p, [remoteUserId]: true }))}
                   onPlaying={() => setRenderableIds(p => ({ ...p, [remoteUserId]: true }))}
                   onEmptied={() => setRenderableIds(p => ({ ...p, [remoteUserId]: false }))}
-                  className={`h-full w-full object-cover transition-opacity duration-500 ${
+                  className={`relative h-full w-full object-cover transition-opacity duration-500 scale-[1.03] [filter:saturate(1.04)_contrast(1.03)] ${
                     hasVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                 />
@@ -334,6 +371,13 @@ export function ActiveCallLayout({
           <div className="relative z-10 w-full max-w-2xl">
             {/* Local video preview */}
             <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-800 shadow-[0_16px_64px_rgba(0,0,0,0.5)]">
+              {hasLocalVideo && isVideoEnabled && localStream && (
+                <>
+                  <AmbientVideoSurface stream={localStream} mirrored />
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_32%,rgba(2,6,23,0.12)_68%,rgba(2,6,23,0.38)_100%)]" />
+                </>
+              )}
+
               <video
                 ref={(el) => {
                   (localVideoRef as MutableRefObject<HTMLVideoElement | null>).current = el
@@ -345,7 +389,7 @@ export function ActiveCallLayout({
                 autoPlay
                 muted
                 playsInline
-                className={`aspect-video w-full object-cover -scale-x-100 transition-opacity duration-300 ${
+                className={`relative aspect-video w-full object-cover -scale-x-100 transition-opacity duration-300 scale-[1.03] [filter:saturate(1.04)_contrast(1.03)] ${
                   hasLocalVideo && isVideoEnabled ? 'opacity-100' : 'opacity-0'
                 }`}
               />

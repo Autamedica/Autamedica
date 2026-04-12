@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2, Mic, Square, Volume2 } from 'lucide-react';
 import type {
   ConsultationContext,
   SuggestedQuestion,
   AnamnesisSummarySection,
 } from '@/hooks/doctors/useConsultationContext';
+
+type NotesSaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 interface ConsultationContextPanelProps {
   context: ConsultationContext | null;
@@ -13,6 +16,15 @@ interface ConsultationContextPanelProps {
   error: string | null;
   collapsed: boolean;
   onToggle: () => void;
+  liveNotes: string;
+  onLiveNotesChange: (value: string) => void;
+  notesSaveState: NotesSaveState;
+  notesLastSavedAt: number | null;
+  micLevel: number;
+  voiceNotesEnabled: boolean;
+  voiceNotesAvailable: boolean;
+  liveTranscriptPreview: string | null;
+  onToggleVoiceNotes: () => void;
 }
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -160,12 +172,200 @@ function LoadingState() {
   );
 }
 
+function formatSavedAt(timestamp: number | null): string | null {
+  if (!timestamp) return null;
+
+  return new Intl.DateTimeFormat('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(timestamp);
+}
+
+function NotesSaveBadge({
+  saveState,
+  lastSavedAt,
+  hasContent,
+}: {
+  saveState: NotesSaveState;
+  lastSavedAt: number | null;
+  hasContent: boolean;
+}) {
+  if (!hasContent) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-am-surface-200 bg-white px-2.5 py-1 text-[11px] font-medium text-am-surface-500">
+        Sin notas
+      </span>
+    );
+  }
+
+  if (saveState === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Guardando
+      </span>
+    );
+  }
+
+  if (saveState === 'error') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700">
+        Error local
+      </span>
+    );
+  }
+
+  if (saveState === 'saved' && lastSavedAt) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+        Guardado {formatSavedAt(lastSavedAt)}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-am-surface-200 bg-white px-2.5 py-1 text-[11px] font-medium text-am-surface-500">
+      Borrador local
+    </span>
+  );
+}
+
+function MicLevelMeter({ level }: { level: number }) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-am-surface-200 bg-am-surface-50 px-3 py-2">
+      <Volume2 className="h-3.5 w-3.5 text-am-surface-400 shrink-0" />
+      <div className="flex h-4 flex-1 items-end gap-[3px]">
+        {Array.from({ length: 16 }).map((_, index) => (
+          <div
+            key={index}
+            className={`flex-1 rounded-sm transition-all duration-100 ${
+              level * 16 > index
+                ? index < 10 ? 'bg-emerald-500' : index < 13 ? 'bg-amber-500' : 'bg-red-500'
+                : 'bg-am-surface-200'
+            }`}
+            style={{ height: `${Math.max(30, (index / 16) * 100)}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LiveNotesCard({
+  liveNotes,
+  onLiveNotesChange,
+  notesSaveState,
+  notesLastSavedAt,
+  micLevel,
+  voiceNotesEnabled,
+  voiceNotesAvailable,
+  liveTranscriptPreview,
+  onToggleVoiceNotes,
+}: {
+  liveNotes: string;
+  onLiveNotesChange: (value: string) => void;
+  notesSaveState: NotesSaveState;
+  notesLastSavedAt: number | null;
+  micLevel: number;
+  voiceNotesEnabled: boolean;
+  voiceNotesAvailable: boolean;
+  liveTranscriptPreview: string | null;
+  onToggleVoiceNotes: () => void;
+}) {
+  return (
+    <div className="border-b border-am-surface-200 bg-am-surface-50/70 px-4 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-am-surface-400">
+            Notas en vivo
+          </p>
+          <p className="mt-1 text-sm font-semibold text-am-surface-900">
+            Texto + voz durante la llamada
+          </p>
+        </div>
+        <NotesSaveBadge
+          saveState={notesSaveState}
+          lastSavedAt={notesLastSavedAt}
+          hasContent={liveNotes.trim().length > 0}
+        />
+      </div>
+
+      <div className="mt-3 space-y-3">
+        <MicLevelMeter level={micLevel} />
+
+        <textarea
+          value={liveNotes}
+          onChange={(event) => onLiveNotesChange(event.target.value)}
+          placeholder="Escribe o dicta observaciones breves mientras conversas con el paciente."
+          className="h-32 w-full resize-none rounded-2xl border border-am-surface-200 bg-white px-3.5 py-3 text-sm leading-6 text-am-surface-800 placeholder:text-am-surface-400 focus:outline-none focus:ring-1 focus:ring-am-doctor-500 focus:border-am-doctor-500"
+        />
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleVoiceNotes}
+              disabled={!voiceNotesAvailable}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                voiceNotesEnabled
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-am-doctor-600 text-white hover:bg-am-doctor-700'
+              }`}
+            >
+              {voiceNotesEnabled ? <Square className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              {voiceNotesEnabled ? 'Dictando' : 'Dictar'}
+            </button>
+
+            <span className={`text-[11px] ${
+              voiceNotesEnabled ? 'text-red-600' : 'text-am-surface-400'
+            }`}>
+              {voiceNotesEnabled
+                ? 'La voz se agrega al borrador.'
+                : voiceNotesAvailable
+                  ? 'Activa dictado cuando quieras capturar una indicación.'
+                  : 'El dictado se habilita cuando la llamada está activa.'}
+            </span>
+          </div>
+
+          <span className="text-[11px] text-am-surface-400">
+            {liveNotes.trim().length}/10000
+          </span>
+        </div>
+
+        {liveTranscriptPreview && (
+          <div className="rounded-2xl border border-am-doctor-100 bg-white px-3.5 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-am-doctor-500">
+              Vista previa de voz
+            </p>
+            <p className="mt-1 text-sm leading-6 text-am-surface-700 lowercase">
+              {liveTranscriptPreview}
+            </p>
+          </div>
+        )}
+
+        <p className="text-[11px] leading-5 text-am-surface-400">
+          El borrador se guarda automáticamente en este dispositivo y reaparece al generar el reporte.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function ConsultationContextPanel({
   context,
   loading,
   error,
   collapsed,
   onToggle,
+  liveNotes,
+  onLiveNotesChange,
+  notesSaveState,
+  notesLastSavedAt,
+  micLevel,
+  voiceNotesEnabled,
+  voiceNotesAvailable,
+  liveTranscriptPreview,
+  onToggleVoiceNotes,
 }: ConsultationContextPanelProps) {
   // Toggle button (always visible)
   const toggleButton = (
@@ -224,6 +424,18 @@ export function ConsultationContextPanel({
           </div>
         )}
       </div>
+
+      <LiveNotesCard
+        liveNotes={liveNotes}
+        onLiveNotesChange={onLiveNotesChange}
+        notesSaveState={notesSaveState}
+        notesLastSavedAt={notesLastSavedAt}
+        micLevel={micLevel}
+        voiceNotesEnabled={voiceNotesEnabled}
+        voiceNotesAvailable={voiceNotesAvailable}
+        liveTranscriptPreview={liveTranscriptPreview}
+        onToggleVoiceNotes={onToggleVoiceNotes}
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">

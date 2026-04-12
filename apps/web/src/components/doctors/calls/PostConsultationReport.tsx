@@ -8,6 +8,10 @@ import type { SOAPReport } from '@autamedica/types';
 import type { UUID } from '@/types/medical';
 import { PrescriptionCreateModal } from '@/components/doctors/medical/PrescriptionCreateModal';
 import { prescriptionService } from '@/lib/doctors/services/prescription.service';
+import {
+  clearConsultationNotesDraft,
+  readConsultationNotesDraft,
+} from '@/lib/doctors/calls/consultation-notes-draft';
 
 interface PostConsultationReportProps {
   roomId: string;
@@ -79,6 +83,7 @@ function ReportContent({ roomId }: { roomId: string }) {
         },
       });
 
+      clearConsultationNotesDraft(roomId);
       setSaved(true);
     } catch (err) {
       logger.error('[PostConsultationReport] Save error', err);
@@ -91,6 +96,12 @@ function ReportContent({ roomId }: { roomId: string }) {
   const updateField = useCallback((field: keyof SOAPReport, value: string) => {
     setEditedReport(prev => prev ? { ...prev, [field]: value } : null);
   }, []);
+
+  useEffect(() => {
+    const draft = readConsultationNotesDraft(roomId);
+    if (!draft?.notes) return;
+    setDoctorNotes(current => current || draft.notes);
+  }, [roomId]);
 
   // Warn before navigating away with unsaved edits
   useEffect(() => {
