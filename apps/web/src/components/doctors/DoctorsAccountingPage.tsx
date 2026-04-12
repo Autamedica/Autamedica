@@ -15,10 +15,13 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeft,
   RefreshCw,
   Receipt,
   PiggyBank,
   Scale,
+  Save,
+  Loader2,
 } from "lucide-react";
 import type {
   DoctorFiscalProfile,
@@ -28,7 +31,10 @@ import type {
   FiscalSummary,
   TaxRegime,
   MonotributoCategory,
+  IncomeSource,
+  ExpenseCategory,
 } from "@/lib/doctors/types/accounting.types";
+import { MONOTRIBUTO_CATEGORIES_2026 } from "@/lib/doctors/types/accounting.types";
 
 interface DashboardData {
   profile: DoctorFiscalProfile | null;
@@ -87,9 +93,9 @@ function MonthSelector({ year, month, onChange }: { year: number; month: number;
 
 type ActiveView = "dashboard" | "income" | "expenses" | "compare" | "setup";
 
-export function DoctorsAccountingPage({ locale }: { locale?: string }) {
+export function DoctorsAccountingPage({ locale: _locale }: { locale?: string }) {
   const { user } = useAuthenticatedUser();
-  const { doctor } = useCurrentDoctor(user?.id);
+  useCurrentDoctor(user?.id);
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -99,6 +105,97 @@ export function DoctorsAccountingPage({ locale }: { locale?: string }) {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // ── Setup form state ──
+  const [setupRegime, setSetupRegime] = useState<TaxRegime>("monotributo");
+  const [setupCuit, setSetupCuit] = useState("");
+  const [setupCategory, setSetupCategory] = useState<MonotributoCategory>("A");
+  const [setupInvoiceType, setSetupInvoiceType] = useState("C");
+
+  // ── Income form state ──
+  const [incomeSource, setIncomeSource] = useState<IncomeSource>("consulta_particular");
+  const [incomeAmount, setIncomeAmount] = useState("");
+  const [incomeDescription, setIncomeDescription] = useState("");
+
+  // ── Expense form state ──
+  const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>("insumos");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseDescription, setExpenseDescription] = useState("");
+  const [expenseSupplier, setExpenseSupplier] = useState("");
+
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      await fetchApi("/api/doctors/accounting/profile", {
+        method: "PUT",
+        body: {
+          taxRegime: setupRegime,
+          cuit: setupCuit.replace(/\D/g, ""),
+          monotributoCategory: setupRegime === "monotributo" ? setupCategory : null,
+          invoiceType: setupInvoiceType,
+        },
+      });
+      setView("dashboard");
+      void fetchDashboard(year, month);
+    } catch {
+      setError("Error al guardar perfil fiscal");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveIncome = async () => {
+    if (!incomeAmount || !incomeDescription) return;
+    setSaving(true);
+    try {
+      await fetchApi("/api/doctors/accounting/income", {
+        method: "POST",
+        body: {
+          source: incomeSource,
+          grossAmount: Math.round(parseFloat(incomeAmount) * 100),
+          description: incomeDescription,
+          periodYear: year,
+          periodMonth: month,
+        },
+      });
+      setIncomeAmount("");
+      setIncomeDescription("");
+      setView("dashboard");
+      void fetchDashboard(year, month);
+    } catch {
+      setError("Error al registrar ingreso");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveExpense = async () => {
+    if (!expenseAmount || !expenseDescription) return;
+    setSaving(true);
+    try {
+      await fetchApi("/api/doctors/accounting/expenses", {
+        method: "POST",
+        body: {
+          category: expenseCategory,
+          amount: Math.round(parseFloat(expenseAmount) * 100),
+          description: expenseDescription,
+          supplierName: expenseSupplier || null,
+          periodYear: year,
+          periodMonth: month,
+        },
+      });
+      setExpenseAmount("");
+      setExpenseDescription("");
+      setExpenseSupplier("");
+      setView("dashboard");
+      void fetchDashboard(year, month);
+    } catch {
+      setError("Error al registrar gasto");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchDashboard = useCallback(async (y: number, m: number) => {
     setLoading(true);
@@ -129,6 +226,279 @@ export function DoctorsAccountingPage({ locale }: { locale?: string }) {
   const profile = dashboard?.profile;
   const summary = dashboard?.summary;
 
+  // ── SETUP VIEW ──
+  if (view === "setup") {
+    return (
+      <DoctorsPortalFrame activeSection="accounting" title="Configurar perfil fiscal" description="Configurá tu régimen tributario para empezar a registrar ingresos y gastos.">
+        <div className="mx-auto max-w-lg space-y-6 p-4 md:p-6">
+          <button type="button" onClick={() => setView("dashboard")} className="inline-flex items-center gap-2 text-[13px] text-neutral-400 hover:text-neutral-900 transition-colors">
+            <ArrowLeft className="size-3.5" /> Volver
+          </button>
+
+          <div className="space-y-5">
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Régimen tributario</label>
+              <div className="grid grid-cols-2 gap-3">
+                {(["monotributo", "responsable_inscripto"] as const).map((regime) => (
+                  <button
+                    key={regime}
+                    type="button"
+                    onClick={() => setSetupRegime(regime)}
+                    className={`rounded-xl border-2 p-4 text-left transition-all ${
+                      setupRegime === regime
+                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        : "border-neutral-200 hover:border-neutral-300"
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{regime === "monotributo" ? "Monotributo" : "Responsable Inscripto"}</p>
+                    <p className={`mt-1 text-[11px] ${setupRegime === regime ? "text-white/60" : "text-neutral-400"}`}>
+                      {regime === "monotributo" ? "Régimen simplificado" : "IVA + Ganancias + IIBB"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">CUIT</label>
+              <input
+                type="text"
+                value={setupCuit}
+                onChange={(e) => setSetupCuit(e.target.value)}
+                placeholder="XX-XXXXXXXX-X"
+                maxLength={13}
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {setupRegime === "monotributo" && (
+              <div>
+                <label className="mb-2 block text-[13px] font-medium text-neutral-700">Categoría</label>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                  {MONOTRIBUTO_CATEGORIES_2026.map((info) => (
+                    <button
+                      key={info.category}
+                      type="button"
+                      onClick={() => setSetupCategory(info.category)}
+                      className={`rounded-lg border-2 px-3 py-2 text-center transition-all ${
+                        setupCategory === info.category
+                          ? "border-neutral-900 bg-neutral-900 text-white"
+                          : "border-neutral-200 hover:border-neutral-300"
+                      }`}
+                    >
+                      <p className="text-sm font-semibold">{info.category}</p>
+                      <p className={`text-[10px] ${setupCategory === info.category ? "text-white/60" : "text-neutral-400"}`}>
+                        ${Math.round(info.monthlyFee / 100).toLocaleString("es-AR")}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Tipo de factura</label>
+              <select
+                value={setupInvoiceType}
+                onChange={(e) => setSetupInvoiceType(e.target.value)}
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              >
+                {setupRegime === "monotributo" ? (
+                  <option value="C">Factura C</option>
+                ) : (
+                  <>
+                    <option value="A">Factura A</option>
+                    <option value="B">Factura B</option>
+                    <option value="M">Factura M</option>
+                  </>
+                )}
+              </select>
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <button
+              type="button"
+              onClick={() => void saveProfile()}
+              disabled={saving || !setupCuit.replace(/\D/g, "")}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" strokeWidth={1.5} />}
+              Guardar perfil fiscal
+            </button>
+          </div>
+        </div>
+      </DoctorsPortalFrame>
+    );
+  }
+
+  // ── INCOME VIEW ──
+  if (view === "income") {
+    const SOURCE_LABELS: Record<IncomeSource, string> = {
+      consulta_particular: "Consulta particular",
+      obra_social: "Obra social",
+      prepaga: "Prepaga",
+      clinica: "Clínica/Sanatorio",
+      otro: "Otro ingreso",
+    };
+
+    return (
+      <DoctorsPortalFrame activeSection="accounting" title="Registrar ingreso" description="Agregá un nuevo ingreso a tu contabilidad mensual.">
+        <div className="mx-auto max-w-lg space-y-6 p-4 md:p-6">
+          <button type="button" onClick={() => setView("dashboard")} className="inline-flex items-center gap-2 text-[13px] text-neutral-400 hover:text-neutral-900 transition-colors">
+            <ArrowLeft className="size-3.5" /> Volver
+          </button>
+
+          <div className="space-y-5">
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Origen del ingreso</label>
+              <div className="space-y-2">
+                {(Object.entries(SOURCE_LABELS) as [IncomeSource, string][]).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setIncomeSource(key)}
+                    className={`w-full rounded-xl border-2 px-4 py-3 text-left text-sm transition-all ${
+                      incomeSource === key
+                        ? "border-neutral-900 bg-neutral-900 text-white"
+                        : "border-neutral-200 hover:border-neutral-300"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Monto bruto (ARS)</label>
+              <input
+                type="number"
+                value={incomeAmount}
+                onChange={(e) => setIncomeAmount(e.target.value)}
+                placeholder="Ej: 25000"
+                min="0"
+                step="0.01"
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Descripción</label>
+              <input
+                type="text"
+                value={incomeDescription}
+                onChange={(e) => setIncomeDescription(e.target.value)}
+                placeholder="Ej: Consulta paciente García"
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <button
+              type="button"
+              onClick={() => void saveIncome()}
+              disabled={saving || !incomeAmount || !incomeDescription}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" strokeWidth={1.5} />}
+              Registrar ingreso
+            </button>
+          </div>
+        </div>
+      </DoctorsPortalFrame>
+    );
+  }
+
+  // ── EXPENSES VIEW ──
+  if (view === "expenses") {
+    const EXPENSE_LABELS: Record<ExpenseCategory, string> = {
+      alquiler: "Alquiler consultorio",
+      insumos: "Insumos médicos",
+      equipamiento: "Equipamiento",
+      formacion: "Formación / Congresos",
+      seguros: "Seguros",
+      transporte: "Transporte",
+      servicios: "Servicios (luz, internet)",
+      honorarios_contador: "Honorarios contador",
+      otro: "Otro gasto",
+    };
+
+    return (
+      <DoctorsPortalFrame activeSection="accounting" title="Registrar gasto" description="Agregá un gasto deducible a tu contabilidad.">
+        <div className="mx-auto max-w-lg space-y-6 p-4 md:p-6">
+          <button type="button" onClick={() => setView("dashboard")} className="inline-flex items-center gap-2 text-[13px] text-neutral-400 hover:text-neutral-900 transition-colors">
+            <ArrowLeft className="size-3.5" /> Volver
+          </button>
+
+          <div className="space-y-5">
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Categoría</label>
+              <select
+                value={expenseCategory}
+                onChange={(e) => setExpenseCategory(e.target.value as ExpenseCategory)}
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              >
+                {(Object.entries(EXPENSE_LABELS) as [ExpenseCategory, string][]).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Monto (ARS)</label>
+              <input
+                type="number"
+                value={expenseAmount}
+                onChange={(e) => setExpenseAmount(e.target.value)}
+                placeholder="Ej: 15000"
+                min="0"
+                step="0.01"
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Descripción</label>
+              <input
+                type="text"
+                value={expenseDescription}
+                onChange={(e) => setExpenseDescription(e.target.value)}
+                placeholder="Ej: Compra de guantes descartables"
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-neutral-700">Proveedor (opcional)</label>
+              <input
+                type="text"
+                value={expenseSupplier}
+                onChange={(e) => setExpenseSupplier(e.target.value)}
+                placeholder="Ej: Droguería del Centro"
+                className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-neutral-900 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <button
+              type="button"
+              onClick={() => void saveExpense()}
+              disabled={saving || !expenseAmount || !expenseDescription}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 py-3.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" strokeWidth={1.5} />}
+              Registrar gasto
+            </button>
+          </div>
+        </div>
+      </DoctorsPortalFrame>
+    );
+  }
+
+  // ── DASHBOARD VIEW ──
   return (
     <DoctorsPortalFrame activeSection="accounting" title="Contabilidad" description="Gestión fiscal para médicos">
       <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
@@ -227,7 +597,7 @@ export function DoctorsAccountingPage({ locale }: { locale?: string }) {
                     <p className="text-xs text-am-surface-500">Obligaciones pendientes</p>
                     <p className="text-lg font-bold text-am-surface-900">{formatCurrency(overview?.totalObligationsPending ?? 0)}</p>
                     {(overview?.overdueCount ?? 0) > 0 && (
-                      <Badge variant="danger" size="xs" dot pulse>{overview!.overdueCount} vencidas</Badge>
+                      <Badge variant="danger" size="xs" dot pulse>{overview?.overdueCount ?? 0} vencidas</Badge>
                     )}
                   </div>
                 </div>
@@ -368,7 +738,7 @@ export function DoctorsAccountingPage({ locale }: { locale?: string }) {
                   <h3 className="text-sm font-semibold text-am-surface-900">Obligaciones fiscales del mes</h3>
                 </div>
                 <div className="divide-y divide-am-surface-100">
-                  {dashboard!.obligations.map((obl) => (
+                  {(dashboard?.obligations ?? []).map((obl) => (
                     <div key={obl.id} className="flex items-center justify-between px-4 py-2.5">
                       <div>
                         <p className="text-sm font-medium text-am-surface-900">{obl.obligationType.replace(/_/g, " ")}</p>
