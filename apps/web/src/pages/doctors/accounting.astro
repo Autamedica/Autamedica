@@ -1,0 +1,12 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { DoctorsAccountingPage } from '@/components/doctors/DoctorsAccountingPage';
+
+const title = 'Contabilidad | AutaMedica';
+const description = 'Gestión fiscal para médicos — Monotributo y Responsable Inscripto';
+const locale = Astro.locals.locale ?? 'es';
+---
+
+<Layout title={title} description={description}>
+  <DoctorsAccountingPage client:load locale={locale} />
+</Layout>

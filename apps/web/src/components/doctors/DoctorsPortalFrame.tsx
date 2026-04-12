@@ -11,6 +11,7 @@ import {
   Activity,
   ArrowRight,
   Bell,
+  Calculator,
   Calendar,
   CheckCircle2,
   Clock3,
@@ -36,6 +37,7 @@ type ActiveSection =
   | "appointments"
   | "consultations"
   | "community"
+  | "accounting"
   | "profile";
 
 type NavigationItem = {
@@ -237,6 +239,7 @@ export function DoctorsPortalFrame({
         key: "community",
         badge: stats?.unreadCommunityCount ? String(stats.unreadCommunityCount) : undefined,
       },
+      { href: "/doctors/accounting", label: "Contabilidad", icon: Calculator, key: "accounting" },
       { href: "/doctors/perfil", label: "Configuración", icon: Settings, key: "profile" },
     ],
     [stats?.unreadCommunityCount],
