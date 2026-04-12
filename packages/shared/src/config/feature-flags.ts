@@ -88,7 +88,12 @@ export function validateFeatureFlags(): void {
   if (featureFlags.IS_PRODUCTION && isMockMode()) {
     warnings.push('WARNING: Mocks activos en PRODUCCION');
   }
-  if (!featureFlags.USE_MOCK_VIDEO && !featureFlags.USE_LIVEKIT && !envExists('CLOUDFLARE_CALLS_APP_ID')) {
+  if (
+    !featureFlags.USE_MOCK_VIDEO &&
+    !featureFlags.USE_LIVEKIT &&
+    !featureFlags.FORCE_WEBRTC_P2P &&
+    !envExists('CLOUDFLARE_CALLS_APP_ID')
+  ) {
     warnings.push('WARNING: Video real requiere Cloudflare Calls (CLOUDFLARE_CALLS_APP_ID) o LiveKit (USE_LIVEKIT=true)');
   }
   if (!featureFlags.USE_MOCK_AI && !featureFlags.USE_REAL_AI) {

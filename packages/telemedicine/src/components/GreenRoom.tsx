@@ -18,8 +18,7 @@ import {
   Wifi,
 } from 'lucide-react'
 import { springGentle, staggerContainer, staggerChild, buttonGentleHover, buttonGentleTap } from './animation-presets'
-import type { ConnectionState, DeviceInfo, WarmUpResult } from '../webrtc-client'
-import type { CallProvider } from '../providers/types'
+import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult } from '../providers/types'
 import type { PreflightResult } from '../network/preflight'
 
 export interface GreenRoomProps {

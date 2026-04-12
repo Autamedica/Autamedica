@@ -51,9 +51,6 @@ export {
 export { WebRTCClient } from './webrtc-client'
 export type {
   WebRTCConfig,
-  WebRTCEvents,
-  DeviceInfo,
-  WarmUpResult,
   CallQualitySummary,
   CallQualityTimelineEntry,
   CallQualityWorstMetrics,
@@ -82,7 +79,13 @@ export type { CallSessionBootstrap, CallSessionRole, CallSessionRuntime } from '
 // Provider factory + interface
 export { createCallProvider } from './providers/factory'
 export type { CallClient, CreateCallProviderOptions } from './providers/factory'
-export type { CallProvider } from './providers/types'
+export type {
+  CallProvider,
+  ConnectionState,
+  DeviceInfo,
+  WarmUpResult,
+  WebRTCEvents,
+} from './providers/types'
 
 // Types
 export type { SignalKind, Signal } from './types'
@@ -198,7 +201,6 @@ export {
 export type { BrowserCapabilities } from './media-optimizations'
 
 // Re-export common types
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'failed' | 'closed'
 export type MediaConstraints = {
   video: boolean | MediaTrackConstraints
   audio: boolean | MediaTrackConstraints

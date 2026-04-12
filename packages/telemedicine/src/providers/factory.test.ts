@@ -54,14 +54,15 @@ describe('createCallProvider', () => {
     expect(provider).toBeInstanceOf(WebRTCClient)
   })
 
-  it('uses default apiProxyUrl when transport.cloudflareCallsApiUrl is null for SFU', () => {
-    const provider = createCallProvider({
-      bootstrap: makeBootstrap({
-        runtime: 'cloudflare-calls',
-        transport: { cloudflareCallsApiUrl: null },
-      }),
-    })
-    expect(provider).toBeInstanceOf(CloudflareCallsClient)
+  it('throws when transport.cloudflareCallsApiUrl is missing for cloudflare-calls', () => {
+    expect(() =>
+      createCallProvider({
+        bootstrap: makeBootstrap({
+          runtime: 'cloudflare-calls',
+          transport: { cloudflareCallsApiUrl: null },
+        }),
+      })
+    ).toThrow('Missing cloudflareCallsApiUrl')
   })
 
   it('passes iceServersOverride to WebRTCClient when provided', () => {
@@ -74,6 +75,22 @@ describe('createCallProvider', () => {
       iceServersOverride: customIce,
     })
     expect(provider).toBeInstanceOf(WebRTCClient)
+  })
+
+  it('passes transport.signalingUrl to WebRTCClient when provided', () => {
+    const provider = createCallProvider({
+      bootstrap: makeBootstrap({
+        runtime: 'webrtc-p2p',
+        transport: {
+          iceServers: [],
+          cloudflareCallsApiUrl: null,
+          signalingUrl: 'wss://custom-signaling.example.com',
+        },
+      }),
+    }) as WebRTCClient & { config?: { signalingUrl?: string } }
+
+    expect(provider).toBeInstanceOf(WebRTCClient)
+    expect(provider['config']?.signalingUrl).toBe('wss://custom-signaling.example.com')
   })
 
   it('satisfies CallProvider interface for both runtime paths', () => {

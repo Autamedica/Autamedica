@@ -7,8 +7,7 @@ import {
   patchVideoPlayback,
 } from '../media-optimizations'
 import type { CallSessionRuntime } from '../call-session/types'
-import type { CallProvider } from '../providers/types'
-import type { ConnectionState } from '../webrtc-client'
+import type { CallProvider, ConnectionState } from '../providers/types'
 import type { CallStatus } from '../calls/types'
 
 interface RemoteUser {

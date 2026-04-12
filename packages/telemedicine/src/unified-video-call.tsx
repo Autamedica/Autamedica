@@ -7,12 +7,7 @@ import { patchVideoPlayback } from './media-optimizations'
 import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
 import { hasTurnIceServer } from './config/ice-servers'
-import {
-  type ConnectionState,
-  type DeviceInfo,
-  type WarmUpResult,
-} from './webrtc-client'
-import type { CallProvider } from './providers/types'
+import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult } from './providers/types'
 import type { CallSessionRuntime } from './call-session/types'
 import { useCallRecording } from './hooks/useCallRecording'
 import { useCallDuration } from './hooks/useCallDuration'
@@ -206,6 +201,7 @@ export function UnifiedVideoCall({
   const isInRoom = sessionPhase === 'room-ready' || sessionPhase === 'peer-ready'
   const isIdle = sessionPhase === 'prejoin'
   const isTestRoom = /^test(?:[-_]|$)/i.test(roomId)
+  const hasTurn = useMemo(() => hasTurnIceServer(iceServers ?? []), [iceServers])
   const remoteUsersWithMedia = useMemo(
     () => Array.from(remoteUsers.values()).filter((user) => user.stream),
     [remoteUsers]
@@ -247,6 +243,10 @@ export function UnifiedVideoCall({
   useEffect(() => {
     emitDebug('info', 'Inicializando componente de videollamada', {
       runtime: runtime ?? 'unknown',
+      providerType: provider.constructor?.name ?? 'UnknownProvider',
+      hasTurn,
+      iceServerCount: iceServers?.length ?? 0,
+      sessionPhase,
       autoStart,
       userName,
     })
@@ -551,7 +551,7 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [addRemoteMessage, autoStart, cleanupSound, emitDebug, logCallEvent, playParticipantJoinedSound, provider, retryKey, roomId, userId, userName, userType])
+  }, [addRemoteMessage, autoStart, cleanupSound, emitDebug, hasTurn, iceServers?.length, logCallEvent, playParticipantJoinedSound, provider, retryKey, roomId, sessionPhase, userId, userName, userType, runtime])
 
   /* ── Duration timer ── */
   useEffect(() => {

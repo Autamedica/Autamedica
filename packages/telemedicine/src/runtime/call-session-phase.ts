@@ -1,4 +1,4 @@
-import type { ConnectionState } from '../webrtc-client'
+import type { ConnectionState } from '../providers/types'
 
 export type CallSessionPhase = 'prejoin' | 'joining' | 'room-ready' | 'peer-ready'
 

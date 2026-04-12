@@ -16,15 +16,11 @@
 
 import { loadSignalingUrl } from '../config/ice-servers'
 import { getAdaptiveConstraints, applyContentHints } from '../media-optimizations'
-import type { CallProvider } from '../providers/types'
+import type { CallProvider, ConnectionState, DeviceInfo, WarmUpResult, WebRTCEvents } from '../providers/types'
 import type {
   ChatMessage,
-  ConnectionState,
-  DeviceInfo,
   StreamQualityLevel,
   StreamQualitySummary,
-  WarmUpResult,
-  WebRTCEvents,
 } from '../webrtc-client'
 import { CloudflareCallsSession } from './session'
 
@@ -99,12 +95,20 @@ export class CloudflareCallsClient implements CallProvider {
 
   /* ── Media ── */
 
-  async warmUp(_constraints?: MediaStreamConstraints): Promise<WarmUpResult> {
+  async warmUp(constraints?: MediaStreamConstraints): Promise<WarmUpResult> {
     const t0 = Date.now()
     try {
-      this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints ?? getAdaptiveConstraints())
     } catch {
-      this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (constraints) {
+        try {
+          this.localStream = await navigator.mediaDevices.getUserMedia(getAdaptiveConstraints())
+        } catch {
+          this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        }
+      } else {
+        this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      }
     }
     applyContentHints(this.localStream)
     this.emit('local-stream', this.localStream)

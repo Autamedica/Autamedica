@@ -27,17 +27,26 @@ export function createCallProvider(opts: CreateCallProviderOptions): CallProvide
     roomId,
     hasTurn: (iceServers?.length ?? 0) > 0,
     hasSfuUrl: Boolean(transport.cloudflareCallsApiUrl),
+    hasSignalingUrl: Boolean(transport.signalingUrl),
   })
 
   switch (runtime) {
-    case 'cloudflare-calls':
+    case 'cloudflare-calls': {
+      if (!transport.cloudflareCallsApiUrl) {
+        throw new Error(
+          `[createCallProvider] Missing cloudflareCallsApiUrl for runtime "${runtime}" in room "${roomId}".`,
+        )
+      }
+
       return new CloudflareCallsClient({
         userId: user.id,
         userName: user.displayName,
         userType: user.role,
         roomId,
-        apiProxyUrl: transport.cloudflareCallsApiUrl ?? '/api/cloudflare-calls',
+        apiProxyUrl: transport.cloudflareCallsApiUrl,
+        ...(transport.signalingUrl ? { signalingUrl: transport.signalingUrl } : {}),
       })
+    }
 
     case 'webrtc-p2p':
       return new WebRTCClient({
@@ -46,6 +55,7 @@ export function createCallProvider(opts: CreateCallProviderOptions): CallProvide
         userType: user.role,
         roomId,
         ...(iceServers ? { iceServers } : {}),
+        ...(transport.signalingUrl ? { signalingUrl: transport.signalingUrl } : {}),
         ...(supabase ? { supabase } : {}),
       })
 
