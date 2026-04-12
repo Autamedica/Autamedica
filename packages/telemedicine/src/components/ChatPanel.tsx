@@ -3,7 +3,7 @@
 import type { FormEvent, KeyboardEvent, RefObject } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquare, Send, X } from 'lucide-react'
-import { springGentle, slideRight, slideFromBottom, modalOverlay, messageBubble, scaleIn, buttonGentleHover, buttonGentleTap } from './animation-presets'
+import { slideRight, slideFromBottom, modalOverlay, messageBubble, scaleIn, buttonGentleHover, buttonGentleTap } from './animation-presets'
 
 interface UiChatMessage {
   id: string

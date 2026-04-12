@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { Loader2, WifiOff } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { springGentle } from './animation-presets'
 
 export interface ReconnectingOverlayProps {

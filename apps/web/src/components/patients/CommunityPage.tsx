@@ -5,8 +5,8 @@ import { communityBrowserService } from '@/lib/patients/services/community.brows
 import type { CommunityComment, CommunityGroup, CommunityPost } from '@/lib/patients/types/community';
 import {
   ArrowLeft,
-  Bell,
-  ChevronLeft,
+
+
   Eye,
   Heart,
   Loader2,

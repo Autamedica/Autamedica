@@ -5,7 +5,7 @@ import { updatePassword } from '@/lib/auth/service';
 import { AuthAlert } from '@/components/auth/AuthAlert';
 import { AuthButton } from '@/components/auth/AuthButton';
 import {
-  ChevronLeft,
+
   Eye,
   EyeOff,
   KeyRound,

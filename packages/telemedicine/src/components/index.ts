@@ -22,4 +22,4 @@ export type { QualityOverlaysProps } from './QualityOverlays'
 export { ReconnectingOverlay } from './ReconnectingOverlay'
 export type { ReconnectingOverlayProps } from './ReconnectingOverlay'
 
-export * from './animation-presets'
+export { springGentle, springSnappy, springBouncy, fadeIn, slideUp, slideDown, slideRight, slideFromBottom, scaleIn, staggerContainer, staggerChild, pulseRing, pulseRingDelayed, controlBarVariants, topBarVariants, messageBubble, modalOverlay, modalContent, buttonHover, buttonTap, buttonGentleHover, buttonGentleTap } from './animation-presets'

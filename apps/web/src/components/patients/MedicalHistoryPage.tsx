@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Pill, AlertCircle, CalendarPlus, FileText, ExternalLink, ArrowRight } from 'lucide-react'
 import { useMedicalHistory } from '@/hooks/patients/useMedicalHistory'
 import { usePatientSession } from '@/hooks/patients/usePatientSession'
