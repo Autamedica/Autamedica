@@ -6,6 +6,7 @@ import {
   setupVisibilityVideoPause,
   patchVideoPlayback,
 } from '../media-optimizations'
+import type { CallSessionRuntime } from '../call-session/types'
 import type { CallProvider } from '../providers/types'
 import type { ConnectionState } from '../webrtc-client'
 import type { CallStatus } from '../calls/types'
@@ -23,7 +24,7 @@ interface UseCallLifecycleEffectsOptions {
   client: CallProvider | null
   callId?: string
   connectionState: ConnectionState
-  runtime?: 'cloudflare-calls' | 'webrtc-p2p'
+  runtime?: CallSessionRuntime
   persistCallStatus: (status: CallStatus, reason?: string) => Promise<void>
   hasStartedCallRef: MutableRefObject<boolean>
   manualHangupRef: MutableRefObject<boolean>

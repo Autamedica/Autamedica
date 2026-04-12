@@ -29,22 +29,27 @@ export function createCallProvider(opts: CreateCallProviderOptions): CallProvide
     hasSfuUrl: Boolean(transport.cloudflareCallsApiUrl),
   })
 
-  if (runtime === 'cloudflare-calls') {
-    return new CloudflareCallsClient({
-      userId: user.id,
-      userName: user.displayName,
-      userType: user.role,
-      roomId,
-      apiProxyUrl: transport.cloudflareCallsApiUrl ?? '/api/cloudflare-calls',
-    })
-  }
+  switch (runtime) {
+    case 'cloudflare-calls':
+      return new CloudflareCallsClient({
+        userId: user.id,
+        userName: user.displayName,
+        userType: user.role,
+        roomId,
+        apiProxyUrl: transport.cloudflareCallsApiUrl ?? '/api/cloudflare-calls',
+      })
 
-  return new WebRTCClient({
-    userId: user.id,
-    userName: user.displayName,
-    userType: user.role,
-    roomId,
-    ...(iceServers ? { iceServers } : {}),
-    ...(supabase ? { supabase } : {}),
-  })
+    case 'webrtc-p2p':
+      return new WebRTCClient({
+        userId: user.id,
+        userName: user.displayName,
+        userType: user.role,
+        roomId,
+        ...(iceServers ? { iceServers } : {}),
+        ...(supabase ? { supabase } : {}),
+      })
+
+    default:
+      throw new Error(`[createCallProvider] Unsupported runtime: "${runtime}". Expected "cloudflare-calls" or "webrtc-p2p".`)
+  }
 }

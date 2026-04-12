@@ -21,7 +21,8 @@ function matchesParticipant(participantId: string | null, callParticipantId: str
   return callParticipantId === userId || (participantId !== null && callParticipantId === participantId)
 }
 
-function resolveRuntime(): CallSessionRuntime {
+/** @internal Exported for testing only. */
+export function resolveRuntime(): CallSessionRuntime {
   if (import.meta.env.PUBLIC_FORCE_WEBRTC_P2P === 'true') {
     logger.info('[resolveRuntime] Forced to webrtc-p2p via PUBLIC_FORCE_WEBRTC_P2P')
     return 'webrtc-p2p'
@@ -161,7 +162,7 @@ export const callSessionBackendService = {
 
     if (matchesParticipant(doctorProfileId, call.doctor_id, viewerUserId)) {
       const data = await buildBootstrap(call, viewerUserId, 'doctor', displayName)
-      if (resolveRuntime() === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
+      if (data.runtime === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
         logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'doctor' })
       }
       return { kind: 'ok', data }
@@ -169,7 +170,7 @@ export const callSessionBackendService = {
 
     if (matchesParticipant(patientProfileId, call.patient_id, viewerUserId)) {
       const data = await buildBootstrap(call, viewerUserId, 'patient', displayName)
-      if (resolveRuntime() === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
+      if (data.runtime === 'webrtc-p2p' && !hasTurnIceServer(data.transport.iceServers ?? [])) {
         logger.warn('[callSessionBackendService] p2p bootstrap without TURN', { roomId, callId: call.id, role: 'patient' })
       }
       return { kind: 'ok', data }

@@ -13,6 +13,7 @@ import {
   type WarmUpResult,
 } from './webrtc-client'
 import type { CallProvider } from './providers/types'
+import type { CallSessionRuntime } from './call-session/types'
 import { useCallRecording } from './hooks/useCallRecording'
 import { useCallDuration } from './hooks/useCallDuration'
 import { useCallQuality } from './hooks/useCallQuality'
@@ -68,8 +69,8 @@ export interface UnifiedVideoCallProps {
   className?: string
   theme?: 'doctor' | 'patient'
   autoStart?: boolean
-  /** Runtime engine: 'cloudflare-calls' (SFU) or 'webrtc-p2p'. Shown as badge in CallTopBar. */
-  runtime?: 'cloudflare-calls' | 'webrtc-p2p'
+  /** Runtime engine shown as badge in CallTopBar. */
+  runtime?: CallSessionRuntime
 }
 
 interface RemoteUser {

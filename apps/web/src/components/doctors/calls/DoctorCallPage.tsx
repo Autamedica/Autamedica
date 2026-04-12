@@ -514,7 +514,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
           iceServersOverride: clientTurnServers ?? undefined,
         })
       : null,
-    [callSession?.callId], // recreate only when the call identity changes
+    [callSession?.callId, callSession?.runtime, clientTurnServers],
   )
 
   return (
@@ -624,7 +624,7 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
             supabaseUrl={import.meta.env.PUBLIC_SUPABASE_URL}
             supabaseAnonKey={import.meta.env.PUBLIC_SUPABASE_ANON_KEY}
             autoStart
-            runtime={callSession.runtime === 'livekit' ? undefined : callSession.runtime}
+            runtime={callSession.runtime}
             className="h-screen"
             onLocalAudioLevelChange={handleAudioLevelChange}
           />
