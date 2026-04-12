@@ -2,19 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { JSX } from 'react'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { logger } from '@autamedica/shared'
 import { patchVideoPlayback } from './media-optimizations'
 import type { CallService } from './calls/service'
 import type { CallStatus } from './calls/types'
 import { hasTurnIceServer } from './config/ice-servers'
 import {
-  WebRTCClient,
   type ConnectionState,
   type DeviceInfo,
   type WarmUpResult,
 } from './webrtc-client'
-import { CloudflareCallsClient } from './cloudflare-calls'
 import type { CallProvider } from './providers/types'
 import { useCallRecording } from './hooks/useCallRecording'
 import { useCallDuration } from './hooks/useCallDuration'
@@ -48,22 +45,15 @@ import {
 type UnifiedVideoCallService = Pick<CallService, 'updateCallStatus' | 'logDebugEvent' | 'logEvent'>
 
 export interface UnifiedVideoCallProps {
+  /** Call provider built via createCallProvider(). */
+  provider: CallProvider
   roomId: string
   callId?: string
   userId: string
   userType: 'doctor' | 'patient' | 'nurse'
   userName?: string
-  /** ICE servers pre-fetched by el parent (e.g. from /api/turn-credentials). Falls back to STUN-only. */
+  /** ICE servers for network preflight test (GreenRoom). */
   iceServers?: RTCIceServer[]
-  /**
-   * URL del proxy API para Cloudflare Calls SFU (e.g., '/api/cloudflare-calls').
-   * - `undefined` (default): usa '/api/cloudflare-calls' automáticamente.
-   * - `null`: opt-out explícito, usa WebRTC P2P directo.
-   * - string: URL personalizada del proxy.
-   */
-  cloudflareCallsApiUrl?: string | null
-  /** Supabase client for P2P signaling via Realtime. Required when cloudflareCallsApiUrl is null. */
-  supabase?: SupabaseClient
   onCallEnd?: () => void
   onCallStart?: () => void
   onStatusChange?: (status: ConnectionState) => void
@@ -80,8 +70,6 @@ export interface UnifiedVideoCallProps {
   autoStart?: boolean
   /** Runtime engine: 'cloudflare-calls' (SFU) or 'webrtc-p2p'. Shown as badge in CallTopBar. */
   runtime?: 'cloudflare-calls' | 'webrtc-p2p'
-  /** Pre-built call provider from createCallProvider(). When set, cloudflareCallsApiUrl/supabase/iceServers are ignored. */
-  provider?: CallProvider
 }
 
 interface RemoteUser {
@@ -94,14 +82,13 @@ interface RemoteUser {
 const QUALITY_WARMUP_MS = 15000
 
 export function UnifiedVideoCall({
+  provider,
   roomId,
   callId,
   userId,
   userType,
   userName,
   iceServers,
-  cloudflareCallsApiUrl,
-  supabase,
   onCallEnd,
   onCallStart,
   onStatusChange,
@@ -115,7 +102,6 @@ export function UnifiedVideoCall({
   theme = userType === 'doctor' ? 'doctor' : 'patient',
   autoStart = false,
   runtime,
-  provider: externalProvider,
 }: UnifiedVideoCallProps): JSX.Element {
   /* ── State ── */
   const [client, setClient] = useState<CallProvider | null>(null)
@@ -223,8 +209,6 @@ export function UnifiedVideoCall({
     () => Array.from(remoteUsers.values()).filter((user) => user.stream),
     [remoteUsers]
   )
-  const isP2PRuntime = cloudflareCallsApiUrl === null
-
   /* ── Extracted hooks ── */
   const { controlsVisible, resetControlsTimer } = useAutoHideControls({ isInRoom })
   const { formattedDuration } = useCallDuration(isCallEstablished)
@@ -261,26 +245,12 @@ export function UnifiedVideoCall({
 
   useEffect(() => {
     emitDebug('info', 'Inicializando componente de videollamada', {
-      runtime: runtime ?? (cloudflareCallsApiUrl === null ? 'webrtc-p2p' : 'cloudflare-calls'),
-      sfuUrl: cloudflareCallsApiUrl === null ? 'none' : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls'),
-      hasTurn: hasTurnIceServer(iceServers ?? []),
+      runtime: runtime ?? 'unknown',
       autoStart,
       userName,
     })
 
-    // If an external provider was supplied (from createCallProvider), use it directly.
-    // Otherwise fall back to the legacy prop-based selection.
-    let webrtcClient: CallProvider
-    if (externalProvider) {
-      webrtcClient = externalProvider
-    } else {
-      const sfuUrl = cloudflareCallsApiUrl === null
-        ? null
-        : (cloudflareCallsApiUrl ?? '/api/cloudflare-calls')
-      webrtcClient = sfuUrl
-        ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: sfuUrl })
-        : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}), ...(supabase ? { supabase } : {}) })
-    }
+    const webrtcClient = provider
     const unsubs: Array<() => void> = []
     const startConnectingTimeout = () => {
       if (connectingTimerRef.current) {
@@ -580,18 +550,18 @@ export function UnifiedVideoCall({
   // retryKey causa re-mount del cliente cuando se incrementa (intento de reconexión)
   // Callbacks (onCallStart, onError, onStatusChange) viven en refs para evitar
   // que re-renders del parent destruyan la conexión WebRTC en vuelo.
-  }, [addRemoteMessage, autoStart, cleanupSound, cloudflareCallsApiUrl, emitDebug, externalProvider, iceServers, logCallEvent, playParticipantJoinedSound, retryKey, roomId, supabase, userId, userName, userType])
+  }, [addRemoteMessage, autoStart, cleanupSound, emitDebug, logCallEvent, playParticipantJoinedSound, provider, retryKey, roomId, userId, userName, userType])
 
   /* ── Duration timer ── */
   useEffect(() => {
-    if (!isP2PRuntime || !iceServers || hasTurnIceServer(iceServers)) {
+    if (runtime !== 'webrtc-p2p' || !iceServers || hasTurnIceServer(iceServers)) {
       return
     }
 
     emitDebug('warn', 'La llamada P2P no tiene TURN configurado; algunas redes estrictas pueden fallar', {
       iceServerCount: iceServers.length,
     })
-  }, [emitDebug, iceServers, isP2PRuntime])
+  }, [emitDebug, iceServers, runtime])
 
   useEffect(() => {
     if (isCallEstablished) {
@@ -632,6 +602,7 @@ export function UnifiedVideoCall({
     isChatPanelOpen,
     supabaseUrl,
     supabaseAnonKey,
+    runtime,
   })
 
   useEffect(() => {

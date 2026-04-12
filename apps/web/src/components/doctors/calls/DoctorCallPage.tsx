@@ -607,21 +607,15 @@ function DoctorCallContent({ roomId }: { roomId: string }) {
               </div>
             </div>
           </div>
-        ) : (
+        ) : callProvider && (
           <UnifiedVideoCall
+            provider={callProvider}
             roomId={callSession.roomId}
             callId={callSession.callId}
             userId={callSession.user.id || userId}
             userType={callSession.user.role}
             userName={callSession.user.displayName || userName}
             iceServers={clientTurnServers ?? callSession.transport.iceServers}
-            cloudflareCallsApiUrl={
-              callSession.runtime === 'webrtc-p2p'
-                ? null
-                : (callSession.transport.cloudflareCallsApiUrl ?? null)
-            }
-            supabase={callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined}
-            provider={callProvider ?? undefined}
             theme="doctor"
             onCallEnd={handleCallEnd}
             onCallStart={handleCallStart}

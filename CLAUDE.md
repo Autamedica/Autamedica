@@ -23,8 +23,10 @@
 | `media-optimizations.ts`     | Constraints adaptativos, content hints, codec selection       |
 | `debug.ts`                   | Logger factory con niveles (error, warn, info, debug)         |
 | `types.ts`                   | Tipos exportados: WebRTCConfig, CallMetrics, SignalingMessage |
+| `providers/types.ts`         | Interfaz `CallProvider` — contrato mínimo para engines        |
+| `providers/factory.ts`       | `createCallProvider()` — factory desde `CallSessionBootstrap` |
 
-**Decisión de runtime (2026-04-12):** Cloudflare Calls (SFU) es el runtime principal en producción. webrtc-p2p solo como fallback. La ruta P2P amplifica problemas de NAT, signaling timeout y asimetría de media.
+**Política de runtime (2026-04-12):** Cloudflare Calls (SFU) es el **único runtime permitido en producción**. `resolveRuntime()` en `call-session.backend.ts` lanza error si faltan `CLOUDFLARE_CALLS_APP_ID` / `CLOUDFLARE_CALLS_APP_SECRET` en prod. webrtc-p2p solo en desarrollo local o con `PUBLIC_FORCE_WEBRTC_P2P=true`. Interfaz formal: `CallProvider` en `providers/types.ts`, factory `createCallProvider()` en `providers/factory.ts`. Ambos engines (`WebRTCClient`, `CloudflareCallsClient`) implementan `CallProvider`.
 
 **Hooks (`src/hooks/`):** `useTelemedicineClient`, `useVideoCallReducer`, `useCallDuration`, `useCallQuality`, `useGreenRoom`, `useChatMessages`, `useScreenShare`, `useCallStatusPersistence`, `useCallLifecycleEffects`, `useAutoHideControls`, `useParticipantSound`, `useViewportDetection`, `useCallDebugger`, `useRemoteMediaTimeout`.
 

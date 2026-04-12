@@ -227,21 +227,17 @@ function PatientCallContent({ roomId }: { roomId: string }) {
     [callSession?.callId], // recreate only when the call identity changes
   )
 
+  if (!callProvider) return null
+
   return (
     <UnifiedVideoCall
+      provider={callProvider}
       roomId={callSession.roomId}
       callId={callSession.callId}
       userId={callSession.user.id || userId}
       userType={callSession.user.role}
       userName={callSession.user.displayName || userName}
       iceServers={clientTurnServers ?? callSession.transport.iceServers}
-      cloudflareCallsApiUrl={
-        callSession.runtime === 'webrtc-p2p'
-          ? null
-          : (callSession.transport.cloudflareCallsApiUrl ?? null)
-      }
-      supabase={callSession.runtime === 'webrtc-p2p' ? getBrowserSupabaseClient() : undefined}
-      provider={callProvider ?? undefined}
       theme="patient"
       onCallEnd={handleCallEnd}
       persistCallStatus={handlePersistCallStatus}

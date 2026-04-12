@@ -23,6 +23,7 @@ interface UseCallLifecycleEffectsOptions {
   client: CallProvider | null
   callId?: string
   connectionState: ConnectionState
+  runtime?: 'cloudflare-calls' | 'webrtc-p2p'
   persistCallStatus: (status: CallStatus, reason?: string) => Promise<void>
   hasStartedCallRef: MutableRefObject<boolean>
   manualHangupRef: MutableRefObject<boolean>
@@ -59,6 +60,7 @@ export function useCallLifecycleEffects({
   isChatPanelOpen,
   supabaseUrl,
   supabaseAnonKey,
+  runtime,
 }: UseCallLifecycleEffectsOptions) {
   const hasAnnouncedCallStartRef = useRef(false)
 
@@ -105,7 +107,7 @@ export function useCallLifecycleEffects({
     const handleBeforeUnload = () => {
       if (manualHangupRef.current) return
       const url = `${new URL(supabaseUrl).origin}/functions/v1/update-call-status`
-      const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed' })
+      const payload = JSON.stringify({ callId, status: 'ended', reason: 'page_closed', runtime })
       fetch(url, {
         method: 'POST',
         keepalive: true,
@@ -120,7 +122,7 @@ export function useCallLifecycleEffects({
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [callId, hasStartedCallRef, manualHangupRef, supabaseUrl, supabaseAnonKey])
+  }, [callId, hasStartedCallRef, manualHangupRef, runtime, supabaseUrl, supabaseAnonKey])
 
   // Remote stream sync
   useEffect(() => {
