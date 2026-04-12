@@ -61,6 +61,35 @@ export type DomainEvents = {
     patientId: string
     reportUrl?: string
   }
+
+  // Prescripciones
+  'prescription.issued': {
+    prescriptionId: string
+    doctorId: string
+    patientId: string
+    medication: string
+  }
+  'prescription.dispensed': {
+    prescriptionId: string
+    orderId: string
+    doctorId: string
+    patientId: string
+    medication: string
+  }
+
+  // Farmacia
+  'pharmacy.clarification_requested': {
+    orderId: string
+    doctorUserId: string
+    pharmacistId: string
+    question: string
+    category: string
+  }
+  'pharmacy.clarification_responded': {
+    orderId: string
+    doctorUserId: string
+    pharmacistUserId: string
+  }
 }
 
 export type DomainEventName = keyof DomainEvents
