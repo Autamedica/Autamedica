@@ -1,6 +1,7 @@
 'use client'
 
 import type { RefObject } from 'react'
+import { motion } from 'framer-motion'
 import {
   Video,
   Mic,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   Wifi,
 } from 'lucide-react'
+import { springGentle, staggerContainer, staggerChild, buttonGentleHover, buttonGentleTap } from './animation-presets'
 import type { ConnectionState, DeviceInfo, WarmUpResult } from '../webrtc-client'
 import type { WebRTCClient } from '../webrtc-client'
 import type { CloudflareCallsClient } from '../cloudflare-calls'
@@ -100,10 +102,23 @@ function AudioMeter({ level }: { level: number }) {
 /* ── Readiness check item ── */
 function CheckItem({ ok, loading, label }: { ok: boolean; loading?: boolean; label: string }) {
   return (
-    <div className={`flex items-center gap-2 text-sm ${ok ? 'text-emerald-400' : loading ? 'text-amber-400' : 'text-red-400'}`}>
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+    <motion.div
+      className={`flex items-center gap-2 text-sm ${ok ? 'text-emerald-400' : loading ? 'text-amber-400' : 'text-red-400'}`}
+      variants={staggerChild}
+    >
+      {loading ? (
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+          <Loader2 className="h-4 w-4" />
+        </motion.div>
+      ) : ok ? (
+        <motion.div initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} transition={springGentle}>
+          <CheckCircle2 className="h-4 w-4" />
+        </motion.div>
+      ) : (
+        <AlertTriangle className="h-4 w-4" />
+      )}
       <span>{label}</span>
-    </div>
+    </motion.div>
   )
 }
 
@@ -280,7 +295,12 @@ export function GreenRoom({
 
             {/* Readiness checks */}
             {warmUpResult && (
-              <div className="mt-6 space-y-3 rounded-xl border border-white/8 bg-white/[0.03] p-4">
+              <motion.div
+                className="mt-6 space-y-3 rounded-xl border border-white/8 bg-white/[0.03] p-4"
+                variants={staggerContainer(0.15)}
+                initial="hidden"
+                animate="visible"
+              >
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                   Verificacion
                 </p>
@@ -291,7 +311,7 @@ export function GreenRoom({
                   loading={!greenRoomChecks.hasSignaling && connectionState !== 'failed'}
                   label={warmUpResult.latencyMs != null ? `Red (${warmUpResult.latencyMs}ms)` : 'Red'}
                 />
-              </div>
+              </motion.div>
             )}
 
             {/* Network preflight */}
@@ -331,25 +351,33 @@ export function GreenRoom({
 
           {/* Join button */}
           <div className="mt-6">
-            <button
+            <motion.button
               onClick={onStartCall}
               disabled={isWarmingUp || isUnreachable}
-              className={`w-full rounded-xl px-6 py-4 text-base font-semibold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`w-full rounded-xl px-6 py-4 text-base font-semibold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
                 accentColor === 'violet'
                   ? 'bg-gradient-to-r from-am-primary-600 to-am-primary-500 hover:from-violet-500 hover:to-am-primary-400 shadow-am-primary-600/20'
                   : 'bg-gradient-to-r from-am-patient-600 to-am-patient-500 hover:from-sky-500 hover:to-am-patient-400 shadow-am-patient-600/20'
               }`}
+              whileHover={buttonGentleHover}
+              whileTap={buttonGentleTap}
+              transition={springGentle}
             >
               <span className="flex items-center justify-center gap-2">
                 <Phone className="h-5 w-5" />
                 {userType === 'doctor' ? 'Iniciar consulta' : 'Unirse a consulta'}
               </span>
-            </button>
+            </motion.button>
 
             {greenRoomChecks.allReady && (
-              <p className="mt-2 text-center text-xs text-emerald-400/70">
+              <motion.p
+                className="mt-2 text-center text-xs text-emerald-400/70"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
                 Todo listo — conexión instantánea
-              </p>
+              </motion.p>
             )}
 
             {connectionState === 'failed' && !callError && (

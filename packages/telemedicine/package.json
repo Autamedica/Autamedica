@@ -46,11 +46,15 @@
   },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.98.0",
+    "framer-motion": ">=11.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "peerDependenciesMeta": {
     "@supabase/supabase-js": {
+      "optional": false
+    },
+    "framer-motion": {
       "optional": false
     }
   }

@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle, WifiOff, X } from 'lucide-react'
 import type { StreamQualityLevel } from '../webrtc-client'
+import { slideDown, springGentle } from './animation-presets'
 
 export interface QualityOverlaysProps {
   showAudioOnlySuggestion: boolean
@@ -15,15 +17,9 @@ export interface QualityOverlaysProps {
 }
 
 export function QualityOverlays({
-  showAudioOnlySuggestion,
-  onSwitchAudioOnly,
-  onDismissSuggestion,
-  callError,
-  isTestRoom,
-  showControls,
-  qualityLevel,
+  showAudioOnlySuggestion, onSwitchAudioOnly, onDismissSuggestion,
+  callError, isTestRoom, showControls, qualityLevel,
 }: QualityOverlaysProps) {
-  // Auto-dismiss error after 8s
   const [showError, setShowError] = useState(false)
   useEffect(() => {
     if (callError) {
@@ -36,66 +32,92 @@ export function QualityOverlays({
 
   return (
     <>
-      {/* Error toast — slides in from top */}
-      {callError && showError && (
-        <div className="absolute inset-x-0 top-14 z-30 flex justify-center px-4 animate-in slide-in-from-top-2 duration-300">
-          <div className="flex max-w-md items-start gap-3 rounded-xl border border-red-400/20 bg-neutral-900/95 px-4 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-            <div className="flex-1">
-              <p className="font-medium text-red-300">{callError}</p>
+      {/* Error toast */}
+      <AnimatePresence>
+        {callError && showError && (
+          <motion.div
+            className="absolute inset-x-0 top-14 z-30 flex justify-center px-4"
+            variants={slideDown}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <div className="flex max-w-md items-start gap-3 rounded-xl border border-red-400/20 bg-neutral-900/95 px-4 py-3 text-sm text-white shadow-2xl backdrop-blur-xl">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+              <div className="flex-1">
+                <p className="font-medium text-red-300">{callError}</p>
+              </div>
+              <button onClick={() => setShowError(false)} className="shrink-0 text-slate-400 hover:text-white transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button onClick={() => setShowError(false)} className="shrink-0 text-slate-400 hover:text-white transition-colors">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Test badge */}
-      {isTestRoom && (
-        <div className="absolute left-4 top-14 z-30">
-          <div className="rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-400 backdrop-blur-sm">
-            TEST
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {isTestRoom && (
+          <motion.div
+            className="absolute left-4 top-14 z-30"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={springGentle}
+          >
+            <div className="rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-medium text-amber-400 backdrop-blur-sm">
+              TEST
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Audio-only suggestion */}
-      {showAudioOnlySuggestion && (
-        <div className="absolute bottom-28 left-4 z-30 max-w-sm animate-in slide-in-from-left-2 duration-300">
-          <div className="flex items-center gap-3 rounded-xl border border-amber-400/15 bg-neutral-900/95 px-4 py-3 text-sm shadow-xl backdrop-blur-xl">
-            <WifiOff className="h-5 w-5 shrink-0 text-amber-400" />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-white">La red está inestable</p>
-              <p className="mt-0.5 text-xs text-slate-400">Seguimos por audio mientras el video se estabiliza</p>
+      <AnimatePresence>
+        {showAudioOnlySuggestion && (
+          <motion.div
+            className="absolute bottom-28 left-4 z-30 max-w-sm"
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={springGentle}
+          >
+            <div className="flex items-center gap-3 rounded-xl border border-amber-400/15 bg-neutral-900/95 px-4 py-3 text-sm shadow-xl backdrop-blur-xl">
+              <WifiOff className="h-5 w-5 shrink-0 text-amber-400" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-white">La red está inestable</p>
+                <p className="mt-0.5 text-xs text-slate-400">Seguimos por audio mientras el video se estabiliza</p>
+              </div>
+              <button onClick={onSwitchAudioOnly} className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition-colors">
+                Seguir con audio
+              </button>
+              <button onClick={onDismissSuggestion} className="shrink-0 rounded-full p-1 text-slate-400 hover:text-white transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              onClick={onSwitchAudioOnly}
-              className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500 transition-colors"
-            >
-              Seguir con audio
-            </button>
-            <button
-              onClick={onDismissSuggestion}
-              className="shrink-0 rounded-full p-1 text-slate-400 hover:text-white transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Quality warning badge */}
-      {(qualityLevel === 'poor' || qualityLevel === 'fair') && !showAudioOnlySuggestion && showControls && (
-        <div className="absolute bottom-28 left-4 z-20">
-          <div className={`flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 text-[11px] backdrop-blur-sm ${
-            qualityLevel === 'poor' ? 'text-red-400' : 'text-amber-400'
-          }`}>
-            <WifiOff className="h-3 w-3" />
-            Red {qualityLevel === 'poor' ? 'débil' : 'regular'}
-          </div>
-        </div>
-      )}
+      {/* Quality warning */}
+      <AnimatePresence>
+        {(qualityLevel === 'poor' || qualityLevel === 'fair') && !showAudioOnlySuggestion && showControls && (
+          <motion.div
+            className="absolute bottom-28 left-4 z-20"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={springGentle}
+          >
+            <div className={`flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 text-[11px] backdrop-blur-sm ${
+              qualityLevel === 'poor' ? 'text-red-400' : 'text-amber-400'
+            }`}>
+              <WifiOff className="h-3 w-3" />
+              Red {qualityLevel === 'poor' ? 'débil' : 'regular'}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   )
 }
