@@ -9,9 +9,13 @@ import { logger } from '@autamedica/shared';
 import type { AppointmentView, AppointmentStatus } from '@autamedica/types';
 
 export const appointmentBackendService = {
-  async transitionStatus(appointmentId: string, nextStatus: AppointmentStatus): Promise<AppointmentView> {
+  async transitionStatus(
+    appointmentId: string,
+    nextStatus: AppointmentStatus,
+    runtimeEnv?: Record<string, unknown> | null,
+  ): Promise<AppointmentView> {
     try {
-      const admin = createAstroAdminClient();
+      const admin = createAstroAdminClient(runtimeEnv);
       const useCase = new TransitionAppointmentUseCase({
         appointmentRepo: createAppointmentReadAdapter(admin),
       });

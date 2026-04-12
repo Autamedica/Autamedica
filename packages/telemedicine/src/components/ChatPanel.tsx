@@ -57,10 +57,10 @@ export function ChatPanel({
       <AnimatePresence>
         {isOpen && (
           <motion.aside
-            className={`absolute z-30 flex flex-col border border-white/[0.08] bg-neutral-950/[0.96] backdrop-blur-2xl ${
+            className={`absolute z-30 flex min-h-0 flex-col overflow-hidden border border-white/[0.08] bg-neutral-950/[0.96] backdrop-blur-2xl ${
               isDesktopViewport
                 ? 'bottom-4 right-4 top-4 w-[23rem] rounded-[30px] shadow-[0_36px_90px_rgba(0,0,0,0.42)]'
-                : 'inset-x-0 bottom-0 h-[72vh] rounded-t-[30px] border-b-0 shadow-[0_-24px_60px_rgba(0,0,0,0.45)]'
+                : 'inset-x-0 bottom-0 h-[min(78dvh,42rem)] max-h-[calc(100dvh-0.75rem)] rounded-t-[30px] border-b-0 shadow-[0_-24px_60px_rgba(0,0,0,0.45)]'
             }`}
             variants={panelVariants}
             initial="hidden"
@@ -105,10 +105,13 @@ export function ChatPanel({
             </div>
 
             {/* Messages */}
-            <div ref={chatMessagesRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+            <div
+              ref={chatMessagesRef}
+              className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 md:px-4"
+            >
               {messages.length === 0 && (
                 <motion.div
-                  className="flex h-full flex-col items-center justify-center py-12 text-center"
+                  className="flex min-h-full flex-col items-center justify-center px-4 py-10 text-center"
                   variants={scaleIn}
                   initial="hidden"
                   animate="visible"
@@ -121,7 +124,7 @@ export function ChatPanel({
                     }`} />
                   </div>
                   <p className="text-sm font-semibold text-slate-200">Aún no hay mensajes</p>
-                  <p className="mt-1.5 max-w-[220px] text-xs leading-relaxed text-slate-500">
+                  <p className="mt-1.5 max-w-[18rem] text-sm leading-relaxed text-slate-400">
                     Usa el chat para coordinar indicaciones, archivos o mensajes breves durante la consulta.
                   </p>
                 </motion.div>
@@ -154,7 +157,10 @@ export function ChatPanel({
             </div>
 
             {/* Input */}
-            <form onSubmit={onSubmit} className="border-t border-white/[0.06] px-4 pb-4 pt-3">
+            <form
+              onSubmit={onSubmit}
+              className="shrink-0 border-t border-white/[0.06] bg-neutral-950/95 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 backdrop-blur-xl"
+            >
               <div className="flex items-end gap-2">
                 <textarea
                   value={chatInput}
@@ -162,7 +168,7 @@ export function ChatPanel({
                   onKeyDown={onKeyDown}
                   rows={1}
                   placeholder="Escribe un mensaje..."
-                  className="flex-1 resize-none rounded-2xl border border-white/[0.08] bg-white/6 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:bg-white/[0.08] focus:border-white/16 focus:outline-none transition-colors"
+                  className="min-h-[3rem] flex-1 resize-none rounded-2xl border border-white/[0.08] bg-white/6 px-4 py-3 text-sm leading-6 text-white placeholder:text-slate-500 focus:border-white/16 focus:bg-white/[0.08] focus:outline-none transition-colors"
                 />
                 <motion.button
                   type="submit"

@@ -47,6 +47,19 @@ export interface PeerConnectionFactoryCallbacks {
   emitChatReady: () => void
 }
 
+function createPeerConnectionError(
+  message: string,
+  meta: Record<string, unknown>,
+  cause?: unknown,
+): Error & Record<string, unknown> {
+  const wrapped = new Error(message) as Error & Record<string, unknown>
+  wrapped.name = 'TelemedicinePeerError'
+  if (cause !== undefined) {
+    wrapped.cause = cause
+  }
+  return Object.assign(wrapped, meta)
+}
+
 export class PeerConnectionFactory {
   private callLogger?: CallLogger
 
@@ -185,8 +198,10 @@ export class PeerConnectionFactory {
             attempts: peerState.iceRestartCount,
           })
           this.callLogger?.error('ice', 'ice_restart_limit_reached', { peerId: userId, attempts: peerState.iceRestartCount })
-          const iceError = new Error(`ICE restart exhausted after ${peerState.iceRestartCount} attempts for peer ${userId}`)
-          Object.assign(iceError, { code: 'ICE_RESTART_EXHAUSTED', peerId: userId, attempts: peerState.iceRestartCount })
+          const iceError = createPeerConnectionError(
+            `ICE restart exhausted after ${peerState.iceRestartCount} attempts for peer ${userId}`,
+            { code: 'ICE_RESTART_EXHAUSTED', peerId: userId, attempts: peerState.iceRestartCount },
+          )
           this.callbacks.emit('error', iceError)
           return
         }

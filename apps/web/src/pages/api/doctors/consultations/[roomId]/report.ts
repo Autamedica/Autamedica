@@ -37,7 +37,13 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
       return badRequest('missing_record_id');
     }
 
-    await updateReportContent(body.recordId, doctorId, body.report, body.doctorNotes);
+    await updateReportContent(
+      body.recordId,
+      doctorId,
+      body.report,
+      body.doctorNotes,
+      locals.runtime?.env ?? null,
+    );
     return jsonOk(null);
   } catch (error) {
     logger.error('[consultation-report] PATCH error', error);
@@ -70,7 +76,14 @@ export const POST: APIRoute = async ({ request, params, locals }) => {
     const { patientId, appointmentId } = participants;
     const body = (await request.json()) as { doctorNotes?: string };
 
-    const result = await generateAndSaveReport(roomId, patientId, doctorId, appointmentId, body.doctorNotes ?? null);
+    const result = await generateAndSaveReport(
+      roomId,
+      patientId,
+      doctorId,
+      appointmentId,
+      body.doctorNotes ?? null,
+      locals.runtime?.env ?? null,
+    );
     return jsonOk(result);
   } catch (error) {
     logger.error('[consultation-report] POST error', error);

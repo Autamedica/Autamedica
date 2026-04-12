@@ -44,6 +44,8 @@ export interface CFSessionConfig {
 export class CloudflareCallsSession {
   private pc: RTCPeerConnection | null = null
   private sessionId: string | null = null
+  private localVideoSender: RTCRtpSender | null = null
+  private localAudioSender: RTCRtpSender | null = null
   private readonly cfg: CFSessionConfig
 
   constructor(config: CFSessionConfig) {
@@ -71,7 +73,12 @@ export class CloudflareCallsSession {
 
     // Añadir tracks locales como sendonly para publicarlos
     for (const track of localStream.getTracks()) {
-      this.pc.addTransceiver(track, { direction: 'sendonly' })
+      const transceiver = this.pc.addTransceiver(track, { direction: 'sendonly' })
+      if (track.kind === 'video') {
+        this.localVideoSender = transceiver.sender
+      } else if (track.kind === 'audio') {
+        this.localAudioSender = transceiver.sender
+      }
     }
 
     // Crear oferta SDP con todos los transceivers locales
@@ -192,9 +199,19 @@ export class CloudflareCallsSession {
     return this.sessionId
   }
 
+  async replacePublishedVideoTrack(track: MediaStreamTrack | null): Promise<void> {
+    await this.localVideoSender?.replaceTrack(track)
+  }
+
+  async replacePublishedAudioTrack(track: MediaStreamTrack | null): Promise<void> {
+    await this.localAudioSender?.replaceTrack(track)
+  }
+
   close(): void {
     this.pc?.close()
     this.pc = null
     this.sessionId = null
+    this.localVideoSender = null
+    this.localAudioSender = null
   }
 }

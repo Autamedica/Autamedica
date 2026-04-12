@@ -83,6 +83,19 @@ export interface WarmUpResult {
   latencyMs: number | null
 }
 
+function createTelemedicineError(
+  fallbackMessage: string,
+  meta: Record<string, unknown>,
+  cause: unknown,
+): Error & Record<string, unknown> {
+  const wrapped = new Error(
+    cause instanceof Error ? cause.message : fallbackMessage,
+  ) as Error & Record<string, unknown>
+  wrapped.name = 'TelemedicineError'
+  wrapped.cause = cause
+  return Object.assign(wrapped, meta)
+}
+
 export class WebRTCClient {
   private ws: WebSocket | null = null
   private signalingSocketPromise: Promise<void> | null = null
@@ -708,8 +721,11 @@ export class WebRTCClient {
       peerState.ignoreOffer = false
     } catch (error) {
       this.logError('Failed handling offer', error, { peerId: userId })
-      const negotiationError = error instanceof Error ? error : new Error('Offer negotiation failed')
-      Object.assign(negotiationError, { code: 'NEGOTIATION_FAILED', phase: 'offer', peerId: userId })
+      const negotiationError = createTelemedicineError(
+        'Offer negotiation failed',
+        { code: 'NEGOTIATION_FAILED', phase: 'offer', peerId: userId },
+        error,
+      )
       this.emit('error', negotiationError)
     } finally {
       peerState.isSettingRemoteAnswerPending = false
@@ -726,8 +742,11 @@ export class WebRTCClient {
       await this.flushPendingIceCandidates(peerState)
     } catch (error) {
       this.logError('Failed handling answer', error, { peerId: userId })
-      const negotiationError = error instanceof Error ? error : new Error('Answer negotiation failed')
-      Object.assign(negotiationError, { code: 'NEGOTIATION_FAILED', phase: 'answer', peerId: userId })
+      const negotiationError = createTelemedicineError(
+        'Answer negotiation failed',
+        { code: 'NEGOTIATION_FAILED', phase: 'answer', peerId: userId },
+        error,
+      )
       this.emit('error', negotiationError)
     } finally {
       peerState.isSettingRemoteAnswerPending = false
@@ -775,6 +794,55 @@ export class WebRTCClient {
 
   getLocalStream(): MediaStream | null {
     return this.media.getLocalStream()
+  }
+
+  private async acquireVideoTrack(): Promise<MediaStreamTrack | null> {
+    const constraints = getAdaptiveConstraints()
+    try {
+      const cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: constraints.video,
+        audio: false,
+      })
+      return cameraStream.getVideoTracks()[0] ?? null
+    } catch {
+      return null
+    }
+  }
+
+  async setCameraEnabled(enabled: boolean): Promise<boolean> {
+    const localStream = this.media.getLocalStream()
+    if (!localStream) return false
+
+    const currentTrack = localStream.getVideoTracks()[0] ?? null
+    if (!enabled) {
+      if (!currentTrack) return false
+      currentTrack.enabled = false
+      localStream.removeTrack(currentTrack)
+      currentTrack.stop()
+      this.emit('local-stream', localStream)
+      return false
+    }
+
+    if (currentTrack?.readyState === 'live') {
+      currentTrack.enabled = true
+      this.emit('local-stream', localStream)
+      return true
+    }
+
+    const newTrack = await this.acquireVideoTrack()
+    if (!newTrack) return false
+
+    localStream.addTrack(newTrack)
+    for (const [, peerState] of this.peerConnections) {
+      const sender = peerState.pc.getSenders().find((s) => s.track?.kind === 'video')
+      if (sender) {
+        await sender.replaceTrack(newTrack)
+      } else {
+        peerState.pc.addTrack(newTrack, localStream)
+      }
+    }
+    this.emit('local-stream', localStream)
+    return true
   }
 
   async replaceVideoTrack(newTrack: MediaStreamTrack | null): Promise<void> {
@@ -892,11 +960,9 @@ export class WebRTCClient {
     const localStream = this.media.getLocalStream()
     if (!localStream) return false
     const videoTrack = localStream.getVideoTracks()[0]
-    if (videoTrack) {
-      videoTrack.enabled = enabled !== undefined ? enabled : !videoTrack.enabled
-      return videoTrack.enabled
-    }
-    return false
+    const next = enabled !== undefined ? enabled : !videoTrack?.enabled
+    void this.setCameraEnabled(next)
+    return next
   }
 
   toggleAudio(enabled?: boolean): boolean {

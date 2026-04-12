@@ -140,6 +140,8 @@ export function UnifiedVideoCall({
   const retryCountRef = useRef(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const connectingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const connectionStateRef = useRef<ConnectionState>('disconnected')
+  const knownPeerIdsRef = useRef<Set<string>>(new Set())
 
   /* ── Callback refs (prevent useEffect re-runs when parent re-renders) ── */
   const onCallStartRef = useRef(onCallStart)
@@ -234,13 +236,14 @@ export function UnifiedVideoCall({
     addRemoteMessage, sendChat: _sendChat, handleChatSubmit, handleChatKeyDown, toggleChatPanel,
   } = useChatMessages({ client, userId, userType, userName, emitDebug, setCallError })
 
-  /* ── Auto-disable video if preflight recommends audio-only ── */
+  /* ── Preflight recommendation only — do not auto-disable camera ── */
   useEffect(() => {
-    if (preflightResult?.recommendation === 'audio-only' && client && isIdle) {
-      client.toggleVideo(false)
-      setIsVideoEnabled(false)
+    if (preflightResult?.recommendation === 'audio-only' && isIdle) {
+      emitDebug('warn', 'Preflight recomienda audio-only, pero mantenemos video habilitado por defecto', {
+        recommendation: preflightResult.recommendation,
+      })
     }
-  }, [preflightResult, client, isIdle])
+  }, [emitDebug, isIdle, preflightResult])
 
   /* ── WebRTC setup ── */
   useEffect(() => {
@@ -261,9 +264,39 @@ export function UnifiedVideoCall({
       ? new CloudflareCallsClient({ userId, userName, userType, roomId, apiProxyUrl: sfuUrl })
       : new WebRTCClient({ userId, userName, userType, roomId, ...(iceServers ? { iceServers } : {}), ...(supabase ? { supabase } : {}) })
     const unsubs: Array<() => void> = []
+    const startConnectingTimeout = () => {
+      if (connectingTimerRef.current) {
+        clearTimeout(connectingTimerRef.current)
+      }
+      const CONNECTING_TIMEOUT_MS = 45_000
+      connectingTimerRef.current = setTimeout(() => {
+        connectingTimerRef.current = null
+        emitDebug('warn', 'Conexion colgada en "connecting" con peer presente por 45s — forzando reintento')
+        onStatusChangeRef.current?.('failed')
+        setConnectionState('failed')
+        const MAX_RETRIES = 5
+        const attempt = retryCountRef.current
+        if (!manualHangupRef.current && autoStart && attempt < MAX_RETRIES) {
+          const delayMs = (attempt + 1) * 2000 + Math.random() * 1000
+          retryCountRef.current += 1
+          setIsRetrying(true)
+          setCallError(null)
+          emitDebug('warn', `Timeout connecting — reintentando (${retryCountRef.current}/${MAX_RETRIES}) en ${Math.round(delayMs)}ms`)
+          retryTimerRef.current = setTimeout(() => {
+            autoStartAttemptedRef.current = false
+            hasStartedCallRef.current = false
+            setRetryKey((k) => k + 1)
+          }, delayMs)
+        } else {
+          setIsRetrying(false)
+          setCallError('Error de conexión. Verifica tu internet y recarga la página.')
+        }
+      }, CONNECTING_TIMEOUT_MS)
+    }
 
     unsubs.push(
       webrtcClient.on('connection-state', (state) => {
+        connectionStateRef.current = state
         setConnectionState(state)
         onStatusChangeRef.current?.(state)
         emitDebug('info', 'Estado de conexion actualizado', { state })
@@ -294,31 +327,11 @@ export function UnifiedVideoCall({
           }
         } else if (state === 'connecting') {
           setReconnectionState({ isReconnecting: false, attempt: 0, maxAttempts: 0 })
-          // Start a connecting timeout — if stuck in "connecting" for too long, force retry
-          const CONNECTING_TIMEOUT_MS = 30_000
-          connectingTimerRef.current = setTimeout(() => {
-            connectingTimerRef.current = null
-            emitDebug('warn', 'Conexion colgada en "connecting" por 30s — forzando reintento')
-            onStatusChangeRef.current?.('failed')
-            setConnectionState('failed')
-            const MAX_RETRIES = 5
-            const attempt = retryCountRef.current
-            if (!manualHangupRef.current && autoStart && attempt < MAX_RETRIES) {
-              const delayMs = (attempt + 1) * 2000 + Math.random() * 1000
-              retryCountRef.current += 1
-              setIsRetrying(true)
-              setCallError(null)
-              emitDebug('warn', `Timeout connecting — reintentando (${retryCountRef.current}/${MAX_RETRIES}) en ${Math.round(delayMs)}ms`)
-              retryTimerRef.current = setTimeout(() => {
-                autoStartAttemptedRef.current = false
-                hasStartedCallRef.current = false
-                setRetryKey((k) => k + 1)
-              }, delayMs)
-            } else {
-              setIsRetrying(false)
-              setCallError('Error de conexión. Verifica tu internet y recarga la página.')
-            }
-          }, CONNECTING_TIMEOUT_MS)
+          if (knownPeerIdsRef.current.size > 0) {
+            startConnectingTimeout()
+          } else {
+            emitDebug('info', 'Esperando al otro participante; omitimos timeout agresivo de conexión')
+          }
         } else if (state === 'connected') {
           retryCountRef.current = 0
           setIsRetrying(false)
@@ -398,6 +411,7 @@ export function UnifiedVideoCall({
 
     unsubs.push(
       webrtcClient.on('user-joined', (remoteUserId, remoteUserType) => {
+        knownPeerIdsRef.current.add(remoteUserId)
         setRemoteUsers((prev) => {
           const updated = new Map(prev)
           const existing = updated.get(remoteUserId)
@@ -409,11 +423,15 @@ export function UnifiedVideoCall({
           })
           return updated
         })
+        if (connectionStateRef.current === 'connecting' && !connectingTimerRef.current) {
+          startConnectingTimeout()
+        }
       })
     )
 
     unsubs.push(
       webrtcClient.on('user-left', (remoteUserId) => {
+        knownPeerIdsRef.current.delete(remoteUserId)
         setRemoteUsers((prev) => {
           const updated = new Map(prev)
           updated.delete(remoteUserId)
@@ -658,8 +676,18 @@ export function UnifiedVideoCall({
 
   const toggleVideo = useCallback(() => {
     if (!client) return
+    if ('setCameraEnabled' in client && typeof client.setCameraEnabled === 'function') {
+      const next = !isVideoEnabled
+      setIsVideoEnabled(next)
+      void client.setCameraEnabled(next).then((confirmed) => {
+        setIsVideoEnabled(confirmed)
+      }).catch(() => {
+        setIsVideoEnabled(isVideoEnabled)
+      })
+      return
+    }
     setIsVideoEnabled(client.toggleVideo())
-  }, [client])
+  }, [client, isVideoEnabled])
 
   const toggleAudio = useCallback(() => {
     if (!client) return

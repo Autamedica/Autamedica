@@ -38,7 +38,9 @@ export interface SupabaseSignalingHandle {
   isOpen: () => boolean
 }
 
-const SUBSCRIBE_TIMEOUT_MS = 15_000
+const SUBSCRIBE_TIMEOUT_MS = 30_000
+const MAX_SUBSCRIBE_RETRIES = 1
+const RETRY_DELAY_MS = 1_000
 
 export function openSupabaseSignaling(
   supabase: SupabaseClient,
@@ -47,6 +49,7 @@ export function openSupabaseSignaling(
   userType: string,
   deps: SupabaseSignalingDeps,
   currentHandle: { handle: SupabaseSignalingHandle | null },
+  attempt = 0,
 ): Promise<void> {
   if (currentHandle.handle?.isOpen()) {
     return Promise.resolve()
@@ -179,7 +182,35 @@ export function openSupabaseSignaling(
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         clearTimeout(timeout)
         currentHandle.handle = null
-        deps.logger.logError('Supabase signaling channel failed', status, { channelName })
+        const failure = err ?? new Error(`Supabase signaling failed: ${status}`)
+
+        if (attempt < MAX_SUBSCRIBE_RETRIES) {
+          deps.logger.logWarn('Supabase signaling channel failed, retrying subscribe', {
+            channelName,
+            status,
+            attempt: attempt + 1,
+            maxAttempts: MAX_SUBSCRIBE_RETRIES + 1,
+          })
+          channel.unsubscribe()
+          setTimeout(() => {
+            void openSupabaseSignaling(
+              supabase,
+              roomId,
+              userId,
+              userType,
+              deps,
+              currentHandle,
+              attempt + 1,
+            ).then(resolve, reject)
+          }, RETRY_DELAY_MS)
+          return
+        }
+
+        deps.logger.logError(
+          'Supabase signaling channel failed',
+          failure,
+          { channelName, status },
+        )
         deps.setConnectionState('failed')
         deps.emit('error', new Error(`Supabase signaling failed: ${status}`))
         reject(new Error(`Supabase signaling failed: ${status}`))

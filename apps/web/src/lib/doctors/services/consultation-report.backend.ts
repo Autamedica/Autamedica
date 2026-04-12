@@ -49,6 +49,7 @@ export async function generateAndSaveReport(
   doctorId: string,
   appointmentId: string | null,
   doctorNotes: string | null,
+  runtimeEnv?: Record<string, unknown> | null,
 ): Promise<{
   recordId: string;
   patientId: string;
@@ -59,7 +60,7 @@ export async function generateAndSaveReport(
   confidence: number | null;
   provider: string;
 }> {
-  const admin = createAstroAdminClient() as unknown as AdminClient;
+  const admin = createAstroAdminClient(runtimeEnv) as unknown as AdminClient;
 
   const [transcriptionText, patientProfile, anamnesisData] = await Promise.all([
     consultationReportRepo.getTranscriptionText(admin, roomId),
@@ -106,7 +107,7 @@ export async function generateAndSaveReport(
 
   if (appointmentId) {
     try {
-      await appointmentBackendService.transitionStatus(appointmentId, 'completed');
+      await appointmentBackendService.transitionStatus(appointmentId, 'completed', runtimeEnv);
     } catch (err) {
       logger.warn('[consultation-report] Appointment transition to completed failed', {
         appointmentId,
@@ -152,8 +153,9 @@ export async function updateReportContent(
   doctorId: string,
   report: Record<string, unknown>,
   doctorNotes: string | undefined,
+  runtimeEnv?: Record<string, unknown> | null,
 ): Promise<void> {
-  const admin = createAstroAdminClient() as unknown as AdminClient;
+  const admin = createAstroAdminClient(runtimeEnv) as unknown as AdminClient;
 
   const record = await consultationReportRepo.findMedicalRecord(admin, recordId);
   if (record?.doctor_id !== doctorId) {

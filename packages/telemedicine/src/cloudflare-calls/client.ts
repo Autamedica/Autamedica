@@ -127,10 +127,53 @@ export class CloudflareCallsClient {
     return this.localStream
   }
 
+  private async acquireVideoTrack(): Promise<MediaStreamTrack | null> {
+    const constraints = getAdaptiveConstraints()
+    try {
+      const cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: constraints.video,
+        audio: false,
+      })
+      return cameraStream.getVideoTracks()[0] ?? null
+    } catch {
+      return null
+    }
+  }
+
+  async setCameraEnabled(enabled: boolean): Promise<boolean> {
+    if (!this.localStream) return false
+
+    const currentTrack = this.localStream.getVideoTracks()[0] ?? null
+    if (!enabled) {
+      if (!currentTrack) return false
+      currentTrack.enabled = false
+      await this.cfSession?.replacePublishedVideoTrack(null)
+      this.localStream.removeTrack(currentTrack)
+      currentTrack.stop()
+      this.emit('local-stream', this.localStream)
+      return false
+    }
+
+    if (currentTrack?.readyState === 'live') {
+      currentTrack.enabled = true
+      await this.cfSession?.replacePublishedVideoTrack(currentTrack)
+      this.emit('local-stream', this.localStream)
+      return true
+    }
+
+    const newTrack = await this.acquireVideoTrack()
+    if (!newTrack) return false
+
+    this.localStream.addTrack(newTrack)
+    await this.cfSession?.replacePublishedVideoTrack(newTrack)
+    this.emit('local-stream', this.localStream)
+    return true
+  }
+
   toggleVideo(enabled?: boolean): boolean {
     const tracks = this.localStream?.getVideoTracks() ?? []
     const next = enabled !== undefined ? enabled : !tracks[0]?.enabled
-    tracks.forEach((t) => { t.enabled = next })
+    void this.setCameraEnabled(next)
     return next
   }
 

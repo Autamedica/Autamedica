@@ -40,19 +40,29 @@ interface ProfileRow {
 async function resolvePatientName(patientId: string): Promise<string> {
   const supabase = getBrowserSupabaseClient();
 
-  const { data: patient } = await supabase
+  const { data: patient, error: patientError } = await supabase
     .from('patients')
     .select('user_id')
     .eq('id', patientId)
-    .single();
+    .maybeSingle();
+
+  if (patientError) {
+    logger.warn('[doctor-stats] resolvePatientName patient lookup degraded', patientError);
+    return 'Paciente';
+  }
 
   if (!patient?.user_id) return 'Paciente';
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('first_name, last_name')
     .eq('user_id', patient.user_id)
-    .single();
+    .maybeSingle();
+
+  if (profileError) {
+    logger.warn('[doctor-stats] resolvePatientName profile lookup degraded', profileError);
+    return 'Paciente';
+  }
 
   const prof = profile as ProfileRow | null;
   if (!prof) return 'Paciente';
