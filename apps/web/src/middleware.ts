@@ -58,8 +58,86 @@ const STATIC_BUILD_BYPASS_ROUTES = new Set([
 ]);
 
 // ── RATE LIMITING CONFIG ──────────────────────────────────────────────────────
-const AUTH_RATE_LIMIT_MAX = 20;          // requests per window
+const AUTH_RATE_LIMIT_MAX = 20;           // auth requests per window
 const AUTH_RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+
+const GENERAL_RATE_LIMIT_MAX = 120;       // general requests per window (per IP)
+const GENERAL_RATE_LIMIT_WINDOW_MS = 60_000;
+
+const API_RATE_LIMIT_MAX = 60;            // API requests per window (per IP)
+const API_RATE_LIMIT_WINDOW_MS = 60_000;
+
+// ── BOT DETECTION ────────────────────────────────────────────────────────────
+const BLOCKED_BOT_PATTERNS = [
+  /semrushbot/i, /ahrefsbot/i, /mj12bot/i, /dotbot/i, /blexbot/i,
+  /megaindex/i, /seekport/i, /serpstatbot/i, /zoominfobot/i, /dataforseo/i,
+  /bytespider/i, /petalbot/i, /yandexbot/i, /sogou/i, /exabot/i,
+  /claudebot/i, /gptbot/i, /ccbot/i, /anthropic-ai/i, /cohere-ai/i,
+  /scrapy/i, /httpclient/i, /python-requests/i, /go-http-client/i,
+  /java\//i, /libwww-perl/i, /wget/i, /curl\//i,
+];
+
+// Good bots we allow (Google, Bing, etc.)
+const ALLOWED_BOT_PATTERNS = [
+  /googlebot/i, /bingbot/i, /google-inspectiontool/i,
+  /apis-google/i, /mediapartners-google/i, /facebookexternalhit/i,
+  /twitterbot/i, /linkedinbot/i, /whatsapp/i, /telegrambot/i,
+  /slackbot/i, /discordbot/i, /cloudflare/i,
+];
+
+function isBlockedBot(userAgent: string | null): boolean {
+  if (!userAgent || userAgent.length < 5) return true; // empty/garbage UA
+  if (ALLOWED_BOT_PATTERNS.some(p => p.test(userAgent))) return false;
+  return BLOCKED_BOT_PATTERNS.some(p => p.test(userAgent));
+}
+
+// ── IP ABUSE TRACKING ────────────────────────────────────────────────────────
+const abuseMap = new Map<string, { count: number; blockedUntil: number }>();
+const ABUSE_THRESHOLD = 500;              // requests in window to trigger temp block
+const ABUSE_WINDOW_MS = 60_000;           // 1 minute window
+const ABUSE_BLOCK_DURATION_MS = 300_000;  // block for 5 minutes
+let lastAbuseCleanup = Date.now();
+
+function checkAbuse(ip: string): 'allowed' | 'blocked' {
+  const now = Date.now();
+
+  // Periodic cleanup
+  if (now - lastAbuseCleanup > 120_000) {
+    lastAbuseCleanup = now;
+    for (const [key, entry] of abuseMap) {
+      if (now > entry.blockedUntil && now - entry.blockedUntil > ABUSE_WINDOW_MS) {
+        abuseMap.delete(key);
+      }
+    }
+  }
+
+  const entry = abuseMap.get(ip);
+
+  // Currently blocked
+  if (entry?.blockedUntil && now < entry.blockedUntil) {
+    return 'blocked';
+  }
+
+  // Reset if window expired
+  if (!entry || (entry.blockedUntil && now >= entry.blockedUntil)) {
+    abuseMap.set(ip, { count: 1, blockedUntil: 0 });
+    return 'allowed';
+  }
+
+  entry.count++;
+
+  if (entry.count > ABUSE_THRESHOLD) {
+    entry.blockedUntil = now + ABUSE_BLOCK_DURATION_MS;
+    logger.warn('[security] IP auto-blocked for abuse', {
+      ip: ip.slice(0, 8) + '***',
+      requests: entry.count,
+      blockMinutes: ABUSE_BLOCK_DURATION_MS / 60_000,
+    });
+    return 'blocked';
+  }
+
+  return 'allowed';
+}
 
 // ── SECURITY HEADERS ──────────────────────────────────────────────────────────
 const CSP_DIRECTIVES = [
@@ -239,14 +317,61 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return secureNext();
   }
 
-  // ── RATE LIMITING (auth API routes) ─────────────────────────────────────────
-  if (pathname.startsWith('/api/auth/')) {
-    const clientIp = context.request.headers.get('cf-connecting-ip')
-      ?? context.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      ?? 'unknown';
-    const rateLimitKey = `${clientIp}:${pathname}`;
+  // ── CLIENT IP (used by all security checks below) ──────────────────────────
+  const clientIp = context.request.headers.get('cf-connecting-ip')
+    ?? context.request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? 'unknown';
 
+  // ── BOT DETECTION ──────────────────────────────────────────────────────────
+  const userAgent = context.request.headers.get('user-agent');
+  if (isBlockedBot(userAgent)) {
+    const response = new Response('Forbidden', { status: 403 });
+    applySecurityHeaders(response);
+    return response;
+  }
+
+  // ── IP ABUSE AUTO-BLOCK ────────────────────────────────────────────────────
+  if (checkAbuse(clientIp) === 'blocked') {
+    const response = new Response(JSON.stringify({ error: 'Too many requests' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': '300' },
+    });
+    applySecurityHeaders(response);
+    return response;
+  }
+
+  // ── RATE LIMITING (tiered) ─────────────────────────────────────────────────
+
+  // Auth endpoints: strictest (20 req/min)
+  if (pathname.startsWith('/api/auth/')) {
+    const rateLimitKey = `${clientIp}:auth`;
     if (!checkRateLimit(rateLimitKey, AUTH_RATE_LIMIT_MAX, AUTH_RATE_LIMIT_WINDOW_MS)) {
+      const response = new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+      applySecurityHeaders(response);
+      return response;
+    }
+  }
+
+  // All API endpoints: medium (60 req/min)
+  if (pathname.startsWith('/api/')) {
+    const rateLimitKey = `${clientIp}:api`;
+    if (!checkRateLimit(rateLimitKey, API_RATE_LIMIT_MAX, API_RATE_LIMIT_WINDOW_MS)) {
+      const response = new Response(JSON.stringify({ error: 'Too many requests' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+      applySecurityHeaders(response);
+      return response;
+    }
+  }
+
+  // General pages: relaxed (120 req/min) — catches aggressive scrapers
+  {
+    const rateLimitKey = `${clientIp}:general`;
+    if (!checkRateLimit(rateLimitKey, GENERAL_RATE_LIMIT_MAX, GENERAL_RATE_LIMIT_WINDOW_MS)) {
       const response = new Response(JSON.stringify({ error: 'Too many requests' }), {
         status: 429,
         headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
