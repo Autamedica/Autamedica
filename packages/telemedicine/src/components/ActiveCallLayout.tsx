@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { MutableRefObject, RefObject } from 'react'
+import { motion } from 'framer-motion'
 import {
   VideoOff,
   MicOff,
   MonitorUp,
 } from 'lucide-react'
+import { springGentle } from './animation-presets'
 import type { WebRTCClient } from '../webrtc-client'
 import type { CloudflareCallsClient } from '../cloudflare-calls'
 import { patchVideoPlayback } from '../media-optimizations'
@@ -68,12 +70,15 @@ function LocalVideoPiP({
   }, [client])
 
   return (
-    <div
-      className={`absolute z-10 transition-all hover:scale-[1.03] ${
+    <motion.div
+      className={`absolute z-10 ${
         isCompactMode
-          ? 'bottom-4 right-4 max-w-[calc(100vw-2rem)] rounded-full border border-white/10 bg-slate-800/95 px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 sm:h-[144px] sm:w-[200px] sm:max-w-none sm:overflow-hidden sm:rounded-2xl sm:px-0 sm:py-0'
-          : 'bottom-24 right-4 overflow-hidden rounded-2xl border border-white/10 bg-slate-800 shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.7)] sm:bottom-28 sm:right-6 h-[120px] w-[160px] sm:h-[144px] sm:w-[200px]'
+          ? 'bottom-4 right-4 max-w-[calc(100vw-2rem)] rounded-full border border-white/10 bg-slate-800/95 px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.6)] sm:bottom-28 sm:right-6 sm:h-[144px] sm:w-[200px] sm:max-w-none sm:overflow-hidden sm:rounded-2xl sm:px-0 sm:py-0'
+          : 'bottom-24 right-4 overflow-hidden rounded-2xl border border-white/10 bg-slate-800 shadow-[0_8px_32px_rgba(0,0,0,0.6)] sm:bottom-28 sm:right-6 h-[120px] w-[160px] sm:h-[144px] sm:w-[200px]'
       }`}
+      layout
+      whileHover={{ scale: 1.03 }}
+      transition={springGentle}
     >
       <video
         ref={setRef}
@@ -138,7 +143,7 @@ function LocalVideoPiP({
           )}
         </>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -294,7 +299,11 @@ export function ActiveCallLayout({
                       </div>
                     ) : (
                       <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-                        <div className="h-1.5 w-1.5 rounded-full bg-am-patient-400 animate-pulse" />
+                        <motion.div
+                          className="h-1.5 w-1.5 rounded-full bg-am-patient-400"
+                          animate={{ opacity: [1, 0.4, 1] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        />
                         Conectando video...
                       </div>
                     )}
@@ -360,9 +369,14 @@ export function ActiveCallLayout({
             <div className="mt-6 text-center">
               <div className="inline-flex items-center gap-2 text-sm text-slate-400">
                 <div className="flex gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce [animation-delay:0ms]" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce [animation-delay:150ms]" />
-                  <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-bounce [animation-delay:300ms]" />
+                  {[0, 1, 2].map((i) => (
+                    <motion.span
+                      key={i}
+                      className="h-1.5 w-1.5 rounded-full bg-slate-500"
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                    />
+                  ))}
                 </div>
                 Esperando al otro participante
               </div>
